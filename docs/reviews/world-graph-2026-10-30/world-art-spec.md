@@ -1,6 +1,6 @@
-# World art spec (3dmk look, lane-loop shape)
+# World art spec (3dmk look, city shape)
 
-The reference sets the quality bar and the look for lines 1 to 6. Lines 7 to 9 come from the owner's words on 2026-10-30 ("there's no shape to the world ... just 9 boxes next to each other in a 3 x 3 grid, with no flow/process designed"; "Lane loop is closer to my thinking"; exploration "has no order and its very easy to misclick and zoom into a building especially on mobile") and are judged against those words, not the reference frames. Build our own geometry and text from nana-pi data; copy no code, assets or screenshots from the reference.
+The reference sets the quality bar and the look for lines 1 to 6. Lines 7a to 10 come from the owner's city story of 2026-10-30 ("nana is a city whose reception tower catches the owner's signals. Its factory park builds them in parallel lanes and ships finished work to customer towns"; "Dark lots show what they will become, with the lights off"; the scroll tour "follows one request's journey, from signal to customer") and from his rejection of builds 2 to 5 ("lines which are rows are too solid", "shape looks bad"). They are judged against those words, not the reference frames. Build our own geometry and text from nana-pi data; copy no code, assets or screenshots from the reference.
 
 1. The 3D scene is the page: it fills the viewport edge to edge, with text laid over it, not boxed beside it.
 2. The scene is a detailed, legible model with depth, light and shadow; a viewer can tell what each object is.
@@ -8,6 +8,8 @@ The reference sets the quality bar and the look for lines 1 to 6. Lines 7 to 9 c
 4. Typography is deliberate: monospace small-caps labels and a clear hierarchy; no wall of raw paths or IDs.
 5. Text sits in one frosted card or rail over the scene, short and readable, not stacked cards of data dumps.
 6. At 380 px the page still reads as the same designed object, not a long column of cards.
-7. Structure: in the whole-loop frame, structure labels numbered 01 to 09 sit in number order along one continuous widest road that closes on itself. Every other label sits beside a numbered stage, joined to it by a short road. At most a few roads cross the space inside the loop. The structures do not stand in rows and columns.
-8. Tour: one structure is framed near the centre. Its label's number matches the chapter number on the card, and a road leads into the frame.
-9. Explore on a phone: one structure is outlined, and its roads are drawn darker than the others. A card shows its name with an Enter button and a Back to tour button. The view shows the whole loop, not a close-up of one building.
+7a. Parts: the whole-city frame shows a fenced factory park in the middle with one gate out, a ring of town buildings around the fence, and a reception tower standing in the town outside the fence. One road leaves through the gate, passes a customs post at the city edge and runs out to small customer towns. Streets are pale flat strips, lighter than the ground, with thin kerbs.
+7b. Arrangement: the park's halls stand at different distances and bearings from a central yard. They do not form a rectangular block or rows and columns, and they do not stand evenly on one ring around an empty middle. The town does not form an even ring of identical spacing around an empty middle, and no oval road with an empty middle carries the buildings.
+8. Tour: one place on the request's journey is framed near the centre. Its label names the same place and step number as the card, and a street or the signal beam leads into the frame.
+9. Explore on a phone: one building is outlined, and its streets are drawn darker than the others. A card shows its name with an Enter button and a Back to tour button. The view shows the whole city, not a close-up of one building.
+10. Lights and people: the frame shows a lit building and a dark one together, told apart by their windows. The dark one stands complete, not as an empty plot. Small figures stand or work at the framed place.

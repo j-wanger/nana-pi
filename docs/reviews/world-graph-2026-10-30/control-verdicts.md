@@ -30,3 +30,16 @@ Verdict: holds up
 Verdict: reads as a demo against the reference
 
 Line 7 failed on both captures, so the spec stands as written.
+
+## Revision 3 controls (2026-10-30, seat)
+
+Spec as in this folder, judged by visual-reader on first-look shots of each control.
+
+- Main's grid page (d797a9f1):
+  - 7a. FAIL — There is no fenced factory park, gate, reception tower, customs post, outbound road or customer towns. The page shows a "component atlas" of workshop props, not the city. The streets are not pale strips with kerbs.
+  - 7b. FAIL — The pieces sit inside a curved ring road or rail that runs around the cluster. There is no central yard with halls at varied distances.
+- Build 5's oval (b452f8be):
+  - 7a. FAIL — There is no fenced park, gate, reception tower, customs post or customer towns. The streets are thick black bands, not pale strips with kerbs.
+  - 7b. FAIL — The halls sit on an oval road around an empty middle, which the spec bans outright. The town buildings stand in even rows and columns of identical blocks.
+
+Line 7b fails on both, so build 6 may start.

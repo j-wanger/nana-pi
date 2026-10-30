@@ -1,406 +1,372 @@
-# Plan: world-graph (2026-10-30)
+# Plan: world-graph (2026-10-30), revision 3: the city
 
-Worktree `~/nana-pi-wt/world-graph`, branch `feat/world-graph`, based on main `57167e92`. Rows R-3170 to R-3176 (map-spawn-edges holds R-3149 to R-3160, shops-flows R-3161 to R-3169). No new artifact ID: the graph data is part of A-087, the public hive page, as the component data is.
+Worktree `~/nana-pi-wt/world-graph`, branch `feat/world-graph` (PR 273), tip `b452f8be`, merge base and main `d797a9f1`. Rows R-3170 to R-3177 belong to this lane (shops-flows holds R-3161 to R-3169; selective-ci holds R-3178 to R-3186). No new artifact ID: the city plan ships inside A-087, the public hive page, as its app files do.
 
-Revision 1 takes the adversary's attack in `plan-attack.md`:
-- All six MUST findings (1 to 6).
-- SHOULDs 7 (positions made once at publish time), 8 (a `paths` field in the deliverable parser), 9 (geometry pinned on the base commit's graph, not the live one), 10 (ready mark after the linked chapter), 11 in part (the theater moves to lane 3) and 12 (edge-count units).
-- NOTEs 16 (declared loop steps marked), 17 (first-look's own viewport height) and 18 (the deriver can stop the Pages job).
-- NOTE 15 (the hive's own code is unclaimed by any component) is a residual, under Later lanes.
+## Revision 3 changes
 
-This is lane 1 of 3 for the hive's new shape:
-1. **world-graph (this lane):** the world's shape (a graph laid out by springs around the lane loop, edges as roads) and the two modes (scroll tour, free exploration). The library keeps its current archive form as a placeholder.
-2. **shops-flows:** shops, cargo, buyers and restocks on top of this graph. **Paused.** The seat holds its build until this lane passes its shape gate, then rewrites its brief against this lane's graph file (see "shops-flows: paused, and what it changes").
-3. **structure animations (later):** one thematic animation per structure, including the memory component's movie theater: its form, its tapes and its signals.
+- The owner rejected the graph layout and the oval loop of builds 2 to 5 ("lines which are rows are too solid", "shape looks bad"). He then settled a city design in his city story doc on 2026-10-30. This revision plans that city and replaces revision 2.
+- **Dropped:** the publish-time graph. That covers the spring layout and the graph deriver, the derived `graph.json` and its contract and fixtures, the saved 3,551-line base graph, the loop file and the `--graph` flag. Roads are now declared handoffs in a hand city plan, not counted imports. With no deriver left, the `paths` field in `deliverableClaims` and the `contains` export have no caller, so both go back to main's code.
+- **Kept, as precedent:** the scroll tour mechanics (`apps/hive/tour.mjs`), safe tapping in `#explore` (`bindGestures`, Enter-only camera, R-3175 unchanged), `scripts/hive-gesture-check.mjs`, `apps/hive/assets/parts.mjs`, the label safe bands, the first-look viewport fix and the full-viewport overview framing.
+- **Rows:** R-3170 and R-3176 are retired. R-3171 to R-3174 are reworded for the city. R-3177 is new (lights and dark lots). R-3122 is widened from bees to residents. R-3127, R-3130, R-3131 and R-3139 go back to main's wording.
+- `world-art-spec.md` line 7 is rewritten for the city and split into 7a (the parts are present) and 7b (the arrangement). Lines 8 and 9 are adjusted, and a line 10 is added. The negative controls are main's 3x3 grid page and build 5's oval. Line 7b must fail on both before the next build.
+- **Attack 3 taken** (`plan-attack-3.md`), all eight findings, with the seat's rulings:
+  - MUST 1: line 7 is split into 7a and 7b. Two near-miss renders (a grid park and a one-ring park) are judged after build 6, through a serve-only `--layout` override. 7b must fail both and pass the real build.
+  - MUST 2: the shape check uses a lattice rule and a radius-band rule. The controls are four (main's grid, build 5's oval, a grid park, a one-ring park), plus the real city as the must-pass case.
+  - MUST 3: one plan, with no fixture plan. A place whose component the audit lacks still stands, dark, labelled "Not in audit".
+  - MUST 4: the built scene is checked against the layout module (positions, and streets one to one). Street colour is compared with the ground mesh's own material, and street width is capped. A pixel probe of streets against ground joins the seat's acceptance checks, because a unit test cannot see pixels.
+  - SHOULD 5: findings leave the park by the entry. Frontage is measured from each lot's door.
+  - SHOULD 6: the camera stays on the step during its visits. A full scroll check at 380 px joins the seat's gesture check.
+  - SHOULD 7: every break the deletion causes is listed in A18. R-3175's test stays unchanged because `config.mjs` keeps the names it pins.
+  - SHOULD 8: lit and dark windows have a sealed minimum brightness gap. Spec line 10 needs a lit and a dark building in the same frame.
 
 ## Purpose
 
-The owner rejected the landed hive's shape on 2026-10-30: "visual design is ok, but theres no shape to the world, the 3dmk world shape and layout makes sense for its workflow, ours is just 9 boxes next to each other in a 3 x 3 grid, with no flow/process designed". Today `apps/hive/layout.mjs` puts workflow components on a square grid and governance on a ring.
+The owner's reading is agreed. It is his city story doc of 2026-10-30, which records his answers to its five open questions. Its purpose, in his words: "The page is a working map of how nana turns one wish into shipped work. A stranger should be able to explain the workflow after one scroll." Also: "Every building does a real job, and every road carries a real handoff." And: "If a part has no place or no road, the product has a gap. The page shows the gap instead of hiding it." And: "The city draws the product we are aiming for. Parts that do not exist yet stand as dark lots."
 
-He picked the agreed reading from three offered (lane loop as a road; 3dmk rings; capability districts):
+His five decisions:
+- The tower stands in the town, outside the factory park.
+- Customers are other projects built the nana way.
+- Dark lots show what they will become, with the lights off.
+- One courthouse.
+- The scroll tour follows one request's journey, from signal to customer.
 
-- "Lane loop is closer to my thinking."
-- "our setting/code map, capability map, fits more like a graph, so maybe actually plot it with graph based nodes and edges, and with say a spring layout maybe, edges then are naturally fitting as roads"
-- "memory can be an 20th century style movie theater playing different tapes and transmitting those as signals or something to the other lanes" (lane 3)
-- "if you look more closely at the 3dmk site, it has thematically fitting animations for each building/structure" (lane 3)
-- "We also need the scroll script mode and free exploration mode similar to the original, the current exploration is lackluster, as it has no order and its very easy to misclick and zoom into a building especially on mobile"
+The doc's design:
+- A reception tower collects the owner's signals. The owner is an alien in the sky.
+- A factory park holds many halls for parallel lanes: drafting office (planner and adversary), dispatch yard (queue), workshop bays (one per lane), inspection (visual judge), review ladder, and the land gate, the park's only exit. The tool depot and test lab are inside. The night depot and key vault are dark lots.
+- The town rings the park: library theater, one courthouse, the billboard facing north, survey office, utilities, control room (frozen), stage, and customs at the edge on the outbound freight road.
+- Customer towns lie outside. Their feedback rises to the sky as new signals.
+- Residents and workers are visible.
+- There is a free exploration mode with safe tapping.
 
-The lane loop is nana-pi's process: objective and idea, then plan and one adversary, then the queue of issues, then the build in the workshop, then the seat's checks, then the review ladder, the land gate, the release route and the published pages, and back to the next idea.
-
-This lane delivers one feature: **a viewer can trace the numbered lane loop from the layout alone, see each other structure beside the stage it serves, follow roads that are recorded relationships, read the loop chapter by chapter by scrolling, and explore freely without a tap or swipe ever moving the camera.**
-
-### Measured today (main `57167e92`)
-
-The planner measured these with a scratch script over the existing parsers: `repoGraph` in `scripts/code-map.mjs`, `artifactRegistry` and `artifactReads` in `scripts/deliverables.mjs`, and a line regex for `Made by:`/`Read by:`. The adversary reproduced every count (attack NOTE 13). The builder re-measures with the deriver.
-
-Component-to-stage mapping, all 23 components of `docs/components/nana-pi.json`:
-
-| Role | Count | Components (chapter) |
-|---|---|---|
-| Spine stage, in loop order | 9 | 01 Compass (objective and idea) · 02 Drafting table (plan and adversary) · 03 Queue (issues) · 04 Workshop (build) · 05 Eyes (seat checks: first-look, outside-reader) · 06 Review ladder · 07 Land gate · 08 Release route · 09 Notice board (published pages) |
-| Support stage | 5 | Library (memory) under 01 · Tool belt under 04 · Desk under 05 · Lab under 05 · Setup under 08 |
-| Governance gate | 6 | Rulings under 01 · Requirement contract under 02 · Code map under 02 · Identity scan under 03 · Writing rule under 03 · Command gate under 04 |
-| Cannot place on the loop | 3 | Stage (a product surface for focused apps, not a step of the loop) · Key cabinet (absent) · Night shift (absent). These go in chapter 10, "Outside the loop". |
-
-Two governance components sit on the spine (Review ladder, Land gate); their kind stays `governance` in the contract.
-
-Edges between the 23 components, per source, with each source's count unit:
-
-| Source | Count unit (per directed pair) | Directed pairs | Unordered pairs | Largest pair |
-|---|---|---|---|---|
-| Code imports between component parts | import links: distinct (importing module, imported module) | 55 | 45 | Setup → Command gate, 60 links |
-| Artifact registry: `Artifact:` writer to `Reads:` reader | distinct artifact IDs | 20 | 15 | Library → Setup, 9 |
-| Deliverable joins: a row's `Made by:` path to its `Read by:` path | distinct deliverable rows | 28 | 21 | 4, three pairs tie (Tool belt → Setup, Command gate → Setup, Release route → Land gate) |
-| Shared feature | distinct shared FEAT IDs | — | 8 | 1 |
-| Lane loop (the loop file's spine order, closed) | 1, declared | 9 | 9 | 1 |
-
-- Artifact registry and joins together give 24 unordered pairs.
-- The recorded sources give 64 unordered pairs among the 21 components with any edge, a density of 0.30.
-- 5 of the 9 loop segments are also recorded edges. The other 4 are declared only: Compass–Drafting table, Drafting table–Queue, Eyes–Review ladder and Notice board–Compass.
-- Two hubs come from shared-folder claims. Command gate touches 18 pairs, because its part `packages/nana-pack/lib/` claims the pack's shared library. Setup touches 11, because `packages/nana-setup/` claims every Claude Code hook.
-- Key cabinet and Night shift have no edge from any source.
-- Four attached components have no recorded road to their stage: Library to Compass, Tool belt to Workshop, Desk to Eyes, and Lab to Eyes.
-- 13 of the 22 consecutive tour steps have no recorded road (attack finding 2).
-
-The adversary simulated one reading of the first plan, an all-roads spring pass (attack finding 1, inferred numbers).
-- With all 68 roads drawn, the overview had 148 to 224 road crossings. Weak anchors folded the loop. Strong anchors pulled both hubs into the loop's centre, where their roads became spokes.
-- With only the loop and artifact roads drawn (30 roads) at the same positions, it had 21 to 22 crossings.
+This lane delivers one feature: **a stranger scrolling the hive page follows one request from the owner's signal through the tower, the factory park's halls and its one gate, past customs to a customer town and back, in a radial city where every audited part has a lit, half-lit or dark place on a street, and can then explore without a tap ever moving the camera.**
 
 ## Assumptions
 
-- A1. Feature placement: the rows go in FEAT-039, the hive's home (A-087, A-086 and R-3120 to R-3139 live there). What may be wrong: FEAT-039 is the largest feature by rows and known-bug lines; shops-flows makes the same choice.
-- A2. The v1 component contract stays frozen and untouched. The graph is a sibling document, `graph.json`, with its own contract, `nana-component-graph` version 1, in `docs/components/graph-contract.json`. Every v1 reader keeps working, because no v1 file, field or check changes: the audit, its tests, the fixture and the page's component check. A v1-only consumer ignores `graph.json`. **Roads live only in `graph.json`.**
-- A3. Positions are made once, at publish time, in Node, and written into `graph.json`. The graph deriver is their only maker, and the hand source rejects them. Browsers never run the spring, so float differences across chips and engines cannot move the picture. The page reads the positions and road paths and only draws them. This reverses the first plan's "positions stay out of the data" (attack SHOULD 7; the seat's call, taken).
-- A4. The lane loop, each component's role and each component's chapter stage live in a tracked hand source, `docs/components/loop.json`, in the style of `docs/components/nana-pi.json`. It holds the spine order. For every other component it holds the role (`support`, `gate` or `outside`) and the spine stage whose chapter it joins, or `outside`. The mapping table above is its first content. It holds no edge, position or count; the deriver rejects any.
-- A5. The deriver is a new script, `scripts/component-graph.mjs`. It reads the loop file and `docs/components/nana-pi.json` (for parts and features). It reads `REQUIREMENTS.md` through the existing parsers in `scripts/deliverables.mjs`, and the import graph through the import-only `repoGraph`. So it does not depend on map-spawn-edges' launch edges. It writes one edge record per (from, to, source) with its count in the unit above. Then it calls the layout in `scripts/component-graph-layout.mjs` and writes nodes with positions and roads with paths.
-- A6. The deliverable join needs paths that `deliverableClaims` does not return today. The move: each claim gains `paths`, the comma-split detail of a `Made by:` or `Read by:` claim whose kind names paths, and `[]` otherwise. The deriver is its second caller, after the deliverable checker (2026-10-22 helper ruling). The checker's notes and outputs do not change. shops-flows' R-3169 changes `artifactConsumers` in the same file; the two changes touch different functions.
-- A7. A file claimed by two components (6 modules today) counts for both. This is the audit's own `contains` rule, so the graph agrees with the audit's activity counts.
-- A8. Edges are directed in the data and undirected as roads: one road per unordered pair with any edge. Its record keeps every source with its count. A road card writes the units: "60 import links", "9 artifacts", "3 deliverable rows", "1 shared feature". The 4 declared loop segments carry "loop step, declared", so the loop road stays honest (attack NOTE 16).
-- A9. Road classes and when each is drawn:
-  - `loop`: the widest road, always drawn.
-  - `artifact`: always drawn. With `loop`, this makes the **overview set**, 30 roads today.
-  - `spur`: a short declared tie from an attached component to its stage, drawn only where no overview road already joins them. It is marked as the chapter tie, never as a recorded relationship.
-  - `import` and `feature`: drawn only for the selected structure, in explore mode, or for the chapter's structure in the tour.
-  - A road takes its widest class.
-- A10. Forces in the spring pass, a Fruchterman–Reingold pass with these terms:
-  - springs on the overview roads only (loop and artifact), weighted by count on a log scale sealed against the real maximum (Library → Setup, 9 artifacts);
-  - an anchor spring from each spine stage to its loop slot, an ellipse in loop order;
-  - an attachment spring from each attached component to its stage;
-  - repulsion between all nodes, and a weak centring force on all nodes.
-  - Import and feature edges do not shape positions. So the two hubs' 60-link and 37-link import pairs cannot pull them into the centre. After each iteration, an attached component that falls inside the spine polygon is moved out to the polygon edge, outward. A final pass, in a fixed pair order, pushes apart any two footprints closer than the clearance.
-- A11. "Outside the loop" components (Stage, Key cabinet, Night shift) are not in the spring. They stand on a fixed plot, a sealed offset beside Notice board's slot, at sealed spacing in loop-file order. A declared spur, class `spur`, joins the plot to Notice board.
-- A12. Determinism without floating drift:
-  - The iteration uses only `+ − × ÷` and `Math.sqrt`, which IEEE rounds correctly on every machine.
-  - Slot angles, the spiral start and log weights are computed once and rounded to the sealed position grid.
-  - Positions are rounded to that grid after every iteration.
-  - There is no random source. Initial positions come from the loop slots, plus a golden-angle spiral around each attached component's stage slot, in loop-file order. The repo's seeded `rng` is not needed.
-  - The published positions are what the tests pin, rounded.
-- A13. The world has a sealed half-extent, `WORLD_HALF_EXTENT`, not computed from positions. The layout clamps every position inside it. The page's overview frames the spine and attached structures; the outside plot is framed in its own chapter.
-- A14. Footprints: the deriver takes each component's footprint radius from an exported `footprint(component)` in `apps/hive/layout.mjs`. That is the same rule the page uses to draw it, so clearance and road checks measure what is drawn. `scripts/hive-page.mjs` already imports from `apps/hive/config.mjs`, so a script importing from `apps/hive` is precedented.
-- A15. Roads are routed in the deriver: a straight segment between foundation edges, and where that enters a third footprint, one or two bend points around it. Paths are rounded to the position grid and written into `graph.json`.
-- A16. Walkways and the governance perimeter ring go. Roads and spurs replace them. The README sentence "walkways depict adjacency, not a claimed data dependency" is replaced by what each road class means.
-- A17. Tour chapters, in order:
-  - 00 the whole loop;
-  - each spine stage, followed by its attached components as sub-chapters (for example 01 Compass, 01.1 Rulings, 01.2 Library);
-  - 10 Outside the loop and its three;
-  - a closing view of the whole loop with the Explore button.
+- A1. Feature placement: the rows stay in FEAT-039, the hive's home (A-087, A-086 and R-3120 to R-3139 live there). What may be wrong: FEAT-039 is the largest feature by rows and known-bug lines.
+- A2. The city plan is a hand source at `apps/hive/city.json`, contract `nana-city-plan` version 1. It ships with the app files, which the publisher already copies byte for byte (R-3130), so no data flag is added. It holds:
+  - places: id, display name, district (`sky`, `park`, `town`, `edge`, `outside`), bearing in degrees, form name, and the component it houses or none;
+  - the journey: ordered steps, each naming its place and the components visited at that step;
+  - roads: declared handoffs (`forward`, `back` or `air`) between places;
+  - residents: kind and place;
+  - future lots that no component claims yet.
 
-  Every component has exactly one chapter, so the rail lists all 23, now in tour order. Each structure's floating label carries its chapter number ("01 COMPASS", "02.1 REQUIREMENT CONTRACT").
-- A18. What the tour camera follows. The tour path is a walk on drawn roads:
-  - stage to its first sub-chapter: out along the spur, or the overview road joining them;
-  - one sub-chapter to the next of the same stage: back to the stage, then out;
-  - the last sub-chapter to the next stage: back to its stage, then along the loop segment;
-  - stage to the next stage with no sub-chapter: along the loop segment;
-  - Notice board to chapter 10: along the outside spur.
+  It holds no coordinate, radius or count. Positions come from one pure module, `apps/hive/city.mjs`, which the page and the tests both import. What may be wrong: a plan inside the app is nana-pi-specific; a second project's city is a later lane.
 
-  Between consecutive chapter anchors, the camera target lies on that walk.
-- A19. Scroll drives the tour. The page becomes a scroll document of chapter sections over a fixed scene. Scroll progress maps through a pure function to a camera pose. At a chapter's anchor the pose frames that chapter's structure. Under reduced motion or `?still`, the pose is the nearest anchor's exactly. A component hash `#<id>` scrolls to its chapter, so today's shared links keep working. A resize keeps the current chapter, deriving the pose from the chapter rather than from a reset scroll.
-- A20. Hashes and who writes them (attack MUST 5):
-  - `#<id>` is a tour chapter;
-  - `#explore` opens explore;
-  - `#explore/<id>` opens explore with that structure selected, not entered (a deep link for captures);
-  - `#enter/<id>` is inside that structure.
+  There is one plan and no fixture plan (attack MUST 3). A place whose component is missing from the audit data still stands, dark, labelled "Not in audit", and `checkCityPlan` returns one named line for it. The tracked-tree test fails on any such line. The five-component fixture yields 18 of them and still renders: the fixture city is the real city with most lots dark.
+- A2a. Near-miss renders (attack MUST 1): `hive-page --serve --layout <file>` copies a file of `{id: [x, z]}` positions into the served site as `layout-override.json`. The page fetches that file only when it exists and passes the positions to `city.mjs`, which uses them in place of its own. A missing override file is the normal case and is not an error. `--layout` with `--out` exits 2, so Pages can never ship an override. The seat uses it only for the near-miss controls after build 6.
+- A3. Subtraction (the precedent each removal falls back to is main `d797a9f1`):
+  - deleted: `scripts/component-graph.mjs`, `scripts/component-graph-layout.mjs`, `scripts/component-graph-config.mjs`, `docs/components/loop.json`, `docs/components/graph-contract.json`, `docs/components/graph-fixture.json`, `packages/nana-pack/tests/fixtures/hive-graph-base.json`, `apps/hive/graph.mjs` and `apps/hive/roads.mjs`;
+  - back to main: `scripts/deliverables.mjs`, `scripts/component-audit.mjs`, `.github/workflows/pages.yml`, `packages/nana-pack/tests/pages-workflow.test.mjs`, and the graph parts of `scripts/hive-page.mjs`;
+  - kept: `scripts/first-look.mjs`'s change (the exported `waitForHive`, used by the gesture check, and the viewport-before-full-page capture order). Also kept: the `product-report.test.mjs` change that skips retired rows.
+- A4. The radial plan follows the 3dmk study: one origin, polar placement, bands by scale and one public axis.
+  - The origin is the **dispatch yard** (queue). It is the park's chokepoint, where every plan waits for a bay and every bay draws from. This is the 3dmk rule of centre by chokepoint.
+  - **North (−z) is public**: the land gate, customs, the freight road, the customer towns and the billboard face north. **South is home**: the reception tower, with the owner's craft above it in the sky.
+  - The **park** is a disc fenced at a radius computed from its lots' footprints and the street width, so it is sized by count. Park lots stand on spokes from the yard. The drafting office is south, by the entry. The bays fan east and west. Inspection and the review ladder are north. The land gate sits in the fence at north. The tool depot and test lab stand beside the bays. Guard posts (command gate) stand at each bay's door: one component, drawn at every bay, picked as one. The night depot and key vault are dark lots inside the fence.
+  - The **town** is the band outside the fence. A ring street runs round the fence, and town lots front it at their bearings. The band's outer radius is computed from its lots' count. Town lots: tower (south), library theater, courthouse, survey office, utilities, control room, stage, billboard (north, facing north).
+  - The **edge**: customs and the freight terminal (release route) sit on the freight road where it leaves the town, north.
+  - **Outside**: customer towns past the edge, north. Each is a small cluster from the same lot kit. One future neighbouring park stands dark.
+  - **Sky**: the owner's craft above the tower at a sealed height.
+- A5. The fence has exactly two openings: the entry, facing the tower, and the land gate, facing the freight road. Work enters by the entry and leaves only by the land gate.
+- A6. Bays: four bays, sealed. Two are lit, and two stand dark as future capacity.
+  - Lit count: contract, from the 2026-10-16 ruling "at most two lanes build".
+  - Total: chosen, for the doc's "many halls", and matching the four builders of the 10-22 power mode.
+- A7. The one courthouse is a compound of three wings on one plinth: courthouse (rulings), records office (requirement contract) and style desk (writing rule). Each wing is its component's own pickable lot. The notice board is the billboard. The tower carries an unlabelled transmitter mast as part of its form, for the doc's "outbound transmitter".
+- A8. Streets follow a hierarchy (Skylines, EvoStreets, Mini Motorways in `city-prior-art.md`):
+  - one **avenue** carries the forward journey: tower, entry, drafting, yard, bays, inspection, ladder, land gate, customs, freight road, customer towns;
+  - **local streets**: park spokes and the town ring street, which every lot fronts;
+  - **back roads** are dashed footpaths: rules from the courthouse along the ring street to the entry, and findings from the park out through the entry, beside the avenue, then along the ring street to the theater (attack SHOULD 5). No back road crosses the fence anywhere but the entry;
+  - **air legs** are thin arcs, shown only on their chapter: the signal beam from the sky to the tower dish, tapes from the theater to the lit bays, and feedback rising from the customer towns.
 
-  A tap or click only selects: it highlights the structure and its roads and shows a short card with Enter and Back to tour. **Selection never writes the hash.** Only Enter writes a hash (`#enter/<id>`), and only `hashchange` to `#enter/<id>` or `#<id>` moves the camera to a structure. Back writes `#explore`. Back to tour writes the selected structure's chapter hash.
-- A21. Gestures:
-  - A pure reducer in `apps/hive/explore.mjs` decides them; an exported `bindGestures(target, reducer, apply)` in the same module installs the pointer listeners.
-  - `main.mjs` attaches no other pointer listener to the canvas. It writes the hash only through the effect applier.
-  - In explore, one-finger drag orbits and two-finger pinch zooms within bounds. Neither ever selects.
-  - In the tour, the canvas ignores taps, and vertical swipes scroll the page (`touch-action: pan-y` on a scrollable body).
-- A22. The pixel renderer draws the published positions: one mark per structure and one line per overview road, inside its grid. In pixel mode the tour changes the card and the highlight; there is no camera.
-- A23. Every structure keeps its current form and cells, at its new position. Library keeps its current archive form as the placeholder for lane 3's theater.
-- A24. The page sets `data-hive-chapter` and `data-hive-pose` (the camera target and position, rounded) on the root element after each applied pose. The seat's gesture check reads them.
-- A25. A deriver failure on main stops the whole Pages job, product page included, because both run in one job. R-3170's tracked-tree run in the suite catches a loop-file drift before any land (attack NOTE 18).
+  Every ground street is a pale flat strip, lighter than the ground, edged with thin model-white kerbs that cast shadow. No street uses the ink or gap material. Street widths live in a new `STREETS.widths` entry keyed `avenue`, `local`, `back` and `air`. The avenue and the local streets are each capped at a sealed fraction of the median lot width. This answers "lines which are rows are too solid".
+
+  Each lot has a door, the gatehouse point of the lot kit, with an outward normal. A lot fronts the nearest street to its door. That street must be in the lot's own district, or be the avenue.
+- A9. Lights follow the component's audited status. `sound` is lit, `partial` and `gap` are half-lit, and `absent` is dark. Lights are window meshes. Lit and dark window materials differ by at least a sealed luminance gap, and a half-lit lot lights a sealed fraction of its windows (attack SHOULD 8). A place whose component is not in the audit is dark (A2). A dark lot is its full target form with the lights off, never an empty plot. Future lots that no component claims (two dark bays, neighbouring park, feedback road) are dark. Today this gives dark night depot and key vault, and half-lit library theater, control room, test lab and stage, as the doc's table says.
+- A10. Residents are the doc's nine kinds: owner (sky), seat (tower), planner and adversary (drafting office), a builder crew per lit bay, visual judge (inspection), reviewers (ladder), projectionist (theater) and customers (customer towns). They are small faceted figures within a sealed triangle budget. Activity workers per lot keep R-3122's formula, min(recent commits + in flight, 12), drawn as figures instead of bees.
+- A11. The tour (chapter ids are component ids, so today's `#<id>` links keep working):
+
+  | Step | Place | Component | Visits (sub-chapters) |
+  |---|---|---|---|
+  | 00 | the whole city | — | — |
+  | 01 | signal in the sky | — (owner) | — |
+  | 02 | reception tower | compass | rulings (courthouse), writing-rule (style desk) |
+  | 03 | drafting office | drafting-table | requirement-contract (records office) |
+  | 04 | dispatch yard | queue | night-shift (night depot, dark) |
+  | 05 | workshop bays | workshop | tool-belt (tool depot), command-gate (guard posts), code-map (survey office) |
+  | 06 | inspection | eyes | lab (test lab), desk (control room) |
+  | 07 | review ladder | review-ladder | — |
+  | 08 | land gate | land-gate | key-cabinet (key vault, dark) |
+  | 09 | customs | identity-scan | — |
+  | 10 | freight route | release-route | setup (utilities), notice-board (billboard), stage |
+  | 11 | customer towns | — (customers) | — |
+  | 12 | the way back | library (theater: findings become tapes; feedback rises) | — |
+  | 13 | closing view, with the Explore button | — | — |
+
+  Every component appears exactly once. The visit placement follows the doc's journey text where it names one (the survey office at the bay, the billboard at freight). Otherwise the planner chose it, and a change is a plan-file edit.
+
+  Visits keep their step's anchor (attack SHOULD 6). A visit outlines its lot and changes the card. At most, it pulls the camera back to frame both the step's place and the visit's lot. So the request's camera never leaves the step to tour the town. The camera follows streets or air legs only between journey steps. Labels and the rail show the place name with its step number ("05.3 SURVEY OFFICE"). The card heads with the place name, then the component's name, metaphor and voices.
+- A12. Drift shows both ways, and the page still renders (the doc's coherence rule):
+  - An audited component with no place in the plan stands on a **vacant lot** on the town ring at a sealed bearing. It is labelled "No place yet", and its card says so.
+  - A planned place whose component is not in the audit stands dark, labelled "Not in audit" (A2).
+
+  The suite fails on the tracked tree when either case occurs, so drift is caught before a land. The fixture exercises both: `review-hall` takes the vacant lot, and 18 places read "Not in audit".
+- A13. Each lot keeps its current per-id form from `apps/hive/assets/hive.mjs` where it fits: review stair, notice board, archive pavilion, desk, lab, instruments. It is re-dressed onto the shared lot kit of plinth, gatehouse and painted name (3dmk's repeated lot kit). New forms: reception tower with dish and mast, park fence with two gates, bays, courthouse wings, theater (static; its animation is a later lane), customs post, freight terminal, customer towns and the owner's craft.
+- A14. The hashes, the gesture reducer and its binding are unchanged (R-3175). `#explore/<id>` selects without entering, and only Enter moves the camera to a building.
+- A15. The pixel renderer draws one mark per lot at its city position and the fence circle. Its renderer line says "streets in 3D only". R-3128's cells stay.
+- A16. shops-flows stays paused. The two-flag publisher command agreed in revision 2 is withdrawn; `hive-page` takes `--data` alone, as on main. The seat replans shops-flows against the city plan after this lane lands. Its buyers and restocks may fold into the customer towns and the freight road.
+- A17. `packages/nana-pack/tests/hive-graph.test.mjs` is renamed `packages/nana-pack/tests/hive-city.test.mjs`. The R-3175 test moves unchanged, and its row's citation follows the rename. It needs these names to stay:
+  - `explore` and `bindGestures` in `apps/hive/explore.mjs`;
+  - `textLayer`'s explore landing ("Tap a building", the `tour` action);
+  - the one `location.hash` write in `main.mjs`, with no canvas pointer listener there;
+  - `NAVIGATION` in `apps/hive/config.mjs`, deep-equal to its current value, including `roadWidths` and `overviewClasses`.
+
+  So `NAVIGATION` keeps its values (seat ruling). The city reads its street widths from `STREETS.widths`, which R-3134's test pins. `NAVIGATION.roadWidths` and `NAVIGATION.overviewClasses` go unread, and one known-bug line records them for removal when R-3175's test is next edited.
+- A18. Every break the deletion causes, and how each is handled (attack SHOULD 7):
+  - `apps/hive/graph.mjs` is imported by `apps/hive/main.mjs`, `apps/hive/runtime.mjs`, `scripts/hive-page.mjs` and two tests. The plan check in `apps/hive/city.mjs` replaces it at each site.
+  - `apps/hive/roads.mjs` is imported by `apps/hive/assets/hive.mjs` (`visibleRoads`) and `apps/hive/main.mjs`. Street visibility by chapter (air legs) moves into `apps/hive/city.mjs`, and both importers switch to it.
+  - `segmentDistance` in `scripts/component-graph-layout.mjs` is imported by the R-3173 and R-3174 tests. **Move:** it goes into `apps/hive/city.mjs` with `roundPosition`, and the frontage, fence and tour tests import it from there.
+  - `tour.mjs`'s `pathBetween` filters roads by the `loop` and `spur` classes. It is rewritten over the city's streets; only its search shape is kept.
+  - The test file's `fixtureRepo`, `fixtureLoop` and every `scripts/component-graph*.mjs` import are deleted with the R-3170 and R-3176 tests.
+  - `apps/hive/README.md` names `scripts/component-graph.mjs` in its Run section and its road paragraph. Both are rewritten for the city, or the readme check fails.
+  - `.github/workflows/pages.yml`, `packages/nana-pack/tests/pages-workflow.test.mjs`, `scripts/hive-page.mjs` and the R-3127, R-3130 and R-3139 tests in `hive-page.test.mjs` lose their graph steps and cases.
+  - `scripts/deliverables.mjs` and `scripts/component-audit.mjs` revert cleanly: only `scripts/component-graph.mjs` read `paths` and `contains`.
+  - `docs/code-map.md` is regenerated, and `map:check` must pass.
 
 ## Open choices
 
-- O1. Where the graph checker lives: beside `checkComponentData` in `scripts/component-contract.mjs`, or in a new `scripts/component-graph-contract.mjs`. The page needs its own small check in `apps/hive/runtime.mjs` either way, because `scripts/` is not published.
-- O2. Bend-point routing (A15): how bends are chosen, within the no-road-through-a-structure test and the crossing caps.
-- O3. The loop slot proportions and start angle, and the force strengths, within the sealed tunables and the loop-order test.
-- O4. Tour section height, the scroll-to-progress curve, and the camera's lean along the walk.
-- O5. Card wording for roads and for the Outside the loop chapter, within the three reading voices and the units in A8.
-- O6. Highlight style for a selected structure and its roads, in the monochrome palette.
+- O1. Exact bearings, spoke lengths and form proportions, within the sealed tunables and the must-meet tests.
+- O2. How `city.mjs` routes a declared road over the street network (spoke, ring arc, avenue), within the frontage, fence and footprint tests.
+- O3. Whether `tourPose` adds 3dmk's Powers-of-Ten pull-back between far anchors (sky to tower, freight to customer towns). The anchor and walk tests must still hold.
+- O4. Card wording per journey step in the three voices, and the legend line for lights.
+- O5. The fence, gate and kerb details, built from `fence`, `beam` and `ribbon` in `apps/hive/assets/parts.mjs`.
+- O6. Highlight style for a selected lot and its streets, in the monochrome palette.
 
 ## Questions for the owner
 
-Question: Is this the lane loop, with these nine stages in this order, each other structure shown beside the stage it serves, and Stage, Key cabinet and Night shift outside the loop?
-Default: yes, as in the mapping table: Compass, Drafting table, Queue, Workshop, Eyes, Review ladder, Land gate, Release route, Notice board, and back to Compass.
-What the default gains and misses: gains a loop that follows the owner's own sentence stage for stage; misses closer homes for some: Desk is a dashboard over sessions, nearer Workshop than the seat's checks, and Library has no recorded road to Compass.
-Cost of a wrong guess: easy to undo: the loop is one hand file; a change re-lays the world and reorders the tour with no code change.
-If answered otherwise: the builder writes the owner's order and attachments into `docs/components/loop.json`.
-
-Question: On the whole-world view, should only the loop and artifact roads show (about 30), with code imports and shared features appearing when a structure is selected, or should all 68 roads show at once?
-Default: about 30 roads on the overview, plus short ties from each structure to its stage; a selected structure adds its import and feature roads.
-What the default gains and misses: gains a road network a person can follow, about 20 crossings in the adversary's simulation; misses the full code wiring at a glance, which the all-roads view shows at 150 to 220 crossings.
-Cost of a wrong guess: easy to undo: which classes the overview draws is one sealed list; the data carries every road either way.
-If answered otherwise: the overview draws all 68 roads by class width, and the crossing cap is reset by the seat with the owner's answer as its provenance.
-
-Question: In free exploration on a phone, may two fingers pinch to zoom, or should zoom be buttons only?
-Default: bounded pinch zoom is allowed; a tap only ever selects, and only Enter moves the camera to a building.
-What the default gains and misses: gains the gesture phone users expect; misses the rare case where a two-finger scroll starts a zoom, which buttons-only would rule out.
-Cost of a wrong guess: easy to undo: one branch of the gesture reducer and one sealed flag.
-If answered otherwise: pinch does nothing, and plus and minus buttons zoom within the same bounds.
+None. Each choice in this plan is easy to undo. The places, journey and roads live in one hand file, and every tunable is one sealed value. The dropped graph code stays in the branch history. Retiring R-3170 and R-3176 costs two unused IDs.
 
 ## Feature
 
 Feature: FEAT-039 · See the product and its decisions in one report
 
-Lane class: `ordinary` (`node scripts/lane-class.mjs --root . --files docs/components/loop.json,docs/components/graph-contract.json,docs/components/graph-fixture.json,scripts/component-graph.mjs,scripts/component-graph-layout.mjs,scripts/component-graph-config.mjs,scripts/component-audit.mjs,scripts/deliverables.mjs,scripts/hive-page.mjs,scripts/hive-gesture-check.mjs,.github/workflows/pages.yml,apps/hive/layout.mjs,apps/hive/roads.mjs,apps/hive/tour.mjs,apps/hive/explore.mjs,apps/hive/camera.mjs,apps/hive/runtime.mjs,apps/hive/main.mjs,apps/hive/text-layer.mjs,apps/hive/pixel.mjs,apps/hive/config.mjs,apps/hive/index.html,apps/hive/assets/hive.mjs,apps/hive/assets/road.mjs,apps/hive/README.md,packages/nana-pack/tests/hive-graph.test.mjs,packages/nana-pack/tests/fixtures/hive-graph-base.json,packages/nana-pack/tests/hive-page.test.mjs,packages/nana-pack/tests/hive-assets.test.mjs,packages/nana-pack/tests/pages-workflow.test.mjs,packages/nana-pack/tests/component-audit.test.mjs,packages/nana-pack/tests/requirements-deliverables.test.mjs,REQUIREMENTS.md,docs/requirements-tree.md,docs/known-bugs/FEAT-039.md,docs/code-map.md`, re-run 2026-10-30 at `57167e92` after revision 1).
+Lane class: `ordinary` (`node scripts/lane-class.mjs --root . --files apps/hive/city.json,apps/hive/city.mjs,apps/hive/layout.mjs,apps/hive/tour.mjs,apps/hive/camera.mjs,apps/hive/explore.mjs,apps/hive/main.mjs,apps/hive/text-layer.mjs,apps/hive/pixel.mjs,apps/hive/labels.mjs,apps/hive/runtime.mjs,apps/hive/config.mjs,apps/hive/index.html,apps/hive/graph.mjs,apps/hive/roads.mjs,apps/hive/README.md,apps/hive/assets/hive.mjs,apps/hive/assets/district.mjs,apps/hive/assets/residents.mjs,apps/hive/assets/road.mjs,apps/hive/assets/parts.mjs,apps/hive/assets/bee.mjs,scripts/hive-page.mjs,scripts/hive-gesture-check.mjs,scripts/component-graph.mjs,scripts/component-graph-layout.mjs,scripts/component-graph-config.mjs,scripts/component-audit.mjs,scripts/deliverables.mjs,.github/workflows/pages.yml,docs/components/loop.json,docs/components/graph-contract.json,docs/components/graph-fixture.json,packages/nana-pack/tests/hive-city.test.mjs,packages/nana-pack/tests/hive-graph.test.mjs,packages/nana-pack/tests/fixtures/hive-city-controls.json,packages/nana-pack/tests/fixtures/hive-graph-base.json,packages/nana-pack/tests/hive-page.test.mjs,packages/nana-pack/tests/hive-assets.test.mjs,packages/nana-pack/tests/pages-workflow.test.mjs,REQUIREMENTS.md,docs/requirements-tree.md,docs/known-bugs/FEAT-039.md,docs/code-map.md`, run 2026-10-30 at `b452f8be`).
 
-Size: larger. About 900 to 1,200 lines of code and tests: a deriver with layout and routing, a contract, a parser field, a scroll-document page, a gesture reducer and binding, a seat gesture script and Pages wiring. The larger builder (`pi-worker --lane-size larger`) fits.
+Size: larger. It removes about 4,100 lines (the deriver, layout, fixtures and saved base graph). It adds about 1,000 to 1,300 lines of plan, layout, forms, residents and tests. The larger builder (`pi-worker --lane-size larger`) fits.
 
-Rows: R-3170 to R-3176.
+Rows:
+- R-3170 (graph counts): **retired**, with no replacement; roads are declared handoffs.
+- R-3171: reworded to the city plan's placement and refusal (must-meet 1).
+- R-3172: reworded to radial geometry and the shape check (must-meet 2).
+- R-3173: reworded to the street hierarchy, the one exit and pale streets (must-meet 3).
+- R-3174: reworded to the journey tour (must-meet 4).
+- R-3175: unchanged; its test moves with the file rename.
+- R-3176 (paired graph publishing): **retired**; R-3130 and R-3139 at main's wording cover the publisher again.
+- R-3177: **new**, for lights and dark lots (must-meet 5).
+- R-3122: widened from bees to residents (must-meet 6).
+- R-3120: stays retired; its "Replaced by" citation points to R-3172's new test.
+- R-3127, R-3130, R-3131, R-3139: back to main's wording. R-3127 also refuses an invalid city plan: "or a city plan failing its check".
+- R-3126 (tour order), R-3129 (ready after the chapter pose) and R-3125: keep the lane's wording.
 
-Requirement diffs to existing rows (same feature):
-- R-3120 (grid placement with a governance ring) is retired; R-3172 replaces it. Its test is replaced.
-- R-3126: "list all components in contract order" becomes "list all components in tour order".
-- R-3127 gains "or a graph document of another contract name or version, or whose nodes differ from the components".
-- R-3129 gains "the ready mark is set only after the hash's chapter scroll and pose are applied".
-- R-3130: the builder also writes `graph.json`, and refuses a graph whose nodes differ from the components with one line before creating output.
-- R-3131: the identity scan also reads `graph.json`.
-- R-3139: the Pages job runs the graph deriver between the audit and the publisher.
-- R-3125 (camera focus frames every chamber) stays; Enter uses that focus.
+Expected test edits (a forecast, not a limit):
+- `hive-city.test.mjs`: R-3170 and R-3176 tests deleted; R-3171 to R-3174 rewritten; R-3177 added; R-3175 unchanged.
+- `hive-page.test.mjs`: R-3122 gains residents. R-3127, R-3130 and R-3139 lose the graph cases and gain the city-plan refusal in R-3127. R-3126's order follows the journey.
+- `hive-assets.test.mjs`: R-3134's pin gains the new sealed city values; R-3123 keeps its budgets.
+- `pages-workflow.test.mjs`: back to main.
 
 ## Builds and the shape gate
 
-- Before build 1, the seat runs the negative control in Visual acceptance step 1. Line 7 of the spec must FAIL on both control captures before any build starts.
-- Build 1: every row below. Then the seat's first-look runs, visual-reader and the gesture check.
-- Gate: after build 1, the seat shows the owner the frames with one question, "is this the shape?". Build 2 does not start until he answers. An answer that changes the shape goes into build 2's brief.
-- Build 2: the owner's shape answer, the visual judge's FAIL lines, the gesture check's failures, and review fixes.
-- If build 1 runs long, these move to a later lane:
-  - The pixel renderer's road lines. Pixel keeps its marks at the published positions, and its renderer line says "roads in 3D only".
-  - Road cards. Selection still highlights the roads.
-- If build 1 still runs long, the data half lands first as its own reviewed change: R-3170, R-3171 and R-3176, with the published positions. It has no visual risk, and shops-flows needs it. Both modes and mobile safety never move out of this lane.
-
-## shops-flows: paused, and what it changes
-
-- **Paused.** shops-flows has build brief 1 on its branch and no build. The seat does not start it. After this lane passes its shape gate, the seat rewrites its plan and brief against `graph.json`, and it rebases on this lane's land.
-- **Roads live only in `graph.json`.** shops-flows' v2 components document adds `shops` and `flows` and no `roads` field. Its supply, delivery, home and edge roads become road classes in `graph.json`, and shops become nodes with role `shop`. They are made by the graph deriver or a step it calls, with the components' positions held fixed, so adding shops never moves a component. The layout module exports that settle step for this reuse.
-- **One publisher command line, agreed for both lanes:**
-  `node scripts/hive-page.mjs (--out <dir> | --serve [--port <n>]) [--data <components file> --graph <graph file>]`
-  - With neither file, it uses the frozen fixture and its graph fixture.
-  - `--data` without `--graph`, or `--graph` without `--data`, exits 2 with the line `hive-page: --data and --graph go together; make the graph with node scripts/component-graph.mjs --out <file>`.
-  - shops-flows extends this line only by accepting a version-2 components file in `--data`. It adds no flag.
-- Its town layout (its O1: an outer ring past the governance perimeter) is dropped. Its camera stops follow this lane's modes: a shop is a sub-chapter of the stage whose components make its items, and a selectable structure in explore.
-- Its R-3127 and R-3130 diffs merge with this lane's diffs to the same rows. It shares `contains`, which this lane exports from `scripts/component-audit.mjs`.
+- Before the next build (build 6), the seat runs the negative control in Visual acceptance step 1. Line 7b must FAIL on both controls.
+- Build 6: every row above. Then the seat runs first-look, visual-reader, the near-miss controls and the six-check gesture check (steps 3 to 6).
+- Gate: the seat shows the owner the frames with one question, "is this the shape?". Build 7 waits for his answer, and a changed shape goes into its brief.
+- If build 6 runs long, these move to a later lane: residents beyond the nine kinds' single figures, the back-road dashes (drawn solid-pale meanwhile), and the customer towns' detail. The radial plan, the fence with one exit, the pale streets, the lights and both modes never leave this lane.
 
 ## Threat model
 
 In scope: honest variation in our tools' output. Examples:
-- a component added to the audit but not to the loop file, or a loop file naming an unknown stage;
-- a file claimed by two components, a hub component claiming a shared folder, or a component with no edge at all;
-- a `Reads:` or `Read by:` line the checker flags, or a module with an unparsable import;
-- a local `--data` file passed without a matching graph, or a graph from another commit;
-- a later lane adding imports between components (the suite pins geometry on the saved base graph, not the live one);
-- a phone tap that drifts a few pixels, a vertical swipe, a two-finger scroll, a double tap, or a viewport resize mid-tour;
+- the audit adds a component the plan does not place, or the plan names an ID the audit dropped;
+- the fixture's five components against the one tracked plan: one component the plan never places and 18 places the fixture lacks;
+- a builder's layout that is a near miss of the owner's shape: a grid park, or halls on one even ring;
+- a component with no features, `absent` or `partial` status, or zero activity;
+- a plan with a duplicate placement, an unknown district or form, or a road to an unknown place;
+- a phone tap that drifts a few pixels, a vertical swipe, a pinch, a double tap, or a resize mid-tour;
 - a renderer fallback to pixel, and reduced motion.
 
-Out of scope: deliberate forgery, such as a hand-edited `graph.json` with invented edges or positions that passes the contract. A finding outside this model is a residual and goes in the FEAT-039 known-bug file.
+Out of scope: deliberate forgery, such as a hand-edited plan that passes its check while naming handoffs nana does not make. A finding outside this model is a residual and goes in the FEAT-039 known-bug file.
 
 ## Precedent
 
-- `apps/hive/layout.mjs` (`layout`, `bees`): the pure chamber and cell model with world bounds. It stops placing chambers. It reads each node's published `x`, `z`, keeps its chamber and cell output shape, and exports `footprint` for the deriver. `assets/hive.mjs`, `pixel.mjs` and `camera.mjs` keep their inputs.
-- `apps/bench/lib/plan.mjs` (`rng`, mulberry32): the repo's seeded source. It was considered and not used, because the layout needs no random source (A12).
-- `apps/hive/camera.mjs` (`focus`, `overview`): framing by bounding box at an aspect. `apps/hive/tour.mjs` builds its chapter anchors from `focus`, and Enter uses `focus` unchanged.
-- `apps/hive/runtime.mjs` (`prepare`, `firstFrame`, `animationStep`): the page's contract refusal, ready mark and motion clock. `prepare` gains the graph check, and `firstFrame`'s ready call moves after the chapter pose (R-3129 diff).
-- `apps/hive/main.mjs` (pointer handlers, `release`, `pose`, `chooseStop`, the `hashchange` handler): today's misclick path, which the attack traced to three places.
-  - Line 180-181 marks only horizontal drags as moved.
-  - So a vertical swipe ends at line 186 as a tap, which writes the hash at line 199.
-  - The `hashchange` handler at line 170 then flies the camera.
-
-  The gesture logic moves into `apps/hive/explore.mjs`; `main.mjs` keeps only wiring.
-- `apps/hive/text-layer.mjs` (`textLayer`, `renderText`): rail, chapter picker, cards and voices. Chapters gain sub-numbers and tour order; the landing card becomes chapter 00.
-- `apps/hive/assets/hive.mjs` (`buildHive`, per-id forms, `beam`, `fence`): THREE passed in, and pickable `userData.component`. Roads reuse `beam` and `fence` in `apps/hive/assets/road.mjs`. The walkway loop and the perimeter ring are removed, and every per-id form is kept.
-- `apps/hive/config.mjs`: sealed visual values with provenance, pinned by R-3134. The page's new values go here: road widths by class, the overview class list, tap tolerance, zoom bounds, tour section height.
-- `apps/hive/pixel.mjs` (`pixel`, `drawPixel`): the draw list inside the sealed grid. Overview roads become lines in the same list.
-- `docs/components/nana-pi.json` with `scripts/component-audit.mjs` (`checkSource`): a hand source checked by a tool that rejects derived values written by hand. This is the model for `docs/components/loop.json` and its check.
-- `scripts/component-audit.mjs` (`buildAudit`, `main`, private `contains`): the CLI shape (`--out`, `--root`, named problem lines, exit 1 and 2). Move: export `contains`, and the deriver imports it as the second caller.
-- `scripts/component-audit-config.mjs`: sealed paths with provenance. This is the model for `scripts/component-graph-config.mjs`, which holds the spring tunables, loop slots, attachment radius, outside plot, `WORLD_HALF_EXTENT`, the position grid, the weight scale, clearance and the two crossing caps.
-- `docs/components/contract.json` and `scripts/component-contract.mjs` (`checkComponentData`): a field-list contract with `where: field detail` problem lines. This is the model for `docs/components/graph-contract.json` and the graph check.
-- `docs/components/fixture.json`: the five-component fixture. `docs/components/graph-fixture.json` is its graph, written by the deriver over a fixture repo and saved.
-- `scripts/code-map.mjs` (`repoGraph`): the import-only module graph with `callees`. This is the deriver's import source.
-- `scripts/deliverables.mjs` (`artifactRegistry`, `artifactReads`, `deliverableClaims`): the only parsers of `Artifact:`, `Reads:`, `Made by:` and `Read by:` lines. In-lane change: each `deliverableClaims` claim gains `paths` (A6). Guard: the existing `packages/nana-pack/tests/requirements-deliverables.test.mjs` stays green, and the checker's output on the tracked tree is unchanged.
-- `scripts/hive-page.mjs` (`buildHivePage`, `main`): the atomic publisher and its one-line refusals. It gains `--graph` on the agreed command line and writes `graph.json`.
-- `.github/workflows/pages.yml` with `packages/nana-pack/tests/pages-workflow.test.mjs` (R-3131, R-3139): the step order and the identity-scan steps.
-- `scripts/first-look.mjs` (`resolvePlaywright` via `scripts/playwright-resolve.mjs`, `waitForHive`, `captureUrlPage`) and `scripts/first-look-config.mjs` (`VIEWPORT_WIDTHS`, `VIEWPORT_HEIGHT`): the browser plumbing for the seat's gesture check `scripts/hive-gesture-check.mjs`. R-3174 imports the viewport sizes rather than restating them.
-- `scripts/visual-reader.mjs`: the judge, used here also for the negative control.
-- `packages/nana-pack/tests/hive-page.test.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs` and `packages/nana-pack/tests/component-audit.test.mjs`: fixture-repo and build-and-compare tests. They are the model for `packages/nana-pack/tests/hive-graph.test.mjs`.
-- `docs/reviews/hive-render-2026-10-29/replicate-art-spec.md`: the six spec lines this lane's visual acceptance keeps.
+- City plan hand source and its check: `docs/components/loop.json` with `checkLoop` in `scripts/component-graph.mjs` (named-line refusals for missing, duplicate and unknown IDs and hand-written derived fields). **Move:** `checkLoop`'s rules move into `checkCityPlan` in `apps/hive/city.mjs`, and both source files are deleted. Also `docs/components/nana-pi.json` with `checkSource` in `scripts/component-audit.mjs`: a hand source whose tool rejects derived values written by hand.
+- Polar placement and rounding: `scripts/component-graph-layout.mjs` (`settle`'s slot arithmetic, `roundPosition`, the footprint clearance pass). **Move:** `roundPosition` and `segmentDistance` move into `apps/hive/city.mjs` before the file is deleted. The tests are `segmentDistance`'s second caller, so they import it from there (A18). The spring, ellipse and octagon router are not carried over.
+- Footprints and the layout model: `apps/hive/layout.mjs` (`footprint`, `bees`, `layout`'s chamber, cell and bounds shape). `layout` takes city positions from `city.mjs` in place of graph nodes. `apps/hive/assets/hive.mjs`, `pixel.mjs` and `camera.mjs` keep their inputs.
+- Streets: `apps/hive/assets/road.mjs` (`buildRoad`: joints, ribbons, edge lines, dash marks) and `apps/hive/assets/parts.mjs` (`ribbon`, `beam`, `fence`). The street surface switches from the gap material to a pale one, the edge lines become model-white kerbs, and the lane dashes become the back roads' dashes. `fence` draws the park fence.
+- Forms and the lot kit: `apps/hive/assets/hive.mjs` (`buildHive`, per-id forms, pickable `userData.component`, `userData.labelHeight`). New district and city forms go in `apps/hive/assets/district.mjs`. Residents go in `apps/hive/assets/residents.mjs`, following `apps/hive/assets/bee.mjs` (`buildBee`, a faceted figure within a sealed triangle budget).
+- Lights: `apps/hive/assets/materials.mjs` (materials keyed by status and kind) and `STATUS_COLORS` in `apps/hive/config.mjs`.
+- Tour: `apps/hive/tour.mjs` (`tour` with sub-chapters, `pathBetween` over drawn roads, `tourPose`, `chapterProgress`). The spine becomes the plan's journey and the visits become sub-chapters. Air legs are walked as their declared arc.
+- Camera: `apps/hive/camera.mjs` (`overview` with projected-corner fitting on the whole viewport, `focus`).
+- Gestures and explore: `apps/hive/explore.mjs` (`explore`, `bindGestures`), unchanged. `apps/hive/main.mjs` keeps its wiring, safe-band pass and pose marks.
+- Labels: `apps/hive/labels.mjs` (`safeBands`, `placeLabels`), unchanged.
+- Text: `apps/hive/text-layer.mjs` (`textLayer`, `renderText`): place names head the cards and the rail.
+- Sealed values: `apps/hive/config.mjs` and its R-3134 pin in `packages/nana-pack/tests/hive-assets.test.mjs`. New values go here with provenance: band gaps, `STREETS.widths` and the width caps, kerb height, sky height, bays, vacant-lot bearing, the lattice and radius-band limits, frontage and door angle, clearance, world half-extent, the window luminance gap and half-lit fraction, the street pixel margin, the card overlap fraction, and the resident budget.
+- Publisher and Pages: `scripts/hive-page.mjs` and `.github/workflows/pages.yml` as on main `d797a9f1`.
+- Seat gesture check: `scripts/hive-gesture-check.mjs`. Its four checks stay, and its three chapter ids (`drafting-table`, `review-ladder`, `notice-board`) stay chapters. It gains two seat checks: the full scroll at 380 px, and the street pixel probe (Visual acceptance step 5).
+- In-suite geometric checks over published data: the R-3172 and R-3173 tests in `packages/nana-pack/tests/hive-graph.test.mjs` (frontage, footprint, crossing caps). They are the model for the shape check and its controls.
+- Visual negative control: `scripts/visual-reader.mjs` and this folder's `control-verdicts.md`.
 
 `npm run map:search` results taken:
-- "force directed spring layout positions" named `apps/hive/camera.mjs`. No layout precedent exists beyond `apps/hive/layout.mjs`.
-- "component owner of a file path parts" named `scripts/component-audit.mjs`, `scripts/component-audit-config.mjs` and `scripts/component-contract.mjs`.
-- "scroll progress camera tour" named `apps/hive/camera.mjs`, `apps/hive/config.mjs` and `apps/hive/main.mjs`. No scroll-driven precedent exists.
-- "pointer tap gesture select" named nothing relevant (knowledge pointers). `apps/hive/main.mjs` stays the gesture precedent.
-- "seeded random deterministic" named `apps/bench/lib/plan.mjs` (`rng`), used only to decide against a random source.
-- "artifact reads writers edges" named `scripts/deliverables.mjs` and `scripts/code-map.mjs`.
+- "radial polar placement districts" named `scripts/component-graph.mjs` and `apps/hive/layout.mjs`, nothing radial. Placement starts from `settle`'s slot arithmetic.
+- "street road ribbon kerb" named `apps/hive/assets/road.mjs`, `apps/hive/assets/parts.mjs` and `apps/hive/config.mjs`, all taken.
+- "dark unlit lot status material" named `apps/hive/assets/materials.mjs` and `apps/hive/assets/cell.mjs`, taken for lights.
+- "resident figure worker bee" named `apps/hive/assets/bee.mjs`, taken for residents.
+- "scroll chapter journey camera pose" named `apps/hive/tour.mjs`, `apps/hive/main.mjs` and `apps/hive/camera.mjs`, taken.
+- "shape check negative control grid" named nothing relevant. The hive-graph geometry tests stay the model.
 
 Impact (`npm run map:impact`):
-- `apps/hive/layout.mjs` is called by `main.mjs`, `runtime.mjs` and `hive-assets.test.mjs`. Its tests are `hive-page.test.mjs` and `hive-assets.test.mjs`.
-- `apps/hive/assets/hive.mjs` is called by `main.mjs` and `hive-assets.test.mjs`.
-- `scripts/hive-page.mjs` is called by `hive-page.test.mjs`.
-- `scripts/component-audit.mjs` is called by `component-audit.test.mjs` (39 s measured). Exporting `contains` changes no output.
-- `scripts/deliverables.mjs` has 34 transitive callers, among them `scripts/product-report.mjs`, `scripts/code-map.mjs`, `scripts/component-audit.mjs`, `scripts/lane-class.mjs` and 21 test files. Adding `paths` changes no existing field.
-
-Expected test edits (a forecast, not a limit):
-- The R-3120 test is replaced by R-3172's.
-- The R-3126 test's rail order becomes tour order.
-- The R-3127 and R-3130 tests pass a graph with their data and gain the mismatched-graph case.
-- The R-3129 test gains the after-chapter ready mark.
-- The R-3131/R-3139 workflow test gains the graph step and the `graph.json` scan.
-- The R-3134 pin test gains the page's new sealed values.
+- `apps/hive/layout.mjs`: callers `apps/hive/main.mjs`, `apps/hive/runtime.mjs`, `scripts/component-graph.mjs` (deleted), and three hive tests.
+- `apps/hive/assets/hive.mjs`: `apps/hive/main.mjs` and the three hive tests.
+- `apps/hive/tour.mjs`: `apps/hive/main.mjs`, `hive-graph.test.mjs` and `hive-page.test.mjs`.
+- `apps/hive/graph.mjs`: `main.mjs`, `runtime.mjs`, `scripts/hive-page.mjs` and two tests. All lose the import.
+- `apps/hive/roads.mjs`: `apps/hive/assets/hive.mjs` and `apps/hive/main.mjs`. Both switch to `apps/hive/city.mjs` (A18).
+- `scripts/hive-page.mjs`: the two hive tests.
+- A tracked-tree search for `component-graph`, `graph-fixture`, `graph.json`, `loop.json`, `hive-graph`, `graph-contract`, `roads.mjs` and `segmentDistance` finds only the files in A3, `REQUIREMENTS.md`, `apps/hive/README.md`, `apps/hive/main.mjs` and `docs/code-map.md`.
 
 ## Outside precedent
 
-d3-force (Mike Bostock and contributors, ISC licence, github.com/d3/d3-force). Verdict: borrow.
-- Its link, many-body, centring and position forces with a cooling alpha are the model for the spring pass. Its position force is the model for the spine's anchor and the attachment spring.
-- Skip the dependency. The layout is a short Fruchterman–Reingold pass in `scripts/component-graph-layout.mjs`, so there is no new runtime dependency and nothing vendored.
+Medieval Fantasy City Generator (watabou, GPL-3.0, github.com/watabou/TownGeneratorOS). Verdict: borrow the ideas, skip the code.
+- Borrowed: wards inside a wall, gates drawn as passages, outskirts spawning by the gates, and a central plaza. These are the model for the fenced park, its two gates and the edge district by the freight road.
+- Skipped: the code. It is GPL-3.0, written in Haxe, and our plan is a short polar layout.
 
-Other public references: Fruchterman and Reingold, "Graph Drawing by Force-directed Placement" (Software: Practice and Experience, 1991), the algorithm named here. https://3dmk.com/ stays the look and the model for chapter-by-scroll and for an Explore button that leaves the chapters and returns to them. No code, text or assets come from it.
+Other public references:
+- https://3dmk.com/ for the look, the radial bands with a public north, the repeated lot kit, chapter-scoped air arcs and the scroll grammar. No code, text, models or screenshots come from it.
+- Kevin Lynch, *The Image of the City* (1960): paths, edges, districts, nodes and landmarks.
+- Mini Motorways concept art for pale, flat, rounded streets.
+- EvoStreets (Steinbrückner and Lewerentz) for lots fronting their street.
 
 ## Must-meet
 
-1. R-3170 · The graph comes only from recorded relationships and the loop file, in named units.
-   - Proves: every road traces to an import, an artifact line, a shared feature or the loop file, and every count means one stated thing.
-   - Pins: over a fixture repo (a temporary git tree with five components, a ledger and modules), `scripts/component-graph.mjs --out` writes exactly the expected edge records. Each record is one (from, to, source) with its count:
-     - `import`: distinct import links between two components' parts;
-     - `artifact`: distinct artifact IDs from an `Artifact:` writer and a valid `Reads:` reader;
-     - `join`: distinct deliverable rows, from a row's `Made by:` and `Read by:` paths, read through the new `paths` field;
-     - `feature`: distinct shared FEAT IDs;
-     - `loop`: 1 per consecutive spine pair, closed, marked `declared` where no other source joins the pair.
-   - Also:
-     - A `Reads:` line the parser marks invalid gives no edge, and a self-pair gives no edge.
-     - A file in two components gives edges for both.
-     - Each `deliverableClaims` claim carries `paths`, `[]` for a reason-only kind, and the deliverable checker's output on the tracked tree is unchanged.
-   - On the tracked tree, the deriver exits 0, every edge end is a component, and it prints the real counts per source as report lines, not assertions.
-
-2. R-3171 · The loop file places every component exactly once, and every reader refuses one that does not.
-   - Proves: the loop cannot drift from the audit silently, and the page never draws a graph for other components.
-   - Pins: the deriver fails with one line naming the ID for each of these:
-     - a component missing from the loop file, or listed twice;
-     - an unknown ID;
-     - a non-spine stage that is not a spine ID or `outside`;
-     - a spine of fewer than three stages;
-     - an edge, position or count written by hand.
-   - `hive-page` with a graph whose node IDs differ from the components exits 1 with `hive-page: graph nodes must match the components` and creates no output. `prepare(components, graph)` on the same pair returns one plain error and no scene.
-   - `docs/components/contract.json` and `docs/components/fixture.json` are byte-identical to `57167e92`.
-
-3. R-3172 · The published layout is deterministic, bounded and shaped like the loop.
-   - Proves: the same data gives the same world on every machine, nothing drifts off the map, the loop reads as a loop, and every structure stands beside its stage.
-   - Pins, on the graph fixture and on `packages/nana-pack/tests/fixtures/hive-graph-base.json` (the deriver's edge output at `57167e92`, saved once):
-     - The published positions, rounded to the sealed grid, deep-equal a saved golden output for each. The test runs on the macOS and Windows legs alike.
-     - Every position lies inside the sealed `WORLD_HALF_EXTENT`. The same holds on a fixture variant with two edge-less outside components and one edge-less attached component.
-     - No two footprints are closer than the sealed clearance.
-     - The spine stages in loop order form a simple closed polygon, and their angles around its centroid run in loop order.
-     - Every attached component lies within the sealed `ATTACH_RADIUS` of its stage and outside the spine polygon.
-     - Every outside component stands on the sealed outside plot.
-   - The tunables in `scripts/component-graph-config.mjs` (iterations, ideal length, repulsion, anchor, attachment, centring, cooling, loop slots, `ATTACH_RADIUS`, outside plot, `WORLD_HALF_EXTENT`, position grid, weight scale, clearance) are sealed with provenance and pinned by this one test. Every other assertion imports them by name.
-
-4. R-3173 · Roads are the edges, typed by source; the overview stays readable, and no road cuts through a structure.
-   - Proves: the viewer's roads are recorded relationships or marked ties, the overview is a network a person can follow, and a road never passes through a third building.
+1. R-3171 · One city plan places every audited component exactly once, refuses a malformed plan, and shows drift both ways without failing the page.
+   - Proves: the plan cannot drift from the audit silently, and a gap in the product shows as a gap in the city.
    - Pins:
-     - The published `roads` hold exactly one road per unordered pair with any edge, plus one `spur` per attached component that no overview road joins to its stage, plus the outside spur. Each road carries its sources with counts, and its class is the widest of `loop`, `artifact`, `spur`, `import`, `feature`.
-     - The loop road is one closed path through the spine stages in loop order, with each declared segment marked.
-     - On the graph fixture, on the saved base graph, and on two generated graphs (one denser than the fixture, one with a single hub joined to every node), no road path enters the footprint of a structure that is not one of its ends.
-     - On the saved base graph, the overview set (`loop`, `artifact`, `spur`) has at most `OVERVIEW_CROSSING_CAP` crossings, and at most `LOOP_CROSSING_CAP` of them cross the loop road. Both caps are sealed in `scripts/component-graph-config.mjs` with provenance: chosen 2026-10-30, at 12 and 2. That is below the adversary's simulated 21 to 22 for the same 30 roads without attachment springs, so the layout must earn the readable network, and above zero, so it stays buildable. The deriver also prints the tracked graph's crossing count as a report line.
-     - `buildHive` draws the overview roads as road mesh groups with `userData.road` naming the pair. A selection adds that structure's `import` and `feature` roads. No walkway or perimeter ring remains.
+     - `checkCityPlan(plan, components)` returns one named line each for these:
+       - a component placed twice;
+       - a component the audit lacks (`<id>: not in audit`);
+       - an audited component the plan does not place (`<id>: no place yet`);
+       - an unknown district or form;
+       - a journey step or visit naming an unknown place or component;
+       - a road or resident at an unknown place;
+       - a component visited twice in the journey;
+       - a coordinate, radius or count written by hand.
+     - On the tracked tree, `checkCityPlan` returns no line, and every audited component appears exactly once in the journey.
+     - On the fixture, against the same tracked plan:
+       - it returns exactly 18 "not in audit" lines and one "no place yet" line, for `review-hall`;
+       - `prepare` still returns a scene with no error;
+       - the 18 places stand dark, labelled "Not in audit";
+       - `review-hall` stands on the vacant lot at the sealed bearing, labelled "No place yet".
+     - `prepare(data, plan)` with a plan that has a structural problem (anything above except the two drift lines) returns one plain error and no scene (R-3127).
+     - `buildHivePage` copies `city.json` with the app files and writes no `graph.json`. `hive-page --graph x` exits 2 with the usage line. `hive-page --out <dir> --layout <file>` exits 2 before creating output.
 
-5. R-3174 · The scroll tour walks the loop chapter by chapter, with the camera on the roads.
-   - Proves: a reader scrolling the page meets every stage in loop order, sees each one framed and numbered, and travels along drawn roads between them.
+2. R-3172 · The city is radial: a fenced park of halls at several distances round the dispatch yard, a town band holding the tower, customs and freight at the north edge, customer towns beyond, and neither a lattice nor an even ring.
+   - Proves: the layout reads as the owner's city, not as the grid, the oval, or a near miss of either.
+   - Pins, on the nana-pi audit:
+     - The dispatch yard is at the origin.
+     - Every park lot lies inside the fence circle. No town or edge lot lies inside the fence plus the ring street.
+     - The tower lies in the town band, outside the fence, south of the origin.
+     - The land gate lies on the fence, north. Customs and the freight terminal lie past the town band on the freight road, north. Customer towns lie past them.
+     - The billboard's bearing is within the sealed tolerance of north, and its face normal points north.
+     - The owner's craft is above the tower, at the sealed sky height.
+     - The fence radius and the town band's outer radius are computed from their lots' footprints. Adding a park place to a copy of the tracked plan in the test grows the fence.
+     - Every lot lies inside the sealed world half-extent, and no two footprints are closer than the sealed clearance.
+     - Positions are equal across two runs, rounded to the sealed grid.
+   - The shape check `cityShapeProblems(layout)` has two rules:
+     - **lattice:** at most one family of parallel lines that each hold three or more lot centres at even spacing, not counting lines through the origin (the avenue is one line through the origin);
+     - **radius bands:** park lot centres span at least the sealed number of distinct radius bands from the yard.
+   - Controls, in `packages/nana-pack/tests/fixtures/hive-city-controls.json`, each the same 23 IDs with the one problem it must trigger:
+     - main's grid (rows and columns, from main's grid rule): lattice;
+     - build 5's oval, taken once from `b452f8be`'s saved base graph: radius bands;
+     - a grid park inside the fence, with the real town: lattice;
+     - a one-ring park, with an empty yard and the real town: radius bands.
+
+     The real city is the positive control and returns no problem.
+   - The new geometry values are sealed in `apps/hive/config.mjs` with provenance and pinned by R-3134's test. Every assertion here imports them by name.
+
+3. R-3173 · The built streets match the layout, form a hierarchy with one exit from the park, stay pale and narrow, and every lot's door fronts one.
+   - Proves: the page draws the city the layout computes, every building has a road it can reach, work leaves the park only through the land gate and customs, and streets read as streets, not solid dark rows.
+   - Pins, from the scene `buildHive` builds:
+     - Every pickable lot's world position equals its `city.mjs` position, after rounding.
+     - The street meshes match the layout's street segments one to one, by endpoints.
+     - Every street surface's colour is lighter than the ground mesh's own material colour by relative luminance. No street mesh uses the ink or gap material.
+     - The avenue and local street widths are within their sealed caps, as fractions of the median lot width. Kerbs are no taller than the sealed kerb height.
+     - A `back` road is built as separate dashes with gaps, and a `forward` road is continuous. `air` legs are hidden outside their chapters.
+   - Pins, on the layout:
+     - Every lot, including dark, "Not in audit" and vacant lots, has its door within the sealed frontage of a street in its own district or on the avenue, with the door normal facing that street within the sealed angle. The street network is connected.
+     - Exactly two street segments cross the fence circle: the avenue at the entry, facing the tower, and the freight road at the land gate. Every back road crosses it only at the entry.
+     - In the directed forward roads, every path from the drafting office to a customer town passes the land gate, then customs.
+     - No road path enters the footprint of a lot that is not one of its ends.
+
+4. R-3174 · The scroll tour follows one request's journey, from the signal to the customer and back.
+   - Proves: a stranger scrolling the page meets each step of the work in order, sees each framed and named, and travels along the city's streets or the signal beam between steps, without side trips.
    - Pins:
-     - `tour(layout, graph)` lists chapters in A17's order, and every component appears exactly once.
-     - At each chapter's anchor progress, `tourPose` frames every bounding-box corner of that chapter's structure at each first-look viewport (imported `VIEWPORT_WIDTHS` by `VIEWPORT_HEIGHT`).
-     - At three points between every pair of consecutive chapter anchors, the pose's target lies on A18's walk: the loop road, a spur or an overview road joining them.
+     - `tour(layout, plan)` lists chapters in A11's order. Every component appears exactly once, and the visits follow their step as sub-chapters.
+     - At each step's anchor, `tourPose` frames every bounding-box corner of that step's place at each first-look viewport (imported `VIEWPORT_WIDTHS` by `VIEWPORT_HEIGHT`).
+     - At each visit's anchor, the pose's target equals its step's target, and it frames both the step's place and the visit's lot.
+     - At three points between consecutive journey steps, the pose's target lies within the sealed tolerance of a drawn street path joining them. For the declared air legs, it lies on the leg's arc instead. Between a step and its visits, and between visits, the target does not leave the step's framing.
      - Under reduced motion, `tourPose` returns the nearest anchor's pose exactly.
-     - `#<component-id>` resolves to that chapter's progress, and a resize keeps the chapter.
-     - The rail and the phone chapter picker list the chapters in the same order, and each structure's label text starts with its chapter number.
-     - The ready mark is set only after the hash's chapter scroll and pose are applied (R-3129 diff).
+     - `#<component-id>` resolves to its chapter, and a resize keeps the chapter.
+     - The ready mark follows the chapter pose (R-3129).
+     - The rail and the phone picker list the chapters in the same order. Each label starts with its step number and place name.
 
-6. R-3175 · In explore, a tap selects without moving the camera or the hash, and only Enter enters a building, through the real page wiring.
-   - Proves: the owner's complaint is fixed where it happened. A tap, swipe or misclick on a phone never zooms, flies or rewrites the address, and entering a building is a deliberate act.
-   - Pins, on the reducer in `apps/hive/explore.mjs`:
-     - In explore, pointer down and up on a structure within the sealed tap tolerance gives exactly one `select` effect. It changes neither the camera target nor the hash.
-     - Only `enter` emits a hash effect (`#enter/<id>`) and a camera target of `focus(layout, id)`. `back` emits `#explore`. `tour` emits the structure's chapter hash.
-     - A drag beyond the tolerance orbits and never selects. Two pointers zoom within the sealed bounds and never select. A double tap selects once.
-     - In tour mode, a tap gives no effect.
-   - Pins, through the real binding: a Node test calls `bindGestures` on a plain `EventTarget` with the real reducer and a recording `apply`. It dispatches synthetic pointer events:
-     - a tap in the tour;
-     - a 40 px vertical swipe in the tour;
-     - an 8 px vertical drift tap in explore;
-     - a two-pointer pinch in explore;
-     - a double tap in explore.
-
-     It asserts that none applies a camera-target or hash effect, and that the explore drift tap applies only `select`.
-   - A source check of `apps/hive/main.mjs` finds no canvas pointer listener outside `bindGestures`. It also finds no `location.hash` write outside the effect applier, and no camera move on `hashchange` other than to `#enter/<id>` or a chapter.
-   - `#explore` and `#explore/<id>` open explore, the second with that structure selected and not entered. The page sets `data-hive-chapter` and `data-hive-pose` after each applied pose.
-
-7. R-3176 · The publisher and Pages ship the graph beside the components, on the agreed command line.
-   - Proves: the public hive is built from the real graph on every Pages run, and a local look needs only the documented commands.
+5. R-3177 · Lights follow audited status, visibly, and dark lots stand complete with their lights off.
+   - Proves: the city shows what works, what is partial and what is not built yet, as the owner asked ("they show what they will become, with the lights off").
    - Pins:
-     - `buildHivePage(out)` with no data writes the fixture and `graph-fixture.json` as `components.json` and `graph.json`.
-     - With `--data` and `--graph`, it writes both supplied files.
-     - With either flag alone, it exits 2 with `hive-page: --data and --graph go together; make the graph with node scripts/component-graph.mjs --out <file>`.
-     - The Pages job runs the audit, then `component-graph --out`, then `hive-page --data --graph`, then the identity scan on both `components.json` and `graph.json`, keeping the product index.
-     - Every command in the hive README's Run section exists and runs (the readme check).
+     - Every lot's lights are window meshes. The lit and dark window materials differ by at least the sealed luminance gap, and the half-lit material lies between them.
+     - `sound` lights every window. `partial` and `gap` light the sealed fraction of windows. `absent`, "Not in audit" and the declared future lots light none.
+     - A dark lot's form has the same mesh count as the same form built lit. Only its window materials differ, so a dark lot is never an empty plot.
+     - The two unlit bays, the neighbouring park and the feedback road are dark.
+     - On the nana-pi audit, the night depot and key vault are dark. The library theater, control room, test lab and stage are half-lit.
+     - The landing card's legend states the three light states in one sentence.
+
+6. R-3122 · Residents and workers are visible at their places.
+   - Proves: the city is inhabited by the doc's nine kinds of people, and activity still shows as workers.
+   - Pins:
+     - Each lot shows min(recentCommits + inFlight, BEE_CAP) worker figures, split into recent and in-flight, with BEE_CAP still sealed at 12.
+     - `buildHive` places at least one figure of each of the nine resident kinds (owner, seat, planner, adversary, builder, visual judge, reviewer, projectionist, customer).
+     - Each figure stands inside its place's footprint. The owner is at sky height above the tower. One builder crew stands in each lit bay, and none in a dark bay.
+     - Each figure stays within the sealed resident triangle budget, pinned in this test.
 
 ### Visual acceptance (the seat, outside the suite)
 
-The spec is `world-art-spec.md` in this lane folder. **The seat writes it before build 1.**
-- Lines 1 to 6 are the six lines of `docs/reviews/hive-render-2026-10-29/replicate-art-spec.md`, judged against the reference frames.
-- Lines 7 to 9 state facts a judge can see and fail:
-  - (7) Structure: "In the whole-loop frame, structure labels numbered 01 to 09 sit in number order along one continuous widest road that closes on itself. Every other label sits beside a numbered stage, joined to it by a short road. At most a few roads cross the space inside the loop. The structures do not stand in rows and columns."
-  - (8) Tour: "One structure is framed near the centre. Its label's number matches the chapter number on the card, and a road leads into the frame."
-  - (9) Explore on a phone: "One structure is outlined, and its roads are drawn darker than the others. A card shows its name with an Enter button and a Back to tour button. The view shows the whole loop, not a close-up of one building."
+The spec is `world-art-spec.md` in this lane folder, already rewritten for revision 3.
+- Lines 1 to 6 are unchanged.
+- Line 7a is the parts of the city, and 7b is their arrangement. Line 8 is the journey tour. Line 9 is explore on a phone. Line 10 is lights and people.
 
-1. **Negative control, before build 1.** The seat captures two pages with `npm run first-look -- --page url --after <url> --hive --reference /private/tmp/nana-3dmk-ref --spec world-art-spec.md --out <folder outside git>`, then runs `npm run visual-reader -- --from <folder> --out <folder outside git>` on each.
-   - Capture one is main's grid page at `57167e92`: `node scripts/component-audit.mjs --out <tmp>/components.json`, then `node scripts/hive-page.mjs --serve --data <tmp>/components.json`, run from a checkout of `57167e92`.
-   - Capture two is an all-roads frame. It is the adversary's simulation render with all 68 roads, or the seat's own render from the same scratch script, served as a static page outside git.
-   - Line 7 must FAIL on both. If it passes either, the seat rewrites line 7 and re-runs the control before build 1 starts. The control's outputs are saved outside git, and their verdict lines go in the lane folder as `control-verdicts.md`.
-2. **After build 1, serve the page:**
-   - `node scripts/component-audit.mjs --out <tmp>/components.json`
-   - `node scripts/component-graph.mjs --out <tmp>/graph.json`
-   - `node scripts/hive-page.mjs --serve --data <tmp>/components.json --graph <tmp>/graph.json`
-3. **Run first-look once per URL**, each run at its sealed widths with reduced motion, with the command in step 1. The six URLs:
-   - the tour start `<served>/`;
-   - three tour chapters, `<served>/#drafting-table`, `<served>/#review-ladder` and `<served>/#notice-board`;
-   - free mode `<served>/#explore`;
-   - free mode with a selection, `<served>/#explore/workshop`, judged chiefly on its 380 px frame for line 9.
-4. **Run visual-reader** on each capture. Pass means every line judged PASS on its captures: lines 1 to 7 on all six, line 8 on the three chapter captures, line 9 on the selection capture.
-   - The seat also checks that the three chapter captures show three different framed structures, named in their labels.
-   - A FAIL goes back to the builder in the next brief, or to the owner as YOUR CALL with the frames. The seat does not override a FAIL. Reference frames are never committed.
-5. **Gesture check at 380 px**, seat-run and outside the suite: `node scripts/hive-gesture-check.mjs --url <served> --out <folder outside git>`.
-   - It opens a 380 by 1000 touch viewport, with `hasTouch` and reduced motion.
-   - It reads `data-hive-pose` and `data-hive-chapter`, and checks four things:
-     - In explore, a tap on a structure selects it, and the pose and hash stay equal.
-     - In the tour, a tap changes nothing.
-     - A vertical swipe in the tour changes `scrollY` and the chapter, not the selection or the hash.
-     - Scrolling to each of the three chapter sections above gives that chapter's pose.
-   - Pass means all four hold. Its output goes in the lane folder as `gesture-check.txt`.
-6. **The shape gate** applies after build 1: the seat shows the owner the frames and asks "is this the shape?" before build 2.
+1. **Negative control, before build 6.** The seat captures two pages with `npm run first-look -- --page url --after <url> --hive --reference <reference folder> --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out <folder outside git>`. Then it runs `npm run visual-reader -- --from <folder> --out <folder outside git>` on each.
+   - Control one is main's grid page. From a checkout of `d797a9f1`, run `node scripts/component-audit.mjs --out <tmp>/components.json`, then `node scripts/hive-page.mjs --serve --data <tmp>/components.json`.
+   - Control two is build 5's oval. From a checkout of `b452f8be`, run the same audit, then `node scripts/component-graph.mjs --out <tmp>/graph.json`, then `node scripts/hive-page.mjs --serve --data <tmp>/components.json --graph <tmp>/graph.json`.
+   - Line 7b must FAIL on both. A FAIL on 7a alone does not count: these pages lack the city's parts, so 7a says nothing about shape. If 7b passes either, the seat rewrites 7b and re-runs the control before build 6. The verdict lines go in `control-verdicts.md` under "Revision 3 controls".
+2. **After build 6, serve the page:** `node scripts/component-audit.mjs --out <tmp>/components.json`, then `node scripts/hive-page.mjs --serve --data <tmp>/components.json`.
+3. **Run first-look once per URL**, with the command in step 1, at the sealed widths with reduced motion:
+   - the whole city, `<served>/#overview`;
+   - three journey chapters: `<served>/#signal`, `<served>/#workshop` and `<served>/#identity-scan`;
+   - free mode, `<served>/#explore`;
+   - free mode with a selection, `<served>/#explore/workshop`.
+4. **Run visual-reader** on each capture. Pass means:
+   - lines 1 to 6, 7a and 7b PASS on all six captures;
+   - lines 8 and 10 PASS on the three chapter captures;
+   - line 9 PASSES on the selection capture.
+
+   The seat also checks that the three chapter captures frame three different places, named in their labels. A FAIL goes back to the builder in the next brief, or to the owner as YOUR CALL with the frames. The seat does not override a FAIL. Reference frames are never committed.
+5. **Near-miss controls, after build 6** (attack MUST 1). The seat serves build 6 twice more with `node scripts/hive-page.mjs --serve --data <tmp>/components.json --layout <file>`. It uses the grid-park and one-ring-park positions from `packages/nana-pack/tests/fixtures/hive-city-controls.json`, each written to a file outside git. It captures `#overview` and runs visual-reader. Line 7b must FAIL both near-misses and PASS the real build. The verdict lines go in `control-verdicts.md` under "Revision 3 near-miss controls". If 7b passes a near-miss, the seat sharpens 7b and re-judges all three before the shape gate.
+6. **Gesture check at 380 px**: `node scripts/hive-gesture-check.mjs --url <served> --out <folder outside git>`. It gains two checks, so pass means all six hold:
+   - the four existing checks;
+   - **full scroll** (attack SHOULD 6): scroll from top to bottom, and record `data-hive-chapter` at each settle. The sequence must equal `tour()`'s chapter order with no skips. At each journey step's anchor, the projected box of the step's place must overlap the active card's rect by no more than the sealed fraction;
+   - **street pixel probe** (attack MUST 4): on the `#overview` frame, the page exposes the screen points of five street centreline samples and five ground samples beside them. Each street pixel must be lighter than its ground neighbour by the sealed luminance margin.
+
+   Its output goes in the lane folder as `gesture-check.txt`.
+7. **The shape gate** follows: the seat shows the owner the frames and asks "is this the shape?" before build 7.
+
 
 ## Later lanes (not this one)
 
-- shops-flows, after this lane's shape gate, on `graph.json` and the agreed command line.
-- Structure animations: a thematic animation per structure, and the movie theater for the memory component, with its form, tapes and signals.
-- Launch edges from map-spawn-edges as another road source, once that lane lands.
-- Residual (attack NOTE 15): the hive's own code (`apps/hive/`, `scripts/hive-page.mjs`, the new deriver) is claimed by no component. So the published-pages stage cannot show the page it publishes. A change to Notice board's parts in the hand audit would fix it; this lane does not make it.
+- Structure animations: the tower dish turning to a signal, the theater playing tapes, crews at work, freight moving on the road.
+- Handoff evidence: back each declared road with a recorded artifact's maker and reader, so the coherence test reads the ledger, not only the plan.
+- Neighbouring parks: one view across several nana projects, each its own park.
+- shops-flows, replanned against the city plan.
+- Residual (attack NOTE 15, carried): the hive's own code (`apps/hive/`, `scripts/hive-page.mjs`) is claimed by no component, so the billboard cannot show the page it publishes.
