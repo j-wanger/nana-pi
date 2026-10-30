@@ -101,9 +101,14 @@ check("R-2966: failed class child prints one reason after build end and keeps th
 // req: R-2967
 check("R-2967: worker checks the class script at HEAD before running the class child", /git', \['cat-file', '-e', 'HEAD:scripts\/lane-class\.mjs'\]/.test(workerSource), "HEAD presence check missing");
 
-const sealedExpected = ["packages/nana-setup/claude/hooks/", "packages/nana-setup/bin/", "packages/nana-setup/lib/", "packages/nana-pack/lib/gate-paths.ts", "packages/nana-pack/lib/gate-rm-inside.ts", "packages/nana-pack/lib/gate-rm-outside.ts", "packages/nana-pack/lib/gate-shell.ts", "packages/nana-pack/lib/gate-temp-roots.ts", "packages/nana-pack/bin/nana-land.mjs", "packages/nana-pack/bin/pi-review.mjs", "packages/nana-pack/bin/claude-review.mjs", "packages/nana-pack/bin/review-round.mjs"];
+const sealedExpected = [".github/workflows/ci.yml", "scripts/test.mjs", "packages/nana-pack/lib/test-runner-config.mjs", "packages/nana-setup/claude/hooks/", "packages/nana-setup/bin/", "packages/nana-setup/lib/", "packages/nana-pack/lib/gate-paths.ts", "packages/nana-pack/lib/gate-rm-inside.ts", "packages/nana-pack/lib/gate-rm-outside.ts", "packages/nana-pack/lib/gate-shell.ts", "packages/nana-pack/lib/gate-temp-roots.ts", "packages/nana-pack/bin/nana-land.mjs", "packages/nana-pack/bin/pi-review.mjs", "packages/nana-pack/bin/claude-review.mjs", "packages/nana-pack/bin/review-round.mjs"];
 const launchedExpected = ["packages/nana-pack/bin/nana-objective.mjs", "packages/nana-pack/bin/nana-frontier-summary.mjs", "packages/nana-pack/bin/nana-adoption.mjs", "packages/nana-knowledge/bin/nana-knowledge.ts", "packages/nana-setup/bin/stale-copies.mjs"];
 // req: R-2961
 check("seal: R-2961 class paths and launched CLIs match the reviewed path list", JSON.stringify(CLASS_PATHS.map(({ prefix }) => prefix)) === JSON.stringify(sealedExpected) && JSON.stringify(LAUNCHED_CLIS) === JSON.stringify(launchedExpected) && LANE_CLASS_MAX_BUFFER_BYTES === 1024 * 1024 && /cap captured class output at 1 MiB/.test(await (await import("node:fs/promises")).readFile(fileURLToPath(new URL("../lib/lane-class-config.mjs", import.meta.url)), "utf8")) && /AGENTS\.md:94/.test(await (await import("node:fs/promises")).readFile(fileURLToPath(new URL("../lib/lane-class-config.mjs", import.meta.url)), "utf8")), JSON.stringify({ paths: CLASS_PATHS, launched: LAUNCHED_CLIS, maxBuffer: LANE_CLASS_MAX_BUFFER_BYTES }));
+
+const ciGatePaths = [".github/workflows/ci.yml", "scripts/test.mjs", "packages/nana-pack/lib/test-runner-config.mjs"];
+const ciClasses = ciGatePaths.map((file) => ({ file, result: run("--files", file) }));
+// req: R-3185
+check("R-3185: the CI workflow runner and runner config are explicit gate files", ciClasses.every(({ file, result }) => result.status === 0 && line(result)[0] === `gate: ${file} — CI verdict nana-land reads` && CLASS_PATHS.some(({ prefix, kind, why }) => prefix === file && kind === "gate" && why === "CI verdict nana-land reads")), JSON.stringify(ciClasses));
 
 process.exit(failures ? 1 : 0);

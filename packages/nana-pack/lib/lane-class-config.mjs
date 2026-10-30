@@ -9,6 +9,10 @@
 // Plan: docs/reviews/lane-class-2026-10-28/plan.md, R-2960–R-2967.
 // AGENTS.md:94 (2026-10-28): the ordinary/install/hook/gate boundary; paths mirror that definition.
 export const CLASS_PATHS = [
+	// contract (selective-ci revision 3, R-3185): no selector exists in this scope.
+	{ prefix: ".github/workflows/ci.yml", kind: "gate", why: "CI verdict nana-land reads" },
+	{ prefix: "scripts/test.mjs", kind: "gate", why: "CI verdict nana-land reads" },
+	{ prefix: "packages/nana-pack/lib/test-runner-config.mjs", kind: "gate", why: "CI verdict nana-land reads" },
 	{ prefix: "packages/nana-setup/claude/hooks/", kind: "hook", why: "Claude Code hook" },
 	{ prefix: "packages/nana-setup/bin/", kind: "install", why: "nana-setup CLI" },
 	{ prefix: "packages/nana-setup/lib/", kind: "install", why: "nana-setup library" },

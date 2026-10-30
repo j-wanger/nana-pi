@@ -84,6 +84,7 @@ export function readCiRecords(argv = [], {
 	fsApi = fs,
 	tempRoot = os.tmpdir(),
 	writeLine = console.log,
+	runId,
 } = {}) {
 	const line = (text) => writeLine(`${CI_RECORD_LINE_PREFIX} ${text}`);
 	if (argv.length > 1) { line("usage: ci-records.mjs [<rev>]"); return { code: 1, records: 0, parsed: [] }; }
@@ -99,11 +100,13 @@ export function readCiRecords(argv = [], {
 	const base = `repos/${repository.owner}/${repository.repo}`;
 	const runsResult = ghJson(runGh, cwd, ["api", "--hostname", CI_HOST, `${base}/actions/runs?head_sha=${sha}&per_page=${GH_PAGE_SIZE}`], "workflow_runs");
 	if (!runsResult.ok) { line(runsResult.reason); return { code: 1, records: 0, parsed: [] }; }
-	const runs = runsResult.values.filter((run) => run?.path === CI_WORKFLOW_RUN_PATH).sort((left, right) => idCompare(left.id, right.id));
+	const runs = runsResult.values.filter((run) => run?.path === CI_WORKFLOW_RUN_PATH && (runId === undefined || String(run.id) === String(runId))).sort((left, right) => idCompare(left.id, right.id));
 	if (!runs.length) { line(`no CI run for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0, parsed: [] }; }
 
 	let downloadRoot = null;
 	const printed = [];
+	const jobs = [];
+	const missingLegs = new Set();
 	const problems = [];
 	try {
 		fsApi.mkdirSync(tempRoot, { recursive: true });
@@ -113,6 +116,7 @@ export function readCiRecords(argv = [], {
 			if (!artifactsResult.ok) { problems.push(`run ${run.id}: artifact listing failed: ${artifactsResult.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`); continue; }
 			const jobsResult = ghJson(runGh, cwd, ["api", "--hostname", CI_HOST, `${base}/actions/runs/${run.id}/jobs?filter=latest&per_page=${GH_PAGE_SIZE}`], "jobs");
 			if (!jobsResult.ok) problems.push(`run ${run.id}: job listing failed: ${jobsResult.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`);
+			else jobs.push(...jobsResult.values.map((job) => ({ run, job, leg: legOfJob(job) })));
 			const artifacts = artifactsResult.values
 				.map((value) => ({ value, identity: artifactIdentity(value?.name) }))
 				.filter(({ value, identity }) => identity && value?.expired !== true);
@@ -120,17 +124,18 @@ export function readCiRecords(argv = [], {
 				const folder = path.join(downloadRoot, `${run.id}-${artifact.id}`);
 				const downloaded = ghResult(runGh, cwd, ["run", "download", String(run.id), "--repo", `${CI_HOST}/${repository.owner}/${repository.repo}`, "--name", artifact.name, "--dir", folder]);
 				if (!downloaded.ok) {
+					missingLegs.add(identity.leg);
 					problems.push(`artifact ${artifact.name} from run ${run.id}: download failed: ${downloaded.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`);
 					continue;
 				}
 				let names;
 				try { names = fsApi.readdirSync(folder).filter((name) => name.endsWith(".json")); }
-				catch (error) { problems.push(`artifact ${artifact.name} from run ${run.id}: unreadable folder: ${error?.message ?? "unknown error"}`); continue; }
-				if (names.length !== 1) { problems.push(`artifact ${artifact.name} from run ${run.id}: expected one JSON file, found ${names.length}`); continue; }
+				catch (error) { missingLegs.add(identity.leg); problems.push(`artifact ${artifact.name} from run ${run.id}: unreadable folder: ${error?.message ?? "unknown error"}`); continue; }
+				if (names.length !== 1) { missingLegs.add(identity.leg); problems.push(`artifact ${artifact.name} from run ${run.id}: expected one JSON file, found ${names.length}`); continue; }
 				try {
 					const record = readRunRecord(path.join(folder, names[0]), { fsApi });
 					printed.push({ run, artifact, leg: identity.leg, attempt: identity.attempt, record });
-				} catch (error) { problems.push(`artifact ${artifact.name} from run ${run.id}: ${error?.message ?? "run record is unreadable"}`); }
+				} catch (error) { missingLegs.add(identity.leg); problems.push(`artifact ${artifact.name} from run ${run.id}: ${error?.message ?? "run record is unreadable"}`); }
 			}
 			if (!jobsResult.ok) continue;
 			const newestArtifact = new Map();
@@ -143,9 +148,9 @@ export function readCiRecords(argv = [], {
 				if (!leg) continue;
 				if (job.status !== "completed") { problems.push(`run ${run.id} ${leg}: still running (${job.status ?? "unknown"})`); continue; }
 				const newest = newestArtifact.get(leg);
-				if (!newest) { problems.push(`run ${run.id} ${leg}: no record (${job.conclusion ?? "unknown"})`); continue; }
+				if (!newest) { missingLegs.add(leg); problems.push(`run ${run.id} ${leg}: no record (${job.conclusion ?? "unknown"})`); continue; }
 				const attempt = Number(job.run_attempt ?? run.run_attempt ?? 1);
-				if (attempt > newest.identity.attempt && timeOf(job.started_at) > timeOf(newest.value.created_at)) problems.push(`run ${run.id} ${leg}: attempt ${attempt} left no record`);
+				if (attempt > newest.identity.attempt && timeOf(job.started_at) > timeOf(newest.value.created_at)) { missingLegs.add(leg); problems.push(`run ${run.id} ${leg}: attempt ${attempt} left no record`); }
 			}
 		}
 	} catch (error) {
@@ -160,7 +165,7 @@ export function readCiRecords(argv = [], {
 	printed.sort((left, right) => idCompare(left.run.id, right.run.id) || left.leg.localeCompare(right.leg) || left.attempt - right.attempt);
 	for (const item of printed) { writeLine(totalsText(item)); writeLine(slowestText(item)); }
 	for (const problem of problems) line(problem);
-	if (!printed.length) { line(`no readable record for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0, parsed: [] }; }
+	if (!printed.length) { line(`no readable record for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0, parsed: [], jobs, missingLegs: [...missingLegs], problems }; }
 	line(`${printed.length} records from ${runs.length} CI runs at ${sha.slice(0, TIP_DIGITS)}; seconds are hosted-runner seconds under each record's job count`);
-	return { code: 0, records: printed.length, parsed: printed };
+	return { code: 0, records: printed.length, parsed: printed, jobs, missingLegs: [...missingLegs], problems };
 }

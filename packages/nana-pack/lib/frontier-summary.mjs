@@ -7,6 +7,9 @@
  * @errors none; missing input is silent and every other read or decode failure becomes one marker line.
  */
 import * as path from "node:path";
+import { existsSync } from "node:fs";
+import { mainCiCommand } from "./main-ci.mjs";
+import { CI_WORKFLOW_RUN_PATH } from "./suite-records-config.mjs";
 import { issuesPointer, readHandoffIssues } from "./handoff-issues.mjs";
 import { watchCommand } from "./issue-watch.mjs";
 import { canonicalCwd, repoRootOf } from "./adoption.mjs";
@@ -41,7 +44,7 @@ const askCounts = (asks) => [...ASK_KIND_ORDER, "untagged"].flatMap((kind) => {
 });
 const cleanTitle = (title) => promptText(title, FRONTIER_TITLE_CAP);
 
-function renderBlock(file, result, next, asks, selected, issues, watchLine) {
+function renderBlock(file, result, next, asks, selected, issues, watchLine, mainCiLine) {
 	const selectedNext = next.filter((item) => selected.has(item));
 	const selectedAsks = asks.filter((item) => selected.has(item));
 	const omittedNext = next.length - selectedNext.length;
@@ -73,6 +76,7 @@ function renderBlock(file, result, next, asks, selected, issues, watchLine) {
 	if (omitted) out.push(`…and ${omitted} more titles not shown (${omittedNext} Next, ${omittedAsks} asks).`);
 	if (issues?.truncated) out.push("Open issues: list may be longer (fetch cap reached).");
 	if (watchLine) out.push(watchLine);
+	if (mainCiLine) out.push(mainCiLine);
 	const counts = findingCounts(result.findings);
 	out.push(`Frontier check: ${frontierSummaryLine(result)}${counts.length ? ` (${counts.map(({ kind, count }) => `${kind} ${count}`).join(", ")})` : ""}`);
 	return `${out.join("\n")}\n`;
@@ -104,6 +108,7 @@ export function frontierSummary({ cwd = process.cwd(), today = new Date().toISOS
 	const asks = [...ASK_KIND_ORDER, null].flatMap((kind) => rawAsks.filter((ask) => kind === null ? ask.tag === null : ask.tag?.kind === kind));
 	const pointer = issuesPointer(text);
 	const watchLine = pointer && !pointer.failure ? `Issue watch background monitor: ${watchCommand(root)}` : null;
+	const mainCiLine = watchLine && existsSync(path.join(root, CI_WORKFLOW_RUN_PATH)) ? `Main CI check: ${mainCiCommand(root)}` : null;
 	const issues = pointer ? pointer.failure ? pointer : readIssues({ pointer, text, cwd: root, env, limitMs }) : null;
 	if (issues?.items) {
 		const ordered = ["next", ...ASK_KIND_ORDER, null].flatMap((kind) => issues.items.filter((item) => item.kind === kind));
@@ -123,9 +128,9 @@ export function frontierSummary({ cwd = process.cwd(), today = new Date().toISOS
 	];
 	for (const item of priority) {
 		chosen.add(item);
-		if (renderBlock(file, result, next, asks, chosen, issues, watchLine).length > limit) chosen.delete(item);
+		if (renderBlock(file, result, next, asks, chosen, issues, watchLine, mainCiLine).length > limit) chosen.delete(item);
 	}
-	const rendered = renderBlock(file, result, next, asks, chosen, issues, watchLine);
-	if (rendered.length > limit) return `frontier block omitted: ${numericMax} characters left after the objective\n${watchLine ? `${watchLine}\n` : ""}`;
+	const rendered = renderBlock(file, result, next, asks, chosen, issues, watchLine, mainCiLine);
+	if (rendered.length > limit) return `frontier block omitted: ${numericMax} characters left after the objective\n${watchLine ? `${watchLine}\n` : ""}${mainCiLine ? `${mainCiLine}\n` : ""}`;
 	return rendered;
 }

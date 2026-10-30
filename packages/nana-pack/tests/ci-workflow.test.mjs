@@ -379,4 +379,18 @@ check("R-2061: the suite job's time limit is sealed at 90 minutes with a chosen 
   for (let i = limitIndex - 1; i >= 0 && /^ {4}#/.test(lines[i]); i--) commentLines.unshift(lines[i]);
   assert(commentLines.some((line) => /\bchosen\b/.test(line)), "a chosen comment must sit directly above the sealed limit, with the word chosen");
 });
+// req: R-597
+check("main pushes run the full suite on all systems without path filters or issue-writing permissions", () => {
+  const normalized = workflow.replaceAll("\r\n", "\n").split("\n").map((line) => line.trimEnd()).join("\n");
+  assert.match(normalized, /^on:\n  push:\n    branches: \[main\]\n  pull_request:/m);
+  assert.doesNotMatch(normalized, /^\s*(paths|paths-ignore|issues):/m);
+  const suite = normalized.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  assert.match(suite, /os: \[macos-latest, ubuntu-latest, windows-latest\]/);
+  assert.doesNotMatch(suite, /^    if:/m);
+  const commands = [...suite.matchAll(/^      - run: (npm test[^\n]*)\n        if: ([^\n]*)/gm)];
+  assert.deepEqual(commands.map((m) => [m[1], m[2]]), [
+    ["npm test -- --jobs=${{ env.NANA_CI_JOBS }}", "matrix.os != 'windows-latest'"],
+    ["npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }}", "matrix.os == 'windows-latest'"],
+  ]);
+});
 if (failures) process.exitCode = 1;

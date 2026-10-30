@@ -16,6 +16,7 @@ import { promptPath } from "../lib/display.mjs";
 import { frontierSummary } from "../lib/frontier-summary.mjs";
 import { FRONTIER_HEADING, FRONTIER_OUTPUT_CAP, FRONTIER_SECTION, FRONTIER_TAG, FRONTIER_TITLE_CAP, FRONTIER_UNAVAILABLE } from "../lib/frontier-summary-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+import * as frontierValues from "../lib/frontier-summary-config.mjs";
 
 delete process.env.NANA_ROLE;
 
@@ -180,5 +181,25 @@ const lines = (text) => text?.split("\n") ?? [];
 
 // req: R-2606 R-2609 R-2612
 check("seal: the frontier block's tag is [nana:frontier], its pi section is nana-frontier and its caps are 4,000 and 160 characters", FRONTIER_TAG === "[nana:frontier]" && FRONTIER_SECTION === "nana-frontier" && FRONTIER_OUTPUT_CAP === 4000 && FRONTIER_TITLE_CAP === 160);
+
+{
+	const pointer = "## Next\nThe live next items are the open issues labelled `next` at https://github.com/example/project/issues.\n## Open for the owner\nThe owner's open questions are the open issues labelled `ask` at https://github.com/example/project/issues.\n";
+	const root = repo("frontier-main-ci", pointer);
+	const render = (opts = {}) => frontierSummary({ cwd: root, env: {}, readIssues: () => ({ items: [] }), ...opts });
+	const before = render();
+	fs.mkdirSync(path.join(root, ".github/workflows"), { recursive: true });
+	fs.writeFileSync(path.join(root, ".github/workflows/ci.yml"), "name: ci\n");
+	const variants = [pointer, pointer.replaceAll("\n", "\r\n"), pointer.trimEnd() + " \t"];
+	const blocks = variants.map((text) => { fs.writeFileSync(path.join(root, "HANDOFF.md"), text); return render(); });
+	const omitted = render({ max: 1 });
+	const seat = fs.readFileSync(path.join(ROOT, "packages/nana-setup/claude/rules/nana-seat.md"), "utf8");
+	const ok = !before.includes("nana-main-ci") && blocks.every((text) => text.includes("nana-main-ci.mjs") && text.length <= FRONTIER_OUTPUT_CAP && text.indexOf("nana-main-ci.mjs") > text.indexOf("nana-issue-watch.mjs")) &&
+		render({ env: { NANA_ROLE: "reviewer" } }) === null && render({ env: { NANA_ROLE: "worker" } }) === null && omitted.startsWith("frontier block omitted:") && omitted.includes("nana-main-ci.mjs") &&
+		/session start/.test(seat) && /after each land.*main run finishes/.test(seat) && /--post.*red/.test(seat);
+	// req: R-3184
+	check("R-3184: the bounded and omitted seat blocks name main CI beside issue watch only with its workflow and the rule requires both runs", ok, JSON.stringify({ before, blocks, omitted }));
+}
+// req: R-3184
+check("seal R-3184: the runnable main CI command prefix", frontierValues.MAIN_CI_COMMAND_PREFIX === 'node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs"');
 
 if (failures) process.exitCode = 1;
