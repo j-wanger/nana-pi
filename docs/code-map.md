@@ -2055,7 +2055,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/main-ci.mjs`
 
-- **purpose** — Report the newest finished main push CI run and optionally post one scanned seat issue.
+- **purpose** — Report the newest finished non-cancelled main push CI run and optionally post one scanned seat issue.
 - **inputs** — Repository cwd, environment, injected gh and optional git runners, scanner and temporary root.
 - **outputs** — A verdict, per-leg failed paths and jobs, unfinished-run notice and exact posting command.
 - **effects** — disk (temporary CI downloads), process (local gh and identity scan), network (gh).

@@ -1,0 +1,104 @@
+docs/code-map.md: 500 modules
+ordinary
+also reaches: packages/nana-pack/lib/main-ci.mjs — also reaches packages/nana-pack/bin/nana-frontier-summary.mjs
+also reaches: packages/nana-pack/lib/main-ci.mjs — also reaches packages/nana-pack/extensions/nana-frontier-summary.ts
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 500 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+
+map check exit: 0
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 904 claims checked; 0 problem(s)
+
+README check exit: 0
+requirements: 2210 total (1959 implemented · 7 planned · 50 retired · 189 untested · 5 violated); 1959 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:68533) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<lane>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <lane>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+requirements trace exit: 0
+requirements: 2210 total (1959 implemented · 7 planned · 50 retired · 189 untested · 5 violated); 1959 traced by tests
+ears: 0 rows off form (allowance 0)
+PASS ears: the CLI prints the report line right after the summary line, naming the count and the allowance
+PASS REQUIREMENTS.md and the markers the suite carries agree
+PASS rail roots equal the package test roots and two app roots collected by npm test
+PASS no collected test root has nested test files outside fixture directories
+PASS the rail read the whole file and traced something
+PASS ears: a two-shall row and a no-shall row are counted, a retired one is not
+PASS ears: over the allowance each off-form row is a problem, at the allowance none
+PASS seal: EARS_ALLOWANCE is 0 (G-015)
+PASS this repo: zero rows off form
+PASS seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom)
+PASS R-1000: CRLF ledger and general rows are read and clean
+PASS R-1000: spaces and tab after closing pipes are read and clean
+PASS R-1001: CRLF row missing its closing pipe fails at REQUIREMENTS.md:4
+PASS R-1000: CRLF test-file marker traces its four-digit row
+PASS R-1000: both four-digit row prefixes load
+PASS R-1000: TS markers accept four-digit R/G and reject zero, five and non-ASCII digits
+PASS R-1000: invalid row ID R-0123 is rejected
+PASS R-1000: invalid row ID R-10000 is rejected
+PASS R-1000: invalid row ID R-１２３ is rejected
+PASS R-1001: missing closing pipe names REQUIREMENTS.md:5
+PASS R-1001: missing closing pipe names REQUIREMENTS-general.md:5
+PASS R-1001: zero-width space after closing pipe names REQUIREMENTS.md:5
+PASS R-1001: zero-width space after closing pipe names REQUIREMENTS-general.md:5
+PASS R-1001: fenced example names REQUIREMENTS.md:6
+PASS R-1001: fenced example names REQUIREMENTS-general.md:6
+PASS R-1001: R candidate names REQUIREMENTS.md:5
+PASS R-1001: R candidate names REQUIREMENTS-general.md:5
+PASS R-1001: G candidate names REQUIREMENTS.md:5
+PASS R-1001: G candidate names REQUIREMENTS-general.md:5
+PASS R-1001: U+2028 inside a cell is read and clean
+PASS R-1001: U+0085 inside a cell is read and clean
+PASS R-1001: U+200B after closing pipe names REQUIREMENTS.md:4
+PASS R-1000: both rails remove exactly one BOM from a double-BOM first-line row
+PASS R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe read
+PASS R-1001: a leading BOM before the first row is ignored
+PASS R-1000: a BOM and comma or U+2028 separated first-line marker list traces
+PASS R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4
+PASS R-1000: Python rail reads four-digit R/G rows
+PASS R-1000: Python row grammar rejects leading-zero, five-digit and non-ASCII IDs
+PASS R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits
+PASS R-1001: Python reads U+0085, U+FEFF and U+00A0 around row cells and after the pipe
+PASS R-1001: Python ignores a leading BOM before the first row
+PASS R-1000: Python leaves the second BOM before a double-BOM first-line row
+PASS R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators
+PASS R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4
+PASS R-1001: Python U+2028 inside a cell is read and clean
+PASS R-1001: Python U+0085 inside a cell is read and clean
+PASS R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4
+PASS R-1001: Python CRLF ledger and general rows are read and clean
+PASS R-1001: Python spaces and tab after closing pipes are read and clean
+PASS R-1001: Python CRLF row missing its closing pipe fails at REQUIREMENTS.md:4
+PASS R-1001: Python missing closing pipe names REQUIREMENTS.md:5
+PASS R-1001: Python missing closing pipe names REQUIREMENTS-general.md:5
+PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS.md:5
+PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS-general.md:5
+PASS R-1001: Python fenced example names REQUIREMENTS.md:6
+PASS R-1001: Python fenced example names REQUIREMENTS-general.md:6
+PASS R-1001: Python R candidate names REQUIREMENTS.md:5
+PASS R-1001: Python R candidate names REQUIREMENTS-general.md:5
+PASS R-1001: Python G candidate names REQUIREMENTS.md:5
+PASS R-1001: Python G candidate names REQUIREMENTS-general.md:5
+
+all passed
+
+requirements trace tests exit: 0
+requirements tree: 0 problems; rows 2210; features 39
+deliverables: 21 of 21 made and read by code, 21 more parked
+
+tree check exit: 0
+summary names=0 sizes=0
+(node:80155) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<lane>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <lane>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+known-bugs check exit: 0

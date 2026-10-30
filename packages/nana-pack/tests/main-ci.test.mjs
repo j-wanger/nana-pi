@@ -70,6 +70,16 @@ check("R-3183: main push reds include advisory legs missing records jobs and old
 	}
 	const newer = fixture({ runs: [run(40, { status: "in_progress", conclusion: null }), run(20)] });
 	assert.equal(newer.red, true); assert.match(newer.output, /40.*unfinished/); assert.match(newer.output, /20/);
+	const cancelled = fixture({ post: true, runs: [run(40, { conclusion: "cancelled" }), run(10, { conclusion: "cancelled" }), run(20), run(50, { conclusion: "cancelled" })] });
+	const allCancelled = fixture({ post: true, runs: [run(40, { event: "pull_request" }), run(30, { conclusion: "cancelled" }), run(20, { conclusion: "cancelled" })] });
+	assert.deepEqual({ selectedRun: cancelled.body?.match(/Run: (\d+)/)?.[1], allCancelledCode: allCancelled.code, allCancelledPosts: allCancelled.creates.length },
+		{ selectedRun: "20", allCancelledCode: 0, allCancelledPosts: 0 }, "skip newer cancelled runs; an all-cancelled page exits cleanly without posting");
+	assert.equal(cancelled.code, 0); assert.equal(cancelled.creates.length, 1);
+	assert.match(cancelled.output, /^Main CI: skipped 2 newer cancelled main push runs$/m);
+	assert(cancelled.calls.filter((args) => args[0] === "run").every((args) => args[2] === "20"), "download only the non-cancelled run");
+	assert.deepEqual(allCancelled.output, "Main CI: all 2 finished main push runs cancelled; nothing to report or post");
+	assert.equal(allCancelled.scans.length, 0);
+	assert(!allCancelled.calls.some((args) => args[0] === "run" || args[0] === "issue" || args.at(-1).includes("/jobs?") || args.at(-1).includes("/artifacts?")), "do not read records or prepare an issue for cancelled runs");
 	const missing = fixture({ failLeg: null, missing: "windows-latest" });
 	assert.equal(missing.red, true); assert.match(missing.output, /windows-latest.*no record/);
 	const green = fixture({ failLeg: null, post: true }); assert.equal(green.red, false); assert.equal(green.creates.length, 0);

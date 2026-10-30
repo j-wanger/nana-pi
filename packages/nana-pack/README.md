@@ -513,8 +513,10 @@ node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs" --cwd "<project roo
 node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs" --cwd "<project root>" --post
 ```
 
-The command reads only main's push runs of `ci`, choosing the newest finished run and naming
-newer unfinished runs. It reads that run's records even when the run is green, reports failed
+The command reads only main's push runs of `ci`, choosing the newest finished non-cancelled run
+and naming newer unfinished runs. It prints the count of newer cancelled runs skipped.
+If every finished run in the page is cancelled, it names that result, exits 0 and posts nothing.
+It never posts for a cancelled run. It reads the selected run's records even when green, reports failed
 files per leg, missing records and failed jobs, including install checks and release.
 The frontier block names it beside issue watch only when the project has an issues pointer
 and `.github/workflows/ci.yml`. Adding that line makes no network call or process.

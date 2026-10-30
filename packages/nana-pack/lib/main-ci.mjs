@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/lib/main-ci.mjs
- * @purpose Report the newest finished main push CI run and optionally post one scanned seat issue.
+ * @purpose Report the newest finished non-cancelled main push CI run and optionally post one scanned seat issue.
  * @inputs Repository cwd, environment, injected gh and optional git runners, scanner and temporary root.
  * @outputs A verdict, per-leg failed paths and jobs, unfinished-run notice and exact posting command.
  * @effects disk (temporary CI downloads), process (local gh and identity scan), network (gh).
@@ -42,9 +42,15 @@ export function mainCi({ cwd = process.cwd(), post = false, env = process.env, r
 		const runs = JSON.parse(result.stdout).workflow_runs;
 		if (!Array.isArray(runs)) throw new Error("unreadable workflow runs");
 		const pushes = runs.filter((run) => run.event === "push" && run.head_branch === branch && run.path === CI_WORKFLOW_RUN_PATH).sort((a, b) => Number(b.id) - Number(a.id));
-		const run = pushes.find((item) => item.status === CI_DONE_STATUS);
+		const finished = pushes.filter((item) => item.status === CI_DONE_STATUS);
+		const run = finished.find((item) => item.conclusion !== "cancelled");
 		for (const pending of pushes.filter((item) => item.status !== CI_DONE_STATUS && (!run || Number(item.id) > Number(run.id)))) line(`run ${pending.id} unfinished (${pending.status})`);
-		if (!run) { line("no finished main push run"); return { code: 1 }; }
+		if (!run) {
+			if (finished.length) { line(`all ${finished.length} finished main push runs cancelled; nothing to report or post`); return { code: 0 }; }
+			line("no finished main push run"); return { code: 1 };
+		}
+		const skipped = finished.filter((item) => item.conclusion === "cancelled" && Number(item.id) > Number(run.id)).length;
+		if (skipped) line(`skipped ${skipped} newer cancelled main push runs`);
 		if (!/^[a-f0-9]{40,64}$/i.test(run.head_sha)) throw new Error(`run ${run.id}: unreadable SHA`);
 		const records = readCiRecords([run.head_sha], { cwd, runGh: (root, args) => runGh(root, args, { env }), ...(runGit ? { runGit } : {}), ...(tempRoot ? { tempRoot } : {}), runId: run.id, writeLine: () => {} });
 		const failures = [];
