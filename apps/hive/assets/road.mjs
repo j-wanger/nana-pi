@@ -11,10 +11,15 @@ import { NAVIGATION, STREETS } from '../config.mjs';
 export function buildRoad(THREE, road, materials) {
   const group = new THREE.Group(); group.userData.road = road.id;
   const width = NAVIGATION.roadWidths[road.class], street = ['loop', 'spur'].includes(road.class);
+  // Round ground junctions close the outside wedges between consecutive ribbons.
+  for (const p of road.path) {
+    const joint = new THREE.Mesh(new THREE.CylinderGeometry(width / 2, width / 2, STREETS.thickness, 24), street ? materials.status.gap : materials.ink);
+    joint.position.set(p[0], STREETS.elevation, p[1]); joint.receiveShadow = true; joint.userData.roadSurface = true; group.add(joint);
+  }
   for (let i = 1; i < road.path.length; i++) {
     const a = road.path[i - 1], b = road.path[i], length = Math.hypot(b[0] - a[0], b[1] - a[1]);
     if (!length) continue;
-    const surface = ribbon(THREE, group, a, b, width, STREETS.thickness, STREETS.elevation, street ? materials.rim.workflow : materials.ink);
+    const surface = ribbon(THREE, group, a, b, width, STREETS.thickness, STREETS.elevation, street ? materials.status.gap : materials.ink);
     surface.userData.roadSurface = true;
     if (!street) continue;
     const normal = [(b[1] - a[1]) / length, -(b[0] - a[0]) / length];

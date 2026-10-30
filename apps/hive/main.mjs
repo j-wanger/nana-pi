@@ -35,8 +35,8 @@ async function start(data, graph, model) {
     THREE = await import('three');
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); renderer.setPixelRatio(Math.min(devicePixelRatio, STYLE.pixelRatioCap)); renderer.setClearColor(HIVE_BACKGROUND);
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    scene = new THREE.Scene(); scene.add(new THREE.HemisphereLight('#ffffff', '#6e776d', 2));
-    const sun = new THREE.DirectionalLight('#ffffff', 3); sun.position.set(-20, 90, 35); sun.castShadow = true;
+    scene = new THREE.Scene(); scene.add(new THREE.HemisphereLight('#ffffff', '#6e776d', STYLE.lighting.ambient));
+    const sun = new THREE.DirectionalLight('#ffffff', STYLE.lighting.sun); sun.position.set(...STYLE.lighting.position); sun.castShadow = true;
     const extent = Math.max(...model.bounds.max.map(Math.abs), ...model.bounds.min.map(Math.abs)) * 1.3;
     Object.assign(sun.shadow.camera, { left: -extent, right: extent, top: extent, bottom: -extent, near: 0.1, far: extent * 8 }); sun.shadow.mapSize.set(STYLE.shadowMapSize, STYLE.shadowMapSize); sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.025; scene.add(sun);
     camera = new THREE.PerspectiveCamera(STYLE.fov, 1, 0.1, 10000); hive = buildHive(THREE, model, buildMaterials(THREE)); scene.add(hive);
@@ -46,7 +46,7 @@ async function start(data, graph, model) {
   const raster = pixel(model), ctx = rendererName === 'pixel' ? canvas.getContext('2d') : null;
   if (ctx) { canvas.width = raster.width; canvas.height = raster.height; }
   const root = document.documentElement; document.querySelector('#source').textContent = data.project;
-  const labelNodes = model.chambers.map(c => { const ch = chapters.find(ch => ch.component === c.id), node = document.createElement('span'); node.className = 'label'; node.dataset.component = c.id; node.textContent = `${ch.number === 'Depot' ? 'Depot:' : ch.number} ${c.name}`; labels.append(node); return node; });
+  const labelNodes = model.chambers.map(c => { const ch = chapters.find(ch => ch.component === c.id), node = document.createElement('span'); node.className = 'label'; node.dataset.component = c.id; node.textContent = `${ch.number === 'Depot' ? 'Depot:' : ch.number} ${c.name}`.replace('Requirement contract', 'Contract').replace('Identity scan', 'Identity').replace('Key cabinet', 'Keys').replace('Night shift', 'Night'); labels.append(node); return node; });
   const labelHeights = new Map(hive?.children.filter(c => c.userData.component).map(c => [c.userData.component, c.userData.labelHeight]));
   let mode = 'tour', voice = 'plain', selected = null, entered = null, progress = 0, chapterIndex = 0, yaw = 0, zoom = 1;
   let gestureState = { mode, selected, zoom }, desired = overview(model), current = desired, readingKey = '';
@@ -100,7 +100,7 @@ async function start(data, graph, model) {
       camera.position.set(current.target[0] + vector[0] * Math.cos(angle) + vector[2] * Math.sin(angle), current.target[1] + vector[1], current.target[2] + vector[2] * Math.cos(angle) - vector[0] * Math.sin(angle)); camera.lookAt(...current.target); camera.updateMatrixWorld();
       const active = mode === 'tour' ? chapters[chapterIndex].component : selected, visible = visibleRoads(model.roads, active);
       hive.children.forEach(o => {
-        if (o.userData.road) { o.visible = visible.some(r => r.id === o.userData.road); const incident = active && o.userData.road.split('/').includes(active); o.traverse(m => { if (m.isMesh && m.userData.roadSurface) { if (!m.userData.original) { m.userData.original = m.material; m.material = m.material.clone(); } m.material.color.set(incident ? '#4e5750' : m.userData.original.color); } }); }
+        if (o.userData.road) { o.visible = visible.some(r => r.id === o.userData.road); const incident = active && o.userData.road.split('/').includes(active); o.traverse(m => { if (m.isMesh && m.userData.roadSurface) { if (!m.userData.original) { m.userData.original = m.material; m.material = m.material.clone(); } m.material.color.set(incident ? '#171c19' : m.userData.original.color); } }); }
         if (o.userData.component) o.traverse(m => { if (m.isMesh) { m.userData.highlight ??= m.material.clone(); m.material = m.userData.highlight; m.material.emissive?.set(o.userData.component === active ? '#303831' : '#000000'); m.material.emissiveIntensity = 0.12; } });
       });
       hive.traverse(o => { const bee = o.userData.bee; if (!bee) return; const phase = state.beePhase + bee.index * Math.PI * 2 / STYLE.beeScale; if (bee.kind === 'inFlight') { const mix = (Math.sin(phase) + 1) / 2; o.position.set(bee.x * (1 - mix), STYLE.beeHeight + Math.cos(phase) * STYLE.beeScale, bee.z * (1 - mix) + Math.sin(phase) * STYLE.cellStep); o.rotation.y = phase; } else { const side = bee.index % 4, along = (Math.floor(bee.index / 4) - 1) * bee.apron / 2; o.position.set(bee.x + (side === 0 ? -bee.apron : side === 2 ? bee.apron : along), bee.restY, bee.z + (side === 1 ? -bee.apron : side === 3 ? bee.apron : along)); o.rotation.y = side * Math.PI / 2; } });

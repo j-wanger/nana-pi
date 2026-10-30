@@ -1,0 +1,11 @@
+adoption-window-2026-10-25: 2/2
+artifact-readers-2026-10-25: 4/4
+build-records-2026-10-22: 6/8
+hard-kill-watcher-2026-10-23: 6/7
+keep-movement-2026-10-25: 4/4
+knowledge-freeze-notice-2026-10-25: 5/7
+land-reads-ci-2026-10-22: 3/3
+pi-version-support-2026-10-23: 3/3
+report-at-land-2026-10-23: 6/6
+session-start-frontier-2026-10-22: 4/10
+built-map mean share: 0.872143; floor 0.75; PASS

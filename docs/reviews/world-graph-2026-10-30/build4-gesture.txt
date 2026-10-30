@@ -1,0 +1,5 @@
+PASS explore tap selects without pose or hash change
+PASS tour tap changes nothing
+PASS tour swipe scrolls to a chapter without selection or hash change
+PASS scroll reaches the same three poses as chapter hashes
+gesture checks: 4 passed, 0 failed

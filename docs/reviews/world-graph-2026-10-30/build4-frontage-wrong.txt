@@ -1,0 +1,79 @@
+(node:92974) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<repo>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <repo>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+import: 55 directed pairs; 292 import links
+artifact: 20 directed pairs; 29 artifacts
+join: 28 directed pairs; 49 deliverable rows
+feature: 8 directed pairs; 8 shared features
+loop: 9 directed pairs; 9 declared steps
+roads: 23 overview streets including chapter ties; {"overview":0,"loop":0} crossings
+PASS R-3170: graph counts recorded sources in their own units through shared parsers
+PASS R-3171: loop drift and incompatible graph pairs refuse before output without changing v1
+FAIL R-3172: published loop geometry matches goldens and sealed bounds clearance and attachments AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    {
+      id: 'workshop',
+      radius: 6.618519471906085,
+      role: 'spine',
+      stage: 'workshop',
++     x: 3.983,
++     z: -34.18
+-     x: 0,
+-     z: -38.409
+    },
+    {
+      id: 'review-hall',
+      radius: 6.618519471906085,
+      role: 'spine',
+      stage: 'review-hall',
++     x: 18.261,
++     z: 22.411
+-     x: 12.657,
+-     z: 19.347
+    },
+    {
+      id: 'land-gate',
+      radius: 6.618519471906085,
+      role: 'spine',
+      stage: 'land-gate',
++     x: -22.278,
++     z: 12.062
+-     x: -12.657,
+-     z: 19.347
+    },
+    {
+      id: 'library',
+      radius: 6.618519471906085,
+      role: 'support',
+      stage: 'workshop',
++     x: 6.166,
++     z: -53.622
+-     x: 0,
+-     z: -58.249
+    },
+    {
+      id: 'key-cabinet',
+      radius: 2.2061731573020285,
+      role: 'outside',
+      stage: 'outside',
++     x: -11,
++     z: 5.956
+-     x: -5.636,
+-     z: 8.615
+    }
+  ]
+
+    at file://<repo>/packages/nana-pack/tests/hive-graph.test.mjs:110:12
+    at async test (file://<repo>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<repo>/packages/nana-pack/tests/hive-graph.test.mjs:96:1
+FAIL R-3172: every stage fronts its continuous loop within the sealed one unit AssertionError [ERR_ASSERTION]: compass: fronts loop, distance 1.5001780837366905
+    at file://<repo>/packages/nana-pack/tests/hive-graph.test.mjs:148:7
+    at async test (file://<repo>/packages/nana-pack/tests/hive-graph.test.mjs:20:51)
+    at async file://<repo>/packages/nana-pack/tests/hive-graph.test.mjs:133:1
+PASS R-3173: typed roads avoid third footprints and meet the base crossing caps
+PASS R-3174: numbered tour anchors frame structures and walk roads at every viewport
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches
+PASS R-3176: publisher ships paired graphs and Pages derives and scans them in order

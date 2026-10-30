@@ -56,7 +56,6 @@ export function renderText(document, container, model) {
     if (item.active) article.setAttribute('aria-current', 'true'); else article.setAttribute('hidden', '');
     el('span', `${item.chapter} / ${model.voice === 'work' ? 'FROM THE WORK' : model.voice.toUpperCase()}`, article).setAttribute('class', 'chapter-number');
     el('h2', item.name, article);
-    if (model.mode === 'explore') for (const [action, label] of [['enter', 'Enter'], ['back', 'Back'], ['tour', 'Back to tour']]) { const button = el('button', label, article); button.setAttribute('data-action', action); button.setAttribute('data-component', item.id); }
     for (const [voice, text] of Object.entries(item.voices)) {
       const p = el('p', '', article); p.setAttribute('data-panel', voice); if (voice !== model.voice) p.setAttribute('hidden', '');
       if (voice !== 'technical') p.textContent = text;
@@ -77,6 +76,7 @@ export function renderText(document, container, model) {
         el('span', text.slice(end), p);
       }
     }
+    if (model.mode === 'explore') for (const [action, label] of [['enter', 'Enter'], ['back', 'Back'], ['tour', 'Back to tour']]) { const button = el('button', label, article); button.setAttribute('data-action', action); button.setAttribute('data-component', item.id); }
   }
   return container;
 }

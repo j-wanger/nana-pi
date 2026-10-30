@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
+import { gitShow } from "./git-fixtures.mjs";
 
 const ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 const LIMIT_MS = 45_000; // chosen: each synchronous child and each awaited case has a finite limit.
@@ -31,11 +32,6 @@ const searchModule = () => import("../../../scripts/code-search.mjs");
 const configModule = () => import("../../../scripts/code-search-config.mjs");
 const entry = (path, purpose, extra = {}) => ({ path, purpose, inputs: "none", outputs: "none", effects: "none", errors: "none", callers: [], callees: [], ...extra });
 const mapText = (mods) => mods.map((m) => `### \`${m.path}\`\n\n${Object.entries(m).filter(([k]) => k !== "path").map(([k, v]) => `- **${k}** — ${Array.isArray(v) ? v.map((p) => `\`${p}\``).join(", ") || "—" : v}`).join("\n")}\n`).join("\n");
-function gitShow(base, path) {
-	const r = spawnSync("git", ["show", `${base}:${path}`], { cwd: ROOT, encoding: "utf8", timeout: LIMIT_MS, maxBuffer: 8 * 1024 * 1024 });
-	assert.equal(r.status, 0, `missing history ${base}:${path}: ${r.stderr || r.error || "git failed"}; fetch full history`);
-	return r.stdout;
-}
 const header = (path, purpose) => `/**\n * @module ${path}\n * @purpose ${purpose}\n * @inputs none\n * @outputs none\n * @effects none\n * @errors none\n */\n`;
 
 // req: R-3000

@@ -98,7 +98,7 @@ await test('R-3172: published loop geometry matches goldens and sealed bounds cl
   const { settle, insidePolygon, crossings } = await import('../../../scripts/component-graph-layout.mjs');
   assert.deepEqual(cfg.SPRING, { iterations: 240, idealLength: 40, repulsion: 90, anchor: 0.9, attachment: 0.8, centring: 0.001, cooling: 0.96, temperature: 1, weightScale: 9 });
   assert.equal(cfg.ATTACH_RADIUS, 28); assert.equal(cfg.WORLD_HALF_EXTENT, 160); assert.equal(cfg.POSITION_GRID, 0.001); assert.equal(cfg.CLEARANCE, 3);
-  assert.deepEqual(cfg.LOOP_ELLIPSE, [14, 40]); assert.equal(cfg.LOOP_START, -Math.PI / 2); assert.equal(cfg.ATTACH_DISTANCE, 18); assert.deepEqual(cfg.DEPOT, { gap: 1, searchSteps: 32 });
+  assert.deepEqual(cfg.LOOP_ELLIPSE, [16, 48]); assert.equal(cfg.LOOP_START, -1.4); assert.equal(cfg.LOOP_SAMPLES, 360); assert.equal(cfg.ATTACH_DISTANCE, 18); assert.deepEqual(cfg.DEPOT, { gap: 1, searchSteps: 32 });
   assert.deepEqual(cfg.ROUTING, { sides: 8, margin: 1, crossingPenalty: 1000 });
   const { FOOTPRINT_SCALE, OVERVIEW_ELEVATION } = await import('../../../apps/hive/config.mjs'); assert.equal(FOOTPRINT_SCALE, 1.3); assert.equal(OVERVIEW_ELEVATION, 1.35);
   assert.equal(cfg.OVERVIEW_CROSSING_CAP, 0); assert.equal(cfg.LOOP_CROSSING_CAP, 0);
@@ -129,6 +129,26 @@ await test('R-3172: published loop geometry matches goldens and sealed bounds cl
     assert(settle(variant.nodes, [], variant.spine).every(n => Math.max(Math.abs(n.x), Math.abs(n.z)) <= cfg.WORLD_HALF_EXTENT));
   }
 });
+// req: R-3172
+await test('R-3172: every stage fronts its continuous loop within the sealed one unit', async () => {
+  const { buildGraph } = await import('../../../scripts/component-graph.mjs');
+  const { segmentDistance } = await import('../../../scripts/component-graph-layout.mjs');
+  const { LOOP_FRONTAGE } = await import('../../../scripts/component-graph-config.mjs');
+  assert.equal(LOOP_FRONTAGE, 1);
+  const real = await buildGraph({ root }); assert.deepEqual(real.problems, []);
+  for (const graph of [real.document, await read('docs/components/graph-fixture.json'), await read('packages/nana-pack/tests/fixtures/hive-graph-base.json')]) {
+    const loop = graph.roads.filter(r => r.class === 'loop');
+    for (const id of graph.spine) {
+      const n = graph.nodes.find(n => n.id === id), adjacent = loop.filter(r => [r.from, r.to].includes(id));
+      assert.equal(adjacent.length, 2);
+      const ends = adjacent.map(r => r.from === id ? r.path[0] : r.path.at(-1));
+      assert.deepEqual(ends[0], ends[1], `${id}: shared junction`);
+      const distance = Math.min(...loop.flatMap(r => r.path.slice(1).map((p, i) => segmentDistance(n, r.path[i], p))));
+      assert(distance >= n.radius - 0.002, `${id}: street clears its footprint`);
+      assert(distance - n.radius <= LOOP_FRONTAGE + 0.002, `${id}: fronts loop, distance ${distance - n.radius}`);
+    }
+  }
+});
 // req: R-3173
 await test('R-3173: typed roads avoid third footprints and meet the base crossing caps', async () => {
   const { roads, crossings, segmentDistance } = await import('../../../scripts/component-graph-layout.mjs');
@@ -155,7 +175,7 @@ await test('R-3173: typed roads avoid third footprints and meet the base crossin
   for (const graph of [small, base]) for (const [i, from] of graph.spine.entries()) { const to = graph.spine[(i + 1) % graph.spine.length], edge = graph.edges.find(e => e.source === 'loop' && e.from === from && e.to === to); assert(edge); assert(graph.roads.some(r => r.class === 'loop' && r.id === [from, to].sort().join('/') && r.sources.some(s => s.source === 'loop' && s.declared === edge.declared))); }
   const { NAVIGATION, STREETS } = await import('../../../apps/hive/config.mjs');
   assert.deepEqual(STREETS, { thickness: 0.04, elevation: -0.43, edgeWidth: 0.04, laneWidth: 0.06, dashLength: 0.8, dashGap: 0.8 });
-  assert.deepEqual(NAVIGATION.roadWidths, { loop: 1.8, spur: 0.8, artifact: 0.12, import: 0.08, feature: 0.06 });
+  assert.deepEqual(NAVIGATION.roadWidths, { loop: 3.6, spur: 0.8, artifact: 0.12, import: 0.08, feature: 0.06 });
   const { buildRoad } = await import('../../../apps/hive/assets/road.mjs');
   for (const road of base.roads) {
     assert(NAVIGATION.roadWidths[road.class] <= NAVIGATION.roadWidths.loop);
@@ -201,7 +221,7 @@ await test('R-3174: numbered tour anchors frame structures and walk roads at eve
 // req: R-3175
 await test('R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches', async () => {
   const { explore, bindGestures } = await import('../../../apps/hive/explore.mjs'); const { NAVIGATION } = await import('../../../apps/hive/config.mjs');
-  assert.deepEqual(NAVIGATION, { tapTolerance: 10, doubleTapMs: 350, sectionHeight: 100, roadWidths: { loop: 1.8, spur: 0.8, artifact: 0.12, import: 0.08, feature: 0.06 }, overviewClasses: ['loop', 'spur'] });
+  assert.deepEqual(NAVIGATION, { tapTolerance: 10, doubleTapMs: 350, sectionHeight: 100, roadWidths: { loop: 3.6, spur: 0.8, artifact: 0.12, import: 0.08, feature: 0.06 }, overviewClasses: ['loop', 'spur'] });
   const { textLayer } = await import('../../../apps/hive/text-layer.mjs');
   const landing = textLayer(fixture, '#', 'webgl', 'plain', null, 'explore');
   assert.equal(landing.active, null); assert.match(landing.landing.text, /Tap a building/); assert.deepEqual(landing.landing.actions, ['tour']);

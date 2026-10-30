@@ -54,3 +54,14 @@
 - Code search (code-search, plan attack): a pinned prompt sentence proves planners are told to run the search, not that they do; the seat reads the next three plans' Precedent sections against its output.
 - Code search (code-search, final review): R-3000's row still says the map describes doctor work in planner vocabulary, but builds 3 and 4 restored the doctor header to main's bytes.
 - Code search (code-search, final review): the planner prompt is shared with every scaffolded project, but only nana-pi has `map:search`; a planner elsewhere gets a missing-script error and carries on.
+- Launch edges (map-spawn-edges, build 2): the built runtime gap is 18 test files against the prototype's 12, because hooks that call `runHookProducer` pass their target in an object the reader does not follow; they are declared blind (always run), not linked.
+- Launch edges (map-spawn-edges, seat check): 165 of 240 tests are on the always-run list, so a selector built on today's map still runs about two thirds of the suite; the shared hubs need hand resolutions before selection saves much.
+- Launch edges (map-spawn-edges, CI): the advisory Linux leg of run 40991062662 failed when `worker-claude.test.mjs` was killed by SIGKILL; the touched tests passed on all three systems.
+- Launch edges (map-spawn-edges, plan residual): the scaffold templates' code map is unchanged, so scaffolded projects get import-only impact.
+- Launch edges (map-spawn-edges, plan residual): lane class, requirement rows, the blast-radius page and the artifact radius still read the import-only graph.
+- Launch edges (map-spawn-edges, plan residual): the path scan is module-wide, so a module that launches anything gains an edge to every repo path it names, including paths it only reads as text.
+- Launch edges (map-spawn-edges, plan residual): no `npm run <name>` or bin-name inference; nothing in the repo launches either today.
+- Launch edges (map-spawn-edges, plan residual): workflows, config, templates and HTML are unmapped, and `--impact` has no machine-readable selector output yet; the CI lane needs both.
+- Launch edges (map-spawn-edges, plan residual): self-relaunches, extensions pi loads from a folder, hooks loaded through settings, temporary copies and browser-loaded code stay unresolved or declared, never linked.
+- Launch edges (map-spawn-edges, final review): renamed or injected runners (`start` in `lane-watcher.mjs`, `run` in `review-movement.mjs`, `runner("powershell")` in `process-tree-helper.mjs`, `run = spawnSync` in `hook-producer.mjs`) are invisible and unreported; their tests are always-run today only through other routes.
+- Launch edges (map-spawn-edges, final review): `config-display-text`, `config-handlers-malformed` and `hive-page` tests load modules through computed `import(new URL(...))` and template specifiers, so they are neither linked nor always-run.

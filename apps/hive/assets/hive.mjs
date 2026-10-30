@@ -8,8 +8,8 @@
  */
 import { buildCell } from './cell.mjs';
 import { buildBee } from './bee.mjs';
-import { STYLE } from '../config.mjs';
-import { beam as sharedBeam, fence as sharedFence } from './parts.mjs';
+import { STYLE, STREETS, NAVIGATION, FOOTPRINT_SCALE } from '../config.mjs';
+import { beam as sharedBeam, fence as sharedFence, ribbon } from './parts.mjs';
 import { buildRoad } from './road.mjs';
 import { visibleRoads } from '../roads.mjs';
 export function buildHive(THREE, model, materials) {
@@ -36,8 +36,17 @@ export function buildHive(THREE, model, materials) {
     const chamber = new THREE.Group(); chamber.userData.component = c.id; group.add(chamber);
     const building = new THREE.Group(); building.position.set(c.x, 0, c.z); chamber.add(building);
     const r = c.radius * 0.78, height = STYLE.structureHeight;
-    box(building, 0, -0.25, 0, r * 2.25, 0.35, r * 2.25, materials.rim[c.kind]);
-    box(building, 0, -0.04, 0, r * 2.08, 0.08, r * 2.08);
+    // A circular kerbed lot meets the same footprint used by the publisher.
+    const groundY = STREETS.elevation - STREETS.thickness / 2;
+    const lot = drum(chamber, c.x, groundY + 0.04, c.z, c.radius * FOOTPRINT_SCALE, 0.08, materials.rim[c.kind]);
+    lot.userData.lot = c.id;
+    const kerb = hoop(chamber, c.x, groundY + 0.1, c.z, c.radius * FOOTPRINT_SCALE, materials.status.sound); kerb.rotation.x = Math.PI / 2;
+    box(building, 0, -0.2, 0, r * 2.08, 0.4, r * 2.08);
+    const street = model.roads?.filter(road => ['loop', 'spur'].includes(road.class) && [road.from, road.to].includes(c.id))[0];
+    if (street) {
+      const end = street.from === c.id ? street.path[0] : street.path.at(-1);
+      ribbon(THREE, chamber, [c.x, c.z], end, NAVIGATION.roadWidths.spur, STREETS.thickness, groundY + 0.11, materials.status.sound);
+    }
     // The data's feature cells remain the foundations, including their exact fill ratios.
     for (const cell of c.cells) { const mesh = buildCell(THREE, cell, materials, c.material.status, c.kind); mesh.position.set(cell.x, 0, cell.z); mesh.scale.y = 0.15; chamber.add(mesh); }
     for (const activity of c.bees) {
@@ -261,13 +270,14 @@ export function buildHive(THREE, model, materials) {
       const crown = hoop(building, 0, 5.5, 0, r * 0.85); crown.rotation.x = Math.PI / 2;
       box(building, 0, 4.2, 0, r * 0.7, 0.2, r * 0.7);
     } else if (c.id === 'review-ladder' || c.id === 'review-hall') {
-      // Each review is a higher, open hall; the silhouette is an actual ladder.
+      // Exposed review terraces rise sideways: an unmistakable stair silhouette.
       for (let i = 0; i < 5; i++) {
-        const z = (i - 2) * r * 0.4, y = 0.25 + i * 0.7;
-        box(building, 0, y / 2, z, r * 1.8, y, r * 0.4);
-        for (const x of [-r * 0.85, r * 0.85]) box(building, x, y + 1.5, z, 0.14, 3, 0.14);
-        box(building, 0, y + 3, z, r * 1.9, 0.15, r * 0.38);
-        fence(building, [-r * 0.85, y + 0.6, z], [r * 0.85, y + 0.6, z], 0.6);
+        const x = (i - 2) * r * 0.4, y = 0.5 + i * 1.15;
+        box(building, x, y / 2, 0, r * 0.4, y, r * 1.6);
+        box(building, x, y + 0.07, 0, r * 0.42, 0.14, r * 1.7, materials.ink);
+        for (const z of [-r * 0.82, r * 0.82]) fence(building, [x - r * 0.18, y + 0.6, z], [x + r * 0.18, y + 0.6, z], 0.6);
+        for (let step = 0; step < 4; step++) box(building, x - r * 0.2 + step * r * 0.1, y - 0.9 + step * 0.28, r * 0.5, r * 0.1, 0.14, r * 0.45);
+        box(building, x, y + 0.25, -r * 0.3, r * 0.22, 0.35, r * 0.45, materials.rim.workflow);
       }
     } else if (c.id === 'rulings') {
       // A rotunda of settled decisions, crowned by a faceted dome.
@@ -324,7 +334,12 @@ export function buildHive(THREE, model, materials) {
     } else if (c.kind === 'governance') {
       // Civic gatehouses: twin service cores, a traversable lintel, and a colonnaded porch.
       for (const x of [-r * 0.7, r * 0.7]) {
-        box(building, x, height * 0.4, 0, r * 0.5, height * 0.8, r * 1.25, materials.status[c.material.status]);
+        drum(building, x, height * 0.4, 0, r * 0.32, height * 0.8, skin);
+        drum(building, x, height * 0.82, 0, r * 0.38, 0.3, materials.ink);
+        for (let tooth = 0; tooth < 8; tooth++) {
+          const angle = tooth * Math.PI / 4;
+          box(building, x + Math.cos(angle) * r * 0.3, height * 0.87, Math.sin(angle) * r * 0.3, r * 0.15, 0.6, r * 0.15);
+        }
         for (let floor = 1; floor <= 7; floor++) {
           box(building, x, floor * height / 9, r * 0.635, r * 0.54, 0.12, 0.16);
           for (let j = -1; j <= 1; j++) box(building, x + j * r * 0.14, floor * height / 9 + 0.22, r * 0.637, r * 0.09, 0.25, 0.035, materials.ink);
@@ -378,15 +393,52 @@ export function buildHive(THREE, model, materials) {
       beam(building, [-r * 0.7, height * 0.89, z], [-r * 0.7, height * 0.5, z], 0.018, materials.ink);
       hoop(building, -r * 0.7, height * 0.5 - 0.12, z, 0.16);
     }
+    if (c.id === 'workshop') {
+      // Sawtooth factory roof, roof lights and a banded chimney distinguish production.
+      for (let bay = -1; bay <= 1; bay++) {
+        const roof = box(building, bay * r * 0.6, height * 0.86, 0, r * 0.7, 0.15, r * 1.7); roof.rotation.z = Math.PI / 8;
+        box(building, bay * r * 0.6 + r * 0.3, height * 0.82, 0, 0.1, 0.8, r * 1.6, materials.ink);
+      }
+      drum(building, -r * 0.75, height * 0.55, -r * 0.7, 0.35, height * 1.1);
+      for (const y of [height * 0.85, height]) drum(building, -r * 0.75, y, -r * 0.7, 0.38, 0.22, materials.ink);
+    }
     // Every part gets its chapter from the ancestor group, including crane and deck picks.
-    building.rotation.y = c.kind === 'governance' ? Math.atan2(c.x, c.z)
+    building.rotation.y = c.id === 'review-ladder' ? 0 : c.kind === 'governance' ? Math.atan2(c.x, c.z)
       : ['compass', 'tool-belt', 'eyes', 'notice-board', 'lab'].includes(c.id) ? STYLE.cameraElevation / 2
       : (index % 2 ? Math.PI / 2 : 0);
     chamber.userData.labelHeight = new THREE.Box3().setFromObject(building).max.y;
   }
   for (const road of model.roads ?? []) { const mesh = buildRoad(THREE, road, materials); mesh.visible = visibleRoads(model.roads).includes(road); group.add(mesh); }
   const size = Math.max(...model.bounds.max.map(Math.abs), ...model.bounds.min.map(Math.abs));
-  // A continuous ground, not a finite display plinth with a visible empty border.
-  box(group, 0, -0.55, 0, size * size, 0.12, size * size, materials.ground);
+  // The plaza occupies the loop's interior, with concentric paving, benches and clipped trees.
+  const spine = model.chambers.filter(c => c.role === 'spine');
+  if (spine.length) {
+    const x = spine.reduce((sum, c) => sum + c.x, 0) / spine.length, z = spine.reduce((sum, c) => sum + c.z, 0) / spine.length;
+    const lotRadius = Math.max(...spine.map(c => c.radius * FOOTPRINT_SCALE));
+    const rx = (Math.max(...spine.map(c => c.x)) - Math.min(...spine.map(c => c.x))) / 2 - lotRadius * 1.3;
+    const rz = (Math.max(...spine.map(c => c.z)) - Math.min(...spine.map(c => c.z))) / 2 - lotRadius * 1.3;
+    const plaza = drum(group, x, STREETS.elevation, z, 1, STREETS.thickness, materials.rim.workflow); plaza.scale.set(rx, 1, rz);
+    for (const scale of [0.65, 0.95]) { const ring = hoop(group, x, STREETS.elevation + STREETS.thickness, z, 1, materials.status.sound); ring.rotation.x = Math.PI / 2; ring.scale.set(rx * scale, rz * scale, 1); }
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6, px = x + Math.cos(a) * rx * 0.8, pz = z + Math.sin(a) * rz * 0.8;
+      if (i % 2) {
+        drum(group, px, 0.6, pz, 0.12, 1.8, materials.ink);
+        drum(group, px, 1.8, pz, 0.7, 1.5, materials.rim.workflow, 0.3);
+      } else {
+        box(group, px, 0.25, pz, 1.8, 0.15, 0.55, materials.ink);
+        for (const dx of [-0.65, 0.65]) box(group, px + dx, -0.05, pz, 0.12, 0.6, 0.45);
+      }
+    }
+    for (const c of spine) ribbon(THREE, group, [x, z], [x + (c.x - x) * 0.5, z + (c.z - z) * 0.5], NAVIGATION.roadWidths.spur, STREETS.thickness, STREETS.elevation + STREETS.thickness, materials.rim.workflow);
+  }
+  // Ground touches the undersides of streets and lots: no suspended ribbons.
+  const groundY = STREETS.elevation - STREETS.thickness / 2;
+  box(group, 0, groundY - 0.06, 0, size * size, 0.12, size * size, materials.ground);
+  // Flush paving joints carry the ground through the viewport, including beneath the overlays.
+  const step = STYLE.cellStep * STYLE.foundationColumns;
+  for (let i = -size * 2; i <= size * 2; i += step) {
+    ribbon(THREE, group, [i, -size * 2], [i, size * 2], STREETS.edgeWidth, STREETS.thickness / 4, groundY, materials.rim.workflow);
+    for (let j = -size * 2; j < size * 2; j += step * 2) ribbon(THREE, group, [i, j + (Math.round(i / step) % 2 ? step : 0)], [i + step, j + (Math.round(i / step) % 2 ? step : 0)], STREETS.edgeWidth, STREETS.thickness / 4, groundY, materials.rim.workflow);
+  }
   return group;
 }

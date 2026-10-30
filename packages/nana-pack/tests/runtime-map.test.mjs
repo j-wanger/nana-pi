@@ -18,6 +18,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { measure } from "../../../scripts/runtime-measure.mjs";
 import { hashFile } from "../lib/runtime-map.mjs";
 import { artifactBlock, runtimeBlock } from "../../../scripts/code-map.mjs";
+import { IMPACT_LABELS } from "../../../scripts/code-map-launch-config.mjs";
 import { ARTIFACT_CLOSING_NOTE, ARTIFACT_HEADING, ARTIFACT_NONE, ARTIFACT_NOTE_PREFIX, ARTIFACT_NO_IMPORT_PATH, ARTIFACT_NO_LIVE_ENTRY, ARTIFACT_READ_BY, ARTIFACT_READS, ARTIFACT_STAR, ARTIFACT_WRITES, COMPLETION_FILE, COVERAGE_ENV, NOTE_PREFIX, RECORD_FILE, STOP_WAIT_MS } from "../lib/runtime-map-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
@@ -176,7 +177,7 @@ const staticPart = staticOk ? noData.out.slice(0, noData.out.length - noDataSuff
 
 const withData = runCodeMap(["--impact", NAMED_A, NAMED_ZERO], { NANA_RUNTIME_MAP_FILE: mm3Data });
 // req: R-1272
-check("R-1272: with runtime data, impact prints the generator's output byte for byte, then the artifact block, then the measured test files that ran each named file longest first with seconds and a FAIL label, a zero line for a file no test ran, and the not-counted closing line",
+check("R-1272: with runtime data, impact prints the launch-aware shim block, then artifacts, then measured tests longest first with seconds and FAIL labels, a zero line and the not-counted closing line",
 	staticOk
 		&& withData.out.startsWith(`${staticPart}\n`)
 		&& withData.out.includes(ARTIFACT_CLOSING_NOTE)
@@ -197,11 +198,13 @@ check("R-1273: with no runtime data, impact prints one note naming npm run map:m
 );
 
 // req: R-2822
-check("R-2822: impact prints the generator output, then the artifact block with its closing note, then the runtime block",
+check("R-2822: impact prints the launch-aware shim block, then the artifact block with its closing note, then the runtime block",
 	withData.code === 0
 		&& withData.out.includes(`${ARTIFACT_NONE} ${NAMED_ZERO}`)
 		&& withData.out.match(new RegExp(ARTIFACT_CLOSING_NOTE, "g"))?.length === 1
-		&& withData.out.indexOf("untraced test modules") < withData.out.indexOf(`artifacts for ${NAMED_A}`)
+		&& withData.out.indexOf(IMPACT_LABELS.untraced) >= 0
+		&& withData.out.indexOf(IMPACT_LABELS.blind) > withData.out.indexOf(IMPACT_LABELS.untraced)
+		&& withData.out.indexOf(IMPACT_LABELS.blind) < withData.out.indexOf(`artifacts for ${NAMED_A}`)
 		&& withData.out.indexOf(ARTIFACT_CLOSING_NOTE) < withData.out.indexOf("measured tests for")
 		&& !withData.out.includes("artifact note:"));
 
@@ -580,6 +583,7 @@ const mainMM9 = mkGitFixture("mm9-main", {
 	"scripts/runtime-measure.mjs": fs.readFileSync(RUNTIME_MEASURE, "utf8"),
 	"scripts/code-map.mjs": fs.readFileSync(CODE_MAP, "utf8"),
 	"scripts/code-map-launch.mjs": fs.readFileSync(path.join(REPO, "scripts/code-map-launch.mjs"), "utf8"),
+	"scripts/code-map-launch-config.mjs": fs.readFileSync(path.join(REPO, "scripts/code-map-launch-config.mjs"), "utf8"),
 	"scripts/code-search.mjs": fs.readFileSync(path.join(REPO, "scripts/code-search.mjs"), "utf8"),
 	"scripts/code-search-config.mjs": fs.readFileSync(path.join(REPO, "scripts/code-search-config.mjs"), "utf8"),
 	"templates/typescript/template/scripts/code-map.mjs": fs.readFileSync(GENERATOR, "utf8"),

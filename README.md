@@ -58,9 +58,16 @@ disagree, `npm run map:impact -- <file...>` prints a change's blast radius, and
 `npm run map:search -- "<need>"` suggests five non-test precedent modules with purpose and ranking reasons,
 then one hop of their callees (tests included). This local, dependency-free search uses whole headers,
 paths and ledger artifact lines, without network or model calls; it adds to the planner's own list.
-Nana-pi's wrapper adds literal bin/script launch links to the written map; the template stays unchanged.
+Nana-pi's wrapper adds exact anchored launch/path links under every mapped root to the written map,
+`--check` and `--impact`; the template stays unchanged. Launch-only callers carry `[launch/path]`.
+The map lists unresolved launch lines without basename guesses. Impact lists every test that holds
+or reaches an unresolved or repo-code launch as always-run blind reach; it selects nothing itself.
+Shell, pi and untraced programs require a reasoned `launchAlwaysRun` entry in `code-map.config.json`.
+Temporary-copy anchors stay unresolved. Other graph readers and the impact artifact block retain
+import-only links; the artifact block explains its `(no import path)` marks.
 The search lives in `scripts/code-search.mjs`, with sealed trial settings in `scripts/code-search-config.mjs`;
-`scripts/code-map-launch.mjs` adds the links. The ten fixed-base needs are a hypothesis, not a general quality guarantee.
+`scripts/code-map-launch.mjs` adds the links using sealed vocabulary in `scripts/code-map-launch-config.mjs`.
+The ten fixed-base needs are a hypothesis, not a general quality guarantee.
 The command
 `npm run readme:check` holds every README in `readme-check.config.json` to its claims. All
 three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and

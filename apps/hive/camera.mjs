@@ -21,6 +21,8 @@ export function overview(model, aspect = 1) {
     const depth = (dy * OVERVIEW_ELEVATION + dz) / length, up = (dy - dz * OVERVIEW_ELEVATION) / length;
     distance = Math.max(distance, depth + Math.max(Math.abs(dx) / horizontal, Math.abs(up) / vertical) * STYLE.framePadding);
   }
+  // The rail overlays the city rather than owning an empty strip beside it.
+  if (aspect > 1) target[0] += (max[0] - min[0]) / 2;
   return { target, position: [target[0], target[1] + distance * OVERVIEW_ELEVATION / length, target[2] + distance / length], fov: STYLE.fov };
 }
 export function focus(model, id, aspect = 1) {

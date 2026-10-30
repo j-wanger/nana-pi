@@ -1,0 +1,89 @@
+-:1: verdict: first sentence "VERDICT: PARTIAL" carries no verdict word
+-:7: passive: passive candidate: "regenerated" in "Generated conflicts occurred only in `docs/code-map.md` and `docs/requirements-tree.md`; both were regenerated."
+-:7: passive: passive candidate: "retained" in "Main's known-bug lines and session notes were retained automatically, without hand edits."
+-:7: identifier: `feat/world-graph`
+-:7: identifier: `d797a9f1`
+-:7: identifier: `docs/code-map.md`
+-:7: identifier: `docs/requirements-tree.md`
+-:11: identifier: `scripts/component-graph-config.mjs`
+-:11: identifier: `scripts/component-graph-layout.mjs`
+-:11: identifier: `docs/components/graph-fixture.json`
+-:11: identifier: `packages/nana-pack/tests/fixtures/hive-graph-base.json`
+-:12: identifier: `apps/hive/assets/hive.mjs`
+-:12: identifier: `apps/hive/assets/road.mjs`
+-:12: identifier: `apps/hive/config.mjs`
+-:12: identifier: `apps/hive/main.mjs`
+-:13: identifier: `apps/hive/index.html`
+-:13: identifier: `apps/hive/text-layer.mjs`
+-:13: identifier: `apps/hive/camera.mjs`
+-:14: identifier: `REQUIREMENTS.md`
+-:14: identifier: `apps/hive/README.md`
+-:14: identifier: `build4-*.txt`
+-:16: passive: passive candidate: "allocated" in "No new row ID was allocated."
+-:16: identifier: `build4-files.txt`
+-:16: identifier: `build4-v1-bytes.txt`
+-:16: identifier: `file::title`
+-:28: passive: passive candidate: "edited" in "No other build-owned test was edited or added."
+-:28: passive: passive candidate: "deleted" in "No test was deleted."
+-:28: passive: passive candidate: "regenerated" in "The saved graph fixtures were regenerated from their saved edges, not replaced with live audit counts."
+-:28: identifier: `packages/nana-pack/tests/`
+-:33: identifier: `packages/nana-pack/tests/code-map-launch.test.mjs`
+-:33: identifier: `git-fixtures.mjs`
+-:34: identifier: `code-map.test.mjs`
+-:35: identifier: `code-search.test.mjs`
+-:35: identifier: `gitShow`
+-:36: identifier: `runtime-map.test.mjs`
+-:38: identifier: `docs/reviews/map-spawn-edges-2026-10-29/`
+-:54: identifier: `/private/tmp/nana-world-graph-build4/round3/`
+-:56: identifier: `overview`
+-:56: identifier: `drafting-table`
+-:56: identifier: `review-ladder`
+-:56: identifier: `notice-board`
+-:56: identifier: `explore`
+-:56: identifier: `explore-workshop`
+-:56: identifier: `http://127.0.0.1:7354/#overview`
+-:56: identifier: `#drafting-table`
+-:56: identifier: `#review-ladder`
+-:56: identifier: `#notice-board`
+-:56: identifier: `#explore`
+-:56: identifier: `#explore/workshop`
+-:58: identifier: `--hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out <external folder>`
+-:60: identifier: `round1/`
+-:60: identifier: `round2-live/`
+-:60: identifier: `round2/`
+-:60: identifier: `round2-live/`
+-:60: identifier: `build4-first-look.txt`
+-:62: identifier: `judge-build3.md`
+-:80: identifier: `node scripts/hive-gesture-check.mjs --url http://127.0.0.1:7354/ --out /private/tmp/nana-world-graph-build4/gestures`
+-:82: identifier: `build4-browser-checks.txt`
+-:86: passive: passive candidate: "committed" in "Logs are committed as `build4-*.txt` in this folder; generated stack traces replace the checkout prefix with `<repo>` before publication."
+-:86: identifier: `build4-*.txt`
+-:86: identifier: `<repo>`
+-:88: identifier: `node scripts/component-audit.mjs --out <external components.json>`
+-:89: identifier: `node scripts/component-graph.mjs --out <external graph.json>`
+-:90: identifier: `node scripts/hive-page.mjs --out <fresh external site> --data <components.json> --graph <graph.json>`
+-:91: identifier: `npm run first-look -- --page url --after <each URL> --hive --reference <reference folder> --spec <spec file> --out <external folder>`
+-:92: identifier: `node packages/nana-pack/tests/hive-graph.test.mjs`
+-:93: identifier: `node packages/nana-pack/tests/hive-assets.test.mjs`
+-:94: identifier: `node packages/nana-pack/tests/hive-page.test.mjs`
+-:95: identifier: `npm run -s req:tree`
+-:95: identifier: `node scripts/code-map.mjs --write`
+-:96: identifier: `npm run map:check`
+-:96: identifier: `npm run readme:check`
+-:96: identifier: `node scripts/requirements-trace.mjs`
+-:96: identifier: `node scripts/requirements-tree.mjs`
+-:96: identifier: `node scripts/known-bugs.mjs --root .`
+-:96: identifier: `node scripts/identity-scan.mjs`
+-:98: identifier: `node scripts/lane-class.mjs --root . --files <build-owned code paths>`
+-:99: identifier: `npm run test:locked`
+-:103: passive: passive candidate: "presumed" in "No CI outcome is presumed here."
+-:107: passive: passive candidate: "moved" in "No private helper was moved or copied."
+-:107: identifier: `ribbon`
+-:107: identifier: `apps/hive/assets/parts.mjs`
+-:117: passive: passive candidate: "removed" in "Desktop overview shifts the city under the rail; phone header frosting is removed; selection actions follow body copy."
+-:122: passive: passive candidate: "unchanged" in "Phone WEBGL fallback: all six final phone captures measured WEBGL; fallback code is unchanged, so no universal closure is claimed."
+-:124: passive: passive candidate: "fixed" in "No other listed known bug was fixed or edited."
+-:128: passive: passive candidate: "created" in "No GitHub issue, comment, model session or subagent was created."
+-:130: passive: passive candidate: "retained" in "Any advisory findings about paths, identifiers, sentence length or the required verdict heading are retained under the writing rule's explicit builder-report exception."
+-:130: identifier: `nana-writing --report`
+summary sentences=100 words=1085 over=0 passive=14 banned=0 verdict=0/1 identifiers=73

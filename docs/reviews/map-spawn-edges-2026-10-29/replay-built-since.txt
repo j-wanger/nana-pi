@@ -1,0 +1,51 @@
+failed ci runs listed: 184 (2026-10-08 to 2026-10-30); replayed pull_request runs since 2026-10-24: 24
+pairs (run, leg, failing file): 39; windows-only (run, file) 29
+selected: changed test               26  macos 3  linux 3  windows 20
+selected: import edges                1  macos 0  linux 0  windows 1
+selected: + today's launch links      1  macos 0  linux 0  windows 1
+selected: + new rules' edges          2  macos 1  linux 0  windows 1
+selected: always-run (blind reach)    9  macos 0  linux 0  windows 9
+missed: changed file outside map      0  macos 0  linux 0  windows 0
+missed: nothing reached               0  macos 0  linux 0  windows 0
+excluded: red on base, same leg       0  macos 0  linux 0  windows 0
+excluded: base unknown                0  macos 0  linux 0  windows 0
+excluded: file not mapped             0  macos 0  linux 0  windows 0
+40992490609	008b9ec0	feat/world-graph	windows	packages/nana-pack/tests/mutation-runner.test.mjs	always-run
+40992301983	041bbf54	feat/world-graph	windows	packages/nana-pack/tests/component-audit.test.mjs	always-run
+40961066968	713138e6	feat/hive-render	windows	packages/nana-pack/tests/templates-update.test.mjs	always-run
+40961066968	713138e6	feat/hive-render	windows	packages/nana-pack/tests/worker-lane.test.mjs	always-run
+40958062368	ad249c9a	feat/visual-check	windows	packages/nana-pack/tests/visual-reader.test.mjs	changed-test
+40954089790	ae270a8a	feat/visual-check	windows	packages/nana-pack/tests/visual-reader.test.mjs	changed-test
+40931257125	b003b988	feat/component-audit	windows	packages/nana-pack/tests/component-audit.test.mjs	changed-test
+40931257125	b003b988	feat/component-audit	linux	packages/nana-pack/tests/component-audit.test.mjs	changed-test
+40931257125	b003b988	feat/component-audit	macos	packages/nana-pack/tests/component-audit.test.mjs	changed-test
+40931257125	b003b988	feat/component-audit	macos	packages/nana-pack/tests/worker-claude.test.mjs	new-edge
+40931015272	273e4169	feat/component-audit	windows	packages/nana-pack/tests/component-audit.test.mjs	changed-test
+40931015272	273e4169	feat/component-audit	linux	packages/nana-pack/tests/component-audit.test.mjs	changed-test
+40931015272	273e4169	feat/component-audit	macos	packages/nana-pack/tests/component-audit.test.mjs	changed-test
+40923386619	af4c897d	feat/component-audit	macos	packages/nana-pack/tests/component-audit.test.mjs	changed-test
+40923386619	af4c897d	feat/component-audit	linux	packages/nana-pack/tests/component-audit.test.mjs	changed-test
+40923386619	af4c897d	feat/component-audit	windows	packages/nana-pack/tests/component-audit.test.mjs	changed-test
+40789387311	9c9980f4	feat/issue-watch	windows	packages/nana-pack/tests/issue-watch.test.mjs	changed-test
+40788775103	3ebcf093	feat/issue-watch	windows	packages/nana-pack/tests/issue-watch.test.mjs	changed-test
+40230343782	53081c82	feat/review-movement	windows	packages/nana-pack/tests/worker-lane.test.mjs	import
+40220133103	b01ac2b4	feat/win-test-limits	windows	packages/nana-pack/tests/worker-lane.test.mjs	changed-test
+40200450405	9ceaad8a	feat/knowledge-freeze-notice	windows	packages/nana-setup/tests/doctor-knowledge.test.mjs	changed-test
+40167455199	9dae642b	feat/artifact-readers	windows	packages/nana-pack/tests/test-runner.test.mjs	always-run
+40160078458	56ad9dd1	feat/impact-artifacts	windows	packages/nana-setup/tests/checkout-spelling.test.mjs	always-run
+40159774667	833bedee	feat/impact-artifacts	windows	packages/nana-pack/tests/post-edit-hardening.test.mjs	always-run
+40148405918	1e77de81	feat/land-records	windows	packages/nana-pack/tests/land-records.test.mjs	changed-test
+40148405918	1e77de81	feat/land-records	windows	packages/nana-pack/tests/test-runner.test.mjs	new-edge
+40148405918	1e77de81	feat/land-records	windows	packages/nana-setup/tests/hook-deadlines.test.mjs	always-run
+40107395869	502767ca	feat/artifact-registry	windows	packages/nana-pack/tests/worker-claude.test.mjs	always-run
+40102229483	aecc5ca5	feat/bench-study-scratch	windows	apps/bench/test/orchestration-paths.test.mjs	changed-test
+40062423521	7d03134b	feat/hard-kill-watcher	windows	packages/nana-pack/tests/worker-claude.test.mjs	changed-test
+40062423521	7d03134b	feat/hard-kill-watcher	windows	packages/nana-setup/tests/hooks-win32-exec.test.mjs	today-launch
+40059923100	46a55957	feat/hard-kill-watcher	windows	packages/nana-pack/tests/build-report.test.mjs	changed-test
+40059923100	46a55957	feat/hard-kill-watcher	windows	packages/nana-pack/tests/worker-claude.test.mjs	changed-test
+40057408224	e3e2c078	feat/hard-kill-watcher	windows	packages/nana-pack/tests/build-report.test.mjs	changed-test
+40057408224	e3e2c078	feat/hard-kill-watcher	windows	packages/nana-pack/tests/worker-claude.test.mjs	changed-test
+40056844401	7e311052	feat/hard-kill-watcher	windows	packages/nana-pack/tests/build-report.test.mjs	changed-test
+40056844401	7e311052	feat/hard-kill-watcher	windows	packages/nana-pack/tests/worker-claude.test.mjs	changed-test
+40052982470	09fe2b0b	feat/hard-kill-watcher	windows	packages/nana-pack/tests/build-report.test.mjs	changed-test
+40052982470	09fe2b0b	feat/hard-kill-watcher	windows	packages/nana-pack/tests/worker-claude.test.mjs	changed-test

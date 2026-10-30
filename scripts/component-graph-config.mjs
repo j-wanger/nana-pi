@@ -8,10 +8,14 @@
  */
 // chosen (2026-10-30, R-3172): cooled FR forces retain loop slots and resist import hubs; artifact maximum is nine IDs.
 export const SPRING = Object.freeze({ iterations: 240, idealLength: 40, repulsion: 90, anchor: 0.9, attachment: 0.8, centring: 0.001, cooling: 0.96, temperature: 1, weightScale: 9 });
-// chosen (2026-10-30, R-3172): compact city blocks make instruments legible in the whole-loop frame.
-export const LOOP_ELLIPSE = Object.freeze([14, 40]);
-// chosen (2026-10-30, R-3172): Compass starts at the far end of the world.
-export const LOOP_START = -Math.PI / 2;
+// chosen (2026-10-30, R-3172): a long oval fills a phone; equal-arc slots prevent bunching at its tips.
+export const LOOP_ELLIPSE = Object.freeze([16, 48]);
+// chosen (2026-10-30, R-3172): one degree arc samples make publication deterministic without a solver.
+export const LOOP_SAMPLES = 360;
+// chosen (2026-10-30, R-3172): a slight turn prevents opposite stages forming visible rows.
+export const LOOP_START = -1.4;
+// contract (2026-10-30, R-3172): maximum gap from a spine footprint to its loop centre line.
+export const LOOP_FRONTAGE = 1;
 // chosen (2026-10-30, R-3172): short driveways, with clearance between paired supports.
 export const ATTACH_DISTANCE = 18;
 // chosen (2026-10-30, R-3172): a support belongs visibly to its stage.

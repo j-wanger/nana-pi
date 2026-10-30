@@ -1,0 +1,108 @@
+FAIL R-3149: anchors and exact launch literals link reciprocally without temporary-anchor guesses lib/x.mjs -> lib/x-child.mjs
+FAIL R-3150: helper bindings resolve per site and non-launching references add no edge Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   'tests/v.test.mjs',
+-   'tests/w.test.mjs'
+- ]
+
+FAIL R-3152: unresolved sites are numbered without guessing and stale lists fail check 
+
+- **purpose** — Exercise fixture paths.
+- **inputs** — none
+- **outputs** — none
+- **effects** — none
+- **errors** — none
+- **callers** — —
+- **callees** — —
+
+
+0 !== 3
+
+FAIL R-3153: impact marks launch-only callers and reports enriched blind reach The input did not match the regular expression /tests\/a.test.mjs \[launch\/path\]/. Input:
+
+''
+
+FAIL R-3154: launch-only tests count as traced with one untraced of three The input did not match the regular expression /untraced tests: 1 of 3 test modules link no mapped module/. Input:
+
+''
+
+FAIL R-3155: repo-code programs require reasoned declarations and remain in blind reach Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL R-3156: every fixed-base callee survives or has a named loss reason lost edge: scripts/first-look.mjs -> scripts/product-report.mjs
+FAIL seal: R-3157 launch names Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   'spawn',
+-   'spawnSync',
+-   'exec',
+-   'execSync',
+-   'execFile',
+-   'execFileSync',
+-   'fork',
+-   'boundedSpawnSync',
+-   'runHookProducer'
+- ]
+
+FAIL seal: R-3158 path-preserving calls Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   'fileURLToPath',
+-   'url.fileURLToPath',
+-   'realpathSync',
+-   'fs.realpathSync',
+-   'realpathSync.native',
+-   'fs.realpathSync.native',
+-   'realPath'
+- ]
+
+FAIL seal: R-3159 repo-code programs Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   'pi',
+-   'PI_BIN',
+-   'piBin',
+-   'piPath',
+-   'PI_PATH',
+-   'bash',
+-   'sh',
+-   'cmd',
+-   'cmd.exe',
+-   'powershell',
+-   'powershell.exe',
+-   'pwsh'
+- ]
+
+FAIL seal: R-3160 inline-code flags Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   '-e',
+-   '-p',
+-   '--eval',
+-   '--print',
+-   '--input-type'
+- ]
+
+FAIL seal: launch impact labels Expected values to be strictly deep-equal:
++ actual - expected
+
++ {}
+- {
+-   blind: 'always-run tests (blind reach):',
+-   launch: '[launch/path]',
+-   unlinked: 'test modules link no mapped module',
+-   untraced: 'untraced tests:'
+- }
+
