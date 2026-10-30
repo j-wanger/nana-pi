@@ -1,0 +1,82 @@
+(node:76390) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3171: one city plan names drift both ways and refuses malformed sources before output
+FAIL R-3172: radial city separates districts and rejects grid and ring controls AssertionError [ERR_ASSERTION]: house lattice control
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:101:5
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:66:1
+PASS R-3173: scene streets match pale narrow connected frontage and the single outbound gate
+PASS R-3174: request journey frames fourteen narrated chapters
+FAIL R-3174: scroll position maps to continuous stage without short-input dead zones AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(spans.at(-1).end >= 14 && spans.at(-1).end <= 21)
+
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:194:35
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:190:1
+PASS R-3174: continuous scroll holds pose for two seconds and seals span and fade values
+PASS R-3172: dense town scale retains chosen lot and housing dimensions
+FAIL R-3177: window lights follow audit status and dark target forms stay complete AssertionError [ERR_ASSERTION]: Expected "actual" to be reference-equal to "expected":
++ actual - expected
+... Skipped lines
+
+  MeshBasicMaterial {
+    _alphaTest: 0,
+    allowOverride: true,
+    alphaHash: false,
+    alphaMap: null,
+...
+    color: Color {
++     b: 1,
++     g: 1,
+-     b: 0.02121901037134225,
+-     g: 0.025186859622305935,
+      isColor: true,
++     r: 1
+-     r: 0.018500220124016656
+    },
+    colorWrite: true,
+    combine: 0,
+    depthFunc: 3,
+    depthTest: true,
+...
+    userData: {},
++   uuid: 'b01d2a3d-78f9-4738-96f6-132ed3051cfc',
+-   uuid: '05f2d2e4-a3c7-4cb2-b2ea-494f5569e257',
+    version: 0,
+    vertexColors: false,
+    visible: true,
+    wireframe: false,
+    wireframeLinecap: 'round',
+
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:250:14
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:238:1
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches
+FAIL R-3174: card boundary never overlaps readable text and slides upward AssertionError [ERR_ASSERTION]: overlap at 0.8580000000000007
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:285:5
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:281:1
+FAIL R-3174: every chapter keeps a reading screen at desktop and phone widths AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(span.end - span.start >= 0.8)
+
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:298:5
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:294:1
+FAIL R-3174: opening is a scroll-driven flat plan ending at the tower AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:306:10
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:302:1
+FAIL R-3174: phone chapter targets project above the card and below the header AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(Math.abs(y - (header + height - bottom) / 2) < 1e-7)
+
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:326:5
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:314:1

@@ -10,9 +10,9 @@ import { buildCell } from './cell.mjs';
 import { buildDistrict } from './district.mjs';
 import { buildResident, buildWorkplace, animateResident, animateWorkplace } from './residents.mjs';
 import { STYLE, STREETS, CITY, DENSITY, WORKERS } from '../config.mjs';
-import { box, drum, hoop, fence, outline, trayName } from './parts.mjs';
+import { box, drum, hoop, fence, outline, trayName, house } from './parts.mjs';
 import { buildRoad } from './road.mjs';
-import { visibleRoads, segmentDistance } from '../city.mjs';
+import { visibleRoads } from '../city.mjs';
 export function buildHive(THREE, model, materials) {
   const group = new THREE.Group(), cube = new THREE.BoxGeometry(1, 1, 1), rod = new THREE.CylinderGeometry(1, 1, 1, 8);
   for (const n of model.chambers) {
@@ -51,17 +51,7 @@ export function buildHive(THREE, model, materials) {
   }
   if (model.townOuterRadius) {
     const housing = new THREE.Group(); housing.userData.housing = true; group.add(housing);
-    const radius = Math.hypot(DENSITY.houseWidth, DENSITY.houseDepth) / 2;
-    for (let x = -model.townOuterRadius; x < model.townOuterRadius; x += DENSITY.houseStep) for (let z = -model.townOuterRadius; z < model.townOuterRadius; z += DENSITY.houseStep) {
-      const distance = Math.hypot(x, z);
-      if (distance < model.ringRadius + radius || distance > model.townOuterRadius - radius) continue;
-      if (model.chambers.some(n => Math.hypot(x - n.x, z - n.z) < n.radius + radius + CITY.frontage)) continue;
-      if (model.roads.some(r => r.class !== 'air' && r.path.slice(1).some((b, i) => segmentDistance({ x, z }, r.path[i], b) < radius + STREETS.widths[r.class]))) continue;
-      const h = DENSITY.houseHeight + Math.abs(Math.round(x + z)) % DENSITY.heightVariation;
-      box(THREE, materials, cube, housing, x, h / 2, z, DENSITY.houseWidth, h, DENSITY.houseDepth, materials.status.sound);
-      box(THREE, materials, cube, housing, x, h, z, DENSITY.houseWidth + 0.3, 0.2, DENSITY.houseDepth + 0.3, materials.rim.workflow);
-      for (const side of [-1, 1]) for (let i = -1; i <= 1; i++) box(THREE, materials, cube, housing, x + i * 2, h * 0.6, z + side * DENSITY.houseDepth / 2, 0.8, 1, 0.05, materials.windows.dark);
-    }
+    for (const lot of model.houses ?? []) house(THREE, materials, cube, housing, lot);
   }
   const civic = model.chambers.filter(n => ['court', 'records', 'style'].includes(n.id));
   if (civic.length) {

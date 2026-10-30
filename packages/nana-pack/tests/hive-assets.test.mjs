@@ -42,7 +42,7 @@ await test('R-3134: visual and serving defaults retain their sealed values and p
   assert.deepEqual(CITY_FORMS, ['tower', 'drafting', 'yard', 'bay', 'eyes', 'stair', 'gate', 'tools', 'lab', 'hall', 'vault', 'theater', 'court', 'records', 'style', 'survey', 'utilities', 'control', 'stage', 'billboard', 'customs', 'freight', 'craft', 'customers', 'neighbour', 'feedback']);
   assert.deepEqual(CITY, { positionGrid: 0.001, clearance: 3, bandGap: 8, parkBands: 3, radialStep: 17, parkBase: 16, fenceGap: 10, ringGap: 10, townGap: 12, edgeGap: 20, outsideGap: 24, skyHeight: 28, bayCount: 4, litBays: 2, vacantBearing: 147, worldHalfExtent: 300, latticeTolerance: 0.08, latticeSpacing: 0.08, latticeFamilies: 1, radiusBandSize: 8, minimumRadiusBands: 3, northTolerance: 5, frontage: 1, doorAngle: 0.35, walkTolerance: 0.002, arcSamples: 72, routingSides: 12, routingMargin: 1, pixelMargin: 0.025, cardOverlap: 0.15, probeOffset: 3 });
   assert.deepEqual(STREETS, { thickness: 0.24, elevation: -0.3, edgeWidth: 0.1, laneWidth: 0.45, dashLength: 0.8, dashGap: 0.8, widths: { avenue: 1.8, local: 0.9, back: 0.9, air: 0.07 }, widthCaps: { avenue: 0.14, local: 0.08 }, kerbHeight: 0.24, depthOffset: -4, ringElevation: 1.6, ringWidth: 1.8 });
-  assert.deepEqual(LIGHTS, { minimumGap: 0.5, halfFraction: 0.5, windows: 8, colors: { lit: '#ffffff', half: '#bfc8bf', dark: '#252c28' } });
+  assert.deepEqual(LIGHTS, { roofWidth: 0.9, roofDepth: 0.25, roofHeight: 0.35, minimumGap: 0.5, halfFraction: 0.5, windows: 8, colors: { lit: '#ffffff', half: '#bfc8bf', dark: '#252c28' } });
   const source = await fs.readFile(new URL('../../../apps/hive/config.mjs', import.meta.url), 'utf8'); assert.match(source, /chosen \(2026-10-29, R-3134\)/);
 });
 // req: R-3134

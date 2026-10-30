@@ -7,6 +7,8 @@
  * @errors None for a nonempty layout and positive aspect.
  */
 import { STYLE, OVERVIEW_ELEVATION } from './config.mjs';
+// Shift the projection, not the look-at target: positive offset lifts the subject above a bottom card.
+export function viewCentreOffset(height, top, bottom) { return (bottom - top) / 2; }
 // Frame the loop and its depot, using actual projected corners rather than a loose sphere.
 export function overview(model, aspect = 1) {
   const campus = model.chambers;

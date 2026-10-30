@@ -6,7 +6,7 @@
  * @effects none
  * @errors None for valid geometry.
  */
-import { OUTLINES } from '../config.mjs';
+import { OUTLINES, DENSITY } from '../config.mjs';
 // Moved from buildHive's closure; geometry and materials are explicit like beam and fence.
 export function box(THREE, materials, cube, parent, x, y, z, w, h, d, mat = materials.status.sound) {
   const mesh = new THREE.Mesh(cube, mat); mesh.position.set(x, y, z); mesh.scale.set(w, h, d); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
@@ -30,6 +30,32 @@ export function ribbon(THREE, parent, a, b, width, thickness, elevation, materia
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, thickness, length), material);
   mesh.position.set((a[0] + b[0]) / 2, elevation, (a[1] + b[1]) / 2);
   mesh.rotation.y = Math.atan2(dx, dz); mesh.receiveShadow = true; parent.add(mesh); return mesh;
+}
+// Five plain house silhouettes share the same solid kit as the named places.
+export function house(THREE, materials, cube, parent, lot) {
+  const group = new THREE.Group(); parent.add(group); group.position.set(lot.x, 0, lot.z);
+  group.rotation.y = Math.atan2(lot.face[0], lot.face[1]); group.userData.house = lot;
+  const w = DENSITY.houseWidth, d = DENSITY.houseDepth, h = lot.height;
+  const add = (x, y, z, width, height, depth, mat) => box(THREE, materials, cube, group, x, y, z, width, height, depth, mat);
+  const count = lot.type === 'row-three' ? 3 : 1, width = w / count;
+  for (let i = 0; i < count; i++) {
+    const x = (i - (count - 1) / 2) * width, height = lot.type === 'two-storey' ? h : h * 0.8;
+    add(x, height / 2, 0, width - 0.12, height, d);
+    if (['pitched', 'yard', 'row-three'].includes(lot.type)) {
+      for (const side of [-1, 1]) { const roof = add(x + side * width / 4, height + width * 0.12, 0, width * 0.58, 0.16, d + 0.3, materials.rim.workflow); roof.rotation.z = -side * Math.PI / 7; }
+    } else {
+      add(x, height, 0, width + 0.2, 0.2, d + 0.2, materials.rim.workflow);
+      if (lot.type === 'terrace') for (const side of [-1, 1]) add(side * w / 2, height + 0.35, 0, 0.12, 0.7, d);
+    }
+    add(x, 0.7, d / 2 + 0.02, 0.55, 1.4, 0.05, materials.ink);
+    for (const y of lot.type === 'two-storey' ? [1.4, 3.2] : [1.7]) for (const side of [-1, 1]) add(x + side * width * 0.3, y, d / 2 + 0.03, width * 0.18, 0.7, 0.05, materials.windows.dark);
+  }
+  if (lot.type === 'yard') {
+    add(w * 0.65, 0.03, 0, w * 0.35, 0.06, d, materials.ground);
+    drum(THREE, materials, group, w * 0.65, 0.9, 0, 0.12, 1.8, materials.rim.workflow);
+    drum(THREE, materials, group, w * 0.65, 2.1, 0, 0.8, 1.6, materials.rim.workflow, 0.15);
+  }
+  return group;
 }
 // The same thin ink edges serve infrastructure and figures; no renderer-global state.
 export function outline(THREE, mesh) {

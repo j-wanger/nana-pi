@@ -430,6 +430,10 @@ export function buildDistrict(THREE, n, materials) {
     const window = box(building, face[0] * depth + face[1] * along, y, face[1] * depth - face[0] * along, 0.17, 0.3, 0.025, i < lit ? status === 'sound' ? materials.windows.lit : materials.windows.half : materials.windows.dark);
     window.rotation.y = Math.atan2(face[0], face[1]); window.userData.window = true;
   }
+  // A roof clerestory has a broad top face; dark buildings retain an unlit cap, never a glow.
+  const roofY = new THREE.Box3().setFromObject(building).max.y;
+  const roofLight = box(building, 0, roofY + LIGHTS.roofHeight / 2, 0, n.radius * LIGHTS.roofWidth, LIGHTS.roofHeight, n.radius * LIGHTS.roofDepth, lit ? status === 'sound' ? materials.windows.lit : materials.windows.half : materials.windows.dark);
+  roofLight.userData.roofLight = true;
   const solids = []; building.traverse(o => { if (o.isMesh) solids.push(o); }); solids.forEach(o => outline(THREE, o));
   return building;
 }

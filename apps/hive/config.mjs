@@ -8,10 +8,12 @@
  */
 // chosen (2026-10-30, R-3172): a lower three-quarter overview gives the blocks visible facades.
 export const OVERVIEW_ELEVATION = 0.8;
-// chosen (2026-10-30, R-3172): fill lots and town gaps with unlabelled neutral housing blocks.
-export const DENSITY = Object.freeze({ footprint: 0.82, houseStep: 12, houseWidth: 8, houseDepth: 7, houseHeight: 5, heightVariation: 4 });
-// contract (build 10 brief, R-3174): page alone drives the camera; no idle or flight clock.
-export const TOUR_SCROLL = Object.freeze({ screens: 8, crossFade: 0.15, holdCheckMs: 2000, minimumTravel: 1 });
+// chosen (2026-10-30, R-3172): quiet street-facing blocks, narrow height band, yards and block gaps.
+export const DENSITY = Object.freeze({ footprint: 0.82, houseStep: 11, houseWidth: 6, houseDepth: 5, houseHeight: 4, heightVariation: 1.2, blockGap: 7, setback: 4, types: Object.freeze(['pitched', 'terrace', 'two-storey', 'row-three', 'yard']) });
+// contract (build 11 brief, R-3174): one reading screen, capped travel, sequential fades and no idle clock.
+// chosen travelScale: 100 world units per travel screen; slidePx: a quiet upward lift.
+// chosen readingDolly: 3 percent scroll-only push-in holds the subject during reading.
+export const TOUR_SCROLL = Object.freeze({ readingScreens: 1, travelCap: 0.5, travelScale: 100, readingDolly: 0.03, crossFade: 0.15, holdCheckMs: 2000, slidePx: 12, opacityThreshold: 0.05 });
 // chosen (2026-10-30, R-3122): readable human scale, one shared eight-second work loop, three builders per lit bay.
 export const WORKERS = Object.freeze({ height: 1.8, loopSeconds: 8, crewSize: 3 });
 // chosen (2026-10-30, R-3134): fade subpixel edges before dense detail turns into solid ink.
@@ -26,8 +28,8 @@ export const STREETS = Object.freeze({ thickness: 0.24, elevation: -0.3, edgeWid
 // probeOffset samples ground three world units away, beyond the street's antialiasing fringe.
 // bayCount is chosen for parallel capacity; litBays is contract (2026-10-16 ruling: two builders).
 export const CITY = Object.freeze({ positionGrid: 0.001, clearance: 3, bandGap: 8, parkBands: 3, radialStep: 17, parkBase: 16, fenceGap: 10, ringGap: 10, townGap: 12, edgeGap: 20, outsideGap: 24, skyHeight: 28, bayCount: 4, litBays: 2, vacantBearing: 147, worldHalfExtent: 300, latticeTolerance: 0.08, latticeSpacing: 0.08, latticeFamilies: 1, radiusBandSize: 8, minimumRadiusBands: 3, northTolerance: 5, frontage: 1, doorAngle: 0.35, walkTolerance: 0.002, arcSamples: 72, routingSides: 12, routingMargin: 1, pixelMargin: 0.025, cardOverlap: 0.15, probeOffset: 3 });
-// chosen (2026-10-30, R-3177): windows carry status, while every target form remains complete.
-export const LIGHTS = Object.freeze({ minimumGap: 0.5, halfFraction: 0.5, windows: 8, colors: Object.freeze({ lit: '#ffffff', half: '#bfc8bf', dark: '#252c28' }) });
+// chosen (2026-10-30, R-3177): broad rooftop clerestories carry audit status at whole-city scale.
+export const LIGHTS = Object.freeze({ roofWidth: 0.9, roofDepth: 0.25, roofHeight: 0.35, minimumGap: 0.5, halfFraction: 0.5, windows: 8, colors: Object.freeze({ lit: '#ffffff', half: '#bfc8bf', dark: '#252c28' }) });
 // chosen (2026-10-30, R-3122): jointed limbs and role equipment remain inexpensive solid geometry.
 export const RESIDENT_TRIANGLE_BUDGET = 600;
 // contract (city plan revision 3, R-3171); vocabulary is shared by the checker and its sealed pin.

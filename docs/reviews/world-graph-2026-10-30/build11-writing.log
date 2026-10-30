@@ -1,0 +1,98 @@
+-:1: verdict: first sentence "VERDICT: PARTIAL — local implementation, visual acceptance and gates pass." carries no verdict word
+-:9: passive: passive candidate: "amended" in "Only R-3172, R-3174 and R-3177 were amended; all remain `implemented` with backticked `file::title` evidence."
+-:9: identifier: `implemented`
+-:9: identifier: `file::title`
+-:17: identifier: `docs/code-map.md`
+-:17: identifier: `build11-capture.mjs`
+-:19: length: 29 words (cap 25)
+-:23: identifier: `packages/nana-pack/tests/`
+-:25: identifier: `hive-city.test.mjs`
+-:27: identifier: `R-3174: card boundary never overlaps readable text and slides upward`
+-:28: length: 29 words (cap 25)
+-:28: identifier: `R-3174: every chapter keeps a reading screen at desktop and phone widths`
+-:29: length: 27 words (cap 25)
+-:29: identifier: `R-3174: opening is a scroll-driven flat plan ending at the tower`
+-:30: length: 35 words (cap 25)
+-:30: identifier: `R-3174: phone chapter targets project above the card and below the header`
+-:43: passive: passive candidate: "deleted" in "No test was deleted."
+-:43: passive: passive candidate: "added" in "No new line-oriented parser or repository-writing fixture was added."
+-:47: identifier: `build11-wrong-first.log`
+-:47: identifier: `build11-wrong-roof-pin.log`
+-:47: identifier: `build11-wrong-reading-pose.log`
+-:49: passive: passive candidate: "applied" in "All six mutations were applied together; every named check below independently printed FAIL."
+-:49: passive: passive candidate: "unchanged" in "Assertions were unchanged."
+-:49: passive: passive candidate: "restored" in "The code was restored before the green run."
+-:60: identifier: `build11-mutations-red.log`
+-:60: identifier: `build11-city.log`
+-:60: identifier: `build11-assets.log`
+-:60: identifier: `build11-page.log`
+-:64: passive: passive candidate: "written" in "Images are outside git; no reference or notes folder was written."
+-:66: identifier: `/tmp/world-graph-build11-round1`
+-:67: identifier: `/tmp/world-graph-build11-round2`
+-:68: identifier: `/tmp/world-graph-build11-round3`
+-:69: identifier: `/tmp/world-graph-build11-round3/gestures`
+-:71: identifier: `390/`
+-:71: identifier: `1280/`
+-:73: identifier: `chapter-00-mid.png`
+-:73: identifier: `chapter-13-mid.png`
+-:74: identifier: `boundary-0.png`
+-:74: identifier: `boundary-5.png`
+-:76: identifier: `scroll-strip-*`
+-:77: passive: passive candidate: "allowed" in "Pose and stage match; worker animation is allowed to continue."
+-:77: identifier: `idle-*`
+-:79: identifier: `poses.json`
+-:79: identifier: `mid-contact-390.png`
+-:79: identifier: `mid-contact-1280.png`
+-:81: identifier: `first-look-*`
+-:81: identifier: `--hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md`
+-:83: length: 26 words (cap 25)
+-:83: passive: passive candidate: "corrected" in "The probe was corrected, not the product or any suite assertion."
+-:83: passive: passive candidate: "retained" in "The rejected measurement is retained in `build11-roof-probe-calibration.log`."
+-:83: identifier: `build11-roof-probe-calibration.log`
+-:87: passive: passive candidate: "started" in "No model sessions or subagents were started."
+-:107: identifier: `node scripts/hive-gesture-check.mjs --url <served real audit> --out <external folder>`
+-:109: length: 32 words (cap 25)
+-:115: identifier: `main.mjs`
+-:116: identifier: `tour.mjs`
+-:116: identifier: `blendPose`
+-:117: identifier: `camera.mjs`
+-:117: identifier: `setViewOffset`
+-:118: passive: passive candidate: "hidden" in "The opening invitation is outside the card layer because it overlays the plan while cards are hidden."
+-:118: identifier: `text-layer.mjs`
+-:119: passive: passive candidate: "unchanged" in "It is unchanged."
+-:119: identifier: `pixel.mjs`
+-:119: identifier: `drawPlan`
+-:119: identifier: `pixel`
+-:120: identifier: `district.mjs`
+-:121: identifier: `parts.mjs`
+-:122: passive: passive candidate: "moved" in "No existing private helper was moved or copied."
+-:122: identifier: `city.mjs`
+-:122: identifier: `segmentDistance`
+-:123: identifier: `hive-gesture-check.mjs`
+-:125: passive: passive candidate: "copied" in "No private precedent helper was copied or moved."
+-:125: identifier: `assets/hive.mjs`
+-:129: passive: passive candidate: "unchanged" in "R-3104's Windows timeout is unchanged; if that CI flake appears, its failed job gets one rerun."
+-:129: passive: passive candidate: "edited" in "No HANDOFF, known-bug file or session archive was edited."
+-:133: passive: passive candidate: "committed" in "Long outputs are committed as the `build11-*.log` files beside this report."
+-:133: passive: passive candidate: "consolidated" in "Gate output is consolidated in `build11-gates.log`; paths in logs are normalized to `$WORKTREE` and `$HOME`."
+-:133: identifier: `build11-*.log`
+-:133: identifier: `build11-gates.log`
+-:133: identifier: `$WORKTREE`
+-:133: identifier: `$HOME`
+-:135: identifier: `node packages/nana-pack/tests/hive-city.test.mjs`
+-:136: identifier: `node packages/nana-pack/tests/hive-assets.test.mjs`
+-:137: identifier: `node packages/nana-pack/tests/hive-page.test.mjs`
+-:138: identifier: `node docs/reviews/world-graph-2026-10-30/build11-capture.mjs <external round folder>`
+-:139: identifier: `npm run map`
+-:140: identifier: `npm run map:check`
+-:140: identifier: `npm run readme:check`
+-:140: identifier: `node scripts/requirements-trace.mjs`
+-:140: identifier: `node scripts/requirements-tree.mjs --check`
+-:140: identifier: `node scripts/known-bugs.mjs --root .`
+-:140: identifier: `node scripts/identity-scan.mjs`
+-:142: identifier: `npm run test:locked`
+-:148: passive: passive candidate: "attempted" in "No independent model review or land was attempted, as the brief forbids model sessions."
+-:148: passive: passive candidate: "repaired" in "No known-bug context outside the named fixes was repaired."
+-:148: passive: passive candidate: "reported" in "The finished new-tip CI run and exact-tip gate rerun are reported in the final response, after this record is committed and pushed."
+-:148: passive: passive candidate: "raised" in "No open owner question was raised."
+summary sentences=111 words=1387 over=6 passive=23 banned=0 verdict=0/1 identifiers=67

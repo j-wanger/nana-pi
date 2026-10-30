@@ -939,7 +939,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Measures phone selection and scroll safety through a served hive's real browser wiring.
 - **inputs** — CLI --url and --out, optional Playwright resolved through the shared resolver.
-- **outputs** — Eleven PASS/FAIL checks, wheel and touch idle poses, overlap, street pixels and an external phone screenshot.
+- **outputs** — Fourteen PASS/FAIL checks at 390px, wheel and touch idle poses, overlap, street pixels and an external phone screenshot.
 - **effects** — network (served page), disk (external screenshot), process (browser)
 - **errors** — Missing browser or failed checks exit 1; malformed options exit 2.
 - **callers** — —

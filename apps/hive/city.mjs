@@ -6,7 +6,7 @@
  * @effects none
  * @errors Throws when a street cannot be routed around a footprint.
  */
-import { CITY, STYLE, CITY_DISTRICTS, CITY_FORMS } from './config.mjs';
+import { CITY, STYLE, CITY_DISTRICTS, CITY_FORMS, DENSITY, STREETS } from './config.mjs';
 import { footprint } from './layout.mjs';
 const fields = (v, allowed) => v && typeof v === 'object' && Object.keys(v).every(k => allowed.includes(k));
 export function checkCityPlan(plan, components) {
@@ -176,7 +176,8 @@ export function cityLayout(data, plan, overrides = {}) {
   const edgeKey = (a, b) => [a.join(','), b.join(',')].sort().join('/');
   const avenue = new Set(handoffs.filter(r => r.kind === 'forward').flatMap(r => r.path.slice(1).map((b, i) => edgeKey([r.path[i][0], r.path[i][2]], [b[0], b[2]]))));
   for (const road of roads.filter(r => r.class === 'local')) if (road.path.slice(1).every((b, i) => avenue.has(edgeKey(road.path[i], b)))) { road.class = 'avenue'; road.kind = 'forward'; }
-  return { places, roads, handoffs, fenceRadius, ringRadius, townOuterRadius, residents: plan.residents };
+  const houses = townHouses({ places, roads, ringRadius, townOuterRadius });
+  return { places, roads, houses, handoffs, fenceRadius, ringRadius, townOuterRadius, residents: plan.residents };
 }
 // Moved out of tour's closure for the city handoffs' second caller; model replaces its captured graph.
 export function pathBetween(model, from, to) {
@@ -195,8 +196,29 @@ export function pathBetween(model, from, to) {
   throw new Error(`missing tour street ${from.id}/${to.id}`);
 }
 export function visibleRoads(roads, chapter = null) { return roads.filter(r => r.class !== 'air' || r.chapter === chapter); }
+// Houses follow local trays, not a global lattice. Deterministic setbacks and block gaps leave yards.
+export function townHouses(model) {
+  const houses = [], radius = Math.hypot(DENSITY.houseWidth, DENSITY.houseDepth) / 2;
+  for (const [r, road] of model.roads.filter(r => r.id.startsWith('local/') && r.district === 'town').entries()) {
+    for (let i = 1; i < road.path.length; i++) {
+      const a = road.path[i - 1], b = road.path[i], length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const along = [(b[0] - a[0]) / length, (b[1] - a[1]) / length];
+      for (const side of [-1, 1]) for (let d = radius; d < length - radius; d += DENSITY.houseStep + (Math.floor(d / DENSITY.houseStep) % 3 === 2 ? DENSITY.blockGap : 0)) {
+        const setback = radius + DENSITY.setback + (1 + Math.sin(d + r)) / 2;
+        const face = [along[1] * side, -along[0] * side];
+        const x = roundPosition(a[0] + along[0] * d - face[0] * setback), z = roundPosition(a[1] + along[1] * d - face[1] * setback);
+        if (Math.hypot(x, z) < model.ringRadius + radius || Math.hypot(x, z) > model.townOuterRadius - radius) continue;
+        if ([...model.places, ...houses].some(n => Math.hypot(x - n.x, z - n.z) < n.radius + radius + CITY.frontage)) continue;
+        if (model.roads.some(r => r.class !== 'air' && r.path.slice(1).some((b, i) => segmentDistance({ x, z }, r.path[i], b) < radius + STREETS.widths[r.class]))) continue;
+        const index = houses.length, type = DENSITY.types[index % DENSITY.types.length];
+        houses.push({ x, z, face, radius, type, street: road.id, height: DENSITY.houseHeight + (1 + Math.sin(index * 2.4)) / 2 * DENSITY.heightVariation });
+      }
+    }
+  }
+  return houses;
+}
 export function cityShapeProblems(model) {
-  const problems = [], nodes = model.places.filter(n => n.component), families = [];
+  const problems = [], nodes = [...model.places.filter(n => n.component), ...(model.houses ?? [])], families = [];
   // Three equally spaced centres establish a row. Parallel rows away from the public axis establish a family.
   for (const [i, a] of nodes.entries()) for (const b of nodes.slice(i + 1)) {
     const dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz); if (length < CITY.positionGrid) continue;
