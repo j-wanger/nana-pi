@@ -38,9 +38,9 @@ runtime map: tip 85e51381, 240 measured files
     1 packages/nana-setup/lib/verifier-hook.mjs
     1 packages/nana-setup/claude/hooks/nana-adoption.mjs
     1 packages/nana-setup/claude/hooks/nana-objective.mjs
-launch sites: program-unknown 98, resolved 299, other-program 23, unresolved 102, inline-no-repo 25, external 248
-always-run blind reach: 165 of 240 (68.8%); 97 holding modules
-  unresolved: 52 modules hold one (47 tests, 5 non-test); 95 of 240 tests hold or reach one
+launch sites: program-unknown 101, resolved 298, other-program 23, unresolved 122, inline-no-repo 9, external 250
+always-run blind reach: 169 of 240 (70.4%); 107 holding modules
+  unresolved: 64 modules hold one (58 tests, 6 non-test); 108 of 240 tests hold or reach one
   other-program: 20 modules hold one (13 tests, 7 non-test); 105 of 240 tests hold or reach one
-  program-unknown: 42 modules hold one (19 tests, 23 non-test); 149 of 240 tests hold or reach one
+  program-unknown: 43 modules hold one (19 tests, 24 non-test); 153 of 240 tests hold or reach one
 callee growth (map:search neighbours): 146 modules gain callees; top lane-class.test.mjs +22, requirements-regroup.test.mjs +16, runtime-map.test.mjs +13, steps.mjs +7, install.test.mjs +7, requirements-deliverables.test.mjs +6

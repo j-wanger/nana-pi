@@ -1475,7 +1475,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive --stall-secs/--poll or a non-whole --retries, a spawn failure or stall returns ok:false with the partial text, and a win32 launch refusal is returned as `{refused}` and treated as a failed attempt
 - **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/win-command.mjs`
-- **repo-code launches** — line 151: execSync · line 190: spawn
+- **repo-code launches** — line 150: execSync · line 151: execSync · line 190: spawn
 
 ### `packages/nana-pack/bin/pi-worker.mjs`
 
@@ -1486,6 +1486,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — exit 1 on bad args, invalid lane, refused precedent/roster, failed worker, output failure or ceiling; settings-source and record failures report
 - **callers** — `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/lane-class.test.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install.test.mjs`
 - **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/lane-class-config.mjs`, `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/record-ledger.mjs`, `scripts/lane-class.mjs`
+- **unresolved launches** — line 86: spawnSync; binding line 161
 
 ### `packages/nana-pack/bin/review-launch.mjs`
 
@@ -2583,6 +2584,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Failed assertions or per-case deadlines produce exit 1.
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/git-fixtures.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map-launch-config.mjs`, `scripts/code-map.mjs`
+- **unresolved launches** — line 36: spawnSync
 
 ### `packages/nana-pack/tests/code-map.test.mjs`
 
@@ -3164,6 +3166,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed assertions exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **unresolved launches** — line 364: spawnSync · line 365: spawnSync
 
 ### `packages/nana-pack/tests/notify-dispatch.test.mjs`
 
@@ -3258,7 +3261,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Throws an Error naming each candidate that could not be resolved.
 - **callers** — `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `packages/nana-pack/tests/post-edit-status.test.mjs`
 - **callees** — —
-- **repo-code launches** — line 38: spawn
+- **repo-code launches** — line 30: spawn · line 38: spawn
 
 ### `packages/nana-pack/tests/pi-install.test.mjs`
 
@@ -3380,6 +3383,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a FAIL line naming the broken contract; a non-zero exit code
 - **callers** — —
 - **callees** — `apps/desk/server.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
+- **unresolved launches** — line 157: spawn
 
 ### `packages/nana-pack/tests/product-detail.test.mjs`
 
@@ -3588,7 +3592,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/verdict-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/launch-wait.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
-- **unresolved launches** — line 699: spawnSync
+- **unresolved launches** — line 699: spawnSync · line 814: spawn · line 1399: spawn
 
 ### `packages/nana-pack/tests/review-movement.test.mjs`
 
@@ -3619,6 +3623,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **unresolved launches** — line 101: spawnSync
 
 ### `packages/nana-pack/tests/review-test-waits.test.mjs`
 
@@ -3798,7 +3803,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a FAIL line naming the broken runner behaviour; a non-zero exit code
 - **callers** — —
 - **callees** — `apps/bench/test/study-tasks.test.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `scripts/test.mjs`
-- **unresolved launches** — line 95: spawnSync; binding line 211; binding line 290; binding line 303; binding line 310; binding line 318; binding line 339; binding line 364; binding line 381; binding line 400; binding line 419; binding line 472; binding line 474; binding line 496; binding line 497; binding line 498; binding line 547; binding line 593; binding line 595 · line 444: spawn · line 715: spawnSync; binding line 751; binding line 752; binding line 757; binding line 778; binding line 779
+- **unresolved launches** — line 95: spawnSync; binding line 211; binding line 290; binding line 303; binding line 310; binding line 318; binding line 339; binding line 364; binding line 381; binding line 400; binding line 419; binding line 472; binding line 474; binding line 496; binding line 497; binding line 498; binding line 547; binding line 593; binding line 595 · line 444: spawn · line 664: spawnSync · line 715: spawnSync; binding line 751; binding line 752; binding line 757; binding line 778; binding line 779
 
 ### `packages/nana-pack/tests/tmp-dir.mjs`
 
@@ -3870,6 +3875,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a missing piLaunch export fails every forced title, not the whole file; failed assertions exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/win-command.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **unresolved launches** — line 189: spawnSync · line 193: spawnSync
 - **repo-code launches** — line 361: spawnSync
 
 ### `packages/nana-pack/tests/windows-skip-lines.test.mjs`
@@ -3891,7 +3897,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed checks or per-case time limits exit nonzero; unexpected fixture failures throw.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/lane-watcher-child.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/process-tree-helper.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/runtime-measure.mjs`
-- **unresolved launches** — line 169: spawnSync · line 209: spawn · line 401: spawn · line 903: spawn · line 906: spawn
+- **unresolved launches** — line 169: spawnSync · line 209: spawn · line 401: spawn · line 874: spawn · line 903: spawn · line 906: spawn
 - **repo-code launches** — line 757: spawn
 
 ### `packages/nana-pack/tests/worker-lane.test.mjs`
@@ -3903,6 +3909,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed assertions exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/known-bugs.mjs`
+- **unresolved launches** — line 380: spawnSync
 
 ### `packages/nana-pack/tests/writing-check.test.mjs`
 
@@ -4382,6 +4389,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-knowledge/lib/paths.ts`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **unresolved launches** — line 47: spawnSync; binding line 54; binding line 59; binding line 62; binding line 64
 
 ### `packages/nana-setup/tests/checkout-converge.test.mjs`
 
@@ -4547,6 +4555,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed assertion prints FAIL and exits nonzero.
 - **callers** — —
 - **callees** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **unresolved launches** — line 162: spawnSync
 
 ### `packages/nana-setup/tests/fresh-machine.test.mjs`
 
@@ -4600,6 +4609,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed checks set a nonzero process exit code.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/lib/settings.mjs`
+- **unresolved launches** — line 119: spawn
 - **repo-code launches** — line 17: runHookProducer; binding line 69; binding line 71 · line 29: runHookProducer · line 45: runHookProducer · line 76: runHookProducer · line 94: runHookProducer · line 106: runHookProducer · line 110: runHookProducer · line 114: runHookProducer
 
 ### `packages/nana-setup/tests/hooks-closed-output.test.mjs`
@@ -4706,7 +4716,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed or over-time check prints FAIL and makes the file exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-setup/lib/bounded-spawn.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
-- **unresolved launches** — line 210: spawn; binding line 219; binding line 232; binding line 534; binding line 553; binding line 590
+- **unresolved launches** — line 210: spawn; binding line 219; binding line 232; binding line 534; binding line 553; binding line 590 · line 336: spawn
 
 ### `packages/nana-setup/tests/pi-registration.test.mjs`
 
@@ -4717,7 +4727,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/win-command.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
-- **unresolved launches** — line 113: spawnSync · line 118: spawnSync · line 174: spawnSync · line 249: spawnSync · line 258: spawnSync · line 419: spawnSync · line 420: spawnSync
+- **unresolved launches** — line 113: spawnSync · line 118: spawnSync · line 174: spawnSync · line 249: spawnSync · line 258: spawnSync · line 374: spawnSync · line 419: spawnSync · line 420: spawnSync
 - **repo-code launches** — line 394: spawnSync
 
 ### `packages/nana-setup/tests/project-dismiss.test.mjs`
@@ -4871,7 +4881,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Failed assertions print their observed output and make the test process exit nonzero.
 - **callers** — —
 - **callees** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/settings-lock.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
-- **repo-code launches** — line 122: spawnSync · line 135: spawnSync · line 147: spawnSync
+- **repo-code launches** — line 106: spawn · line 122: spawnSync · line 135: spawnSync · line 147: spawnSync
 
 ### `packages/nana-setup/tests/settings-merge.test.mjs`
 
@@ -4912,6 +4922,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **unresolved launches** — line 149: spawnSync
 
 ### `packages/nana-setup/tests/shared-memory-input.test.mjs`
 
@@ -4922,6 +4933,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed checks set a nonzero process exit code.
 - **callers** — —
 - **callees** — `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/shared-memory-input.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **unresolved launches** — line 32: spawnSync
 
 ### `packages/nana-setup/tests/skills-and-standards.test.mjs`
 

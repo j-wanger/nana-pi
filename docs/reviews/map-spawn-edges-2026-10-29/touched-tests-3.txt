@@ -1,0 +1,14 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs code-map code-search runtime-map blast-radius component-audit requirement-rows test-runner.test
+
+PASS  packages/nana-pack/tests/blast-radius.test.mjs      8 pass  0.8s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs   12 pass  1.9s
+PASS  packages/nana-pack/tests/code-map.test.mjs          48 pass  3.1s
+PASS  packages/nana-pack/tests/code-search.test.mjs       9 pass  0.6s
+PASS  packages/nana-pack/tests/component-audit.test.mjs   11 pass  39.6s
+PASS  packages/nana-pack/tests/requirement-rows.test.mjs  5 pass  0.6s
+PASS  packages/nana-pack/tests/runtime-map.test.mjs       15 pass  22.5s
+PASS  packages/nana-pack/tests/test-runner.test.mjs       52 pass  30.3s
+
+8 files: 8 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 160 pass, 0 fail, 0 skip · 99.7s

@@ -1,15 +1,17 @@
-failed ci runs listed: 182 (2026-10-08 to 2026-10-29); replayed pull_request runs: 154
-pairs (run, leg, failing file): 4363; windows-only (run, file) 3326
+failed ci runs listed: 184 (2026-10-08 to 2026-10-30); replayed pull_request runs: 156
+pairs (run, leg, failing file): 4365; windows-only (run, file) 3328
 selected: changed test              199  macos 10  linux 11  windows 178
 selected: import edges              218  macos 35  linux 41  windows 142
 selected: + today's launch links     66  macos 8  linux 7  windows 51
 selected: + new rules' edges         50  macos 10  linux 9  windows 31
-selected: always-run (blind reach) 1736  macos 143  linux 133  windows 1460
-missed: changed file outside map    399  macos 1  linux 25  windows 373
-missed: nothing reached             217  macos 3  linux 10  windows 204
+selected: always-run (blind reach) 1760  macos 143  linux 133  windows 1484
+missed: changed file outside map    381  macos 1  linux 25  windows 355
+missed: nothing reached             213  macos 3  linux 10  windows 200
 excluded: red on base, same leg    1477  macos 112  linux 128  windows 1237
 excluded: base unknown                0  macos 0  linux 0  windows 0
 excluded: file not mapped             1  macos 0  linux 1  windows 0
+40992490609	008b9ec0	feat/world-graph	windows	packages/nana-pack/tests/mutation-runner.test.mjs	always-run
+40992301983	041bbf54	feat/world-graph	windows	packages/nana-pack/tests/component-audit.test.mjs	always-run
 40961066968	713138e6	feat/hive-render	windows	packages/nana-pack/tests/templates-update.test.mjs	always-run
 40961066968	713138e6	feat/hive-render	windows	packages/nana-pack/tests/worker-lane.test.mjs	always-run
 40958062368	ad249c9a	feat/visual-check	windows	packages/nana-pack/tests/visual-reader.test.mjs	changed-test
@@ -441,7 +443,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 39063395162	8c6f64ae	feat/win-project-files	windows	packages/nana-setup/tests/restore.test.mjs	today-launch
 39063395162	8c6f64ae	feat/win-project-files	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	today-launch
 39063395162	8c6f64ae	feat/win-project-files	windows	packages/nana-setup/tests/settings-merge.test.mjs	today-launch
-39063395162	8c6f64ae	feat/win-project-files	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+39063395162	8c6f64ae	feat/win-project-files	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 39063395162	8c6f64ae	feat/win-project-files	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	today-launch
 39063395162	8c6f64ae	feat/win-project-files	windows	packages/nana-setup/tests/state-manifest.test.mjs	today-launch
 39063395162	8c6f64ae	feat/win-project-files	windows	packages/nana-setup/tests/trust.test.mjs	today-launch
@@ -1539,7 +1541,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38858508138	0499e523	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38858508138	0499e523	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38858508138	0499e523	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38858508138	0499e523	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38858508138	0499e523	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38858508138	0499e523	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38858508138	0499e523	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38858508138	0499e523	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -1607,7 +1609,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38858324130	e485b1e1	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38858324130	e485b1e1	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38858324130	e485b1e1	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38858324130	e485b1e1	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38858324130	e485b1e1	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38858324130	e485b1e1	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38858324130	e485b1e1	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38858324130	e485b1e1	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -1679,7 +1681,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38858106499	63461438	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38858106499	63461438	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38858106499	63461438	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38858106499	63461438	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38858106499	63461438	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38858106499	63461438	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38858106499	63461438	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38858106499	63461438	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -1752,7 +1754,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38857899423	02ed0fbd	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38857899423	02ed0fbd	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38857899423	02ed0fbd	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38857899423	02ed0fbd	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38857899423	02ed0fbd	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38857899423	02ed0fbd	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38857899423	02ed0fbd	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38857899423	02ed0fbd	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -1822,7 +1824,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38857794268	971afe3f	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38857794268	971afe3f	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38857794268	971afe3f	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38857794268	971afe3f	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38857794268	971afe3f	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38857794268	971afe3f	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38857794268	971afe3f	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38857794268	971afe3f	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -1894,7 +1896,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38857634474	6e01f646	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38857634474	6e01f646	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38857634474	6e01f646	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38857634474	6e01f646	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38857634474	6e01f646	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38857634474	6e01f646	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38857634474	6e01f646	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38857634474	6e01f646	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -1964,7 +1966,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38857549712	0edf36de	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38857549712	0edf36de	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38857549712	0edf36de	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38857549712	0edf36de	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38857549712	0edf36de	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38857549712	0edf36de	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38857549712	0edf36de	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38857549712	0edf36de	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -2038,7 +2040,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38857258257	8bfd405f	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38857258257	8bfd405f	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38857258257	8bfd405f	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38857258257	8bfd405f	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38857258257	8bfd405f	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38857258257	8bfd405f	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38857258257	8bfd405f	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38857258257	8bfd405f	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -2110,7 +2112,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38857046395	4c172e6a	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38857046395	4c172e6a	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38857046395	4c172e6a	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38857046395	4c172e6a	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38857046395	4c172e6a	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38857046395	4c172e6a	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38857046395	4c172e6a	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38857046395	4c172e6a	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -2181,7 +2183,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38856901579	7769a48c	feat/regroup	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38856901579	7769a48c	feat/regroup	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38856901579	7769a48c	feat/regroup	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38856901579	7769a48c	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38856901579	7769a48c	feat/regroup	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38856901579	7769a48c	feat/regroup	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38856901579	7769a48c	feat/regroup	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38856901579	7769a48c	feat/regroup	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -2250,7 +2252,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38808390258	12f5f7be	feat/lift	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38808390258	12f5f7be	feat/lift	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38808390258	12f5f7be	feat/lift	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38808390258	12f5f7be	feat/lift	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	unreached
+38808390258	12f5f7be	feat/lift	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38808390258	12f5f7be	feat/lift	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38808390258	12f5f7be	feat/lift	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38808390258	12f5f7be	feat/lift	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -2320,7 +2322,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38763786671	dd32ae18	feat/lift	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38763786671	dd32ae18	feat/lift	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38763786671	dd32ae18	feat/lift	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38763786671	dd32ae18	feat/lift	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	unreached
+38763786671	dd32ae18	feat/lift	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38763786671	dd32ae18	feat/lift	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38763786671	dd32ae18	feat/lift	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38763786671	dd32ae18	feat/lift	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -2388,7 +2390,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38756113881	3f2c50bf	feat/lift	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38756113881	3f2c50bf	feat/lift	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38756113881	3f2c50bf	feat/lift	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38756113881	3f2c50bf	feat/lift	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	unreached
+38756113881	3f2c50bf	feat/lift	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38756113881	3f2c50bf	feat/lift	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38756113881	3f2c50bf	feat/lift	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38756113881	3f2c50bf	feat/lift	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -2457,7 +2459,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38611929140	2b54997b	feat/seat-guide	windows	packages/nana-setup/tests/restore.test.mjs	changed-test
 38611929140	2b54997b	feat/seat-guide	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	import
 38611929140	2b54997b	feat/seat-guide	windows	packages/nana-setup/tests/settings-merge.test.mjs	import
-38611929140	2b54997b	feat/seat-guide	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	unreached
+38611929140	2b54997b	feat/seat-guide	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38611929140	2b54997b	feat/seat-guide	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	import
 38611929140	2b54997b	feat/seat-guide	windows	packages/nana-setup/tests/state-manifest.test.mjs	changed-test
 38611929140	2b54997b	feat/seat-guide	windows	packages/nana-setup/tests/trust.test.mjs	today-launch
@@ -3925,7 +3927,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38316745031	1d638d23	feat/install-check	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38316745031	1d638d23	feat/install-check	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38316745031	1d638d23	feat/install-check	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38316745031	1d638d23	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38316745031	1d638d23	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38316745031	1d638d23	feat/install-check	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38316745031	1d638d23	feat/install-check	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38316745031	1d638d23	feat/install-check	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -3995,7 +3997,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38296688856	4571d4b5	feat/install-check	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38296688856	4571d4b5	feat/install-check	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38296688856	4571d4b5	feat/install-check	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38296688856	4571d4b5	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38296688856	4571d4b5	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38296688856	4571d4b5	feat/install-check	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38296688856	4571d4b5	feat/install-check	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38296688856	4571d4b5	feat/install-check	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -4065,7 +4067,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38293144777	c318815f	feat/install-check	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38293144777	c318815f	feat/install-check	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38293144777	c318815f	feat/install-check	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38293144777	c318815f	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38293144777	c318815f	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38293144777	c318815f	feat/install-check	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38293144777	c318815f	feat/install-check	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38293144777	c318815f	feat/install-check	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -4136,7 +4138,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38285940748	eae45f0f	feat/install-check	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38285940748	eae45f0f	feat/install-check	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38285940748	eae45f0f	feat/install-check	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38285940748	eae45f0f	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38285940748	eae45f0f	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38285940748	eae45f0f	feat/install-check	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38285940748	eae45f0f	feat/install-check	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38285940748	eae45f0f	feat/install-check	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -4206,7 +4208,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38284289999	011f293c	feat/install-check	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38284289999	011f293c	feat/install-check	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38284289999	011f293c	feat/install-check	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38284289999	011f293c	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38284289999	011f293c	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38284289999	011f293c	feat/install-check	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38284289999	011f293c	feat/install-check	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38284289999	011f293c	feat/install-check	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -4276,7 +4278,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38282268513	6253bed3	feat/install-check	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38282268513	6253bed3	feat/install-check	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38282268513	6253bed3	feat/install-check	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38282268513	6253bed3	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38282268513	6253bed3	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38282268513	6253bed3	feat/install-check	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38282268513	6253bed3	feat/install-check	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38282268513	6253bed3	feat/install-check	windows	packages/nana-setup/tests/trust.test.mjs	always-run
@@ -4346,7 +4348,7 @@ excluded: file not mapped             1  macos 0  linux 1  windows 0
 38279550459	033a05a0	feat/install-check	windows	packages/nana-setup/tests/restore.test.mjs	always-run
 38279550459	033a05a0	feat/install-check	windows	packages/nana-setup/tests/retired-artifacts.test.mjs	always-run
 38279550459	033a05a0	feat/install-check	windows	packages/nana-setup/tests/settings-merge.test.mjs	always-run
-38279550459	033a05a0	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	outside-map
+38279550459	033a05a0	feat/install-check	windows	packages/nana-setup/tests/shared-memory-hook.test.mjs	always-run
 38279550459	033a05a0	feat/install-check	windows	packages/nana-setup/tests/skills-and-standards.test.mjs	always-run
 38279550459	033a05a0	feat/install-check	windows	packages/nana-setup/tests/state-manifest.test.mjs	always-run
 38279550459	033a05a0	feat/install-check	windows	packages/nana-setup/tests/trust.test.mjs	always-run

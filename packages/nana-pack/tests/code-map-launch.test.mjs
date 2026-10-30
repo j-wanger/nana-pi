@@ -83,21 +83,25 @@ await check("R-3150: helper bindings resolve per site and non-launching referenc
 }));
 
 // req: R-3152
-await check("R-3152: unresolved sites are numbered without guessing and stale lists fail check", () => fixture((f) => {
+await check("R-3152: unresolved sites are numbered without guessing and stale lists fail check", () => {
+	for (const variant of ["lf", "crlf"]) fixture((f) => {
 	f.put("bin/x.mjs"); f.put("lib/a.mjs");
 	// The unchanged import parser sees import text inside inline code as an external fixture path.
 	f.config.ignore = ["tests/lib/a.mjs"]; f.saveConfig();
 	const source = 'function run(root) {\nspawnSync(process.execPath, [join(root, "bin", "x.mjs")]);\n}\nspawnSync(process.execPath, ["x.mjs"]);\nspawnSync(process.execPath, ["-e", "import(\'./lib/a.mjs\')"]);\nspawnSync(process.execPath, ["-e", "setInterval(() => {}, 1000)"]);\n// spawnSync(process.execPath, ["comment.mjs"]);\nconst re = /spawnSync\\(process.execPath/;\nconst text = "spawnSync(process.execPath, [])";';
-	f.put("tests/u.test.mjs", source); writeMap(f.root);
+	const launches = source + '\nspawnSync(process.execPath, [copyBin, "--", "-p", "review"]);\nconst code = "setInterval(() => {}, 1000)";\nspawnSync(process.execPath, ["-e", code]);\nspawnSync(process.execPath, ["--eval", `setInterval(() => {}, 1000)`]);\ncond ? spawnSync(process.execPath, [process.argv[2]]) : null;\ninterface Runner { spawnSync(command: string): unknown; }\ndeclare function spawnSync(command: string): unknown;\nconst methods = { spawnSync(command) { return command; } };';
+	f.put("tests/u.test.mjs", launches); writeMap(f.root);
 	assert.deepEqual(f.get("tests/u.test.mjs").callees, []);
 	const entry = readFileSync(join(f.root, "map.md"), "utf8").split('### `tests/u.test.mjs`')[1];
-	assert.equal((entry.match(/line \d+:/g) ?? []).length, 3, entry);
-	for (const line of [10, 12, 13]) assert(entry.includes(`line ${line}:`), entry);
-	assert(!entry.includes("line 14:"));
+	assert.equal((entry.match(/line \d+:/g) ?? []).length, 7, entry);
+	for (const line of [10, 12, 13, 18, 20, 21, 22]) assert(entry.includes(`line ${line}:`), entry);
+	for (const line of [14, 23, 24, 25]) assert(!entry.includes(`line ${line}:`), entry);
 	assert.equal(f.cli("--check").status, 0);
-	f.put("tests/u.test.mjs", source + '\nspawnSync(process.execPath, [process.argv[2]]);');
+	assert(f.cli("--impact", "bin/x.mjs").stdout.split("always-run tests (blind reach):")[1]?.includes("tests/u.test.mjs"));
+	f.put("tests/u.test.mjs", launches + '\nspawnSync(process.execPath, [process.argv[2]]);');
 	const result = f.cli("--check"); assert.equal(result.status, 1); assert.match(result.stdout, /stale/);
-}));
+	}, variant);
+});
 
 // req: R-3153
 await check("R-3153: impact marks launch-only callers and reports enriched blind reach", async () => fixture((f) => {

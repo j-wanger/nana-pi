@@ -1,15 +1,17 @@
-failed ci runs listed: 182 (2026-10-08 to 2026-10-29); replayed pull_request runs since 2026-10-24: 22
-pairs (run, leg, failing file): 37; windows-only (run, file) 27
+failed ci runs listed: 184 (2026-10-08 to 2026-10-30); replayed pull_request runs since 2026-10-24: 24
+pairs (run, leg, failing file): 39; windows-only (run, file) 29
 selected: changed test               26  macos 3  linux 3  windows 20
 selected: import edges                1  macos 0  linux 0  windows 1
 selected: + today's launch links      1  macos 0  linux 0  windows 1
 selected: + new rules' edges          2  macos 1  linux 0  windows 1
-selected: always-run (blind reach)    7  macos 0  linux 0  windows 7
+selected: always-run (blind reach)    9  macos 0  linux 0  windows 9
 missed: changed file outside map      0  macos 0  linux 0  windows 0
 missed: nothing reached               0  macos 0  linux 0  windows 0
 excluded: red on base, same leg       0  macos 0  linux 0  windows 0
 excluded: base unknown                0  macos 0  linux 0  windows 0
 excluded: file not mapped             0  macos 0  linux 0  windows 0
+40992490609	008b9ec0	feat/world-graph	windows	packages/nana-pack/tests/mutation-runner.test.mjs	always-run
+40992301983	041bbf54	feat/world-graph	windows	packages/nana-pack/tests/component-audit.test.mjs	always-run
 40961066968	713138e6	feat/hive-render	windows	packages/nana-pack/tests/templates-update.test.mjs	always-run
 40961066968	713138e6	feat/hive-render	windows	packages/nana-pack/tests/worker-lane.test.mjs	always-run
 40958062368	ad249c9a	feat/visual-check	windows	packages/nana-pack/tests/visual-reader.test.mjs	changed-test

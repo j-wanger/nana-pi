@@ -210,8 +210,21 @@ function callsIn(facts) {
 	for (let i = 0; i < ts.length - 1; i++) {
 		if (ts[i].kind !== "name" || ts[i + 1].v !== "(" || ts[i + 1].close === undefined) continue;
 		if (facts.functions.some((f) => f.declaration === i)) continue;
-		// Object methods and TypeScript signatures are definitions, not bare calls.
-		if (["{", ":"].includes(ts[ts[i + 1].close + 1]?.v)) continue;
+		// A colon can end a ternary branch as well as introduce a signature's return type.
+		// Walk only this expression level, pairing nested ternaries and skipping balanced groups.
+		let ternary = false, colons = 0;
+		if (ts[ts[i + 1].close + 1]?.v === ":") for (let j = i - 1; j >= 0; j--) {
+			if (ts[j].open !== undefined) { j = ts[j].open; continue; }
+			if ([";", ",", "(", "[", "{", "}", "=", "=>"].includes(ts[j].v)) break;
+			if (ts[j].v === ":") colons++;
+			if (ts[j].v === "?") {
+				if (colons === 0) { ternary = true; break; }
+				colons--;
+			}
+		}
+		// Object methods and real TypeScript signatures remain definitions, not bare calls.
+		const after = ts[ts[i + 1].close + 1]?.v;
+		if (after === "{" || (after === ":" && !ternary)) continue;
 		const member = ts[i - 1]?.v === "." || ts[i - 1]?.v === "?.";
 		const namespace = member && ["cp", "childProcess", "child_process"].includes(ts[i - 2]?.v) && ts[i - 3]?.v !== ".";
 		out.push({ name: ts[i].v, index: i, args: splitArgs(ts, i + 2, callEnd(ts, i + 1)), launch: LAUNCH_CALLS.includes(ts[i].v) && (!member || namespace), bare: !member });
@@ -234,9 +247,27 @@ function launchSites(facts, evaluate, mods, calls) {
 			const found = vals.map((v) => targetOf(v, facts.path, mods, true)).filter(Boolean);
 			for (const target of found) targets.add(target);
 			const node = call.name === "fork" || p === "process.execPath" || p === "node" || /\.(?:mjs|cjs|js|ts)$/.test(p ?? "");
-			const inline = vals.some((v) => v?.kind === "lit" && INLINE_FLAGS.some((flag) => v.s === flag || v.s.startsWith(`${flag}=`)));
+			// Only node's option prefix can select inline execution; later flags belong to the script.
+			// Keep the code's lexical form: following a constant is not proof of plain literal code.
+			const argv = values[1]?.kind === "array" ? values[1].values : [];
+			const rawArgv = call.args[1]?.[0]?.v === "[" ? parts(call.args[1].slice(1, -1)) : [];
+			let inline = false, code = null;
+			if (call.name !== "fork") for (let i = 0; i < argv.length; i++) {
+				const arg = argv[i];
+				if (arg?.kind !== "lit" || !arg.s.startsWith("-") || arg.s === "--") break;
+				const flag = arg.s.split("=")[0];
+				if (!INLINE_FLAGS.includes(flag)) continue;
+				inline = true;
+				if (flag === "--input-type") { if (arg.s === flag) i++; continue; }
+				const raw = rawArgv[i + (arg.s === flag ? 1 : 0)];
+				if (raw?.length === 1 && raw[0].kind === "string") {
+					code = literal(raw[0]);
+					if (arg.s !== flag) code = code.slice(code.indexOf("=") + 1);
+				}
+				break;
+			}
 			let kind;
-			if (node) kind = found.length ? "resolved" : inline && !vals.some((v) => /\b(?:import|require)\b/.test(v?.s ?? "")) ? "inline-no-repo" : "unresolved";
+			if (node) kind = inline && code === null ? "unresolved" : found.length ? "resolved" : inline && !/\b(?:import|require)\b/.test(code) ? "inline-no-repo" : "unresolved";
 			else if (p && REPO_CODE_PROGRAMS.includes(posix.basename(portable(p)))) kind = "other-program";
 			else if (program?.kind === "lit") kind = "external";
 			else if (usesParameter && !actuals.length && enclosing?.exported && LAUNCH_CALLS.includes(enclosing.name)) kind = "wrapper-passthrough";

@@ -1,0 +1,110 @@
+PASS R-3149: anchors and exact launch literals link reciprocally without temporary-anchor guesses
+PASS R-3150: helper bindings resolve per site and non-launching references add no edge
+FAIL R-3152: unresolved sites are numbered without guessing and stale lists fail check
+
+- **purpose** — Exercise fixture paths.
+- **inputs** — none
+- **outputs** — none
+- **effects** — none
+- **errors** — none
+- **callers** — —
+- **callees** — —
+- **unresolved launches** — line 10: spawnSync · line 12: spawnSync · line 13: spawnSync
+
+
+
+3 !== 7
+
+PASS R-3153: impact marks launch-only callers and reports enriched blind reach
+PASS R-3154: launch-only tests count as traced with one untraced of three
+PASS R-3155: repo-code programs require reasoned declarations and remain in blind reach
+PASS R-3156: every fixed-base callee survives or has a named loss reason
+PASS seal: R-3157 launch names
+PASS seal: R-3158 path-preserving calls
+PASS seal: R-3159 repo-code programs
+PASS seal: R-3160 inline-code flags
+PASS seal: launch impact labels
+
+MUTATION: scan flags after the script argument
+PASS R-3149: anchors and exact launch literals link reciprocally without temporary-anchor guesses
+PASS R-3150: helper bindings resolve per site and non-launching references add no edge
+FAIL R-3152: unresolved sites are numbered without guessing and stale lists fail check
+
+- **purpose** — Exercise fixture paths.
+- **inputs** — none
+- **outputs** — none
+- **effects** — none
+- **errors** — none
+- **callers** — —
+- **callees** — —
+- **unresolved launches** — line 10: spawnSync · line 12: spawnSync · line 13: spawnSync · line 20: spawnSync · line 21: spawnSync · line 22: spawnSync
+
+
+
+6 !== 7
+
+PASS R-3153: impact marks launch-only callers and reports enriched blind reach
+PASS R-3154: launch-only tests count as traced with one untraced of three
+PASS R-3155: repo-code programs require reasoned declarations and remain in blind reach
+PASS R-3156: every fixed-base callee survives or has a named loss reason
+PASS seal: R-3157 launch names
+PASS seal: R-3158 path-preserving calls
+PASS seal: R-3159 repo-code programs
+PASS seal: R-3160 inline-code flags
+PASS seal: launch impact labels
+
+MUTATION: assume opaque inline code contains no repository import
+PASS R-3149: anchors and exact launch literals link reciprocally without temporary-anchor guesses
+PASS R-3150: helper bindings resolve per site and non-launching references add no edge
+FAIL R-3152: unresolved sites are numbered without guessing and stale lists fail check
+
+- **purpose** — Exercise fixture paths.
+- **inputs** — none
+- **outputs** — none
+- **effects** — none
+- **errors** — none
+- **callers** — —
+- **callees** — —
+- **unresolved launches** — line 10: spawnSync · line 12: spawnSync · line 13: spawnSync · line 18: spawnSync · line 22: spawnSync
+
+
+
+5 !== 7
+
+PASS R-3153: impact marks launch-only callers and reports enriched blind reach
+PASS R-3154: launch-only tests count as traced with one untraced of three
+PASS R-3155: repo-code programs require reasoned declarations and remain in blind reach
+PASS R-3156: every fixed-base callee survives or has a named loss reason
+PASS seal: R-3157 launch names
+PASS seal: R-3158 path-preserving calls
+PASS seal: R-3159 repo-code programs
+PASS seal: R-3160 inline-code flags
+PASS seal: launch impact labels
+
+MUTATION: reject every call followed by a colon
+PASS R-3149: anchors and exact launch literals link reciprocally without temporary-anchor guesses
+PASS R-3150: helper bindings resolve per site and non-launching references add no edge
+FAIL R-3152: unresolved sites are numbered without guessing and stale lists fail check
+
+- **purpose** — Exercise fixture paths.
+- **inputs** — none
+- **outputs** — none
+- **effects** — none
+- **errors** — none
+- **callers** — —
+- **callees** — —
+- **unresolved launches** — line 10: spawnSync · line 12: spawnSync · line 13: spawnSync · line 18: spawnSync · line 20: spawnSync · line 21: spawnSync
+
+
+
+6 !== 7
+
+PASS R-3153: impact marks launch-only callers and reports enriched blind reach
+PASS R-3154: launch-only tests count as traced with one untraced of three
+PASS R-3155: repo-code programs require reasoned declarations and remain in blind reach
+PASS R-3156: every fixed-base callee survives or has a named loss reason
+PASS seal: R-3157 launch names
+PASS seal: R-3158 path-preserving calls
+PASS seal: R-3159 repo-code programs
+PASS seal: R-3160 inline-code flags
+PASS seal: launch impact labels
