@@ -2,8 +2,8 @@
 // Run from the repo root with gh signed in:
 //   node docs/reviews/map-spawn-edges-2026-10-29/replay.mjs [--limit 200] [--since <ISO date>] [--cache <dir>] [--rows]
 // Records keep only run id, short sha, branch, leg and file — no account fields (plan NOTE 14).
-// MAP_EDGES=built uses the built linker (scripts/code-map.mjs checkRepo) at each revision instead of
-// the prototype, when that revision's tree carries it; otherwise the prototype rules apply.
+// MAP_EDGES=built applies the current built linker to each historical tree's sources.
+// The old-linker baseline stays pinned at 57167e92, not the current implementation.
 import { execFile, execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -18,7 +18,9 @@ const LIMIT = Number(arg("--limit", "200"));
 const CACHE = resolve(arg("--cache", join(tmpdir(), "map-spawn-edges-replay")));
 mkdirSync(CACHE, { recursive: true });
 const cm = await import(pathToFileURL(resolve(root, "scripts/code-map.mjs")).href);
-const { addLaunchLinks } = await import(pathToFileURL(resolve(root, "scripts/code-map-launch.mjs")).href);
+const { addLaunchLinks: builtLinks } = await import(pathToFileURL(resolve(root, "scripts/code-map-launch.mjs")).href);
+const oldSource = execFileSync("git", ["show", "57167e92:scripts/code-map-launch.mjs"], { cwd: root, encoding: "utf8" });
+const { addLaunchLinks } = await import(`data:text/javascript;base64,${Buffer.from(oldSource).toString("base64")}`);
 const proto = await import(new URL("./prototype-edges.mjs", import.meta.url).href);
 
 const gh = async (args) => (await run("gh", args, { maxBuffer: 1 << 28, cwd: root })).stdout;
@@ -69,7 +71,9 @@ function graphsAt(head) {
 	if (!existsSync(dir)) { mkdirSync(dir); execFileSync("sh", ["-c", `git archive ${head} -- scripts apps packages templates/typescript/template/scripts code-map.config.json package.json | tar -x -C "${dir}"`], { cwd: root }); }
 	const config = cm.loadConfig(dir), sources = cm.collectModules(dir, config);
 	const fresh = () => cm.buildGraph(sources, config);
-	const { graph: gNew, sitesByModule } = proto.addPrototypeEdges(fresh(), sources);
+	const { graph: gNew, sitesByModule } = process.env.MAP_EDGES === "built"
+		? (() => { const graph = builtLinks(fresh(), sources); return { graph, sitesByModule: graph.sitesByModule }; })()
+		: proto.addPrototypeEdges(fresh(), sources);
 	const v = { config, gImport: fresh(), gLaunch: addLaunchLinks(fresh(), sources), gNew, sitesByModule };
 	graphs.set(head, v);
 	return v;

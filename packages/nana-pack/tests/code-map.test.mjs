@@ -19,6 +19,7 @@ import * as path from "node:path";
 // Reads this checkout only — no temp HOME needed, no network, no model.
 // Run: node --experimental-strip-types <this file>
 const { REPO_ROOT, buildGraph, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
+const { IMPACT_LABELS } = await import(new URL("../../../scripts/code-map-launch-config.mjs", import.meta.url).href);
 const { TEST_ROOTS } = await import(new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href);
 // R-860's full breadth (bare / .href / .pathname / a second import() argument) is pinned
 // directly against the generator template ships, not the shim: tests may import anything
@@ -221,8 +222,9 @@ for (const c of PRESERVATION_CASES) {
 // count of test modules whose own callees are empty (a child-process-only test, or one
 // spelled a form this generator does not parse), recomputed independently of formatImpact
 // so this does not just mirror the implementation.
-const untracedModules = mappedTests.filter((p) => graph.modules.get(p).callees.length === 0);
-const impactLine = `untraced tests: ${untracedModules.length} of ${mappedTests.length} test modules import no mapped module (a test that only starts a process is not linked)`;
+const actualTests = mappedTests.filter((p) => /\.test\.(?:mjs|ts|js)$/.test(p));
+const untracedModules = actualTests.filter((p) => graph.modules.get(p).callees.length === 0);
+const impactLine = `${IMPACT_LABELS.untraced} ${untracedModules.length} of ${actualTests.length} ${IMPACT_LABELS.unlinked}`;
 // req: R-861
 check("--impact's output carries the untraced-test line with the real count",
 	formatImpact(graph, ["packages/nana-pack/lib/agent-dir.mjs"]).includes(impactLine),

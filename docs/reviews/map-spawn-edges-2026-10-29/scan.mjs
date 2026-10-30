@@ -10,7 +10,9 @@ import { pathToFileURL } from "node:url";
 
 const root = process.cwd();
 const cm = await import(pathToFileURL(resolve(root, "scripts/code-map.mjs")).href);
-const { addLaunchLinks } = await import(pathToFileURL(resolve(root, "scripts/code-map-launch.mjs")).href);
+// Fixed old linker: using the built linker as both sides would hide every lost edge.
+const oldSource = execFileSync("git", ["show", "57167e92:scripts/code-map-launch.mjs"], { cwd: root, encoding: "utf8" });
+const { addLaunchLinks } = await import(`data:text/javascript;base64,${Buffer.from(oldSource).toString("base64")}`);
 const proto = await import(new URL("./prototype-edges.mjs", import.meta.url).href);
 
 const config = cm.loadConfig(root);
@@ -19,14 +21,14 @@ const fresh = () => cm.buildGraph(sources, config);
 const gImport = fresh();
 const gLaunch = addLaunchLinks(fresh(), sources);
 const { graph: gProto, sitesByModule } = process.env.MAP_EDGES === "built"
-	? { graph: cm.checkRepo(root).graph, sitesByModule: new Map() }
+	? (() => { const graph = cm.checkRepo(root).graph; return { graph, sitesByModule: graph.sitesByModule }; })()
 	: proto.addPrototypeEdges(fresh(), sources);
 
 const isTest = (p) => cm.isLayerExempt(config, p) && /\.test\.(?:mjs|ts|js)$/.test(p);
 const tests = gImport.order.filter(isTest);
 const srcOf = new Map(sources.map((s) => [s.path, s.source]));
 const launchRe = new RegExp(proto.LAUNCH_RE.source);
-const launchingTests = tests.filter((t) => launchRe.test(srcOf.get(t)));
+const launchingTests = tests.filter((t) => process.env.MAP_EDGES === "built" ? sitesByModule.has(t) : launchRe.test(srcOf.get(t)));
 console.log(`tests: ${tests.length} mapped *.test.* files; ${launchingTests.length} hold a launch call (${proto.LAUNCH_CALLS.join(", ")})`);
 
 const edgesOf = (g) => { const s = new Set(); for (const [p, m] of g.modules) for (const c of m.callees) s.add(`${p} -> ${c}`); return s; };
@@ -69,6 +71,8 @@ if (sitesByModule.size) {
 		if (s.kind === "unresolved" || s.kind === "other-program" || s.kind === "program-unknown") holders.set(m, [...(holders.get(m) ?? []), s.kind]);
 	}
 	console.log(`launch sites: ${[...byKind].map(([k, n]) => `${k} ${n}`).join(", ")}`);
+	const blind = tests.filter((t) => { const c = new Set([t]), q = [t]; while (q.length) for (const x of gProto.modules.get(q.pop())?.callees ?? []) if (!c.has(x)) { c.add(x); q.push(x); } return [...holders.keys()].some((m) => c.has(m)); });
+	console.log(`always-run blind reach: ${blind.length} of ${tests.length} (${(100 * blind.length / tests.length).toFixed(1)}%); ${holders.size} holding modules`);
 	for (const kind of ["unresolved", "other-program", "program-unknown"]) {
 		const ms = [...holders].filter(([, ks]) => ks.includes(kind)).map(([m]) => m);
 		const reach = tests.filter((t) => { const c = new Set([t]), q = [t]; while (q.length) for (const x of gProto.modules.get(q.pop())?.callees ?? []) if (!c.has(x)) { c.add(x); q.push(x); } return ms.some((m) => c.has(m)); });
