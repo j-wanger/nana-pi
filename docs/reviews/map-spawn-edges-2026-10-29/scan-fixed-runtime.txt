@@ -1,0 +1,46 @@
+tests: 240 mapped *.test.* files; 156 hold a launch call (spawn, spawnSync, exec, execSync, execFile, execFileSync, fork, boundedSpawnSync, runHookProducer)
+edges: import 1336; today's launch links 127; new rules' non-import edges 321; today's launch links the new rules lose: 11
+  lost: packages/nana-pack/tests/objective-golden.test.mjs -> packages/nana-pack/bin/nana-objective.mjs
+  lost: packages/nana-pack/tests/review-standard.test.mjs -> packages/nana-pack/bin/pi-review.mjs
+  lost: packages/nana-setup/lib/hook-producer.mjs -> packages/nana-pack/bin/nana-adoption.mjs
+  lost: packages/nana-setup/lib/hook-producer.mjs -> packages/nana-pack/bin/nana-frontier-summary.mjs
+  lost: packages/nana-setup/lib/hook-producer.mjs -> packages/nana-pack/bin/nana-objective.mjs
+  lost: packages/nana-setup/lib/hook-producer.mjs -> packages/nana-setup/bin/stale-copies.mjs
+  lost: packages/nana-setup/tests/copy-record.test.mjs -> packages/nana-setup/bin/nana-setup.mjs
+  lost: packages/nana-setup/tests/hooks-win32-exec.test.mjs -> packages/nana-knowledge/bin/nana-knowledge.ts
+  lost: packages/nana-setup/tests/hooks-win32-exec.test.mjs -> packages/nana-setup/bin/nana-setup.mjs
+  lost: packages/nana-setup/tests/pi-registration.test.mjs -> packages/nana-setup/bin/nana-setup.mjs
+  lost: packages/nana-setup/tests/stale-copies.test.mjs -> packages/nana-pack/bin/nana-adoption.mjs
+runtime map: tip 57167e92, 239 measured files
+  import: 118 measured files ran a mapped module the graph does not reach; 260 entry points, 56 distinct
+  today's launch links: 88 measured files ran a mapped module the graph does not reach; 154 entry points, 46 distinct
+  new rules: 18 measured files ran a mapped module the graph does not reach; 43 entry points, 23 distinct
+    6 packages/nana-pack/lib/lane-watcher-child.mjs
+    5 packages/nana-setup/bin/stale-copies.mjs
+    5 packages/nana-pack/bin/nana-adoption.mjs
+    3 packages/nana-pack/bin/nana-frontier-summary.mjs
+    3 packages/nana-pack/bin/nana-objective.mjs
+    2 packages/nana-pack/extensions/nana-gate.ts
+    2 packages/nana-setup/claude/hooks/nana-roster-notice.mjs
+    2 packages/nana-setup/claude/hooks/nana-shared-memory.mjs
+    1 packages/nana-knowledge/bin/nana-knowledge.ts
+    1 packages/nana-pack/extensions/nana-handoff.ts
+    1 packages/nana-pack/extensions/nana-lifecycle.ts
+    1 packages/nana-pack/extensions/nana-notify.ts
+    1 packages/nana-pack/extensions/nana-objective.ts
+    1 packages/nana-pack/extensions/nana-post-edit.ts
+    1 packages/nana-pack/extensions/nana-roster-notice.ts
+    1 packages/nana-pack/extensions/nana-writing.ts
+    1 apps/hive/camera.mjs
+    1 apps/hive/pixel.mjs
+    1 apps/hive/runtime.mjs
+    1 apps/hive/text-layer.mjs
+    1 packages/nana-setup/lib/verifier-hook.mjs
+    1 packages/nana-setup/claude/hooks/nana-adoption.mjs
+    1 packages/nana-setup/claude/hooks/nana-objective.mjs
+launch sites: program-unknown 98, resolved 299, other-program 23, unresolved 102, inline-no-repo 25, external 248
+always-run blind reach: 165 of 240 (68.8%); 97 holding modules
+  unresolved: 52 modules hold one (47 tests, 5 non-test); 95 of 240 tests hold or reach one
+  other-program: 20 modules hold one (13 tests, 7 non-test); 105 of 240 tests hold or reach one
+  program-unknown: 42 modules hold one (19 tests, 23 non-test); 149 of 240 tests hold or reach one
+callee growth (map:search neighbours): 146 modules gain callees; top lane-class.test.mjs +22, requirements-regroup.test.mjs +16, runtime-map.test.mjs +13, steps.mjs +7, install.test.mjs +7, requirements-deliverables.test.mjs +6
