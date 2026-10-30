@@ -12,10 +12,12 @@ export const SPRING = Object.freeze({ iterations: 240, idealLength: 40, repulsio
 export const LOOP_ELLIPSE = Object.freeze([16, 48]);
 // chosen (2026-10-30, R-3172): one degree arc samples make publication deterministic without a solver.
 export const LOOP_SAMPLES = 360;
-// chosen (2026-10-30, R-3172): a slight turn prevents opposite stages forming visible rows.
-export const LOOP_START = -1.4;
+// chosen (2026-10-30, R-3172): stage 01 fronts the top street junction head-on, like a gateway into the loop.
+export const LOOP_START = -Math.PI / 2;
 // contract (2026-10-30, R-3172): maximum gap from a spine footprint to its loop centre line.
 export const LOOP_FRONTAGE = 1;
+// contract (2026-10-30, R-3172): short ground driveways for every support and every depot building.
+export const MAX_SPUR_LENGTH = 9;
 // chosen (2026-10-30, R-3172): short driveways, with clearance between paired supports.
 export const ATTACH_DISTANCE = 18;
 // chosen (2026-10-30, R-3172): a support belongs visibly to its stage.

@@ -1,0 +1,95 @@
+-:1: verdict: first sentence "VERDICT: PARTIAL" carries no verdict word
+-:7: passive: passive candidate: "needed" in "No merge was needed."
+-:7: identifier: `feat/world-graph`
+-:7: identifier: `0d97dc50`
+-:7: identifier: `c85d8e05`
+-:9: identifier: `apps/hive/camera.mjs`
+-:9: identifier: `apps/hive/index.html`
+-:9: identifier: `apps/hive/main.mjs`
+-:9: identifier: `apps/hive/labels.mjs`
+-:10: identifier: `apps/hive/assets/hive.mjs`
+-:11: identifier: `scripts/component-graph.mjs`
+-:11: identifier: `scripts/component-graph-layout.mjs`
+-:11: identifier: `scripts/component-graph-config.mjs`
+-:12: identifier: `docs/components/graph-fixture.json`
+-:12: identifier: `packages/nana-pack/tests/fixtures/hive-graph-base.json`
+-:13: identifier: `REQUIREMENTS.md`
+-:13: identifier: `packages/nana-pack/tests/hive-graph.test.mjs`
+-:13: identifier: `apps/hive/README.md`
+-:13: identifier: `docs/code-map.md`
+-:14: identifier: `build5-*.txt`
+-:16: passive: passive candidate: "edited" in "No protected file, session archive or GitHub issue was edited."
+-:20: passive: passive candidate: "allocated" in "No new row ID was allocated."
+-:20: identifier: `implemented`
+-:20: identifier: `file::title`
+-:20: identifier: `retired`
+-:22: identifier: `packages/nana-pack/tests/hive-graph.test.mjs`
+-:30: passive: passive candidate: "added" in "No new test case was added."
+-:30: passive: passive candidate: "deleted" in "No test was deleted."
+-:30: passive: passive candidate: "regenerated" in "Saved graph positions and routes were regenerated using their own saved edges, not replaced with live audit counts."
+-:32: identifier: `57167e92`
+-:32: identifier: `c85d8e05`
+-:32: identifier: `build5-v1-bytes.txt`
+-:46: identifier: `buildGraph`
+-:50: identifier: `/private/tmp/nana-world-graph-build5/round3/final/`
+-:52: identifier: `overview`
+-:52: identifier: `drafting-table`
+-:52: identifier: `review-ladder`
+-:52: identifier: `notice-board`
+-:52: identifier: `explore`
+-:52: identifier: `explore-workshop`
+-:52: identifier: `http://127.0.0.1:7355/`
+-:52: identifier: `#overview`
+-:52: identifier: `#drafting-table`
+-:52: identifier: `#review-ladder`
+-:52: identifier: `#notice-board`
+-:52: identifier: `#explore`
+-:52: identifier: `#explore/workshop`
+-:54: identifier: `--hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out <external folder>`
+-:56: identifier: `round3/`
+-:56: identifier: `round3/final/`
+-:58: identifier: `judge-build4.md`
+-:58: identifier: `#explore/workshop`
+-:76: identifier: `node scripts/hive-gesture-check.mjs --url http://127.0.0.1:7355/ --out /private/tmp/nana-world-graph-build5/gestures-final`
+-:80: length: 33 words (cap 25)
+-:82: passive: passive candidate: "clipped" in "Label leaders are clipped to the same band as the render scissor."
+-:82: identifier: `build5-browser-checks.txt`
+-:86: passive: passive candidate: "committed" in "Long outputs are committed as `build5-*.txt`; checkout prefixes in stack traces are replaced with `<repo>`."
+-:86: identifier: `build5-*.txt`
+-:86: identifier: `<repo>`
+-:88: identifier: `node scripts/component-audit.mjs --out <external components.json>`
+-:89: identifier: `node scripts/component-graph.mjs --out <external graph.json>`
+-:90: identifier: `node scripts/hive-page.mjs --out <fresh external site> --data <components.json> --graph <graph.json>`
+-:91: identifier: `npm run first-look -- --page url --after <each URL> --hive --reference <reference folder> --spec <spec path> --out <external folder>`
+-:92: identifier: `node packages/nana-pack/tests/hive-graph.test.mjs`
+-:93: identifier: `node packages/nana-pack/tests/hive-assets.test.mjs`
+-:94: identifier: `node packages/nana-pack/tests/hive-page.test.mjs`
+-:95: identifier: `npm run -s req:tree`
+-:95: identifier: `npm run -s map`
+-:96: identifier: `npm run map:check`
+-:96: identifier: `npm run readme:check`
+-:96: identifier: `node scripts/requirements-trace.mjs`
+-:96: identifier: `node scripts/requirements-tree.mjs`
+-:96: identifier: `node scripts/known-bugs.mjs --root .`
+-:96: identifier: `node scripts/identity-scan.mjs`
+-:98: identifier: `node scripts/lane-class.mjs --root . --files <changed code paths>`
+-:99: identifier: `npm run test:locked`
+-:107: identifier: `judge-build4.md`
+-:109: identifier: `apps/hive/camera.mjs`
+-:110: length: 29 words (cap 25)
+-:110: identifier: `scripts/component-graph.mjs`
+-:111: passive: passive candidate: "unchanged" in "The library footprint is unchanged."
+-:111: identifier: `apps/hive/assets/hive.mjs`
+-:112: identifier: `apps/hive/index.html`
+-:112: identifier: `labels.mjs`
+-:112: identifier: `safeBands`
+-:112: identifier: `main.mjs`
+-:114: passive: passive candidate: "copied" in "No existing private helper was copied or moved."
+-:114: passive: passive candidate: "imported" in "Existing shared helpers were imported."
+-:114: passive: passive candidate: "introduced" in "The extra renderer pass follows the same explicit THREE scene and materials; no second scene implementation was introduced."
+-:119: passive: passive candidate: "unchanged" in "Fallback selection/readiness logic is unchanged, so no universal closure is claimed."
+-:123: passive: passive candidate: "fixed" in "No other listed known bug was fixed or edited."
+-:127: passive: passive candidate: "launched" in "No independent visual judge was launched, as required."
+-:127: passive: passive candidate: "created" in "No issue or comment was created."
+-:129: identifier: `nana-writing --report`
+summary sentences=121 words=1310 over=2 passive=16 banned=0 verdict=0/1 identifiers=75

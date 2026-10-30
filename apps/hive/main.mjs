@@ -11,7 +11,7 @@ import { focus, overview } from './camera.mjs';
 import { tour, tourPose, chapterProgress } from './tour.mjs';
 import { explore, bindGestures } from './explore.mjs';
 import { visibleRoads } from './roads.mjs';
-import { placeLabels } from './labels.mjs';
+import { placeLabels, safeBands } from './labels.mjs';
 import { textLayer, renderText } from './text-layer.mjs';
 import { pixel, drawPixel } from './pixel.mjs';
 import { buildHive } from './assets/hive.mjs';
@@ -106,7 +106,21 @@ async function start(data, graph, model) {
       hive.traverse(o => { const bee = o.userData.bee; if (!bee) return; const phase = state.beePhase + bee.index * Math.PI * 2 / STYLE.beeScale; if (bee.kind === 'inFlight') { const mix = (Math.sin(phase) + 1) / 2; o.position.set(bee.x * (1 - mix), STYLE.beeHeight + Math.cos(phase) * STYLE.beeScale, bee.z * (1 - mix) + Math.sin(phase) * STYLE.cellStep); o.rotation.y = phase; } else { const side = bee.index % 4, along = (Math.floor(bee.index / 4) - 1) * bee.apron / 2; o.position.set(bee.x + (side === 0 ? -bee.apron : side === 2 ? bee.apron : along), bee.restY, bee.z + (side === 1 ? -bee.apron : side === 3 ? bee.apron : along)); o.rotation.y = side * Math.PI / 2; } });
       outline.visible = mode === 'explore' && Boolean(selected);
       if (outline.visible) { const c = model.chambers.find(c => c.id === selected); outline.box.set(new THREE.Vector3(...c.bounds.min), new THREE.Vector3(...c.bounds.max)); }
-      renderer.render(scene, camera);
+      const bands = safeBands(document, stage);
+      stage.style.setProperty('--safe-top', `${bands.top}px`); stage.style.setProperty('--safe-bottom', `${bands.bottom}px`);
+      if (bands.top || bands.bottom) {
+        // Paving continues behind the controls; geometry and dark streets stay
+        // inside the safe band, including roads projecting through the bottom edge.
+        const structures = hive.children.filter(o => !o.userData.background);
+        const visibility = structures.map(o => o.visible), outlined = outline.visible;
+        structures.forEach(o => { o.visible = false; }); outline.visible = false;
+        renderer.render(scene, camera);
+        structures.forEach((o, i) => { o.visible = visibility[i]; }); outline.visible = outlined;
+        renderer.autoClear = false; renderer.setScissorTest(true);
+        renderer.setScissor(0, bands.bottom, stage.clientWidth, stage.clientHeight - bands.top - bands.bottom);
+        renderer.render(scene, camera);
+        renderer.setScissorTest(false); renderer.autoClear = true;
+      } else renderer.render(scene, camera);
       model.chambers.forEach((c, i) => { const p = new THREE.Vector3(c.x, labelHeights.get(c.id), c.z).project(camera), node = labelNodes[i]; node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1; node.dataset.x = (p.x + 1) / 2 * stage.clientWidth; node.dataset.y = (1 - p.y) / 2 * stage.clientHeight; const pick = new THREE.Vector3(c.x, 0, c.z).project(camera); node.dataset.pickX = (pick.x + 1) / 2 * stage.clientWidth; node.dataset.pickY = (1 - pick.y) / 2 * stage.clientHeight; });
       placeLabels(document, stage, labelNodes);
       root.dataset.hivePose = JSON.stringify({ target: current.target.map(v => +v.toFixed(3)), position: camera.position.toArray().map(v => +v.toFixed(3)) });

@@ -1,0 +1,13 @@
+380 #overview: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":157,"bottom":929,"cardClipped":false}
+380 #drafting-table: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":157,"bottom":929,"cardClipped":false}
+380 #review-ladder: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":157,"bottom":929,"cardClipped":false}
+380 #notice-board: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":157,"bottom":929,"cardClipped":false}
+380 #explore: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":157,"bottom":929,"cardClipped":false}
+380 #explore/workshop: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":157,"bottom":929,"cardClipped":false}
+1280 #overview: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":0,"bottom":1000,"cardClipped":false}
+1280 #drafting-table: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":0,"bottom":1000,"cardClipped":false}
+1280 #review-ladder: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":0,"bottom":1000,"cardClipped":false}
+1280 #notice-board: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":0,"bottom":1000,"cardClipped":false}
+1280 #explore: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":0,"bottom":1000,"cardClipped":false}
+1280 #explore/workshop: {"renderer":"webgl","line":"Renderer: webgl","clipped":0,"collisions":0,"inBands":0,"top":0,"bottom":1000,"cardClipped":false}
+browser checks: 12 WEBGL frames; 0 clipped labels; 0 label/overlay collisions; 0 labels in phone safe bands; 0 clipped cards

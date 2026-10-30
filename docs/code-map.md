@@ -716,7 +716,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/hive/labels.mjs`
 
-- **purpose** — Packs projected structure labels around overlays and one another while retaining leaders.
+- **purpose** — Keeps projected models and labels clear of phone overlays while packing labels with leaders.
 - **inputs** — Explicit document, stage and projected label nodes.
 - **outputs** — Positioned labels with leaders back to their structures.
 - **effects** — none

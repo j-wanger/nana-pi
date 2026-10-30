@@ -98,7 +98,7 @@ await test('R-3172: published loop geometry matches goldens and sealed bounds cl
   const { settle, insidePolygon, crossings } = await import('../../../scripts/component-graph-layout.mjs');
   assert.deepEqual(cfg.SPRING, { iterations: 240, idealLength: 40, repulsion: 90, anchor: 0.9, attachment: 0.8, centring: 0.001, cooling: 0.96, temperature: 1, weightScale: 9 });
   assert.equal(cfg.ATTACH_RADIUS, 28); assert.equal(cfg.WORLD_HALF_EXTENT, 160); assert.equal(cfg.POSITION_GRID, 0.001); assert.equal(cfg.CLEARANCE, 3);
-  assert.deepEqual(cfg.LOOP_ELLIPSE, [16, 48]); assert.equal(cfg.LOOP_START, -1.4); assert.equal(cfg.LOOP_SAMPLES, 360); assert.equal(cfg.ATTACH_DISTANCE, 18); assert.deepEqual(cfg.DEPOT, { gap: 1, searchSteps: 32 });
+  assert.deepEqual(cfg.LOOP_ELLIPSE, [16, 48]); assert.equal(cfg.LOOP_START, -Math.PI / 2); assert.equal(cfg.LOOP_SAMPLES, 360); assert.equal(cfg.ATTACH_DISTANCE, 18); assert.deepEqual(cfg.DEPOT, { gap: 1, searchSteps: 32 });
   assert.deepEqual(cfg.ROUTING, { sides: 8, margin: 1, crossingPenalty: 1000 });
   const { FOOTPRINT_SCALE, OVERVIEW_ELEVATION } = await import('../../../apps/hive/config.mjs'); assert.equal(FOOTPRINT_SCALE, 1.3); assert.equal(OVERVIEW_ELEVATION, 1.35);
   assert.equal(cfg.OVERVIEW_CROSSING_CAP, 0); assert.equal(cfg.LOOP_CROSSING_CAP, 0);
@@ -132,7 +132,9 @@ await test('R-3172: published loop geometry matches goldens and sealed bounds cl
 // req: R-3172
 await test('R-3172: every stage fronts its continuous loop within the sealed one unit', async () => {
   const { buildGraph } = await import('../../../scripts/component-graph.mjs');
-  const { segmentDistance } = await import('../../../scripts/component-graph-layout.mjs');
+  const { segmentDistance, depotStage } = await import('../../../scripts/component-graph-layout.mjs');
+  const { MAX_SPUR_LENGTH } = await import('../../../scripts/component-graph-config.mjs');
+  assert.equal(MAX_SPUR_LENGTH, 9);
   const { LOOP_FRONTAGE } = await import('../../../scripts/component-graph-config.mjs');
   assert.equal(LOOP_FRONTAGE, 1);
   const real = await buildGraph({ root }); assert.deepEqual(real.problems, []);
@@ -146,6 +148,13 @@ await test('R-3172: every stage fronts its continuous loop within the sealed one
       const distance = Math.min(...loop.flatMap(r => r.path.slice(1).map((p, i) => segmentDistance(n, r.path[i], p))));
       assert(distance >= n.radius - 0.002, `${id}: street clears its footprint`);
       assert(distance - n.radius <= LOOP_FRONTAGE + 0.002, `${id}: fronts loop, distance ${distance - n.radius}`);
+    }
+    for (const n of graph.nodes.filter(n => n.role !== 'spine')) {
+      const stage = n.role === 'outside' ? depotStage(graph.nodes, graph.edges, graph.spine) : n.stage;
+      const spur = graph.roads.find(r => r.class === 'spur' && [r.from, r.to].includes(n.id) && [r.from, r.to].includes(stage));
+      assert(spur, `${n.id}: direct spur to numbered stage ${stage}, never a depot chain`);
+      const length = spur.path.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - spur.path[i][0], p[1] - spur.path[i][1]), 0);
+      assert(length <= MAX_SPUR_LENGTH, `${n.id}: short spur, got ${length}`);
     }
   }
 });
@@ -164,7 +173,7 @@ await test('R-3173: typed roads avoid third footprints and meet the base crossin
     for (const n of graph.nodes.filter(n => ['support', 'gate'].includes(n.role))) expectedPairs.add([n.id, n.stage].sort().join('/'));
     const outside = graph.nodes.filter(n => n.role === 'outside');
     const { depotStage } = await import('../../../scripts/component-graph-layout.mjs');
-    outside.forEach((n, i) => expectedPairs.add([i ? outside[i - 1].id : depotStage(graph.nodes, graph.edges, graph.spine), n.id].sort().join('/')));
+    outside.forEach(n => expectedPairs.add([depotStage(graph.nodes, graph.edges, graph.spine), n.id].sort().join('/')));
     assert.deepEqual([...pairs].sort(), [...expectedPairs].sort());
     for (const road of result) {
       assert.equal(road.id, [road.from, road.to].sort().join('/'));

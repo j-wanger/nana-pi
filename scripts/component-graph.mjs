@@ -16,7 +16,7 @@ import { artifactRegistry, artifactReads, deliverableClaims } from './deliverabl
 import { parseLedger } from './requirements-tree.mjs';
 import { defaultGit, MAX_GIT_BUFFER } from './requirements-moved.mjs';
 import { AUDIT_PATH } from './component-audit-config.mjs';
-import { LOOP_PATH } from './component-graph-config.mjs';
+import { LOOP_PATH, MAX_SPUR_LENGTH } from './component-graph-config.mjs';
 import { footprint } from '../apps/hive/layout.mjs';
 import { settle, roads, crossings } from './component-graph-layout.mjs';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
@@ -76,7 +76,12 @@ export async function buildGraph({ root = ROOT, source, loop, imports, ledgerTex
     });
     const placements = [...loop.spine.map(id => ({ id, role: 'spine', stage: id })), ...loop.attachments];
     const nodes = settle(placements.map(n => ({ ...n, radius: footprint(source.components.find(c => c.id === n.id)) })), edges, loop.spine);
-    const document = { contract: 'nana-component-graph', version: 1, spine: loop.spine, nodes, edges, roads: roads(nodes, edges, loop.spine) };
+    const network = roads(nodes, edges, loop.spine);
+    for (const road of network.filter(r => r.class === 'spur')) {
+      const length = road.path.slice(1).reduce((sum, p, i) => sum + Math.hypot(p[0] - road.path[i][0], p[1] - road.path[i][1]), 0);
+      if (length > MAX_SPUR_LENGTH) throw new Error(`${road.id}: spur exceeds maximum length`);
+    }
+    const document = { contract: 'nana-component-graph', version: 1, spine: loop.spine, nodes, edges, roads: network };
     const units = { import: 'import links', artifact: 'artifacts', join: 'deliverable rows', feature: 'shared features', loop: 'declared steps' };
     const lines = Object.entries(units).map(([kind, unit]) => { const records = edges.filter(e => e.source === kind); return `${kind}: ${records.length} directed pairs; ${records.reduce((sum, e) => sum + e.count, 0)} ${unit}`; });
     lines.push(`roads: ${document.roads.filter(r => ['loop', 'spur'].includes(r.class)).length} overview streets including chapter ties; ${JSON.stringify(crossings(document.roads))} crossings`);

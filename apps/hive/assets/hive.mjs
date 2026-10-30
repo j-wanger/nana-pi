@@ -35,13 +35,14 @@ export function buildHive(THREE, model, materials) {
   for (const [index, c] of model.chambers.entries()) {
     const chamber = new THREE.Group(); chamber.userData.component = c.id; group.add(chamber);
     const building = new THREE.Group(); building.position.set(c.x, 0, c.z); chamber.add(building);
-    const r = c.radius * 0.78, height = STYLE.structureHeight;
+    const r = c.radius * (c.id === 'compass' ? 1.2 : 0.78), height = STYLE.structureHeight;
     // A circular kerbed lot meets the same footprint used by the publisher.
     const groundY = STREETS.elevation - STREETS.thickness / 2;
     const lot = drum(chamber, c.x, groundY + 0.04, c.z, c.radius * FOOTPRINT_SCALE, 0.08, materials.rim[c.kind]);
     lot.userData.lot = c.id;
     const kerb = hoop(chamber, c.x, groundY + 0.1, c.z, c.radius * FOOTPRINT_SCALE, materials.status.sound); kerb.rotation.x = Math.PI / 2;
-    box(building, 0, -0.2, 0, r * 2.08, 0.4, r * 2.08);
+    if (c.id === 'compass') drum(building, 0, -0.2, 0, r * 1.02, 0.4);
+    else box(building, 0, -0.2, 0, r * 2.08, 0.4, r * 2.08);
     const street = model.roads?.filter(road => ['loop', 'spur'].includes(road.class) && [road.from, road.to].includes(c.id))[0];
     if (street) {
       const end = street.from === c.id ? street.path[0] : street.path.at(-1);
@@ -101,17 +102,35 @@ export function buildHive(THREE, model, materials) {
       for (const z of [-r * 0.65, r * 0.65]) box(building, -r * 0.8, 2, z, 0.14, 4, 0.14);
       box(building, -r * 0.8, 4, 0, 0.25, 0.25, r * 1.5);
     } else if (c.id === 'library') {
-      // An unfilled archive: dark open stacks, not another inhabited workshop.
-      for (let row = -2; row <= 2; row++) {
-        const x = row * r * 0.42;
-        for (const z of [-r * 0.8, r * 0.8]) box(building, x, height * 0.36, z, 0.09, height * 0.72, 0.09, materials.ink);
-        for (let shelf = 0; shelf < 8; shelf++) {
-          const y = 0.4 + shelf * height / 11;
-          box(building, x, y, 0, r * 0.32, 0.1, r * 1.8, skin);
-          for (let book = -3; book <= 3; book++) box(building, x, y + 0.23, book * r / 4, r * 0.25, 0.35, 0.1, materials.dark);
+      // Open archive pavilion, on the existing footprint: a civic entrance,
+      // cornices, recessed stacks, a reading desk and individual pale page edges.
+      for (const x of [-r * 0.85, r * 0.85]) for (const z of [-r * 0.8, r * 0.65]) {
+        box(building, x, 2.4, z, 0.24, 4.8, 0.24, skin);
+        for (const y of [0.3, 4.5]) box(building, x, y, z, 0.45, 0.2, 0.45);
+      }
+      for (const y of [4.65, 4.95]) {
+        for (const x of [-r * 0.85, r * 0.85]) box(building, x, y, -r * 0.08, 0.32, 0.2, r * 1.65);
+        box(building, 0, y, -r * 0.8, r * 1.85, 0.2, 0.35);
+      }
+      box(building, 0, 4.65, r * 0.68, r * 1.9, 0.35, 0.65);
+      box(building, 0, 5, r * 0.68, r * 2, 0.14, 0.8, materials.ink);
+      for (let i = -5; i <= 5; i++) box(building, i * r / 7, 4.68, r * 0.77, 0.04, 0.18, 0.5, materials.ink);
+      for (const x of [-r * 0.65, r * 0.65]) {
+        box(building, x, 2.1, -r * 0.2, 0.14, 4, r * 1.1, skin);
+        for (let shelf = 0; shelf < 5; shelf++) {
+          const y = 0.45 + shelf * 0.72;
+          box(building, x, y, -r * 0.2, r * 0.45, 0.12, r * 1.12, skin);
+          for (let book = -4; book <= 4; book++) {
+            const z = -r * 0.2 + book * r / 9, h = 0.4 + (book + 4) % 3 * 0.08;
+            box(building, x, y + h / 2 + 0.08, z, r * 0.35, h, 0.13, materials.status.sound);
+            box(building, x + (x < 0 ? 1 : -1) * r * 0.18, y + h / 2, z, 0.025, 0.05, 0.1, materials.ink);
+          }
         }
       }
-      box(building, 0, height * 0.72, -r * 0.8, r * 1.8, 0.12, 0.16, materials.ink);
+      box(building, 0, 0.7, r * 0.2, r * 0.7, 1.4, 0.8, skin);
+      box(building, 0, 1.45, r * 0.2, r * 0.85, 0.12, 1.1);
+      for (const x of [-0.4, 0.4]) { const leaf = box(building, x, 1.57, r * 0.2, 0.75, 0.06, 0.7); leaf.rotation.z = x < 0 ? -0.08 : 0.08; }
+      for (let step = 0; step < 3; step++) box(building, 0, 0.08 + step * 0.1, r * (0.95 - step * 0.1), r * 1.3, 0.18, r * 0.2, materials.status.sound);
     } else if (c.id === 'drafting-table') {
       // An oversized inclined drawing board with a parallel drafting arm.
       for (const x of [-r * 0.7, r * 0.7]) {
@@ -290,17 +309,34 @@ export function buildHive(THREE, model, materials) {
       const dome = new THREE.Mesh(new THREE.SphereGeometry(r * 0.9, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), skin);
       dome.position.y = 4.85; dome.scale.y = 0.55; dome.castShadow = true; building.add(dome);
     } else if (c.id === 'requirement-contract') {
-      // Upright ledger leaves: rows, checks and connecting bindings.
-      for (let leaf = -1; leaf <= 1; leaf++) {
-        const panel = new THREE.Group(); panel.position.set(leaf * r * 0.6, 3.2, 0); panel.rotation.y = leaf * Math.PI / 8; building.add(panel);
-        box(building, leaf * r * 0.6, 0.225, 0, r * 0.4, 0.45, 0.6, materials.ink);
-        box(panel, 0, 0, 0, r * 0.57, 5.5, 0.18);
-        for (let row = -4; row <= 4; row++) {
-          box(panel, 0, row * 0.5, 0.12, r * 0.4, 0.035, 0.03, materials.ink);
-          box(panel, -r * 0.2, row * 0.5 + 0.12, 0.12, 0.12, 0.12, 0.03, materials.ink);
-        }
+      // A bound, open contract on a braced lectern: layered paper, stitched
+      // covers, metal rings, row checkmarks, signatures and an embossed seal.
+      for (const x of [-r * 0.6, r * 0.6]) {
+        box(building, x, 0.2, 0, 0.8, 0.4, r * 1.5, materials.ink);
+        beam(building, [x, 0.4, r * 0.5], [x, 3, -r * 0.25], 0.14, skin);
+        beam(building, [x, 0.4, -r * 0.5], [x, 3, r * 0.25], 0.14, skin);
       }
-      for (const y of [1, 5.4]) beam(building, [-r, y, -0.2], [r, y, -0.2], 0.07, materials.ink);
+      const folio = new THREE.Group(); folio.position.y = 3.5; folio.rotation.x = -Math.PI / 9; building.add(folio);
+      for (const side of [-1, 1]) {
+        const panel = new THREE.Group(); panel.position.x = side * r * 0.43; panel.rotation.y = side * Math.PI / 10; folio.add(panel);
+        box(panel, 0, 0, -0.18, r * 0.86, 4.6, 0.2, materials.ink);
+        for (let page = 0; page < 4; page++) box(panel, 0, 0.02 * page, -0.04 + page * 0.04, r * 0.8 - page * 0.025, 4.4 - page * 0.04, 0.035);
+        box(panel, 0, 1.7, 0.14, r * 0.58, 0.12, 0.035, materials.ink);
+        for (let row = -2; row <= 2; row++) {
+          const y = row * 0.5;
+          for (const dy of [-0.09, 0.09]) box(panel, -r * 0.27, y + dy, 0.15, 0.18, 0.025, 0.025, materials.ink);
+          for (const dx of [-0.09, 0.09]) box(panel, -r * 0.27 + dx, y, 0.15, 0.025, 0.18, 0.025, materials.ink);
+          beam(panel, [-r * 0.29, y, 0.18], [-r * 0.27, y - 0.05, 0.18], 0.018);
+          beam(panel, [-r * 0.27, y - 0.05, 0.18], [-r * 0.22, y + 0.1, 0.18], 0.018);
+          box(panel, r * 0.05, y, 0.15, r * 0.42, 0.035, 0.025, materials.ink);
+          box(panel, 0, y - 0.14, 0.15, r * 0.32, 0.02, 0.025, materials.rim.workflow);
+        }
+        for (let stroke = 0; stroke < 4; stroke++) { const mark = box(panel, -r * 0.1 + stroke * 0.14, -1.55, 0.15, 0.25, 0.025, 0.025, materials.ink); mark.rotation.z = stroke % 2 ? 0.3 : -0.3; }
+        const seal = drum(panel, r * 0.23, -1.6, 0.2, 0.24, 0.1, materials.rim.workflow); seal.rotation.x = Math.PI / 2;
+        hoop(panel, r * 0.23, -1.6, 0.28, 0.17);
+      }
+      for (const y of [-1.6, -0.8, 0, 0.8, 1.6]) { const ring = hoop(folio, 0, y, 0.1, 0.22); ring.rotation.y = Math.PI / 2; }
+      box(folio, 0, 0, -0.25, 0.22, 4.7, 0.25, materials.ink);
     } else if (c.id === 'code-map') {
       // A wire globe of modules and edges, not a solid office tower.
       for (let i = 0; i < 4; i++) { const ring = hoop(building, 0, 3.8, 0, r * 0.9); ring.rotation.y = i * Math.PI / 4; }
@@ -403,7 +439,7 @@ export function buildHive(THREE, model, materials) {
       for (const y of [height * 0.85, height]) drum(building, -r * 0.75, y, -r * 0.7, 0.38, 0.22, materials.ink);
     }
     // Every part gets its chapter from the ancestor group, including crane and deck picks.
-    building.rotation.y = c.id === 'review-ladder' ? 0 : c.kind === 'governance' ? Math.atan2(c.x, c.z)
+    building.rotation.y = ['review-ladder', 'requirement-contract', 'library'].includes(c.id) ? 0 : c.kind === 'governance' ? Math.atan2(c.x, c.z)
       : ['compass', 'tool-belt', 'eyes', 'notice-board', 'lab'].includes(c.id) ? STYLE.cameraElevation / 2
       : (index % 2 ? Math.PI / 2 : 0);
     chamber.userData.labelHeight = new THREE.Box3().setFromObject(building).max.y;
@@ -431,14 +467,47 @@ export function buildHive(THREE, model, materials) {
     }
     for (const c of spine) ribbon(THREE, group, [x, z], [x + (c.x - x) * 0.5, z + (c.z - z) * 0.5], NAVIGATION.roadWidths.spur, STREETS.thickness, STREETS.elevation + STREETS.thickness, materials.rim.workflow);
   }
-  // Ground touches the undersides of streets and lots: no suspended ribbons.
+  // Surrounding service streets continue beyond the campus, not a new graph or
+  // extra stages. Their low unlabelled loading courts keep the loop dominant.
   const groundY = STREETS.elevation - STREETS.thickness / 2;
-  box(group, 0, groundY - 0.06, 0, size * size, 0.12, size * size, materials.ground);
+  const block = STYLE.cellStep * STYLE.foundationColumns * 4;
+  const outer = {
+    left: Math.min(...model.chambers.map(c => c.x - c.radius * FOOTPRINT_SCALE)) - block / 2,
+    right: Math.max(...model.chambers.map(c => c.x + c.radius * FOOTPRINT_SCALE)) + block / 2,
+    back: Math.min(...model.chambers.map(c => c.z - c.radius * FOOTPRINT_SCALE)) - block / 2,
+    front: Math.max(...model.chambers.map(c => c.z + c.radius * FOOTPRINT_SCALE)) + block / 2,
+  };
+  for (const x of [outer.left, outer.right]) ribbon(THREE, group, [x, -size * 2], [x, size * 2], NAVIGATION.roadWidths.loop / 2, STREETS.thickness, STREETS.elevation, materials.dark);
+  for (const z of [outer.back, outer.front]) ribbon(THREE, group, [-size * 2, z], [size * 2, z], NAVIGATION.roadWidths.loop / 2, STREETS.thickness, STREETS.elevation, materials.dark);
+  for (let x = -size * 2; x < size * 2; x += block) for (let z = -size * 2; z < size * 2; z += block) {
+    if (x > outer.left - block / 2 && x < outer.right + block / 2 && z > outer.back - block / 2 && z < outer.front + block / 2) continue;
+    const court = new THREE.Group(); court.position.set(x, 0, z); court.userData.scenery = true; group.add(court);
+    box(court, 0, groundY + 0.06, 0, block * 0.7, 0.12, block * 0.7, materials.rim.workflow);
+    for (const side of [-1, 1]) {
+      box(court, side * block * 0.24, 0.3, 0, block * 0.08, 0.35, block * 0.45, materials.status.sound);
+      for (let bay = -2; bay <= 2; bay++) {
+        box(court, side * block * 0.23, 0.1, bay * block / 12, block * 0.14, 0.05, STREETS.edgeWidth, materials.ink);
+        if (bay % 2) {
+          box(court, side * block * 0.22, 1, bay * block / 12, block * 0.1, 1.5, block * 0.06);
+          box(court, side * block * 0.22, 1.85, bay * block / 12, block * 0.11, 0.15, block * 0.07, materials.ink);
+        }
+      }
+    }
+    for (const px of [-block / 7, block / 7]) {
+      box(court, px, 1.5, -block / 5, 0.16, 3, 0.16, materials.ink);
+      box(court, px, 1.5, block / 5, 0.16, 3, 0.16, materials.ink);
+    }
+    const canopy = box(court, 0, 3, 0, block * 0.35, 0.2, block * 0.5); canopy.rotation.z = Math.PI / 24;
+    for (let slat = -3; slat <= 3; slat++) box(court, slat * block / 24, 3.16, 0, 0.06, 0.05, block * 0.48, materials.rim.workflow);
+  }
+  // Ground touches the undersides of streets and lots: no suspended ribbons.
+  const paving = new THREE.Group(); paving.userData.background = true; group.add(paving);
+  box(paving, 0, groundY - 0.06, 0, size * size, 0.12, size * size, materials.ground);
   // Flush paving joints carry the ground through the viewport, including beneath the overlays.
   const step = STYLE.cellStep * STYLE.foundationColumns;
   for (let i = -size * 2; i <= size * 2; i += step) {
-    ribbon(THREE, group, [i, -size * 2], [i, size * 2], STREETS.edgeWidth, STREETS.thickness / 4, groundY, materials.rim.workflow);
-    for (let j = -size * 2; j < size * 2; j += step * 2) ribbon(THREE, group, [i, j + (Math.round(i / step) % 2 ? step : 0)], [i + step, j + (Math.round(i / step) % 2 ? step : 0)], STREETS.edgeWidth, STREETS.thickness / 4, groundY, materials.rim.workflow);
+    ribbon(THREE, paving, [i, -size * 2], [i, size * 2], STREETS.edgeWidth * 4, STREETS.thickness / 4, groundY, materials.rim.workflow);
+    for (let j = -size * 2; j < size * 2; j += step * 2) ribbon(THREE, paving, [i, j + (Math.round(i / step) % 2 ? step : 0)], [i + step, j + (Math.round(i / step) % 2 ? step : 0)], STREETS.edgeWidth * 4, STREETS.thickness / 4, groundY, materials.rim.workflow);
   }
   return group;
 }
