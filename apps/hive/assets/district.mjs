@@ -6,7 +6,7 @@
  * @effects none
  * @errors None for a valid lot.
  */
-import { box as sharedBox, drum as sharedDrum, hoop as sharedHoop, beam as sharedBeam, fence as sharedFence } from './parts.mjs';
+import { box as sharedBox, drum as sharedDrum, hoop as sharedHoop, beam as sharedBeam, fence as sharedFence, outline } from './parts.mjs';
 import { STYLE, LIGHTS, DENSITY } from '../config.mjs';
 export function buildDistrict(THREE, n, materials) {
   const building = new THREE.Group(), cube = new THREE.BoxGeometry(1, 1, 1), rod = new THREE.CylinderGeometry(1, 1, 1, 8);
@@ -20,7 +20,8 @@ export function buildDistrict(THREE, n, materials) {
   if (n.form === 'tower') {
     drum(building, 0, 3.4, 0, r * 0.45, 6.8);
     for (const y of [1, 3, 5, 7]) drum(building, 0, y, 0, r * 0.58, 0.18, materials.ink);
-    const dish = new THREE.Mesh(new THREE.SphereGeometry(r * 0.8, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), skin); dish.rotation.x = Math.PI * 0.9; dish.position.y = 8; dish.scale.y = 0.4; dish.castShadow = true; building.add(dish);
+    drum(building, 0, 7, 0, r * 0.95, 0.2);
+    const dish = new THREE.Mesh(new THREE.SphereGeometry(r * 0.8, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), skin); dish.rotation.x = Math.PI * 0.9; dish.position.y = 8; dish.scale.y = 0.4; dish.castShadow = true; dish.userData.dish = true; building.add(dish);
     beam(building, [0, 6.5, 0], [r * 0.8, 9, 0], 0.06); drum(building, r * 0.8, 9, 0, 0.12, 0.3, materials.ink);
   } else if (['bay', 'hall', 'vault', 'neighbour', 'customers', 'feedback', 'craft'].includes(n.form)) {
     if (n.form === 'craft') {
@@ -422,10 +423,13 @@ export function buildDistrict(THREE, n, materials) {
   // Only these window materials vary with status: dark forms never lose structure.
   const status = n.material.status;
   const lit = status === 'sound' ? LIGHTS.windows : ['partial', 'gap'].includes(status) ? Math.round(LIGHTS.windows * LIGHTS.halfFraction) : 0;
+  const panel = box(building, face[0] * (n.radius * 0.86 + 0.32), 0.6, face[1] * (n.radius * 0.86 + 0.32), 1, 1.12, 0.04, materials.ink); panel.rotation.y = Math.atan2(face[0], face[1]);
   for (let i = 0; i < LIGHTS.windows; i++) {
-    const side = i % 4, angle = side * Math.PI / 2, y = 2 + Math.floor(i / 4) * 1.3;
-    const window = box(building, Math.sin(angle) * r * 0.92, y, Math.cos(angle) * r * 0.92, 0.95, 0.75, 0.08, i < lit ? status === 'sound' ? materials.windows.lit : materials.windows.half : materials.windows.dark);
-    window.rotation.y = angle; window.userData.window = true;
+    // The audit windows belong to the solid entrance, never float across workers or machinery.
+    const along = (i % 4 - 1.5) * 0.21, depth = n.radius * 0.86 + 0.34, y = 0.35 + Math.floor(i / 4) * 0.5;
+    const window = box(building, face[0] * depth + face[1] * along, y, face[1] * depth - face[0] * along, 0.17, 0.3, 0.025, i < lit ? status === 'sound' ? materials.windows.lit : materials.windows.half : materials.windows.dark);
+    window.rotation.y = Math.atan2(face[0], face[1]); window.userData.window = true;
   }
+  const solids = []; building.traverse(o => { if (o.isMesh) solids.push(o); }); solids.forEach(o => outline(THREE, o));
   return building;
 }

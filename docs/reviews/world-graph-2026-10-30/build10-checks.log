@@ -1,0 +1,322 @@
+===== world-graph-wrong-city.txt =====
+(node:16149) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3171: one city plan names drift both ways and refuses malformed sources before output
+PASS R-3172: radial city separates districts and rejects grid and ring controls
+FAIL R-3173: scene streets match pale narrow connected frontage and the single outbound gate AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(decks.every(o => o.castShadow && o.material.isMeshStandardMaterial))
+
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:113:153
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:98:1
+PASS R-3174: request journey frames fourteen narrated chapters
+FAIL R-3174: scroll position maps to continuous stage without short-input dead zones TypeError: chapterSpans is not a function
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:180:85
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:177:1
+FAIL R-3174: continuous scroll holds pose for two seconds and seals span and fade values AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- {
+-   crossFade: 0.15,
+-   holdCheckMs: 2000,
+-   minimumTravel: 1,
+-   screens: 8
+- }
+
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:206:10
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:204:1
+PASS R-3172: dense town scale retains chosen lot and housing dimensions
+PASS R-3177: window lights follow audit status and dark target forms stay complete
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches
+
+
+===== world-graph-wrong-page.txt =====
+PASS R-3121: honey ratios and material keys follow every contract status and kind
+FAIL R-3122: residents inhabit their places and activity gives capped worker figures Expected values to be strictly equal:
+
+100 !== 600
+
+PASS R-3125: camera stops frame every chamber corner at phone and desktop aspects
+PASS R-3126: rail order and active cards retain the complete component story
+PASS R-3127: renderer choice falls back and incompatible data gives one error without a scene
+PASS R-3128: pixel draw list fills one coloured hex per cell inside its sealed grid
+(node:23934) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3129: ready marks once after drawing and still or reduced motion freezes animation
+PASS R-3130: builder copies exact app bytes and supplied data and refuses incompatible input atomically
+PASS R-3139: builder refuses contract problems by their first name before creating output
+PASS R-3132: serve binds loopback and contains raw and encoded traversal paths
+
+
+===== world-graph-wrong-assets.txt =====
+(node:25232) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/apps/hive/vendor/three.module.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3123: explicit THREE builders run in Node within sealed triangle budgets
+PASS R-3124: three 0.186.1 module and core bytes retain their release hashes and MIT licence
+FAIL R-3134: visual and serving defaults retain their sealed values and provenance Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
+    dashGap: 0.8,
+    dashLength: 0.8,
+    depthOffset: -4,
++   edgeWidth: 0.04,
++   elevation: -0.43,
++   kerbHeight: 0.05,
++   laneWidth: 0.06,
++   thickness: 0.04,
+-   edgeWidth: 0.1,
+-   elevation: -0.3,
+-   kerbHeight: 0.24,
+-   laneWidth: 0.45,
+-   ringElevation: 1.6,
+-   ringWidth: 1.8,
+-   thickness: 0.24,
+    widthCaps: {
+      avenue: 0.12,
+      local: 0.08
+    },
+    widths: {
+      air: 0.07,
++     avenue: 1.2,
++     back: 0.3,
++     local: 1
+-     avenue: 1.8,
+-     back: 0.9,
+-     local: 0.9
+    }
+  }
+
+
+
+===== world-graph-wrong-cap.txt =====
+(node:35840) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/apps/hive/vendor/three.module.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3123: explicit THREE builders run in Node within sealed triangle budgets
+PASS R-3124: three 0.186.1 module and core bytes retain their release hashes and MIT licence
+FAIL R-3134: visual and serving defaults retain their sealed values and provenance Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  {
+    dashGap: 0.8,
+    dashLength: 0.8,
+    depthOffset: -4,
+    edgeWidth: 0.1,
+...
+    widthCaps: {
++     avenue: 0.12,
+-     avenue: 0.14,
+      local: 0.08
+    },
+    widths: {
+      air: 0.07,
+      avenue: 1.8,
+
+
+
+===== world-graph-wrong-outline.txt =====
+(node:47617) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/apps/hive/vendor/three.module.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3123: explicit THREE builders run in Node within sealed triangle budgets
+PASS R-3124: three 0.186.1 module and core bytes retain their release hashes and MIT licence
+PASS R-3134: visual and serving defaults retain their sealed values and provenance
+FAIL R-3134: outline density fade retains chosen pixel thresholds Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- {
+-   fadePixels: 1.5,
+-   fullPixels: 5,
+-   opacity: 0.35
+- }
+
+
+
+===== world-graph-idle-mutant.txt =====
+(node:58329) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3171: one city plan names drift both ways and refuses malformed sources before output
+PASS R-3172: radial city separates districts and rejects grid and ring controls
+PASS R-3173: scene streets match pale narrow connected frontage and the single outbound gate
+PASS R-3174: request journey frames fourteen narrated chapters
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+FAIL R-3174: continuous scroll holds pose for two seconds and seals span and fade values AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
+    pose: {
+      fov: 40,
+      position: [
++       0,
+-       12.216300000000004,
+        23.619321555629647,
++       55.09406111122007
+-       57.95786111122008
+      ],
+      target: [
++       0,
+-       12.216300000000004,
+        4.65,
++       27.198
+-       30.0618
+      ]
+    },
+    stage: 3.43
+  }
+
+    at file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:216:12
+    at async test (file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://$WORKTREE/packages/nana-pack/tests/hive-city.test.mjs:204:1
+PASS R-3172: dense town scale retains chosen lot and housing dimensions
+PASS R-3177: window lights follow audit status and dark target forms stay complete
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches
+
+
+===== world-graph-city-final.txt =====
+(node:67691) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3171: one city plan names drift both ways and refuses malformed sources before output
+PASS R-3172: radial city separates districts and rejects grid and ring controls
+PASS R-3173: scene streets match pale narrow connected frontage and the single outbound gate
+PASS R-3174: request journey frames fourteen narrated chapters
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+PASS R-3174: continuous scroll holds pose for two seconds and seals span and fade values
+PASS R-3172: dense town scale retains chosen lot and housing dimensions
+PASS R-3177: window lights follow audit status and dark target forms stay complete
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches
+9 hive city checks passed
+
+
+===== world-graph-page-final.txt =====
+PASS R-3121: honey ratios and material keys follow every contract status and kind
+PASS R-3122: residents inhabit their places and activity gives capped worker figures
+PASS R-3125: camera stops frame every chamber corner at phone and desktop aspects
+PASS R-3126: rail order and active cards retain the complete component story
+PASS R-3127: renderer choice falls back and incompatible data gives one error without a scene
+PASS R-3128: pixel draw list fills one coloured hex per cell inside its sealed grid
+(node:76647) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3129: ready marks once after drawing and still or reduced motion freezes animation
+PASS R-3130: builder copies exact app bytes and supplied data and refuses incompatible input atomically
+PASS R-3139: builder refuses contract problems by their first name before creating output
+PASS R-3132: serve binds loopback and contains raw and encoded traversal paths
+10 hive page checks passed
+
+
+===== world-graph-assets-final.txt =====
+(node:77934) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/apps/hive/vendor/three.module.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3123: explicit THREE builders run in Node within sealed triangle budgets
+PASS R-3124: three 0.186.1 module and core bytes retain their release hashes and MIT licence
+PASS R-3134: visual and serving defaults retain their sealed values and provenance
+PASS R-3134: outline density fade retains chosen pixel thresholds
+4 hive asset checks passed
+
+
+===== world-graph-build10-gesture-final.log =====
+PASS explore tap selects without pose or hash change
+PASS tour tap changes nothing
+PASS tour swipe advances continuous stage without selection or hash change
+PASS 60 single 100px wheel ticks advance monotonically
+wheel stop at 0.1s: {"pose":"{\"target\":[-72.907,4.65,36.889],\"position\":[-72.907,102.749,175.316]}","chapter":"library","stage":12.249436513899324,"selection":"","hash":"","scroll":6000}
+wheel stop at 2s: {"pose":"{\"target\":[-72.907,4.65,36.889],\"position\":[-72.907,102.749,175.316]}","chapter":"library","stage":12.249436513899324,"selection":"","hash":"","scroll":6000}
+PASS wheel stop: stage and camera hold from 0.1s to 2s
+wheel stages: 0.000 0.041 0.081 0.122 0.163 0.204 0.244 0.285 0.326 0.367 0.407 0.448 0.489 0.530 0.570 0.611 0.652 0.693 0.733 0.774 0.815 0.856 0.896 0.937 0.978 1.365 2.190 3.133 4.013 4.671 5.237 5.711 6.609 7.507 8.067 8.317 8.566 8.815 9.203 9.984 10.681 11.042 11.119 11.197 11.274 11.352 11.429 11.507 11.584 11.662 11.740 11.817 11.895 11.972 12.024 12.062 12.099 12.137 12.174 12.212
+PASS five short 60px touch swipes each change camera
+touch stop at 0.1s: {"pose":"{\"target\":[-2.084,5.484,-50.107],\"position\":[-2.084,702.896,834.481]}","chapter":"overview","stage":0.09168704156479217,"selection":"","hash":"","scroll":225}
+touch stop at 2s: {"pose":"{\"target\":[-2.084,5.484,-50.107],\"position\":[-2.084,702.896,834.481]}","chapter":"overview","stage":0.09168704156479217,"selection":"","hash":"","scroll":225}
+PASS touch stop: stage and camera hold from 0.1s to 2s
+PASS rail or picker click smoothly scrolls to requested chapter
+PASS scroll reaches the same three poses as chapter hashes
+scroll overview: card overlap 0.0000
+scroll signal: card overlap 0.0000
+scroll compass: card overlap 0.0000
+scroll drafting-table: card overlap 0.0000
+scroll queue: card overlap 0.0000
+scroll workshop: card overlap 0.0000
+scroll eyes: card overlap 0.0000
+scroll review-ladder: card overlap 0.0000
+scroll land-gate: card overlap 0.0000
+scroll identity-scan: card overlap 0.0000
+scroll release-route: card overlap 0.0000
+scroll customers: card overlap 0.0000
+scroll library: card overlap 0.0000
+scroll closing: card overlap 0.0000
+PASS full phone scroll visits every chapter in order with bounded card overlap
+street pixel 1: 0.7449 / ground 0.5964
+street pixel 2: 0.7299 / ground 0.5828
+street pixel 3: 0.7299 / ground 0.0719
+street pixel 4: 0.7063 / ground 0.6019
+street pixel 5: 0.7605 / ground 0.1513
+PASS five street pixels are lighter than their neighbouring ground
+gesture checks: 11 passed, 0 failed
+
+
+===== world-graph-build10-scroll-strip.log =====
+PASS 380: 50 continuous screencast frames sampled into eight increasing stages from 2 to 6
+PASS 1280: 45 continuous screencast frames sampled into eight increasing stages from 2 to 6
+
+
+===== world-graph-map-last.txt =====
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 510 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+
+
+===== world-graph-readme-last.txt =====
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 916 claims checked; 0 problem(s)
+
+
+===== world-graph-trace-last.txt =====
+requirements: 2218 total (1964 implemented · 7 planned · 53 retired · 189 untested · 5 violated); 1964 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:93241) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+===== world-graph-tree-last.txt =====
+requirements tree: 0 problems; rows 2218; features 39
+deliverables: 21 of 21 made and read by code, 21 more parked
+
+
+===== world-graph-bugs-last.txt =====
+summary names=0 sizes=0
+(node:93251) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+===== world-graph-identity-last.txt =====
+summary files=4994 findings=0 totals=5,0,0,4

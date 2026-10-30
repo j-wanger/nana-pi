@@ -8,9 +8,9 @@
  */
 import { buildCell } from './cell.mjs';
 import { buildDistrict } from './district.mjs';
-import { buildResident } from './residents.mjs';
-import { STYLE, STREETS, CITY, DENSITY } from '../config.mjs';
-import { box, drum, hoop, fence } from './parts.mjs';
+import { buildResident, buildWorkplace, animateResident, animateWorkplace } from './residents.mjs';
+import { STYLE, STREETS, CITY, DENSITY, WORKERS } from '../config.mjs';
+import { box, drum, hoop, fence, outline, trayName } from './parts.mjs';
 import { buildRoad } from './road.mjs';
 import { visibleRoads, segmentDistance } from '../city.mjs';
 export function buildHive(THREE, model, materials) {
@@ -19,17 +19,33 @@ export function buildHive(THREE, model, materials) {
     const lot = new THREE.Group(); lot.position.set(n.x, n.y, n.z); lot.userData.place = n.id; lot.userData.component = n.component ?? n.id; group.add(lot);
     const form = buildDistrict(THREE, n, materials); lot.add(form);
     for (const cell of n.cells) { const mesh = buildCell(THREE, cell, materials, n.material.status, n.kind); mesh.position.set(cell.x - n.x, 0, cell.z - n.z); mesh.scale.setScalar(0.6); lot.add(mesh); }
-    for (const activity of n.bees) {
-      const worker = buildResident(THREE, materials); worker.userData.worker = activity;
-      const angle = activity.index / Math.max(1, n.bees.length) * Math.PI * 2;
-      worker.position.set(Math.cos(angle) * n.radius * 0.3, 0, Math.sin(angle) * n.radius * 0.3); if (n.form === 'bay') worker.position.set(Math.cos(angle) * n.radius * 0.3, 0.2, n.radius * 0.55); worker.userData.home = worker.position.toArray(); worker.userData.stride = n.radius * 0.2; lot.add(worker);
+    const residents = (model.residents ?? []).filter(r => r.place === n.id).flatMap(r => Array.from({ length: r.kind === 'builder' ? WORKERS.crewSize : r.kind === 'reviewer' ? 3 : 1 }, () => r));
+    if (n.id === 'customs') residents.push({ kind: 'customs', place: n.id });
+    for (const [i, resident] of residents.entries()) {
+      if (n.material.status === 'absent' || resident.kind === 'builder' && n.material.status !== 'sound') continue;
+      const role = resident.kind, figure = buildResident(THREE, materials, role); figure.userData.resident = resident; figure.userData.index = i;
+      let x = (i - (residents.length - 1) / 2) * 1.8, y = 0, z = n.radius * 0.55;
+      if (role === 'owner') { x = 0; y = CITY.skyHeight; z = 0; }
+      if (role === 'seat') { x = 0; y = 7.1; z = n.radius * 0.72; }
+      if (role === 'builder') { y = 0.2; z = n.radius * 0.45; figure.userData.stride = n.radius * 0.25;
+        if (i === 0) { const route = model.handoffs?.find(r => r.from === 'yard' && r.to === n.id)?.path; if (route) figure.userData.carryPath = [...route.map(p => [p[0] - n.x, 0.2, p[2] - n.z]), [x, y, z]]; }
+      }
+      if (role === 'reviewer') { x = (i - 1) * n.radius * DENSITY.footprint * 0.4; y = 1.72 + i * 1.15; z = n.radius * DENSITY.footprint * 0.5; figure.userData.startRung = i + 1; figure.userData.rungWidth = n.radius * DENSITY.footprint * 0.4; }
+      figure.position.set(x, y, z); figure.userData.home = figure.position.toArray(); lot.add(figure);
+      const workplace = buildWorkplace(THREE, materials, role); workplace.position.copy(figure.position);
+      if (role === 'reviewer') { workplace.position.x = n.radius * DENSITY.footprint * 0.8; workplace.position.y = 5.17; }
+      lot.add(workplace);
     }
-    for (const [i, resident] of (model.residents ?? []).filter(r => r.place === n.id).entries()) {
-      if (resident.kind === 'builder' && n.material.status !== 'sound') continue;
-      const figure = buildResident(THREE, materials); figure.userData.resident = resident;
-      figure.position.set((i - 0.5) * 0.8, resident.kind === 'owner' ? CITY.skyHeight : 0, n.radius * 0.3);
-      if (resident.kind === 'builder') { figure.position.set((i - 0.5) * 0.8, 0.2, n.radius * 0.55); figure.userData.home = figure.position.toArray(); figure.userData.stride = n.radius * 0.2; }
-      lot.add(figure);
+    if (n.id === 'drafting' && n.material.status !== 'absent') {
+      const sheet = box(THREE, materials, cube, lot, -0.9, 1.23, n.radius * 0.55 + 0.7, 0.8, 0.035, 0.6); sheet.userData.returningSheet = true; outline(THREE, sheet);
+      for (const side of [-1, 1]) { const mark = box(THREE, materials, cube, sheet, 0, 0.55, 0, 0.6, 0.3, 0.05, materials.ink); mark.rotation.y = side * Math.PI / 4; mark.userData.sheetCross = true; }
+    }
+    if (n.district !== 'sky' && n.front) {
+      const mouth = new THREE.Group(); mouth.position.set(n.front[0] - n.x, STREETS.elevation + STREETS.thickness / 2, n.front[1] - n.z); mouth.rotation.y = Math.atan2(n.face[0], n.face[1]); lot.add(mouth);
+      for (const side of [-1, 1]) { const post = box(THREE, materials, cube, mouth, side * 1.1, 0.6, 0, 0.3, 1.2, 0.5); outline(THREE, post); }
+      outline(THREE, box(THREE, materials, cube, mouth, 0, 1.25, 0, 2.5, 0.15, 0.65));
+      outline(THREE, box(THREE, materials, cube, mouth, 0, -STREETS.thickness / 2, 2, STREETS.widths.avenue, STREETS.thickness, 4));
+      mouth.userData.gatehouse = true; trayName(THREE, mouth, n.name);
     }
     lot.userData.labelHeight = n.form === 'tower' ? n.bounds.max[1] : new THREE.Box3().setFromObject(lot).max.y;
   }
@@ -60,7 +76,7 @@ export function buildHive(THREE, model, materials) {
     for (const x of [-0.7, 0.7]) box(THREE, materials, cube, post, x, 0.7, 0, 0.18, 1.4, 0.18);
     box(THREE, materials, cube, post, 0, 1.4, 0, 1.6, 0.15, 0.25, materials.ink);
   }
-  for (const road of model.roads) { const mesh = buildRoad(THREE, road, materials); mesh.visible = visibleRoads(model.roads).includes(road); group.add(mesh); }
+  for (const road of model.roads) { const mesh = buildRoad(THREE, { ...road, ringRadius: model.ringRadius }, materials); mesh.visible = visibleRoads(model.roads).includes(road); group.add(mesh); }
   if (model.fenceRadius) {
     const perimeter = new THREE.Group(); perimeter.userData.fence = true; group.add(perimeter);
     const gap = (model.chambers.find(n => n.id === 'land-gate').radius + STREETS.widths.avenue) / model.fenceRadius;
@@ -82,11 +98,11 @@ export function buildHive(THREE, model, materials) {
     const sequence = ['tower', 'drafting', 'yard', 'bay-1', 'inspection', 'ladder', 'land-gate', 'customs', 'freight', 'customers'];
     const journey = sequence.slice(1).flatMap((id, i) => model.handoffs.find(r => r.from === sequence[i] && r.to === id)?.path ?? []);
     for (const [index, points] of [falling, journey].entries()) {
-      const elevated = points.map(p => [p[0], p[1] + (index ? 0.4 : 0), p[2]]);
+      const elevated = points.map((p, i) => { const next = points[Math.min(i + 1, points.length - 1)], dx = next[0] - p[0], dz = next[2] - p[2], length = Math.hypot(dx, dz) || 1; return index ? [p[0] + dz / length * STREETS.laneWidth, STREETS.elevation + STREETS.thickness / 2 + 0.15, p[2] - dx / length * STREETS.laneWidth] : p; });
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(elevated.map(p => new THREE.Vector3(...p))), new THREE.LineDashedMaterial({ color: '#ffffff', dashSize: 1, gapSize: 0.6 })); line.computeLineDistances(); line.userData.signalTrace = true; group.add(line);
-      const packet = new THREE.Mesh(new THREE.SphereGeometry(index ? 0.65 : 0.5, 8, 6), materials.windows.lit);
+      const packet = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.5), materials.ink);
       const lengths = elevated.slice(1).map((p, i) => Math.hypot(...p.map((v, j) => v - elevated[i][j])));
-      packet.userData.packet = { points: elevated, lengths, total: lengths.reduce((a, b) => a + b, 0), speed: index ? 0.025 : 0.3 }; group.add(packet);
+      packet.userData.packet = { points: elevated, lengths, total: lengths.reduce((a, b) => a + b, 0), speed: 1 / WORKERS.loopSeconds, signal: index === 0 }; group.add(packet);
     }
     const theater = model.chambers.find(n => n.id === 'theater');
     if (theater) for (let i = 0; i < 3; i++) {
@@ -100,17 +116,26 @@ export function buildHive(THREE, model, materials) {
   return group;
 }
 export function animateHive(group, phase, frozen) {
+  if (frozen) phase = 0;
   group.traverse(o => {
+    if (o.userData.role) animateResident(o, phase, frozen);
+    if (o.userData.workplace) animateWorkplace(o, phase, frozen);
+    if (o.userData.returningSheet) { const t = frozen ? 0.25 : phase / WORKERS.loopSeconds % 1; o.position.x = -0.9 + (1 - Math.abs(t * 2 - 1)) * 1.8; o.children.forEach(c => { if (c.userData.sheetCross) c.visible = t > 0.45; }); }
+    if (o.userData.dish) o.rotation.y = Math.sin(phase / WORKERS.loopSeconds * Math.PI * 2) * 0.4;
+    const traffic = o.userData.traffic;
+    if (traffic) { const t = ((phase / WORKERS.loopSeconds + traffic.index * 0.37) * traffic.side % 1 + 1) % 1, { a, b, ya, yb, normal, lane } = traffic; o.position.set(a[0] + (b[0] - a[0]) * t + normal[0] * lane, ya + (yb - ya) * t + STREETS.thickness / 2 + 0.1, a[1] + (b[1] - a[1]) * t + normal[1] * lane); }
     if (o.userData.signalTrace) o.visible = frozen;
     const p = o.userData.packet;
     if (p) {
-      let distance = ((phase * p.speed + 0.15) % 1) * p.total;
+      const cycle = phase * p.speed % 1;
+      o.visible = frozen || (p.signal ? cycle < 0.2 : cycle >= 0.2);
+      let distance = (frozen ? 0.15 : p.signal ? Math.min(1, cycle / 0.2) : Math.max(0, (cycle - 0.2) / 0.8)) * p.total;
       for (let i = 0; i < p.lengths.length; i++) {
         if (distance <= p.lengths[i] || i === p.lengths.length - 1) { const t = p.lengths[i] ? distance / p.lengths[i] : 0; o.position.set(...p.points[i].map((v, j) => v + (p.points[i + 1][j] - v) * t)); break; }
         distance -= p.lengths[i];
       }
     }
     if (o.userData.broadcast) { const t = (phase * 0.15 + o.userData.broadcast.index / 3) % 1; o.scale.setScalar(1 + t * 4); }
-    if (o.userData.home) { o.position.x = o.userData.home[0] + Math.sin(phase) * o.userData.stride; o.rotation.y = Math.cos(phase) >= 0 ? Math.PI / 2 : -Math.PI / 2; }
   });
+  group.traverse(o => { const mesh = o.userData.outlineOf; if (mesh) { o.position.copy(mesh.position); o.quaternion.copy(mesh.quaternion); o.scale.copy(mesh.scale); o.visible = mesh.visible; } });
 }

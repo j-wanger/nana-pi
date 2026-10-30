@@ -671,24 +671,24 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Meshes added to the supplied parent.
 - **effects** — none
 - **errors** — None for valid geometry.
-- **callers** — `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/road.mjs`
-- **callees** — —
+- **callers** — `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/residents.mjs`, `apps/hive/assets/road.mjs`
+- **callees** — `apps/hive/config.mjs`
 
 ### `apps/hive/assets/residents.mjs`
 
-- **purpose** — Builds a small faceted resident using the bee builder's explicit dependency pattern.
-- **inputs** — Explicit THREE namespace and shared materials.
-- **outputs** — A local-space standing figure with no renderer dependency.
+- **purpose** — Builds one grounded jointed figure kit with role equipment and place-specific work loops.
+- **inputs** — Explicit THREE, shared materials, role and work phase.
+- **outputs** — Solid outlined figures with articulated limbs, equipment and contact shadows.
 - **effects** — none
 - **errors** — None.
 - **callers** — `apps/hive/assets/hive.mjs`
-- **callees** — —
+- **callees** — `apps/hive/assets/parts.mjs`, `apps/hive/config.mjs`
 
 ### `apps/hive/assets/road.mjs`
 
-- **purpose** — Draws pale continuous streets, dashed back paths, white kerbs and chapter air arcs.
+- **purpose** — Builds shaded kerbed trays, a raised pier-supported ring and chapter air links.
 - **inputs** — Explicit THREE, a city street path and shared materials.
-- **outputs** — A street group with measured segment endpoints.
+- **outputs** — Solid outlined street groups and lane-keeping ink packet boxes.
 - **effects** — none
 - **errors** — None for a valid road.
 - **callers** — `apps/hive/assets/hive.mjs`
@@ -721,7 +721,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Named immutable rendering values.
 - **effects** — none
 - **errors** — None.
-- **callers** — `apps/hive/assets/cell.mjs`, `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/assets/road.mjs`, `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/pixel.mjs`, `apps/hive/runtime.mjs`, `apps/hive/tour.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-gesture-check.mjs`, `scripts/hive-page.mjs`
+- **callers** — `apps/hive/assets/cell.mjs`, `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/assets/parts.mjs`, `apps/hive/assets/residents.mjs`, `apps/hive/assets/road.mjs`, `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/pixel.mjs`, `apps/hive/runtime.mjs`, `apps/hive/tour.mjs`, `packages/nana-pack/tests/hive-assets.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-gesture-check.mjs`, `scripts/hive-page.mjs`
 - **callees** — —
 
 ### `apps/hive/explore.mjs`
@@ -939,7 +939,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 - **purpose** — Measures phone selection and scroll safety through a served hive's real browser wiring.
 - **inputs** — CLI --url and --out, optional Playwright resolved through the shared resolver.
-- **outputs** — Nine PASS/FAIL checks, measured wheel stages, chapter overlap and street pixels, and an external phone screenshot.
+- **outputs** — Eleven PASS/FAIL checks, wheel and touch idle poses, overlap, street pixels and an external phone screenshot.
 - **effects** — network (served page), disk (external screenshot), process (browser)
 - **errors** — Missing browser or failed checks exit 1; malformed options exit 2.
 - **callers** — —

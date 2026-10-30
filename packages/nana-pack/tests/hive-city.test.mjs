@@ -110,7 +110,8 @@ await test('R-3173: scene streets match pale narrow connected frontage and the s
     for (const o of meshes(scene).filter(o => o.userData.kerb)) assert(o.geometry.parameters.height <= STREETS.kerbHeight);
     for (const road of m.roads) {
       const object = scene.children.find(o => o.userData.road === road.id); assert(object);
-      if (road.class === 'back') { const dashes = meshes(object).filter(o => o.userData.dash); assert(dashes.length > 1); assert(dashes.every(o => o.userData.length <= STREETS.dashLength + CITY.positionGrid)); }
+      if (road.class !== 'air') { assert(!meshes(object).some(o => o.userData.dash)); const decks = meshes(object).filter(o => o.userData.roadSurface); assert(decks.every(o => o.castShadow && o.material.isMeshStandardMaterial)); assert(object.children.some(o => o.isLineSegments)); }
+      if (road.id.startsWith('ring-')) assert(meshes(object).some(o => o.userData.pier));
       if (road.kind === 'forward') assert(!meshes(object).some(o => o.userData.dash));
       if (road.class === 'air') { assert(!visibleRoads(m.roads).includes(road)); assert(visibleRoads(m.roads, road.chapter).includes(road)); }
       for (const n of m.chambers.filter(n => n.district !== 'sky' && ![road.from, road.to].includes(n.id))) for (let i = 1; i < road.path.length && road.class !== 'air'; i++) assert(segmentDistance(n, road.path[i - 1], road.path[i]) >= n.radius - CITY.positionGrid * 2, `${road.id} enters ${n.id}`);
@@ -174,7 +175,16 @@ await test('R-3174: request journey frames fourteen narrated chapters', async ()
 });
 // req: R-3174
 await test('R-3174: scroll position maps to continuous stage without short-input dead zones', async () => {
-  const { stageAtScroll } = await import('../../../apps/hive/tour.mjs');
+  const { stageAtScroll, chapterSpans, scrollAtStage, cardBlend, tour } = await import('../../../apps/hive/tour.mjs');
+  const { layout } = await import('../../../apps/hive/layout.mjs');
+  const chapters = tour(layout(await audit(), await plan()), await plan()), spans = chapterSpans(chapters, 1280 / 900);
+  assert.equal(spans.length, 14); assert.equal(spans.at(-1).end, 8);
+  assert(new Set(spans.slice(0, -1).map(s => s.end - s.start)).size > 3);
+  for (let i = 0; i < 14; i++) { const y = scrollAtStage(i, 900, spans); assert(Math.abs(stageAtScroll(y, 900, spans) - i) < 1e-8); }
+  let previous = -1;
+  for (let y = 0; y <= 7200; y += 10) { const s = stageAtScroll(y, 900, spans); assert(s >= previous); previous = s; }
+  assert.deepEqual(cardBlend(2.84, 14), { index: 2, next: 3, mix: 0 });
+  assert(Math.abs(cardBlend(2.925, 14).mix - 0.5) < 1e-8);
   assert.equal(typeof stageAtScroll, 'function');
   assert.equal(stageAtScroll(-100, 1000, 14), 0);
   assert.equal(stageAtScroll(15000, 1000, 14), 13);
@@ -191,9 +201,20 @@ await test('R-3174: scroll position maps to continuous stage without short-input
   assert(Math.hypot(...mid.position.map((v, i) => v - mid.target[i])) > 90, 'distant target move pulls back at midpoint');
 });
 // req: R-3174
-await test('R-3174: motion clocks pin idle and distance-scaled flight limits', async () => {
-  const { MOTION } = await import('../../../apps/hive/config.mjs');
-  assert.deepEqual(MOTION, { idleMs: 400, flightMinMs: 1600, flightMaxMs: 4200, openingMs: 4000 });
+await test('R-3174: continuous scroll holds pose for two seconds and seals span and fade values', async () => {
+  const config = await import('../../../apps/hive/config.mjs');
+  assert.deepEqual(config.TOUR_SCROLL, { screens: 8, crossFade: 0.15, holdCheckMs: 2000, minimumTravel: 1 });
+  assert.equal(config.MOTION, undefined);
+  const { tour, tourPose } = await import('../../../apps/hive/tour.mjs'), { layout } = await import('../../../apps/hive/layout.mjs');
+  const chapters = tour(layout(await audit(), await plan()), await plan()), progress = 3.43, pose = tourPose(chapters, progress, 1.4);
+  const source = await fs.readFile(path.join(root, 'apps/hive/main.mjs'), 'utf8');
+  const draw = source.slice(source.indexOf('  const draw = () => {'), source.indexOf('  // Readiness'));
+  for (const now of [100, 100 + config.TOUR_SCROLL.holdCheckMs]) {
+    const env = { performance: { now: () => now }, flight: null, mode: 'tour', settled: false, lastInput: 0, MOTION: { idleMs: 400 }, opening: null, initialized: true, progress, chapterIndex: 3, chapters, aspect: () => 1.4, tourPose, blendPose: (await import('../../../apps/hive/camera.mjs')).blendPose, desired: structuredClone(pose), current: structuredClone(pose), setPose: p => { env.desired = p; }, introduction: {}, root: { dataset: {} }, animationStep: () => ({ beePhase: now / 1000 }), still: false, preference: { matches: false }, renderer: null, drawPixel: () => {}, ctx: null, raster: {}, labelNodes: [], entered: null };
+    // Run the actual frame body with an injected clock and pixel draw boundary, not a second scroll implementation.
+    const result = new Function('env', `with(env) { ${draw}; draw(); return { pose: desired, stage: progress }; }`)(env);
+    assert.deepEqual(result, { pose, stage: progress });
+  }
 });
 // req: R-3172
 await test('R-3172: dense town scale retains chosen lot and housing dimensions', async () => {

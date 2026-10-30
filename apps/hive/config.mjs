@@ -10,22 +10,26 @@
 export const OVERVIEW_ELEVATION = 0.8;
 // chosen (2026-10-30, R-3172): fill lots and town gaps with unlabelled neutral housing blocks.
 export const DENSITY = Object.freeze({ footprint: 0.82, houseStep: 12, houseWidth: 8, houseDepth: 7, houseHeight: 5, heightVariation: 4 });
-// contract (build 9 brief, R-3174): settle the camera only; flight and page share one clock.
-export const MOTION = Object.freeze({ idleMs: 400, flightMinMs: 1600, flightMaxMs: 4200, openingMs: 4000 });
+// contract (build 10 brief, R-3174): page alone drives the camera; no idle or flight clock.
+export const TOUR_SCROLL = Object.freeze({ screens: 8, crossFade: 0.15, holdCheckMs: 2000, minimumTravel: 1 });
+// chosen (2026-10-30, R-3122): readable human scale, one shared eight-second work loop, three builders per lit bay.
+export const WORKERS = Object.freeze({ height: 1.8, loopSeconds: 8, crewSize: 3 });
+// chosen (2026-10-30, R-3134): fade subpixel edges before dense detail turns into solid ink.
+export const OUTLINES = Object.freeze({ opacity: 0.35, fadePixels: 1.5, fullPixels: 5 });
 // chosen (2026-10-30, R-3172): encloses the square foundation corners and the instruments drawn on them.
 export const FOOTPRINT_SCALE = 1.3;
 // chosen (2026-10-30, R-3175): phone drift tolerance and deliberate double taps; roads keep the lane loop dominant.
 export const NAVIGATION = Object.freeze({ tapTolerance: 10, doubleTapMs: 350, sectionHeight: 100, roadWidths: Object.freeze({ loop: 3.6, spur: 0.8, artifact: 0.12, import: 0.08, feature: 0.06 }), overviewClasses: Object.freeze(['loop', 'spur']) });
-// chosen (2026-10-30, R-3173): streets lie below foundations; depthOffset prevents far-overview z-fighting with ground.
-export const STREETS = Object.freeze({ thickness: 0.04, elevation: -0.43, edgeWidth: 0.04, laneWidth: 0.06, dashLength: 0.8, dashGap: 0.8, widths: Object.freeze({ avenue: 1.2, local: 1, back: 0.3, air: 0.07 }), widthCaps: Object.freeze({ avenue: 0.12, local: 0.08 }), kerbHeight: 0.05, depthOffset: -4 });
+// chosen (2026-10-30, R-3173): thin model-white trays, two lanes on the journey, and a pier-supported ring.
+export const STREETS = Object.freeze({ thickness: 0.24, elevation: -0.3, edgeWidth: 0.1, laneWidth: 0.45, dashLength: 0.8, dashGap: 0.8, widths: Object.freeze({ avenue: 1.8, local: 0.9, back: 0.9, air: 0.07 }), widthCaps: Object.freeze({ avenue: 0.14, local: 0.08 }), kerbHeight: 0.24, depthOffset: -4, ringElevation: 1.6, ringWidth: 1.8 });
 // chosen (2026-10-30, R-3134): footprint-sized radial bands, narrow frontage and visible phone contrast.
 // probeOffset samples ground three world units away, beyond the street's antialiasing fringe.
 // bayCount is chosen for parallel capacity; litBays is contract (2026-10-16 ruling: two builders).
 export const CITY = Object.freeze({ positionGrid: 0.001, clearance: 3, bandGap: 8, parkBands: 3, radialStep: 17, parkBase: 16, fenceGap: 10, ringGap: 10, townGap: 12, edgeGap: 20, outsideGap: 24, skyHeight: 28, bayCount: 4, litBays: 2, vacantBearing: 147, worldHalfExtent: 300, latticeTolerance: 0.08, latticeSpacing: 0.08, latticeFamilies: 1, radiusBandSize: 8, minimumRadiusBands: 3, northTolerance: 5, frontage: 1, doorAngle: 0.35, walkTolerance: 0.002, arcSamples: 72, routingSides: 12, routingMargin: 1, pixelMargin: 0.025, cardOverlap: 0.15, probeOffset: 3 });
 // chosen (2026-10-30, R-3177): windows carry status, while every target form remains complete.
 export const LIGHTS = Object.freeze({ minimumGap: 0.5, halfFraction: 0.5, windows: 8, colors: Object.freeze({ lit: '#ffffff', half: '#bfc8bf', dark: '#252c28' }) });
-// chosen (2026-10-30, R-3122): a faceted person stays cheaper than the former bee.
-export const RESIDENT_TRIANGLE_BUDGET = 100;
+// chosen (2026-10-30, R-3122): jointed limbs and role equipment remain inexpensive solid geometry.
+export const RESIDENT_TRIANGLE_BUDGET = 600;
 // contract (city plan revision 3, R-3171); vocabulary is shared by the checker and its sealed pin.
 export const CITY_DISTRICTS = Object.freeze(['sky', 'park', 'town', 'edge', 'outside']);
 export const CITY_FORMS = Object.freeze(['tower', 'drafting', 'yard', 'bay', 'eyes', 'stair', 'gate', 'tools', 'lab', 'hall', 'vault', 'theater', 'court', 'records', 'style', 'survey', 'utilities', 'control', 'stage', 'billboard', 'customs', 'freight', 'craft', 'customers', 'neighbour', 'feedback']);

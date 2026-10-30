@@ -40,18 +40,29 @@ await test('R-3122: residents inhabit their places and activity gives capped wor
   assert.equal(bees({ activity: { recentCommits: 100, inFlight: 2 } }).filter(b => b.kind === 'inFlight').length, 2);
   const { buildAudit } = await import('../../../scripts/component-audit.mjs'); const data = (await buildAudit({ root })).document;
   const { layout } = await app('layout'), { buildHive } = await app('assets/hive'), { buildMaterials } = await app('assets/materials'); const THREE = await import('../../../apps/hive/vendor/three.module.js');
-  const { RESIDENT_TRIANGLE_BUDGET, CITY } = await app('config'); assert.equal(RESIDENT_TRIANGLE_BUDGET, 100);
+  const { RESIDENT_TRIANGLE_BUDGET, CITY, WORKERS } = await app('config'); assert.equal(RESIDENT_TRIANGLE_BUDGET, 600);
+  assert.deepEqual(WORKERS, { height: 1.8, loopSeconds: 8, crewSize: 3 });
   const m = layout(data, plan), scene = buildHive(THREE, m, buildMaterials(THREE)); scene.updateMatrixWorld(true);
   const figures = []; scene.traverse(o => { if (o.userData.resident) figures.push(o); });
-  assert.deepEqual([...new Set(figures.map(o => o.userData.resident.kind))].sort(), ['owner', 'seat', 'planner', 'adversary', 'builder', 'visual judge', 'reviewer', 'projectionist', 'customer'].sort());
+  assert.deepEqual([...new Set(figures.map(o => o.userData.resident.kind))].sort(), ['owner', 'seat', 'planner', 'adversary', 'builder', 'visual judge', 'reviewer', 'projectionist', 'customer', 'customs'].sort());
   for (const o of figures) {
     const n = m.chambers.find(n => n.id === o.userData.resident.place), pos = o.getWorldPosition(new THREE.Vector3()); assert(Math.hypot(pos.x - n.x, pos.z - n.z) < n.radius); if (o.userData.resident.kind === 'owner') assert.equal(pos.y, CITY.skyHeight);
     let triangles = 0; o.traverse(part => { if (part.isMesh) triangles += (part.geometry.index?.count ?? part.geometry.attributes.position.count) / 3; }); assert(triangles > 0 && triangles <= RESIDENT_TRIANGLE_BUDGET);
   }
-  for (const n of m.chambers.filter(n => n.form === 'bay')) assert.equal(figures.filter(o => o.userData.resident.kind === 'builder' && o.userData.resident.place === n.id).length, n.material.status === 'sound' ? 1 : 0);
+  for (const n of m.chambers.filter(n => n.form === 'bay')) assert.equal(figures.filter(o => o.userData.resident.kind === 'builder' && o.userData.resident.place === n.id).length, n.material.status === 'sound' ? WORKERS.crewSize : 0);
+  const { animateHive } = await app('assets/hive');
+  const snapshot = () => { const result = []; scene.traverse(o => { if (o.isMesh || o.userData.role) result.push([o.position.toArray(), o.rotation.toArray(), o.scale.toArray(), o.visible]); }); return JSON.stringify(result); };
+  animateHive(scene, 0, true); const frozen = snapshot(); animateHive(scene, 4, true); assert.equal(snapshot(), frozen);
+  animateHive(scene, 0, false); const start = snapshot(); animateHive(scene, 2, false); assert.notEqual(snapshot(), start);
+  for (const o of figures.filter(o => !['owner', 'customer'].includes(o.userData.resident.kind))) {
+    assert(o.userData.role); assert(o.userData.joints.length >= 8);
+    assert(o.children.some(p => p.userData.equipment));
+    assert(o.children.some(p => p.isLineSegments));
+    assert.notEqual(m.chambers.find(n => n.id === o.userData.resident.place).material.status, 'absent');
+  }
   for (const n of m.chambers.filter(n => n.component)) {
     const workers = []; scene.children.find(o => o.userData.place === n.id).traverse(o => { if (o.userData.worker) workers.push(o); });
-    assert.deepEqual(workers.map(o => o.userData.worker.kind), n.bees.map(b => b.kind));
+    assert.equal(workers.length, 0, 'activity counts remain data, not duplicate idle figures');
   }
 });
 // req: R-3125
