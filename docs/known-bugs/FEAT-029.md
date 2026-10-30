@@ -54,3 +54,6 @@
 - Code search (code-search, plan attack): a pinned prompt sentence proves planners are told to run the search, not that they do; the seat reads the next three plans' Precedent sections against its output.
 - Code search (code-search, final review): R-3000's row still says the map describes doctor work in planner vocabulary, but builds 3 and 4 restored the doctor header to main's bytes.
 - Code search (code-search, final review): the planner prompt is shared with every scaffolded project, but only nana-pi has `map:search`; a planner elsewhere gets a missing-script error and carries on.
+- Launch edges (map-spawn-edges, build 2): the built runtime gap is 18 test files against the prototype's 12, because hooks that call `runHookProducer` pass their target in an object the reader does not follow; they are declared blind (always run), not linked.
+- Launch edges (map-spawn-edges, seat check): 165 of 240 tests are on the always-run list, so a selector built on today's map still runs about two thirds of the suite; the shared hubs need hand resolutions before selection saves much.
+- Launch edges (map-spawn-edges, CI): the advisory Linux leg of run 40991062662 failed when `worker-claude.test.mjs` was killed by SIGKILL; the touched tests passed on all three systems.
