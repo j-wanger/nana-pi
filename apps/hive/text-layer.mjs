@@ -12,7 +12,10 @@ export function textLayer(data, hash, renderer, voice = 'plain', chapters = null
   const active = components.find(c => `#${c.id}` === hash)?.id ?? null;
   return {
     active, voice, mode, renderer: `Renderer: ${renderer}`,
-    rail: components.map(c => ({ href: `#${c.id}`, name: c.name, chapter: `${c.number}:${c.name.toUpperCase()}`, active: c.id === active })),
+    landing: mode === 'tour'
+      ? { title: 'From idea to next idea.', text: 'Plan. Build. Check. Review. Land. Release. Scroll to follow the work.', actions: ['explore'] }
+      : { title: 'Explore the loop.', text: 'Tap a building to select it. Drag to orbit. Pinch to zoom. Only Enter takes you inside.', actions: ['tour'] },
+    rail: components.map(c => ({ href: `#${c.id}`, name: c.name, chapter: `${c.number.toUpperCase()}:${c.name.toUpperCase()}`, active: c.id === active })),
     cards: components.map(c => {
       const voices = {
         plain: c.metaphor,
@@ -44,9 +47,9 @@ export function renderText(document, container, model) {
   const landing = el('article', '', container); landing.setAttribute('class', model.active ? 'landing card' : 'landing card active');
   if (model.active) landing.setAttribute('hidden', '');
   el('span', '00 / NANA PI', landing).setAttribute('class', 'chapter-number');
-  el('h2', model.mode === 'tour' ? 'From an idea to the next idea.' : 'Explore the loop.', landing);
-  el('p', model.mode === 'tour' ? 'Direction. Plan. Queue. Build. Check. Review. Land. Release. Publish. Scroll to follow the work, or explore at your own pace.' : 'Drag to orbit. Pinch to zoom. A tap selects; only Enter takes you inside.', landing);
-  const explore = el('button', model.mode === 'tour' ? 'Explore' : 'Back to tour', landing); explore.setAttribute('data-action', model.mode === 'tour' ? 'explore' : 'tour');
+  el('h2', model.landing.title, landing);
+  el('p', model.landing.text, landing);
+  for (const action of model.landing.actions) { const button = el('button', action === 'explore' ? 'Explore' : 'Back to tour', landing); button.setAttribute('data-action', action); }
   el('p', 'White forms are built. Open frames are unfinished. Empty foundations mark what is absent.', landing).setAttribute('class', 'legend');
   for (const item of model.cards) {
     const article = el('article', '', container); article.setAttribute('id', `card-${item.id}`); article.setAttribute('class', item.active ? 'card active' : 'card');

@@ -1,0 +1,77 @@
+docs/reviews/world-graph-2026-10-30/build-3-report.md:1: verdict: first sentence "VERDICT: PARTIAL" carries no verdict word
+docs/reviews/world-graph-2026-10-30/build-3-report.md:7: passive: passive candidate: "reported" in "One build commit on `feat/world-graph`; its hash and finished CI result are reported in the worker response after push."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:7: passive: passive candidate: "added" in "No new rows or test cases were added."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:7: identifier: `feat/world-graph`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:7: identifier: `file::title`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:11: identifier: `apps/hive/config.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:11: identifier: `apps/hive/layout.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:11: identifier: `apps/hive/camera.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:11: identifier: `scripts/component-graph-config.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:11: identifier: `scripts/component-graph-layout.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:11: identifier: `docs/components/graph-fixture.json`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:11: identifier: `packages/nana-pack/tests/fixtures/hive-graph-base.json`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:12: identifier: `apps/hive/assets/parts.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:12: identifier: `apps/hive/assets/road.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:12: identifier: `apps/hive/main.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:12: identifier: `scripts/component-graph-layout.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:12: identifier: `scripts/component-graph.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:13: identifier: `apps/hive/index.html`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:13: identifier: `apps/hive/text-layer.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:13: identifier: `apps/hive/tour.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:13: identifier: `apps/hive/main.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:14: identifier: `REQUIREMENTS.md`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:14: identifier: `apps/hive/README.md`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:14: identifier: `docs/code-map.md`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:14: identifier: `gesture-check.txt`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:14: identifier: `build3-*.txt`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:26: passive: passive candidate: "regenerated" in "The graph fixtures were regenerated from their saved edges, not from the live tree."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:44: identifier: `/private/tmp/nana-world-graph-build3/round3/`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: passive: passive candidate: "started" in "No judge or model session was started."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: identifier: `overview`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: identifier: `drafting-table`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: identifier: `review-ladder`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: identifier: `notice-board`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: identifier: `explore`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: identifier: `explore-workshop`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: identifier: `page-380.png`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: identifier: `page-1280.png`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:46: identifier: `--hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:48: identifier: `round1/`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:48: identifier: `round2/`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:48: identifier: `judge-build2.md`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:62: passive: passive candidate: "reported" in "The unresolved visual failure is reported here, not added to the protected known-bug file."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:66: identifier: `node scripts/hive-gesture-check.mjs --url http://127.0.0.1:7349/ --out /private/tmp/nana-world-graph-build3/gestures`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:66: identifier: `gesture-check.txt`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:68: identifier: `build3-browser-checks.txt`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:68: identifier: `RENDERER: WEBGL`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:72: identifier: `build3-*.txt`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:74: identifier: `node scripts/component-audit.mjs --out /private/tmp/nana-world-graph-build3/components.json`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:75: identifier: `node scripts/component-graph.mjs --out /private/tmp/nana-world-graph-build3/graph.json`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:76: identifier: `npm run first-look -- --page url --after <each of six URLs> --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/world-graph-2026-10-30/world-art-spec.md --out <external folder>`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:77: identifier: `node packages/nana-pack/tests/hive-graph.test.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:78: identifier: `node packages/nana-pack/tests/hive-page.test.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:79: identifier: `node packages/nana-pack/tests/hive-assets.test.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:80: identifier: `npm run map`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:80: identifier: `npm run map:check`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:81: identifier: `npm run readme:check`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:82: identifier: `node scripts/requirements-trace.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:83: identifier: `node scripts/requirements-tree.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:84: identifier: `node scripts/known-bugs.mjs --root .`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:85: identifier: `node scripts/identity-scan.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:86: identifier: `npm run test:locked`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:90: passive: passive candidate: "reported" in "The final-tip seat checks and finished CI are reported by the worker after this commit."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:90: passive: passive candidate: "assumed" in "No CI conclusion is assumed in this file."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:94: passive: passive candidate: "copied" in "No helper was copied or moved from a private scope."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:94: identifier: `parts.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:94: identifier: `road.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:94: identifier: `depotStage`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:98: identifier: `layout.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:98: identifier: `assets/hive.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:99: identifier: `component-graph.mjs`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:101: passive: passive candidate: "retained" in "Every source and count is retained."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:108: passive: passive candidate: "changed" in "Phone WEBGL fallback: measured all six final 380 captures as WEBGL; no fallback code was changed and no universal fix is claimed."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:109: passive: passive candidate: "reused" in "The existing label packer is reused unchanged."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:110: passive: passive candidate: "fixed" in "No other listed known bug is fixed or changed."
+docs/reviews/world-graph-2026-10-30/build-3-report.md:110: identifier: `HANDOFF.md`
+docs/reviews/world-graph-2026-10-30/build-3-report.md:110: identifier: `docs/known-bugs/`
+summary sentences=85 words=970 over=0 passive=12 banned=0 verdict=0/1 identifiers=63

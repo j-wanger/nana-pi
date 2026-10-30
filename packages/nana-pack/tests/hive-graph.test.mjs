@@ -98,10 +98,11 @@ await test('R-3172: published loop geometry matches goldens and sealed bounds cl
   const { settle, insidePolygon, crossings } = await import('../../../scripts/component-graph-layout.mjs');
   assert.deepEqual(cfg.SPRING, { iterations: 240, idealLength: 40, repulsion: 90, anchor: 0.9, attachment: 0.8, centring: 0.001, cooling: 0.96, temperature: 1, weightScale: 9 });
   assert.equal(cfg.ATTACH_RADIUS, 28); assert.equal(cfg.WORLD_HALF_EXTENT, 160); assert.equal(cfg.POSITION_GRID, 0.001); assert.equal(cfg.CLEARANCE, 3);
-  assert.deepEqual(cfg.LOOP_ELLIPSE, [45, 75]); assert.equal(cfg.LOOP_START, -Math.PI / 2); assert.equal(cfg.ATTACH_DISTANCE, 19); assert.deepEqual(cfg.OUTSIDE_PLOT, [-95, -90, 18]);
+  assert.deepEqual(cfg.LOOP_ELLIPSE, [14, 40]); assert.equal(cfg.LOOP_START, -Math.PI / 2); assert.equal(cfg.ATTACH_DISTANCE, 18); assert.deepEqual(cfg.DEPOT, { gap: 1, searchSteps: 32 });
   assert.deepEqual(cfg.ROUTING, { sides: 8, margin: 1, crossingPenalty: 1000 });
   const { FOOTPRINT_SCALE, OVERVIEW_ELEVATION } = await import('../../../apps/hive/config.mjs'); assert.equal(FOOTPRINT_SCALE, 1.3); assert.equal(OVERVIEW_ELEVATION, 1.35);
-  assert.equal(cfg.OVERVIEW_CROSSING_CAP, 12); assert.equal(cfg.LOOP_CROSSING_CAP, 2);
+  assert.equal(cfg.OVERVIEW_CROSSING_CAP, 0); assert.equal(cfg.LOOP_CROSSING_CAP, 0);
+  const { STYLE } = await import('../../../apps/hive/config.mjs'); assert.equal(STYLE.foundationColumns, 3);
   assert.equal(cfg.LOOP_PATH, 'docs/components/loop.json');
   const cases = [await read('docs/components/graph-fixture.json'), await read('packages/nana-pack/tests/fixtures/hive-graph-base.json')];
   for (const graph of cases) {
@@ -117,7 +118,12 @@ await test('R-3172: published loop geometry matches goldens and sealed bounds cl
       assert(Math.max(Math.abs(a.x), Math.abs(a.z)) <= cfg.WORLD_HALF_EXTENT);
       for (const b of got.slice(i + 1)) assert(Math.hypot(a.x - b.x, a.z - b.z) >= a.radius + b.radius + cfg.CLEARANCE - cfg.POSITION_GRID * 2, `${a.id}/${b.id}`);
       if (a.role === 'support' || a.role === 'gate') { const stage = got.find(n => n.id === a.stage); assert(Math.hypot(a.x - stage.x, a.z - stage.z) <= cfg.ATTACH_RADIUS); assert(!insidePolygon(a, spine)); }
-      if (a.role === 'outside') { const i = got.filter(n => n.role === 'outside').findIndex(n => n.id === a.id); assert.deepEqual([a.x, a.z], [cfg.OUTSIDE_PLOT[0], cfg.OUTSIDE_PLOT[1] + i * cfg.OUTSIDE_PLOT[2]]); }
+      if (a.role === 'outside') {
+        const { depotStage } = await import('../../../scripts/component-graph-layout.mjs');
+        const stage = got.find(n => n.id === depotStage(got, graph.edges, graph.spine));
+        assert(Math.hypot(a.x - stage.x, a.z - stage.z) < cfg.ATTACH_RADIUS * 2, `${a.id} near depot stage`);
+        for (const b of got.filter(n => n.role === 'outside')) assert(Math.hypot(a.x - b.x, a.z - b.z) < cfg.ATTACH_RADIUS, 'one depot yard');
+      }
     }
     const variant = structuredClone(graph); variant.edges = []; variant.nodes = variant.nodes.concat([0, 1].map(i => ({ id: `outside-${i}`, role: 'outside', stage: 'outside', radius: 4 })));
     assert(settle(variant.nodes, [], variant.spine).every(n => Math.max(Math.abs(n.x), Math.abs(n.z)) <= cfg.WORLD_HALF_EXTENT));
@@ -133,11 +139,12 @@ await test('R-3173: typed roads avoid third footprints and meet the base crossin
   const small = await read('docs/components/graph-fixture.json');
   for (const graph of [small, base, { ...small, edges: small.nodes.flatMap((a, i) => small.nodes.slice(i + 1).map(b => ({ from: a.id, to: b.id, source: 'import', count: 1 }))) }, { ...small, edges: small.nodes.slice(1).map(n => ({ from: small.nodes[0].id, to: n.id, source: 'artifact', count: 1 })) }]) {
     const result = roads(graph.nodes, graph.edges, graph.spine); const pairs = new Set();
-    for (const road of result) { const order = ['loop', 'artifact', 'spur', 'import', 'feature']; const kinds = road.sources.map(s => s.source === 'join' ? 'artifact' : s.source); assert.equal(road.class, order.find(k => kinds.includes(k))); assert(!pairs.has(road.id)); pairs.add(road.id); assert(road.sources.length); for (const n of graph.nodes.filter(n => n.id !== road.from && n.id !== road.to)) for (let i = 1; i < road.path.length; i++) assert(segmentDistance(n, road.path[i - 1], road.path[i]) >= n.radius - cfg.POSITION_GRID * 2, `${road.id} hits ${n.id}`); }
+    for (const road of result) { const order = ['loop', 'spur', 'artifact', 'import', 'feature']; const kinds = road.sources.map(s => s.source === 'join' ? 'artifact' : s.source); assert.equal(road.class, order.find(k => kinds.includes(k))); assert(!pairs.has(road.id)); pairs.add(road.id); assert(road.sources.length); for (const n of graph.nodes.filter(n => n.id !== road.from && n.id !== road.to)) for (let i = 1; i < road.path.length; i++) assert(segmentDistance(n, road.path[i - 1], road.path[i]) >= n.radius - cfg.POSITION_GRID * 2, `${road.id} hits ${n.id}`); }
     const expectedPairs = new Set(graph.edges.map(e => [e.from, e.to].sort().join('/')));
     for (const n of graph.nodes.filter(n => ['support', 'gate'].includes(n.role))) expectedPairs.add([n.id, n.stage].sort().join('/'));
     const outside = graph.nodes.filter(n => n.role === 'outside');
-    outside.forEach((n, i) => expectedPairs.add([i ? outside[i - 1].id : graph.spine.at(-1), n.id].sort().join('/')));
+    const { depotStage } = await import('../../../scripts/component-graph-layout.mjs');
+    outside.forEach((n, i) => expectedPairs.add([i ? outside[i - 1].id : depotStage(graph.nodes, graph.edges, graph.spine), n.id].sort().join('/')));
     assert.deepEqual([...pairs].sort(), [...expectedPairs].sort());
     for (const road of result) {
       assert.equal(road.id, [road.from, road.to].sort().join('/'));
@@ -146,11 +153,27 @@ await test('R-3173: typed roads avoid third footprints and meet the base crossin
     for (const e of graph.edges) { const r = result.find(r => [r.from, r.to].includes(e.from) && [r.from, r.to].includes(e.to)); assert(r); assert(r.sources.some(s => s.from === e.from && s.to === e.to && s.source === e.source && s.count === e.count)); }
   }
   for (const graph of [small, base]) for (const [i, from] of graph.spine.entries()) { const to = graph.spine[(i + 1) % graph.spine.length], edge = graph.edges.find(e => e.source === 'loop' && e.from === from && e.to === to); assert(edge); assert(graph.roads.some(r => r.class === 'loop' && r.id === [from, to].sort().join('/') && r.sources.some(s => s.source === 'loop' && s.declared === edge.declared))); }
+  const { NAVIGATION, STREETS } = await import('../../../apps/hive/config.mjs');
+  assert.deepEqual(STREETS, { thickness: 0.04, elevation: -0.43, edgeWidth: 0.04, laneWidth: 0.06, dashLength: 0.8, dashGap: 0.8 });
+  assert.deepEqual(NAVIGATION.roadWidths, { loop: 1.8, spur: 0.8, artifact: 0.12, import: 0.08, feature: 0.06 });
+  const { buildRoad } = await import('../../../apps/hive/assets/road.mjs');
+  for (const road of base.roads) {
+    assert(NAVIGATION.roadWidths[road.class] <= NAVIGATION.roadWidths.loop);
+    const object = buildRoad(THREE, road, buildMaterials(THREE)); object.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(object); assert(bounds.max.y < 0 && bounds.max.y - bounds.min.y < 0.1, 'roads lie flat below the foundations');
+    if (road.class === 'loop') assert(object.children.some(c => c.userData.laneMark) && object.children.some(c => c.userData.edgeLine), 'street markings');
+  }
+  for (const id of base.spine) {
+    const adjacent = base.roads.filter(r => r.class === 'loop' && [r.from, r.to].includes(id));
+    assert.equal(adjacent.length, 2);
+    const ends = adjacent.map(r => r.from === id ? r.path[0] : r.path.at(-1));
+    assert.deepEqual(ends[0], ends[1], 'the loop street is continuous beside each building');
+  }
   const counts = crossings(base.roads); assert(counts.overview <= cfg.OVERVIEW_CROSSING_CAP, JSON.stringify(counts)); assert(counts.loop <= cfg.LOOP_CROSSING_CAP, JSON.stringify(counts));
-  const hive = buildHive(THREE, layout(fixture, small), buildMaterials(THREE)); const expected = small.roads.filter(r => ['loop', 'artifact', 'spur'].includes(r.class));
+  const hive = buildHive(THREE, layout(fixture, small), buildMaterials(THREE)); const expected = small.roads.filter(r => ['loop', 'spur'].includes(r.class));
   assert.deepEqual(hive.children.filter(o => o.userData.road && o.visible).map(o => o.userData.road).sort(), expected.map(r => r.id).sort());
   const { visibleRoads } = await import('../../../apps/hive/roads.mjs');
-  for (const n of base.nodes) assert.deepEqual(visibleRoads(base.roads, n.id).map(r => r.id), base.roads.filter(r => ['loop', 'artifact', 'spur'].includes(r.class) || [r.from, r.to].includes(n.id)).map(r => r.id));
+  for (const n of base.nodes) assert.deepEqual(visibleRoads(base.roads, n.id).map(r => r.id), base.roads.filter(r => ['loop', 'spur'].includes(r.class) || [r.from, r.to].includes(n.id)).map(r => r.id));
   const source = await fs.readFile(path.join(root, 'apps/hive/assets/hive.mjs'), 'utf8'); assert(!source.includes('perimeter') && !source.includes('walkway'));
 });
 // req: R-3174
@@ -161,9 +184,9 @@ await test('R-3174: numbered tour anchors frame structures and walk roads at eve
   const graph = await read('docs/components/graph-fixture.json'); const model = layout(fixture, graph); const chapters = tour(model, graph);
   assert.deepEqual(chapters.filter(c => c.component).map(c => c.component), ['workshop', 'library', 'review-hall', 'land-gate', 'key-cabinet']);
   const { textLayer } = await import('../../../apps/hive/text-layer.mjs'); const text = textLayer(fixture, '#library', 'webgl', 'plain', chapters);
-  assert.deepEqual(text.rail.map(r => r.chapter), ['01:WORKSHOP', '01.1:LIBRARY', '02:REVIEW HALL', '03:LAND GATE', '10.1:KEY CABINET']);
+  assert.deepEqual(text.rail.map(r => r.chapter), ['01:WORKSHOP', '01.1:LIBRARY', '02:REVIEW HALL', '03:LAND GATE', 'DEPOT:KEY CABINET']);
   assert.deepEqual(text.cards.map(c => c.chapter), chapters.filter(c => c.component).map(c => c.number));
-  const source = await fs.readFile(path.join(root, 'apps/hive/main.mjs'), 'utf8'); assert(source.includes('`${ch.number} ${c.name}`')); assert.match(source, /progress = chapterIndex; scrollTo/);
+  const source = await fs.readFile(path.join(root, 'apps/hive/main.mjs'), 'utf8'); assert(source.includes("`${ch.number === 'Depot' ? 'Depot:' : ch.number} ${c.name}`")); assert.match(source, /progress = chapterIndex; scrollTo/);
   for (const width of VIEWPORT_WIDTHS) for (const [i, chapter] of chapters.entries()) {
     const aspect = width / VIEWPORT_HEIGHT, pose = tourPose(chapters, i, aspect);
     assert.equal(chapterProgress(chapters, `#${chapter.id}`), i);
@@ -178,7 +201,10 @@ await test('R-3174: numbered tour anchors frame structures and walk roads at eve
 // req: R-3175
 await test('R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches', async () => {
   const { explore, bindGestures } = await import('../../../apps/hive/explore.mjs'); const { NAVIGATION } = await import('../../../apps/hive/config.mjs');
-  assert.deepEqual(NAVIGATION, { tapTolerance: 10, doubleTapMs: 350, sectionHeight: 100, roadWidths: { loop: 0.7, artifact: 0.32, spur: 0.2, import: 0.12, feature: 0.08 }, overviewClasses: ['loop', 'artifact', 'spur'] });
+  assert.deepEqual(NAVIGATION, { tapTolerance: 10, doubleTapMs: 350, sectionHeight: 100, roadWidths: { loop: 1.8, spur: 0.8, artifact: 0.12, import: 0.08, feature: 0.06 }, overviewClasses: ['loop', 'spur'] });
+  const { textLayer } = await import('../../../apps/hive/text-layer.mjs');
+  const landing = textLayer(fixture, '#', 'webgl', 'plain', null, 'explore');
+  assert.equal(landing.active, null); assert.match(landing.landing.text, /Tap a building/); assert.deepEqual(landing.landing.actions, ['tour']);
   const target = new EventTarget(), effects = []; let state = { mode: 'tour', selected: null, zoom: 1 };
   const reduce = event => { const result = explore(state, event); state = result.state; return result.effects; };
   const unbind = bindGestures(target, reduce, effect => effects.push(effect), () => 'workshop');

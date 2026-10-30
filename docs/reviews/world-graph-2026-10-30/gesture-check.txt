@@ -1,3 +1,6 @@
+Build 3, final round; real audit; 380 by 1000 touch viewport; reduced motion.
+Command: node scripts/hive-gesture-check.mjs --url http://127.0.0.1:7349/ --out /private/tmp/nana-world-graph-build3/gestures
+Exit: 0
 PASS explore tap selects without pose or hash change
 PASS tour tap changes nothing
 PASS tour swipe scrolls to a chapter without selection or hash change

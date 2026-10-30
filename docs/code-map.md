@@ -646,7 +646,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/hive/assets/parts.mjs`
 
-- **purpose** — Builds shared architectural beams and fences without hidden THREE or material state.
+- **purpose** — Builds shared beams, fences and flat street ribbons without hidden THREE or material state.
 - **inputs** — Explicit THREE namespace, shared materials, unit rod geometry, parent and dimensions.
 - **outputs** — Meshes added to the supplied parent.
 - **effects** — none
@@ -656,12 +656,12 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/hive/assets/road.mjs`
 
-- **purpose** — Draws a published road as shared architectural beams with low guard rails.
+- **purpose** — Draws ground-level street ribbons with kerb lines and broken lane marks.
 - **inputs** — Explicit THREE, a road path and shared materials.
 - **outputs** — A pickable road mesh group bearing its unordered pair.
 - **effects** — none
 - **errors** — None for a valid road.
-- **callers** — `apps/hive/assets/hive.mjs`
+- **callers** — `apps/hive/assets/hive.mjs`, `packages/nana-pack/tests/hive-graph.test.mjs`
 - **callees** — `apps/hive/assets/parts.mjs`, `apps/hive/config.mjs`
 
 ### `apps/hive/camera.mjs`
@@ -2976,7 +2976,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary fixtures), process (bounded CLI children)
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
-- **callees** — `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/roads.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`, `scripts/component-graph-config.mjs`, `scripts/component-graph-layout.mjs`, `scripts/component-graph.mjs`, `scripts/deliverables.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-page.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/assets/road.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/roads.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`, `scripts/component-graph-config.mjs`, `scripts/component-graph-layout.mjs`, `scripts/component-graph.mjs`, `scripts/deliverables.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-page.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/hive-page.test.mjs`
 

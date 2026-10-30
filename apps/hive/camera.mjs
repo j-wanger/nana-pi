@@ -7,9 +7,9 @@
  * @errors None for a nonempty layout and positive aspect.
  */
 import { STYLE, OVERVIEW_ELEVATION } from './config.mjs';
-// Frame the loop, excluding the outside plot, using actual projected corners rather than a loose sphere.
+// Frame the loop and its depot, using actual projected corners rather than a loose sphere.
 export function overview(model, aspect = 1) {
-  const campus = model.chambers.filter(c => c.role !== 'outside');
+  const campus = model.chambers;
   if (!campus.length) return focus(model, null, aspect);
   const min = [0, 1, 2].map(i => Math.min(...campus.map(c => c.bounds.min[i])));
   const max = [0, 1, 2].map(i => Math.max(...campus.map(c => c.bounds.max[i])));

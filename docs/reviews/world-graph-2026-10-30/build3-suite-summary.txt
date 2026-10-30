@@ -1,0 +1,5 @@
+Command: npm run test:locked
+Exit: 0
+Unfiltered plain foreground command, output displayed on screen; default machine-wide lock held.
+240 files: 238 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8734 pass, 0 fail, 44 skip · 593.0s
+suite record: 238 PASS, 0 FAIL; failed: none; passed only without coverage: none

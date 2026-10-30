@@ -6,7 +6,7 @@
  * @effects none
  * @errors Throws when no obstacle-free road can be routed.
  */
-import { SPRING, LOOP_ELLIPSE, LOOP_START, ATTACH_DISTANCE, ATTACH_RADIUS, OUTSIDE_PLOT, WORLD_HALF_EXTENT, POSITION_GRID, CLEARANCE, ROUTING } from './component-graph-config.mjs';
+import { SPRING, LOOP_ELLIPSE, LOOP_START, ATTACH_DISTANCE, ATTACH_RADIUS, DEPOT, WORLD_HALF_EXTENT, POSITION_GRID, CLEARANCE, ROUTING } from './component-graph-config.mjs';
 export const roundPosition = n => Math.round(n / POSITION_GRID) * POSITION_GRID;
 const point = n => [n.x, n.z];
 export function insidePolygon(p, polygon) {
@@ -14,12 +14,20 @@ export function insidePolygon(p, polygon) {
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) { const a = polygon[i], b = polygon[j]; if ((a.z > p.z) !== (b.z > p.z) && p.x < (b.x - a.x) * (p.z - a.z) / (b.z - a.z) + a.x) inside = !inside; }
   return inside;
 }
+export function depotStage(nodes, edges, spine) {
+  const outside = new Set(nodes.filter(n => n.role === 'outside').map(n => n.id)), scores = new Map();
+  for (const edge of edges) {
+    const id = outside.has(edge.from) ? edge.to : outside.has(edge.to) ? edge.from : null;
+    const node = nodes.find(n => n.id === id), stage = node?.role === 'spine' ? node.id : node?.stage;
+    if (spine.includes(stage)) scores.set(stage, (scores.get(stage) ?? 0) + edge.count);
+  }
+  return [...scores].sort((a, b) => b[1] - a[1] || spine.indexOf(a[0]) - spine.indexOf(b[0]))[0]?.[0] ?? spine.at(-1);
+}
 export function settle(input, edges, spine) {
   const slots = new Map(spine.map((id, i) => { const a = LOOP_START + i / spine.length * Math.PI * 2; return [id, { x: roundPosition(Math.cos(a) * LOOP_ELLIPSE[0]), z: roundPosition(Math.sin(a) * LOOP_ELLIPSE[1]) }]; }));
-  let outside = 0;
   const nodes = input.map(n => {
     let slot;
-    if (n.role === 'outside') slot = { x: OUTSIDE_PLOT[0], z: OUTSIDE_PLOT[1] + outside++ * OUTSIDE_PLOT[2] };
+    if (n.role === 'outside') slot = { x: 0, z: 0 };
     else if (n.role === 'spine') slot = slots.get(n.id);
     else {
       const stage = slots.get(n.stage), siblings = input.filter(s => s.stage === n.stage && s.role !== 'spine'), i = siblings.findIndex(s => s.id === n.id);
@@ -34,11 +42,13 @@ export function settle(input, edges, spine) {
   for (let iteration = 0; iteration < SPRING.iterations; iteration++) {
     const forces = nodes.map(n => ({ x: -n.x * SPRING.centring, z: -n.z * SPRING.centring }));
     for (const [i, a] of nodes.entries()) for (let j = i + 1; j < nodes.length; j++) {
-      const b = nodes[j], dx = a.x - b.x, dz = a.z - b.z, distance = Math.sqrt(dx * dx + dz * dz) || POSITION_GRID;
+      const b = nodes[j]; if (a.role === 'outside' || b.role === 'outside') continue;
+      const dx = a.x - b.x, dz = a.z - b.z, distance = Math.sqrt(dx * dx + dz * dz) || POSITION_GRID;
       const strength = SPRING.repulsion / (distance * distance);
       forces[i].x += dx / distance * strength; forces[i].z += dz / distance * strength; forces[j].x -= dx / distance * strength; forces[j].z -= dz / distance * strength;
     }
     for (const { a, b, weight } of pairs.values()) {
+      if (nodes[a].role === 'outside' || nodes[b].role === 'outside') continue;
       const dx = nodes[b].x - nodes[a].x, dz = nodes[b].z - nodes[a].z, distance = Math.sqrt(dx * dx + dz * dz) || POSITION_GRID;
       const strength = (distance - SPRING.idealLength) / SPRING.idealLength * weight;
       forces[a].x += dx / distance * strength; forces[a].z += dz / distance * strength; forces[b].x -= dx / distance * strength; forces[b].z -= dz / distance * strength;
@@ -60,11 +70,33 @@ export function settle(input, edges, spine) {
   }
   // Fixed pair order, using the same footprint radius the renderer exposes.
   for (let pass = 0; pass < nodes.length; pass++) for (const [i, a] of nodes.entries()) for (const b of nodes.slice(i + 1)) {
+    if (a.role === 'outside' || b.role === 'outside') continue;
     const dx = b.x - a.x, dz = b.z - a.z, distance = Math.sqrt(dx * dx + dz * dz) || POSITION_GRID, minimum = a.radius + b.radius + CLEARANCE;
     if (distance >= minimum || (a.role === 'outside' && b.role === 'outside')) continue;
     const move = minimum - distance + POSITION_GRID;
     const movable = b.role !== 'outside' ? b : a, sign = movable === b ? 1 : -1;
     movable.x = roundPosition(movable.x + sign * dx / distance * move); movable.z = roundPosition(movable.z + sign * dz / distance * move);
+  }
+  const yard = nodes.filter(n => n.role === 'outside'), campus = nodes.filter(n => n.role !== 'outside');
+  if (yard.length) {
+    const stage = nodes.find(n => n.id === depotStage(nodes, edges, spine));
+    const radius = Math.max(...yard.map(n => n.radius)), spacing = radius * 2 + CLEARANCE + DEPOT.gap;
+    const towardCentre = Math.atan2(-stage.z, -stage.x);
+    let placed = false;
+    for (let ring = 0; ring < DEPOT.searchSteps && !placed; ring++) for (let step = 0; step < DEPOT.searchSteps && !placed; step++) {
+      const angle = towardCentre + (step % 2 ? 1 : -1) * Math.ceil(step / 2) * Math.PI * 2 / DEPOT.searchSteps;
+      const distance = stage.radius + radius + CLEARANCE + DEPOT.gap + ring * radius;
+      const candidates = yard.map((n, i) => {
+        const separation = yard[1] && yard[2] ? yard[1].radius + yard[2].radius + CLEARANCE + DEPOT.gap : spacing;
+        const reach = yard[0].radius + n.radius + CLEARANCE + DEPOT.gap;
+        const across = i ? (i % 2 ? 1 : -1) * separation / 2 : 0;
+        const along = i ? Math.sqrt(Math.max(0, reach * reach - across * across)) + Math.floor((i - 1) / 2) * spacing : 0;
+        return { ...n, x: roundPosition(stage.x + Math.cos(angle) * (distance + along) - Math.sin(angle) * across), z: roundPosition(stage.z + Math.sin(angle) * (distance + along) + Math.cos(angle) * across) };
+      });
+      if (candidates.some(n => Math.max(Math.abs(n.x), Math.abs(n.z)) + n.radius > WORLD_HALF_EXTENT || campus.some(c => Math.hypot(c.x - n.x, c.z - n.z) < c.radius + n.radius + CLEARANCE))) continue;
+      candidates.forEach((n, i) => Object.assign(yard[i], { x: n.x, z: n.z })); placed = true;
+    }
+    if (!placed) throw new Error('no clear depot yard');
   }
   return nodes.map(({ slot, ...n }) => n);
 }
@@ -76,14 +108,19 @@ export function segmentDistance(n, a, b) {
 const cross = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
 const intersects = (a, b, c, d) => cross(a, b, c) * cross(a, b, d) < -POSITION_GRID && cross(c, d, a) * cross(c, d, b) < -POSITION_GRID;
 export function crossings(roads) {
-  const overview = roads.filter(r => ['loop', 'artifact', 'spur'].includes(r.class)); let count = 0, loop = 0;
+  const overview = roads.filter(r => ['loop', 'spur'].includes(r.class)); let count = 0, loop = 0;
   for (const [i, a] of overview.entries()) for (const b of overview.slice(i + 1)) for (let j = 1; j < a.path.length; j++) for (let k = 1; k < b.path.length; k++) if (intersects(a.path[j - 1], a.path[j], b.path[k - 1], b.path[k])) { count++; if (a.class === 'loop' || b.class === 'loop') loop++; }
   return { overview: count, loop };
 }
-function route(a, b, nodes, prior) {
+function route(a, b, nodes, prior, loopCentre = null) {
   const obstacles = nodes.filter(n => n !== a && n !== b);
   // Existing road ends and bends are legal junctions: reuse a street rather than cross it.
-  const vertices = [point(a), point(b), ...prior.flatMap(r => r.path).filter(p => obstacles.every(n => Math.hypot(n.x - p[0], n.z - p[1]) >= n.radius + POSITION_GRID))];
+  const streetEnd = n => {
+    if (!loopCentre) return point(n);
+    const dx = loopCentre[0] - n.x, dz = loopCentre[1] - n.z, length = Math.hypot(dx, dz);
+    return [roundPosition(n.x + dx / length * (n.radius + CLEARANCE / 2)), roundPosition(n.z + dz / length * (n.radius + CLEARANCE / 2))];
+  };
+  const vertices = [streetEnd(a), streetEnd(b), ...prior.flatMap(r => r.path).filter(p => obstacles.every(n => Math.hypot(n.x - p[0], n.z - p[1]) >= n.radius + POSITION_GRID))];
   for (const n of obstacles) for (let i = 0; i < ROUTING.sides; i++) {
     const angle = i / ROUTING.sides * Math.PI * 2, radius = (n.radius + ROUTING.margin) / Math.cos(Math.PI / ROUTING.sides);
     vertices.push([roundPosition(n.x + Math.cos(angle) * radius), roundPosition(n.z + Math.sin(angle) * radius)]);
@@ -103,15 +140,15 @@ function route(a, b, nodes, prior) {
     }
   }
   const result = []; for (let i = 1; i !== undefined; i = previous[i]) result.unshift(vertices[i]);
-  // Clip the centre-to-centre path to both foundation edges.
-  for (const [index, next, node] of [[0, 1, a], [result.length - 1, result.length - 2, b]]) {
+  // A loop has one shared street junction beside each building; other roads end at the foundation edge.
+  if (!loopCentre) for (const [index, next, node] of [[0, 1, a], [result.length - 1, result.length - 2, b]]) {
     const p = result[index], q = result[next], distance = Math.hypot(q[0] - p[0], q[1] - p[1]);
     result[index] = p.map((v, i) => roundPosition(v + (q[i] - v) * node.radius / distance));
   }
   return result;
 }
 export function roads(nodes, edges, spine) {
-  const classes = ['loop', 'artifact', 'spur', 'import', 'feature'], pairs = new Map();
+  const classes = ['loop', 'spur', 'artifact', 'import', 'feature'], pairs = new Map();
   const put = (a, b, source) => {
     const [from, to] = [a, b].sort(), id = `${from}/${to}`;
     if (!pairs.has(id)) pairs.set(id, { id, from, to, class: 'feature', sources: [] });
@@ -121,14 +158,15 @@ export function roads(nodes, edges, spine) {
   };
   for (const edge of edges) put(edge.from, edge.to, edge);
   for (const n of nodes.filter(n => ['support', 'gate'].includes(n.role))) {
-    const existing = pairs.get([n.id, n.stage].sort().join('/'));
-    if (!existing || !['loop', 'artifact'].includes(existing.class)) put(n.id, n.stage, { from: n.stage, to: n.id, source: 'spur', count: 1, declared: true });
+    put(n.id, n.stage, { from: n.stage, to: n.id, source: 'spur', count: 1, declared: true });
   }
   const outside = nodes.filter(n => n.role === 'outside');
-  // The outside plot has a shared chapter driveway, extending along each footing.
-  for (let i = 0; i < outside.length; i++) put(i ? outside[i - 1].id : spine.at(-1), outside[i].id, { from: i ? outside[i - 1].id : spine.at(-1), to: outside[i].id, source: 'spur', count: 1, declared: true });
+  // The depot shares one driveway beside the stage with the strongest recorded relationship.
+  const depot = depotStage(nodes, edges, spine);
+  for (let i = 0; i < outside.length; i++) put(i ? outside[i - 1].id : depot, outside[i].id, { from: i ? outside[i - 1].id : depot, to: outside[i].id, source: 'spur', count: 1, declared: true });
   const ordered = [...pairs.values()].sort((a, b) => classes.indexOf(a.class) - classes.indexOf(b.class) || (a.id < b.id ? -1 : 1));
-  const prior = [];
-  for (const road of ordered) { road.path = route(nodes.find(n => n.id === road.from), nodes.find(n => n.id === road.to), nodes, prior); if (['loop', 'artifact', 'spur'].includes(road.class)) prior.push(road); }
+  const prior = [], stages = nodes.filter(n => spine.includes(n.id));
+  const loopCentre = [stages.reduce((s, n) => s + n.x, 0) / stages.length, stages.reduce((s, n) => s + n.z, 0) / stages.length];
+  for (const road of ordered) { road.path = route(nodes.find(n => n.id === road.from), nodes.find(n => n.id === road.to), nodes, prior, road.class === 'loop' ? loopCentre : null); if (['loop', 'spur'].includes(road.class)) prior.push(road); }
   return ordered;
 }

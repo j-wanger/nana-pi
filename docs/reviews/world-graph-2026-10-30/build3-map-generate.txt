@@ -1,0 +1,5 @@
+
+> nana-pi@0.5.0 map
+> node scripts/code-map.mjs --write
+
+docs/code-map.md: 506 modules

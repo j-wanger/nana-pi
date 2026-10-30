@@ -12,7 +12,7 @@ export function bees(component) {
   return Array.from({ length: count }, (_, i) => ({ index: i, kind: i < component.activity.inFlight ? 'inFlight' : 'recent' }));
 }
 export function footprint(component) {
-  return Math.ceil(Math.sqrt(Math.max(1, component.features.length))) * STYLE.cellStep / 2 * Math.SQRT2 * FOOTPRINT_SCALE;
+  return Math.max(component.status === 'absent' ? 1 : STYLE.foundationColumns, Math.ceil(Math.sqrt(Math.max(1, component.features.length)))) * STYLE.cellStep / 2 * Math.SQRT2 * FOOTPRINT_SCALE;
 }
 export function layout(data, graph) {
   // Direct asset callers may omit a graph; the page boundary always requires one.

@@ -79,7 +79,7 @@ export async function buildGraph({ root = ROOT, source, loop, imports, ledgerTex
     const document = { contract: 'nana-component-graph', version: 1, spine: loop.spine, nodes, edges, roads: roads(nodes, edges, loop.spine) };
     const units = { import: 'import links', artifact: 'artifacts', join: 'deliverable rows', feature: 'shared features', loop: 'declared steps' };
     const lines = Object.entries(units).map(([kind, unit]) => { const records = edges.filter(e => e.source === kind); return `${kind}: ${records.length} directed pairs; ${records.reduce((sum, e) => sum + e.count, 0)} ${unit}`; });
-    lines.push(`roads: ${document.roads.filter(r => ['loop', 'artifact'].includes(r.class)).length} overview roads before chapter ties; ${JSON.stringify(crossings(document.roads))} crossings`);
+    lines.push(`roads: ${document.roads.filter(r => ['loop', 'spur'].includes(r.class)).length} overview streets including chapter ties; ${JSON.stringify(crossings(document.roads))} crossings`);
     return { document, problems: [], lines, exitCode: 0 };
   } catch (e) { return { document: null, problems: [`graph: ${String(e.message).replace(/[\r\n]+/g, ' ')}`], lines: [], exitCode: 1 }; }
 }

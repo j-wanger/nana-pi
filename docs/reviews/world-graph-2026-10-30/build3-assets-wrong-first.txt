@@ -1,0 +1,24 @@
+(node:85548) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<repo>/apps/hive/vendor/three.module.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <repo>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3123: explicit THREE builders run in Node within sealed triangle budgets
+PASS R-3124: three 0.186.1 module and core bytes retain their release hashes and MIT licence
+FAIL R-3134: visual and serving defaults retain their sealed values and provenance Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  {
+    beeHeight: 8.8,
+    beeScale: 0.16,
+    beeSpeed: 0.65,
+    cameraDrift: 0.012,
+...
+    focusEase: 0.025,
++   foundationColumns: 2,
+-   foundationColumns: 3,
+    fov: 40,
+    framePadding: 1.08,
+    maxZoom: 2.5,
+    minZoom: 0.6,
+    pixelPadding: 20,

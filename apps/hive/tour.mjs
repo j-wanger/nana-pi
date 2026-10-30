@@ -14,8 +14,8 @@ export function tour(model, graph) {
     graph.nodes.filter(n => ['support', 'gate'].includes(n.role) && n.stage === id).forEach((n, j) => chapters.push({ id: n.id, number: `${number}.${j + 1}`, component: n.id, model }));
   }
   const outside = graph.nodes.filter(n => n.role === 'outside');
-  chapters.push({ id: 'outside', number: '10', component: null, model: { ...model, chambers: model.chambers.filter(c => c.role === 'outside') } });
-  outside.forEach((n, i) => chapters.push({ id: n.id, number: `10.${i + 1}`, component: n.id, model }));
+  chapters.push({ id: 'outside', number: 'Depot', component: null, model: { ...model, chambers: model.chambers.filter(c => c.role === 'outside') } });
+  outside.forEach((n, i) => chapters.push({ id: n.id, number: 'Depot', component: n.id, model }));
   chapters.push({ id: 'closing', number: '11', component: null, model });
   const byId = new Map(graph.nodes.map(n => [n.id, n]));
   const center = id => { const n = byId.get(id); return [n.x, n.z]; };
