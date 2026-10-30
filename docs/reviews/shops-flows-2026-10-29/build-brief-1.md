@@ -8,9 +8,11 @@ The owner's questions are posted as optional issue 270; build on the plan's defa
 
 ## The picture
 
-The previous hive lane passed its plumbing tests and its first picture was rejected as "ai slop". Judge the picture as you build: serve the page with the real audit and shop data, run `npm run first-look -- --page url --after <url>#<view> --hive --reference /private/tmp/nana-3dmk-ref --spec <the plan's art spec file> --out <folder outside git>` for the overview, `#shop-project-memory` and `#flow-CAP-04`, at 380 and 1280 px. Check each 380 shot shows `RENDERER: WEBGL`; a pixel-view capture is a capture flake, so capture again. Judge each spec line yourself, pass or fail with one reason, up to three rounds. Do not start model sessions; the seat runs the visual judge after the build and shows the owner the frames before build 2. Never write into `/private/tmp/nana-3dmk-ref/`.
+The previous hive lane passed its plumbing tests and its first picture was rejected as "ai slop". Judge the picture as you build: serve the page with the real audit and shop data, run `npm run first-look -- --page url --after <url>#<view> --hive --reference /private/tmp/nana-3dmk-ref --spec docs/reviews/shops-flows-2026-10-29/shops-art-spec.md --out <folder outside git>` for the overview, `#shop-project-memory` and `#flow-CAP-04`, at 380 and 1280 px. Check each 380 shot shows `RENDERER: WEBGL`; a pixel-view capture is a capture flake, so capture again. Judge each spec line yourself, pass or fail with one reason, up to three rounds. Do not start model sessions; the seat runs the visual judge after the build and shows the owner the frames before build 2. Never write into `/private/tmp/nana-3dmk-ref/`.
 
 If build 1 runs long, stop after the data, the overview drawing and the shop and flow cards, and report what the plan moves to a later lane.
+
+Write `shops-art-spec.md` first, as the plan's visual acceptance item 4 says.
 
 Run the locked full suite as a plain foreground command with its output on screen.
 
