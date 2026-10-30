@@ -61,3 +61,5 @@ Report: the frame folders; the spec table; the gesture result; the frame time; e
 - `apps/hive/assets/parts.mjs`: shared parts for cranes, arms and wheels.
 - `apps/hive/main.mjs`: the animation clock and still mode.
 - `scripts/hive-gesture-check.mjs`: the gesture check.
+
+Private helpers inside `residents.mjs` (`block`, `limb`) and `parts.mjs` (`add`) may move to named exports in `parts.mjs` if a second file needs them; report each move.
