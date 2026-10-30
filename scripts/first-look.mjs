@@ -227,7 +227,7 @@ export async function runFirstLook(argv = [], injected = {}) {
       changed = changed.filter(changedPagePath);
       if (!changed.length) { stdout("first-look: no page-shaping changes; nothing to show"); return 0; }
       output = path.resolve(root, args["--out"]);
-    } else output = path.resolve(injected.outputDir ?? path.join(os.tmpdir(), `first-look-desk-${process.pid}`));
+    } else output = path.resolve(args['--out'] ?? injected.outputDir ?? path.join(os.tmpdir(), `first-look-desk-${process.pid}`));
     try {
       browser = injected.browser !== undefined ? await injected.browser?.() : await resolvePlaywright(injected.env ?? process.env, root)?.chromium?.launch();
     } catch { stdout(INSTALL_LINE); return 0; }

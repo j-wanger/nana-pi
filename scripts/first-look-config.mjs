@@ -39,6 +39,5 @@ export const MAX_SPEC_LINES = 12;
 export const HIVE_READY_TIMEOUT_MS = 15_000;
 // chosen (R-3133): sample the middle half, not a single pixel in a gap between cells.
 export const HIVE_PROBE_FRACTION = 0.5;
-// mirrored from feat/hive-render's config (R-3133); that module is not on main yet.
-export const HIVE_BACKGROUND = "#d7d9d5";
+export { HIVE_BACKGROUND } from '../apps/hive/config.mjs';
 export const PRODUCT_VIEWS = Object.freeze(["overview", "decisions", "product", "artifacts", "features", "issues", "requirements"]);

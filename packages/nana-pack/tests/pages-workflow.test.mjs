@@ -53,4 +53,21 @@ check("R-2985: identity scan checks the uploaded page before upload without esca
   assert.match(uploadBlock, /^\s{10}path: site$/m);
   assert.equal((uploadBlock.match(/^\s{10}path:/gm) ?? []).length, 1);
 });
+// req: R-3131
+check("R-3131: Pages builds the hive beside the product page and scans its data before upload", () => {
+  const product = text.indexOf('run: node scripts/product-report.mjs --out site/index.html');
+  const hive = text.indexOf('run: node scripts/hive-page.mjs --out site/hive');
+  const scan = text.indexOf('run: node scripts/identity-scan.mjs --stdin --root . < site/hive/components.json');
+  const upload = text.indexOf('uses: actions/upload-pages-artifact@v3');
+  assert(product >= 0 && hive > product && scan > hive && upload > scan);
+  assert(!/continue-on-error|\|\|\s*true/.test(text.slice(hive, upload)));
+});
+// req: R-3139
+check("R-3139: Pages derives the real audit before passing it to the hive", () => {
+  const audit = text.indexOf('run: node scripts/component-audit.mjs --out "$RUNNER_TEMP/components.json"');
+  const hive = text.indexOf('run: node scripts/hive-page.mjs --out site/hive --data "$RUNNER_TEMP/components.json"');
+  const scan = text.indexOf('run: node scripts/identity-scan.mjs --stdin --root . < site/hive/components.json');
+  assert(audit >= 0 && hive > audit && scan > hive);
+  assert(!/continue-on-error|\|\|\s*true/.test(text.slice(audit, scan)));
+});
 process.exitCode = failures ? 1 : 0;
