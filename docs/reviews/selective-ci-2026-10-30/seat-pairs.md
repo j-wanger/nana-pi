@@ -1,4 +1,4 @@
-# Seat wrong-code pairs — selective-ci, tip 417943ab
+# Seat wrong-code pairs — selective-ci, tips 417943ab and e9b29b28 (same results at both)
 
 Each mutation edits packages/nana-pack/lib/main-ci.mjs; `node --test packages/nana-pack/tests/main-ci.test.mjs` runs after each, then the file is restored.
 
