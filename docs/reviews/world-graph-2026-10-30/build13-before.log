@@ -1,0 +1,10 @@
+(node:68556) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+hive-page: http://127.0.0.1:49341
+SCROLL {"width":1280,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1185,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":74.92880889884745,"maxRelativeStep":0.7646803445700898,"reversals":8,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":100,"draws":1413,"shadows":15,"layouts":10885,"buffers":2143}}
+SCROLL {"width":1280,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1187,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":19.707377907778604,"maxRelativeStep":0.33831412897195845,"reversals":4,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1196,"draws":2513,"shadows":119,"layouts":19348,"buffers":2313}}
+capture heartbeat 2026-10-31T00:21:29.553Z
+SCROLL {"width":390,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1182,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":215.73154256621825,"maxRelativeStep":0.4122892286212655,"reversals":12,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":100,"draws":1413,"shadows":15,"layouts":36187,"buffers":1749}}
+SCROLL {"width":390,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1187,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":26.667919078923244,"maxRelativeStep":0.17280778006290404,"reversals":7,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1198,"draws":2517,"shadows":122,"layouts":64674,"buffers":1889}}

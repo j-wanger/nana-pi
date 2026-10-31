@@ -8,7 +8,7 @@
  */
 import { prepare, chooseRenderer, firstFrame } from './runtime.mjs';
 import { focus, overview, viewCentreOffset } from './camera.mjs';
-import { tour, tourPose, chapterProgress, stageAtScroll, chapterSpans, scrollAtStage, cardBlend, openingState } from './tour.mjs';
+import { tour, tourPose, chapterProgress, stageAtScroll, chapterSpans, scrollAtStage, cardBlend, openingState, followStage } from './tour.mjs';
 import { explore, bindGestures } from './explore.mjs';
 import { visibleRoads } from './city.mjs';
 import { placeLabels, safeBands } from './labels.mjs';
@@ -47,6 +47,12 @@ async function start(data, plan, model) {
     const extent = Math.max(...model.bounds.max.map(Math.abs), ...model.bounds.min.map(Math.abs)) * 1.3;
     Object.assign(sun.shadow.camera, { left: -extent, right: extent, top: extent, bottom: -extent, near: 0.1, far: extent * 8 }); sun.shadow.mapSize.set(STYLE.shadowMapSize, STYLE.shadowMapSize); sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.025; scene.add(sun);
     camera = new THREE.PerspectiveCamera(STYLE.fov, 1, 0.1, 10000); hive = batchStatic(THREE, buildHive(THREE, model, buildMaterials(THREE)), model); scene.add(hive);
+    // Screen-space ink signs keep human-scale figures and crates legible at city
+    // distance, without enlarging their geometry or changing the shared scale.
+    const markerGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3()]);
+    const markerMaterial = new THREE.PointsMaterial({ color: '#303831', size: OUTLINES.fadePixels, sizeAttenuation: false });
+    const residents = []; hive.traverse(o => { if (o.userData.role || o.userData.traffic) residents.push(o); });
+    for (const o of residents) { const mark = new THREE.Points(markerGeometry, markerMaterial); mark.position.y = (o.userData.traffic ? CARGO.size : WORKERS.height) / 2; o.add(mark); o.userData.distanceMarker = mark; }
     outline = new THREE.Box3Helper(new THREE.Box3(), '#202622'); outline.visible = false; scene.add(outline);
   } catch { renderer?.dispose(); renderer = null; rendererName = 'pixel'; }
   if (rendererName === 'pixel') { const fresh = canvas.cloneNode(); canvas.replaceWith(fresh); canvas = fresh; canvas.classList.add('pixel'); }
@@ -64,15 +70,23 @@ async function start(data, plan, model) {
   const labelNodes = model.chambers.map(c => { const ch = chapters.find(ch => ch.place === c.id), node = document.createElement('span'); node.className = 'label'; node.dataset.component = c.component ?? c.id; node.textContent = `${ch?.number ?? '—'} ${c.name}${c.note ? ` · ${c.note}` : ''}`; labels.append(node); return node; });
   const labelHeights = new Map(hive?.children.filter(c => c.userData.place).map(c => [c.userData.place, c.userData.labelHeight]));
   let mode = 'tour', voice = 'plain', selected = null, entered = null, progress = 0, chapterIndex = 0, yaw = 0, zoom = 1;
-  let gestureState = { mode, selected, zoom }, desired = overview(model), current = desired, readingKey = '';
-  const aspect = () => stage.clientWidth / stage.clientHeight;
+  let gestureState = { mode, selected, zoom }, desired = overview(model), current = desired, readingKey = '', fadeKey = '', visibleCard = '';
+  let width = stage.clientWidth, height = stage.clientHeight, targetStage = 0;
+  let follower = { stage: 0, velocity: 0, target: 0, quiet: 0 }, layoutDirty = true, bands = { top: 0, bottom: 0 }, labelCache = {};
+  const aspect = () => width / height;
   const poseAtStage = () => openingState(chapters, progress, aspect(), still || preference.matches).pose;
   const reading = () => {
     const id = mode === 'tour' ? chapters[chapterIndex].id : selected;
     const key = `${id}/${mode}/${voice}`;
-    if (key !== readingKey) { readingKey = key; renderText(document, stories, textLayer(data, `#${id}`, rendererName, voice, chapters, mode)); }
+    if (key !== readingKey) { readingKey = key; layoutDirty = true; labelCache = {}; renderText(document, stories, textLayer(data, `#${id}`, rendererName, voice, chapters, mode)); }
     if (mode === 'tour') {
-      const blend = cardBlend(progress, chapters.length);
+      const exact = cardBlend(progress, chapters.length), bucket = Math.round(exact.mix * TOUR_SCROLL.fadeBuckets);
+      const nextFadeKey = `${key}/${exact.index}/${bucket}/${progress < 1 && !still && !preference.matches}`;
+      if (fadeKey === nextFadeKey) return;
+      fadeKey = nextFadeKey;
+      const blend = cardBlend(exact.index + (1 - TOUR_SCROLL.crossFade) + bucket / TOUR_SCROLL.fadeBuckets * TOUR_SCROLL.crossFade, chapters.length);
+      const nextVisible = blend.inOpacity > TOUR_SCROLL.opacityThreshold ? blend.next : blend.outOpacity > TOUR_SCROLL.opacityThreshold ? blend.index : visibleCard;
+      if (nextVisible !== visibleCard) { visibleCard = nextVisible; layoutDirty = true; labelCache = {}; }
       for (const [i, chapter] of chapters.entries()) {
         const card = document.querySelector(`#card-${chapter.id}`), incoming = i === blend.next && blend.next !== blend.index;
         const opacity = incoming ? blend.inOpacity : i === blend.index ? blend.outOpacity : 0;
@@ -104,8 +118,7 @@ async function start(data, plan, model) {
   stories.addEventListener('change', event => { if (event.target.matches('select')) apply({ type: 'hash', value: event.target.value || '#overview' }); });
   const scrollProgress = () => {
     if (mode !== 'tour') return;
-    progress = stageAtScroll(scrollY, stage.clientHeight, spans);
-    chapterIndex = Math.floor(progress); setPose(poseAtStage()); reading(); frame();
+    targetStage = stageAtScroll(scrollY, height, spans);
   };
   const readHash = () => {
     const hash = decodeURIComponent(location.hash.slice(1)), [kind, id] = hash.split('/');
@@ -118,7 +131,7 @@ async function start(data, plan, model) {
     if (mode === 'tour') {
       const destination = !hash && (still || preference.matches) ? 1 : chapterProgress(chapters, `#${hash}`), top = scrollAtStage(destination, stage.clientHeight, spans);
       if (hashRead && !still && !preference.matches) scrollTo({ top, behavior: 'smooth' });
-      else { scrollTo(0, top); progress = destination; chapterIndex = destination; setPose(poseAtStage()); }
+      else { scrollTo(0, top); targetStage = progress = destination; follower = { stage: progress, velocity: 0, target: progress, quiet: 0 }; chapterIndex = destination; setPose(poseAtStage()); }
     } else if (entered) setPose(focus(model, entered, aspect()));
     else setPose(overview(model, aspect()));
     hashRead = true;
@@ -128,59 +141,63 @@ async function start(data, plan, model) {
   const draw = () => {
     const frameStart = performance.now();
     root.dataset.hiveStage = String(progress);
+    root.dataset.hiveTargetStage = String(targetStage);
     if (renderer) {
       const intro = openingState(chapters, progress, aspect(), mode !== 'tour' || still || preference.matches);
-      hive.scale.y = Math.max(0.001, intro.cityScale);
-      if (shadowScale !== hive.scale.y) { renderer.shadowMap.needsUpdate = true; shadowScale = hive.scale.y; }
+      // The first frame is covered by the opaque plan: cache full-height architecture
+      // once, then flatten only the visible city. Never rebuild sun shadows on scroll.
+      hive.scale.y = shadowScale === undefined ? 1 : Math.max(0.001, intro.cityScale);
+      shadowScale = 1;
       opening.hidden = intro.planOpacity === 0; opening.style.opacity = String(intro.planOpacity);
       current = desired;
       camera.fov = current.fov; camera.updateProjectionMatrix();
       const vector = current.position.map((v, i) => (v - current.target[i]) * zoom), angle = yaw;
       camera.position.set(current.target[0] + vector[0] * Math.cos(angle) + vector[2] * Math.sin(angle), current.target[1] + vector[1], current.target[2] + vector[2] * Math.cos(angle) - vector[0] * Math.sin(angle)); camera.lookAt(...current.target);
-      const safe = safeBands(document, stage);
-      const cards = [...stories.querySelectorAll('.card:not([hidden])')];
-      if (cards.length) phoneCardTop = Math.min(...cards.map(n => n.getBoundingClientRect().top));
-      const cardTop = Math.min(stage.clientHeight - safe.bottom, phoneCardTop ?? stage.clientHeight);
-      if (safe.top && intro.planOpacity === 0) camera.setViewOffset(stage.clientWidth, stage.clientHeight, 0, viewCentreOffset(stage.clientHeight, safe.top, stage.clientHeight - cardTop), stage.clientWidth, stage.clientHeight);
+      if (layoutDirty) {
+        bands = safeBands(document, stage);
+        const cards = [...stories.querySelectorAll('.card:not([hidden])')];
+        if (cards.length) phoneCardTop = Math.min(...cards.map(n => n.getBoundingClientRect().top));
+        labelCache = { bands, width, height }; layoutDirty = false;
+      }
+      const cardTop = Math.min(height - bands.bottom, phoneCardTop ?? height);
+      if (bands.top && intro.planOpacity === 0) camera.setViewOffset(width, height, 0, viewCentreOffset(height, bands.top, height - cardTop), width, height);
       else camera.clearViewOffset();
       camera.updateMatrixWorld();
       const active = mode === 'tour' ? chapters[chapterIndex].component : selected, visible = visibleRoads(model.roads, mode === 'tour' ? chapters[chapterIndex].id : null);
       const activePlace = model.chambers.find(c => c.component === active || c.id === active)?.id;
       hive.userData.batchSelection.value = mode === 'explore' ? hive.userData.batchOwners.indexOf(active) : -1;
-      hive.children.forEach(o => {
+      const selectionKey = `${mode}/${chapterIndex}/${selected}`;
+      if (hive.userData.selectionKey !== selectionKey) { hive.userData.selectionKey = selectionKey; hive.children.forEach(o => {
         if (o.userData.road) { o.visible = visible.some(r => r.id === o.userData.road); const incident = mode === 'explore' && activePlace && model.roads.find(r => r.id === o.userData.road && [r.from, r.to].includes(activePlace)); o.traverse(m => { if (m.isMesh && m.userData.roadSurface) { if (!m.userData.original) { m.userData.original = m.material; m.material = m.material.clone(); } m.material.color.set(incident ? '#171c19' : m.userData.original.color); } }); }
         if (o.userData.component) o.traverse(m => { if (m.isMesh) { m.userData.highlight ??= m.material.clone(); m.material = m.userData.highlight; m.material.emissive?.set(o.userData.component === active ? '#303831' : '#000000'); m.material.emissiveIntensity = 0.12; } });
-      });
+      }); }
       const worldPosition = new THREE.Vector3();
       hive.traverse(o => {
         if (o.userData.role || o.userData.workplace || o.userData.mechanism || o.userData.traffic) {
           o.getWorldPosition(worldPosition);
           const size = o.userData.traffic ? CARGO.size : WORKERS.height;
-          const pixels = size * stage.clientHeight / (2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.distanceTo(worldPosition));
-          o.visible = pixels >= (o.userData.traffic ? OUTLINES.fadePixels : OUTLINES.fullPixels);
+          const pixels = size * height / (2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.distanceTo(worldPosition));
+          o.visible = Boolean(o.userData.mechanism || o.userData.distanceMarker) || pixels >= OUTLINES.fadePixels;
+          if (o.userData.distanceMarker) o.userData.distanceMarker.visible = pixels < OUTLINES.fullPixels;
         }
       });
       animateHive(hive, performance.now() / 1000, still || preference.matches);
       outline.visible = Boolean(activePlace) && (mode === 'explore' || chapters[chapterIndex].visit);
       if (outline.visible) { const c = model.chambers.find(c => c.id === activePlace); outline.box.set(new THREE.Vector3(...c.bounds.min), new THREE.Vector3(...c.bounds.max)); }
-      const bands = safeBands(document, stage);
       stage.style.setProperty('--safe-top', `${bands.top}px`); stage.style.setProperty('--safe-bottom', `${bands.bottom}px`);
       if (bands.top || bands.bottom) {
         // Paving continues behind the controls; geometry and dark streets stay
         // inside the safe band, including roads projecting through the bottom edge.
-        const structures = hive.children.filter(o => !o.userData.background);
-        const visibility = structures.map(o => o.visible), outlined = outline.visible;
-        structures.forEach(o => { o.visible = false; }); outline.visible = false;
+        // The clear colour is the unlit paving tone. One colour pass keeps all
+        // structures inside the phone band without rendering the scene twice.
+        renderer.setScissorTest(false); renderer.clear(); renderer.setScissorTest(true);
+        renderer.setScissor(0, bands.bottom, width, height - bands.top - bands.bottom);
         renderer.render(scene, camera);
-        structures.forEach((o, i) => { o.visible = visibility[i]; }); outline.visible = outlined;
-        renderer.autoClear = false; renderer.setScissorTest(true);
-        renderer.setScissor(0, bands.bottom, stage.clientWidth, stage.clientHeight - bands.top - bands.bottom);
-        renderer.render(scene, camera);
-        renderer.setScissorTest(false); renderer.autoClear = true;
+        renderer.setScissorTest(false);
       } else renderer.render(scene, camera);
-      model.chambers.forEach((c, i) => { const p = new THREE.Vector3(c.x, labelHeights.get(c.id), c.z).project(camera), node = labelNodes[i]; node.textContent = mode === 'tour' && c.id === chapters[chapterIndex].place ? `${chapters[chapterIndex].number} ${chapters[chapterIndex].name}` : `${c.name}${c.note ? ` · ${c.note}` : ''}`; node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1 || !(mode === 'tour' && chapters[chapterIndex].place ? c.id === chapters[chapterIndex].place : mode === 'explore' && c.id === activePlace); node.dataset.x = (p.x + 1) / 2 * stage.clientWidth; node.dataset.y = (1 - p.y) / 2 * stage.clientHeight; const pick = new THREE.Vector3(c.x, 0, c.z).project(camera); node.dataset.pickX = (pick.x + 1) / 2 * stage.clientWidth; node.dataset.pickY = (1 - pick.y) / 2 * stage.clientHeight; });
-      placeLabels(document, stage, labelNodes);
-      const project = (x, y, z) => { const p = new THREE.Vector3(x, y, z).project(camera); return [(p.x + 1) / 2 * stage.clientWidth, (1 - p.y) / 2 * stage.clientHeight]; };
+      model.chambers.forEach((c, i) => { const p = new THREE.Vector3(c.x, labelHeights.get(c.id), c.z).project(camera), node = labelNodes[i]; node.textContent = mode === 'tour' && c.id === chapters[chapterIndex].place ? `${chapters[chapterIndex].number} ${chapters[chapterIndex].name}` : `${c.name}${c.note ? ` · ${c.note}` : ''}`; node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1 || !(mode === 'tour' && chapters[chapterIndex].place ? c.id === chapters[chapterIndex].place : mode === 'explore' && c.id === activePlace); node.dataset.x = (p.x + 1) / 2 * width; node.dataset.y = (1 - p.y) / 2 * height; const pick = new THREE.Vector3(c.x, 0, c.z).project(camera); node.dataset.pickX = (pick.x + 1) / 2 * width; node.dataset.pickY = (1 - pick.y) / 2 * height; });
+      placeLabels(document, stage, labelNodes, labelCache);
+      const project = (x, y, z) => { const p = new THREE.Vector3(x, y, z).project(camera); return [(p.x + 1) / 2 * width, (1 - p.y) / 2 * height]; };
       root.dataset.hiveTarget = JSON.stringify(project(...current.target));
       const place = model.chambers.find(n => n.id === chapters[chapterIndex].place);
       const corners = place ? [place.bounds.min[0], place.bounds.max[0]].flatMap(x => [place.bounds.min[1], place.bounds.max[1]].flatMap(y => [place.bounds.min[2], place.bounds.max[2]].map(z => project(x, y, z)))) : [];
@@ -197,16 +214,22 @@ async function start(data, plan, model) {
   // Readiness is armed only after readHash has scrolled and applied the requested chapter pose.
   let initialized = false;
   const first = firstFrame(rendererName, draw, name => { root.dataset.hiveReady = name; }, () => initialized);
-  const frame = () => { if (initialized) first(); else draw(); };
+  let dirty = true;
+  const frame = () => { dirty = true; };
+  let viewportRatio;
   const resize = () => {
-    const ratio = Math.min(devicePixelRatio, STYLE.pixelRatioCap);
+    const nextWidth = stage.clientWidth, nextHeight = stage.clientHeight, ratio = Math.min(devicePixelRatio, STYLE.pixelRatioCap);
+    // ResizeObserver's initial notification must not clear an already-ready still
+    // canvas between its ready mark and a reader's pixel probe.
+    if (initialized && width === nextWidth && height === nextHeight && viewportRatio === ratio) return;
+    width = nextWidth; height = nextHeight; viewportRatio = ratio; layoutDirty = true; labelCache = {};
     drawing.width = stage.clientWidth * ratio; drawing.height = stage.clientHeight * ratio;
-    const context = drawing.getContext('2d'), scale = Math.min(drawing.width / raster.width, drawing.height / raster.height);
-    context.setTransform(scale, 0, 0, scale, (drawing.width - raster.width * scale) / 2, (drawing.height - raster.height * scale) / 2);
+    const context = drawing.getContext('2d'), scale = Math.min(drawing.width * (aspect() > 1 ? 0.72 : 0.96) / raster.width, drawing.height * 0.52 / raster.height);
+    context.setTransform(scale, 0, 0, scale, (drawing.width - raster.width * scale) / 2 + (aspect() > 1 ? drawing.width * 0.08 : 0), drawing.height * 0.4);
     drawPlan(context, raster); phoneCardTop = null;
     if (renderer) { renderer.setSize(stage.clientWidth, stage.clientHeight, false); camera.aspect = aspect(); camera.updateProjectionMatrix(); }
     sizeSpans();
-    if (mode === 'tour') { scrollTo(0, scrollAtStage(progress, stage.clientHeight, spans)); setPose(poseAtStage()); }
+    if (mode === 'tour') { scrollTo(0, scrollAtStage(progress, height, spans)); targetStage = progress; follower = { stage: progress, velocity: 0, target: progress, quiet: 0 }; setPose(poseAtStage()); }
     else setPose(entered ? focus(model, entered, aspect()) : overview(model, aspect()));
     frame();
   };
@@ -219,5 +242,16 @@ async function start(data, plan, model) {
     return null;
   };
   bindGestures(canvas, event => { const result = explore({ ...gestureState, mode, selected }, event); gestureState = result.state; return result.effects; }, apply, pick);
-  const animate = () => { if (!still && !preference.matches) frame(); requestAnimationFrame(animate); }; requestAnimationFrame(animate);
+  let lastFrame, lastReadKey;
+  const animate = now => {
+    const dt = lastFrame === undefined ? 0 : (now - lastFrame) / 1000; lastFrame = now;
+    if (mode === 'tour') {
+      follower = still || preference.matches ? { stage: targetStage, velocity: 0, target: targetStage, quiet: 0 } : followStage(follower, targetStage, dt);
+      if (progress !== follower.stage) { progress = follower.stage; chapterIndex = Math.floor(progress); setPose(poseAtStage()); dirty = true; }
+      const readKey = `${chapterIndex}/${voice}/${Math.round(cardBlend(progress, chapters.length).mix * TOUR_SCROLL.fadeBuckets)}/${progress < 1 && !still && !preference.matches}`;
+      if (lastReadKey !== readKey) { lastReadKey = readKey; reading(); }
+    }
+    if (dirty || !still && !preference.matches) { first(); dirty = false; }
+    requestAnimationFrame(animate);
+  }; requestAnimationFrame(animate);
 }

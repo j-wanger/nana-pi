@@ -1,0 +1,20 @@
+(node:12644) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+hive-page: http://127.0.0.1:49470
+SCROLL {"width":1280,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1187,"p95Ms":10.200000000000728,"maxTaskMs":0,"maxWorldStep":7.1175035651554275,"maxRelativeStep":0.14052316361120457,"reversals":2,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1318,"draws":1318,"shadows":0,"layouts":89,"buffers":266}}
+capture heartbeat 2026-10-31T00:28:13.538Z
+SCROLL {"width":1280,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10.199999999998909,"maxTaskMs":0,"maxWorldStep":21.643101626153307,"maxRelativeStep":0.3022425993565096,"reversals":3,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1320,"draws":1320,"shadows":0,"layouts":141,"buffers":316}}
+SCROLL {"width":390,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1187,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":20.803519822376195,"maxRelativeStep":0.06332281600784954,"reversals":1,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1318,"draws":1318,"shadows":0,"layouts":174,"buffers":146}}
+SCROLL {"width":390,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":23.93742271005795,"maxRelativeStep":0.19333965699929814,"reversals":1,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1321,"draws":1321,"shadows":0,"layouts":255,"buffers":206}}
+capture heartbeat 2026-10-31T00:28:43.540Z
+file://$WORKTREE/scripts/first-look.mjs:155
+  catch { throw new Error("first-look: the hive ready wait timed out"); }
+                ^
+
+Error: first-look: the hive ready wait timed out
+    at waitForHive (file://$WORKTREE/scripts/first-look.mjs:155:17)
+    at async file://$WORKTREE/docs/reviews/world-graph-2026-10-30/build13-capture.mjs:35:74
+
+Node.js v22.22.2

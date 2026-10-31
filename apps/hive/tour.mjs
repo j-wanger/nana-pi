@@ -28,6 +28,18 @@ export function stageAtScroll(offset, viewportHeight, spans) {
   if (i < 0) return spans.length - 1;
   return Math.min(spans.length - 1, i + Math.max(0, (y - spans[i].start) / (spans[i].end - spans[i].start)));
 }
+// Analytic critically damped spring. Clamp every step to the segment from displayed
+// stage to the page target; a changed direction must never inherit opposing momentum.
+export function followStage(state, target, dt) {
+  const quiet = target === state.target ? Math.min(TOUR_SCROLL.settleSeconds, state.quiet + dt) : dt;
+  if (quiet >= TOUR_SCROLL.settleSeconds || state.stage === target) return { stage: target, velocity: 0, target, quiet };
+  const omega = 2 / TOUR_SCROLL.followSeconds, error = state.stage - target;
+  const velocity = state.velocity * (target - state.stage) < 0 ? 0 : state.velocity;
+  const c = velocity + omega * error, decay = Math.exp(-omega * dt);
+  const candidate = target + (error + c * dt) * decay;
+  const stage = Math.max(Math.min(state.stage, target), Math.min(Math.max(state.stage, target), candidate));
+  return { stage, velocity: stage === target ? 0 : (velocity - omega * c * dt) * decay, target, quiet };
+}
 export function scrollAtStage(stage, viewportHeight, spans) {
   const i = Math.max(0, Math.min(spans.length - 1, Math.floor(stage))), span = spans[i];
   return (span.start + (span.end - span.start) * (stage - i)) * viewportHeight;
@@ -56,10 +68,8 @@ export function tourPose(chapters, progress, aspect = 1) {
   };
   const a = anchor(chapters[i]);
   if (Number.isInteger(p)) return a;
-  const fraction = p - i, reading = 1 - TOUR_SCROLL.crossFade;
-  if (fraction < reading) {
-    const scale = 1 - TOUR_SCROLL.readingDolly * Math.sin(fraction / reading * Math.PI);
-    return { ...a, position: a.position.map((v, j) => a.target[j] + (v - a.target[j]) * scale) };
-  }
-  return blendPose(a, anchor(chapters[i + 1]), (fraction - reading) / TOUR_SCROLL.crossFade);
+  const fraction = p - i, reading = 1 - TOUR_SCROLL.cameraTravelFraction;
+  if (fraction <= reading) return a;
+  const t = (fraction - reading) / TOUR_SCROLL.cameraTravelFraction;
+  return blendPose(a, anchor(chapters[i + 1]), t * t * (3 - 2 * t));
 }

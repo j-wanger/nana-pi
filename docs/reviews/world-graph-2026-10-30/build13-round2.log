@@ -1,0 +1,21 @@
+(node:44041) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+hive-page: http://127.0.0.1:49649
+SCROLL {"width":1280,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10.100000000000364,"maxTaskMs":0,"maxWorldStep":6.846484791482411,"maxRelativeStep":0.048067043021044684,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1319,"textUpdates":6,"fades":163,"draws":1319,"renders":1319,"shadows":0,"layouts":89,"buffers":0,"geometries":0}}
+capture heartbeat 2026-10-31T00:34:19.033Z
+SCROLL {"width":1280,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10.099999999999454,"maxTaskMs":0,"maxWorldStep":9.308256818545605,"maxRelativeStep":0.11126100368075942,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1320,"textUpdates":9,"fades":193,"draws":1320,"renders":1320,"shadows":0,"layouts":141,"buffers":0,"geometries":0}}
+SCROLL {"width":390,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1176,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":35.79514351137597,"maxRelativeStep":0.03765174691786341,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1305,"textUpdates":6,"fades":183,"draws":1305,"renders":1305,"shadows":0,"layouts":174,"buffers":0,"geometries":0}}
+SCROLL {"width":390,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10.199999999998909,"maxTaskMs":0,"maxWorldStep":26.078681753493672,"maxRelativeStep":0.054360070452620576,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":1320,"textUpdates":9,"fades":193,"draws":1320,"renders":1320,"shadows":0,"layouts":255,"buffers":0,"geometries":0}}
+capture heartbeat 2026-10-31T00:34:49.036Z
+capture heartbeat 2026-10-31T00:35:19.038Z
+file://$WORKTREE/scripts/first-look.mjs:155
+  catch { throw new Error("first-look: the hive ready wait timed out"); }
+                ^
+
+Error: first-look: the hive ready wait timed out
+    at waitForHive (file://$WORKTREE/scripts/first-look.mjs:155:17)
+    at async file://$WORKTREE/docs/reviews/world-graph-2026-10-30/build13-capture.mjs:61:87
+
+Node.js v22.22.2

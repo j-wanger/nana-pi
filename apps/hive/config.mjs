@@ -12,10 +12,12 @@ export const OVERVIEW_ELEVATION = 0.8;
 export const DENSITY = Object.freeze({ footprint: 0.82, houseStep: 11, houseWidth: 6, houseDepth: 5, houseHeight: 4, heightVariation: 1.2, blockGap: 7, setback: 4, types: Object.freeze(['pitched', 'terrace', 'two-storey', 'row-three', 'yard']) });
 // contract (build 11 brief, R-3174): one reading screen, capped travel, sequential fades and no idle clock.
 // chosen travelScale: 100 world units per travel screen; slidePx: a quiet upward lift.
-// chosen readingDolly: 3 percent scroll-only push-in holds the subject during reading.
-export const TOUR_SCROLL = Object.freeze({ readingScreens: 1, travelCap: 0.5, travelScale: 100, readingDolly: 0.03, crossFade: 0.15, holdCheckMs: 2000, slidePx: 12, opacityThreshold: 0.05 });
-// chosen (2026-10-30, R-3122): human scale, eight-second loops, three builders and one walker per six local trays.
-export const WORKERS = Object.freeze({ height: 1.8, loopSeconds: 8, crewSize: 3, townStride: 6 });
+// contract (build 13 brief, R-3174): critically damped 0.15-second follow, exact rest by 0.5 seconds.
+// chosen (2026-10-30): 32 fade buckets avoid per-tick text work; 0.12 eye distances bounds measured camera steps.
+// chosen cameraTravelFraction: spread travel over the latter half, retaining the first half's reading hold.
+export const TOUR_SCROLL = Object.freeze({ readingScreens: 1, travelCap: 0.5, travelScale: 100, crossFade: 0.15, holdCheckMs: 2000, slidePx: 12, opacityThreshold: 0.05, followSeconds: 0.15, settleSeconds: 0.5, fadeBuckets: 32, cameraStepBound: 0.12, cameraTravelFraction: 0.5 });
+// chosen (2026-10-30, R-3122): human scale, four-second loops, three builders and one walker per six local trays.
+export const WORKERS = Object.freeze({ height: 1.8, loopSeconds: 4, crewSize: 3, townStride: 6 });
 // contract (build 12 brief, R-3173): carryable half-metre crate; 40 percent of one lane.
 // chosen palletHeight: a low flat carrier, derived from the same human unit.
 // chosen ringStride: one opposing cart pair per six ring spans keeps traffic sparse.

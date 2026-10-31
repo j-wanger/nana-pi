@@ -15,16 +15,21 @@ export function safeBands(document, stage) {
   return { top, bottom };
 }
 // Moved from main.mjs's original placeLabels; the scroll scene keeps its overlay collision rule.
-export function placeLabels(document, stage, labelNodes) {
-  const width = stage.clientWidth, height = stage.clientHeight;
+export function placeLabels(document, stage, labelNodes, cache = {}) {
+  const width = cache.width ??= stage.clientWidth, height = cache.height ??= stage.clientHeight;
   const rect = n => { const r = n.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; };
-  const blocked = [...document.querySelectorAll('header,.voices,.rail,.chapter-picker,.card.active,footer,.scene-caption,.renderer-line,.coordinate')].filter(n => n.getClientRects().length).map(rect);
-  const bands = safeBands(document, stage);
+  // The caller invalidates this cache on chapter, voice or viewport changes.
+  // Only projected anchors move per frame; controls and label metrics do not.
+  cache.blocked ??= [...document.querySelectorAll('header,.voices,.rail,.chapter-picker,.card.active,footer,.scene-caption,.renderer-line,.coordinate')].filter(n => n.getClientRects().length).map(rect);
+  cache.bands ??= safeBands(document, stage);
+  cache.metrics ??= new Map();
+  const blocked = cache.blocked.map(b => ({ ...b })), bands = cache.bands;
   if (bands.top) blocked.push({ x: 0, y: 0, w: width, h: bands.top });
   if (bands.bottom) blocked.push({ x: 0, y: height - bands.bottom, w: width, h: bands.bottom });
   const visible = labelNodes.filter(n => !n.hidden).sort((a, b) => Number(a.dataset.y) - Number(b.dataset.y));
   for (const node of visible) {
-    const w = node.offsetWidth, h = node.offsetHeight, gap = parseFloat(getComputedStyle(node).paddingTop);
+    if (!cache.metrics.has(node.textContent)) cache.metrics.set(node.textContent, { w: node.offsetWidth, h: node.offsetHeight, gap: parseFloat(getComputedStyle(node).paddingTop) });
+    const { w, h, gap } = cache.metrics.get(node.textContent);
     const ax = Number(node.dataset.x), ay = Number(node.dataset.y);
     const x = Math.max(gap, Math.min(width - w - gap, ax + h)), y = Math.max(gap, Math.min(height - h - gap, ay - h));
     const xs = [x, ax - w - h, gap, width - w - gap, ...blocked.flatMap(b => [b.x - w - gap, b.x + b.w + gap])];

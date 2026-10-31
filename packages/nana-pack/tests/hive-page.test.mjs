@@ -41,7 +41,7 @@ await test('R-3122: residents inhabit their places and activity gives capped wor
   const { buildAudit } = await import('../../../scripts/component-audit.mjs'); const data = (await buildAudit({ root })).document;
   const { layout } = await app('layout'), { buildHive } = await app('assets/hive'), { buildMaterials } = await app('assets/materials'); const THREE = await import('../../../apps/hive/vendor/three.module.js');
   const { RESIDENT_TRIANGLE_BUDGET, CITY, WORKERS } = await app('config'); assert.equal(RESIDENT_TRIANGLE_BUDGET, 600);
-  assert.deepEqual(WORKERS, { height: 1.8, loopSeconds: 8, crewSize: 3, townStride: 6 });
+  assert.deepEqual(WORKERS, { height: 1.8, loopSeconds: 4, crewSize: 3, townStride: 6 });
   const m = layout(data, plan), scene = buildHive(THREE, m, buildMaterials(THREE)); scene.updateMatrixWorld(true);
   const figures = []; scene.traverse(o => { if (o.userData.resident) figures.push(o); });
   assert.deepEqual([...new Set(figures.map(o => o.userData.resident.kind))].sort(), ['owner', 'seat', 'planner', 'adversary', 'builder', 'visual judge', 'reviewer', 'projectionist', 'customer', 'customs', 'runner', 'dispatcher', 'gatekeeper', 'driver', 'mechanic', 'clerk'].sort());
@@ -63,8 +63,8 @@ await test('R-3122: residents inhabit their places and activity gives capped wor
     else assert.equal(pose(rig), before, 'future mechanism remains stopped');
   }
   const gate = rigs.find(o => o.userData.mechanism.job === 'land-gate').userData.mechanism.parts;
-  gate.load.userData.stamped = false; animateHive(scene, 4, false); assert(gate.leaves.every(g => g.rotation.y === 0));
-  gate.load.userData.stamped = true; animateHive(scene, 4, false); assert(gate.leaves.every(g => Math.abs(g.rotation.y) > 1));
+  gate.load.userData.stamped = false; animateHive(scene, WORKERS.loopSeconds / 2, false); assert(gate.leaves.every(g => g.rotation.y === 0));
+  gate.load.userData.stamped = true; animateHive(scene, WORKERS.loopSeconds / 2, false); assert(gate.leaves.every(g => Math.abs(g.rotation.y) > 1));
   animateHive(scene, 0, false); assert(gate.leaves.every(g => g.rotation.y === 0), 'stamped crate still has to arrive');
   const walkers = []; scene.traverse(o => { if (o.userData.townResident) walkers.push(o); });
   assert(walkers.length > 0 && walkers.length < figures.length);

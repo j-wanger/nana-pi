@@ -42,7 +42,7 @@ export function buildDistrict(THREE, n, materials) {
         box(building, 0, 1.8, -r * 0.78, r * 1.8, 3.6, 0.18);
         for (const side of [-1, 1]) box(building, side * r * 0.88, 1.8, 0, 0.18, 3.6, r * 1.6);
       } else box(building, 0, 1.8, 0, r * 1.8, 3.6, r * 1.6);
-      for (let i = -1; i <= 1; i++) { const roof = box(building, i * r * 0.6, 3.9, 0, r * 0.72, 0.18, r * 1.7); roof.rotation.z = Math.PI / 8; }
+      for (const i of n.form === 'bay' ? [-1, 1] : [-1, 0, 1]) { const roof = box(building, i * r * 0.6, 3.9, 0, r * 0.72, 0.18, r * 1.7); roof.rotation.z = Math.PI / 8; }
       if (n.form !== 'bay') box(building, 0, 0.9, r * 0.81, r * 0.7, 1.8, 0.06, materials.ink);
       for (const x of [-r * 0.7, r * 0.7]) box(building, x, 2, r * 0.84, 0.12, 4, 0.12, materials.rim.workflow);
       if (n.form === 'vault') for (let i = -2; i <= 2; i++) box(building, i * 0.35, 1, r * 0.84, 0.08, 2, 0.1);
@@ -442,8 +442,8 @@ export function buildDistrict(THREE, n, materials) {
       box(p.sheet, 0, 0.7, 0, 0.6, 0.3, 0.05, materials.ink);
     } else if (job === 'yard' || job === 'bay') {
       // Gantry dispatches sideways; a bay's jib swings in over its open front.
-      const top = job === 'yard' ? 3.4 : 4.5;
-      if (job === 'bay') rig.position.z = n.radius * 0.9;
+      const top = job === 'yard' ? 3.4 : 6;
+      if (job === 'bay') rig.position.z = n.radius * 0.95 + 1.8;
       for (const x of job === 'yard' ? [-1.6, 1.6] : [-1.6]) box(rig, x, top / 2, 0, 0.16, top, 0.16);
       p.boom = pivot(job === 'yard' ? 0 : -1.6, top, 0);
       box(p.boom, job === 'yard' ? 0 : 1.6, 0, 0, 3.6, 0.22, 0.2, materials.bee);
@@ -453,7 +453,7 @@ export function buildDistrict(THREE, n, materials) {
       if (job === 'bay') { p.frame = pivot(0, 0.2, -0.8); for (const x of [-0.65, 0.65]) box(p.frame, x, 0.6, 0, 0.12, 1.2, 0.12); box(p.frame, 0, 1.2, 0, 1.4, 0.12, 0.12); }
     } else if (job === 'inspection') {
       drum(rig, 0, 0.15, 0, 0.8, 0.3); p.table = pivot(0, 0.35, 0);
-      load(p.table, 0.2, 0, 0); box(p.table, -0.5, 0.02, 0, 0.25, 0.04, 0.1, materials.ink);
+      load(p.table, 0.5, 0, 0); box(p.table, -0.5, 0.02, 0, 0.25, 0.04, 0.1, materials.ink);
       for (const x of [-0.9, 0.9]) box(rig, x, 1.2, 0, 0.08, 2.4, 0.08); box(rig, 0, 2.4, 0, 1.9, 0.08, 0.08);
     } else if (job === 'ladder') {
       rig.position.z = r * 0.85;
@@ -516,7 +516,7 @@ export function animateDistrict(rig, phase, frozen) {
   if (job === 'drafting') p.sheet.position.x = (travel - 0.5) * 1.8;
   if (job === 'yard' || job === 'bay') {
     if (job === 'yard') p.hoist.position.x = -1.3 + travel * 2.6;
-    else p.boom.rotation.y = -0.7 + travel * 1.4;
+    else p.boom.rotation.y = -1.05 + travel * 2.1;
     const drop = 0.5 + Math.abs(wave) * 1.7;
     p.cable.position.y = -drop / 2; p.cable.scale.y = drop; p.load.position.y = -drop - CARGO.size;
     if (p.frame) p.frame.position.y = 0.2 + Math.floor(t * 4) * 0.25;
@@ -533,7 +533,7 @@ export function animateDistrict(rig, phase, frozen) {
   }
   if (p.truck) { p.truck.position.x = (travel - 0.5) * r * 1.5; p.truck.rotation.y = t < 0.5 ? Math.PI / 2 : -Math.PI / 2; p.truck.children.find(o => o.userData.crate).visible = t < 0.5; }
   if (p.reel) p.reel.rotation.z = t * Math.PI * 2;
-  if (p.clock) p.clock.rotation.z = -phase / (WORKERS.loopSeconds * 20) * Math.PI * 2;
-  if (p.wheel) p.wheel.rotation.z = phase / (WORKERS.loopSeconds * 3) * Math.PI * 2;
+  if (p.clock) p.clock.rotation.z = -t * Math.PI * 2;
+  if (p.wheel) p.wheel.rotation.z = t * Math.PI * 2;
   if (frozen || !active) { if (p.clock) p.clock.rotation.z = -Math.PI / 4; if (p.wheel) p.wheel.rotation.z = Math.PI / 4; }
 }

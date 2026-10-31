@@ -1,0 +1,74 @@
+docs/reviews/world-graph-2026-10-30/build13-report.md:1: verdict: first sentence "VERDICT: DONE for implementation and local acceptance." carries no verdict word
+docs/reviews/world-graph-2026-10-30/build13-report.md:3: passive: passive candidate: "reported" in "Exact-tip reruns, push and finished CI are reported in the worker's final response."
+docs/reviews/world-graph-2026-10-30/build13-report.md:9: identifier: `implemented`
+docs/reviews/world-graph-2026-10-30/build13-report.md:9: identifier: `file::title`
+docs/reviews/world-graph-2026-10-30/build13-report.md:22: passive: passive candidate: "added" in "Only two test files changed; no test was added or deleted."
+docs/reviews/world-graph-2026-10-30/build13-report.md:31: identifier: `packages/nana-pack/tests/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:35: length: 40 words (cap 25)
+docs/reviews/world-graph-2026-10-30/build13-report.md:35: passive: passive candidate: "corrected" in "The first green attempt also caught two mistakes in the new assertions (a direction-change target could lie below the current stage; a road named local could actually be an avenue); those assertions were corrected to their stated contracts, not inverted."
+docs/reviews/world-graph-2026-10-30/build13-report.md:35: identifier: `build13-wrong-city.log`
+docs/reviews/world-graph-2026-10-30/build13-report.md:35: identifier: `build13-wrong-page.log`
+docs/reviews/world-graph-2026-10-30/build13-report.md:35: identifier: `build13-wrong-travel.log`
+docs/reviews/world-graph-2026-10-30/build13-report.md:42: passive: passive candidate: "restored" in "All mutations were restored before final verification and the full suite."
+docs/reviews/world-graph-2026-10-30/build13-report.md:46: identifier: `build13-before.log`
+docs/reviews/world-graph-2026-10-30/build13-report.md:46: identifier: `build13-before-final.log`
+docs/reviews/world-graph-2026-10-30/build13-report.md:46: identifier: `build13-verification.log`
+docs/reviews/world-graph-2026-10-30/build13-report.md:50: identifier: `reading()`
+docs/reviews/world-graph-2026-10-30/build13-report.md:53: passive: passive candidate: "cached" in "Stage dimensions are cached for frame projection."
+docs/reviews/world-graph-2026-10-30/build13-report.md:55: length: 27 words (cap 25)
+docs/reviews/world-graph-2026-10-30/build13-report.md:55: identifier: `--use-angle=metal`
+docs/reviews/world-graph-2026-10-30/build13-report.md:55: identifier: `ANGLE Metal Renderer: Apple M1 Max`
+docs/reviews/world-graph-2026-10-30/build13-report.md:55: identifier: `maxTaskMs: 0`
+docs/reviews/world-graph-2026-10-30/build13-report.md:66: length: 29 words (cap 25)
+docs/reviews/world-graph-2026-10-30/build13-report.md:66: passive: passive candidate: "retained" in "All raw samples are retained externally."
+docs/reviews/world-graph-2026-10-30/build13-report.md:70: passive: passive candidate: "written" in "No reference or notes folder was written."
+docs/reviews/world-graph-2026-10-30/build13-report.md:72: identifier: `/tmp/world-graph-build13-before/scroll/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:73: identifier: `/tmp/world-graph-build13-before-final/scroll/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:74: identifier: `/tmp/world-graph-build13-round1/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:74: identifier: `round2/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:74: identifier: `round3/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:75: identifier: `/tmp/world-graph-build13-round3/1280/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:75: identifier: `/390/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:76: passive: passive candidate: "unaltered" in "The original PNGs are unaltered."
+docs/reviews/world-graph-2026-10-30/build13-report.md:76: identifier: `/tmp/world-graph-build13-round3/1280/slow-scroll-00.png`
+docs/reviews/world-graph-2026-10-30/build13-report.md:76: identifier: `slow-scroll-29.png`
+docs/reviews/world-graph-2026-10-30/build13-report.md:76: identifier: `poses.json`
+docs/reviews/world-graph-2026-10-30/build13-report.md:77: identifier: `1280/motion-02-0.png`
+docs/reviews/world-graph-2026-10-30/build13-report.md:77: identifier: `motion-10-3.png`
+docs/reviews/world-graph-2026-10-30/build13-report.md:78: identifier: `strips/chapter-02.png`
+docs/reviews/world-graph-2026-10-30/build13-report.md:78: identifier: `chapter-10.png`
+docs/reviews/world-graph-2026-10-30/build13-report.md:78: identifier: `strips/slow-scroll-contact.png`
+docs/reviews/world-graph-2026-10-30/build13-report.md:79: identifier: `/tmp/world-graph-build13-verification/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:79: identifier: `first-look-*`
+docs/reviews/world-graph-2026-10-30/build13-report.md:79: identifier: `gestures/gesture-390.png`
+docs/reviews/world-graph-2026-10-30/build13-report.md:79: identifier: `gestures/scroll/`
+docs/reviews/world-graph-2026-10-30/build13-report.md:81: length: 27 words (cap 25)
+docs/reviews/world-graph-2026-10-30/build13-report.md:120: identifier: `main.mjs`
+docs/reviews/world-graph-2026-10-30/build13-report.md:121: identifier: `tour.mjs`
+docs/reviews/world-graph-2026-10-30/build13-report.md:122: passive: passive candidate: "imported" in "`camera.mjs`: unchanged; existing `blendPose`, `focus`, `overview` and `viewCentreOffset` are imported, never copied."
+docs/reviews/world-graph-2026-10-30/build13-report.md:122: identifier: `camera.mjs`
+docs/reviews/world-graph-2026-10-30/build13-report.md:122: identifier: `blendPose`
+docs/reviews/world-graph-2026-10-30/build13-report.md:122: identifier: `focus`
+docs/reviews/world-graph-2026-10-30/build13-report.md:122: identifier: `overview`
+docs/reviews/world-graph-2026-10-30/build13-report.md:122: identifier: `viewCentreOffset`
+docs/reviews/world-graph-2026-10-30/build13-report.md:123: identifier: `text-layer.mjs`
+docs/reviews/world-graph-2026-10-30/build13-report.md:123: identifier: `textLayer`
+docs/reviews/world-graph-2026-10-30/build13-report.md:123: identifier: `renderText`
+docs/reviews/world-graph-2026-10-30/build13-report.md:124: identifier: `pixel.mjs`
+docs/reviews/world-graph-2026-10-30/build13-report.md:125: identifier: `district.mjs`
+docs/reviews/world-graph-2026-10-30/build13-report.md:126: identifier: `residents.mjs`
+docs/reviews/world-graph-2026-10-30/build13-report.md:127: identifier: `hive-gesture-check.mjs`
+docs/reviews/world-graph-2026-10-30/build13-report.md:128: identifier: `labels.mjs`
+docs/reviews/world-graph-2026-10-30/build13-report.md:128: identifier: `placeLabels`
+docs/reviews/world-graph-2026-10-30/build13-report.md:128: identifier: `safeBands`
+docs/reviews/world-graph-2026-10-30/build13-report.md:130: passive: passive candidate: "required" in "No private-helper move was required."
+docs/reviews/world-graph-2026-10-30/build13-report.md:130: passive: passive candidate: "launched" in "No new test harness or model reviewer was launched."
+docs/reviews/world-graph-2026-10-30/build13-report.md:134: passive: passive candidate: "touched" in "The old CABINET/RELEASE ROUTE overlay clipping surface is touched by label/overlay caching; this work does not claim that combined old scenario is closed."
+docs/reviews/world-graph-2026-10-30/build13-report.md:134: passive: passive candidate: "unchanged" in "The Windows R-3104 timeout is unchanged; a matching CI failure gets one rerun."
+docs/reviews/world-graph-2026-10-30/build13-report.md:134: passive: passive candidate: "created" in "No supplied known-bug file, HANDOFF or session archive changed, and no GitHub issue was created or altered."
+docs/reviews/world-graph-2026-10-30/build13-report.md:138: passive: passive candidate: "committed" in "Long output is committed in the `build13-*.log` files beside this report; machine paths are normalized for publication."
+docs/reviews/world-graph-2026-10-30/build13-report.md:138: identifier: `build13-*.log`
+docs/reviews/world-graph-2026-10-30/build13-report.md:160: passive: passive candidate: "claimed" in "No unbounded arbitrary-distance hash-jump camera-step guarantee is claimed; the sealed step gate covers the specified short-tick and continuous scroll scenarios."
+docs/reviews/world-graph-2026-10-30/build13-report.md:160: passive: passive candidate: "sampled" in "Collision/visual evidence is sampled, not an exhaustive proof."
+docs/reviews/world-graph-2026-10-30/build13-report.md:160: passive: passive candidate: "attempted" in "No independent model review or land was attempted."
+summary sentences=122 words=1498 over=4 passive=18 banned=0 verdict=0/1 identifiers=50

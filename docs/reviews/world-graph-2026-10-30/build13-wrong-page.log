@@ -1,0 +1,24 @@
+PASS R-3121: honey ratios and material keys follow every contract status and kind
+FAIL R-3122: residents inhabit their places and activity gives capped worker figures Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
+    crewSize: 3,
+    height: 1.8,
++   loopSeconds: 8,
+-   loopSeconds: 4,
+    townStride: 6
+  }
+
+PASS R-3125: camera stops frame every chamber corner at phone and desktop aspects
+PASS R-3126: rail order and active cards retain the complete component story
+PASS R-3127: renderer choice falls back and incompatible data gives one error without a scene
+PASS R-3128: pixel draw list fills one coloured hex per cell inside its sealed grid
+(node:82727) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3129: ready marks once after drawing and still or reduced motion freezes animation
+PASS R-3130: builder copies exact app bytes and supplied data and refuses incompatible input atomically
+PASS R-3139: builder refuses contract problems by their first name before creating output
+PASS R-3132: serve binds loopback and contains raw and encoded traversal paths

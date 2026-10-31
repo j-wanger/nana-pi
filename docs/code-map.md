@@ -771,7 +771,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — A hex draw list or pixels on the supplied context.
 - **effects** — none
 - **errors** — None for valid layout and context.
-- **callers** — `apps/hive/main.mjs`
+- **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
 - **callees** — `apps/hive/assets/materials.mjs`, `apps/hive/config.mjs`
 
 ### `apps/hive/runtime.mjs`
@@ -938,8 +938,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `scripts/hive-gesture-check.mjs`
 
 - **purpose** — Measures phone selection and scroll safety through a served hive's real browser wiring.
-- **inputs** — CLI --url and --out, optional Playwright resolved through the shared resolver.
-- **outputs** — Fourteen PASS/FAIL checks at 390px, wheel and touch idle poses, overlap, street pixels and an external phone screenshot.
+- **inputs** — CLI --url and --out, optional --scroll and Playwright resolved through the shared resolver.
+- **outputs** — Phone gesture checks and optional Metal scroll telemetry at both widths with external screenshots and JSON.
 - **effects** — network (served page), disk (external screenshot), process (browser)
 - **errors** — Missing browser or failed checks exit 1; malformed options exit 2.
 - **callers** — —
@@ -3050,7 +3050,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temporary fixtures), process (bounded CLI children)
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
-- **callees** — `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`, `scripts/component-audit.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-page.mjs`
+- **callees** — `apps/hive/assets/district.mjs`, `apps/hive/assets/hive.mjs`, `apps/hive/assets/materials.mjs`, `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/config.mjs`, `apps/hive/explore.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/pixel.mjs`, `apps/hive/runtime.mjs`, `apps/hive/text-layer.mjs`, `apps/hive/tour.mjs`, `scripts/component-audit.mjs`, `scripts/first-look-config.mjs`, `scripts/hive-page.mjs`
 - **unresolved launches** — line 20: spawnSync
 
 ### `packages/nana-pack/tests/hive-page.test.mjs`

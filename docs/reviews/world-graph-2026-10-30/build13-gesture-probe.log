@@ -1,0 +1,45 @@
+(node:59552) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$WORKTREE/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $WORKTREE/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+hive-page: http://127.0.0.1:49739
+PASS explore tap selects without pose or hash change
+PASS tour tap changes nothing
+PASS tour swipe advances continuous stage without selection or hash change
+PASS 60 single 100px wheel ticks advance monotonically
+wheel stop settled: {"pose":"{\"target\":[60.268,4.65,10.627],\"position\":[60.268,37.672,59.188]}","chapter":"workshop","stage":5.188,"selection":"","hash":"","scroll":7500}
+wheel stop after 2s still: {"pose":"{\"target\":[60.268,4.65,10.627],\"position\":[60.268,37.672,59.188]}","chapter":"workshop","stage":5.188,"selection":"","hash":"","scroll":7500}
+PASS wheel stop: stage and camera hold for 2s after settling
+wheel stages: 1.018 1.061 1.123 1.196 1.273 1.353 1.435 1.516 1.598 1.680 1.762 1.845 1.939 2.007 2.075 2.141 2.206 2.274 2.340 2.408 2.474 2.540 2.607 2.674 2.741 2.807 2.874 2.940 3.007 3.074 3.140 3.207 3.274 3.340 3.407 3.474 3.540 3.607 3.672 3.740 3.807 3.874 3.940 4.006 4.074 4.141 4.207 4.274 4.340 4.407 4.474 4.540 4.607 4.674 4.740 4.806 4.874 4.940 5.007 5.074
+PASS five short 60px touch swipes each change camera
+touch stop settled: {"pose":"{\"target\":[-1.95,6.015,-46.89],\"position\":[-1.95,858.782,78.544]}","chapter":"overview","stage":0.15,"selection":"","hash":"","scroll":225}
+touch stop after 2s still: {"pose":"{\"target\":[-1.95,6.015,-46.89],\"position\":[-1.95,858.782,78.544]}","chapter":"overview","stage":0.15,"selection":"","hash":"","scroll":225}
+PASS touch stop: stage and camera hold for 2s after settling
+PASS rail or picker click smoothly scrolls to requested chapter
+PASS scroll reaches the same three poses as chapter hashes
+scroll overview: card overlap 0.0000
+scroll signal: card overlap 0.0425
+scroll compass: card overlap 0.0000
+scroll drafting-table: card overlap 0.0000
+scroll queue: card overlap 0.0000
+scroll workshop: card overlap 0.0000
+scroll eyes: card overlap 0.0000
+scroll review-ladder: card overlap 0.0000
+scroll land-gate: card overlap 0.0000
+scroll identity-scan: card overlap 0.0000
+scroll release-route: card overlap 0.0000
+scroll customers: card overlap 0.0000
+scroll library: card overlap 0.0000
+scroll closing: card overlap 0.0000
+PASS full phone scroll visits every chapter in order with bounded card overlap
+PASS all 390px chapter targets project between header and card
+PASS one readable card and at least 0.8 reading screens per phone chapter
+PASS 31 samples across one boundary never overlap readable cards
+street pixel 1: 0.7433 / ground 0.5828
+street pixel 2: 0.7379 / ground 0.5828
+street pixel 3: 0.7433 / ground 0.5828
+street pixel 4: 0.6235 / ground 0.5828
+street pixel 5: 0.7084 / ground 0.5828
+PASS five street pixels are lighter than their neighbouring ground
+gesture checks: 14 passed, 0 failed
+gesture exit 0

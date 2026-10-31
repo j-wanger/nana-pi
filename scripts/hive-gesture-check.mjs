@@ -2,12 +2,12 @@
 /**
  * @module scripts/hive-gesture-check.mjs
  * @purpose Measures phone selection and scroll safety through a served hive's real browser wiring.
- * @inputs CLI --url and --out, optional Playwright resolved through the shared resolver.
- * @outputs Fourteen PASS/FAIL checks at 390px, wheel and touch idle poses, overlap, street pixels and an external phone screenshot.
+ * @inputs CLI --url and --out, optional --scroll and Playwright resolved through the shared resolver.
+ * @outputs Phone gesture checks and optional Metal scroll telemetry at both widths with external screenshots and JSON.
  * @effects network (served page), disk (external screenshot), process (browser)
  * @errors Missing browser or failed checks exit 1; malformed options exit 2.
  */
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolvePlaywright } from './playwright-resolve.mjs';
@@ -15,15 +15,88 @@ import { waitForHive } from './first-look.mjs';
 import { VIEWPORT_HEIGHT } from './first-look-config.mjs';
 import { outsideRepo } from './reader-common.mjs';
 import { CITY, TOUR_SCROLL } from '../apps/hive/config.mjs';
+// Seat-only measurement; suite tests never import or execute this browser driver.
+export async function measureScrolling(browser, base, out, { instrument = true } = {}) {
+  await mkdir(out, { recursive: true });
+  const results = [];
+  for (const width of [1280, 390]) for (const input of ['ticks', 'smooth']) {
+    const page = await browser.newPage({ viewport: { width, height: VIEWPORT_HEIGHT } });
+    if (instrument) await page.route('**/main.mjs', async route => {
+      const response = await route.fetch(); let source = await response.text();
+      source = source.replace('const reading = () => {', 'const reading = () => { window.probe.readings++;');
+      source = source.replace('const draw = () => {', 'const draw = () => { window.probe.draws++;');
+      source = source.replaceAll('renderer.shadowMap.needsUpdate = true;', 'renderer.shadowMap.needsUpdate = true; window.probe.shadows++;');
+      source = source.replaceAll('renderer.render(scene, camera);', 'window.probe.renders++; renderer.render(scene, camera);');
+      source = source.replace('renderText(document, stories, textLayer', 'window.probe.textUpdates++; renderText(document, stories, textLayer');
+      source = source.replace('for (const [i, chapter] of chapters.entries())', 'window.probe.fades++; for (const [i, chapter] of chapters.entries())');
+      await route.fulfill({ response, body: source });
+    });
+    if (instrument) await page.route('**/three.core.js', async route => {
+      const response = await route.fetch(), source = await response.text();
+      await route.fulfill({ response, body: source.replace(/(class BufferGeometry extends EventDispatcher[\s\S]*?super\(\);)/, '$1\nwindow.probe.geometries++;') });
+    });
+    await page.addInitScript(() => {
+      window.probe = { readings: 0, textUpdates: 0, fades: 0, draws: 0, renders: 0, shadows: 0, layouts: 0, buffers: 0, geometries: 0, tasks: [] };
+      const rect = Element.prototype.getBoundingClientRect;
+      Element.prototype.getBoundingClientRect = function (...args) { window.probe.layouts++; return rect.apply(this, args); };
+      const buffer = WebGL2RenderingContext.prototype.bufferData;
+      WebGL2RenderingContext.prototype.bufferData = function (...args) { window.probe.buffers++; return buffer.apply(this, args); };
+      new PerformanceObserver(list => window.probe.tasks.push(...list.getEntries().map(e => e.duration))).observe({ type: 'longtask', buffered: true });
+    });
+    await page.goto(`${base.replace(/#.*$/, '')}#overview`); await waitForHive(page, true);
+    if (await page.getAttribute('html', 'data-hive-ready') !== 'webgl') throw new Error('scroll measurement refuses pixel fallback');
+    const gpu = await page.evaluate(() => { const gl = document.querySelector('canvas').getContext('webgl2'), ext = gl.getExtension('WEBGL_debug_renderer_info'); return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : 'unknown'; });
+    await page.waitForTimeout(1500);
+    // Real short wheel ticks; the other case is one uninterrupted ten-second page scroll.
+    await page.mouse.move(width / 2, 450);
+    await page.evaluate(input => {
+      window.probe.samples = []; window.probe.tasks = [];
+      window.probe.startCounts = { ...window.probe }; delete window.probe.startCounts.startCounts;
+      const start = performance.now(), end = document.getElementById('release-route').offsetTop;
+      let previous = start;
+      window.probe.done = new Promise(resolve => {
+        const tick = now => {
+          const root = document.documentElement;
+          window.probe.samples.push({ ms: now - previous, time: now - start, stage: Number(root.dataset.hiveStage), target: Number(root.dataset.hiveTargetStage ?? root.dataset.hiveStage), pose: JSON.parse(root.dataset.hivePose), cpu: JSON.parse(root.dataset.hiveFrameStats).cpuMs, scroll: scrollY }); previous = now;
+          if (input === 'smooth' && now - start <= 10000) scrollTo(0, end * Math.min(1, (now - start) / 10000));
+          if (now - start < 11000) requestAnimationFrame(tick); else resolve();
+        }; requestAnimationFrame(tick);
+      });
+    }, input);
+    if (input === 'ticks') {
+      const start = Date.now();
+      for (let i = 0; i < 100; i++) { await page.mouse.wheel(0, 100); await page.waitForTimeout(Math.max(0, start + (i + 1) * 100 - Date.now())); }
+    }
+    await page.evaluate(() => window.probe.done);
+    const raw = await page.evaluate(() => window.probe);
+    const samples = raw.samples.filter(s => s.time > 100 && s.time <= 10000), times = samples.map(s => s.ms).sort((a, b) => a - b);
+    let maxStep = 0, maxWorldStep = 0, reversals = 0, stageReversals = 0, previousDelta;
+    for (let i = 1; i < samples.length; i++) {
+      const a = samples[i - 1], b = samples[i], delta = b.pose.position.map((v, j) => v - a.pose.position[j]), step = Math.hypot(...delta);
+      maxWorldStep = Math.max(maxWorldStep, step); maxStep = Math.max(maxStep, step / Math.hypot(...a.pose.position.map((v, j) => v - a.pose.target[j])));
+      if (previousDelta && step > 0.005 && Math.hypot(...previousDelta) > 0.005 && delta.reduce((s, v, j) => s + v * previousDelta[j], 0) < -0.0001) reversals++;
+      // A chapter reading hold separates camera legs. Do not compare the new
+      // leg's bearing with the bearing before a stationary reading interval.
+      previousDelta = step > 0.005 ? delta : undefined;
+      if (b.stage < a.stage - 1e-8) stageReversals++;
+    }
+    const settled = raw.samples.find(s => s.time >= 10500), end = raw.samples.at(-1);
+    const result = { width, input, gpu, frames: samples.length, p95Ms: times[Math.floor(times.length * 0.95)], maxTaskMs: Math.max(0, ...raw.tasks), maxWorldStep, maxRelativeStep: maxStep, reversals, stageReversals, settleError: Math.abs(settled.stage - settled.target), idle: settled.stage === end.stage && JSON.stringify(settled.pose) === JSON.stringify(end.pose), counts: Object.fromEntries(['readings', 'textUpdates', 'fades', 'draws', 'renders', 'shadows', 'layouts', 'buffers', 'geometries'].map(k => [k, raw[k] - raw.startCounts[k]])) };
+    results.push(result); console.log('SCROLL', JSON.stringify(result));
+    await writeFile(path.join(out, `${width}-${input}.json`), JSON.stringify({ result, samples: raw.samples }, null, 2)); await page.close();
+  }
+  await writeFile(path.join(out, 'summary.json'), JSON.stringify(results, null, 2)); return results;
+}
 export async function main(argv = process.argv.slice(2), { env = process.env, print = console.log } = {}) {
   const opts = {};
-  for (let i = 0; i < argv.length; i++) { if (['--url', '--out'].includes(argv[i]) && argv[i + 1] && !opts[argv[i]]) opts[argv[i]] = argv[++i]; else { print('Usage: hive-gesture-check.mjs --url <url> --out <folder outside git>'); return 2; } }
-  if (!opts['--url'] || !opts['--out'] || !outsideRepo(process.cwd(), path.resolve(opts['--out']))) { print('Usage: hive-gesture-check.mjs --url <url> --out <folder outside git>'); return 2; }
+  const usage = 'Usage: hive-gesture-check.mjs --url <url> --out <folder outside git> [--scroll]';
+  for (let i = 0; i < argv.length; i++) { if (argv[i] === '--scroll' && !opts.scroll) { opts.scroll = true; continue; } if (['--url', '--out'].includes(argv[i]) && argv[i + 1] && !opts[argv[i]]) opts[argv[i]] = argv[++i]; else { print(usage); return 2; } }
+  if (!opts['--url'] || !opts['--out'] || !outsideRepo(process.cwd(), path.resolve(opts['--out']))) { print(usage); return 2; }
   let browser, failed = 0, checked = 0;
   const check = (ok, title) => { checked++; print(`${ok ? 'PASS' : 'FAIL'} ${title}`); if (!ok) failed++; };
   try {
     const playwright = resolvePlaywright(env, process.cwd()); if (!playwright) throw new Error('Playwright unavailable');
-    browser = await playwright.chromium.launch(); const phoneWidth = 390; const page = await browser.newPage({ viewport: { width: phoneWidth, height: VIEWPORT_HEIGHT }, hasTouch: true, reducedMotion: 'reduce' });
+    browser = await playwright.chromium.launch({ args: ['--use-angle=metal'] }); const phoneWidth = 390; const page = await browser.newPage({ viewport: { width: phoneWidth, height: VIEWPORT_HEIGHT }, hasTouch: true, reducedMotion: 'reduce' });
     const base = opts['--url'].replace(/#.*$/, ''), state = () => page.evaluate(() => ({ pose: document.documentElement.dataset.hivePose, chapter: document.documentElement.dataset.hiveChapter, stage: Number(document.documentElement.dataset.hiveStage), selection: document.documentElement.dataset.hiveSelection, hash: location.hash, scroll: scrollY }));
     await page.goto(`${base}#explore`); await waitForHive(page, true); const before = await state();
     // Search the canvas, not the picker or an overlay. Each successful tap uses actual hit testing.
@@ -41,10 +114,10 @@ export async function main(argv = process.argv.slice(2), { env = process.env, pr
     await page.goto(base); await waitForHive(page, true);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     const idleCheck = async title => {
-      await page.waitForTimeout(100); const early = await state();
-      await page.waitForTimeout(TOUR_SCROLL.holdCheckMs - 100); const late = await state();
-      print(`${title} at 0.1s: ${JSON.stringify(early)}`); print(`${title} at 2s: ${JSON.stringify(late)}`);
-      check(early.pose === late.pose && early.stage === late.stage && early.scroll === late.scroll, `${title}: stage and camera hold from 0.1s to 2s`);
+      await page.waitForTimeout(TOUR_SCROLL.settleSeconds * 1000); const early = await state();
+      await page.waitForTimeout(TOUR_SCROLL.holdCheckMs); const late = await state();
+      print(`${title} settled: ${JSON.stringify(early)}`); print(`${title} after 2s still: ${JSON.stringify(late)}`);
+      check(early.pose === late.pose && early.stage === late.stage && early.scroll === late.scroll, `${title}: stage and camera hold for 2s after settling`);
     };
     const ticks = [];
     await page.mouse.move(190, 450);
@@ -119,6 +192,11 @@ export async function main(argv = process.argv.slice(2), { env = process.env, pr
     pixels.forEach((p, i) => print(`street pixel ${i + 1}: ${p.street.toFixed(4)} / ground ${p.ground.toFixed(4)}`));
     check(pixels.length === 5 && pixels.every(p => p.street - p.ground >= CITY.pixelMargin), 'five street pixels are lighter than their neighbouring ground');
     await mkdir(opts['--out'], { recursive: true }); await page.screenshot({ path: path.join(opts['--out'], 'gesture-390.png') });
+    if (opts.scroll) for (const r of await measureScrolling(browser, base, path.join(opts['--out'], 'scroll'))) {
+      check(r.p95Ms < 20 && r.maxTaskMs <= 50, `${r.width}/${r.input}: p95 below 20ms and no task above 50ms`);
+      check(r.maxRelativeStep < TOUR_SCROLL.cameraStepBound && r.reversals === 0 && r.stageReversals === 0, `${r.width}/${r.input}: bounded camera steps without reversal`);
+      check(r.settleError === 0 && r.idle, `${r.width}/${r.input}: exact page target after settling`);
+    }
     print(`gesture checks: ${checked - failed} passed, ${failed} failed`); return failed ? 1 : 0;
   } catch (error) { print(`hive-gesture-check: ${error.message}`); return 1; }
   finally { await browser?.close(); }
