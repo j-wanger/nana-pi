@@ -1,5 +1,7 @@
 # Owner profile — build 1 technical record
 
+Follow-up: [Windows guard correction](windows-fix-record.md) records the first hosted failure and its red/green repair within this build.
+
 ## Scope and files
 
 Feature FEAT-040, subgroup SUB-022, artifact A-090. The build serves the current priority of carrying learning into later work. The build stays on `feat/owner-profile`; no main commit, real profile, real profile remote, issue, HANDOFF, known-bug file or session archive was changed.

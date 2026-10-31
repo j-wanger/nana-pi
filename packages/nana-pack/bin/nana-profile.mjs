@@ -11,6 +11,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { piAgentDir } from '../lib/agent-dir.mjs';
+import { canonicalCwd } from '../lib/adoption.mjs';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
 import { ghFromEnvironment, ghResult } from '../lib/gh-runner.mjs';
@@ -51,7 +52,11 @@ function parse(args) {
 function seatGuard(pointer,cwd,env,runGit) {
  if(env.NANA_ROLE!==undefined) throw Error(W.role);
  const a=runGit(cwd,['rev-parse','--absolute-git-dir']); const b=runGit(cwd,['rev-parse','--git-common-dir']);
- if(a.status===0&&b.status===0&&path.resolve(cwd,a.stdout.trim())!==path.resolve(cwd,b.stdout.trim())) throw Error(W.worktree);
+ if(a.status===0&&b.status===0) {
+  const gitDir=canonicalCwd(path.resolve(cwd,a.stdout.trim())); const commonDir=canonicalCwd(path.resolve(cwd,b.stdout.trim()));
+  // Native relative compares drive-letter/case variants on Windows; realpath resolves aliases.
+  if(path.relative(gitDir,commonDir)!=='') throw Error(W.worktree);
+ }
  if(pointer.save!==true) throw Error(W.disabled);
 }
 function profileGuard(dir,runGit) {

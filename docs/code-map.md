@@ -1543,8 +1543,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Saved lines, bounded show text and fixed refusal or sync status lines.
 - **effects** — disk, process, network
 - **errors** — Exits 1 for local refusals or failed explicit sync; a locally committed save survives a push failure with exit 0.
-- **callers** — `packages/nana-pack/tests/profile-fixture.mjs`
-- **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/suite-records.mjs`
+- **callers** — `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
+- **callees** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/suite-records.mjs`
 
 ### `packages/nana-pack/bin/nana-roster.mjs`
 
@@ -1777,7 +1777,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the store dir and the per-root store path, the adoption settings (journal path, objective file name), a root's state with its isAdopted verdict, the journal's tail and window lines, and the newest report per canonical root with a `dropped` count of refused claims
 - **effects** — disk (reads nana-pack.json and the journal tail, lstats / stats the handed-in root and its ancestors)
 - **errors** — tailLines rethrows the fs error for a journal that exists but is not a readable regular file (ENOTFILE for a non-file); an absent journal is [] and every other function is total
-- **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/json-text.mjs`
 
 ### `packages/nana-pack/lib/agent-dir.mjs`
@@ -2303,7 +2303,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Bounded git results, lock-scoped results and sync success or sealed reason.
 - **effects** — disk, process, network
 - **errors** — Throws sealed refusal lines for local failures; sync returns classified transport failure.
-- **callers** — `packages/nana-pack/bin/nana-profile.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
 - **callees** — `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/profile-config.mjs`
 - **repo-code launches** — line 19: spawnSync; binding line 69
 
@@ -3625,7 +3625,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk, process
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
+- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
 
 ### `packages/nana-pack/tests/profile-sync.test.mjs`
 

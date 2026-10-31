@@ -60,6 +60,15 @@ await check('only a seat on an enabled machine may write',async()=>{
    assert.equal(t.git(f.dir,'rev-parse','HEAD'),head); assert.equal(files(f.dir).length+files(f.dir,'events').length,n);
   }
   ok(save(f,'Allowed from main'));
+  // Git for Windows may print different long/short/case spellings for one git directory.
+  // A junction supplies that honest alias on every host without writing this repository.
+  const alias=path.join(t.temp,'git-directory-alias'); fs.symlinkSync(t.git(t.main,'rev-parse','--absolute-git-dir'),alias,'junction');
+  try {
+   const {runProfile}=await import('../bin/nana-profile.mjs'); const {profileGit}=await import('../lib/profile-sync.mjs'); const base=profileGit(f.env); const output=[];
+   const runGit=(cwd,args)=>cwd===t.main&&args.join(' ')==='rev-parse --absolute-git-dir'?{status:0,stdout:`${alias}\n`}:base(cwd,args);
+   const code=runProfile(['save','--kind','fact','--claim','Alias main checkout','--quote','The same checkout is allowed'],{agentDir:f.agent,env:f.env,cwd:t.main,runGit,log:x=>output.push(x),error:x=>output.push(x)});
+   assert.equal(code,0,output.join('\n'));
+  } finally {fs.unlinkSync(alias);}
  } finally {t.close();}
 });
 
