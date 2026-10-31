@@ -19,3 +19,6 @@
 - Owner profile (owner-profile, final review): with no session variable the session key falls back to the local date while the record date is UTC, so they can disagree near midnight.
 - Owner profile (owner-profile, final review): the "locked" reason word is never used.
 - Owner profile (owner-profile build 3): a second writer now waits up to 420,000 ms for the clone lock, so a save behind a hung sync can block the seat for seven minutes.
+- Memory shaper (memory-shaper, seat scored runs): two runs on the frozen labels miss the bar, with correction recall 28/46 and 26/46 and precision 217/318 and 227/329; the rules stay the maker until the owner decides.
+- Memory shaper (memory-shaper, seat scored runs): the shaper finds 54 of 56 review lessons, two fewer than the rules.
+- Memory shaper (memory-shaper build 1): the reply schema was array-rooted and every Claude call failed; only the seat's synthetic canary caught it, since tests inject the runner.

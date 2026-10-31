@@ -183,6 +183,47 @@ changed title at the same index. Transcript expiry can make pointers missing;
 private quote and context snapshots preserve readability. No trust promotion,
 cross-run deduplication, automatic trigger, delivery or real-data scoring happens here.
 
+## Model-shaped memory candidates
+
+From the repository root, `npm run memory:shape -- --out <private-folder>` runs
+`scripts/memory-shape.mjs`. Runtime dependencies: Node, git and an authenticated
+Claude CLI by default; the alternate sealed runner needs an authenticated pi CLI.
+The shaper accepts the maker's root, project and day-window flags, plus
+`--until <ISO-instant>` to freeze owner turns and ask results at an instant.
+It takes no labels argument. The scorer and its label format remain unchanged.
+
+The shared unit walk supplies owner turns, answered asks and distinct review MUST
+titles. Owner turns with no preceding non-meta, non-sidechain assistant entry with
+a UUID and nonempty text are skipped. Tool-only entries do not count as seat text.
+Owner batches allow correction, decision or none; review batches allow lesson or
+none. Answered asks remain rule-path decisions without a model call.
+Correction pointers prefer substantial seat text, then the question; decisions
+prefer the question, then substantial text. Both fall back to the last seat text.
+Duplicate owner pointers keep the first file in transcript order.
+
+`lib/memory-shaping-config.mjs` seals the default runner, model, effort, prompt and
+caps. `scripts/memory-shape-runners.mjs` isolates Claude and pi in OS temp, with
+stdin prompts, no tools, no sessions, no discovered resources, bounded piped
+capture and a timeout. Claude uses catch-judge's structured-output and model check;
+pi uses the bench's whole-stream completeness and usage parser. Tests inject every
+runner or spawn; they never call a model.
+
+The shaper writes only `shaped-candidates.jsonl`, exclusive-create, with the same
+private-folder policy and record fields as the maker. Model claims use the shared
+claim cap; quotes use the shared display cap; stored context retains the paired
+seat entry's tail. Model input head-cuts owner text and tail-cuts seat context.
+A malformed reply rejects its entire batch without retry. No stream dump is saved.
+Stdout reports owner turns (including skipped), skipped, asks, review titles,
+cut counts, capped claims, calls, unknown usage, unsent, unclassified, tokens and
+cost. Errors never print private text. At the token cap no new call starts;
+remaining units are unsent and the run prints `unscored: spend cap reached`.
+Unknown usage marks tokens as a lower bound and cost unknown; unpriced tokens also
+make cost unknown. Pi's reported cost is list price, not subscription cost.
+
+The tool is the experiment, not a claim that the model beats the rules. The seat
+freezes the prompt and values before two real scored runs. Deliberate prompt
+injection remains outside this lane's threat model; downstream checking owns it.
+
 ## Product report
 
 GitHub Pages publishes the public product report at `https://j-wanger.github.io/nana-pi/` after pushes to `main` and issue changes. The public copy includes product decisions and linked issues, but no test results; the land report remains local.

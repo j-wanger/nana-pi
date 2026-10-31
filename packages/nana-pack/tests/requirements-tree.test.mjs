@@ -25,7 +25,7 @@ const row = (id) => ledger.split("\n").find((line) => line.startsWith(`| ${id} |
 // req: R-287
 check("R-287: every real requirement row is in a feature or subgroup table", actual.problems.every((p) => !p.includes("not in a feature or subgroup table")) && row("R-287").startsWith("| R-287 | Every requirement row in REQUIREMENTS.md shall sit in a table"), actual.problems.join("; "));
 // req: R-288
-check("R-288: all real headings have non-empty purposes", actual.parsed.headings.length === 70 && actual.parsed.headings.every((h) => h.purpose.length > 0), `${actual.parsed.headings.length} headings`);
+check("R-288: all real headings have non-empty purposes", actual.parsed.headings.length === 71 && actual.parsed.headings.every((h) => h.purpose.length > 0), `${actual.parsed.headings.length} headings`);
 // req: R-288
 check("R-288: real ledger has no structural problems", actual.problems.length === 0, actual.problems.join("; "));
 // req: R-289
@@ -380,7 +380,7 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   // req: R-1158
   check("R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy",
     JSON.stringify(lf.problems) === JSON.stringify(cr.problems) && lf.problems.length === 2 &&
-    selfLedgerCrlf.problems.length === 0 && selfLedgerCrlf.parsed.headings.length === 70,
+    selfLedgerCrlf.problems.length === 0 && selfLedgerCrlf.parsed.headings.length === 71,
     `${JSON.stringify(lf.problems)} vs ${JSON.stringify(cr.problems)}`);
 }
 

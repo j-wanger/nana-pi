@@ -98,6 +98,7 @@
     { "path": "packages/nana-setup/tests/stale-copies.test.mjs", "reason": "Producer fixture passes an object-shaped CLI configuration." },
     { "path": "packages/nana-setup/tests/win-shims.test.mjs", "reason": "Shell resolver and native command paths do not trace." },
     { "path": "packages/nana-setup/tests/win32-degrade.test.mjs", "reason": "Native shell executable comes from an environment-derived path." },
+    { "path": "scripts/memory-shape-runners.mjs", "reason": "Injected model spawn and piLaunch select external CLI programs." },
     { "path": "scripts/runtime-measure.mjs", "reason": "Measurement starts a caller-provided suite program." },
     { "path": "scripts/template-acceptance.mjs", "reason": "Shell evaluates the rendered template toolchain." },
     { "path": "scripts/test-locked.mjs", "reason": "Locked suite program comes from the command boundary." }

@@ -1,0 +1,18 @@
+sealed at 2026-10-31T21:40:57Z, tip e1eddf69
+export const RUNNER = "claude";
+export const CLAUDE_MODEL = "claude-sonnet-5";
+export const CLAUDE_EFFORT = "low";
+export const PI_MODEL = "openai-codex/gpt-6-luna";
+export const PI_THINKING = "low";
+export const BATCH_SIZE = 10;
+export const TOKEN_CAP = 1000000;
+export const DOLLAR_CAP = 0.50;
+export const OWNER_CAP = 4000;
+export const CONTEXT_CAP = 2000;
+export const TIMEOUT_MS = 300000;
+export const MAX_BUFFER = 67108864;
+export const ALLOWED_KINDS = Object.freeze({ owner: Object.freeze(["correction", "decision", "none"]), review: Object.freeze(["lesson", "none"]) });
+export const PROMPT_LEAD = "Classify this JSON array of independent units:\n";
+export const OUTPUT_FILE = "shaped-candidates.jsonl";
+export const WORDS = Object.freeze({ unsent: "unsent", unclassified: "unclassified", skipped: "skipped", capReached: "unscored: spend cap reached" });
+SYSTEM_PROMPT sha256 ef726abb8a0d48e17c1b4a214af86c6dff52978b69e86e628b8e4d810b084c98
