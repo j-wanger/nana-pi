@@ -33,7 +33,7 @@ Existing edits made necessary by this change:
 - `code-map-launch.test.mjs`: R-3156's fixed-base edge inventory records the authorized move of the worker's JSON helper dependency to the shared settings module.
 - `hive-city.test.mjs`: R-3187's builder known-bug flow oracle now matches appending the selected digest instead of rereading the whole file. No hive application code changed.
 - `requirements-tree.test.mjs`: R-288 and R-1158 expect 69 headings instead of 68 after adding FEAT-041.
-- The new context test uses the existing public `tmpDir` helper; the runner's R-917 source check remains unchanged.
+- The new context test uses the existing public `tmpDir` helper; the runner's R-917 source check remains unchanged. Its temp root also uses the public `realPath` helper, so Windows short and long temp-directory names agree with the launchers' canonical paths. No assertion was relaxed.
 
 ## Red/green proof
 
@@ -72,6 +72,12 @@ FEAT-007:
 - “Claude review launcher ... alias (opus), not resolved model id” — retained. Effort matches an exact key or top-level setting; aliases are not guessed.
 - “Review movement ... movement before ... admission ... next revision's review” — retained; the existing movement is reused once, not recomputed or given new atomicity claims.
 - “Keep movement ... force-killed pi-review leaves ... movement temp folder” — retained; this lane adds the digest to that same existing folder lifecycle.
+
+## Windows CI correction within build 1
+
+Commit `01997760` passed both macOS suite and Linux suite, plus all four floor/ceiling install jobs. Run `41229150434` failed only Windows's new R-3213 and R-3215 fixtures: `fs.realpathSync` preserved `RUNNER~1` while production's native canonicalizer returned `runneradmin`. R-3104 passed, so no known-flake rerun was requested. `ci-build-1.log` keeps the failure and job summary.
+
+The correction imports the existing public `realPath` into the fixture and canonicalizes its one temp root with it. Production code and the test assertions do not change. The final report names the finished run for the corrected tip.
 
 ## Validation and remaining seat work
 
