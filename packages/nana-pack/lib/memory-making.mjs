@@ -40,10 +40,10 @@ function sourceFiles({ projectsRoot, repoRoot, project }) {
  const key = projectKey(repoRoot), wt = `${projectKey(`${repoRoot}-wt`)}-`;
  return transcriptFiles(projectsRoot, (name) => project ? name === project : name === key || name.startsWith(wt));
 }
-function shape(type, kind, rawQuote, rawContext, evidence, date) {
- const quote = displayText(rawQuote, CLAIM_CAP), context = displayText(rawContext, CLAIM_CAP);
+export function shape(type, kind, rawQuote, rawContext, evidence, date, overrides = {}) {
+ const quote = displayText(rawQuote, CLAIM_CAP), context = displayText(overrides.context ?? rawContext, CLAIM_CAP);
  const form = kind === "correction" ? CORRECTION_FORM : DECISION_FORM;
- const rawClaim = kind === "lesson" ? rawQuote : form.replace("<quote>", () => rawQuote).replace("<context>", () => rawContext);
+ const rawClaim = overrides.claim ?? (kind === "lesson" ? rawQuote : form.replace("<quote>", () => rawQuote).replace("<context>", () => rawContext));
  const claim = displayText(rawClaim, CLAIM_CAP);
  return { record: { id: crypto.createHash("sha256").update(`${evidence}\n${claim}`).digest("hex"), type, kind, claim, quote, context, evidence, date, ...STARTING_STATE, roles: [...ROLES[type]], validFrom: date, invalidAt: null, supersedes: [] }, capped: Number(rawClaim.length > CLAIM_CAP) };
 }
@@ -69,19 +69,23 @@ function askAnswer(entry, result, call) {
  if (!questions.length) return null;
  return { quote: questions.map((q) => answers[q]).join("; "), context: questions.join("; ") };
 }
-async function transcriptCandidates(file, options, emit) {
- let question = null, substantial = null;
+/** Shared unit walk; rule text stays sentence-sized while model context keeps the whole entry. */
+async function* unitsIn(file, options) {
+ let question = null, substantial = null, lastSeat = null;
  const calls = new Map();
  for await (const entry of streamEntriesIn(file)) {
   if (entry.isSidechain || entry.isMeta || entry.isCompactSummary) continue;
+  const timestamp = entry.timestamp ?? entry.message?.timestamp;
+  if (options.until && Date.parse(timestamp) > Date.parse(options.until)) continue;
   const sessionId = entry.sessionId ?? path.basename(file, ".jsonl");
-  const day = edtDay(entry.timestamp ?? entry.message?.timestamp);
+  const day = edtDay(timestamp);
   for (const call of askCalls(entry)) calls.set(call.id, { call, uuid: entry.uuid });
   const seat = assistantText(entry).trim();
   if (seat) {
    const matches = [...seat.matchAll(new RegExp(QUESTION_PATTERN))];
-   if (matches.length && entry.uuid) question = { text: matches.at(-1)[0].trim(), uuid: entry.uuid };
-   if (words(seat) >= CONTEXT_MIN_WORDS && entry.uuid) substantial = { text: lastSentence(seat), uuid: entry.uuid };
+   if (matches.length && entry.uuid) question = { text: matches.at(-1)[0].trim(), context: seat, uuid: entry.uuid };
+   if (words(seat) >= CONTEXT_MIN_WORDS && entry.uuid) substantial = { text: lastSentence(seat), context: seat, uuid: entry.uuid };
+   if (entry.uuid) lastSeat = { text: seat, context: seat, uuid: entry.uuid };
   }
   const parts = partsOf(entry);
   if (entry.type === "user" && Array.isArray(parts)) {
@@ -90,19 +94,19 @@ async function transcriptCandidates(file, options, emit) {
     if (!pending) continue;
     calls.delete(result.tool_use_id);
     const answer = askAnswer(entry, result, pending.call);
-    if (answer && entry.uuid && pending.uuid && inWindow(day, options)) emit(shape("user", "decision", answer.quote, answer.context, `claude-code:${sessionId}#${entry.uuid}+${pending.uuid}`, day));
+    if (answer && entry.uuid && pending.uuid && inWindow(day, options)) yield { source: "ask", ...answer, evidence: `claude-code:${sessionId}#${entry.uuid}+${pending.uuid}`, date: day };
    }
   }
   if (!ownerTurn(entry)) continue;
   const quote = textOnly(entry).trim();
-  if (quote && entry.uuid && inWindow(day, options)) {
-   if (CORRECTION_CUES.test(quote) && substantial) emit(shape("user", "correction", quote, substantial.text, `claude-code:${sessionId}#${entry.uuid}+${substantial.uuid}`, day));
-   else if (!CORRECTION_CUES.test(quote) && question && words(quote) <= SHORT_ANSWER_WORD_CAP) emit(shape("user", "decision", quote, question.text, `claude-code:${sessionId}#${entry.uuid}+${question.uuid}`, day));
-  }
+  if (quote && entry.uuid && inWindow(day, options)) yield { source: "owner", quote, substantial, question, lastSeat, evidence: `claude-code:${sessionId}#${entry.uuid}`, date: day };
   question = null; substantial = null;
  }
 }
-function reviewCandidates(options, emit) {
+export async function* transcriptUnits(options) {
+ for (const { file } of sourceFiles(options)) yield* unitsIn(file, options);
+}
+export function* reviewUnits(options) {
  const { reviewsRoot } = options;
  if (!fs.existsSync(reviewsRoot)) return;
  for (const lane of fs.readdirSync(reviewsRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
@@ -115,11 +119,11 @@ function reviewCandidates(options, emit) {
    const text = readBounded(path.join(dir, file.name)).toString("utf8");
    // Existing review reader defines the verdict spelling; no verdict means not reviewer output.
    if (!verdictWordOf(text)) continue;
-   mustTitlesOf(text).forEach((title, index) => {
-    if (seen.has(title)) return;
+   for (const [index, title] of mustTitlesOf(text).entries()) {
+    if (seen.has(title)) continue;
     seen.add(title);
-    emit(shape("worker", "lesson", title, "", `review:${lane.name}/${file.name}#${index}`, date));
-   });
+    yield { source: "review", quote: title, context: "", evidence: `review:${lane.name}/${file.name}#${index}`, date };
+   }
   }
  }
 }
@@ -127,8 +131,12 @@ function reviewCandidates(options, emit) {
 export async function extractMemory(options) {
  const records = []; let cappedClaims = 0;
  const emit = ({ record, capped }) => { records.push(record); cappedClaims += capped; };
- for (const { file } of sourceFiles(options)) await transcriptCandidates(file, options, emit);
- reviewCandidates(options, emit);
+ for await (const unit of transcriptUnits(options)) {
+  if (unit.source === "ask") emit(shape("user", "decision", unit.quote, unit.context, unit.evidence, unit.date));
+  else if (CORRECTION_CUES.test(unit.quote) && unit.substantial) emit(shape("user", "correction", unit.quote, unit.substantial.text, `${unit.evidence}+${unit.substantial.uuid}`, unit.date));
+  else if (!CORRECTION_CUES.test(unit.quote) && unit.question && words(unit.quote) <= SHORT_ANSWER_WORD_CAP) emit(shape("user", "decision", unit.quote, unit.question.text, `${unit.evidence}+${unit.question.uuid}`, unit.date));
+ }
+ for (const unit of reviewUnits(options)) emit(shape("worker", "lesson", unit.quote, unit.context, unit.evidence, unit.date));
  return { records, cappedClaims };
 }
 /** Review indices resolve by the existing parser; removed indices are stale, absent files missing.

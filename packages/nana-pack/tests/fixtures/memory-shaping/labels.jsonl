@@ -1,0 +1,4 @@
+{"evidence":"claude-code:synthetic#one+substantial","kind":"correction"}
+{"evidence":"claude-code:synthetic#one+question","kind":"none"}
+{"evidence":"claude-code:synthetic#two+second","kind":"decision"}
+{"evidence":"claude-code:synthetic#three+second","kind":"decision"}

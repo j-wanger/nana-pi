@@ -451,6 +451,8 @@ Purpose: Turn past sessions and reviews into shaped, low-trust memory records th
 Status: active
 Artifact: A-088 · memory candidates · user-home store: ~/<private --out folder>/candidates.jsonl · manual: the seat runs npm run memory:make by hand with a private home folder outside any git checkout; synthetic runs use OS temp
 Read by: A-088 · code: packages/nana-pack/lib/memory-score.mjs
+Artifact: A-091 · shaped memory candidates · user-home store: ~/<private --out folder>/shaped-candidates.jsonl · manual: the seat runs npm run memory:shape by hand
+Read by: A-091 · code: packages/nana-pack/lib/memory-score.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -477,6 +479,31 @@ Read by: A-088 · code: packages/nana-pack/lib/memory-score.mjs
 | R-3208 | The candidate output filename shall be candidates.jsonl. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: candidates filename` |
 | R-3209 | The private checkout refusal line shall be memory: output must be outside git checkouts. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: private checkout refusal` |
 | R-3250 | The shared candidate field list shall be id, type, kind, claim, quote, context, evidence, date, trust, source, roles, validFrom, invalidAt, supersedes. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: shared candidate fields` |
+
+### SUB-022 · Shape memory candidates with a model
+Purpose: Classify owner turns and review findings with a capped, isolated model pass into the same shaped candidates, so they score against the same labels as the rules.
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3251 | The shaper shall emit model corrections, decisions and lessons in the shared low-trust record shape, omitting none judgements. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::model claims retain the shared candidate shape` |
+| R-3252 | The shaper shall pair pointers by kind with substantial, question and last-seat fallback, keeping answered asks on the rule path. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::kind pairing scores against independent primary and alternate labels` |
+| R-3253 | The shaper shall skip unpairable turns, honor the instant cutoff, reject labels arguments and count head-cut owner and tail-cut seat input. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::frozen inputs skip unpairable turns and count cuts` |
+| R-3254 | The shaper shall validate exact batch-local IDs and source-specific kinds, rejecting a malformed whole batch without retries or private diagnostics. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::batch validation is source-specific exact and fail-closed` |
+| R-3255 | The shaper shall stop new calls at its token cap and report unsent units, failed-batch spend and unknown or unpriced usage honestly. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::spend cap stops calls and unknown spend stays unknown` |
+| R-3256 | The Claude runner shall isolate calls with stdin prompts and bounded piped capture, validate the model and keep private outputs exclusive outside checkouts. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::Claude isolation and private output survive failures` |
+| R-3257 | The pi runner shall isolate calls through piLaunch and accept only complete streams, with the runner chosen by one config value. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::pi isolation parses the complete large stream and runner switch` |
+| R-3258 | The default runner shall be claude. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: runner` |
+| R-3259 | The Claude model and effort shall be claude-sonnet-5 and low. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: Claude model and effort` |
+| R-3260 | The pi model and thinking shall be openai-codex/gpt-6-luna and low. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: pi model and thinking` |
+| R-3261 | The batch cap shall be 10 units. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: batch size` |
+| R-3262 | The run token cap shall be 1000000. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: run token cap` |
+| R-3263 | The Claude per-call dollar cap shall be 0.50. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: Claude dollar cap` |
+| R-3264 | The owner input cap shall be 4000 characters. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: owner cap` |
+| R-3265 | The seat input cap shall be 2000 characters. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: seat cap` |
+| R-3266 | The per-call timeout shall be 300000 milliseconds. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: timeout` |
+| R-3267 | The capture buffer cap shall be 67108864 bytes. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: capture buffer` |
+| R-3268 | The system prompt shall have SHA-256 ef726abb8a0d48e17c1b4a214af86c6dff52978b69e86e628b8e4d810b084c98. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: system prompt hash` |
+| R-3269 | The output name and fixed count words shall be shaped-candidates.jsonl, unsent, unclassified, skipped and unscored: spend cap reached. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: output file and count words` |
 
 ## FEAT-005 · Communicate decisions clearly
 Purpose: Deliver the preferred writing guidance and check report readability and structure.
