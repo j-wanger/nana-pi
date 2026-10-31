@@ -1,0 +1,23 @@
+FAIL an owner correction becomes a shaped user candidate with what it corrects
+FAIL noise yields nothing
+FAIL decisions carry their question across notification traffic
+FAIL review MUSTs become worker candidates from reviewer output only
+FAIL every evidence pointer resolves
+FAIL real output stays private
+FAIL default scope is this repo only
+FAIL scoring prints exact counts over all candidates
+FAIL seal: correction cues
+FAIL seal: decision question pattern
+FAIL seal: short answer words
+FAIL seal: correction context words
+FAIL seal: text character cap
+FAIL seal: correction form
+FAIL seal: decision form
+FAIL seal: roles by source
+FAIL seal: starting trust and source
+FAIL seal: wrapper tags
+FAIL seal: review exclusions
+FAIL seal: transcript day timezone
+FAIL seal: candidates filename
+FAIL seal: private checkout refusal
+FAIL seal: shared candidate fields
