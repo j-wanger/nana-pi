@@ -158,6 +158,8 @@ await test('R-3173: scene streets match pale narrow connected frontage and the s
     const { RETURNS } = await import('../../../apps/hive/config.mjs');
     assert.equal(RETURNS.widthFraction, 0.3);
     assert.deepEqual([RETURNS.dimFraction, RETURNS.builtOffset, RETURNS.unbuiltOffset, RETURNS.height, RETURNS.thickness], [0.25, -0.2, 0.2, 0.06, 0.04]);
+    assert.equal(RETURNS.nameHeight, 1.8);
+    assert.deepEqual([RETURNS.minimumPixels, RETURNS.namePixels], [3, 7]);
     const { animateHive } = await import('../../../apps/hive/assets/hive.mjs'); animateHive(scene, 1, false);
     const ribbons = scene.children.filter(o => o.userData.returnRibbon);
     assert.equal(ribbons.length, m.handoffs.filter(r => r.kind !== 'forward').length);
@@ -165,13 +167,17 @@ await test('R-3173: scene streets match pale narrow connected frontage and the s
     for (const object of ribbons) {
       const meta = object.userData.returnRibbon, handoff = m.handoffs.find(r => `${r.from}>${r.to}` === meta.flow);
       assert(object.visible, meta.flow); assert(meta.width >= RETURNS.widthFraction * STREETS.laneWidth);
-      assert.deepEqual(meta.path, handoff.path);
+      const { pathBetween } = await city();
+      const grounded = handoff.kind === 'air' ? pathBetween({ ...m, roads: m.roads.filter(r => r.class !== 'air') }, m.chambers.find(n => n.id === handoff.from), m.chambers.find(n => n.id === handoff.to)) : handoff.path;
+      assert.deepEqual(meta.path, grounded);
+      assert(meshes(object).some(o => o.userData.trayName === `${handoff.from} to ${handoff.to}`), `${meta.flow}: painted name`);
       assert.equal(meta.offset, handoff.built ? RETURNS.builtOffset : RETURNS.unbuiltOffset);
-      const pieces = meshes(object); assert(pieces.length > 0, meta.flow);
-      assert(pieces.every(o => o.material.color.equals((handoff.built ? materials.windows.lit : materials.windows.dark).color)), meta.flow);
-      for (let i = 1; i < handoff.path.length; i++) {
-        const a = handoff.path[i - 1], b = handoff.path[i]; if (a.join() === b.join()) continue;
-        const drawn = m.roads.some(r => (handoff.kind === 'air' ? r.class === 'air' : r.class !== 'air') && r.path.slice(1).some((p, j) => [r.path[j].join(), p.join()].sort().join('/') === [[a[0], a[2]].join(), [b[0], b[2]].join()].sort().join('/')));
+      const pieces = meshes(object).filter(o => o.userData.returnPiece); assert(pieces.length > 0, meta.flow);
+      assert(pieces.every(o => o.material.color.equals((handoff.built ? materials.ink : materials.windows.dark).color)), meta.flow);
+      assert(pieces.every(o => o.position.y <= STREETS.ringElevation + STREETS.thickness + RETURNS.height), `${meta.flow}: floating ribbon`);
+      for (let i = 1; i < grounded.length; i++) {
+        const a = grounded[i - 1], b = grounded[i]; if (a.join() === b.join()) continue;
+        const drawn = m.roads.some(r => r.class !== 'air' && r.path.slice(1).some((p, j) => [r.path[j].join(), p.join()].sort().join('/') === [[a[0], a[2]].join(), [b[0], b[2]].join()].sort().join('/')));
         assert(drawn, `${meta.flow}: ribbon leaves drawn street`);
         const key = [a.join(), b.join()].sort().join('/'), occupants = shared.get(key) ?? [];
         assert(!occupants.some(v => v.built !== handoff.built && v.offset === meta.offset), `${meta.flow}: coincident built and unbuilt`);
@@ -179,7 +185,7 @@ await test('R-3173: scene streets match pale narrow connected frontage and the s
       }
       assert(pieces.every(o => o.userData.returnPiece?.dashed === !handoff.built));
       if (!handoff.built) assert(pieces.every(o => o.geometry.parameters.depth <= STREETS.dashLength + 1e-6));
-      else assert.equal(pieces.length, handoff.path.slice(1).filter((p, i) => p.join() !== handoff.path[i].join()).length);
+      else assert.equal(pieces.length, grounded.slice(1).filter((p, i) => p.join() !== grounded[i].join()).length);
     }
     const baseline = layout(data, { ...(await plan()), roads: (await plan()).roads.filter(r => r.kind === 'forward') });
     const avenues = model => model.roads.filter(r => r.class === 'avenue').flatMap(r => r.path.slice(1).map((b, i) => [r.path[i].join(), b.join()].sort().join('/'))).sort();
@@ -195,6 +201,7 @@ await test('R-3174: request journey frames fourteen narrated chapters', async ()
   const { CITY, NARRATION, RETURNS } = await import('../../../apps/hive/config.mjs'); const { VIEWPORT_HEIGHT } = await import('../../../scripts/first-look-config.mjs');
   assert.deepEqual([NARRATION.chapterWords, NARRATION.sentenceWords], [40, 24]);
   assert.equal(NARRATION.unbuiltLegend, 'Dark dashed roads are returns not built yet.');
+  assert.equal(NARRATION.returnFov, 65);
   assert.deepEqual([NARRATION.phoneFrameFraction, NARRATION.desktopFrameFraction], [0.28, 0.65]); const THREE = await import('../../../apps/hive/vendor/three.module.js');
   const p = await plan(), data = await audit(), m = layout(data, p), chapters = tour(m, p);
   assert.deepEqual(chapters.filter(c => !c.visit).map(c => c.id), ['overview', 'signal', 'compass', 'drafting-table', 'queue', 'workshop', 'eyes', 'review-ladder', 'land-gate', 'identity-scan', 'release-route', 'customers', 'library', 'closing']);
@@ -211,7 +218,7 @@ await test('R-3174: request journey frames fourteen narrated chapters', async ()
     assert(c.text.trim().split(/\s+/).length <= NARRATION.chapterWords, c.id);
     for (const sentence of c.text.split(/[.!?]+/).filter(s => s.trim())) assert(sentence.trim().split(/\s+/).length <= NARRATION.sentenceWords, c.id);
     emphasizeReturns(scene, c.flows);
-    for (const o of scene.children.filter(o => o.userData.returnRibbon)) for (const mesh of meshes(o)) assert.equal(mesh.material.opacity, c.flows.includes(o.userData.returnRibbon.flow) ? 1 : RETURNS.dimFraction);
+    for (const o of scene.children.filter(o => o.userData.returnRibbon)) for (const mesh of meshes(o)) assert.equal(mesh.material.opacity, c.flows.includes(o.userData.returnRibbon.flow) ? 1 : mesh.userData.trayName ? 0 : RETURNS.dimFraction);
   }
   for (const width of [1280, 390]) for (const [i, c] of chapters.entries()) {
     const aspect = width / VIEWPORT_HEIGHT, pose = tourPose(chapters, i, aspect); assert.equal(chapterProgress(chapters, `#${c.id}`), i);
@@ -222,6 +229,21 @@ await test('R-3174: request journey frames fourteen narrated chapters', async ()
     for (const id of [...new Set([c.place, ...c.visits, ...c.flows.flatMap(f => f.split('>'))].filter(Boolean))]) {
       const bounds = m.chambers.find(n => n.id === id).bounds;
       for (const x of [bounds.min[0], bounds.max[0]]) for (const y of [bounds.min[1], bounds.max[1]]) for (const z of [bounds.min[2], bounds.max[2]]) { const v = new THREE.Vector3(x, y, z).project(cam); assert(Math.abs(v.x) < 1 && (1 - v.y) / 2 * VIEWPORT_HEIGHT > top && (1 - v.y) / 2 * VIEWPORT_HEIGHT < VIEWPORT_HEIGHT - bottom, `${c.id}/${id}/${width}`); }
+    }
+    if (c.place) {
+      const n = m.chambers.find(n => n.id === c.place), v = new THREE.Vector3(n.x, (n.bounds.min[1] + n.bounds.max[1]) / 2, n.z).project(cam);
+      assert(Math.abs(v.x) <= 1 / 3 && (1 - v.y) / 2 * VIEWPORT_HEIGHT < VIEWPORT_HEIGHT - bottom, `${c.id}/${width}: place centre outside middle third or under card`);
+    }
+    for (const flow of c.flows) {
+      const road = m.handoffs.find(r => `${r.from}>${r.to}` === flow);
+      for (const end of [road.path[0], road.path.at(-1)]) {
+        const v = new THREE.Vector3(...end).project(cam);
+        assert(Math.abs(v.x) < 1 && Math.abs(v.y) < 1, `${c.id}/${flow}/${width}: road end outside frame`);
+      }
+    }
+    if (c.id === 'library') {
+      const whole = tourPose(chapters, chapters.length - 1, aspect);
+      assert(Math.hypot(...pose.position.map((v, j) => v - pose.target[j])) < Math.hypot(...whole.position.map((v, j) => v - whole.target[j])), `way back/${width}: still uses whole-city fit`);
     }
     if (i) for (const t of [0.25, 0.5, 0.75]) {
       const mid = tourPose(chapters, i - 1 + t, aspect);
@@ -526,5 +548,31 @@ await test('R-3187: every claimed flow matches one working code line and no text
     const model = textLayer(data, '#', 'webgl', voice, chapters, mode); strings.push(model.landing.text, model.landing.legend, ...model.cards.flatMap(c => Object.values(c.voices)));
   }
   for (const retired of [/broadcasts the memory/i, /findings return to the library/i, /feedback (rises|becomes|starts)/i]) for (const text of strings) assert(!retired.test(text), `retired claim: ${retired}`);
+});
+// req: R-3173
+await test('R-3173: packets retain nine pixel markers and eight fading trail samples over 0.35 seconds', async () => {
+  const { PACKETS } = await import('../../../apps/hive/config.mjs');
+  assert.deepEqual(PACKETS, { minimumPixels: 9, trailSamples: 8, trailSeconds: 0.35 });
+  const THREE = await import('../../../apps/hive/vendor/three.module.js'), { layout } = await import('../../../apps/hive/layout.mjs'), { buildHive, animateHive } = await import('../../../apps/hive/assets/hive.mjs'), { buildMaterials } = await import('../../../apps/hive/assets/materials.mjs'), { batchStatic } = await import('../../../apps/hive/assets/parts.mjs');
+  const scene = batchStatic(THREE, buildHive(THREE, layout(await audit(), await plan()), buildMaterials(THREE)));
+  const packets = scene.children.filter(o => o.userData.packet);
+  for (const packet of packets) {
+    const mark = packet.userData.distanceMarker;
+    assert(mark?.isPoints && mark.material.isShaderMaterial);
+    assert.equal(mark.material.uniforms.minimumPixels.value, PACKETS.minimumPixels);
+    assert.equal(mark.geometry.attributes.position.count, PACKETS.trailSamples + 1);
+    for (const phase of [1.3, 1.8, 2.3]) {
+      animateHive(scene, phase, false);
+      if (!packet.visible) continue;
+      const p = mark.geometry.attributes.position, alpha = mark.geometry.attributes.alpha;
+      assert.equal(alpha.getX(0), 1);
+      for (let i = 1; i <= PACKETS.trailSamples; i++) {
+        assert(alpha.getX(i) < alpha.getX(i - 1) && alpha.getX(i) > 0);
+        assert(Math.hypot(p.getX(i), p.getY(i), p.getZ(i)) > 0, 'trail collapsed into packet');
+      }
+    }
+    animateHive(scene, 1.3, true);
+    for (let i = 1; i <= PACKETS.trailSamples; i++) assert.equal(mark.geometry.attributes.alpha.getX(i), 0, 'still mode has no moving trail');
+  }
 });
 if (!process.exitCode) console.log(`${passed} hive city checks passed`);

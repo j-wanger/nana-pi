@@ -9,10 +9,10 @@
 import { buildCell } from './cell.mjs';
 import { buildDistrict, animateDistrict } from './district.mjs';
 import { buildResident, buildWorkplace, animateResident, animateWorkplace } from './residents.mjs';
-import { STYLE, STREETS, CITY, DENSITY, WORKERS, CARGO, RETURNS } from '../config.mjs';
+import { STYLE, STREETS, CITY, DENSITY, WORKERS, CARGO, RETURNS, PACKETS } from '../config.mjs';
 import { box, drum, hoop, fence, outline, trayName, houseInstances, cargo, ribbon } from './parts.mjs';
 import { buildRoad } from './road.mjs';
-import { visibleRoads } from '../city.mjs';
+import { visibleRoads, pathBetween } from '../city.mjs';
 // Moved from the request's inline mapping for its return-packet and ribbon callers.
 function laneOffset(points, model, offset = STREETS.laneWidth / 2) {
   return points.map((p, i) => {
@@ -25,9 +25,10 @@ function laneOffset(points, model, offset = STREETS.laneWidth / 2) {
   });
 }
 export function emphasizeReturns(group, flows = []) {
+  for (const o of group.children) if (o.userData.packet?.ribbonPacket) o.userData.packet.active = flows.includes(o.userData.packet.flows[0]);
   for (const o of group.children) if (o.userData.returnRibbon) {
     const opacity = flows.includes(o.userData.returnRibbon.flow) ? 1 : RETURNS.dimFraction;
-    o.traverse(mesh => { if (mesh.isMesh) mesh.material.opacity = opacity; });
+    o.traverse(mesh => { if (mesh.isMesh) mesh.material.opacity = mesh.userData.trayName && opacity !== 1 ? 0 : opacity; });
   }
 }
 export function buildHive(THREE, model, materials) {
@@ -108,13 +109,24 @@ export function buildHive(THREE, model, materials) {
     const mesh = road.class === 'air' ? new THREE.Group() : buildRoad(THREE, { ...road, ringRadius: model.ringRadius }, materials);
     mesh.userData.road = road.id; mesh.visible = visibleRoads(model.roads).includes(road); group.add(mesh);
   }
+  const paintedSpans = new Set(), paintFrame = { number: -1, boxes: [] };
   for (const road of (model.handoffs ?? []).filter(r => r.kind !== 'forward')) {
     const object = new THREE.Group(), width = RETURNS.widthFraction * STREETS.laneWidth;
     const offset = road.built ? RETURNS.builtOffset : RETURNS.unbuiltOffset;
-    object.userData.returnRibbon = { flow: `${road.from}>${road.to}`, path: road.path, width, offset };
-    const material = (road.built ? materials.windows.lit : materials.windows.dark).clone(); material.transparent = true; material.opacity = RETURNS.dimFraction;
-    for (let i = 1; i < road.path.length; i++) {
-      const a = road.path[i - 1], b = road.path[i], length = Math.hypot(...b.map((v, j) => v - a[j])); if (!length) continue;
+    const path = road.kind === 'air' ? pathBetween({ ...model, roads: model.roads.filter(r => r.class !== 'air') }, model.chambers.find(n => n.id === road.from), model.chambers.find(n => n.id === road.to)) : road.path;
+    object.userData.returnRibbon = { flow: `${road.from}>${road.to}`, path, width, offset };
+    const material = (road.built ? materials.ink : materials.windows.dark).clone(); material.transparent = true; material.opacity = RETURNS.dimFraction;
+    const projection = { value: 1 }, minimum = { value: 0 }, viewport = new THREE.Vector2();
+    material.onBeforeCompile = shader => {
+      shader.uniforms.returnProjection = projection; shader.uniforms.returnMinimum = minimum;
+      shader.vertexShader = 'attribute vec3 returnCentre; uniform float returnProjection; uniform float returnMinimum;\n' + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\nvec3 offset = position - returnCentre; float depth = length((modelViewMatrix * vec4(returnCentre, 1.0)).xyz); transformed = returnCentre + offset * max(1.0, returnMinimum * depth / (returnProjection * ${width.toFixed(6)}));`);
+    };
+    material.customProgramCacheKey = () => 'ground-return';
+    let nameSpan = 0, nameLength = 0;
+    for (let i = 1; i < path.length; i++) {
+      const a = path[i - 1], b = path[i], length = Math.hypot(...b.map((v, j) => v - a[j])); if (!length) continue;
+      const spanKey = [a.join(), b.join()].sort().join('/');
+      if (!paintedSpans.has(spanKey) && length > nameLength) { nameLength = length; nameSpan = i; }
       const [start, end] = laneOffset([a, b], model, offset * STREETS.laneWidth);
       const span = road.built ? length : STREETS.dashLength, step = road.built ? length : STREETS.dashLength + STREETS.dashGap;
       for (let d = 0; d < length; d += step) {
@@ -123,7 +135,47 @@ export function buildHive(THREE, model, materials) {
         const mesh = ribbon(THREE, object, [p[0], p[2]], [q[0], q[2]], width, RETURNS.thickness, (p[1] + q[1]) / 2 + RETURNS.height, material);
         mesh.rotation.x = -Math.atan2(q[1] - p[1], flat); mesh.scale.z = Math.hypot(flat, q[1] - p[1]) / (flat || 1);
         mesh.userData.returnPiece = { dashed: !road.built };
+        mesh.updateMatrix();
+        const centre = new THREE.Vector3(), attr = mesh.geometry.attributes.position, centres = [];
+        for (let vertex = 0; vertex < attr.count; vertex++) { centre.fromBufferAttribute(attr, vertex); centre.x = 0; centre.applyMatrix4(mesh.matrix); centres.push(...centre.toArray()); }
+        mesh.geometry.setAttribute('returnCentre', new THREE.Float32BufferAttribute(centres, 3));
+        mesh.onBeforeRender = (renderer, scene, camera) => { renderer.getSize(viewport); projection.value = viewport.y / (2 * Math.tan(camera.fov * Math.PI / 360)); minimum.value = material.opacity === 1 ? RETURNS.minimumPixels : 0; };
       }
+    }
+    if (nameSpan) {
+      paintedSpans.add([path[nameSpan - 1].join(), path[nameSpan].join()].sort().join('/'));
+      const [a, b] = laneOffset([path[nameSpan - 1], path[nameSpan]], model, offset * STREETS.laneWidth);
+      const paint = trayName(THREE, object, `${road.from} to ${road.to}`); paint.renderOrder = group.children.length + 1;
+      paint.scale.set((road.from.length + road.to.length + 4) * RETURNS.nameHeight / 3.5, RETURNS.nameHeight / 0.4, 1);
+      paint.rotation.set(-Math.PI / 2, 0, 0);
+      paint.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + RETURNS.height + RETURNS.thickness, (a[2] + b[2]) / 2);
+      const base = paint.scale.clone(), origin = new THREE.Vector3(), cap = new THREE.Vector3(), view = new THREE.Vector2();
+      const name = paint.userData.trayName, candidates = [paint.position.toArray(), ...path.slice(1).map((b, i) => {
+        const [start, end] = laneOffset([path[i], b], model, offset * STREETS.laneWidth);
+        return [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2 + RETURNS.height + RETURNS.thickness, (start[2] + end[2]) / 2];
+      })];
+      paint.onBeforeRender = (renderer, scene, camera) => {
+        if (!paint.material.opacity) return;
+        if (paintFrame.number !== renderer.info.render.frame) { paintFrame.number = renderer.info.render.frame; paintFrame.boxes = []; }
+        renderer.getSize(view);
+        let best, score = Infinity;
+        for (const candidate of candidates) {
+          origin.set(...candidate).project(camera); cap.set(...candidate); cap.z += RETURNS.nameHeight; cap.project(camera);
+          const pixels = Math.hypot((cap.x - origin.x) * view.x, (cap.y - origin.y) * view.y) / 2;
+          const heightScale = Math.max(1, RETURNS.namePixels / (pixels || 1));
+          cap.set(...candidate); cap.x += name.length * RETURNS.nameHeight; cap.project(camera);
+          const widthPixels = Math.abs(cap.x - origin.x) * view.x / 2, widthScale = Math.max(1, name.length * RETURNS.namePixels / (widthPixels || 1));
+          const w = widthPixels * widthScale, h = pixels * heightScale, x = (origin.x + 1) * view.x / 2, y = (1 - origin.y) * view.y / 2;
+          const box = { left: x - w / 2, right: x + w / 2, top: y - h, bottom: y + h };
+          const overlap = paintFrame.boxes.reduce((total, b) => total + Math.max(0, Math.min(box.right, b.right) - Math.max(box.left, b.left)) * Math.max(0, Math.min(box.bottom, b.bottom) - Math.max(box.top, b.top)), 0);
+          const outside = Math.max(0, -box.left) + Math.max(0, box.right - view.x) + Math.max(0, -box.top) + Math.max(0, box.bottom - view.y);
+          const cost = overlap + outside * w * h;
+          if (cost < score) { score = cost; best = { candidate, box, heightScale, widthScale }; }
+          if (!cost) break;
+        }
+        paint.position.set(...best.candidate); paint.scale.set(base.x * best.widthScale, base.y * best.heightScale, 1); paint.updateMatrixWorld();
+        paintFrame.boxes.push(best.box);
+      };
     }
     group.add(object);
   }
@@ -150,12 +202,24 @@ export function buildHive(THREE, model, materials) {
     const returnFlows = ['ladder>ledger', 'ledger>drafting'];
     const connector = [...(model.handoffs.find(r => r.from === 'ladder' && r.to === 'land-gate')?.path ?? [])].reverse();
     const returning = [...connector, ...returnFlows.flatMap(flow => model.handoffs.find(r => `${r.from}>${r.to}` === flow && r.built)?.path ?? [])];
-    for (const [index, points] of [falling, journey, returning].entries()) {
-      const elevated = index ? laneOffset(points, model, index === 2 ? 0 : STREETS.laneWidth / 2) : points;
+    const builtReturns = group.children.filter(o => o.userData.returnRibbon && model.handoffs.some(r => r.built && `${r.from}>${r.to}` === o.userData.returnRibbon.flow));
+    for (const [index, points] of [falling, journey, returning, ...builtReturns.map(o => o.userData.returnRibbon.path)].entries()) {
+      const elevated = index ? laneOffset(points, model, index === 2 ? 0 : index > 2 ? RETURNS.builtOffset * STREETS.laneWidth : STREETS.laneWidth / 2) : points;
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(elevated.map(p => new THREE.Vector3(...p))), new THREE.LineDashedMaterial({ color: '#ffffff', dashSize: 1, gapSize: 0.6 })); line.computeLineDistances(); line.userData.signalTrace = true; group.add(line);
       const packet = cargo(THREE, materials, group, { lit: true, pallet: index !== 0 });
       const lengths = elevated.slice(1).map((p, i) => Math.hypot(...p.map((v, j) => v - elevated[i][j])));
-      packet.userData.packet = { points: elevated, lengths, total: lengths.reduce((a, b) => a + b, 0), speed: 1 / WORKERS.loopSeconds, signal: index === 0, returning: index === 2, flows: index === 2 ? returnFlows : [] }; group.add(packet);
+      packet.userData.packet = { points: elevated, lengths, total: lengths.reduce((a, b) => a + b, 0), speed: 1 / WORKERS.loopSeconds, signal: index === 0, returning: index === 2, ribbonPacket: index > 2, flows: index === 2 ? returnFlows : index > 2 ? [builtReturns[index - 3].userData.returnRibbon.flow] : [] }; group.add(packet);
+      // A single point draw carries a white packet with an ink rim and its fading wake.
+      // The points remain on the sampled street; only their screen footprint is sealed.
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array((PACKETS.trailSamples + 1) * 3), 3));
+      geometry.setAttribute('alpha', new THREE.Float32BufferAttribute(new Float32Array(PACKETS.trailSamples + 1), 1));
+      const marker = new THREE.Points(geometry, new THREE.ShaderMaterial({ transparent: true, depthWrite: false,
+        uniforms: { minimumPixels: { value: PACKETS.minimumPixels }, pixelRatio: { value: 1 }, ink: { value: materials.ink.color }, paper: { value: materials.windows.lit.color } },
+        vertexShader: 'attribute float alpha; varying float fade; uniform float minimumPixels; uniform float pixelRatio; void main() { fade = alpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_PointSize = minimumPixels * pixelRatio * sqrt(alpha); }',
+        fragmentShader: 'varying float fade; uniform vec3 ink; uniform vec3 paper; void main() { float radius = length(gl_PointCoord - vec2(0.5)); if (radius > 0.5) discard; gl_FragColor = vec4(mix(paper, ink, step(0.30, radius)), fade); }' }));
+      marker.frustumCulled = false; marker.onBeforeRender = renderer => { marker.material.uniforms.pixelRatio.value = renderer.getPixelRatio(); };
+      packet.add(marker); packet.userData.distanceMarker = marker;
     }
     const theater = model.chambers.find(n => n.id === 'theater');
     if (theater && theater.material.status !== 'absent') for (let i = 0; i < 3; i++) {
@@ -193,12 +257,23 @@ export function animateHive(group, phase, frozen) {
     const p = o.userData.packet;
     if (p) {
       const cycle = phase * p.speed % 1;
-      o.visible = frozen || (p.signal ? cycle < 0.2 : cycle >= 0.2);
-      let distance = (frozen ? 0.15 : p.signal ? Math.min(1, cycle / 0.2) : Math.max(0, (cycle - 0.2) / 0.8)) * p.total;
-      for (let i = 0; i < p.lengths.length; i++) {
-        if (distance <= p.lengths[i] || i === p.lengths.length - 1) { const t = p.lengths[i] ? distance / p.lengths[i] : 0; o.position.set(...p.points[i].map((v, j) => v + (p.points[i + 1][j] - v) * t)); break; }
-        distance -= p.lengths[i];
+      o.visible = p.active !== false && (frozen || (p.signal ? cycle < 0.2 : cycle >= 0.2));
+      const marker = o.userData.distanceMarker, positions = marker.geometry.attributes.position, alpha = marker.geometry.attributes.alpha;
+      marker.visible = true;
+      for (let sample = 0; sample <= PACKETS.trailSamples; sample++) {
+        const earlier = Math.max(0, cycle - sample / PACKETS.trailSamples * PACKETS.trailSeconds * p.speed);
+        let distance = (frozen ? 0.15 : p.signal ? Math.min(1, earlier / 0.2) : Math.max(0, (earlier - 0.2) / 0.8)) * p.total;
+        for (let i = 0; i < p.lengths.length; i++) {
+          if (distance <= p.lengths[i] || i === p.lengths.length - 1) {
+            const t = p.lengths[i] ? distance / p.lengths[i] : 0, point = p.points[i].map((v, j) => v + (p.points[i + 1][j] - v) * t);
+            if (!sample) o.position.set(...point);
+            positions.setXYZ(sample, point[0] - o.position.x, point[1] - o.position.y + CARGO.size, point[2] - o.position.z);
+            alpha.setX(sample, sample && frozen ? 0 : 1 - sample / (PACKETS.trailSamples + 1)); break;
+          }
+          distance -= p.lengths[i];
+        }
       }
+      positions.needsUpdate = alpha.needsUpdate = true;
     }
     if (o.userData.broadcast) { const t = (phase * 0.15 + o.userData.broadcast.index / 3) % 1; o.scale.setScalar(1 + t * 4); }
   });

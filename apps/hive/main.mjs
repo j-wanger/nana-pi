@@ -51,7 +51,7 @@ async function start(data, plan, model) {
     // distance, without enlarging their geometry or changing the shared scale.
     const markerGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3()]);
     const markerMaterial = new THREE.PointsMaterial({ color: '#303831', size: OUTLINES.fullPixels, sizeAttenuation: false });
-    const residents = []; hive.traverse(o => { if (o.userData.role || o.userData.traffic || o.userData.packet) residents.push(o); });
+    const residents = []; hive.traverse(o => { if (o.userData.role || o.userData.traffic) residents.push(o); });
     for (const o of residents) { const mark = new THREE.Points(markerGeometry, o.userData.packet ? new THREE.PointsMaterial({ color: '#ffffff', size: OUTLINES.fullPixels, sizeAttenuation: false }) : markerMaterial); mark.position.y = (o.userData.traffic || o.userData.packet ? CARGO.size : WORKERS.height) / 2; o.add(mark); o.userData.distanceMarker = mark; }
     outline = new THREE.Box3Helper(new THREE.Box3(), '#202622'); outline.visible = false; scene.add(outline);
   } catch { renderer?.dispose(); renderer = null; rendererName = 'pixel'; }
@@ -180,7 +180,7 @@ async function start(data, plan, model) {
           const size = o.userData.traffic || o.userData.packet ? CARGO.size : WORKERS.height;
           const pixels = size * height / (2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.distanceTo(worldPosition));
           o.visible = Boolean(o.userData.mechanism || o.userData.distanceMarker) || pixels >= OUTLINES.fadePixels;
-          if (o.userData.distanceMarker) o.userData.distanceMarker.visible = pixels < OUTLINES.fullPixels;
+          if (o.userData.distanceMarker) o.userData.distanceMarker.visible = Boolean(o.userData.packet) || pixels < OUTLINES.fullPixels;
         }
       });
       animateHive(hive, performance.now() / 1000, still || preference.matches);

@@ -711,7 +711,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Named problems and deterministic places, streets, handoffs and district radii.
 - **effects** — none
 - **errors** — Throws when a street cannot be routed around a footprint.
-- **callers** — `apps/hive/assets/hive.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/runtime.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `scripts/hive-page.mjs`
+- **callers** — `apps/hive/assets/hive.mjs`, `apps/hive/layout.mjs`, `apps/hive/main.mjs`, `apps/hive/runtime.mjs`, `apps/hive/tour.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `scripts/hive-page.mjs`
 - **callees** — `apps/hive/config.mjs`, `apps/hive/layout.mjs`
 
 ### `apps/hive/config.mjs`
@@ -802,7 +802,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — none
 - **errors** — None for a validated city plan.
 - **callers** — `apps/hive/main.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`
-- **callees** — `apps/hive/camera.mjs`, `apps/hive/config.mjs`
+- **callees** — `apps/hive/camera.mjs`, `apps/hive/city.mjs`, `apps/hive/config.mjs`
 
 ### `scripts/blast-radius.mjs`
 

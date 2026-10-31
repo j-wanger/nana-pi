@@ -21,11 +21,16 @@ export const TOUR_SCROLL = Object.freeze({ readingScreens: 1, travelCap: 0.5, tr
 // chosen (2026-10-30, R-3122): human scale, four-second loops, three builders and one walker per six local trays.
 // contract (city-loop plan, 2026-10-31, R-3174): bounded chapter and sentence narration.
 // chosen frame fractions: reserve the phone's tall card and header, and the desktop rail.
-export const NARRATION = Object.freeze({ chapterWords: 40, sentenceWords: 24, phoneFrameFraction: 0.28, desktopFrameFraction: 0.65, unbuiltLegend: 'Dark dashed roads are returns not built yet.' });
+// chosen (build 2, 2026-10-31, R-3174): 65-degree return lens keeps the town in the foreground.
+export const NARRATION = Object.freeze({ chapterWords: 40, sentenceWords: 24, returnFov: 65, phoneFrameFraction: 0.28, desktopFrameFraction: 0.65, unbuiltLegend: 'Dark dashed roads are returns not built yet.' });
 // chosen (city-loop, 2026-10-31, R-3173): readable ribbons occupy 0.3 lane widths;
 // separate opposite offsets prevent a dashed gap from looking like a built return.
+// chosen (build 2, 2026-10-31, R-3173): ground-painted names start at 1.8 units;
+// a 7 px paint height and 3 px ribbon floor preserve the return map on phones.
 // chosen dimFraction (R-3174): keep context while the active chapter names its roads.
-export const RETURNS = Object.freeze({ widthFraction: 0.3, dimFraction: 0.25, builtOffset: -0.2, unbuiltOffset: 0.2, height: 0.06, thickness: 0.04 });
+export const RETURNS = Object.freeze({ widthFraction: 0.3, dimFraction: 0.25, builtOffset: -0.2, unbuiltOffset: 0.2, height: 0.06, thickness: 0.04, nameHeight: 1.8, minimumPixels: 3, namePixels: 7 });
+// contract (city-loop build 2, R-3173): readable minimum marker with a short fading trail.
+export const PACKETS = Object.freeze({ minimumPixels: 9, trailSamples: 8, trailSeconds: 0.35 });
 export const WORKERS = Object.freeze({ height: 1.8, loopSeconds: 4, crewSize: 3, townStride: 6 });
 // contract (build 12 brief, R-3173): carryable half-metre crate; 40 percent of one lane.
 // chosen palletHeight: a low flat carrier, derived from the same human unit.

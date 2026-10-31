@@ -10,12 +10,12 @@ import { STYLE, OVERVIEW_ELEVATION } from './config.mjs';
 // Shift the projection, not the look-at target: positive offset lifts the subject above a bottom card.
 export function viewCentreOffset(height, top, bottom) { return (bottom - top) / 2; }
 // Frame the loop and its depot, using actual projected corners rather than a loose sphere.
-export function overview(model, aspect = 1, elevation = OVERVIEW_ELEVATION) {
+export function overview(model, aspect = 1, elevation = OVERVIEW_ELEVATION, fov = STYLE.fov, frameFraction = 1) {
   const campus = model.chambers;
   if (!campus.length) return focus(model, null, aspect);
   const min = model.bounds.min, max = model.bounds.max;
   const target = min.map((v, i) => (v + max[i]) / 2), length = Math.hypot(elevation, 1);
-  const vertical = Math.tan(STYLE.fov * Math.PI / 360), horizontal = vertical * aspect;
+  const lens = Math.tan(fov * Math.PI / 360), vertical = lens * frameFraction, horizontal = lens * aspect;
   let distance = 0;
   for (const x of [min[0], max[0]]) for (const y of [min[1], max[1]]) for (const z of [min[2], max[2]]) {
     const dx = x - target[0], dy = y - target[1], dz = z - target[2];
@@ -23,7 +23,7 @@ export function overview(model, aspect = 1, elevation = OVERVIEW_ELEVATION) {
     distance = Math.max(distance, depth + Math.max(Math.abs(dx) / horizontal, Math.abs(up) / vertical) * STYLE.framePadding);
   }
   // Fit the complete viewport. Overlays do not move the optical centre.
-  return { target, position: [target[0], target[1] + distance * elevation / length, target[2] + distance / length], fov: STYLE.fov };
+  return { target, position: [target[0], target[1] + distance * elevation / length, target[2] + distance / length], fov };
 }
 // A pose is an orbit keyframe; interpolate its scale, never Cartesian eye positions.
 export function blendPose(a, b, t) {
@@ -35,8 +35,8 @@ export function blendPose(a, b, t) {
   const elevation = x.elevation * (1 - t) + y.elevation * t, target = a.target.map((v, i) => v + (b.target[i] - v) * t);
   return { target, position: [target[0] + distance * Math.cos(elevation) * Math.sin(azimuth), target[1] + distance * Math.sin(elevation), target[2] + distance * Math.cos(elevation) * Math.cos(azimuth)], fov: a.fov + (b.fov - a.fov) * t };
 }
-export function focus(model, id, aspect = 1) {
+export function focus(model, id, aspect = 1, fov = STYLE.fov, frameFraction = 1) {
   const bounds = model.chambers.find(c => c.id === id || c.component === id)?.bounds ?? model.bounds;
   // Reuse the overview's projected-corner fit, rather than enclosing an oversized sphere.
-  return overview({ ...model, bounds, chambers: [{}] }, aspect, STYLE.cameraElevation);
+  return overview({ ...model, bounds, chambers: [{}] }, aspect, STYLE.cameraElevation, fov, frameFraction);
 }

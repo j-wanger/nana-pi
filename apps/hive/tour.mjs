@@ -8,6 +8,7 @@
  */
 import { focus, overview, blendPose } from './camera.mjs';
 import { CITY, TOUR_SCROLL, NARRATION } from './config.mjs';
+import { pathBetween } from './city.mjs';
 export function tour(model, plan) {
   return plan.journey.map((step, i) => ({ ...step, number: String(i).padStart(2, '0'), name: step.title, model }));
 }
@@ -68,10 +69,18 @@ export function tourPose(chapters, progress, aspect = 1) {
       return { ...pose, position: pose.position.map((v, axis) => pose.target[axis] + (v - pose.target[axis]) / fraction) };
     }
     const ids = new Set([ch.place, ...(ch.visits ?? []), ...(ch.flows ?? []).flatMap(f => f.split('>'))]);
-    const lots = ch.place ? ch.model.chambers.filter(n => ids.has(n.id)) : ch.model.chambers;
-    const bounds = ch.place ? { min: [0, 1, 2].map(axis => Math.min(...lots.map(n => n.bounds.min[axis]))), max: [0, 1, 2].map(axis => Math.max(...lots.map(n => n.bounds.max[axis]))) } : ch.model.bounds;
-    const pose = focus({ ...ch.model, bounds, chambers: [] }, null, aspect / fraction);
-    return { ...pose, position: pose.position.map((v, axis) => pose.target[axis] + (v - pose.target[axis]) / fraction) };
+    const lots = ch.model.chambers.filter(n => ids.has(n.id));
+    const roads = ch.model.handoffs.filter(r => ch.flows.includes(`${r.from}>${r.to}`));
+    // Air is a claim kind, not a licence for a floating return. Fit its ground road too.
+    const groundModel = { ...ch.model, roads: ch.model.roads.filter(r => r.class !== 'air') };
+    const points = roads.flatMap(r => r.kind === 'air' ? pathBetween(groundModel, ch.model.chambers.find(n => n.id === r.from), ch.model.chambers.find(n => n.id === r.to)) : r.path);
+    const bounds = { min: [0, 1, 2].map(axis => Math.min(...lots.map(n => n.bounds.min[axis]), ...points.map(p => p[axis]))), max: [0, 1, 2].map(axis => Math.max(...lots.map(n => n.bounds.max[axis]), ...points.map(p => p[axis]))) };
+    if (ch.place) {
+      const place = lots.find(n => n.id === ch.place), reach = Math.max(place.x - bounds.min[0], bounds.max[0] - place.x);
+      // Roads may widen the lens; they must never drag the place toward an edge.
+      bounds.min[0] = place.x - reach; bounds.max[0] = place.x + reach;
+    }
+    return focus({ ...ch.model, bounds, chambers: [] }, null, aspect, ch.id === 'library' ? NARRATION.returnFov : undefined, fraction);
   };
   const a = anchor(chapters[i]);
   if (Number.isInteger(p)) return a;

@@ -1,0 +1,9 @@
+first-look: saved screenshots and reference in /tmp/city-loop-2-accepted/review-ladder
+first-look: saved screenshots and reference in /tmp/city-loop-2-accepted/land-gate
+first-look: saved screenshots and reference in /tmp/city-loop-2-accepted/library
+first-look: saved screenshots and reference in /tmp/city-loop-2-accepted/closing
+first-look: saved screenshots and reference in /tmp/city-loop-2-accepted/enter-ledger
+first-look: saved screenshots and reference in /tmp/city-loop-2-accepted/enter-archive
+first-look: saved screenshots and reference in /tmp/city-loop-2-accepted/enter-watchtower
+first-look: saved screenshots and reference in /tmp/city-loop-2-accepted/enter-key-cabinet
+first-look: saved screenshots and reference in /tmp/city-loop-2-accepted/explore-workshop
