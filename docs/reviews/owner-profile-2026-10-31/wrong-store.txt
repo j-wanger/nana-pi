@@ -1,0 +1,312 @@
+FAIL a save writes one shape record into the private clone and nowhere else Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<lane>/packages/nana-pack/lib/memory-making-config.mjs' imported from <lane>/packages/nana-pack/tests/profile-store.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL only a seat on an enabled machine may write AssertionError [ERR_ASSERTION]: node:internal/modules/cjs/loader:1386
+  throw err;
+  ^
+
+Error: Cannot find module '<home>/nana-pi-wt/packages/nana-pack/bin/nana-profile.mjs'
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+    at ok (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:49:32)
+    at init (file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:17:19)
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:50:25
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:47:1
+FAIL trust rises only on the owner words across sessions AssertionError [ERR_ASSERTION]: node:internal/modules/cjs/loader:1386
+  throw err;
+  ^
+
+Error: Cannot find module '<home>/nana-pi-wt/packages/nana-pack/bin/nana-profile.mjs'
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+    at ok (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:49:32)
+    at init (file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:17:19)
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:70:25
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:67:1
+FAIL retract and supersede hide the right records AssertionError [ERR_ASSERTION]: node:internal/modules/cjs/loader:1386
+  throw err;
+  ^
+
+Error: Cannot find module '<home>/nana-pi-wt/packages/nana-pack/bin/nana-profile.mjs'
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+    at ok (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:49:32)
+    at init (file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:17:19)
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:87:25
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:84:1
+FAIL the pointer is configuration and the push target stays verified private AssertionError [ERR_ASSERTION]: node:internal/modules/cjs/loader:1386
+  throw err;
+  ^
+
+Error: Cannot find module '<home>/nana-pi-wt/packages/nana-pack/bin/nana-profile.mjs'
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+    at ok (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:49:32)
+    at init (file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:17:19)
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:111:49
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:107:1
+FAIL seal: PROFILE_MEDIUM_SESSIONS is 3 AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+undefined !== 3
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:127:66
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:127:1
+FAIL seal: PROFILE_SHOW_BUDGET is 4000 AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 4000
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:129:65
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:129:1
+FAIL seal: PROFILE_GIT_TIMEOUT_MS is 15000 AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 15000
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:131:69
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:131:1
+FAIL seal: PROFILE_LOCK_WAIT_MS is 5000 AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 5000
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:133:66
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:133:1
+FAIL seal: PROFILE_LOCK_STALE_MS is 120000 AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 120000
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:135:69
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:135:1
+FAIL seal: PROFILE_PUSH_RETRIES is 1 AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+undefined !== 1
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:137:63
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:137:1
+FAIL seal: PROFILE_LIMITS AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- {
+-   claim: 1200,
+-   daily: 40,
+-   quote: 4000
+- }
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:139:52
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:139:1
+FAIL seal: PROFILE_SESSION_VARIABLES AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- [
+-   'CLAUDE_SESSION_ID',
+-   'PI_SESSION_ID',
+-   'PI_SESSION_FILE'
+- ]
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:141:63
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:141:1
+FAIL seal: PROFILE_STAMP_FORMAT AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 'yyyymmddthhmmssmmmz'
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:143:58
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:143:1
+FAIL seal: PROFILE_PATH_POLICY AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- {
+-   max: 180,
+-   outputBytes: 1048576,
+-   pattern: '^[a-z0-9._/-]+$',
+-   randomBytes: 12
+- }
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:145:57
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:145:1
+FAIL seal: PROFILE_REMOTE_FORMS AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- [
+-   '^https://github\\.com/([^/]+/[^/]+?)(?:\\.git)?$',
+-   '^git@github\\.com:([^/]+/[^/]+?)(?:\\.git)?$',
+-   '^ssh://git@(?:github\\.com|ssh\\.github\\.com:443)/([^/]+/[^/]+?)(?:\\.git)?$'
+- ]
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:147:58
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:147:1
+FAIL seal: PROFILE_LAYOUT AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- {
+-   attributes: '* -text\n',
+-   counter: 'nana-profile-day.json',
+-   events: 'events',
+-   lock: 'nana-profile.lock',
+-   marker: '.nana-profile',
+-   readme: 'Private owner profile. Records are append-only JSON; use nana-profile, never edit records by hand.\n',
+-   records: 'records'
+- }
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:149:52
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:149:1
+FAIL seal: PROFILE_WORDS AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- {
+-   checkout: 'profile refused: nana-pi checkout or push target',
+-   claimCap: 'profile refused: claim exceeds cap',
+-   config: 'profile refused: invalid user configuration',
+-   conflict: '[nana:owner-profile] competing superseders: ',
+-   dailyCap: 'profile refused: daily save cap',
+-   decision: 'profile refused: decision belongs in nana-rulings.md',
+-   dirty: 'profile refused: clone has changes outside the store',
+-   disabled: 'profile refused: saving is not enabled on this machine',
+-   evidencePrefix: 'seat',
+-   fold: '[nana:owner-profile] records left out: ',
+-   git: 'profile refused: git failed',
+-   gitCommandEnv: 'NANA_PROFILE_GIT_COMMAND',
+-   kind: 'profile refused: unsupported kind',
+-   kinds: [
+-     'preference',
+-     'correction',
+-     'fact',
+-     'thinking'
+-   ],
+-   locked: 'profile refused: locked',
+-   marker: 'profile refused: missing store marker',
+-   notPushed: 'not pushed: ',
+-   openThread: 'profile refused: open-thread belongs in GitHub issues',
+-   pointer: 'profile refused: run init --dir <clone>',
+-   private: 'profile refused: push target is not verified private; use --unverified-remote explicitly',
+-   quote: 'profile refused: --quote is required',
+-   quoteCap: 'profile refused: quote exceeds cap',
+-   reasons: [
+-     'offline',
+-     'auth',
+-     'rejected',
+-     'mismatch',
+-     'locked'
+-   ],
+-   recovered: 'profile: aborted stopped rebase',
+-   repeatedQuote: 'profile refused: confirmation needs new owner words',
+-   role: 'profile refused: NANA_ROLE is set',
+-   roles: [
+-     'seat'
+-   ],
+-   runtimeClaude: 'claude-code',
+-   runtimePi: 'pi',
+-   saved: 'Saved: ',
+-   source: 'saved',
+-   trust: [
+-     'low',
+-     'medium',
+-     'high'
+-   ],
+-   type: 'user',
+-   unknown: 'profile refused: unknown record',
+-   unverified: 'profile: unverified remote',
+-   usage: 'profile refused: invalid command or flags',
+-   worktree: 'profile refused: linked worktree'
+- }
+
+    at file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:151:51
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-store.test.mjs:151:1

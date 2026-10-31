@@ -85,6 +85,59 @@ neither does an **untrusted** project — reload preserves the session's trust d
 added to a trusted project's `.pi/skills` after startup goes from absent to present across one
 `/reload-runtime`.
 
+## Owner profile
+
+`node packages/nana-pack/bin/nana-profile.mjs` keeps quoted owner learning in a private,
+append-only git clone. It needs Node, git and signed-in `gh` for private-target verification.
+No model, network search, hook, PATH shim or startup delivery is added here.
+The seat creates the private `nana-profile` repo with the owner after the land and clones it
+into `nana-profile` in the home folder. This public repository holds no owner records.
+
+```bash
+node packages/nana-pack/bin/nana-profile.mjs init --dir <clone>
+node packages/nana-pack/bin/nana-profile.mjs init --dir <clone> --save
+node packages/nana-pack/bin/nana-profile.mjs save --kind preference --claim "Prefer quiet colours" --quote "Please keep the palette calm"
+node packages/nana-pack/bin/nana-profile.mjs confirm <id> --quote "Yes, keep that preference"
+node packages/nana-pack/bin/nana-profile.mjs retract <id> --quote "Drop that preference"
+node packages/nana-pack/bin/nana-profile.mjs supersede <id> --kind preference --claim "Prefer green" --quote "Use green now"
+node packages/nana-pack/bin/nana-profile.mjs show
+node packages/nana-pack/bin/nana-profile.mjs sync
+```
+
+Saving stays off on each machine until that machine's `init --save`. Writers refuse under
+`NANA_ROLE` or from linked worktrees. The seat saves automatically without approval, shows the
+`Saved:` line for veto, and writes to both this profile and today's shared memory until delivery.
+Confirm only an explicit owner yes, using new owner words. Decisions go to rulings; open threads
+belong in GitHub issues. Supported kinds are preference, correction, fact and thinking.
+
+`init` reads the origin push URL and verifies the parsed GitHub repository is private.
+Unrecognised hosts, public targets and unavailable `gh` fail closed. The explicit
+`--unverified-remote` override is stored per machine and printed by each sync.
+A changed push URL blocks pushing until `init` verifies it again. The CLI refuses nana-pi
+checkouts, linked checkouts sharing nana-pi's git directory, and nana-pi's push URL.
+The user-scope `ownerProfile` pointer lives in pi's active agent directory's `nana-pack.json`.
+Like `roster set`, `init` follows a symlinked configuration file and writes its real target,
+keeping other members and a backup. A dotfiles-linked target therefore receives the clone path.
+
+Records and events are exclusive-created JSON files; git history keeps retracted quotes.
+Retract hides a record, not its history. Every save starts low. Three distinct sessions with
+new quotes earn medium; explicit confirmation with new owner words earns high.
+`effectiveState` in `lib/profile-store.mjs` is the sole reader of effective trust and liveness;
+stored `trust` and `invalidAt` remain write-time values. Cycles keep the newest superseder;
+competing live replacements print a marked line. Show orders high, medium, low within 4000
+characters and folds omitted lines. No search cache exists.
+
+One clone lock covers writes and sync, with dead-writer stale recovery. Offline saves stay
+committed and exit successfully with a fixed `not pushed:` reason; explicit sync fails.
+A stopped rebase is aborted and reported before writing. Sync rebases unique append-only
+paths and retries a rejected push once. Attributes disable line-ending conversion on Windows.
+Caps bound daily saves, claim and quote length. Session identifiers use runtime shell variables
+when available, else the local day, which deliberately errs toward low trust.
+
+Known limits: the CLI cannot prove that quoted words came from the owner, prevent deliberate
+poisoning, or protect against a hostile process changing the pointer. Saved lines can contain
+private text: never paste real records or show output into the public repository.
+
 ## Product report
 
 GitHub Pages publishes the public product report at `https://j-wanger.github.io/nana-pi/` after pushes to `main` and issue changes. The public copy includes product decisions and linked issues, but no test results; the land report remains local.

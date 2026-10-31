@@ -140,6 +140,8 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/bounded-read.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
+		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/json-text.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
 		["apps/hive/assets/hive.mjs -> apps/hive/assets/bee.mjs", "City residents replace flying bees; hive imports the shared residents builder instead."],
 		["packages/nana-pack/tests/objective-golden.test.mjs -> packages/nana-pack/bin/nana-objective.mjs", "Wrong basename guess: the hook runs instead."],
 		["packages/nana-setup/tests/stale-copies.test.mjs -> packages/nana-pack/bin/nana-adoption.mjs", "Wrong basename guess: the hook runs instead."],

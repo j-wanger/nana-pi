@@ -57,6 +57,7 @@
     { "path": "packages/nana-pack/lib/gh-runner-async.mjs", "reason": "Injected executable is resolved at its callers." },
     { "path": "packages/nana-pack/lib/gh-runner.mjs", "reason": "Injected executable is resolved at its callers." },
     { "path": "packages/nana-pack/lib/mutation-runner.mjs", "reason": "Mutation commands run under a shell." },
+    { "path": "packages/nana-pack/lib/profile-sync.mjs", "reason": "Injected git executable is resolved at its callers, like gh-runner." },
     { "path": "packages/nana-pack/lib/process-tree.mjs", "reason": "Injected process-listing program is not a fixed literal." },
     { "path": "packages/nana-pack/lib/tree-kill-scan.mjs", "reason": "Injected git executable does not trace." },
     { "path": "packages/nana-pack/tests/adoption-reader.test.mjs", "reason": "Pi loads extensions from a fixture manifest." },
