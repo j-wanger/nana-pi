@@ -26,7 +26,6 @@ Report: every row and test changed; the sample run; which shape path you took; e
 
 ## Precedent
 
-- `packages/nana-pack/lib/memory-making-config.mjs` (from `feat/memory-making`): the record field list.
 - `packages/nana-pack/bin/nana-roster.mjs`: reading one member of the user-scope `nana-pack.json`.
 - `packages/nana-pack/lib/roster-set.mjs`: the config write (helper move above).
 - `packages/nana-pack/lib/json-text.mjs`: `parseJsonBytes`.
