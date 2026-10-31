@@ -12,29 +12,33 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { check, fixture, ok, refused, files, records, save, root } from './profile-fixture.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
+import { CANDIDATE_FIELDS, SOURCE_WORDS, USER_KIND_WORDS, ROLES, STARTING_STATE } from '../lib/memory-making-config.mjs';
+import { resolveEvidence } from '../lib/memory-making.mjs';
+const [, decision, preference, fact] = USER_KIND_WORDS;
 const config = () => import('../lib/profile-config.mjs');
 const store = () => import('../lib/profile-store.mjs');
 const init = f => ok(f.run(['init','--dir',f.dir,'--save']));
 
 // req: R-3230
 await check('a save writes one shape record into the private clone and nowhere else', async()=>{
- const C=await config(); const { CANDIDATE_FIELDS }=await import('../lib/memory-making-config.mjs'); const S=await store(); const t=fixture();
+ const C=await config(); const S=await store(); const t=fixture();
  try {
   const f=t.clone('a'); init(f); const before=spawnSync('git',['status','--porcelain'],{cwd:root,encoding:'utf8'}).stdout;
   const claim='Prefer cool colours.\r\nKeep borders quiet. \t'; const quote='Please keep blue.\r\nNo loud borders. \t';
   const out=ok(save(f,claim,quote)); const list=files(f.dir); assert.equal(list.length,1);
   const r=parseJsonBytes(fs.readFileSync(list[0])); const date=new Date().toISOString().slice(0,10);
-  const expected={id:S.claimId(claim),type:'user',kind:'preference',claim,quote,context:'',evidence:`seat:claude-code:session-1:${date}`,date,trust:'low',source:'saved',roles:['seat'],validFrom:date,invalidAt:null,supersedes:[]};
+  const expected={id:S.claimId(claim),type:C.PROFILE_WORDS.type,kind:preference,claim,quote,context:'',evidence:`${C.PROFILE_WORDS.evidencePrefix}:${C.PROFILE_WORDS.runtimeClaude}:session-1:${date}`,date,trust:STARTING_STATE.trust,source:SOURCE_WORDS[1],roles:ROLES.user,validFrom:date,invalidAt:null,supersedes:[]};
+  assert.deepEqual(await resolveEvidence(r.evidence,{},r),{status:'resolved',texts:[quote]});
   assert.deepEqual(Object.keys(r),CANDIDATE_FIELDS); assert.deepEqual(r,expected); assert.equal(out.includes(`${C.PROFILE_WORDS.saved}${claim} (${r.id})`),true);
   assert.equal(t.git(f.dir,'status','--porcelain'),''); assert.equal(t.git(f.dir,'ls-files','records').split('\n').filter(p=>p.endsWith('.json')).length,1);
   assert.equal(spawnSync('git',['status','--porcelain'],{cwd:root,encoding:'utf8'}).stdout,before);
   const count=()=>files(f.dir).length;
   for(const [args,line] of [
-   [['save','--kind','preference','--claim','x'],C.PROFILE_WORDS.quote],
-   [['save','--kind','decision','--claim','x','--quote','y'],C.PROFILE_WORDS.decision],
+   [['save','--kind',preference,'--claim','x'],C.PROFILE_WORDS.quote],
+   [['save','--kind',decision,'--claim','x','--quote','y'],C.PROFILE_WORDS.decision],
    [['save','--kind','open-thread','--claim','x','--quote','y'],C.PROFILE_WORDS.openThread],
-   [['save','--kind','fact','--claim','x'.repeat(C.PROFILE_LIMITS.claim+1),'--quote','y'],C.PROFILE_WORDS.claimCap],
-   [['save','--kind','fact','--claim','x','--quote','y'.repeat(C.PROFILE_LIMITS.quote+1)],C.PROFILE_WORDS.quoteCap]]) {
+   [['save','--kind',fact,'--claim','x'.repeat(C.PROFILE_LIMITS.claim+1),'--quote','y'],C.PROFILE_WORDS.claimCap],
+   [['save','--kind',fact,'--claim','x','--quote','y'.repeat(C.PROFILE_LIMITS.quote+1)],C.PROFILE_WORDS.quoteCap]]) {
     const n=count(); const head=t.git(f.dir,'rev-parse','HEAD'); refused(f.run(args),line); assert.equal(count(),n); assert.equal(t.git(f.dir,'rev-parse','HEAD'),head);
   }
   for(let i=1;i<C.PROFILE_LIMITS.daily;i++) ok(save(f,`Daily synthetic claim ${i}`));
@@ -48,7 +52,7 @@ await check('only a seat on an enabled machine may write',async()=>{
  const C=await config(); const t=fixture();
  try {
   const f=t.clone('a'); init(f); ok(save(f,'Seed')); const id=records(f.dir)[0].id;
-  const commands=[['save','--kind','fact','--claim','Other','--quote','New words'],['confirm',id,'--quote','Yes explicitly'],['retract',id,'--quote','Drop it'],['supersede',id,'--kind','fact','--claim','Replacement','--quote','Replace it']];
+  const commands=[['save','--kind',fact,'--claim','Other','--quote','New words'],['confirm',id,'--quote','Yes explicitly'],['retract',id,'--quote','Drop it'],['supersede',id,'--kind',fact,'--claim','Replacement','--quote','Replace it']];
   const pointer=path.join(f.agent,'nana-pack.json'); const enabled=fs.readFileSync(pointer); const raw=JSON.parse(enabled);
   const wt=path.join(t.temp,'linked'); t.git(t.main,'worktree','add','-b','linked',wt);
   for(const args of commands) {
@@ -66,7 +70,7 @@ await check('only a seat on an enabled machine may write',async()=>{
   try {
    const {runProfile}=await import('../bin/nana-profile.mjs'); const {profileGit}=await import('../lib/profile-sync.mjs'); const base=profileGit(f.env); const output=[];
    const runGit=(cwd,args)=>cwd===t.main&&args.join(' ')==='rev-parse --absolute-git-dir'?{status:0,stdout:`${alias}\n`}:base(cwd,args);
-   const code=runProfile(['save','--kind','fact','--claim','Alias main checkout','--quote','The same checkout is allowed'],{agentDir:f.agent,env:f.env,cwd:t.main,runGit,log:x=>output.push(x),error:x=>output.push(x)});
+   const code=runProfile(['save','--kind',fact,'--claim','Alias main checkout','--quote','The same checkout is allowed'],{agentDir:f.agent,env:f.env,cwd:t.main,runGit,log:x=>output.push(x),error:x=>output.push(x)});
    assert.equal(code,0,output.join('\n'));
   } finally {fs.unlinkSync(alias);}
  } finally {t.close();}
@@ -94,20 +98,20 @@ await check('retract and supersede hide the right records',async()=>{
  const C=await config(); const S=await store(); const t=fixture();
  try {
   const a=t.clone('a'); init(a); ok(save(a,'Old palette')); let id=records(a.dir)[0].id;
-  ok(a.run(['confirm',id,'--quote','Yes keep it'])); refused(a.run(['supersede',id,'--claim','New palette','--kind','preference']),C.PROFILE_WORDS.quote);
-  ok(a.run(['supersede',id,'--claim','New palette','--kind','preference','--quote','Now use green'])); let shown=ok(a.run(['show'])); assert.match(shown,/New palette/); assert.equal(shown.includes('Old palette'),false);
+  ok(a.run(['confirm',id,'--quote','Yes keep it'])); refused(a.run(['supersede',id,'--claim','New palette','--kind',preference]),C.PROFILE_WORDS.quote);
+  ok(a.run(['supersede',id,'--claim','New palette','--kind',preference,'--quote','Now use green'])); let shown=ok(a.run(['show'])); assert.match(shown,/New palette/); assert.equal(shown.includes('Old palette'),false);
   const newer=records(a.dir).find(r=>r.claim==='New palette').id; ok(a.run(['retract',newer,'--quote','Forget green'])); assert.equal(ok(a.run(['show'])).includes('New palette'),false); assert.match(ok(a.run(['show'])),/Old palette/);
   // A real two-clone offline cycle, followed by two concurrent replacements.
   ok(save(a,'Cycle one','First cycle words')); ok(save(a,'Cycle two','Second cycle words'));
   const cycleOne=S.claimId('Cycle one'),cycleTwo=S.claimId('Cycle two');
-  const b=t.clone('b'); init(b); ok(a.run(['supersede',cycleTwo,'--claim','Cycle one','--kind','preference','--quote','One again']));
-  ok(b.run(['supersede',cycleOne,'--claim','Cycle two','--kind','preference','--quote','Two again']));
+  const b=t.clone('b'); init(b); ok(a.run(['supersede',cycleTwo,'--claim','Cycle one','--kind',preference,'--quote','One again']));
+  ok(b.run(['supersede',cycleOne,'--claim','Cycle two','--kind',preference,'--quote','Two again']));
   ok(a.run(['sync'])); ok(b.run(['sync'])); ok(a.run(['sync']));
   const live=S.effectiveState(records(a.dir),files(a.dir,'events').map(x=>parseJsonBytes(fs.readFileSync(x)))).filter(r=>r.live&&[cycleOne,cycleTwo].includes(r.id)); assert.equal(live.length,1); assert.equal(live[0].id,cycleTwo);
-  ok(a.run(['supersede',cycleTwo,'--claim','Alternative one','--kind','fact','--quote','First alternative']));
-  ok(b.run(['supersede',cycleTwo,'--claim','Alternative two','--kind','fact','--quote','Second alternative'])); ok(a.run(['sync'])); ok(b.run(['sync'])); ok(a.run(['sync']));
+  ok(a.run(['supersede',cycleTwo,'--claim','Alternative one','--kind',fact,'--quote','First alternative']));
+  ok(b.run(['supersede',cycleTwo,'--claim','Alternative two','--kind',fact,'--quote','Second alternative'])); ok(a.run(['sync'])); ok(b.run(['sync'])); ok(a.run(['sync']));
   shown=ok(a.run(['show'])); assert.match(shown,/Alternative one/); assert.match(shown,/Alternative two/); assert.ok(shown.includes(C.PROFILE_WORDS.conflict));
-  const base=(claim,date,session,quote)=>({id:S.claimId(claim),claim,quote,date,evidence:`seat:pi:${session}:${date}`,supersedes:[]});
+  const base=(claim,date,session,quote)=>({id:S.claimId(claim),claim,quote,date,evidence:`${C.PROFILE_WORDS.evidencePrefix}:${C.PROFILE_WORDS.runtimePi}:${session}:${date}`,supersedes:[]});
   const rs=[base('High','2026-10-01','h','h'),...Array.from({length:C.PROFILE_MEDIUM_SESSIONS},(_,i)=>base('Medium','2026-10-02',String(i),`q${i}`)),base('Low','2026-10-03','l','l')];
   const ev=[{id:S.claimId('High'),action:'confirm',quote:'yes',stamp:'20261004t000000000z'}]; const view=S.show(S.effectiveState(rs,ev)); assert.ok(view.indexOf('[high 2026-10-01]')<view.indexOf('[medium 2026-10-02]')); assert.ok(view.indexOf('[medium 2026-10-02]')<view.indexOf('[low 2026-10-03]'));
   const many=Array.from({length:100},(_,i)=>({...base(`Long ${i} ${'x'.repeat(300)}`,'2026-10-01',String(i),'q'),trust:'low',live:true})); const bounded=S.show(many); assert.ok(bounded.length<=C.PROFILE_SHOW_BUDGET); assert.ok(bounded.includes(C.PROFILE_WORDS.fold));
@@ -162,5 +166,5 @@ await check('seal: PROFILE_LAYOUT',async()=>assert.deepEqual((await config()).PR
 await check('seal: PROFILE_WORDS',async()=>assert.deepEqual((await config()).PROFILE_WORDS,{
  initialized:'profile: initialized',synced:'profile: synced',saved:'Saved: ',notPushed:'not pushed: ',unverified:'profile: unverified remote',recovered:'profile: aborted stopped rebase',fold:'[nana:owner-profile] records left out: ',conflict:'[nana:owner-profile] competing superseders: ',
  quote:'profile refused: --quote is required',decision:'profile refused: decision belongs in nana-rulings.md',openThread:'profile refused: open-thread belongs in GitHub issues',kind:'profile refused: unsupported kind',claimCap:'profile refused: claim exceeds cap',quoteCap:'profile refused: quote exceeds cap',dailyCap:'profile refused: daily save cap',role:'profile refused: NANA_ROLE is set',worktree:'profile refused: linked worktree',disabled:'profile refused: saving is not enabled on this machine',pointer:'profile refused: run init --dir <clone>',private:'profile refused: push target is not verified private; use --unverified-remote explicitly',checkout:'profile refused: nana-pi checkout or push target',marker:'profile refused: missing store marker',repeatedQuote:'profile refused: confirmation needs new owner words',unknown:'profile refused: unknown record',locked:'profile refused: locked',dirty:'profile refused: clone has changes outside the store',git:'profile refused: git failed',config:'profile refused: invalid user configuration',usage:'profile refused: invalid command or flags',
- gitCommandEnv:'NANA_PROFILE_GIT_COMMAND',source:'saved',type:'user',roles:['seat'],trust:['low','medium','high'],kinds:['preference','correction','fact','thinking'],reasons:['offline','auth','rejected','mismatch','locked'],evidencePrefix:'seat',runtimePi:'pi',runtimeClaude:'claude-code'
+ gitCommandEnv:'NANA_PROFILE_GIT_COMMAND',source:SOURCE_WORDS[1],type:'user',roles:ROLES.user,trust:[STARTING_STATE.trust,'medium','high'],kinds:USER_KIND_WORDS,reasons:['offline','auth','rejected','mismatch','locked'],evidencePrefix:'seat',runtimePi:'pi',runtimeClaude:'claude-code'
 }));

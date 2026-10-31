@@ -1,0 +1,6 @@
+{"evidence":"claude-code:synthetic#owner+seat","kind":"correction"}
+{"evidence":"claude-code:choices#answer+question","kind":"decision"}
+{"evidence":"claude-code:choices#result+ask","kind":"decision"}
+{"evidence":"claude-code:choices#plain+question","kind":"none"}
+{"evidence":"review:demo-2026-10-01/r1.md#0","kind":"lesson"}
+{"evidence":"review:demo-2026-10-01/r1.md#1","kind":"lesson"}

@@ -1,0 +1,6 @@
+PASS  packages/nana-pack/tests/memory-making.test.mjs      24 pass  0.2s
+PASS  packages/nana-pack/tests/profile-store.test.mjs      18 pass  117.2s
+PASS  packages/nana-pack/tests/profile-sync.test.mjs       2 pass  24.8s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs  98 pass  2.6s
+
+4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 142 pass, 0 fail, 0 skip · 145.1s

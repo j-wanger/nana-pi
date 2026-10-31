@@ -13,6 +13,7 @@ import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { parseJsonBytes } from '../lib/json-text.mjs';
+import { USER_KIND_WORDS } from '../lib/memory-making-config.mjs';
 import { GH_COMMAND_ENV } from '../lib/suite-records-config.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
 export const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -54,7 +55,7 @@ export function files(dir,folder='records') {
  return fs.readdirSync(base).sort().filter(id=>fs.statSync(path.join(base,id)).isDirectory()).flatMap(id=>fs.readdirSync(path.join(base,id)).sort().filter(n=>n.endsWith('.json')).map(n=>path.join(base,id,n)));
 }
 export const records = dir => files(dir).map(f=>parseJsonBytes(fs.readFileSync(f)));
-export const save = (f,claim,quote='Use a calm palette.',extra={})=>f.run(['save','--kind','preference','--claim',claim,'--quote',quote],extra);
+export const save = (f,claim,quote='Use a calm palette.',extra={})=>f.run(['save','--kind',USER_KIND_WORDS[2],'--claim',claim,'--quote',quote],extra);
 export async function check(name,fn) {
  let timer;
  try { await Promise.race([Promise.resolve().then(fn),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('case timeout')),120000);})]); console.log('PASS',name); }

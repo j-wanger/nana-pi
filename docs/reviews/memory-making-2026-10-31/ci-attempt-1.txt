@@ -1,0 +1,9 @@
+CI run 41222439133, tip bd28674a, attempt 1: failure.
+All four install-check jobs passed.
+macOS suite passed.
+Linux suite passed.
+Windows suite: 243 files; 224 PASS, 1 FAIL, 18 SKIP; checks 7712 pass, 1 fail, 137 skip.
+Failing test: memory-making.test.mjs::default scope is this repo only.
+R-3104 passed; this was not the brief's known timeout flake.
+Release skipped for the pull request.
+No job was rerun: the failure required a code fix.

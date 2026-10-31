@@ -1,0 +1,14 @@
+npm run --silent memory:make -- <synthetic inputs>
+user correction 1
+user decision 2
+worker lesson 2
+capped claims 0
+exit 0
+npm run --silent memory:score -- <synthetic inputs>
+correction: recall 1/1
+decision: recall 2/2
+lesson: recall 2/2
+precision 5/5
+false per owner turn 0/4
+unlabelled 0
+exit 0

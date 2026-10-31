@@ -1,0 +1,25 @@
+baseline: exit 0; 23 PASS
+R-3188: original exit 0 / mutant exit 1; caught by an owner correction becomes a shaped user candidate with what it corrects
+R-3189: original exit 0 / mutant exit 1; caught by noise yields nothing
+R-3190: original exit 0 / mutant exit 1; caught by decisions carry their question across notification traffic
+R-3191: original exit 0 / mutant exit 1; caught by review MUSTs become worker candidates from reviewer output only
+R-3192: original exit 0 / mutant exit 1; caught by every evidence pointer resolves
+R-3193: original exit 0 / mutant exit 1; caught by real output stays private
+R-3194: original exit 0 / mutant exit 1; caught by default scope is this repo only
+R-3195: original exit 0 / mutant exit 1; caught by scoring prints exact counts over all candidates
+R-3196: original exit 0 / mutant exit 1; caught by seal: correction cues
+R-3197: original exit 0 / mutant exit 1; caught by seal: decision question pattern
+R-3198: original exit 0 / mutant exit 1; caught by seal: short answer words
+R-3199: original exit 0 / mutant exit 1; caught by seal: correction context words
+R-3200: original exit 0 / mutant exit 1; caught by seal: text character cap
+R-3201: original exit 0 / mutant exit 1; caught by seal: correction form
+R-3202: original exit 0 / mutant exit 1; caught by seal: decision form
+R-3203: original exit 0 / mutant exit 1; caught by seal: roles by source
+R-3204: original exit 0 / mutant exit 1; caught by seal: starting trust and source
+R-3205: original exit 0 / mutant exit 1; caught by seal: wrapper tags
+R-3206: original exit 0 / mutant exit 1; caught by seal: review exclusions
+R-3208: original exit 0 / mutant exit 1; caught by seal: candidates filename
+R-3209: original exit 0 / mutant exit 1; caught by seal: private checkout refusal
+R-3250: original exit 0 / mutant exit 1; caught by seal: shared candidate fields
+R-3207: original exit 0 / mutant exit 1; caught by seal: transcript day timezone
+restored: exit 0; 23 PASS

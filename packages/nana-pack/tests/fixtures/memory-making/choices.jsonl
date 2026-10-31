@@ -1,0 +1,7 @@
+{"type":"assistant","uuid":"question","sessionId":"choices","isSidechain":false,"timestamp":"2026-10-01T12:00:00Z","message":{"content":"Which sample colour should we use?"}}
+{"type":"user","uuid":"traffic","sessionId":"choices","origin":{"kind":"task-notification"},"message":{"content":"No, a sample task ended."}}
+{"type":"assistant","uuid":"status","sessionId":"choices","isSidechain":false,"message":{"content":"Still running."}}
+{"type":"user","uuid":"answer","sessionId":"choices","origin":{"kind":"human"},"timestamp":"2026-10-01T12:01:00Z","message":{"content":"Blue"}}
+{"type":"user","uuid":"plain","sessionId":"choices","origin":{"kind":"human"},"timestamp":"2026-10-01T12:02:00Z","message":{"content":"A synthetic statement."}}
+{"type":"assistant","uuid":"ask","sessionId":"choices","isSidechain":false,"message":{"content":[{"type":"tool_use","id":"call","name":"AskUserQuestion","input":{"questions":[{"question":"Which synthetic size?","options":[{"label":"Small"}]}]}}]}}
+{"type":"user","uuid":"result","sessionId":"choices","timestamp":"2026-10-01T12:03:00Z","message":{"content":[{"type":"tool_result","tool_use_id":"call","content":"User has answered your questions: \"Which synthetic size?\"=\"Small\". You can now continue."}]}}

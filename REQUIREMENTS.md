@@ -446,6 +446,67 @@ Reads: A-052 · packages/nana-knowledge/lib/hook.ts, packages/nana-knowledge/lib
 | R-895 | IF the child times out on the handler's own timer, exits non-zero, is missing or prints nothing, THEN no throw shall escape. | implemented | `packages/nana-knowledge/tests/extension.test.mjs::R-895: a pi pull child that exits non-zero, prints nothing, outlives the deadline or is missing throws nothing out of the handler` |
 | R-896 | Pulls from pi shall log source pi and dedup on the pi session id. | implemented | `packages/nana-knowledge/tests/extension.test.mjs::2: pull.log carries the pi session id`, `packages/nana-knowledge/tests/extension.test.mjs::2: pull.log carries source "pi"`, `packages/nana-knowledge/tests/extension.test.mjs::3: same prompt, same session → undefined`, `packages/nana-knowledge/tests/extension.test.mjs::4: a different session id pulls again` |
 
+## FEAT-040 · Make and keep memory
+Purpose: Turn past sessions and reviews into shaped, low-trust memory records that point back to their evidence, and keep them.
+Status: active
+Artifact: A-088 · memory candidates · user-home store: ~/<private --out folder>/candidates.jsonl · manual: the seat runs npm run memory:make by hand with a private home folder outside any git checkout; synthetic runs use OS temp
+Read by: A-088 · code: packages/nana-pack/lib/memory-score.mjs
+Artifact: A-090 · owner profile records · other project: <project>/records/ and events/ · manual: the seat invokes save, confirm, retract or supersede without owner approval through packages/nana-pack/bin/nana-profile.mjs
+Read by: A-090 · code: packages/nana-pack/lib/profile-store.mjs
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3188 | The memory maker shall shape an owner correction with text-only quote, preceding substantial seat context, per-turn day, stable ID and low-trust candidate fields. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::an owner correction becomes a shaped user candidate with what it corrects` |
+| R-3189 | The memory maker shall ignore tool results, meta turns, sidechains, summaries, wrapper traffic, nonhuman origins and torn transcript lines. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::noise yields nothing` |
+| R-3190 | The memory maker shall attach the preceding question across notification traffic to short decisions and extract answered AskUserQuestion pairs. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::decisions carry their question across notification traffic` |
+| R-3191 | The memory maker shall extract distinct MUST titles per review lane, excluding planning and build prose, as low-trust worker lessons. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::review MUSTs become worker candidates from reviewer output only` |
+| R-3192 | The evidence resolver shall return both user sources or a review title, resolve seat evidence to its record quote, with stale for a removed title index and missing for absent evidence. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::every evidence pointer resolves`; `packages/nana-pack/tests/memory-making.test.mjs::seat evidence resolves to its own quote` |
+| R-3193 | The memory maker shall refuse checkout or symlinked final output folders, write private modes outside checkouts, and print only counts or safe failures. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::real output stays private` |
+| R-3194 | The memory maker shall default to the canonical repository path and its worktree project keys and read another key only by explicit selection. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::default scope is this repo only` |
+| R-3195 | The memory scorer shall print exact kind-and-pointer recall, all-candidate precision, false-per-labelled-turn and unlabelled counts, marking unlabelled runs unscored. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::scoring prints exact counts over all candidates` |
+| R-3196 | The correction vocabulary shall be the chosen generic English cue pattern sealed in the test. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: correction cues` |
+| R-3197 | The question pattern shall select a question sentence or YOUR CALL block as sealed in the test. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: decision question pattern` |
+| R-3198 | The short-answer cap shall be 40 words. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: short answer words` |
+| R-3199 | The correction-context minimum shall be 20 words. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: correction context words` |
+| R-3200 | The claim, quote and context cap shall be 1200 characters. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: text character cap` |
+| R-3201 | The correction claim form shall be <quote> — correcting: <context>. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: correction form` |
+| R-3202 | The decision claim form shall be <quote> — answering: <context>. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: decision form` |
+| R-3203 | The candidate roles shall be seat for users and planner, builder, reviewer for workers. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: roles by source` |
+| R-3204 | The starting trust and source shall be low and extracted. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: starting trust and source` |
+| R-3205 | The legacy wrapper vocabulary shall be the command, reminder, notification and interruption markers sealed in the test. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: wrapper tags` |
+| R-3206 | The review exclusion vocabulary shall be the planning, brief, report, factcheck, movement, change and build-note pattern sealed in the test. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: review exclusions` |
+| R-3207 | The transcript day timezone shall be America/New_York. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: transcript day timezone` |
+| R-3208 | The candidate output filename shall be candidates.jsonl. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: candidates filename` |
+| R-3209 | The private checkout refusal line shall be memory: output must be outside git checkouts. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: private checkout refusal` |
+| R-3250 | The shared candidate field list shall be id, type, kind, claim, quote, context, evidence, date, trust, source, roles, validFrom, invalidAt, supersedes. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: shared candidate fields` |
+
+### SUB-022 · Keep a private owner profile
+
+Purpose: Keep what the seat learns about its owner in a private, synced store, ranked by trust the owner's words earn.
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3230 | WHEN an enabled seat saves a quoted supported claim, the profile shall commit one shared-shape record with saved source, a shared user kind and seat evidence resolving to its quote, print its saved line, and refuse missing quotes, routed kinds and exceeded caps without writes. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::a save writes one shape record into the private clone and nowhere else` |
+| R-3231 | The profile shall refuse writes from launcher roles, linked worktrees, disabled machines and missing pointers while accepting an enabled main checkout through equivalent git-directory spellings. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::only a seat on an enabled machine may write` |
+| R-3232 | The profile shall raise trust only through distinct-session distinct-quote evidence or a confirmation with new owner words. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::trust rises only on the owner words across sessions` |
+| R-3233 | The profile shall derive retract and supersede liveness, resolve cycles by newest stamp, mark concurrent replacements and print bounded trust-ordered output. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::retract and supersede hide the right records` |
+| R-3234 | The profile shall preserve configuration members with a backup and initialise only a guarded private push target or an explicit unverified override. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::the pointer is configuration and the push target stays verified private` |
+| R-3235 | Two profile clones shall converge through append-only safe paths without merge conflicts or byte conversion. | implemented | `packages/nana-pack/tests/profile-sync.test.mjs::two machines converge without a merge` |
+| R-3236 | The profile shall keep offline saves committed, serialize concurrent writers and recover stopped rebases before syncing. | implemented | `packages/nana-pack/tests/profile-sync.test.mjs::offline contention and a stopped rebase lose nothing` |
+| R-3237 | The profile shall require 3 distinct sessions for medium trust. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_MEDIUM_SESSIONS is 3` |
+| R-3238 | The profile shall bound show output to 4000 characters. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_SHOW_BUDGET is 4000` |
+| R-3239 | The profile shall bound each git child to 15000 milliseconds. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_GIT_TIMEOUT_MS is 15000` |
+| R-3240 | The profile shall wait at most 5000 milliseconds for its clone lock. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LOCK_WAIT_MS is 5000` |
+| R-3241 | The profile shall consider a dead writer lock stale after 120000 milliseconds. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LOCK_STALE_MS is 120000` |
+| R-3242 | The profile shall retry a rejected push once. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_PUSH_RETRIES is 1` |
+| R-3243 | The profile shall cap daily machine saves at 40, claims at 1200 characters and quotes at 4000 characters. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LIMITS` |
+| R-3244 | The profile shall select CLAUDE_SESSION_ID then PI_SESSION_ID then PI_SESSION_FILE before falling back to the local day. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_SESSION_VARIABLES` |
+| R-3245 | The profile shall use lowercase colon-free UTC millisecond stamps. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_STAMP_FORMAT` |
+| R-3246 | The profile shall use lowercase safe paths of at most 180 characters and bounded git output. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_PATH_POLICY` |
+| R-3247 | The profile shall accept only the sealed GitHub HTTPS, SCP SSH and explicit SSH push URL forms for verification. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_REMOTE_FORMS` |
+| R-3248 | The profile shall use the sealed records, events, marker and lock layout without text conversion. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LAYOUT` |
+| R-3249 | The profile shall use the shared saved source and user kind vocabulary with its sealed save, trust, evidence, refusal and sync words. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_WORDS` |
+
 ## FEAT-005 · Communicate decisions clearly
 Purpose: Deliver the preferred writing guidance and check report readability and structure.
 Status: active
@@ -484,40 +545,6 @@ A bounded read validates only the bytes it reads. Before decoding it trims a tra
 | R-2502 | The writing rule's Check section shall require a `nana-writing --report` run, by the bare command name, on every report before it is sent. | implemented | `packages/nana-setup/tests/writing-rule.test.mjs::the rule's Check section is the sealed check text` |
 | R-2503 | WHEN the suite runs, it shall fail on any sentence over SENTENCE_CAP words or any banned word in this repository's HANDOFF.md sections that the frontier report's live-section names match. | implemented | `packages/nana-pack/tests/writing-check.test.mjs::this repository's HANDOFF.md live sections hold no over-cap sentence and no banned word` |
 | R-376 | The writing rule shall pass its own checker with zero findings. | implemented | `packages/nana-setup/tests/writing-rule.test.mjs::the rule passes nana-writing with zero findings`. Rule text moved to packages/nana-pack/rules/nana-writing.md (Amendment 1 §A1). Amendment 1 §A3 overrules the earlier config-path wording: the Words bullet now names the banned word in a code span (the owner banned, then the word itself), since a pi session has no memory of a ban and will not open a file the rule merely points at. "A decision point" is now a numbered list (Amendment 1 §A2), ending the 27-word sentence astra r1 found escaping the cap through soft-wrap. Wording per Amendment 1 §A2 and §A3, ratified in land-ruling.md §2 |
-
-## FEAT-040 · Make and keep memory
-
-Purpose: Turn past sessions and reviews into shaped, low-trust memory records that point back to their evidence, and keep them.
-Status: active
-Artifact: A-090 · owner profile records · other project: <project>/records/ and events/ · manual: the seat invokes save, confirm, retract or supersede without owner approval through packages/nana-pack/bin/nana-profile.mjs
-Read by: A-090 · code: packages/nana-pack/lib/profile-store.mjs
-
-### SUB-022 · Keep a private owner profile
-
-Purpose: Keep what the seat learns about its owner in a private, synced store, ranked by trust the owner's words earn.
-
-| ID | Requirement | Status | Evidence |
-|---|---|---|---|
-| R-3230 | WHEN an enabled seat saves a quoted supported claim, the profile shall commit one shape record, print its saved line, and refuse missing quotes, routed kinds and exceeded caps without writes. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::a save writes one shape record into the private clone and nowhere else` |
-| R-3231 | The profile shall refuse writes from launcher roles, linked worktrees, disabled machines and missing pointers while accepting an enabled main checkout through equivalent git-directory spellings. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::only a seat on an enabled machine may write` |
-| R-3232 | The profile shall raise trust only through distinct-session distinct-quote evidence or a confirmation with new owner words. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::trust rises only on the owner words across sessions` |
-| R-3233 | The profile shall derive retract and supersede liveness, resolve cycles by newest stamp, mark concurrent replacements and print bounded trust-ordered output. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::retract and supersede hide the right records` |
-| R-3234 | The profile shall preserve configuration members with a backup and initialise only a guarded private push target or an explicit unverified override. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::the pointer is configuration and the push target stays verified private` |
-| R-3235 | Two profile clones shall converge through append-only safe paths without merge conflicts or byte conversion. | implemented | `packages/nana-pack/tests/profile-sync.test.mjs::two machines converge without a merge` |
-| R-3236 | The profile shall keep offline saves committed, serialize concurrent writers and recover stopped rebases before syncing. | implemented | `packages/nana-pack/tests/profile-sync.test.mjs::offline contention and a stopped rebase lose nothing` |
-| R-3237 | The profile shall require 3 distinct sessions for medium trust. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_MEDIUM_SESSIONS is 3` |
-| R-3238 | The profile shall bound show output to 4000 characters. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_SHOW_BUDGET is 4000` |
-| R-3239 | The profile shall bound each git child to 15000 milliseconds. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_GIT_TIMEOUT_MS is 15000` |
-| R-3240 | The profile shall wait at most 5000 milliseconds for its clone lock. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LOCK_WAIT_MS is 5000` |
-| R-3241 | The profile shall consider a dead writer lock stale after 120000 milliseconds. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LOCK_STALE_MS is 120000` |
-| R-3242 | The profile shall retry a rejected push once. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_PUSH_RETRIES is 1` |
-| R-3243 | The profile shall cap daily machine saves at 40, claims at 1200 characters and quotes at 4000 characters. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LIMITS` |
-| R-3244 | The profile shall select CLAUDE_SESSION_ID then PI_SESSION_ID then PI_SESSION_FILE before falling back to the local day. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_SESSION_VARIABLES` |
-| R-3245 | The profile shall use lowercase colon-free UTC millisecond stamps. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_STAMP_FORMAT` |
-| R-3246 | The profile shall use lowercase safe paths of at most 180 characters and bounded git output. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_PATH_POLICY` |
-| R-3247 | The profile shall accept only the sealed GitHub HTTPS, SCP SSH and explicit SSH push URL forms for verification. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_REMOTE_FORMS` |
-| R-3248 | The profile shall use the sealed records, events, marker and lock layout without text conversion. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LAYOUT` |
-| R-3249 | The profile shall use the sealed save, trust, evidence, refusal and sync vocabulary. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_WORDS` |
 
 # CAP-02 · Deliver controlled changes
 Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.

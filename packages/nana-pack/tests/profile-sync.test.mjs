@@ -10,6 +10,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import { check,fixture,ok,files,records,save } from './profile-fixture.mjs';
+import { USER_KIND_WORDS } from '../lib/memory-making-config.mjs';
 // req: R-3235
 await check('two machines converge without a merge',async()=>{
  const C=await import('../lib/profile-config.mjs'); const S=await import('../lib/profile-store.mjs'); const t=fixture();
@@ -36,7 +37,7 @@ await check('offline contention and a stopped rebase lose nothing',async()=>{
   const a=t.clone('a'); ok(a.run(['init','--dir',a.dir,'--save'])); const b=t.clone('b'); ok(b.run(['init','--dir',b.dir,'--save']));
   fs.renameSync(t.bare,`${t.bare}.away`); const head=t.git(a.dir,'rev-parse','HEAD'); const out=ok(save(a,'Offline claim')); assert.ok(out.includes(`${C.PROFILE_WORDS.notPushed}offline`)); assert.equal(out.includes(t.temp),false); assert.equal(out.includes(a.remote),false); assert.notEqual(t.git(a.dir,'rev-parse','HEAD'),head); assert.notEqual(a.run(['sync']).status,0);
   fs.renameSync(`${t.bare}.away`,t.bare); ok(a.run(['sync'])); ok(b.run(['sync'])); assert.equal(records(b.dir).length,1);
-  const runs=await Promise.all([a.asyncRun(['save','--kind','fact','--claim','Concurrent one','--quote','One']),a.asyncRun(['save','--kind','fact','--claim','Concurrent two','--quote','Two'])]); runs.forEach(ok); assert.equal(t.git(a.dir,'status','--porcelain'),''); ok(b.run(['sync'])); assert.equal(records(b.dir).length,3);
+  const runs=await Promise.all([a.asyncRun(['save','--kind',USER_KIND_WORDS[3],'--claim','Concurrent one','--quote','One']),a.asyncRun(['save','--kind',USER_KIND_WORDS[3],'--claim','Concurrent two','--quote','Two'])]); runs.forEach(ok); assert.equal(t.git(a.dir,'status','--porcelain'),''); ok(b.run(['sync'])); assert.equal(records(b.dir).length,3);
   // Stop a genuine rebase on an unrelated file; sync must abort before touching the store.
   fs.writeFileSync(path.join(a.dir,'outside'),'base'); t.git(a.dir,'add','outside');t.git(a.dir,'commit','-m','base'); const base=t.git(a.dir,'rev-parse','HEAD');
   t.git(a.dir,'checkout','-b','other'); fs.writeFileSync(path.join(a.dir,'outside'),'other');t.git(a.dir,'commit','-am','other');

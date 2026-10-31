@@ -138,6 +138,51 @@ Known limits: the CLI cannot prove that quoted words came from the owner, preven
 poisoning, or protect against a hostile process changing the pointer. Saved lines can contain
 private text: never paste real records or show output into the public repository.
 
+## Offline memory candidates
+
+From the repository root, `npm run memory:make -- --out <private-folder>` runs
+`scripts/memory-make.mjs` with Node and git, without pi or a model call.
+It defaults to this checkout's shared repository root (also from a linked worktree),
+its Claude project key and worktree keys, and its review folders.
+Use `--repo <repo-root>`, `--root <claude-projects-root>` or `--reviews <reviews-root>`
+to inject synthetic or other roots. `--project <key>` explicitly selects another
+project instead of the default scope. `--from YYYY-MM-DD` and `--to YYYY-MM-DD`
+filter each owner turn's own day in America/New_York, not the session's first day.
+Review dates come from lane folder names; undated lanes have a null date and are
+omitted only when a date window is selected.
+
+The maker writes one `candidates.jsonl` in a private folder outside every git
+checkout, with folder mode 0700 and file mode 0600 on POSIX. It refuses a final
+symlink, resolves ancestor aliases (including OS temp aliases), and never overwrites
+an existing candidates file. Failures print fixed messages; symlink failures also
+name the final component. Success prints counts by type/kind and capped claims.
+Fixtures are synthetic; never commit real inputs, output records or labels.
+
+Records carry the one shared `CANDIDATE_FIELDS` list from
+`lib/memory-making-config.mjs`: id, type, kind, claim, quote, context, evidence,
+date, trust, source, roles, validFrom, invalidAt and supersedes. IDs are full SHA-256
+hashes of evidence, a newline and the rendered claim. Corrections and short decisions
+include preceding seat context; answered AskUserQuestion pairs include question and
+choice. Worker lessons are distinct MUST titles per lane, not promoted rules.
+All records start low-trust and extracted. Nothing delivers or stores them for agents.
+
+`npm run memory:score -- --candidates <private-jsonl> --labels <private-labels-jsonl>`
+runs `scripts/memory-score.mjs`. Each JSONL label has `evidence` and `kind`
+(correction, decision, lesson or none), one label per pointer. Label every owner
+turn in the scored window independently of the frozen rules, using the same
+owner-plus-seat pointer form even for none labels. It prints per-kind recall,
+precision over all candidates, labelled false candidates per labelled owner turn,
+and unlabelled counts. Any unlabelled candidate makes the run unscored.
+Unknown candidates are not presumed false; zero denominators remain exact zero-over-zero counts.
+
+`lib/memory-making.mjs` exports `resolveEvidence(pointer, roots, record)` for the checking
+station. Claude pointers name both entry UUIDs; review pointers name the relative
+file and title index from the shared review parser. Missing files return missing;
+a removed title index returns stale. Supply `expectedTitle` in roots to detect a
+changed title at the same index. Transcript expiry can make pointers missing;
+private quote and context snapshots preserve readability. No trust promotion,
+cross-run deduplication, automatic trigger, delivery or real-data scoring happens here.
+
 ## Product report
 
 GitHub Pages publishes the public product report at `https://j-wanger.github.io/nana-pi/` after pushes to `main` and issue changes. The public copy includes product decisions and linked issues, but no test results; the land report remains local.

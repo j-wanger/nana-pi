@@ -42,6 +42,14 @@ Sibling repo to `~/nana-agent-loop`.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.
 
+## Offline memory making
+
+`npm run memory:make` (`scripts/memory-make.mjs`) makes private, low-trust candidates
+from this repository's Claude transcripts and review MUST titles. Node and git are
+required; no model runs. `npm run memory:score` (`scripts/memory-score.mjs`) compares
+private candidates with independent JSONL labels and prints counts only. Both run
+by hand. See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
+
 ## Requirements-first
 
 A project here keeps a standing, numbered contract — `REQUIREMENTS.md` — alongside its code, and

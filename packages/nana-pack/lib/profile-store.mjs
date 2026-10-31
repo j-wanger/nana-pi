@@ -11,7 +11,7 @@ import * as path from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import { parseJsonBytes } from './json-text.mjs';
 import { readBounded } from './bounded-read.mjs';
-import { CANDIDATE_FIELDS } from './memory-making-config.mjs';
+import { CANDIDATE_FIELDS, USER_KIND_WORDS } from './memory-making-config.mjs';
 import { suiteRecordStamp } from './suite-records.mjs';
 import { PROFILE_MEDIUM_SESSIONS, PROFILE_SHOW_BUDGET, PROFILE_LIMITS, PROFILE_SESSION_VARIABLES, PROFILE_STAMP_FORMAT, PROFILE_PATH_POLICY, PROFILE_LAYOUT as L, PROFILE_WORDS as W } from './profile-config.mjs';
 
@@ -27,7 +27,7 @@ export function profileSession(env,date) {
 }
 export function validateProfileSave({kind,claim,quote}) {
  if(!quote?.trim()) throw Error(W.quote);
- if(kind==='decision') throw Error(W.decision);
+ if(kind===USER_KIND_WORDS[1]) throw Error(W.decision);
  if(kind==='open-thread') throw Error(W.openThread);
  if(!W.kinds.includes(kind)) throw Error(W.kind);
  if(!claim?.trim()||claim.length>PROFILE_LIMITS.claim) throw Error(W.claimCap);

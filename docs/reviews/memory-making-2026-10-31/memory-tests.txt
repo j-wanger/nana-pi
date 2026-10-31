@@ -1,0 +1,23 @@
+PASS an owner correction becomes a shaped user candidate with what it corrects
+PASS noise yields nothing
+PASS decisions carry their question across notification traffic
+PASS review MUSTs become worker candidates from reviewer output only
+PASS every evidence pointer resolves
+PASS real output stays private
+PASS default scope is this repo only
+PASS scoring prints exact counts over all candidates
+PASS seal: correction cues
+PASS seal: decision question pattern
+PASS seal: short answer words
+PASS seal: correction context words
+PASS seal: text character cap
+PASS seal: correction form
+PASS seal: decision form
+PASS seal: roles by source
+PASS seal: starting trust and source
+PASS seal: wrapper tags
+PASS seal: review exclusions
+PASS seal: transcript day timezone
+PASS seal: candidates filename
+PASS seal: private checkout refusal
+PASS seal: shared candidate fields
