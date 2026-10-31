@@ -42,7 +42,7 @@ function fake(kinds = ["correction", "decision", "lesson", "none"], calls = []) 
  return async (input) => {
   calls.push(input);
   const units = JSON.parse(input.prompt.slice(input.prompt.indexOf("[")));
-  return { ok: true, text: JSON.stringify(units.map((u) => ({ id: u.id, kind: kinds[index++ % kinds.length], claim: `Keep sample claim ${index}.` }))), usage: usage() };
+  return { ok: true, text: JSON.stringify({ units: units.map((u) => ({ id: u.id, kind: kinds[index++ % kinds.length], claim: `Keep sample claim ${index}.` })) }), usage: usage() };
  };
 }
 async function fixture(run) {
@@ -67,6 +67,19 @@ async function fixture(run) {
 const ask = () => [entry("assistant", "ask", [{ type: "tool_use", id: "call", name: "AskUserQuestion", input: { questions: [{ question: "Which sample size?" }] } }]), entry("user", "answer", [{ type: "tool_result", tool_use_id: "call", content: '"Which sample size?"="Small"' }])];
 const readRecords = (out) => fs.readFileSync(path.join(out, C.OUTPUT_FILE), "utf8").trim().split("\n").filter(Boolean).map(JSON.parse);
 
+// req: R-3251
+await check("runner reply schema has an object root", () => fixture(async ({ roots, add, reviews }) => {
+ add(); reviews(); let schema;
+ const result = await extractShaped({ ...roots, runModel: async (input) => {
+  schema = input.schema;
+  const units = JSON.parse(input.prompt.slice(input.prompt.indexOf("[")));
+  return { ok: true, text: JSON.stringify({ units: units.map((u) => ({ id: u.id, kind: "none", claim: "" })) }), usage: usage() };
+ } });
+ assert.equal(schema.type, "object");
+ assert.deepEqual(schema.required, ["units"]);
+ assert.equal(schema.properties.units.type, "array");
+ assert.equal(result.counts.calls, 2);
+}));
 // req: R-3251
 await check("model claims retain the shared candidate shape", () => fixture(async ({ root, add, reviews, cli }) => {
  assert.equal(M.CORRECTION_CUES.test(redirect), false);
@@ -121,8 +134,8 @@ await check("batch validation is source-specific exact and fail-closed", () => f
   calls.push(input); const units = JSON.parse(input.prompt.slice(input.prompt.indexOf("[")));
   assert.ok(units.every((u) => ("title" in u) === ("title" in units[0]))); assert.ok(!input.prompt.includes("claude-code:"));
   const owner = "owner" in units[0]; if (owner) assert.equal(units[0].owner, text);
-  assert.deepEqual(input.schema.items.properties.kind.enum, owner ? ["correction", "decision", "none"] : ["lesson", "none"]);
-  return { ok: true, text: "```json\n" + JSON.stringify(units.map((u, i) => ({ id: u.id, kind: owner ? "decision" : "lesson", claim: `Claim for ${i}.` }))) + "\n```", usage: usage() };
+  assert.deepEqual(input.schema.properties.units.items.properties.kind.enum, owner ? ["correction", "decision", "none"] : ["lesson", "none"]);
+  return { ok: true, text: "```json\n" + JSON.stringify({ units: units.map((u, i) => ({ id: u.id, kind: owner ? "decision" : "lesson", claim: `Claim for ${i}.` })) }) + "\n```", usage: usage() };
  });
  assert.equal(accepted.code, 0); assert.equal(calls.length, 2);
  const records = readRecords(path.join(root, "valid")); assert.equal(records[0].quote, displayText(text, M.CLAIM_CAP)); assert.equal(records[1].quote, redirect); assert.equal(records[0].claim, "Claim for 0."); assert.equal(records[1].claim, "Claim for 1.");
@@ -137,7 +150,8 @@ await check("batch validation is source-specific exact and fail-closed", () => f
  for (const [i, corrupt] of bad.entries()) {
   let count = 0; const result = await cli(path.join(root, `bad${i}`), async (input) => {
    count++; const units = JSON.parse(input.prompt.slice(input.prompt.indexOf("["))); const owner = "owner" in units[0];
-   return { ok: true, text: corrupt(units.map((u) => ({ id: u.id, kind: owner ? "decision" : "lesson", claim: "Private claim" })), owner), usage: usage() };
+   const rows = units.map((u) => ({ id: u.id, kind: owner ? "decision" : "lesson", claim: "Private claim" }));
+   const reply = corrupt(rows, owner); return { ok: true, text: typeof reply === "string" ? reply : JSON.stringify({ units: reply }), usage: usage() };
   });
   assert.equal(result.code, 0); assert.equal(count, 2); assert.deepEqual(readRecords(path.join(root, `bad${i}`)), []);
   assert.ok(result.stdout.includes(`${C.WORDS.unclassified} 4\n`)); assert.ok(result.stdout.includes("tokens 200\n")); assert.equal(result.stderr, ""); assert.ok(!result.stdout.includes("Private"));
@@ -159,8 +173,8 @@ function spawnOptions(opts, prompt) {
  assert.equal(opts.input, prompt); assert.equal(opts.cwd, os.tmpdir()); assert.equal(opts.env.NANA_ROLE, "worker");
  assert.deepEqual(opts.stdio, ["pipe", "pipe", "pipe"]); assert.equal(opts.timeout, C.TIMEOUT_MS); assert.equal(opts.maxBuffer, C.MAX_BUFFER);
 }
-const modelInput = { system: C.SYSTEM_PROMPT, prompt: "Private synthetic stdin", schema: { type: "array" } };
-const claudeReply = () => ({ structured_output: [], total_cost_usd: 0.02, modelUsage: { [C.CLAUDE_MODEL]: { inputTokens: 20, outputTokens: 10, cacheReadInputTokens: 2, cacheCreationInputTokens: 3 } } });
+const modelInput = { system: C.SYSTEM_PROMPT, prompt: "Private synthetic stdin", schema: { type: "object", required: ["units"], properties: { units: { type: "array" } } } };
+const claudeReply = () => ({ structured_output: { units: [] }, total_cost_usd: 0.02, modelUsage: { [C.CLAUDE_MODEL]: { inputTokens: 20, outputTokens: 10, cacheReadInputTokens: 2, cacheCreationInputTokens: 3 } } });
 // req: R-3256
 await check("Claude isolation and private output survive failures", () => fixture(async ({ root, roots, add, cli }) => {
  const spawn = (bin, argv, opts) => {
@@ -183,19 +197,19 @@ await check("Claude isolation and private output survive failures", () => fixtur
 }));
 // req: R-3257
 await check("pi isolation parses the complete large stream and runner switch", async () => {
- const stream = [JSON.stringify({ type: "message_update", padding: "s".repeat((1 << 20) + 1) }), JSON.stringify({ type: "message_end", message: { role: "assistant", content: [{ type: "text", text: "[]" }], usage: { totalTokens: 100, cost: { total: 0.03 } }, stopReason: "stop" } }), JSON.stringify({ type: "agent_settled" })];
+ const stream = [JSON.stringify({ type: "message_update", padding: "s".repeat((1 << 20) + 1) }), JSON.stringify({ type: "message_end", message: { role: "assistant", content: [{ type: "text", text: "{\"units\":[]}" }], usage: { totalTokens: 100, cost: { total: 0.03 } }, stopReason: "stop" } }), JSON.stringify({ type: "agent_settled" })];
  for (const ending of ["\n", "\r\n", ""]) {
   const spawn = (bin, argv, opts) => {
    const expected = piLaunch(["--mode", "json", "--no-session", "--no-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-context-files", "--system-prompt", C.SYSTEM_PROMPT, "--model", C.PI_MODEL, "--thinking", C.PI_THINKING]);
    assert.equal(bin, expected.command); assert.deepEqual(argv, expected.args); assert.ok(!argv.includes(modelInput.prompt)); spawnOptions(opts, modelInput.prompt);
    return { status: 0, stdout: stream.join(ending || "\n") + (ending ? ` \t${ending}` : "") };
   };
-  const result = await piRunner(modelInput, { spawn }); assert.equal(result.ok, true); assert.equal(result.text, "[]"); assert.deepEqual(result.usage, usage(100, 0.03));
+  const result = await piRunner(modelInput, { spawn }); assert.equal(result.ok, true); assert.equal(result.text, "{\"units\":[]}"); assert.deepEqual(result.usage, usage(100, 0.03));
  }
  const incomplete = await piRunner(modelInput, { spawn: () => ({ status: 0, stdout: '{"type":"agent_settled"}\n' }) }); assert.equal(incomplete.ok, false); assert.equal(incomplete.usage, null);
  for (const runner of [C.RUNNER, "pi"]) {
   let count = 0; const result = await createRunner({ runner, spawn: () => { count++; return { status: 0, stdout: runner === "pi" ? stream.join("\n") : JSON.stringify(claudeReply()) }; } })(modelInput);
-  assert.equal(count, 1); assert.equal(result.ok, true); assert.equal(result.text, "[]");
+  assert.equal(count, 1); assert.equal(result.ok, true); assert.equal(result.text, "{\"units\":[]}");
  }
 });
 

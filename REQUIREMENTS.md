@@ -485,7 +485,7 @@ Purpose: Classify owner turns and review findings with a capped, isolated model 
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-3251 | The shaper shall emit model corrections, decisions and lessons in the shared low-trust record shape, omitting none judgements. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::model claims retain the shared candidate shape` |
+| R-3251 | The shaper shall read model units from an object-rooted structured reply and emit model corrections, decisions and lessons in the shared low-trust record shape, omitting none judgements. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::model claims retain the shared candidate shape`; `packages/nana-pack/tests/memory-shaping.test.mjs::runner reply schema has an object root` |
 | R-3252 | The shaper shall pair pointers by kind with substantial, question and last-seat fallback, keeping answered asks on the rule path. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::kind pairing scores against independent primary and alternate labels` |
 | R-3253 | The shaper shall skip unpairable turns, honor the instant cutoff, reject labels arguments and count head-cut owner and tail-cut seat input. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::frozen inputs skip unpairable turns and count cuts` |
 | R-3254 | The shaper shall validate exact batch-local IDs and source-specific kinds, rejecting a malformed whole batch without retries or private diagnostics. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::batch validation is source-specific exact and fail-closed` |

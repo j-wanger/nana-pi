@@ -15,14 +15,14 @@ import { addUsage, costTotal, emptyUsage, totalTokens } from "./pi-usage.mjs";
 import { ALLOWED_KINDS, BATCH_SIZE, CONTEXT_CAP, OUTPUT_FILE, OWNER_CAP, PROMPT_LEAD, SYSTEM_PROMPT, TOKEN_CAP, WORDS } from "./memory-shaping-config.mjs";
 
 function replySchema(source) {
- return { type: "array", items: { type: "object", additionalProperties: false, required: ["id", "kind", "claim"], properties: { id: { type: "string" }, kind: { enum: ALLOWED_KINDS[source] }, claim: { type: "string" } } } };
+ return { type: "object", additionalProperties: false, required: ["units"], properties: { units: { type: "array", items: { type: "object", additionalProperties: false, required: ["id", "kind", "claim"], properties: { id: { type: "string" }, kind: { enum: ALLOWED_KINDS[source] }, claim: { type: "string" } } } } } };
 }
 function validated(text, source, size) {
  if (typeof text !== "string") return null;
  const trimmed = text.trim();
  const fence = /^```(?:json)?\s*\n([\s\S]*?)\n```$/u.exec(trimmed);
  let rows;
- try { rows = JSON.parse(fence ? fence[1] : trimmed); } catch { return null; }
+ try { rows = JSON.parse(fence ? fence[1] : trimmed)?.units; } catch { return null; }
  if (!Array.isArray(rows) || rows.length !== size) return null;
  const found = new Map();
  for (const row of rows) {
