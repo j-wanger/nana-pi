@@ -2197,7 +2197,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Define the shared candidate shape and sealed deterministic memory-making baseline.
 - **inputs** — none
-- **outputs** — Named field list, patterns, caps, claim forms and private-output words.
+- **outputs** — Candidate shape, vocabularies, patterns, caps, claim forms and private-output words.
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`

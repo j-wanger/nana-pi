@@ -25,7 +25,7 @@ No GitHub issue was created, edited, commented on or closed.
 
 ## Rows and tests
 
-Plan A16 authorizes the next free IDs: R-3188–R-3210 and A-088. All new rows are implemented.
+Plan A16 authorizes rows R-3188–R-3209 and A-088. The field-list row formerly labeled R-3210 is now R-3250; all rows are implemented.
 Each evidence cell names the backticked test file and exact title.
 No pre-existing requirement row changed.
 
@@ -55,7 +55,7 @@ All following titles are in `packages/nana-pack/tests/memory-making.test.mjs`:
 | R-3207 | seal: transcript day timezone |
 | R-3208 | seal: candidates filename |
 | R-3209 | seal: private checkout refusal |
-| R-3210 | seal: shared candidate fields |
+| R-3250 | seal: shared candidate fields |
 
 Existing test edits in `packages/nana-pack/tests/requirements-tree.test.mjs`:
 

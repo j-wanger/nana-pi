@@ -133,7 +133,9 @@ export async function extractMemory(options) {
 }
 /** Review indices resolve by the existing parser; removed indices are stale, absent files missing.
  * Pass expectedTitle when checking a retained record to detect replacement at the same index. */
-export async function resolveEvidence(pointer, roots) {
+export async function resolveEvidence(pointer, roots, record) {
+ const seat = /^seat:[^:]+:[^:]+:\d{4}-\d{2}-\d{2}$/u.test(pointer);
+ if (seat) return typeof record?.quote === "string" ? { status: "resolved", texts: [record.quote] } : { status: "missing" };
  const review = /^review:(.+)#(\d+)$/u.exec(pointer);
  if (review) {
   const file = path.resolve(roots.reviewsRoot, review[1]);

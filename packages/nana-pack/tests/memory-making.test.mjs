@@ -117,6 +117,11 @@ await check("every evidence pointer resolves", () => fixture(async ({ roots, add
  assert.equal((await resolveEvidence("claude-code:absent#a+b", roots)).status, "missing");
  assert.equal((await resolveEvidence("review:absent.md#0", roots)).status, "missing");
 }));
+// req: R-3192
+await check("seat evidence resolves to its own quote", async () => {
+ const record = { evidence: "seat:pi:session-key:2026-10-31", quote: "The owner's exact words." };
+ assert.deepEqual(await resolveEvidence(record.evidence, {}, record), { status: "resolved", texts: [record.quote] });
+});
 // req: R-3193
 await check("real output stays private", () => fixture(async ({ root, roots, add }) => {
  add(); let stdout = "", stderr = "";
@@ -198,5 +203,5 @@ await check("seal: transcript day timezone", () => assert.equal(DAY_TIMEZONE, "A
 await check("seal: candidates filename", () => assert.equal(C.CANDIDATES_FILE, "candidates.jsonl"));
 // req: R-3209
 await check("seal: private checkout refusal", () => assert.equal(C.PRIVATE_REFUSAL, "memory: output must be outside git checkouts"));
-// req: R-3210
+// req: R-3250
 await check("seal: shared candidate fields", () => assert.deepEqual(C.CANDIDATE_FIELDS, ["id", "type", "kind", "claim", "quote", "context", "evidence", "date", "trust", "source", "roles", "validFrom", "invalidAt", "supersedes"]));

@@ -20,6 +20,6 @@ R-3205: original exit 0 / mutant exit 1; caught by seal: wrapper tags
 R-3206: original exit 0 / mutant exit 1; caught by seal: review exclusions
 R-3208: original exit 0 / mutant exit 1; caught by seal: candidates filename
 R-3209: original exit 0 / mutant exit 1; caught by seal: private checkout refusal
-R-3210: original exit 0 / mutant exit 1; caught by seal: shared candidate fields
+R-3250: original exit 0 / mutant exit 1; caught by seal: shared candidate fields
 R-3207: original exit 0 / mutant exit 1; caught by seal: transcript day timezone
 restored: exit 0; 23 PASS

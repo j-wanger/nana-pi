@@ -122,7 +122,7 @@ precision over all candidates, labelled false candidates per labelled owner turn
 and unlabelled counts. Any unlabelled candidate makes the run unscored.
 Unknown candidates are not presumed false; zero denominators remain exact zero-over-zero counts.
 
-`lib/memory-making.mjs` exports `resolveEvidence(pointer, roots)` for the checking
+`lib/memory-making.mjs` exports `resolveEvidence(pointer, roots, record)` for the checking
 station. Claude pointers name both entry UUIDs; review pointers name the relative
 file and title index from the shared review parser. Missing files return missing;
 a removed title index returns stale. Supply `expectedTitle` in roots to detect a
