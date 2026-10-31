@@ -13,8 +13,9 @@ export const PROFILE_MEDIUM_SESSIONS = 3;
 export const PROFILE_SHOW_BUDGET = 4000;
 // Chosen 2026-10-31 (R-3239): bound each local or network child on both machines.
 export const PROFILE_GIT_TIMEOUT_MS = 15000;
-// Chosen 2026-10-31 (R-3240): wait for a short save, not a stalled network.
-export const PROFILE_LOCK_WAIT_MS = 5000;
+// Chosen 2026-10-31 (R-3240): the longest save path can take 28 bounded Git steps under lock.
+export const PROFILE_LOCKED_GIT_STEPS = 28;
+export const PROFILE_LOCK_WAIT_MS = PROFILE_GIT_TIMEOUT_MS * PROFILE_LOCKED_GIT_STEPS;
 // Chosen 2026-10-31 (R-3241): longer than any expected locked sequence; never evict a live pid.
 export const PROFILE_LOCK_STALE_MS = 120000;
 // Contract plan A13 (R-3242): retry once after a non-fast-forward rejection.

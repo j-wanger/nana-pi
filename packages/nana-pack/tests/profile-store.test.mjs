@@ -145,7 +145,10 @@ await check('seal: PROFILE_SHOW_BUDGET is 4000',async()=>assert.equal((await con
 // req: R-3239
 await check('seal: PROFILE_GIT_TIMEOUT_MS is 15000',async()=>assert.equal((await config()).PROFILE_GIT_TIMEOUT_MS,15000));
 // req: R-3240
-await check('seal: PROFILE_LOCK_WAIT_MS is 5000',async()=>assert.equal((await config()).PROFILE_LOCK_WAIT_MS,5000));
+await check('seal: PROFILE_LOCK_WAIT_MS covers 28 Git steps',async()=>{
+ const C=await config(); assert.equal(C.PROFILE_LOCKED_GIT_STEPS,28); assert.equal(C.PROFILE_LOCK_WAIT_MS,420000);
+ assert.ok(C.PROFILE_LOCK_WAIT_MS>=C.PROFILE_GIT_TIMEOUT_MS*C.PROFILE_LOCKED_GIT_STEPS);
+});
 // req: R-3241
 await check('seal: PROFILE_LOCK_STALE_MS is 120000',async()=>assert.equal((await config()).PROFILE_LOCK_STALE_MS,120000));
 // req: R-3242

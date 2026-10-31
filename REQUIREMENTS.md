@@ -496,7 +496,7 @@ Purpose: Keep what the seat learns about its owner in a private, synced store, r
 | R-3237 | The profile shall require 3 distinct sessions for medium trust. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_MEDIUM_SESSIONS is 3` |
 | R-3238 | The profile shall bound show output to 4000 characters. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_SHOW_BUDGET is 4000` |
 | R-3239 | The profile shall bound each git child to 15000 milliseconds. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_GIT_TIMEOUT_MS is 15000` |
-| R-3240 | The profile shall wait at most 5000 milliseconds for its clone lock. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LOCK_WAIT_MS is 5000` |
+| R-3240 | The profile shall wait at most 420000 milliseconds for its clone lock, covering 28 Git steps at the 15000 millisecond Git timeout. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LOCK_WAIT_MS covers 28 Git steps` |
 | R-3241 | The profile shall consider a dead writer lock stale after 120000 milliseconds. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LOCK_STALE_MS is 120000` |
 | R-3242 | The profile shall retry a rejected push once. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_PUSH_RETRIES is 1` |
 | R-3243 | The profile shall cap daily machine saves at 40, claims at 1200 characters and quotes at 4000 characters. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LIMITS` |
