@@ -139,3 +139,10 @@
 - Visual check (hive-render, seat check): a `--hive` first-look capture fell back to the pixel view at 380 px in 1 of 3 runs on build 4; the ready check does not refuse a pixel-renderer capture, so the judge judged the fallback.
 - Component audit (hive-render build 4, CI): the R-3104 Windows timeout recurred on attempt 1; the unchanged retry passed, so it is now twice in one day.
 - Hive page (hive-render, seat check): at 1280 px the "CABINET" label is clipped by the rail, the card's lower edge meets the "RELEASE ROUTE" label, and rail items 14 to 16 sit over a busy blurred scene.
+- Hive page (hive-render, final review): the Pages hive steps are fail-closed by design; if the audit fails on main, the deploy stops and the product page stays at its last version.
+- Hive page (hive-render, final review): the hive identity scan covers only components.json, not the copied page files.
+- Hive page (hive-render, final review): the renderer keeps its last frame (preserveDrawingBuffer) for the screenshot check, which costs speed on slow software renderers.
+- Component audit (hive-render, final review): the audit lists the new apps/hive modules as unclaimed; claim them when docs/components/nana-pi.json is next updated.
+- City page (world-graph build 12): on a software renderer the whole-city view measured 116.7 ms per frame, against 8.3 ms on Metal; machines without a GPU will scroll slowly.
+- City page (world-graph, seat check): inside a claude.ai artifact frame the page goes blank once the 3D scene starts, while the bare page and its modules load; the cause is unknown, so the page is shared through Pages only.
+- City page (world-graph, seat check): previews of a branch reach Pages only through a throwaway branch and a temporary deploy rule, because the Pages workflow deploys from main alone.
