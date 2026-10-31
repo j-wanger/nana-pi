@@ -40,8 +40,8 @@ try {
 	idx = path.join(shared, "MEMORY.md");
 	text = fs.readFileSync(idx, "utf8");
 	let note = "";
+	let input = {};
 	try {
-		let input = {};
 		if (!process.stdin.isTTY) {
 			try { input = JSON.parse(await readHookInput(process.stdin)); } catch { input = {}; }
 		}
@@ -93,8 +93,12 @@ try {
 	const fixed = `${HEADER(idx)}\n${note ? `[nana:shared-memory] ${note}\n` : ""}`;
 	const entries = text.split(/\r?\n/).filter((line) => /^- \[/.test(line));
 	const full = fixed + entries.map((line) => `${line}\n`).join("");
+	let output = full;
+	let whole = entries;
+	let shortenedEntries = [];
+	let omitted = [];
 	if (full.length <= SHARED_MEMORY_OUTPUT_BUDGET) {
-		process.stdout.write(full);
+		// Full entries retain their original text and order.
 	} else {
 		const parts = entries.map((line) => {
 			const head = line.match(/^- \[[^\]]*\]\([^)]*\)/)?.[0] ?? line;
@@ -133,7 +137,21 @@ try {
 		}
 		const shortened = selected.filter(({ description }) => description.length > limit).length;
 		const leftOut = total - selected.length;
-		process.stdout.write(fixed + render(selected, limit) + `${FOLD_LINE(shortened, total, leftOut, idx)}\n`);
+		output = fixed + render(selected, limit) + `${FOLD_LINE(shortened, total, leftOut, idx)}\n`;
+		whole = selected.filter(({ description }) => description.length <= limit).map(({ head }) => head);
+		shortenedEntries = selected.filter(({ description }) => description.length > limit).map(({ head }) => head);
+		omitted = parts.slice(selected.length).map(({ head }) => head);
+	}
+	process.stdout.write(output);
+	try {
+		const { appendContextLoad } = await import('../../../nana-pack/lib/context-load-log.mjs');
+		// A malformed pointer has no filename: count it with null, never log its prose.
+		const files = list => list.map(line => line.match(/^- \[[^\]]*\]\(([^)]*)\)/)?.[1] ?? null);
+		appendContextLoad({ launcher: 'nana-shared-memory', role: 'seat', runtime: 'claude-code', sessionId: typeof input.session_id === 'string' ? input.session_id : null,
+			cwd: typeof input.cwd === 'string' ? input.cwd : process.env.CLAUDE_PROJECT_DIR || process.cwd(),
+			source: idx, fullChars: full.length, printedChars: output.length, whole: files(whole), shortened: files(shortenedEntries), omitted: files(omitted) });
+	} catch (error) {
+		try { process.stderr.write(`nana context load skipped: ${String(error?.code ?? 'module unavailable').replace(/[\r\n]/g, ' ')}\n`); } catch {}
 	}
 } catch {
 	// An unreadable shared index means print nothing and create nothing.

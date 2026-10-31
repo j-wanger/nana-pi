@@ -70,6 +70,8 @@ export const CLAUDE_STRICT_MCP_FLAG = '--strict-mcp-config';
 export const CLAUDE_PERMISSION_MODE_FLAG = '--permission-mode';
 export const CLAUDE_SETTING_SOURCES_FLAG = '--setting-sources';
 export const CLAUDE_SETTINGS_FLAG = '--settings';
+// contract: Claude Code 2.1.310 --help, read 2026-10-31 (R-3210).
+export const CLAUDE_EFFORT_FLAG = '--effort';
 // contract, measured 2026-10-22: named by Claude Code's `--bare` text though absent from `--help` (R-2646).
 export const CLAUDE_APPEND_PROMPT_FILE_FLAG = '--append-system-prompt-file';
 // chosen 2026-10-22: pi's sealed builder tools mapped one-to-one, without Agent, web or notebook tools (R-2646).
@@ -96,6 +98,10 @@ export const CLAUDE_CARRY_ENV_NAMES = Object.freeze([
   'CLAUDE_CODE_CERT_STORE', 'CLAUDE_CODE_CLIENT_CERT', 'CLAUDE_CODE_CLIENT_KEY',
   'CLAUDE_CODE_CLIENT_KEY_PASSPHRASE', 'ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY',
   'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_CUSTOM_HEADERS',
+  // measured 2026-10-31 in Claude Code 2.1.310 binary; carry-provenance.log in the context-anatomy review corpus (R-3211).
+  'CLAUDE_CODE_GIT_BASH_PATH', 'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX',
+  'AWS_REGION', 'AWS_PROFILE', 'CLOUD_ML_REGION', 'ANTHROPIC_VERTEX_PROJECT_ID',
+  'ANTHROPIC_MODEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL', 'ANTHROPIC_DEFAULT_HAIKU_MODEL',
 ]);
 
 // provenance: R-1120 — roles: the owner, 2026-10-06; provider and model ids: the seat's. The builder

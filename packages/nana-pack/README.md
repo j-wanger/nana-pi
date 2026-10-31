@@ -211,13 +211,14 @@ terminal or Claude Code shell, not a pi model shell:
 node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set reviewer claude-code opus
 ```
 
+The reviewer adds `--setting-sources project,local`, an external `--settings` file and `--strict-mcp-config` after its tool lists. It no longer inherits user rules, user CLAUDE.md, user hooks, user MCP instructions or auto-memory. In particular it loses the rulings, objective, verifier-pipe hook and user `permissions.defaultMode`; tools outside its allowlist are denied in print mode. Its inputs are the brief, tree movement, feature known bugs and review standard, plus project/local context. Its settings seal `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`. `--effort` comes from the exact roster model key in user `modelSettings`, else top-level `effortLevel`, else no flag; aliases are not expanded. The shared carry helper prints a value-free `claude-review:` diagnostic. Normal exit, ledger failure and handled SIGINT, SIGTERM and SIGHUP remove the settings folder. Windows also starts the existing detached cleanup watcher, without a build record or lane lock, because its SIGTERM forcibly stops the process. A POSIX hard kill, or a kill before the Windows watcher starts, can leave the folder.
+
 Known limits: the reviewer uses the live tree, not an immutable checkout, so a reviewer or concurrent
 builder edit makes the verdict unverified and consumes the round. It has no liveness watchdog, launcher
 retry or retry beyond Claude Code's own request retries; a hung `claude` hangs the launcher. The ledger
 records the alias such as `opus`, not the resolved model id, and records a null provider. The launcher
 is not on PATH and has no doctor line, so every platform starts it through Node. Read-only is an
-instruction rather than enforcement because Bash is allowed, and `claude -p` loads user rules, hooks
-and memory. Only the reviewer slot is supported; a Claude land model or second-opinion slot needs a
+instruction rather than enforcement because Bash is allowed. Only the reviewer slot is supported; a Claude land model or second-opinion slot needs a
 separate launcher. On Windows the allowed tool list has no PowerShell. A logged-out `claude` exits 1
 and the ledger returns the reservation. A killed launcher can leave `claude` running and a dead-pid
 reservation, which the next admission prunes. Claude print mode supplies only its final assistant turn,
@@ -318,6 +319,16 @@ Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`; a Claude Code lau
 Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; a later launch never reclaims it automatically. The hard-stop watcher releases only a lock that still names its pi-worker and only after the recorded builder group is gone; on Windows it keeps the lock for a builder launched through `cmd.exe`. A builder's tool command in its own process group can still outlive that builder group. Before removing a lock by hand, confirm that no builder process group or tool process for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire builder process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory. After taking the lock, a lane build appends a start record before the builder starts and an end record before releasing the lock on each handled exit. Its final build-record stderr line gives this build's outcome, elapsed minutes and recorded cost, followed by the lane summary. In a tree carrying the lane-class script at HEAD, its class line follows that build-record line.
 
 To inspect a planned list, run `node scripts/lane-class.mjs --root <dir> --files <comma-separated-paths>`; use `--base <rev>` instead of `--files` to classify the merge-base diff.
+
+#### Role context and load log
+
+`lib/known-bug-digest-config.mjs` declares a 6,000 UTF-16-unit known-bug budget. Files at or below it pass unchanged. Larger files keep the original header, then whole bug lines matching the brief's Precedent paths or backticked spans of at least four characters, then the last fitting whole bug lines. Kept lines remain in file order, not age order. The final line counts omitted bug lines and tells the builder to read the whole source before reporting touched known bugs. The pi builder receives an external digest file only for a cut.
+
+Both review launchers add feature known bugs after movement; Claude puts them before the review standard. Features follow movement order and share the budget, passing unused shares forward. If none has a file, the brief's first Feature line supplies a fallback. For pi, the first readable seat-supplied appended prompt file with a Feature line is the brief. A configured lead says recorded lines do not change a finding's class.
+
+The shared Claude carry allowlist in `bin/worker-config.mjs` includes the three helper keys, network/login env, `CLAUDE_CODE_GIT_BASH_PATH`, Bedrock and Vertex switches, `AWS_REGION`, `AWS_PROFILE`, `CLOUD_ML_REGION`, `ANTHROPIC_VERTEX_PROJECT_ID`, `ANTHROPIC_MODEL`, and the default Opus, Sonnet and Haiku model names. No hooks, permissions, MCP servers or arbitrary env keys are carried.
+
+Lane builders and both review launchers append a versioned line to `nana-context-loads.jsonl` in pi's active agent dir at launch, even for a failing child. Parts record source names and full/delivered character counts, never contents or credential values. Plain non-lane workers log nothing. Logging skips cwd-relative agent dirs, paths inside any git worktree and append failures, printing one stderr reason without changing delivery. The shared-memory hook uses the same file after stdout. Different `PI_CODING_AGENT_DIR` settings in shell and hook environments split the log. No reader or rotation ships yet.
 
 #### Build records
 

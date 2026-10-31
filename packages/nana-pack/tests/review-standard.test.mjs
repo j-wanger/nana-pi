@@ -63,10 +63,7 @@ const BLANK_TITLE = "blank review standard is refused before admission";
 	const scratch = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "review-standard-")));
 	const pack = path.join(scratch, "pack-copy");
 	for (const dir of ["bin", "prompts"]) fs.cpSync(path.join(PACK, dir), path.join(pack, dir), { recursive: true });
-	fs.mkdirSync(path.join(pack, "lib"), { recursive: true });
-	for (const lib of ["review-standard.mjs", "review-movement.mjs", "review-movement-config.mjs", "verdict-config.mjs", "win-command.mjs", "win-command-config.mjs", "process-tree.mjs", "rename-retry.mjs", "real-path.mjs"]) {
-		fs.copyFileSync(path.join(PACK, "lib", lib), path.join(pack, "lib", lib));
-	}
+	fs.cpSync(path.join(PACK, 'lib'), path.join(pack, 'lib'), { recursive: true });
 	const copyBin = path.join(pack, "bin", "pi-review.mjs");
 	const copyStandard = path.join(pack, "prompts", "review-standard.md");
 
@@ -100,7 +97,7 @@ console.log("VERDICT: LAND");
 		const out = path.join(scratch, `out-${slug}.md`);
 		const r = spawnSync(process.execPath, [copyBin, "--item", `review-standard-${slug}`, "--out", out, "--retries", "0", "--", "-p", "review"], {
 			cwd: repo,
-			env: { ...process.env, HOME: home, USERPROFILE: home, PATH: `${stubBin}${path.delimiter}${process.env.PATH}`, STUB_MARKER: marker },
+			env: { ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, '.pi/agent'), PATH: `${stubBin}${path.delimiter}${process.env.PATH}`, STUB_MARKER: marker },
 			encoding: "utf8",
 			timeout: 30_000,
 		});

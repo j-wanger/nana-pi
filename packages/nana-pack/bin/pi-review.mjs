@@ -24,7 +24,7 @@
 // Exit: 0 = a review was produced (written to --out) and its non-empty verdict recorded; 1 = refused,
 // all retries stalled, bad args, an empty recorded verdict, or the verdict could not be recorded.
 
-import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, statSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,6 +37,19 @@ import { REVIEWER_CHILD_ENV } from './worker-config.mjs';
 import { readReviewStandard } from '../lib/review-standard.mjs';
 import { reviewMovementSection } from '../lib/review-movement.mjs';
 import { MOVEMENT_HEADING, MOVEMENT_LEAD, MOVEMENT_NOT_COMPUTED, MOVEMENT_FOLDER_PREFIX, MOVEMENT_FILE_NAME } from '../lib/review-movement-config.mjs';
+import { readBrief } from '../lib/brief-precedent.mjs';
+import { reviewKnownBugSection } from '../lib/known-bug-digest.mjs';
+import { appendContextLoad, contextPart } from '../lib/context-load-log.mjs';
+
+function piOption(args, ...names) {
+  for (const name of names) {
+    for (let i=0;i<args.length;i++) {
+      if (args[i].startsWith(`${name}=`)) return args[i].slice(name.length + 1);
+      if (args[i] === name) return args[i + 1];
+    }
+  }
+  return null;
+}
 
 const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const w = parseWatchdogArgv(process.argv);
@@ -197,25 +210,38 @@ try {
   childArgs[outIndex + 1] = outPath;
   w.outPath = outPath;
   if (setupSignal) throw new Error(`aborted by ${setupSignal} while preparing the immutable checkout`);
-  const piOption = (...names) => {
-    for (const name of names) {
-      const equals = w.piArgs.find((arg) => arg.startsWith(`${name}=`));
-      if (equals) return equals.slice(name.length + 1);
-      const i = w.piArgs.indexOf(name);
-      if (i >= 0) return w.piArgs[i + 1];
-    }
-    return null;
-  };
-  const adm = admit(childArgs, { launcher: 'pi-review', cwd: process.cwd(), provider: piOption('--provider'), model: piOption('--model', '-m'), attempts: w.retries + 1 });
+  const adm = admit(childArgs, { launcher: 'pi-review', cwd: process.cwd(), provider: piOption(w.piArgs, '--provider'), model: piOption(w.piArgs, '--model', '-m'), attempts: w.retries + 1 });
   if (!adm.ok) throw new Error(adm.message);
   admittedId = adm.id;
   process.stderr.write(`pi-review: ${adm.note}\n`);
   if (adm.warning) process.stderr.write(`pi-review: WARNING: ${adm.warning}\n`);
 
+  const suppliedParts = [];
+  let reviewBrief = '';
+  for (let i=0;i<w.piArgs.length;i++) {
+    if (w.piArgs[i] !== '--append-system-prompt' && !w.piArgs[i].startsWith('--append-system-prompt=')) continue;
+    const value = piOption(w.piArgs.slice(i), '--append-system-prompt');
+    let text = value, file = null;
+    try { const candidate = resolve(sourceRoot, value); if (statSync(candidate).isFile()) { text = readFileSync(candidate,'utf8'); file = candidate; } } catch {}
+    const isBrief = file !== null && !reviewBrief && readBrief(text).feature;
+    if (isBrief) reviewBrief = text;
+    suppliedParts.push(contextPart(isBrief ? 'brief' : 'append', file ?? 'argv', text));
+    if (w.piArgs[i] === '--append-system-prompt') i++;
+  }
+  const knownBugs = reviewKnownBugSection(tempRoot, movement, reviewBrief);
+  let knownBugPrompt = null;
+  if (knownBugs.text !== null) {
+    movementFolder ??= mkdtempSync(join(tmpdir(), MOVEMENT_FOLDER_PREFIX));
+    knownBugPrompt = join(movementFolder, 'known-bugs.md');
+    writeFileSync(knownBugPrompt, knownBugs.text);
+  }
+  const parts = [...suppliedParts, ...knownBugs.parts, contextPart('standard', reviewStandard.path, reviewStandardText)];
+  if (movement !== null) parts.push(contextPart('movement', sourceRoot, movement));
+  const onSpawn = () => appendContextLoad({ launcher: 'pi-review', role: 'reviewer', runtime: 'pi', model: piOption(w.piArgs,'--model','-m'), cwd: sourceRoot, item: optionValue('--item'), parts });
   const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
   let r;
   try {
-    r = await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`, '--append-system-prompt', reviewStandardText, ...(movementPrompt === null ? [] : ['--append-system-prompt', movementPrompt])], childEnv: { ...REVIEWER_CHILD_ENV, NANA_REVIEW_ROOT: tempRoot }, accept: reviewShaped });
+    r = await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`, '--append-system-prompt', reviewStandardText, ...(movementPrompt === null ? [] : ['--append-system-prompt', movementPrompt]), ...(knownBugPrompt === null ? [] : ['--append-system-prompt', knownBugPrompt])], onSpawn, childEnv: { ...REVIEWER_CHILD_ENV, NANA_REVIEW_ROOT: tempRoot }, accept: reviewShaped });
   } finally {
     stopHeartbeat();
     if (!r?.ok) release(adm.id);

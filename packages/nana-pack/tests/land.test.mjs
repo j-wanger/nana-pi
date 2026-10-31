@@ -899,7 +899,7 @@ check("normalized checkout review lands its exact tip", () => {
 	if (process.platform === "win32") writeFakePi(fakeBin, "console.log('VERDICT: LAND');\n");
 	else { mkdirSync(fakeBin, { recursive: true }); writeFileSync(path.join(fakeBin, "pi"), "#!/bin/sh\necho 'VERDICT: LAND'\n"); chmodSync(path.join(fakeBin, "pi"), 0o755); }
 	const out = path.join(feature, "docs", "reviews", "x", "r1.md");
-	const env = { ...process.env, HOME: home, USERPROFILE: home, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}` };
+	const env = { ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, '.pi/agent'), PATH: `${fakeBin}${path.delimiter}${process.env.PATH}` };
 	const review = spawnSync(process.execPath, [PI_REVIEW, "--item", "mm3", "--out", out, "--retries", "0", "--", "-p", "review"], { cwd: feature, env, encoding: "utf8", timeout: 30000 });
 	assert.equal(review.status, 0, review.stderr);
 	const result = executeLand({ tree: feature, main, suite: 'node -e "process.exit(0)"', reviewed: [`${tip}=mm3`], home });

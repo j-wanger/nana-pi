@@ -127,7 +127,7 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 	// req: R-2560
 	check("R-2560: claude-review starts the roster's Claude Code reviewer and records its round",
 		result.status === 0 && calls.length === 1 &&
-		JSON.stringify(calls[0].argv) === JSON.stringify(["-p", "--model", "fable", "--allowedTools", "Read,Grep,Glob,Bash", "--disallowedTools", "Edit,Write,NotebookEdit"]) &&
+		JSON.stringify(calls[0].argv) === JSON.stringify(["-p", "--model", "fable", "--allowedTools", "Read,Grep,Glob,Bash", "--disallowedTools", "Edit,Write,NotebookEdit", "--setting-sources", "project,local", "--settings", calls[0].argv[calls[0].argv.indexOf('--settings') + 1], "--strict-mcp-config"]) &&
 		calls[0].role === "reviewer" && calls[0].handoff === "off" && fs.realpathSync(calls[0].cwd) === fs.realpathSync(repo) &&
 		fs.readFileSync(out, "utf8") === answer && state.rounds.length === 1 && state.rounds[0].model === "fable" && state.rounds[0].role === "final",
 		JSON.stringify({ result, calls, state }));

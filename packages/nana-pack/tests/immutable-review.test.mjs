@@ -67,7 +67,7 @@ if (process.platform === "win32") {
   fs.chmodSync(fakePi, 0o755);
 }
 const home = path.join(root, "home");
-const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`, ...extra });
+const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, '.pi/agent'), PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`, ...extra });
 // canonPath/includesWorktree compare git's canonical worktree paths with paths this test built
 // from the OS temp root. win32 uses the native real path so short and long forms agree, then
 // falls back to a resolved case-folded path after cleanup. POSIX follows the same shape.

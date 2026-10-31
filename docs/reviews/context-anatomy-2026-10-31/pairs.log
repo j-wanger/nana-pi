@@ -1,0 +1,533 @@
+PAIR R-3210 drop strict MCP: RED exit 1
+FAIL R-3210: reviewer isolation and configured effort preserve exact argv order AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  [
+    '-p',
+    '--model',
+    'fable',
+    '--allowedTools',
+...
+    '/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-claude-review-xoO2vQ/reviewer-settings.json',
+-   '--strict-mcp-config',
+    '--effort',
+    'xhigh'
+  ]
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:79:12)
+    at file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+PAIR R-3210 drop strict MCP: GREEN exit 0
+PASS R-3210: reviewer isolation and configured effort preserve exact argv order
+
+PAIR R-3210 drop effort: RED exit 1
+FAIL R-3210: reviewer isolation and configured effort preserve exact argv order AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  [
+    '-p',
+    '--model',
+    'fable',
+    '--allowedTools',
+...
+    '--strict-mcp-config',
+-   '--effort',
+-   'xhigh'
+  ]
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:79:12)
+    at file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+PAIR R-3210 drop effort: GREEN exit 0
+PASS R-3210: reviewer isolation and configured effort preserve exact argv order
+
+PAIR R-3210 hard-code xhigh: RED exit 1
+FAIL R-3210: reviewer isolation and configured effort preserve exact argv order AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  [
+    '-p',
+    '--model',
+    'fable',
+    '--allowedTools',
+...
+    '--effort',
++   'xhigh'
+-   'medium'
+  ]
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:79:12)
+    at file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+PAIR R-3210 hard-code xhigh: GREEN exit 0
+PASS R-3210: reviewer isolation and configured effort preserve exact argv order
+
+PAIR R-3210 prefer top-level effort: RED exit 1
+FAIL R-3210: reviewer isolation and configured effort preserve exact argv order AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  [
+    '-p',
+    '--model',
+    'fable',
+    '--allowedTools',
+...
+    '--effort',
++   'xhigh'
+-   'medium'
+  ]
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:79:12)
+    at file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+PAIR R-3210 prefer top-level effort: GREEN exit 0
+PASS R-3210: reviewer isolation and configured effort preserve exact argv order
+
+PAIR R-3211 copy all user settings: RED exit 1
+FAIL R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  {
+    apiKeyHelper: 'helper',
+    env: {
+      CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1',
+      CLAUDE_CODE_GIT_BASH_PATH: 'bash',
+...
+    },
++   hooks: {},
++   mcpServers: {},
++   permissions: {}
+  }
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:90:12)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3211 copy all user settings: GREEN exit 0
+PASS R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits
+
+PAIR R-3211 drop sealed auto-memory: RED exit 1
+FAIL R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
+    apiKeyHelper: 'helper',
+    env: {
+-     CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1',
+      CLAUDE_CODE_GIT_BASH_PATH: 'bash',
+      CLAUDE_CODE_USE_BEDROCK: '1',
+      HTTPS_PROXY: 'proxy',
+      NANA_HANDOFF: 'off',
+      NANA_ROLE: 'reviewer'
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:90:12)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3211 drop sealed auto-memory: GREEN exit 0
+PASS R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits
+
+PAIR R-3211 retain settings on failed ledger: RED exit 1
+FAIL R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(!fs.existsSync(r.call.settings))
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:91:79)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3211 retain settings on failed ledger: GREEN exit 0
+PASS R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits
+
+PAIR R-3211 retain settings after SIGTERM: RED exit 1
+FAIL R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(!fs.existsSync(call.settings))
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:102:10)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3211 retain settings after SIGTERM: GREEN exit 0
+PASS R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits
+
+PAIR R-3211 wrong carry launcher label: RED exit 1
+FAIL R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^claude-review: claude settings carry:/m. Input:
+
+'pi-worker: claude settings carry: apiKeyHelper, env CLAUDE_CODE_GIT_BASH_PATH, CLAUDE_CODE_USE_BEDROCK, HTTPS_PROXY; source: /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-1fAk9f/1/home/.claude/settings.json\n' +
+  'review-ledger: item "item-1" (git:/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-1fAk9f/1/repo/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (reviewer @ 4eb4ccea52d4+snap:787acbba5c02c1794996dc18f3c7992cb989367696d8a4b463363300b1aef4e0)\n' +
+  'review-ledger: verdict recorded for item item-1 (round 1; /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-1fAk9f/1/out-2.md)\n'
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:91:12)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3211 wrong carry launcher label: GREEN exit 0
+PASS R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits
+
+PAIR R-3212 cut mid-line: RED exit 1
+FAIL R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(delivered.includes(data.lines.at(-1)))
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:117:145)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3212 cut mid-line: GREEN exit 0
+PASS R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes
+
+PAIR R-3212 fill from top: RED exit 1
+FAIL R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(delivered.includes(data.lines.at(-1)))
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:117:145)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3212 fill from top: GREEN exit 0
+PASS R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes
+
+PAIR R-3212 skip brief matches: RED exit 1
+FAIL R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(delivered.includes(data.lines[2]))
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:117:99)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3212 skip brief matches: GREEN exit 0
+PASS R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes
+
+PAIR R-3212 cap pi only: RED exit 1
+FAIL R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(claude.call.prompt.endsWith(delivered))
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:118:12)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3212 cap pi only: GREEN exit 0
+PASS R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes
+
+PAIR R-3212 cap Claude only: RED exit 1
+FAIL R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(delivered.length <= capacity)
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:117:12)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3212 cap Claude only: GREEN exit 0
+PASS R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes
+
+PAIR R-3212 count bytes: RED exit 1
+FAIL R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(delivered.length + next.length + newline.length > capacity)
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:122:73)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3212 count bytes: GREEN exit 0
+PASS R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes
+
+PAIR R-3212 drop header: RED exit 1
+FAIL R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(delivered.startsWith(data.header))
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:117:53)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3212 drop header: GREEN exit 0
+PASS R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes
+
+PAIR R-3213 always fold at cap: RED exit 1
+FAIL R-3213: exactly-at-cap non-ASCII builder files pass unchanged at the original pi path AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ '/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-lane-preamble-nAPxR1/known-bugs.md'
+- '/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-xwcgFD/1/lane/docs/known-bugs/FEAT-006.md'
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:130:55)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3213 always fold at cap: GREEN exit 0
+PASS R-3213: exactly-at-cap non-ASCII builder files pass unchanged at the original pi path
+
+PAIR R-3214 omit pi known bugs: RED exit 1
+FAIL R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ "Classify each finding MUST, SHOULD or NOTE. A MUST is one of these: a must-meet test the brief names that is missing, or that still passes with the feature removed; a bug that stops the feature's main use the brief names, on a platform the brief names; or one of these harms under the brief's threat model: data lost or corrupted, a test, build step or seat script that writes outside the lane worktree or the OS temp folder (a product command writing where its contract says, such as install into the home folder, is not this harm), a broken install or hook, or something main does today that the brief does not set out to change no longer working. Name the realistic input and the consequence; if you cannot name both, the finding is a SHOULD or NOTE. Edge cases, contrived inputs, wording, citation bookkeeping and tests that miss a clause are SHOULD or NOTE; the seat records them as known bugs, fixed when someone hits one.\n" +
++   'A confirmation round reviews only the change since the revision the brief names as the last round, and whether the named MUSTs are closed.\n' +
++   'The last line of your answer is exactly `VERDICT: LAND` when no MUST stands, or `VERDICT: SEND-BACK` when one does, optionally followed by a score such as 9/10. Do not use LAND-WITH-FIXES. Write no other verdict line, except an identical one on the first line when the brief asks for it.\n'
+- '## Feature known bugs\n' +
+-   '\n' +
+-   'A recorded line is context and does not change a finding’s class under the review standard.\n' +
+-   '\n' +
+-   '# Small\n' +
+-   '\n' +
+-   '- tiny éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n'
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:144:10)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3214 omit pi known bugs: GREEN exit 0
+PASS R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading
+
+PAIR R-3214 full cap per feature: RED exit 1
+FAIL R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(section.parts.reduce((n,p)=>n+p.deliveredChars,0)<=capacity)
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:141:79)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3214 full cap per feature: GREEN exit 0
+PASS R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading
+
+PAIR R-3214 drop brief fallback: RED exit 1
+FAIL R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ "Classify each finding MUST, SHOULD or NOTE. A MUST is one of these: a must-meet test the brief names that is missing, or that still passes with the feature removed; a bug that stops the feature's main use the brief names, on a platform the brief names; or one of these harms under the brief's threat model: data lost or corrupted, a test, build step or seat script that writes outside the lane worktree or the OS temp folder (a product command writing where its contract says, such as install into the home folder, is not this harm), a broken install or hook, or something main does today that the brief does not set out to change no longer working. Name the realistic input and the consequence; if you cannot name both, the finding is a SHOULD or NOTE. Edge cases, contrived inputs, wording, citation bookkeeping and tests that miss a clause are SHOULD or NOTE; the seat records them as known bugs, fixed when someone hits one.\n" +
++   'A confirmation round reviews only the change since the revision the brief names as the last round, and whether the named MUSTs are closed.\n' +
++   'The last line of your answer is exactly `VERDICT: LAND` when no MUST stands, or `VERDICT: SEND-BACK` when one does, optionally followed by a score such as 9/10. Do not use LAND-WITH-FIXES. Write no other verdict line, except an identical one on the first line when the brief asks for it.\n'
+- null
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:144:10)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3214 drop brief fallback: GREEN exit 0
+PASS R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading
+
+PAIR R-3214 drop section lead: RED exit 1
+FAIL R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(section.text.includes(KNOWN_BUG_SECTION_LEAD))
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:140:10)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3214 drop section lead: GREEN exit 0
+PASS R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading
+
+PAIR R-3215 log only successful child: RED exit 1
+FAIL R-3215: launchers log once before outcomes with exact part counts and default-home resolution AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:165:37)
+    at file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+PAIR R-3215 log only successful child: GREEN exit 0
+PASS R-3215: launchers log once before outcomes with exact part counts and default-home resolution
+
+PAIR R-3215 log non-lane workers: RED exit 1
+FAIL R-3215: launchers log once before outcomes with exact part counts and default-home resolution AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(!fs.existsSync(f.log))
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:175:264)
+    at file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+PAIR R-3215 log non-lane workers: GREEN exit 0
+PASS R-3215: launchers log once before outcomes with exact part counts and default-home resolution
+
+PAIR R-3216 let log write throw: RED exit 1
+FAIL R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:184:73)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3216 let log write throw: GREEN exit 0
+PASS R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery
+
+PAIR R-3216 write cwd-relative log inside worktree: RED exit 1
+FAIL R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery AssertionError [ERR_ASSERTION]: The input did not match the regular expression /cwd-relative/. Input:
+
+'pi-worker: builder: fake small default; source: /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-X2JmtR/1/lane/.pi-agent/nana-pack.json\n' +
+  'pi-worker: precedent: 1 checked at HEAD fcb1dad; known bugs: none\n' +
+  'trust: none for /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-X2JmtR/1/lane — project post-edit checks are inert (nana-setup trust /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-X2JmtR/1/lane)\n' +
+  '[pi-worker] attempt 1/1\n' +
+  '[pi-worker] SUCCESS on attempt 1 (31 chars → /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-X2JmtR/1/out-4.md)\n' +
+  'pi-worker: build record: ok, exit 0, 0 min, cost unknown: no matching session in /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-X2JmtR/1/lane/.pi-agent/sessions/--private-var-folders-lg-h9m6nvvd2_9d7s3hyjvdlqxr0000gn-T-context-anatomy-X2JmtR-1-lane--; lane alpha | 3 builds | 3 ok | 0 min | 0 tokens | $0.00 | 3 unpriced\n'
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:188:27)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3216 write cwd-relative log inside worktree: GREEN exit 0
+PASS R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery
+
+PAIR R-3216 log import before hook stdout: RED exit 1
+FAIL R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ ''
+- "[nana:shared-memory] /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-j5Zrcp/14/home/.claude/nana-memory/shared/MEMORY.md — general feedback/user/reference memories are written HERE (symlinked as shared/ in this project's memory dir); project facts go in the project's own memory dir.\n" +
+-   '- [entry 0](entry-0.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 1](entry-1.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 2](entry-2.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 3](entry-3.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 4](entry-4.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 5](entry-5.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 6](entry-6.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 7](entry-7.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 8](entry-8.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 9](entry-9.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 10](entry-10.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 11](entry-11.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 12](entry-12.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 13](entry-13.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 14](entry-14.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 15](entry-15.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 16](entry-16.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 17](entry-17.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 18](entry-18.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 19](entry-19.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 20](entry-20.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 21](entry-21.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 22](entry-22.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 23](entry-23.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 24](entry-24.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 25](entry-25.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 26](entry-26.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 27](entry-27.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 28](entry-28.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 29](entry-29.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 30](entry-30.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 31](entry-31.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 32](entry-32.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 33](entry-33.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 34](entry-34.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 35](entry-35.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 36](entry-36.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 37](entry-37.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 38](entry-38.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 39](entry-39.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 40](entry-40.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 41](entry-41.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 42](entry-42.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 43](entry-43.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 44](entry-44.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 45](entry-45.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 46](entry-46.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 47](entry-47.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 48](entry-48.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 49](entry-49.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 50](entry-50.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 51](entry-51.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 52](entry-52.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 53](entry-53.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 54](entry-54.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 55](entry-55.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 56](entry-56.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 57](entry-57.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 58](entry-58.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 59](entry-59.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 60](entry-60.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 61](entry-61.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 62](entry-62.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 63](entry-63.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 64](entry-64.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 65](entry-65.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 66](entry-66.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 67](entry-67.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 68](entry-68.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 69](entry-69.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 70](entry-70.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 71](entry-71.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 72](entry-72.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 73](entry-73.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 74](entry-74.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 75](entry-75.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 76](entry-76.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 77](entry-77.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 78](entry-78.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 79](entry-79.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 80](entry-80.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 81](entry-81.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 82](entry-82.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 83](entry-83.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 84](entry-84.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 85](entry-85.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 86](entry-86.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 87](entry-87.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 88](entry-88.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 89](entry-89.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 90](entry-90.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 91](entry-91.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 92](entry-92.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 93](entry-93.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 94](entry-94.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 95](entry-95.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 96](entry-96.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 97](entry-97.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 98](entry-98.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '- [entry 99](entry-99.md) 你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é你é…\n' +
+-   '[nana:shared-memory] index shortened to fit the hook output cap: 100 of 100 entries shortened, 0 left out; full index: /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-j5Zrcp/14/home/.claude/nana-memory/shared/MEMORY.md\n'
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:194:142)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3216 log import before hook stdout: GREEN exit 0
+PASS R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery
+
+PAIR R-3216 static hook import: RED exit 1
+FAIL R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 0
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:194:110)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3216 static hook import: GREEN exit 0
+PASS R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery
+
+PAIR R-3217 log counts not filenames: RED exit 1
+FAIL R-3217: seat memory log names whole shortened and omitted entries without changing stdout AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+undefined !== 100
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:208:10)
+    at file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+PAIR R-3217 log counts not filenames: GREEN exit 0
+PASS R-3217: seat memory log names whole shortened and omitted entries without changing stdout
+
+PAIR R-3218 retune sealed limit: RED exit 1
+FAIL R-3218: known-bug digest seal is 6000 UTF-16 units AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+5999 !== 6000
+
+    at Object.fn (file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:212:76)
+    at async file:///private<temp-copy>/packages/nana-pack/tests/context-anatomy.test.mjs:216:9
+
+PAIR R-3218 retune sealed limit: GREEN exit 0
+PASS R-3218: known-bug digest seal is 6000 UTF-16 units
+
+29 pairs; 0 failed pairs

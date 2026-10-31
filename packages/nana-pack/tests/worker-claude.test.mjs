@@ -457,9 +457,9 @@ const carryCall = readRows(RECORD)[0];
 const carried = fs.existsSync(SETTINGS_COPY) ? JSON.parse(fs.readFileSync(SETTINGS_COPY, "utf8")) : null;
 const carryTop = carried ? Object.keys(carried).sort() : [];
 const carryEnv = carried ? Object.keys(carried.env).sort() : [];
-const expectedCarryEnv = [...new Set(["HTTPS_PROXY", "no_proxy", "NODE_EXTRA_CA_CERTS", "ANTHROPIC_API_KEY", ...Object.keys(sealedEnv())])].sort();
+const expectedCarryEnv = [...new Set(["HTTPS_PROXY", "no_proxy", "NODE_EXTRA_CA_CERTS", "ANTHROPIC_API_KEY", "CLAUDE_CODE_USE_BEDROCK", ...Object.keys(sealedEnv())])].sort();
 const carryLines = carryRun.stderr.split(/\r?\n/).filter((line) => line.startsWith("pi-worker: claude settings carry:"));
-const expectedCarryLine = `pi-worker: claude settings carry: apiKeyHelper, awsCredentialExport, proxyAuthHelper, env ANTHROPIC_API_KEY, HTTPS_PROXY, NODE_EXTRA_CA_CERTS, no_proxy; source: ${homeSettings}`;
+const expectedCarryLine = `pi-worker: claude settings carry: apiKeyHelper, awsCredentialExport, proxyAuthHelper, env ANTHROPIC_API_KEY, CLAUDE_CODE_USE_BEDROCK, HTTPS_PROXY, NODE_EXTRA_CA_CERTS, no_proxy; source: ${homeSettings}`;
 const allCarryOutput = `${carryRun.stdout}\n${carryRun.stderr}\n${fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf8") : ""}\n${fs.existsSync(LEDGER) ? fs.readFileSync(LEDGER, "utf8") : ""}`;
 const configDir = path.join(TEMP, "config-home"); fs.mkdirSync(configDir, { recursive: true });
 const configSettings = path.join(configDir, "settings.json");
@@ -925,6 +925,7 @@ const literalCarryNames = [
 	"HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "CLAUDE_CODE_PROXY_RESOLVES_HOSTS", "CLAUDE_CODE_PROXY_AUTH_HELPER_TTL_MS", "CLAUDE_CODE_ENABLE_PROXY_AUTH_HELPER",
 	"NODE_EXTRA_CA_CERTS", "CLAUDE_CODE_CERT_STORE", "CLAUDE_CODE_CLIENT_CERT", "CLAUDE_CODE_CLIENT_KEY", "CLAUDE_CODE_CLIENT_KEY_PASSPHRASE",
 	"ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_CUSTOM_HEADERS",
+	"CLAUDE_CODE_GIT_BASH_PATH", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "AWS_REGION", "AWS_PROFILE", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID", "ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL", "ANTHROPIC_DEFAULT_HAIKU_MODEL",
 ];
 const foldedCarry = new Set((CLAUDE_CARRY_ENV_NAMES ?? []).map((name) => name.toLowerCase()));
 // req: R-2646 R-2651 R-2654 R-2655
