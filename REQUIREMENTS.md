@@ -466,6 +466,38 @@ Reads: A-052 · packages/nana-knowledge/lib/hook.ts, packages/nana-knowledge/lib
 | R-895 | IF the child times out on the handler's own timer, exits non-zero, is missing or prints nothing, THEN no throw shall escape. | implemented | `packages/nana-knowledge/tests/extension.test.mjs::R-895: a pi pull child that exits non-zero, prints nothing, outlives the deadline or is missing throws nothing out of the handler` |
 | R-896 | Pulls from pi shall log source pi and dedup on the pi session id. | implemented | `packages/nana-knowledge/tests/extension.test.mjs::2: pull.log carries the pi session id`, `packages/nana-knowledge/tests/extension.test.mjs::2: pull.log carries source "pi"`, `packages/nana-knowledge/tests/extension.test.mjs::3: same prompt, same session → undefined`, `packages/nana-knowledge/tests/extension.test.mjs::4: a different session id pulls again` |
 
+## FEAT-040 · Make and keep memory
+Purpose: Turn past sessions and reviews into shaped, low-trust memory records that point back to their evidence, and keep them.
+Status: active
+Artifact: A-088 · memory candidates · user-home store: ~/<private --out folder>/candidates.jsonl · manual: the seat runs npm run memory:make by hand with a private home folder outside any git checkout; synthetic runs use OS temp
+Read by: A-088 · code: packages/nana-pack/lib/memory-score.mjs
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3188 | The memory maker shall shape an owner correction with text-only quote, preceding substantial seat context, per-turn day, stable ID and low-trust candidate fields. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::an owner correction becomes a shaped user candidate with what it corrects` |
+| R-3189 | The memory maker shall ignore tool results, meta turns, sidechains, summaries, wrapper traffic, nonhuman origins and torn transcript lines. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::noise yields nothing` |
+| R-3190 | The memory maker shall attach the preceding question across notification traffic to short decisions and extract answered AskUserQuestion pairs. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::decisions carry their question across notification traffic` |
+| R-3191 | The memory maker shall extract distinct MUST titles per review lane, excluding planning and build prose, as low-trust worker lessons. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::review MUSTs become worker candidates from reviewer output only` |
+| R-3192 | The evidence resolver shall return both user sources or a review title, resolve seat evidence to its record quote, with stale for a removed title index and missing for absent evidence. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::every evidence pointer resolves`; `packages/nana-pack/tests/memory-making.test.mjs::seat evidence resolves to its own quote` |
+| R-3193 | The memory maker shall refuse checkout or symlinked final output folders, write private modes outside checkouts, and print only counts or safe failures. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::real output stays private` |
+| R-3194 | The memory maker shall default to the canonical repository path and its worktree project keys and read another key only by explicit selection. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::default scope is this repo only` |
+| R-3195 | The memory scorer shall print exact kind-and-pointer recall, all-candidate precision, false-per-labelled-turn and unlabelled counts, marking unlabelled runs unscored. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::scoring prints exact counts over all candidates` |
+| R-3196 | The correction vocabulary shall be the chosen generic English cue pattern sealed in the test. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: correction cues` |
+| R-3197 | The question pattern shall select a question sentence or YOUR CALL block as sealed in the test. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: decision question pattern` |
+| R-3198 | The short-answer cap shall be 40 words. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: short answer words` |
+| R-3199 | The correction-context minimum shall be 20 words. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: correction context words` |
+| R-3200 | The claim, quote and context cap shall be 1200 characters. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: text character cap` |
+| R-3201 | The correction claim form shall be <quote> — correcting: <context>. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: correction form` |
+| R-3202 | The decision claim form shall be <quote> — answering: <context>. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: decision form` |
+| R-3203 | The candidate roles shall be seat for users and planner, builder, reviewer for workers. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: roles by source` |
+| R-3204 | The starting trust and source shall be low and extracted. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: starting trust and source` |
+| R-3205 | The legacy wrapper vocabulary shall be the command, reminder, notification and interruption markers sealed in the test. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: wrapper tags` |
+| R-3206 | The review exclusion vocabulary shall be the planning, brief, report, factcheck, movement, change and build-note pattern sealed in the test. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: review exclusions` |
+| R-3207 | The transcript day timezone shall be America/New_York. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: transcript day timezone` |
+| R-3208 | The candidate output filename shall be candidates.jsonl. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: candidates filename` |
+| R-3209 | The private checkout refusal line shall be memory: output must be outside git checkouts. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: private checkout refusal` |
+| R-3250 | The shared candidate field list shall be id, type, kind, claim, quote, context, evidence, date, trust, source, roles, validFrom, invalidAt, supersedes. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: shared candidate fields` |
+
 ## FEAT-005 · Communicate decisions clearly
 Purpose: Deliver the preferred writing guidance and check report readability and structure.
 Status: active

@@ -1,0 +1,4 @@
+PASS rule nana-writing.md is sourced from packages/nana-pack/rules
+PASS the source file exists there
+PASS the rule's Check section is the sealed check text
+PASS the rule passes nana-writing with zero findings
