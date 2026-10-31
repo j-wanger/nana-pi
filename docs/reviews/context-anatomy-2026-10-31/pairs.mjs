@@ -1,7 +1,7 @@
 /**
  * @module docs/reviews/context-anatomy-2026-10-31/pairs.mjs
  * @purpose Run the plan's wrong-code pairs in an OS-temp copy, never through the suite.
- * @inputs This checkout's implementation and the nine context delivery tests.
+ * @inputs This checkout's implementation and the ten context delivery tests.
  * @outputs Red/green pair log to stdout.
  * @effects disk (temporary code copy and mutations), process (bounded test children)
  * @errors Exits nonzero for a surviving mutation or failed green control.
@@ -21,19 +21,19 @@ pair('R-3210','drop strict MCP',review,'settingsFile, CLAUDE_STRICT_MCP_FLAG,','
 pair('R-3210','drop effort',review,'...(carry.effort ? [CLAUDE_EFFORT_FLAG, carry.effort] : [])','...[]');
 pair('R-3210','hard-code xhigh',review,'[CLAUDE_EFFORT_FLAG, carry.effort]','[CLAUDE_EFFORT_FLAG, "xhigh"]');
 pair('R-3210','prefer top-level effort',carry,'parsed.modelSettings?.[model]?.effortLevel ?? parsed.effortLevel','parsed.effortLevel ?? parsed.modelSettings?.[model]?.effortLevel');
-pair('R-3211','copy all user settings',carry,'const settings = {};','const settings = { ...parsed };');
+pair('R-3211','copy all user settings',carry,'const settings = { claudeMdExcludes };','const settings = { ...parsed, claudeMdExcludes };');
 pair('R-3211','drop sealed auto-memory',review,'{ ...CLAUDE_BUILDER_CHILD_ENV, ...REVIEWER_CHILD_ENV }','{ ...REVIEWER_CHILD_ENV }');
 pair('R-3211','retain settings on failed ledger',review,"process.once('exit', cleanup);","process.once('exit', code => { if (code === 0) cleanup(); });");
 pair('R-3211','retain settings after SIGTERM',review,'() => { cleanup(); process.exit(','() => { process.removeListener("exit", cleanup); process.exit(');
-pair('R-3211','wrong carry launcher label',review,"}, 'claude-review', reviewer.model)","}, 'pi-worker', reviewer.model)");
-pair('R-3212','cut mid-line',digest,"if (text.length <= budget)","if (text.length > budget) return { text: text.slice(0,budget) };\n  if (text.length <= budget)");
+pair('R-3211','wrong carry launcher label',review,"}, 'claude-review', reviewer.model, tree)","}, 'pi-worker', reviewer.model, tree)");
+pair('R-3212','cut mid-line',digest,"if (text.length - header.length <= budget)","if (text.length > budget) return { text: text.slice(0,budget) };\n  if (text.length - header.length <= budget)");
 pair('R-3212','fill from top',digest,'for (let i=bugs.length-1;i>=0;i--)','for (let i=0;i<bugs.length;i++)');
 pair('R-3212','skip brief matches',digest,'if (terms.some(term => bugs[i].includes(term)))','if (false)');
 pair('R-3212','cap pi only',worker,"if (digest) promptParts.push(Buffer.from('\\n\\n'), Buffer.from(digest.text));","if (digest) promptParts.push(Buffer.from('\\n\\n'), Buffer.from(bugText));");
 pair('R-3212','cap Claude only',worker,"deliveredBugPath ? ['--append-system-prompt', deliveredBugPath]","knownBugPath ? ['--append-system-prompt', knownBugPath]");
-pair('R-3212','count bytes',digest,'if (render().length > budget)','if (Buffer.byteLength(render()) > budget)');
+pair('R-3212','count bytes',digest,'if (render().length - header.length > budget)','if (Buffer.byteLength(render()) - header.length > budget)');
 pair('R-3212','drop header',digest,"let kept = header + bugs.filter","let kept = '' + bugs.filter");
-pair('R-3213','always fold at cap',digest,'if (text.length <= budget)','if (text.length < budget)');
+pair('R-3213','always fold at cap',digest,'if (text.length - header.length <= budget)','if (text.length <= budget && text.length !== KNOWN_BUG_DIGEST_CHARS)' );
 pair('R-3214','omit pi known bugs',pi,"...(knownBugPrompt === null ? [] : ['--append-system-prompt', knownBugPrompt])","...[]");
 pair('R-3214','full cap per feature',digest,'Math.floor(remaining/(files.length-i))','KNOWN_BUG_DIGEST_CHARS');
 pair('R-3214','drop brief fallback',digest,'if (!files.length) { const feature','if (false) { const feature');
@@ -47,6 +47,11 @@ pair('R-3216','static hook import',hook,'import * as fs from "node:fs";',"import
 pair('R-3217','log counts not filenames',hook,'whole: files(whole), shortened: files(shortenedEntries), omitted: files(omitted)','whole: whole.length, shortened: shortenedEntries.length, omitted: omitted.length');
 // The seal is a new test too: prove it rejects a changed limit.
 pair('R-3218','retune sealed limit','packages/nana-pack/lib/known-bug-digest-config.mjs','KNOWN_BUG_DIGEST_CHARS = 6000','KNOWN_BUG_DIGEST_CHARS = 5999');
+pair('R-3212','charge huge header against share',digest,'if (render().length - header.length > budget)','if (render().length > budget)');
+pair('R-3219','omit ancestor exclusions',carry,'const settings = { claudeMdExcludes };','const settings = {};');
+pair('R-3219','exclude only immediate parent',carry,'if (ancestor === path.dirname(ancestor)) break;','break;');
+pair('R-3219','exclude tree instructions too',carry,'path.dirname(path.resolve(tree))','path.resolve(tree)');
+pair('R-3219','retune ancestor path seal','packages/nana-pack/bin/worker-config.mjs',"'.claude/rules/**'","'.claude/rules/*.md'");
 const run=row=>spawnSync(process.execPath,[path.join(temp,'packages/nana-pack/tests/context-anatomy.test.mjs')],{cwd:temp,env:{...process.env,HOME:path.join(temp,'home'),USERPROFILE:path.join(temp,'home'),PI_CODING_AGENT_DIR:path.join(temp,'agent'),CONTEXT_CASE:row},encoding:'utf8',timeout:120_000});
 const clean=s=>String(s).replaceAll(temp,'<temp-copy>').replaceAll(root,'<checkout>');
 let failures=0;

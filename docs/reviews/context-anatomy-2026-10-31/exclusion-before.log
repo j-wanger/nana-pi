@@ -1,0 +1,6 @@
+FAIL R-3219: both Claude launchers exclude ancestor memory while keeping tree instructions eligible AssertionError [ERR_ASSERTION]: flag settings must exclude ancestor memory
+    at Object.fn (file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:94:12)
+    at file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:254:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)

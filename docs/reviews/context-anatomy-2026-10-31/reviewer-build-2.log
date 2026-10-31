@@ -1,0 +1,12 @@
+PASS R-2560: claude-review starts the roster's Claude Code reviewer and records its round 
+PASS R-2561: claude-review sends the brief, the review standard once, then the reviewer sentence 
+PASS R-2562: a pi reviewer in the roster is refused before admission 
+SKIP R-2564: Windows: claude-review starts a claude.cmd shim with a multi-line quoted brief on stdin and records a round — Windows leg only
+PASS R-2565: claude-review passes review-ledger's outcome through 
+PASS R-2566: --over-cap reaches the ledger 
+PASS R-2567: a missing, directory or blank brief or standard is refused before admission 
+PASS R-2900: claude-review sends one tree movement section, computed in the reviewed tree against main, between the brief and the review standard 
+PASS R-2902: a movement that cannot be computed reaches the reviewer as one not-computed line and the review still records its round 
+PASS R-2903: a tree with no committed ledger gets no tree movement section, even with an untracked ledger in the working tree 
+PASS R-2906: a tree movement report longer than 64 KiB reaches the reviewer whole 
+all passed

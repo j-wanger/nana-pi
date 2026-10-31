@@ -167,7 +167,7 @@ if (laneMode) {
 		BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
 		BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
 	} : null;
-	const carry = sealed ? readClaudeBuilderSettings(sealed) : null;
+	const carry = sealed ? readClaudeBuilderSettings(sealed, 'pi-worker', null, cwd) : null;
 	if (carry) process.stderr.write(`${carry.line}\n`);
 	try { buildStartTip = git('rev-parse', 'HEAD'); } catch { buildStartTip = null; }
 	for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => {});

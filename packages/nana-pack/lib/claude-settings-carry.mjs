@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/lib/claude-settings-carry.mjs
- * @purpose Carry only Claude connection settings and resolve explicitly configured model effort.
- * @inputs Sealed environment, launcher name, model and user settings file.
+ * @purpose Build role-scoped Claude settings with connection carry, ancestor memory exclusions and configured effort.
+ * @inputs Sealed environment, launcher name, model, reviewed tree and user settings file.
  * @outputs Settings object, source, effort and value-free carry diagnostic; private flag settings file.
  * @effects disk (reads user settings and writes mode-0600 flag settings)
  * @errors Read and parse failures become carry diagnostics; writes throw.
@@ -9,9 +9,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { homedir } from 'node:os';
-import { CLAUDE_CARRY_KEYS, CLAUDE_CARRY_ENV_NAMES } from '../bin/worker-config.mjs';
+import { CLAUDE_ANCESTOR_MEMORY_PATHS, CLAUDE_CARRY_KEYS, CLAUDE_CARRY_ENV_NAMES } from '../bin/worker-config.mjs';
 import { parseJsonBytes, jsonErrorPlace } from './json-text.mjs';
-export function readClaudeBuilderSettings(sealed, launcher = 'pi-worker', model = null) {
+export function readClaudeBuilderSettings(sealed, launcher = 'pi-worker', model = null, tree = process.cwd()) {
 	const configured = process.env.CLAUDE_CONFIG_DIR;
 	const source = path.join(configured !== undefined && configured !== '' ? configured : path.join(homedir(), '.claude'), 'settings.json');
 	let parsed;
@@ -29,7 +29,13 @@ export function readClaudeBuilderSettings(sealed, launcher = 'pi-worker', model 
 		reason = error?.code === 'ENOENT' ? 'not found' : `cannot read (${error?.code ?? 'unknown'})`;
 	}
 	if (!reason && (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed))) reason = 'not a JSON object';
-	const settings = {};
+	const claudeMdExcludes = [];
+	for (let ancestor = path.dirname(path.resolve(tree));; ancestor = path.dirname(ancestor)) {
+		const prefix = ancestor.split(path.sep).join('/').replace(/[?*()[\]{}!+@]/g, char => `[${char}]`);
+		for (const suffix of CLAUDE_ANCESTOR_MEMORY_PATHS) claudeMdExcludes.push(`${prefix.replace(/\/$/, '')}/${suffix}`);
+		if (ancestor === path.dirname(ancestor)) break;
+	}
+	const settings = { claudeMdExcludes };
 	const carriedKeys = [];
 	const carriedEnvNames = [];
 	if (!reason) {

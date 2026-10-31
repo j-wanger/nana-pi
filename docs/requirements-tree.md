@@ -4,7 +4,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 
 - **CAP-01 · Maintain direction and useful context**
   Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
-  Parent: — · Rows: 275 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863, R-2970–R-2977, R-2979, R-2990–R-2999, R-3210–R-3218
+  Parent: — · Rows: 276 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863, R-2970–R-2977, R-2979, R-2990–R-2999, R-3210–R-3219
   Kind: product
   Deliverables: R-001, R-108, R-873, R-201, R-217, R-749
   - **FEAT-001 · Keep goals and priorities in view**
@@ -39,8 +39,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   - **FEAT-041 · Shape each agent's context by role**
     Purpose: Give each launched agent bounded context for its role and record each delivery.
     Status: active
-    Also applies: R-2560, R-2561, R-2581, R-2647, R-2655
-    Parent: CAP-01 · Rows: 9 · IDs: R-3210–R-3218
+    Also applies: R-2560, R-2561, R-2581, R-2646, R-2647, R-2655
+    Parent: CAP-01 · Rows: 10 · IDs: R-3210–R-3219
     Artifacts: A-089
   - **FEAT-003 · Index and connect existing knowledge sources**
     Purpose: Discover, index and connect existing knowledge sources so relevant material can be retrieved across projects.
@@ -475,6 +475,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-2581 | FEAT-006 | FEAT-041 | 1 |
 | R-2584 | FEAT-014 | FEAT-006 | 1 |
 | R-2603 | FEAT-006 | FEAT-007 | 1 |
+| R-2646 | FEAT-006 | FEAT-041 | 1 |
 | R-2647 | FEAT-006 | FEAT-041 | 1 |
 | R-2652 | FEAT-014 | FEAT-006 | 1 |
 | R-2655 | FEAT-006 | FEAT-041 | 1 |

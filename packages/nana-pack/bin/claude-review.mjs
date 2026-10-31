@@ -100,7 +100,7 @@ for (const name of OPTIONAL) if (parsed.values.has(name)) ledgerArgs.push(name, 
 // The actual admission remains authoritative, including an explicit over-cap override.
 const preflight = project(ledgerArgs.slice(2));
 if (!preflight.ok && !(parsed.values.has('--over-cap') && preflight.message.includes('over the cap'))) die(preflight.message);
-const carry = readClaudeBuilderSettings({ ...CLAUDE_BUILDER_CHILD_ENV, ...REVIEWER_CHILD_ENV }, 'claude-review', reviewer.model);
+const carry = readClaudeBuilderSettings({ ...CLAUDE_BUILDER_CHILD_ENV, ...REVIEWER_CHILD_ENV }, 'claude-review', reviewer.model, tree);
 process.stderr.write(`${carry.line}\n`);
 const folder = mkdtempSync(join(tmpdir(), 'nana-claude-review-'));
 const settingsFile = join(folder, 'reviewer-settings.json');

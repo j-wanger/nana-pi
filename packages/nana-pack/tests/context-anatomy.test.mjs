@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/context-anatomy.test.mjs
  * @purpose Pin role-shaped context delivery and its private load baseline.
  * @inputs Temporary homes, linked repositories, fake children and delivery modules.
- * @outputs Nine bounded, awaited requirement checks.
+ * @outputs Ten bounded, awaited requirement checks.
  * @effects disk (OS temporary fixtures), process (git, launchers and hooks)
  * @errors Failed assertions set a nonzero exit status.
  */
@@ -24,9 +24,9 @@ let serial = 0;
 const rows = (file) => fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim().split(/\r?\n/).filter(Boolean).map(JSON.parse) : [];
 const write = (file, text) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); };
 const git = (cwd, ...args) => { const r = spawnSync('git', ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8', timeout: 10_000 }); assert.equal(r.status, 0, r.stderr); return r.stdout.trim(); };
-function fixture() {
+function fixture(inHome = false) {
   const dir = path.join(temp, String(++serial));
-  const repo = path.join(dir, 'repo'), lane = path.join(dir, 'lane'), home = path.join(dir, 'home'), agent = path.join(home, '.pi/agent'), bin = path.join(dir, 'bin');
+  const repo = path.join(dir, 'repo'), lane = path.join(dir, inHome ? 'home/lane' : 'lane'), home = path.join(dir, 'home'), agent = path.join(home, '.pi/agent'), bin = path.join(dir, 'bin');
   for (const p of [repo, home, agent, bin]) fs.mkdirSync(p, { recursive: true });
   write(path.join(repo, 'seed'), 'seed\n');
   git(repo, 'init', '-q', '-b', 'main'); git(repo, 'add', 'seed'); git(repo, 'commit', '-qm', 'seed'); git(repo, 'worktree', 'add', '-qb', 'feat/alpha', lane);
@@ -37,7 +37,7 @@ function fixture() {
 const read=p=>{try{return fs.readFileSync(p,'utf8')}catch{return p}};
 const prompts=[];for(let i=0;i<a.length;i++)if(a[i]==='--append-system-prompt')prompts.push({source:a[++i],text:read(a[i])});
 const s=a.includes('--settings')?after('--settings'):null;const p=a.includes('--append-system-prompt-file')?after('--append-system-prompt-file'):null;
-function done(stdin=''){fs.appendFileSync(process.env.RECORD,JSON.stringify({argv:a,settings:s,settingsText:s?read(s):null,prompt:p?read(p):null,prompts,stdin})+'\\n');if(process.env.HOLD)setTimeout(()=>process.exit(0),4000);else {console.log('Review complete.\\nVERDICT: LAND');process.exit(Number(process.env.CHILD_EXIT||0));}}
+function done(stdin=''){fs.appendFileSync(process.env.RECORD,JSON.stringify({argv:a,cwd:process.cwd(),settings:s,settingsText:s?read(s):null,prompt:p?read(p):null,prompts,stdin})+'\\n');if(process.env.HOLD)setTimeout(()=>process.exit(0),4000);else {console.log('Review complete.\\nVERDICT: LAND');process.exit(Number(process.env.CHILD_EXIT||0));}}
 if(a.includes('-p')&&!p&&!prompts.length){let t='';process.stdin.on('data',c=>t+=c);process.stdin.on('end',()=>done(t));}else done();`;
   const script = path.join(bin, 'fake.cjs'); write(script, body);
   if (process.platform === 'win32') { write(path.join(bin, 'claude.cmd'), `@echo off\r\n"${process.execPath}" "${script}" %*\r\n`); writeFakePi(bin, body); }
@@ -80,6 +80,33 @@ test('R-3210: reviewer isolation and configured effort preserve exact argv order
     assert.deepEqual(r.call.argv, expected); assert.ok(path.relative(f.lane, r.call.settings).startsWith('..'));
   }
 });
+// req: R-3219 R-2560 R-2646
+test('R-3219: both Claude launchers exclude ancestor memory while keeping tree instructions eligible', async () => {
+  const { CLAUDE_ANCESTOR_MEMORY_PATHS } = await import('../bin/worker-config.mjs');
+  assert.deepEqual(CLAUDE_ANCESTOR_MEMORY_PATHS, ['CLAUDE.md', 'CLAUDE.local.md', '.claude/CLAUDE.md', '.claude/rules/**']);
+  for (const launcher of ['claude-review', 'pi-worker']) {
+    const f = fixture(true);
+    write(path.join(f.home, '.claude/rules/marker.md'), 'ANCESTOR_RULE_MARKER');
+    write(path.join(f.home, 'CLAUDE.md'), 'ANCESTOR_CLAUDE_MARKER');
+    write(path.join(f.lane, 'AGENTS.md'), 'TREE_AGENTS_MARKER');
+    write(path.join(f.lane, 'CLAUDE.md'), '@AGENTS.md\nTREE_CLAUDE_MARKER');
+    write(path.join(f.home, '.claude/settings.json'), JSON.stringify({ claudeMdExcludes: ['**'] }));
+    const r = launch(f, launcher, launcher === 'pi-worker' ? ['--lane-size', 'larger'] : []); good(r);
+    const exclusions = JSON.parse(r.call.settingsText).claudeMdExcludes;
+    assert.ok(Array.isArray(exclusions), 'flag settings must exclude ancestor memory');
+    const expected = [];
+    for (let ancestor = path.dirname(f.lane);; ancestor = path.dirname(ancestor)) {
+      for (const suffix of ['CLAUDE.md', 'CLAUDE.local.md', '.claude/CLAUDE.md', '.claude/rules/**']) expected.push(path.join(ancestor, suffix).split(path.sep).join('/'));
+      if (ancestor === path.dirname(ancestor)) break;
+    }
+    assert.deepEqual(exclusions, expected);
+    assert.ok(exclusions.includes(`${f.home.split(path.sep).join('/')}/.claude/rules/**`));
+    assert.equal(r.call.cwd, f.lane);
+    assert.ok(!exclusions.some(p => p.startsWith(f.lane.split(path.sep).join('/') + '/')));
+    assert.ok(r.call.argv.includes('--settings')); assert.ok(!r.call.argv.includes('--bare')); assert.ok(!r.call.argv.includes('--safe-mode'));
+    assert.equal(fs.readFileSync(path.join(f.lane, 'CLAUDE.md'), 'utf8'), '@AGENTS.md\nTREE_CLAUDE_MARKER');
+  }
+});
 // req: R-3211
 test('R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits', async () => {
   const { CLAUDE_CARRY_ENV_NAMES } = await import('../bin/worker-config.mjs');
@@ -88,7 +115,7 @@ test('R-3211: reviewer carries only allowed settings and cleans normal failure a
     const f = fixture(); write(path.join(f.home, '.claude/settings.json'), JSON.stringify({ apiKeyHelper: 'helper', hooks: {}, mcpServers: {}, permissions: {}, env: { HTTPS_PROXY: 'proxy', CLAUDE_CODE_GIT_BASH_PATH: 'bash', CLAUDE_CODE_USE_BEDROCK: '1', FOO: 'no' } }));
     const r = launch(f, 'claude-review', [], { ...f.env, CHILD_EXIT: failure ? '1' : '0' });
     assert.equal(r.status, failure ? 1 : 0, r.stderr);
-    assert.deepEqual(JSON.parse(r.call.settingsText), { apiKeyHelper: 'helper', env: { HTTPS_PROXY: 'proxy', CLAUDE_CODE_GIT_BASH_PATH: 'bash', CLAUDE_CODE_USE_BEDROCK: '1', CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1', NANA_ROLE: 'reviewer', NANA_HANDOFF: 'off' } });
+    assert.deepEqual(JSON.parse(r.call.settingsText), { claudeMdExcludes: JSON.parse(r.call.settingsText).claudeMdExcludes, apiKeyHelper: 'helper', env: { HTTPS_PROXY: 'proxy', CLAUDE_CODE_GIT_BASH_PATH: 'bash', CLAUDE_CODE_USE_BEDROCK: '1', CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1', NANA_ROLE: 'reviewer', NANA_HANDOFF: 'off' } });
     assert.match(r.stderr, /^claude-review: claude settings carry:/m); assert.ok(!fs.existsSync(r.call.settings));
   }
   const f = fixture();
@@ -115,13 +142,25 @@ test('R-3212: over-cap builder context keeps header brief matches and maximal wh
     const f = fixture(), data = over(capacity, newline); write(f.bug, data.text);
     const pi = launch(f, 'pi-worker'); good(pi); const delivered = pi.call.prompts[2].text;
     const claude = launch(f, 'pi-worker', ['--lane-size', 'larger']); good(claude);
-    assert.ok(delivered.length <= capacity); assert.ok(delivered.startsWith(data.header)); assert.ok(delivered.includes(data.lines[2])); assert.ok(delivered.includes(data.lines.at(-1)));
+    assert.ok(delivered.length - data.header.length <= capacity); assert.ok(delivered.startsWith(data.header)); assert.ok(delivered.includes(data.lines[2])); assert.ok(delivered.includes(data.lines.at(-1)));
     assert.ok(claude.call.prompt.endsWith(delivered)); assert.ok(path.relative(f.lane, pi.call.prompts[2].source).startsWith('..'));
     const kept = delivered.split(/\r?\n/).filter(l=>l.startsWith('- ')); for (const line of kept) assert.ok(data.lines.includes(line));
     const omitted = data.lines.length - kept.length;
     assert.ok(delivered.endsWith(`${omitted} known-bug lines omitted for size; read the whole file docs/known-bugs/FEAT-006.md before you report the known bugs your change touches.`));
-    const next = data.lines.filter(l=>!kept.includes(l)).at(-1); assert.ok(delivered.length + next.length + newline.length > capacity);
+    const next = data.lines.filter(l=>!kept.includes(l)).at(-1); assert.ok(delivered.length - data.header.length + next.length + newline.length > capacity);
     const loads = rows(f.log); const part = loads[0].parts.find(p=>p.name==='known bugs'); assert.equal(part.fullChars, data.text.length); assert.equal(part.deliveredChars, delivered.length);
+  }
+  const { digestKnownBugs } = await import('../lib/known-bug-digest.mjs');
+  for (const newline of ['\n', '\r\n']) {
+    const header = '# Huge header ' + '你'.repeat(capacity + 1) + ' \t' + newline + newline;
+    const line = '- fits after header \t';
+    const source = 'docs/known-bugs/FEAT-006.md';
+    const text = header + line + newline + '- ' + 'é'.repeat(capacity * 2);
+    const result = digestKnownBugs(text, source);
+    assert.ok(result.text.startsWith(header + line + newline));
+    assert.ok(result.text.length - header.length <= capacity);
+    assert.ok(result.text.endsWith(`1 known-bug lines omitted for size; read the whole file ${source} before you report the known bugs your change touches.`));
+    assert.equal(digestKnownBugs(header.trimEnd(), source).text, header.trimEnd());
   }
 });
 // req: R-3213
@@ -139,7 +178,7 @@ test('R-3214: both reviewers share known bugs with a lead fallback ordered share
   const big = over(capacity).text; write(path.join(f.lane, 'docs/known-bugs/FEAT-007.md'), big);
   const section = reviewKnownBugSection(f.lane, 'FEAT-006 · first\r\nFEAT-007 · next \t', f.briefText);
   assert.ok(section.text.includes(KNOWN_BUG_SECTION_LEAD)); assert.equal(section.parts.length, 2);
-  assert.ok(section.parts[1].deliveredChars > Math.floor(capacity/2)); assert.ok(section.parts.reduce((n,p)=>n+p.deliveredChars,0)<=capacity);
+  assert.ok(section.parts[1].deliveredChars > Math.floor(capacity/2)); assert.ok(section.parts.reduce((n,p)=>n+p.deliveredChars,0) - '# Small\n\n'.length - over(capacity).header.length <= capacity);
   const cr = launch(f, 'claude-review'); good(cr); const pr = launch(f, 'pi-review'); good(pr);
   const piText = pr.call.prompts.at(-1).text; const expected = reviewKnownBugSection(f.lane, null, f.briefText).text;
   assert.equal(piText, expected); assert.ok(cr.call.stdin.includes(expected)); assert.ok(cr.call.stdin.indexOf(expected)<cr.call.stdin.indexOf('## Review standard'));

@@ -470,7 +470,7 @@ const configCarried = fs.existsSync(SETTINGS_COPY) ? JSON.parse(fs.readFileSync(
 const configCall = readRows(RECORD)[0];
 // req: R-2655
 check("R-2655: a Claude Code builder gets a settings file outside the worktree carrying only the login keys and network env names from the user settings, named in one line without values, and gone after the build",
-	carryRun.status === 0 && carryCall && JSON.stringify(carryTop) === JSON.stringify(["apiKeyHelper", "awsCredentialExport", "env", "proxyAuthHelper"]) &&
+	carryRun.status === 0 && carryCall && JSON.stringify(carryTop) === JSON.stringify(["apiKeyHelper", "awsCredentialExport", "claudeMdExcludes", "env", "proxyAuthHelper"]) &&
 	JSON.stringify(carryEnv) === JSON.stringify(expectedCarryEnv) && carried.apiKeyHelper === "/fake/api-helper" && carried.env.ANTHROPIC_API_KEY === secretOne && carried.env.no_proxy === "localhost" &&
 	carryLines.length === 1 && carryLines[0] === expectedCarryLine && !allCarryOutput.includes(secretOne) && !path.relative(real(LANE), carryCall.settings).split(path.sep).every((part) => part !== "..") &&
 	!fs.existsSync(carryCall.settings) && (process.platform === "win32" || (carryCall.settingsMode & 0o077) === 0) && git(LANE, "status", "--porcelain") === "" &&
@@ -510,7 +510,7 @@ for (const [name, reason, arrange] of failureCases) {
 	const copy = fs.existsSync(SETTINGS_COPY) ? JSON.parse(fs.readFileSync(SETTINGS_COPY, "utf8")) : null;
 	const carry = result.stderr.split(/\r?\n/).filter((line) => line.startsWith("pi-worker: claude settings carry:"));
 	const outputs = `${result.stdout}\n${result.stderr}\n${fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf8") : ""}`;
-	failureObservations.push({ name, ok: result.status === 0 && readRows(RECORD).length === 1 && carry.length === 1 && carry[0] === `pi-worker: claude settings carry: none; ${reason}; source: ${homeSettings}` && !outputs.includes("sk-ant-SEC") && !outputs.includes("SECRET-MARKER") && copy && JSON.stringify(Object.keys(copy)) === JSON.stringify(["env"]) && JSON.stringify(copy.env) === JSON.stringify(sealedEnv()) && call?.argv.includes(CLAUDE_SETTINGS_FLAG), status: result.status, stderr: result.stderr, copy });
+	failureObservations.push({ name, ok: result.status === 0 && readRows(RECORD).length === 1 && carry.length === 1 && carry[0] === `pi-worker: claude settings carry: none; ${reason}; source: ${homeSettings}` && !outputs.includes("sk-ant-SEC") && !outputs.includes("SECRET-MARKER") && copy && JSON.stringify(Object.keys(copy)) === JSON.stringify(["claudeMdExcludes", "env"]) && JSON.stringify(copy.env) === JSON.stringify(sealedEnv()) && call?.argv.includes(CLAUDE_SETTINGS_FLAG), status: result.status, stderr: result.stderr, copy });
 }
 // req: R-2665
 check("R-2665: a missing, unreadable, malformed or non-object user settings file prints one carry line without its content, and the builder still starts with only the sealed env",

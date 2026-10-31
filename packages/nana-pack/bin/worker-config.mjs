@@ -78,7 +78,10 @@ export const CLAUDE_APPEND_PROMPT_FILE_FLAG = '--append-system-prompt-file';
 export const CLAUDE_BUILDER_TOOLS = 'Read,Grep,Glob,Bash,Edit,Write';
 // measured 2026-10-22: default mode permits builder commands without auto-mode classification (R-2646).
 export const CLAUDE_BUILDER_PERMISSION_MODE = 'default';
-// measured 2026-10-22: project and local keep project CLAUDE.md while dropping user rules and hooks (R-2646).
+// contract: Claude Code 2.1.310 embedded settings schema and memory walk, read 2026-10-31 (R-3219).
+// Only ancestor paths receive these suffixes; the tree's own instructions remain eligible.
+export const CLAUDE_ANCESTOR_MEMORY_PATHS = Object.freeze(['CLAUDE.md', 'CLAUDE.local.md', '.claude/CLAUDE.md', '.claude/rules/**']);
+// measured 2026-10-31: project/local drop user settings and hooks, but ancestor rules are Project memory (R-2646, R-3219).
 export const CLAUDE_BUILDER_SETTING_SOURCES = 'project,local';
 // measured 2026-10-22: a native Claude process can stay flat during a healthy or hung request (R-2651).
 export const CLAUDE_BUILDER_STALL_SECS = Infinity;
