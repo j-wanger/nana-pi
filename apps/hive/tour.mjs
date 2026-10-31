@@ -80,7 +80,9 @@ export function tourPose(chapters, progress, aspect = 1) {
       // Roads may widen the lens; they must never drag the place toward an edge.
       bounds.min[0] = place.x - reach; bounds.max[0] = place.x + reach;
     }
-    return focus({ ...ch.model, bounds, chambers: [] }, null, aspect, ch.id === 'library' ? NARRATION.returnFov : undefined, fraction);
+    const pose = focus({ ...ch.model, bounds, chambers: [] }, null, aspect, ch.id === 'library' ? NARRATION.returnFov : undefined, fraction);
+    if (ch.place && !ch.visits.length && !ch.flows.length) return { ...pose, position: pose.position.map((v, axis) => pose.target[axis] + (v - pose.target[axis]) * NARRATION.closeupPadding) };
+    return pose;
   };
   const a = anchor(chapters[i]);
   if (Number.isInteger(p)) return a;

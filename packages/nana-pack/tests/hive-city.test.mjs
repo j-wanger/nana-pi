@@ -202,6 +202,7 @@ await test('R-3174: request journey frames fourteen narrated chapters', async ()
   assert.deepEqual([NARRATION.chapterWords, NARRATION.sentenceWords], [40, 24]);
   assert.equal(NARRATION.unbuiltLegend, 'Dark dashed roads are returns not built yet.');
   assert.equal(NARRATION.returnFov, 65);
+  assert.equal(NARRATION.closeupPadding, 1.4);
   assert.deepEqual([NARRATION.phoneFrameFraction, NARRATION.desktopFrameFraction], [0.28, 0.65]); const THREE = await import('../../../apps/hive/vendor/three.module.js');
   const p = await plan(), data = await audit(), m = layout(data, p), chapters = tour(m, p);
   assert.deepEqual(chapters.filter(c => !c.visit).map(c => c.id), ['overview', 'signal', 'compass', 'drafting-table', 'queue', 'workshop', 'eyes', 'review-ladder', 'land-gate', 'identity-scan', 'release-route', 'customers', 'library', 'closing']);
@@ -229,6 +230,11 @@ await test('R-3174: request journey frames fourteen narrated chapters', async ()
     for (const id of [...new Set([c.place, ...c.visits, ...c.flows.flatMap(f => f.split('>'))].filter(Boolean))]) {
       const bounds = m.chambers.find(n => n.id === id).bounds;
       for (const x of [bounds.min[0], bounds.max[0]]) for (const y of [bounds.min[1], bounds.max[1]]) for (const z of [bounds.min[2], bounds.max[2]]) { const v = new THREE.Vector3(x, y, z).project(cam); assert(Math.abs(v.x) < 1 && (1 - v.y) / 2 * VIEWPORT_HEIGHT > top && (1 - v.y) / 2 * VIEWPORT_HEIGHT < VIEWPORT_HEIGHT - bottom, `${c.id}/${id}/${width}`); }
+    }
+    if (c.place && c.id !== 'signal' && !c.visits.length && !c.flows.length) {
+      const { focus } = await import('../../../apps/hive/camera.mjs');
+      const fit = focus(m, c.place, aspect, undefined, aspect < 1 ? NARRATION.phoneFrameFraction : NARRATION.desktopFrameFraction);
+      assert(Math.abs(Math.hypot(...pose.position.map((v, j) => v - pose.target[j])) / Math.hypot(...fit.position.map((v, j) => v - fit.target[j])) - NARRATION.closeupPadding) < 1e-8);
     }
     if (c.place) {
       const n = m.chambers.find(n => n.id === c.place), v = new THREE.Vector3(n.x, (n.bounds.min[1] + n.bounds.max[1]) / 2, n.z).project(cam);

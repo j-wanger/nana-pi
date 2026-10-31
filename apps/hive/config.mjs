@@ -22,7 +22,8 @@ export const TOUR_SCROLL = Object.freeze({ readingScreens: 1, travelCap: 0.5, tr
 // contract (city-loop plan, 2026-10-31, R-3174): bounded chapter and sentence narration.
 // chosen frame fractions: reserve the phone's tall card and header, and the desktop rail.
 // chosen (build 2, 2026-10-31, R-3174): 65-degree return lens keeps the town in the foreground.
-export const NARRATION = Object.freeze({ chapterWords: 40, sentenceWords: 24, returnFov: 65, phoneFrameFraction: 0.28, desktopFrameFraction: 0.65, unbuiltLegend: 'Dark dashed roads are returns not built yet.' });
+// chosen closeupPadding (2026-10-31, R-3174): 1.4 adds step margin on the measured land-gate-to-customs zoom.
+export const NARRATION = Object.freeze({ chapterWords: 40, sentenceWords: 24, returnFov: 65, closeupPadding: 1.4, phoneFrameFraction: 0.28, desktopFrameFraction: 0.65, unbuiltLegend: 'Dark dashed roads are returns not built yet.' });
 // chosen (city-loop, 2026-10-31, R-3173): readable ribbons occupy 0.3 lane widths;
 // separate opposite offsets prevent a dashed gap from looking like a built return.
 // chosen (build 2, 2026-10-31, R-3173): ground-painted names start at 1.8 units;
