@@ -10,7 +10,7 @@ import { buildCell } from './cell.mjs';
 import { buildDistrict, animateDistrict } from './district.mjs';
 import { buildResident, buildWorkplace, animateResident, animateWorkplace } from './residents.mjs';
 import { STYLE, STREETS, CITY, DENSITY, WORKERS, CARGO } from '../config.mjs';
-import { box, drum, hoop, fence, outline, trayName, house, cargo } from './parts.mjs';
+import { box, drum, hoop, fence, outline, trayName, houseInstances, cargo } from './parts.mjs';
 import { buildRoad } from './road.mjs';
 import { visibleRoads } from '../city.mjs';
 export function buildHive(THREE, model, materials) {
@@ -57,13 +57,22 @@ export function buildHive(THREE, model, materials) {
   }
   if (model.townOuterRadius) {
     const housing = new THREE.Group(); housing.userData.housing = true; group.add(housing);
-    for (const lot of model.houses ?? []) house(THREE, materials, cube, housing, lot);
+    houseInstances(THREE, materials, cube, housing, model.houses ?? []);
     const locals = model.roads.filter(r => r.id.startsWith('local/') && r.path.length > 1);
     for (const road of locals.filter((_, i) => i % WORKERS.townStride === 0)) {
       const walker = buildResident(THREE, materials, 'walker'); walker.userData.townResident = true;
       walker.userData.carryPath = road.path.map(p => [p[0], (Math.abs(Math.hypot(...p) - model.ringRadius) < 0.1 ? STREETS.ringElevation : STREETS.elevation) + STREETS.thickness / 2, p[1]]);
       walker.userData.home = walker.userData.carryPath[0]; housing.add(walker);
     }
+  }
+  // A loaded truck follows the same declared review-to-gate-to-customs tray.
+  const outbound = ['ladder', 'land-gate', 'customs'];
+  const truckPath = outbound.slice(1).flatMap((id, i) => model.handoffs?.find(r => r.from === outbound[i] && r.to === id)?.path ?? []);
+  if (truckPath.length > 1) {
+    const truck = cargo(THREE, materials, group, { truck: true });
+    const points = truckPath.map(p => [p[0], p[2]]), lengths = points.slice(1).map((p, i) => Math.hypot(p[0] - points[i][0], p[1] - points[i][1]));
+    truck.userData.outbound = true;
+    truck.userData.traffic = { points, lengths, elevations: points.map(() => STREETS.elevation), lane: STREETS.laneWidth / 2, side: 1, truck: true };
   }
   const civic = model.chambers.filter(n => ['court', 'records', 'style'].includes(n.id));
   if (civic.length) {

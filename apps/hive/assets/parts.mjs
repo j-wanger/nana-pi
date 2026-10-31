@@ -81,6 +81,29 @@ export function house(THREE, materials, cube, parent, lot) {
   }
   return group;
 }
+// Reuse the house kit once per type; vertex colours retain its roof/door palette.
+export function houseInstances(THREE, materials, cube, parent, lots) {
+  for (const type of DENSITY.types) {
+    const placed = lots.filter(lot => lot.type === type); if (!placed.length) continue;
+    const prototype = house(THREE, materials, cube, new THREE.Group(), { x: 0, z: 0, face: [0, 1], height: DENSITY.houseHeight, type });
+    prototype.updateMatrixWorld(true);
+    const positions = [], normals = [], colors = [];
+    prototype.traverse(o => {
+      if (!o.isMesh) return;
+      const geometry = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); geometry.applyMatrix4(o.matrixWorld);
+      positions.push(...geometry.attributes.position.array); normals.push(...geometry.attributes.normal.array);
+      for (let i = 0; i < geometry.attributes.position.count; i++) colors.push(...o.material.color.toArray());
+      geometry.dispose();
+    });
+    const geometry = new THREE.BufferGeometry();
+    for (const [name, values] of [['position', positions], ['normal', normals], ['color', colors]]) geometry.setAttribute(name, new THREE.Float32BufferAttribute(values, 3));
+    const material = materials.status.sound.clone(); material.color.set('#ffffff'); material.vertexColors = true;
+    const instances = new THREE.InstancedMesh(geometry, material, placed.length), transform = new THREE.Object3D();
+    placed.forEach((lot, i) => { transform.position.set(lot.x, 0, lot.z); transform.rotation.y = Math.atan2(lot.face[0], lot.face[1]); transform.scale.set(1, lot.height / DENSITY.houseHeight, 1); transform.updateMatrix(); instances.setMatrixAt(i, transform.matrix); });
+    instances.instanceMatrix.needsUpdate = true; instances.castShadow = true; instances.receiveShadow = true;
+    instances.userData.housingInstances = type; parent.add(instances);
+  }
+}
 // The same thin ink edges serve infrastructure and figures; no renderer-global state.
 export function outline(THREE, mesh) {
   const edges = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 30), new THREE.LineBasicMaterial({ color: '#171c19', transparent: true, opacity: OUTLINES.opacity }));
@@ -111,6 +134,7 @@ export function batchStatic(THREE, root, model) {
   for (const parent of parents) {
     const inverse = parent.matrixWorld.clone().invert(), groups = new Map(), removed = [], edges = { positions: [], centers: [], widths: [] };
     const visit = o => {
+      if (o.userData.housingInstances) return;
       if (dynamic(o)) { o.traverse(p => { if (p.isMesh) p.castShadow = false; }); return; }
       const mesh = o.userData.outlineOf;
       if (mesh) {

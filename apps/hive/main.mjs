@@ -50,7 +50,7 @@ async function start(data, plan, model) {
     // Screen-space ink signs keep human-scale figures and crates legible at city
     // distance, without enlarging their geometry or changing the shared scale.
     const markerGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3()]);
-    const markerMaterial = new THREE.PointsMaterial({ color: '#303831', size: OUTLINES.fadePixels, sizeAttenuation: false });
+    const markerMaterial = new THREE.PointsMaterial({ color: '#303831', size: OUTLINES.fullPixels, sizeAttenuation: false });
     const residents = []; hive.traverse(o => { if (o.userData.role || o.userData.traffic) residents.push(o); });
     for (const o of residents) { const mark = new THREE.Points(markerGeometry, markerMaterial); mark.position.y = (o.userData.traffic ? CARGO.size : WORKERS.height) / 2; o.add(mark); o.userData.distanceMarker = mark; }
     outline = new THREE.Box3Helper(new THREE.Box3(), '#202622'); outline.visible = false; scene.add(outline);
@@ -148,7 +148,9 @@ async function start(data, plan, model) {
       // once, then flatten only the visible city. Never rebuild sun shadows on scroll.
       hive.scale.y = shadowScale === undefined ? 1 : Math.max(0.001, intro.cityScale);
       shadowScale = 1;
-      opening.hidden = intro.planOpacity === 0; opening.style.opacity = String(intro.planOpacity);
+      opening.hidden = intro.planOpacity === 0; opening.style.opacity = '1';
+      drawing.style.opacity = String(intro.planOpacity);
+      title.style.opacity = prompt.style.opacity = String(intro.planOpacity);
       current = desired;
       camera.fov = current.fov; camera.updateProjectionMatrix();
       const vector = current.position.map((v, i) => (v - current.target[i]) * zoom), angle = yaw;

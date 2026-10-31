@@ -1,0 +1,73 @@
+(node:21220) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<repo>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <repo>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+hive-page: http://127.0.0.1:52147
+SCROLL {"width":1280,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10.099999999999454,"maxTaskMs":0,"maxWorldStep":6.636408893369927,"maxRelativeStep":0.046357947251009515,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":162,"textUpdates":6,"fades":162,"draws":1319,"renders":1319,"shadows":0,"layouts":89,"buffers":0,"geometries":0}}
+capture heartbeat 2026-10-31T01:46:27.467Z
+SCROLL {"width":1280,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10.199999999998909,"maxTaskMs":0,"maxWorldStep":9.32992508008505,"maxRelativeStep":0.09837953017198324,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":193,"textUpdates":9,"fades":193,"draws":1320,"renders":1320,"shadows":0,"layouts":141,"buffers":0,"geometries":0}}
+SCROLL {"width":390,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1148,"p95Ms":10.299999999999727,"maxTaskMs":0,"maxWorldStep":36.133884485341476,"maxRelativeStep":0.037580988310794344,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":183,"textUpdates":6,"fades":183,"draws":1277,"renders":1277,"shadows":0,"layouts":174,"buffers":0,"geometries":0}}
+SCROLL {"width":390,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1186,"p95Ms":10.200000000000728,"maxTaskMs":0,"maxWorldStep":44.255427554142955,"maxRelativeStep":0.04871975941837481,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":194,"textUpdates":9,"fades":194,"draws":1318,"renders":1318,"shadows":0,"layouts":255,"buffers":0,"geometries":0}}
+capture heartbeat 2026-10-31T01:46:57.469Z
+WHOLE CITY 1280 {"frames":1202,"medianMs":8.300000000000182,"p95Ms":9.799999999999955}
+capture heartbeat 2026-10-31T01:47:27.470Z
+WHOLE CITY 390 {"frames":1202,"medianMs":8.300000000000182,"p95Ms":10.100000000000364}
+PASS explore tap selects without pose or hash change
+PASS tour tap changes nothing
+PASS tour swipe advances continuous stage without selection or hash change
+PASS 60 single 100px wheel ticks advance monotonically
+wheel stop settled: {"pose":"{\"target\":[60.268,4.65,10.627],\"position\":[60.268,37.672,59.188]}","chapter":"workshop","stage":5.188,"selection":"","hash":"","scroll":7500}
+wheel stop after 2s still: {"pose":"{\"target\":[60.268,4.65,10.627],\"position\":[60.268,37.672,59.188]}","chapter":"workshop","stage":5.188,"selection":"","hash":"","scroll":7500}
+PASS wheel stop: stage and camera hold for 2s after settling
+wheel stages: 1.018 1.061 1.123 1.195 1.273 1.353 1.435 1.515 1.598 1.679 1.762 1.844 1.924 1.999 2.070 2.139 2.205 2.273 2.340 2.407 2.473 2.540 2.606 2.674 2.740 2.807 2.873 2.940 3.007 3.074 3.140 3.207 3.274 3.340 3.407 3.474 3.540 3.607 3.674 3.739 3.806 3.874 3.940 4.007 4.074 4.140 4.207 4.274 4.339 4.406 4.474 4.540 4.607 4.674 4.740 4.807 4.874 4.941 5.007 5.074
+capture heartbeat 2026-10-31T01:47:57.473Z
+PASS five short 60px touch swipes each change camera
+touch stop settled: {"pose":"{\"target\":[-1.95,6.015,-46.89],\"position\":[-1.95,858.782,78.544]}","chapter":"overview","stage":0.15,"selection":"","hash":"","scroll":225}
+touch stop after 2s still: {"pose":"{\"target\":[-1.95,6.015,-46.89],\"position\":[-1.95,858.782,78.544]}","chapter":"overview","stage":0.15,"selection":"","hash":"","scroll":225}
+PASS touch stop: stage and camera hold for 2s after settling
+PASS rail or picker click smoothly scrolls to requested chapter
+PASS scroll reaches the same three poses as chapter hashes
+scroll overview: card overlap 0.0000
+scroll signal: card overlap 0.0425
+scroll compass: card overlap 0.0000
+scroll drafting-table: card overlap 0.0000
+scroll queue: card overlap 0.0000
+scroll workshop: card overlap 0.0000
+scroll eyes: card overlap 0.0000
+scroll review-ladder: card overlap 0.0000
+scroll land-gate: card overlap 0.0000
+scroll identity-scan: card overlap 0.0000
+scroll release-route: card overlap 0.0000
+scroll customers: card overlap 0.0000
+scroll library: card overlap 0.0000
+scroll closing: card overlap 0.0000
+PASS full phone scroll visits every chapter in order with bounded card overlap
+PASS all 390px chapter targets project between header and card
+PASS one readable card and at least 0.8 reading screens per phone chapter
+PASS 31 samples across one boundary never overlap readable cards
+street pixel 1: 0.7433 / ground 0.5828
+street pixel 2: 0.7379 / ground 0.5828
+street pixel 3: 0.7433 / ground 0.5828
+street pixel 4: 0.6235 / ground 0.5828
+street pixel 5: 0.7084 / ground 0.5828
+PASS five street pixels are lighter than their neighbouring ground
+SCROLL {"width":1280,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1187,"p95Ms":9.800000000000182,"maxTaskMs":0,"maxWorldStep":7.344271577222579,"maxRelativeStep":0.04353684449524174,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":161,"textUpdates":6,"fades":161,"draws":1318,"renders":1318,"shadows":0,"layouts":89,"buffers":0,"geometries":0}}
+capture heartbeat 2026-10-31T01:48:27.475Z
+SCROLL {"width":1280,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":9.240800073586678,"maxRelativeStep":0.10922121197593057,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":193,"textUpdates":9,"fades":193,"draws":1320,"renders":1320,"shadows":0,"layouts":141,"buffers":0,"geometries":0}}
+SCROLL {"width":390,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1147,"p95Ms":10.300000000000182,"maxTaskMs":0,"maxWorldStep":35.499489883658846,"maxRelativeStep":0.04013750117560495,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":184,"textUpdates":6,"fades":184,"draws":1276,"renders":1276,"shadows":0,"layouts":174,"buffers":0,"geometries":0}}
+capture heartbeat 2026-10-31T01:48:57.477Z
+SCROLL {"width":390,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1185,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":43.825326889824716,"maxRelativeStep":0.04938896733388001,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":196,"textUpdates":9,"fades":196,"draws":1317,"renders":1317,"shadows":0,"layouts":255,"buffers":0,"geometries":0}}
+PASS 1280/ticks: p95 below 20ms and no task above 50ms
+PASS 1280/ticks: bounded camera steps without reversal
+PASS 1280/ticks: exact page target after settling
+PASS 1280/smooth: p95 below 20ms and no task above 50ms
+PASS 1280/smooth: bounded camera steps without reversal
+PASS 1280/smooth: exact page target after settling
+PASS 390/ticks: p95 below 20ms and no task above 50ms
+PASS 390/ticks: bounded camera steps without reversal
+PASS 390/ticks: exact page target after settling
+PASS 390/smooth: p95 below 20ms and no task above 50ms
+PASS 390/smooth: bounded camera steps without reversal
+PASS 390/smooth: exact page target after settling
+gesture checks: 26 passed, 0 failed
+gesture exit 0

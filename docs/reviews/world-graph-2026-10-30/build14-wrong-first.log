@@ -1,0 +1,145 @@
+(node:42190) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<repo>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <repo>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3171: one city plan names drift both ways and refuses malformed sources before output
+PASS R-3172: radial city separates districts and rejects grid and ring controls
+PASS R-3173: scene streets match pale narrow connected frontage and the single outbound gate
+PASS R-3174: request journey frames fourteen narrated chapters
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+PASS R-3174: eased scroll settles within half a second then holds for two seconds
+PASS R-3172: dense town scale retains chosen lot and housing dimensions
+PASS R-3177: window lights follow audit status and dark target forms stay complete
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches
+PASS R-3174: card boundary never overlaps readable text and slides upward
+PASS R-3174: every chapter keeps a reading screen at desktop and phone widths
+PASS R-3174: opening is a scroll-driven flat plan ending at the tower
+PASS R-3174: phone chapter targets project above the card and below the header
+FAIL R-3172: whole-city housing retains the build-11 floor with one instance batch per house type AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+undefined !== 30
+
+    at file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:359:10
+    at async test (file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:356:1
+FAIL R-3174: opening title keeps an opaque calm band while the plan fades AssertionError [ERR_ASSERTION]: The input did not match the regular expression /opening\.style\.opacity = '1'/. Input:
+
+'/**\n' +
+  ' * @module apps/hive/main.mjs\n' +
+  ' * @purpose Wires the scroll tour and deliberate exploration to the shared hive models and scene.\n' +
+  ' * @inputs Browser document, paired JSON, hash, scroll, viewport and gesture effects.\n' +
+  ' * @outputs WebGL or pixel scene, numbered stories and chapter/pose/ready marks.\n' +
+  ' * @effects network (same-origin modules and data), process (browser frames and listeners)\n' +
+  ' * @errors Incompatible data displays one plain error; WebGL failure selects pixel.\n' +
+  ' */\n' +
+  "import { prepare, chooseRenderer, firstFrame } from './runtime.mjs';\n" +
+  "import { focus, overview, viewCentreOffset } from './camera.mjs';\n" +
+  "import { tour, tourPose, chapterProgress, stageAtScroll, chapterSpans, scrollAtStage, cardBlend, openingState, followStage } from './tour.mjs';\n" +
+  "import { explore, bindGestures } from './explore.mjs';\n" +
+  "import { visibleRoads } from './city.mjs';\n" +
+  "import { placeLabels, safeBands } from './labels.mjs';\n" +
+  "import { textLayer, renderText } from './text-layer.mjs';\n" +
+  "import { pixel, drawPixel, drawPlan } from './pixel.mjs';\n" +
+  "import { buildHive, animateHive } from './assets/hive.mjs';\n" +
+  "import { buildMaterials } from './assets/materials.mjs';\n" +
+  "import { batchStatic } from './assets/parts.mjs';\n" +
+  "import { STYLE, HIVE_BACKGROUND, STREETS, CITY, TOUR_SCROLL, WORKERS, OUTLINES, CARGO } from './config.mjs';\n" +
+  "const stories = document.querySelector('#stories'), stage = document.querySelector('.stage'), labels = document.querySelector('.labels');\n" +
+  "let canvas = document.querySelector('canvas');\n" +
+  "const preference = matchMedia('(prefers-reduced-motion: reduce)'), still = new URLSearchParams(location.search).has('still');\n" +
+  'try {\n' +
+  "  const [data, plan] = await Promise.all(['components.json', 'city.json'].map(async url => { const r = await fetch(url); if (!r.ok) throw new Error('hive: data could not be loaded'); return r.json(); }));\n" +
+  "  const overrideResponse = await fetch('layout-override.json');\n" +
+  '  const overrides = overrideResponse.ok ? await overrideResponse.json() : undefined;\n' +
+  '  const prepared = prepare(data, plan, overrides);\n' +
+  '  if (prepared.error) throw new Error(prepared.error);\n' +
+  '  await start(data, plan, prepared.scene);\n' +
+  "} catch (error) { document.querySelector('#error').textContent = error.message.startsWith('hive:') ? error.message : 'hive: data could not be loaded'; stories.replaceChildren(); }\n" +
+  'async function start(data, plan, model) {\n' +
+  "  const chapters = tour(model, plan), sections = document.querySelector('#chapters');\n" +
+  "  for (const chapter of chapters) { const section = document.createElement('section'); section.id = chapter.id; section.dataset.chapter = chapter.id; section.setAttribute('aria-label', `${chapter.number} ${chapter.id}`); sections.append(section); }\n" +
+  '  let spans = chapterSpans(chapters, stage.clientWidth / stage.clientHeight);\n' +
+  '  const sizeSpans = () => { spans = chapterSpans(chapters, stage.clientWidth / stage.clientHeight).map(s => ({ start: Math.round(s.start * stage.clientHeight) / stage.clientHeight, end: Math.round(s.end * stage.clientHeight) / stage.clientHeight })); [...sections.children].forEach((s, i) => { s.style.height = `${(spans[i].end - spans[i].start) * stage.clientHeight}px`; }); sections.style.paddingBottom = `${stage.clientHeight}px`; }; sizeSpans();\n' +
+  "  let rendererName = chooseRenderer(() => canvas.getContext('webgl2', { antialias: true, preserveDrawingBuffer: true }), location.search);\n" +
+  '  let THREE, renderer, scene, camera, hive, outline;\n' +
+  "  if (rendererName === 'webgl') try {\n" +
+  "    THREE = await import('three');\n" +
+  '    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); renderer.setPixelRatio(Math.min(devicePixelRatio, STYLE.pixelRatioCap)); renderer.setClearColor(HIVE_BACKGROUND);\n' +
+  '    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;\n' +
+  '    // Architecture is immutable; moving figures already carry their own soft contact shadows.\n' +
+  '    renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true; renderer.toneMapping = THREE.ACESFilmicToneMapping;\n' +
+  "    scene = new THREE.Scene(); scene.add(new THREE.HemisphereLight('#ffffff', '#6e776d', STYLE.lighting.ambient));\n" +
+  "    const sun = new THREE.DirectionalLight('#ffffff', STYLE.lighting.sun); sun.position.set(...STYLE.lighting.position); sun.castShadow = true;\n" +
+  '    const extent = Math.max(...model.bounds.max.map(Math.abs), ...model.bounds.min.map(Math.abs)) * 1.3;\n' +
+  '    Object.assign(sun.shadow.camera, { left: -extent, right: extent, top: extent, bottom: -extent, near: 0.1, far: extent * 8 }); sun.shadow.mapSize.set(STYLE.shadowMapSize, STYLE.shadowMapSize); sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.025; scene.add(sun);\n' +
+  '    camera = new THREE.PerspectiveCamera(STYLE.fov, 1, 0.1, 10000); hive = batchStatic(THREE, buildHive(THREE, model, buildMaterials(THREE)), model); scene.add(hive);\n' +
+  '    // Screen-space ink signs keep human-scale figures and crates legible at city\n' +
+  '    // distance, without enlarging their geometry or changing the shared scale.\n' +
+  '    const markerGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3()]);\n' +
+  "    const markerMaterial = new THREE.PointsMaterial({ color: '#303831', size: OUTLINES.fadePixels, sizeAttenuation: false });\n" +
+  '    const residents = []; hive.traverse(o => { if (o.userData.role || o.userData.traffic) residents.push(o); });\n' +
+  '    for (const o of residents) { const mark = new THREE.Points(markerGeometry, markerMaterial); mark.position.y = (o.userData.traffic ? CARGO.size : WORKERS.height) / 2; o.add(mark); o.userData.distanceMarker = mark; }\n' +
+  "    outline = new THREE.Box3Helper(new THREE.Box3(), '#202622'); outline.visible = false; scene.add(outline);\n" +
+  "  } catch { renderer?.dispose(); renderer = null; rendererName = 'pixel'; }\n" +
+  "  if (rendererName === 'pixel') { const fresh = canvas.cloneNode(); canvas.replaceWith(fresh); canvas = fresh; canvas.classList.add('pixel'); }\n" +
+  "  const raster = pixel(model), ctx = rendererName === 'pixel' ? canvas.getContext('2d') : null;\n" +
+  '  if (ctx) { canvas.width = raster.width; canvas.height = raster.height; }\n' +
+  "  const opening = document.createElement('div'); opening.className = 'opening'; opening.hidden = true;\n" +
+  "  const drawing = document.createElement('canvas'); opening.append(drawing);\n" +
+  "  const invitation = document.createElement('div'); invitation.className = 'invitation';\n" +
+  "  const title = document.createElement('h2'); title.textContent = 'One wish. A working city.';\n" +
+  "  const prompt = document.createElement('p'); prompt.textContent = 'Scroll to enter'; invitation.append(title, prompt); opening.append(invitation);\n" +
+  "  for (let i = 0; i < 3; i++) { const pulse = document.createElement('i'); pulse.style.animationDelay = `${i}s`; opening.append(pulse); }\n" +
+  '  stage.append(opening);\n' +
+  "  const root = document.documentElement; document.querySelector('#source').textContent = data.project;\n" +
+  '  root.dataset.hiveChapters = JSON.stringify(chapters.map(c => c.id));\n' +
+  "  const labelNodes = model.chambers.map(c => { const ch = chapters.find(ch => ch.place === c.id), node = document.createElement('span'); node.className = 'label'; node.dataset.component = c.component ?? c.id; node.textContent = `${ch?.number ?? '—'} ${c.name}${c.note ? ` · ${c.note}` : ''}`; labels.append(node); return node; });\n" +
+  '  const labelHeights = new Map(hive?.children.filter(c => c.userData.place).map(c => [c.userData.place, c.userData.labelHeight]));\n' +
+  "  let mode = 'tour', voice = 'plain', selected = null, entered = null, progress = 0, chapterIndex = 0, yaw = 0, zoom = 1;\n" +
+  "  let gestureState = { mode, selected, zoom }, desired = overview(model), current = desired, readingKey = '', fadeKey = '', visibleCard = '';\n" +
+  '  let width = stage.clientWidth, height = stage.clientHeight, targetStage = 0;\n' +
+  '  let follower = { stage: 0, velocity: 0, target: 0, quiet: 0 }, layoutDirty = true, bands = { top: 0, bottom: 0 }, labelCache = {};\n' +
+  '  const aspect = () => width / height;\n' +
+  '  const poseAtStage = () => openingState(chapters, progress, aspect(), still || preference.matches).pose;\n' +
+  '  const reading = () => {\n' +
+  "    const id = mode === 'tour' ? chapters[chapterIndex].id : selected;\n" +
+  '    const key = `${id}/${mode}/${voice}`;\n' +
+  '    if (key !== readingKey) { readingKey = key; layoutDirty = true; labelCache = {}; renderText(document, stories, textLayer(data, `#${id}`, rendererName, voice, chapters, mode)); }\n' +
+  "    if (mode === 'tour') {\n" +
+  '      const exact = cardBlend(progress, chapters.length), bucket = Math.round(exact.mix * TOUR_SCROLL.fadeBuckets);\n' +
+  '      const nextFadeKey = `${key}/${exact.index}/${bucket}/${progress < 1 && !still && !preference.matches}`;\n' +
+  '      if (fadeKey === nextFadeKey) return;\n' +
+  '      fadeKey = nextFadeKey;\n' +
+  '      const blend = cardBlend(exact.index + (1 - TOUR_SCROLL.crossFade) + bucket / TOUR_SCROLL.fadeBuckets * TOUR_SCROLL.crossFade, chapters.length);\n' +
+  '      const nextVisible = blend.inOpacity > TOUR_SCROLL.opacityThreshold ? blend.next : blend.outOpacity > TOUR_SCROLL.opacityThreshold ? blend.index : visibleCard;\n' +
+  '      if (nextVisible !== visibleCard) { visibleCard = nextVisible; layoutDirty = true; labelCache = {}; }\n' +
+  '      for (const [i, chapter] of chapters.entries()) {\n' +
+  '        const card = document.querySelector(`#card-${chapter.id}`), incoming = i === blend.next && blend.next !== blend.index;\n' +
+  '        const opacity = incoming ? blend.inOpacity : i === blend.index ? blend.outOpacity : 0;\n' +
+  '        const intro = progress < 1 && !still && !preference.matches;\n' +
+  '        card.hidden = intro || opacity === 0; card.style.opacity = String(opacity);\n' +
+  '        card.style.transform = `translateY(${incoming ? blend.inY : blend.outY}px)`;\n' +
+  "        card.style.pointerEvents = !intro && opacity > TOUR_SCROLL.opacityThreshold ? 'auto' : 'none'; card.setAttribute('aria-hidden', String(intro || opacity <= TOUR_SCROLL.opacityThreshold));\n" +
+  '      }\n' +
+  '    }\n' +
+  "    root.dataset.hiveSelection = selected ?? '';\n" +
+  '  };\n' +
+  '  let hashRead = false, phoneCardTop = null;\n' +
+  '  const setPose = pose => { desired = pose; current = pose; };\n' +
+  '  const apply = effect => {\n' +
+  "    if (effect.type === 'hash') { history.pushState(null, '', effect.value"... 14434 more characters
+
+    at file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:371:10
+    at async test (file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:369:1
+FAIL R-3122: bay jib reaches over the opening and lowers a crate into it each loop AssertionError [ERR_ASSERTION]: triangular jib silhouette
+    at file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:382:3
+    at async test (file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:377:1
+FAIL R-3122: sheet runner bay carriers and outbound truck travel between places after batching AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(truck?.userData.traffic?.truck)
+
+    at file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:397:59
+    at async test (file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async file://<repo>/packages/nana-pack/tests/hive-city.test.mjs:391:1

@@ -1,0 +1,90 @@
+-:1: verdict: first sentence "VERDICT: DONE for implementation and local acceptance." carries no verdict word
+-:9: passive: passive candidate: "allocated" in "No new requirement ID was allocated."
+-:9: identifier: `implemented`
+-:9: identifier: `file::title`
+-:22: passive: passive candidate: "loaded" in "Build 11's `3961ff90` city/config/layout modules were loaded from an OS temporary directory against today's real audit and the unchanged city plan."
+-:22: identifier: `3961ff90`
+-:22: identifier: `DENSITY.build11Houses = 30`
+-:24: passive: passive candidate: "dropped" in "No houses were dropped to meet the performance budget."
+-:28: passive: passive candidate: "deleted" in "No test was deleted."
+-:28: passive: passive candidate: "added" in "No new production line-oriented text reader was added."
+-:28: identifier: `packages/nana-pack/tests/hive-city.test.mjs`
+-:32: length: 33 words (cap 25)
+-:32: identifier: `R-3172: whole-city housing retains the build-11 floor with one instance batch per house type`
+-:33: length: 26 words (cap 25)
+-:33: passive: passive candidate: "judged" in "Pixel appearance is judged separately in captures."
+-:33: identifier: `R-3174: opening title keeps an opaque calm band while the plan fades`
+-:34: length: 33 words (cap 25)
+-:34: identifier: `R-3122: bay jib reaches over the opening and lowers a crate into it each loop`
+-:35: length: 37 words (cap 25)
+-:35: identifier: `R-3122: sheet runner bay carriers and outbound truck travel between places after batching`
+-:39: identifier: `R-3172: dense town scale retains chosen lot and housing dimensions`
+-:39: identifier: `build11Houses: 30`
+-:40: length: 29 words (cap 25)
+-:40: identifier: `R-3174: eased scroll settles within half a second then holds for two seconds`
+-:40: identifier: `cameraTravelBias: 0.3`
+-:41: identifier: `R-3174: request journey frames fourteen narrated chapters`
+-:41: identifier: `1 + bias`
+-:43: passive: passive candidate: "amended" in "Requirements were amended before these tests, and tests ran before their implementation."
+-:53: length: 28 words (cap 25)
+-:57: identifier: `measureScrolling`
+-:57: identifier: `build14-before.log`
+-:57: identifier: `build14-round2.log`
+-:57: identifier: `ANGLE Metal Renderer: Apple M1 Max`
+-:66: length: 27 words (cap 25)
+-:66: identifier: `maxTaskMs: 0`
+-:74: passive: passive candidate: "written" in "No output was written into either protected reference/notes directory."
+-:74: passive: passive candidate: "committed" in "All screenshots and raw JSON are external; logs and the driver are committed here."
+-:76: identifier: `/tmp/world-graph-build14-before/scroll/`
+-:77: identifier: `/tmp/world-graph-build14-round1/`
+-:78: identifier: `/tmp/world-graph-build14-round2/1280/`
+-:78: identifier: `/390/`
+-:79: identifier: `chapter-00-mid.png`
+-:79: identifier: `chapter-05-mid.png`
+-:79: identifier: `chapter-13-mid.png`
+-:79: identifier: `opening-0.png`
+-:79: identifier: `opening-4.png`
+-:80: identifier: `motion-13-0.png`
+-:80: identifier: `motion-13-3.png`
+-:80: identifier: `strip-13.png`
+-:82: identifier: `slow-scroll-00.png`
+-:82: identifier: `slow-scroll-29.png`
+-:82: identifier: `poses.json`
+-:83: identifier: `gestures/gesture-390.png`
+-:83: identifier: `gestures/scroll/`
+-:83: identifier: `scroll/`
+-:83: identifier: `whole-city.json`
+-:86: passive: passive candidate: "needed" in "No third polishing round was needed."
+-:90: passive: passive candidate: "inspected" in "The inherited 380-pixel design line was inspected at the brief's requested 390 pixels; no new exact-380 capture is claimed."
+-:118: identifier: `config.mjs`
+-:119: identifier: `city.mjs`
+-:119: identifier: `route`
+-:119: identifier: `roundPosition`
+-:119: identifier: `townHouses`
+-:120: identifier: `assets/district.mjs`
+-:121: identifier: `assets/residents.mjs`
+-:122: identifier: `main.mjs`
+-:123: identifier: `pixel.mjs`
+-:123: identifier: `drawPlan`
+-:124: identifier: `scripts/hive-gesture-check.mjs`
+-:125: length: 26 words (cap 25)
+-:125: identifier: `assets/parts.mjs`
+-:125: identifier: `assets/hive.mjs`
+-:125: identifier: `houseInstances`
+-:125: identifier: `house`
+-:125: identifier: `cargo`
+-:126: passive: passive candidate: "added" in "No independent camera clock or pose filter was added."
+-:126: identifier: `tour.mjs`
+-:126: identifier: `blendPose`
+-:127: length: 31 words (cap 25)
+-:127: passive: passive candidate: "edited" in "No files outside the lane worktree were edited except permitted OS-temp fixtures/frames and the temporary commit message."
+-:131: passive: passive candidate: "unchanged" in "The Windows R-3104 timeout is unchanged; a matching failed CI job receives one retry."
+-:131: passive: passive candidate: "changed" in "No other supplied known bug was changed or claimed fixed."
+-:135: passive: passive candidate: "committed" in "Long output is committed in this folder's `build14-*.log` files."
+-:135: passive: passive candidate: "normalized" in "Machine-specific home paths in generated logs are normalized before publication."
+-:135: identifier: `build14-*.log`
+-:158: identifier: `--report`
+-:158: identifier: `build14-writing.log`
+-:162: passive: passive candidate: "recomputed" in "The historical floor was recomputed with today's audit, not represented as a recovered historical audit."
+-:162: passive: passive candidate: "sampled" in "Visual overlap acceptance is sampled at the requested widths, not an exhaustive viewport proof."
+summary sentences=122 words=1543 over=9 passive=19 banned=0 verdict=0/1 identifiers=60

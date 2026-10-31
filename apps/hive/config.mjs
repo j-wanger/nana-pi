@@ -9,13 +9,15 @@
 // chosen (2026-10-30, R-3172): a lower three-quarter overview gives the blocks visible facades.
 export const OVERVIEW_ELEVATION = 0.8;
 // chosen (2026-10-30, R-3172): quiet street-facing blocks, narrow height band, yards and block gaps.
-export const DENSITY = Object.freeze({ footprint: 0.82, houseStep: 11, houseWidth: 6, houseDepth: 5, houseHeight: 4, heightVariation: 1.2, blockGap: 7, setback: 4, types: Object.freeze(['pitched', 'terrace', 'two-storey', 'row-three', 'yard']) });
+// measured (2026-10-30, build 11 / 3961ff90): 30 houses with the real audit; retained as the minimum floor.
+export const DENSITY = Object.freeze({ build11Houses: 30, footprint: 0.82, houseStep: 11, houseWidth: 6, houseDepth: 5, houseHeight: 4, heightVariation: 1.2, blockGap: 7, setback: 4, types: Object.freeze(['pitched', 'terrace', 'two-storey', 'row-three', 'yard']) });
 // contract (build 11 brief, R-3174): one reading screen, capped travel, sequential fades and no idle clock.
 // chosen travelScale: 100 world units per travel screen; slidePx: a quiet upward lift.
 // contract (build 13 brief, R-3174): critically damped 0.15-second follow, exact rest by 0.5 seconds.
 // chosen (2026-10-30): 32 fade buckets avoid per-tick text work; 0.12 eye distances bounds measured camera steps.
 // chosen cameraTravelFraction: spread travel over the latter half, retaining the first half's reading hold.
-export const TOUR_SCROLL = Object.freeze({ readingScreens: 1, travelCap: 0.5, travelScale: 100, crossFade: 0.15, holdCheckMs: 2000, slidePx: 12, opacityThreshold: 0.05, followSeconds: 0.15, settleSeconds: 0.5, fadeBuckets: 32, cameraStepBound: 0.12, cameraTravelFraction: 0.5 });
+// measured (2026-10-30, build 14): 0.3 front-load bias removes the late close-up speed peak without shortening the reading hold.
+export const TOUR_SCROLL = Object.freeze({ readingScreens: 1, travelCap: 0.5, travelScale: 100, crossFade: 0.15, holdCheckMs: 2000, slidePx: 12, opacityThreshold: 0.05, followSeconds: 0.15, settleSeconds: 0.5, fadeBuckets: 32, cameraStepBound: 0.12, cameraTravelFraction: 0.5, cameraTravelBias: 0.3 });
 // chosen (2026-10-30, R-3122): human scale, four-second loops, three builders and one walker per six local trays.
 export const WORKERS = Object.freeze({ height: 1.8, loopSeconds: 4, crewSize: 3, townStride: 6 });
 // contract (build 12 brief, R-3173): carryable half-metre crate; 40 percent of one lane.

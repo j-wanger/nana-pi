@@ -142,6 +142,13 @@ export function cityLayout(data, plan, overrides = {}) {
   for (const n of town) {
     const target = ring[ringIndex(n)]; add(`local/${n.id}`, 'ring', n.id, streetRoute(target, n.front, obstacles, outside), 'local', 'town');
   }
+  // Connect the town frontages into local blocks instead of leaving only short
+  // isolated spokes. The existing router keeps these trays clear of named lots.
+  const blocks = [...town].sort((a, b) => a.bearing - b.bearing);
+  for (const [i, n] of blocks.entries()) {
+    const next = blocks[(i + 1) % blocks.length];
+    add(`local/block-${i}`, n.id, next.id, streetRoute(n.front, next.front, obstacles, outside), 'local', 'town');
+  }
   const northRing = ring[0];
   add('north-link', 'ring', 'land-gate', streetRoute(northRing, northOut, obstacles.filter(n => n !== gate), outside), 'forward', 'edge');
   let prev = northOut, prevId = 'land-gate';

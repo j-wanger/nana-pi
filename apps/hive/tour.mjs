@@ -71,5 +71,8 @@ export function tourPose(chapters, progress, aspect = 1) {
   const fraction = p - i, reading = 1 - TOUR_SCROLL.cameraTravelFraction;
   if (fraction <= reading) return a;
   const t = (fraction - reading) / TOUR_SCROLL.cameraTravelFraction;
-  return blendPose(a, anchor(chapters[i + 1]), t * t * (3 - 2 * t));
+  // Spend a little more of the same travel span approaching the close-up.
+  // Both endpoint derivatives remain zero; chapter holds and destinations stay exact.
+  const front = t + TOUR_SCROLL.cameraTravelBias * t * (1 - t);
+  return blendPose(a, anchor(chapters[i + 1]), front * front * (3 - 2 * front));
 }

@@ -442,15 +442,22 @@ export function buildDistrict(THREE, n, materials) {
       box(p.sheet, 0, 0.7, 0, 0.6, 0.3, 0.05, materials.ink);
     } else if (job === 'yard' || job === 'bay') {
       // Gantry dispatches sideways; a bay's jib swings in over its open front.
-      const top = job === 'yard' ? 3.4 : 6;
-      if (job === 'bay') rig.position.z = n.radius * 0.95 + 1.8;
-      for (const x of job === 'yard' ? [-1.6, 1.6] : [-1.6]) box(rig, x, top / 2, 0, 0.16, top, 0.16);
-      p.boom = pivot(job === 'yard' ? 0 : -1.6, top, 0);
-      box(p.boom, job === 'yard' ? 0 : 1.6, 0, 0, 3.6, 0.22, 0.2, materials.bee);
-      p.hoist = new THREE.Group(); p.boom.add(p.hoist); p.hoist.position.x = job === 'yard' ? 0 : 2.8;
+      const top = job === 'yard' ? 3.4 : 8;
+      if (job === 'bay') rig.position.set(-r * 0.9, 0, r * 0.2);
+      for (const x of job === 'yard' ? [-1.6, 1.6] : []) box(rig, x, top / 2, 0, 0.16, top, 0.16);
+      p.boom = pivot(0, top, 0);
+      const reach = job === 'yard' ? 3.6 : r * 1.2;
+      box(p.boom, job === 'yard' ? 0 : reach / 2, 0, 0, reach, 0.22, 0.3, materials.bee);
+      if (job === 'bay') {
+        box(rig, 0, top / 2, 0, 0.3, top, 0.3, materials.bee);
+        box(p.boom, -1, 0, 0, 1.6, 0.6, 0.8, materials.ink);
+        const brace = beam(p.boom, [0, 1.6, 0], [reach, 0, 0], 0.08, materials.ink); brace.userData.jibBrace = true;
+        beam(p.boom, [0, 0, 0], [0, 1.6, 0], 0.1, materials.ink);
+      }
+      p.hoist = new THREE.Group(); p.boom.add(p.hoist); p.hoist.position.x = job === 'yard' ? 0 : r * 0.9;
       p.cable = box(p.hoist, 0, -0.7, 0, 0.035, 1.4, 0.035, materials.ink);
       p.load = load(p.hoist, 0, -1.8, 0);
-      if (job === 'bay') { p.frame = pivot(0, 0.2, -0.8); for (const x of [-0.65, 0.65]) box(p.frame, x, 0.6, 0, 0.12, 1.2, 0.12); box(p.frame, 0, 1.2, 0, 1.4, 0.12, 0.12); }
+      if (job === 'bay') { p.frame = pivot(r * 0.9, 0.2, r * 0.6); for (const x of [-0.65, 0.65]) box(p.frame, x, 0.6, 0, 0.12, 1.2, 0.12); box(p.frame, 0, 1.2, 0, 1.4, 0.12, 0.12); }
     } else if (job === 'inspection') {
       drum(rig, 0, 0.15, 0, 0.8, 0.3); p.table = pivot(0, 0.35, 0);
       load(p.table, 0.5, 0, 0); box(p.table, -0.5, 0.02, 0, 0.25, 0.04, 0.1, materials.ink);
@@ -500,8 +507,8 @@ export function buildDistrict(THREE, n, materials) {
     window.rotation.y = Math.atan2(face[0], face[1]); window.userData.window = true;
   }
   // A roof clerestory has a broad top face; dark buildings retain an unlit cap, never a glow.
-  const roofY = new THREE.Box3().setFromObject(building).max.y;
-  const roofLight = box(building, 0, roofY + LIGHTS.roofHeight / 2, 0, n.radius * LIGHTS.roofWidth, LIGHTS.roofHeight, n.radius * LIGHTS.roofDepth, lit ? status === 'sound' ? materials.windows.lit : materials.windows.half : materials.windows.dark);
+  const roofY = n.form === 'bay' ? 4.2 : new THREE.Box3().setFromObject(building).max.y;
+  const roofLight = box(building, 0, roofY + LIGHTS.roofHeight / 2, n.form === 'bay' ? -r * 0.7 : 0, n.radius * LIGHTS.roofWidth, LIGHTS.roofHeight, n.radius * LIGHTS.roofDepth, lit ? status === 'sound' ? materials.windows.lit : materials.windows.half : materials.windows.dark);
   roofLight.userData.roofLight = true;
   const outlined = new Set(); building.traverse(o => { if (o.userData.outlineOf) outlined.add(o.userData.outlineOf); });
   const solids = []; building.traverse(o => { if (o.isMesh && !outlined.has(o)) solids.push(o); }); solids.forEach(o => outline(THREE, o));
@@ -516,8 +523,8 @@ export function animateDistrict(rig, phase, frozen) {
   if (job === 'drafting') p.sheet.position.x = (travel - 0.5) * 1.8;
   if (job === 'yard' || job === 'bay') {
     if (job === 'yard') p.hoist.position.x = -1.3 + travel * 2.6;
-    else p.boom.rotation.y = -1.05 + travel * 2.1;
-    const drop = 0.5 + Math.abs(wave) * 1.7;
+    else p.boom.rotation.y = (1 - travel) * 0.9;
+    const drop = job === 'bay' ? 1 + travel * 5 : 0.5 + Math.abs(wave) * 1.7;
     p.cable.position.y = -drop / 2; p.cable.scale.y = drop; p.load.position.y = -drop - CARGO.size;
     if (p.frame) p.frame.position.y = 0.2 + Math.floor(t * 4) * 0.25;
   }

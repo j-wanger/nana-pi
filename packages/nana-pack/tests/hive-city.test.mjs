@@ -183,9 +183,9 @@ await test('R-3174: request journey frames fourteen narrated chapters', async ()
       assert(mid.position.every(Number.isFinite));
       const before = tourPose(chapters, i - 1 + t - CITY.positionGrid, aspect);
       const distance = Math.hypot(...tourPose(chapters, i, aspect).target.map((v, j) => v - tourPose(chapters, i - 1, aspect).target[j]));
-      // Smoothstep's maximum derivative is 1.5; travel now occupies half a span.
+      // Smoothstep's derivative is at most 1.5; the front-load warp at most 1 + bias.
       const { TOUR_SCROLL } = await import('../../../apps/hive/config.mjs');
-      assert(Math.hypot(...mid.target.map((v, j) => v - before.target[j])) <= distance * 1.5 / TOUR_SCROLL.cameraTravelFraction * CITY.positionGrid + 1e-7);
+      assert(Math.hypot(...mid.target.map((v, j) => v - before.target[j])) <= distance * 1.5 * (1 + TOUR_SCROLL.cameraTravelBias) / TOUR_SCROLL.cameraTravelFraction * CITY.positionGrid + 1e-7);
     }
   }
 });
@@ -219,7 +219,7 @@ await test('R-3174: scroll position maps to continuous stage without short-input
 // req: R-3174
 await test('R-3174: eased scroll settles within half a second then holds for two seconds', async () => {
   const config = await import('../../../apps/hive/config.mjs');
-  assert.deepEqual(config.TOUR_SCROLL, { readingScreens: 1, travelCap: 0.5, travelScale: 100, crossFade: 0.15, holdCheckMs: 2000, slidePx: 12, opacityThreshold: 0.05, followSeconds: 0.15, settleSeconds: 0.5, fadeBuckets: 32, cameraStepBound: 0.12, cameraTravelFraction: 0.5 });
+  assert.deepEqual(config.TOUR_SCROLL, { readingScreens: 1, travelCap: 0.5, travelScale: 100, crossFade: 0.15, holdCheckMs: 2000, slidePx: 12, opacityThreshold: 0.05, followSeconds: 0.15, settleSeconds: 0.5, fadeBuckets: 32, cameraStepBound: 0.12, cameraTravelFraction: 0.5, cameraTravelBias: 0.3 });
   const { followStage } = await import('../../../apps/hive/tour.mjs');
   for (const hz of [30, 60, 120]) for (const target of [0, 3.8, 13]) {
     let state = { stage: 2, velocity: 0, target: 2, quiet: 0 };
@@ -253,7 +253,7 @@ await test('R-3174: eased scroll settles within half a second then holds for two
 // req: R-3172
 await test('R-3172: dense town scale retains chosen lot and housing dimensions', async () => {
   const { DENSITY } = await import('../../../apps/hive/config.mjs');
-  assert.deepEqual(DENSITY, { footprint: 0.82, houseStep: 11, houseWidth: 6, houseDepth: 5, houseHeight: 4, heightVariation: 1.2, blockGap: 7, setback: 4, types: ['pitched', 'terrace', 'two-storey', 'row-three', 'yard'] });
+  assert.deepEqual(DENSITY, { build11Houses: 30, footprint: 0.82, houseStep: 11, houseWidth: 6, houseDepth: 5, houseHeight: 4, heightVariation: 1.2, blockGap: 7, setback: 4, types: ['pitched', 'terrace', 'two-storey', 'row-three', 'yard'] });
 });
 // req: R-3177
 await test('R-3177: window lights follow audit status and dark target forms stay complete', async () => {
@@ -351,5 +351,52 @@ await test('R-3174: phone chapter targets project above the card and below the h
     assert(y > header && y < height - bottom, `${chapters[i].id}: ${y}`);
     assert(Math.abs(y - (header + height - bottom) / 2) < 1e-7);
   }
+});
+// req: R-3172
+await test('R-3172: whole-city housing retains the build-11 floor with one instance batch per house type', async () => {
+  const { layout } = await import('../../../apps/hive/layout.mjs'), { DENSITY } = await import('../../../apps/hive/config.mjs');
+  const THREE = await import('../../../apps/hive/vendor/three.module.js'), { buildHive } = await import('../../../apps/hive/assets/hive.mjs'), { buildMaterials } = await import('../../../apps/hive/assets/materials.mjs'), { batchStatic } = await import('../../../apps/hive/assets/parts.mjs');
+  assert.equal(DENSITY.build11Houses, 30);
+  const m = layout(await audit(), await plan()); assert(m.houses.length >= DENSITY.build11Houses);
+  const scene = batchStatic(THREE, buildHive(THREE, m, buildMaterials(THREE)), m), instances = [];
+  scene.traverse(o => { if (o.isInstancedMesh && o.userData.housingInstances) instances.push(o); });
+  assert.equal(instances.length, DENSITY.types.length);
+  assert.equal(instances.reduce((sum, o) => sum + o.count, 0), m.houses.length);
+  assert(m.roads.some(r => r.id.startsWith('local/block-')), 'blocks fill the belt between existing town spokes');
+  for (const o of instances) { assert(o.geometry.attributes.color); assert(o.castShadow && o.receiveShadow); }
+});
+// req: R-3174
+await test('R-3174: opening title keeps an opaque calm band while the plan fades', async () => {
+  const source = await fs.readFile(path.join(root, 'apps/hive/main.mjs'), 'utf8'), html = await fs.readFile(path.join(root, 'apps/hive/index.html'), 'utf8');
+  assert.match(source, /opening\.style\.opacity = '1'/);
+  assert.match(source, /drawing\.style\.opacity = String\(intro\.planOpacity\)/);
+  assert.match(source, /title\.style\.opacity = prompt\.style\.opacity = String\(intro\.planOpacity\)/);
+  assert.match(html, /\.invitation\{[^}]*background:var\(--bg\)/);
+});
+// req: R-3122
+await test('R-3122: bay jib reaches over the opening and lowers a crate into it each loop', async () => {
+  const THREE = await import('../../../apps/hive/vendor/three.module.js'), { layout } = await import('../../../apps/hive/layout.mjs'), { buildHive, animateHive } = await import('../../../apps/hive/assets/hive.mjs'), { buildMaterials } = await import('../../../apps/hive/assets/materials.mjs');
+  const m = layout(await audit(), await plan()), scene = buildHive(THREE, m, buildMaterials(THREE)), bay = scene.children.find(o => o.userData.place === 'bay-1');
+  let rig; bay.traverse(o => { if (o.userData.mechanism?.job === 'bay') rig = o; });
+  const { parts: p } = rig.userData.mechanism;
+  assert(p.boom.children.some(o => o.userData.jibBrace), 'triangular jib silhouette');
+  assert(rig.position.x < 0 && Math.abs(rig.position.z) < m.chambers.find(n => n.id === 'bay-1').radius / 2);
+  const poses = [];
+  for (const time of [0, 1, 2, 3, 4]) { animateHive(scene, time, false); scene.updateMatrixWorld(true); poses.push(p.load.getWorldPosition(new THREE.Vector3()).sub(bay.position).toArray()); }
+  assert.deepEqual(poses[0], poses[4]);
+  assert(Math.max(...poses.map(p => p[1])) - Math.min(...poses.map(p => p[1])) > 3);
+  assert(poses.some(p => Math.abs(p[0]) < 2 && Math.abs(p[2]) < 3 && p[1] < 3), 'load enters open roof');
+});
+// req: R-3122
+await test('R-3122: sheet runner bay carriers and outbound truck travel between places after batching', async () => {
+  const THREE = await import('../../../apps/hive/vendor/three.module.js'), { layout } = await import('../../../apps/hive/layout.mjs'), { buildHive, animateHive } = await import('../../../apps/hive/assets/hive.mjs'), { buildMaterials } = await import('../../../apps/hive/assets/materials.mjs'), { batchStatic } = await import('../../../apps/hive/assets/parts.mjs');
+  const m = layout(await audit(), await plan()), scene = batchStatic(THREE, buildHive(THREE, m, buildMaterials(THREE)), m), travelers = [];
+  scene.traverse(o => { if (o.userData.carryPath || o.userData.outbound) travelers.push(o); });
+  assert(travelers.some(o => o.userData.role === 'runner'));
+  for (const n of m.chambers.filter(n => n.form === 'bay' && n.material.status === 'sound')) assert(travelers.some(o => o.userData.role === 'builder' && o.userData.resident.place === n.id));
+  const truck = travelers.find(o => o.userData.outbound); assert(truck?.userData.traffic?.truck);
+  const gate = m.chambers.find(n => n.id === 'land-gate');
+  assert(truck.userData.traffic.points.some(p => p[1] > gate.z) && truck.userData.traffic.points.some(p => p[1] < gate.z));
+  for (const o of travelers) { animateHive(scene, 0, false); const a = o.position.toArray(); animateHive(scene, 0.5, false); assert.notDeepEqual(o.position.toArray(), a); }
 });
 if (!process.exitCode) console.log(`${passed} hive city checks passed`);
