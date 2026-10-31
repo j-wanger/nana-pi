@@ -8,7 +8,7 @@
 
 - **The desk = "nana code"** (`apps/desk`), :7317 via `com.nana.pi-desk`, plus the two dashboards (:7320 / :7321). Frozen by the owner on 2026-10-10 until the owner reopens it; its two signing-key violations stay declared limits meanwhile. The seat parked its eight deliverables on 2026-10-22; reopening the desk deletes their park lines.
 - **Current priority: discovery (the owner, 2026-10-27).** The owner and the seat find and improve what to build, and carry what they learn into the work. Review on 2026-11-10.
-- **Lanes in flight (three building, one planned).** The memory factory runs as four lanes. memory-making is in its final review; context-anatomy and owner-profile are building; memory-shaper has a plan and builds after memory-making lands.
+- **Lanes in flight (three building).** The memory factory runs as lanes. memory-shaper is in its final review; owner-profile is in a confirmation round; context-anatomy is merging main.
 
 ## Next
 
