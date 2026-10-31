@@ -8,7 +8,7 @@
 
 - **The desk = "nana code"** (`apps/desk`), :7317 via `com.nana.pi-desk`, plus the two dashboards (:7320 / :7321). Frozen by the owner on 2026-10-10 until the owner reopens it; its two signing-key violations stay declared limits meanwhile. The seat parked its eight deliverables on 2026-10-22; reopening the desk deletes their park lines.
 - **Current priority: discovery (the owner, 2026-10-27).** The owner and the seat find and improve what to build, and carry what they learn into the work. Review on 2026-11-10.
-- **Lanes in flight (one building).** world-graph is in its final review: the 3D page becomes a city that follows one request from signal to customer.
+- **Lanes in flight (one building, one planned).** city-loop is in its final review: the city shows records, the roads back and the roads not built. lessons-flow has a plan and waits on the owner's call.
 
 ## Next
 

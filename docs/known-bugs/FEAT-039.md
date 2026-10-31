@@ -146,3 +146,11 @@
 - City page (world-graph build 12): on a software renderer the whole-city view measured 116.7 ms per frame, against 8.3 ms on Metal; machines without a GPU will scroll slowly.
 - City page (world-graph, seat check): inside a claude.ai artifact frame the page goes blank once the 3D scene starts, while the bare page and its modules load; the cause is unknown, so the page is shared through Pages only.
 - City page (world-graph, seat check): previews of a branch reach Pages only through a throwaway branch and a temporary deploy rule, because the Pages workflow deploys from main alone.
+- City page (world-graph, final review): R-3171 requires checkCityPlan(plan, live audit) to return nothing, so a later lane that adds a component to the audit turns it red until city.json gets a lot; the drift signal reaches lanes that never touch the hive.
+- City page (world-graph, final review): the published page fetches layout-override.json on every load; Pages answers 404, which the code handles, but it leaves a console error.
+- City page (world-graph, final review): city.json ships hand-written chapter text that the Pages identity scan does not cover (extends the components.json-only scan bug).
+- City page (world-graph, final review): the comment at apps/hive/city.mjs:40 names a file that no longer exists.
+- City page (city-loop, plan residual): the flow evidence check matches one working line by regex; it cannot prove the line runs.
+- City page (city-loop, seat check): in "The way back" at 1280 px the painted road names cross buildings and each other; at 390 px the chapter shows the whole city and the names cannot be read.
+- City page (city-loop, seat check): a visit draws the selection box from the place's full bounds, so its thin wire lines run far above the building and behind the card.
+- City page (city-loop build 2): the gesture checker run on its own can sample before the chapter is ready; the builder waited for each chapter in a wrapper instead of fixing the checker.
