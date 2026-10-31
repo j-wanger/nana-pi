@@ -56,10 +56,10 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: —
     Parent: CAP-01 · Rows: 62 · IDs: R-3188–R-3209, R-3230–R-3269
     Artifacts: A-088, A-090, A-091
-    - **SUB-022 · Keep a private owner profile**
+    - **SUB-023 · Keep a private owner profile**
       Purpose: Keep what the seat learns about its owner in a private, synced store, ranked by trust the owner's words earn.
       Parent: FEAT-040 · Rows: 20 · IDs: R-3230–R-3249
-    - **SUB-023 · Shape memory candidates with a model**
+    - **SUB-022 · Shape memory candidates with a model**
       Purpose: Classify owner turns and review findings with a capped, isolated model pass into the same shaped candidates, so they score against the same labels as the rules.
       Parent: FEAT-040 · Rows: 19 · IDs: R-3251–R-3269
   - **FEAT-005 · Communicate decisions clearly**

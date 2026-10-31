@@ -6,7 +6,7 @@ Merge main `a6dcc99a` into `feat/owner-profile`. The shared shape module is byte
 
 - `packages/nana-pack/lib/profile-config.mjs` imports `SOURCE_WORDS`, `USER_KIND_WORDS`, `ROLES` and `STARTING_STATE`. The profile selects the shared saved source, shared user kinds, user roles and starting trust.
 - `packages/nana-pack/lib/profile-store.mjs` imports the shared decision kind for its routed-kind refusal. Decision and open-thread still refuse. `effectiveState` remains the only effective trust/liveness reader.
-- `REQUIREMENTS.md` combines the two auto-merged FEAT-040 headings into one feature. A-088 and A-090 retain their owners and readers. SUB-022 retains all profile rows. R-3230 now states the shared-shape/source/kind/seat-evidence contract; R-3249 states shared vocabulary ownership. No new IDs or tunables.
+- `REQUIREMENTS.md` combines the two auto-merged FEAT-040 headings into one feature. A-088 and A-090 retain their owners and readers. SUB-023 retains all profile rows. R-3230 now states the shared-shape/source/kind/seat-evidence contract; R-3249 states shared vocabulary ownership. No new IDs or tunables.
 - `packages/nana-pack/README.md` retains both the profile and offline-maker sections from the conflicting merge.
 - `docs/code-map.md` and `docs/requirements-tree.md` are regenerated.
 

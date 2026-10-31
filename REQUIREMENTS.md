@@ -482,7 +482,7 @@ Read by: A-091 · code: packages/nana-pack/lib/memory-score.mjs
 | R-3209 | The private checkout refusal line shall be memory: output must be outside git checkouts. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: private checkout refusal` |
 | R-3250 | The shared candidate field list shall be id, type, kind, claim, quote, context, evidence, date, trust, source, roles, validFrom, invalidAt, supersedes. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::seal: shared candidate fields` |
 
-### SUB-022 · Keep a private owner profile
+### SUB-023 · Keep a private owner profile
 
 Purpose: Keep what the seat learns about its owner in a private, synced store, ranked by trust the owner's words earn.
 
@@ -508,7 +508,7 @@ Purpose: Keep what the seat learns about its owner in a private, synced store, r
 | R-3247 | The profile shall accept only the sealed GitHub HTTPS, SCP SSH and explicit SSH push URL forms for verification. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_REMOTE_FORMS` |
 | R-3248 | The profile shall use the sealed records, events, marker and lock layout without text conversion. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_LAYOUT` |
 | R-3249 | The profile shall use the shared saved source and user kind vocabulary with its sealed save, trust, evidence, refusal and sync words. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_WORDS` |
-### SUB-023 · Shape memory candidates with a model
+### SUB-022 · Shape memory candidates with a model
 Purpose: Classify owner turns and review findings with a capped, isolated model pass into the same shaped candidates, so they score against the same labels as the rules.
 
 | ID | Requirement | Status | Evidence |

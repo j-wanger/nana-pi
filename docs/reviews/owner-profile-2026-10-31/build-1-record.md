@@ -4,7 +4,7 @@ Follow-up: [Windows guard correction](windows-fix-record.md) records the first h
 
 ## Scope and files
 
-Feature FEAT-040, subgroup SUB-022, artifact A-090. The build serves the current priority of carrying learning into later work. The build stays on `feat/owner-profile`; no main commit, real profile, real profile remote, issue, HANDOFF, known-bug file or session archive was changed.
+Feature FEAT-040, subgroup SUB-023, artifact A-090. The build serves the current priority of carrying learning into later work. The build stays on `feat/owner-profile`; no main commit, real profile, real profile remote, issue, HANDOFF, known-bug file or session archive was changed.
 
 - New command: `packages/nana-pack/bin/nana-profile.mjs` (`init`, `save`, `confirm`, `retract`, `supersede`, `show`, `sync`).
 - New library files: `packages/nana-pack/lib/profile-config.mjs`, `profile-store.mjs`, `profile-sync.mjs`, `pack-config-write.mjs`, and the shape-only `memory-making-config.mjs`.
