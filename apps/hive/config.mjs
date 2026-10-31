@@ -19,6 +19,13 @@ export const DENSITY = Object.freeze({ build11Houses: 30, footprint: 0.82, house
 // measured (2026-10-30, build 14): 0.3 front-load bias removes the late close-up speed peak without shortening the reading hold.
 export const TOUR_SCROLL = Object.freeze({ readingScreens: 1, travelCap: 0.5, travelScale: 100, crossFade: 0.15, holdCheckMs: 2000, slidePx: 12, opacityThreshold: 0.05, followSeconds: 0.15, settleSeconds: 0.5, fadeBuckets: 32, cameraStepBound: 0.12, cameraTravelFraction: 0.5, cameraTravelBias: 0.3 });
 // chosen (2026-10-30, R-3122): human scale, four-second loops, three builders and one walker per six local trays.
+// contract (city-loop plan, 2026-10-31, R-3174): bounded chapter and sentence narration.
+// chosen frame fractions: reserve the phone's tall card and header, and the desktop rail.
+export const NARRATION = Object.freeze({ chapterWords: 40, sentenceWords: 24, phoneFrameFraction: 0.28, desktopFrameFraction: 0.65, unbuiltLegend: 'Dark dashed roads are returns not built yet.' });
+// chosen (city-loop, 2026-10-31, R-3173): readable ribbons occupy 0.3 lane widths;
+// separate opposite offsets prevent a dashed gap from looking like a built return.
+// chosen dimFraction (R-3174): keep context while the active chapter names its roads.
+export const RETURNS = Object.freeze({ widthFraction: 0.3, dimFraction: 0.25, builtOffset: -0.2, unbuiltOffset: 0.2, height: 0.06, thickness: 0.04 });
 export const WORKERS = Object.freeze({ height: 1.8, loopSeconds: 4, crewSize: 3, townStride: 6 });
 // contract (build 12 brief, R-3173): carryable half-metre crate; 40 percent of one lane.
 // chosen palletHeight: a low flat carrier, derived from the same human unit.
@@ -44,7 +51,7 @@ export const LIGHTS = Object.freeze({ roofWidth: 0.9, roofDepth: 0.25, roofHeigh
 export const RESIDENT_TRIANGLE_BUDGET = 600;
 // contract (city plan revision 3, R-3171); vocabulary is shared by the checker and its sealed pin.
 export const CITY_DISTRICTS = Object.freeze(['sky', 'park', 'town', 'edge', 'outside']);
-export const CITY_FORMS = Object.freeze(['tower', 'drafting', 'yard', 'bay', 'eyes', 'stair', 'gate', 'tools', 'lab', 'hall', 'vault', 'theater', 'court', 'records', 'style', 'survey', 'utilities', 'control', 'stage', 'billboard', 'customs', 'freight', 'craft', 'customers', 'neighbour', 'feedback']);
+export const CITY_FORMS = Object.freeze(['tower', 'drafting', 'yard', 'bay', 'eyes', 'stair', 'gate', 'tools', 'lab', 'hall', 'vault', 'theater', 'court', 'records', 'style', 'survey', 'utilities', 'control', 'stage', 'billboard', 'customs', 'freight', 'craft', 'customers', 'neighbour', 'feedback', 'archive', 'ledger', 'watchtower']);
 // chosen (2026-10-29, R-3122): enough visible activity without a swarm hiding a chamber.
 export const BEE_CAP = 12;
 // chosen (2026-10-29, R-3123): six-sided extrusions and a small faceted bee, without subdivision.

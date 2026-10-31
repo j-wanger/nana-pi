@@ -14,7 +14,7 @@ import { visibleRoads } from './city.mjs';
 import { placeLabels, safeBands } from './labels.mjs';
 import { textLayer, renderText } from './text-layer.mjs';
 import { pixel, drawPixel, drawPlan } from './pixel.mjs';
-import { buildHive, animateHive } from './assets/hive.mjs';
+import { buildHive, animateHive, emphasizeReturns } from './assets/hive.mjs';
 import { buildMaterials } from './assets/materials.mjs';
 import { batchStatic } from './assets/parts.mjs';
 import { STYLE, HIVE_BACKGROUND, STREETS, CITY, TOUR_SCROLL, WORKERS, OUTLINES, CARGO } from './config.mjs';
@@ -51,8 +51,8 @@ async function start(data, plan, model) {
     // distance, without enlarging their geometry or changing the shared scale.
     const markerGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3()]);
     const markerMaterial = new THREE.PointsMaterial({ color: '#303831', size: OUTLINES.fullPixels, sizeAttenuation: false });
-    const residents = []; hive.traverse(o => { if (o.userData.role || o.userData.traffic) residents.push(o); });
-    for (const o of residents) { const mark = new THREE.Points(markerGeometry, markerMaterial); mark.position.y = (o.userData.traffic ? CARGO.size : WORKERS.height) / 2; o.add(mark); o.userData.distanceMarker = mark; }
+    const residents = []; hive.traverse(o => { if (o.userData.role || o.userData.traffic || o.userData.packet) residents.push(o); });
+    for (const o of residents) { const mark = new THREE.Points(markerGeometry, o.userData.packet ? new THREE.PointsMaterial({ color: '#ffffff', size: OUTLINES.fullPixels, sizeAttenuation: false }) : markerMaterial); mark.position.y = (o.userData.traffic || o.userData.packet ? CARGO.size : WORKERS.height) / 2; o.add(mark); o.userData.distanceMarker = mark; }
     outline = new THREE.Box3Helper(new THREE.Box3(), '#202622'); outline.visible = false; scene.add(outline);
   } catch { renderer?.dispose(); renderer = null; rendererName = 'pixel'; }
   if (rendererName === 'pixel') { const fresh = canvas.cloneNode(); canvas.replaceWith(fresh); canvas = fresh; canvas.classList.add('pixel'); }
@@ -169,15 +169,15 @@ async function start(data, plan, model) {
       const activePlace = model.chambers.find(c => c.component === active || c.id === active)?.id;
       hive.userData.batchSelection.value = mode === 'explore' ? hive.userData.batchOwners.indexOf(active) : -1;
       const selectionKey = `${mode}/${chapterIndex}/${selected}`;
-      if (hive.userData.selectionKey !== selectionKey) { hive.userData.selectionKey = selectionKey; hive.children.forEach(o => {
+      if (hive.userData.selectionKey !== selectionKey) { hive.userData.selectionKey = selectionKey; emphasizeReturns(hive, mode === 'tour' ? chapters[chapterIndex].flows : []); hive.children.forEach(o => {
         if (o.userData.road) { o.visible = visible.some(r => r.id === o.userData.road); const incident = mode === 'explore' && activePlace && model.roads.find(r => r.id === o.userData.road && [r.from, r.to].includes(activePlace)); o.traverse(m => { if (m.isMesh && m.userData.roadSurface) { if (!m.userData.original) { m.userData.original = m.material; m.material = m.material.clone(); } m.material.color.set(incident ? '#171c19' : m.userData.original.color); } }); }
         if (o.userData.component) o.traverse(m => { if (m.isMesh) { m.userData.highlight ??= m.material.clone(); m.material = m.userData.highlight; m.material.emissive?.set(o.userData.component === active ? '#303831' : '#000000'); m.material.emissiveIntensity = 0.12; } });
       }); }
       const worldPosition = new THREE.Vector3();
       hive.traverse(o => {
-        if (o.userData.role || o.userData.workplace || o.userData.mechanism || o.userData.traffic) {
+        if (o.userData.role || o.userData.workplace || o.userData.mechanism || o.userData.traffic || o.userData.packet) {
           o.getWorldPosition(worldPosition);
-          const size = o.userData.traffic ? CARGO.size : WORKERS.height;
+          const size = o.userData.traffic || o.userData.packet ? CARGO.size : WORKERS.height;
           const pixels = size * height / (2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.distanceTo(worldPosition));
           o.visible = Boolean(o.userData.mechanism || o.userData.distanceMarker) || pixels >= OUTLINES.fadePixels;
           if (o.userData.distanceMarker) o.userData.distanceMarker.visible = pixels < OUTLINES.fullPixels;
@@ -197,7 +197,7 @@ async function start(data, plan, model) {
         renderer.render(scene, camera);
         renderer.setScissorTest(false);
       } else renderer.render(scene, camera);
-      model.chambers.forEach((c, i) => { const p = new THREE.Vector3(c.x, labelHeights.get(c.id), c.z).project(camera), node = labelNodes[i]; node.textContent = mode === 'tour' && c.id === chapters[chapterIndex].place ? `${chapters[chapterIndex].number} ${chapters[chapterIndex].name}` : `${c.name}${c.note ? ` · ${c.note}` : ''}`; node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1 || !(mode === 'tour' && chapters[chapterIndex].place ? c.id === chapters[chapterIndex].place : mode === 'explore' && c.id === activePlace); node.dataset.x = (p.x + 1) / 2 * width; node.dataset.y = (1 - p.y) / 2 * height; const pick = new THREE.Vector3(c.x, 0, c.z).project(camera); node.dataset.pickX = (pick.x + 1) / 2 * width; node.dataset.pickY = (1 - pick.y) / 2 * height; });
+      model.chambers.forEach((c, i) => { const p = new THREE.Vector3(c.x, labelHeights.get(c.id), c.z).project(camera), node = labelNodes[i]; node.textContent = mode === 'tour' && c.id === chapters[chapterIndex].place ? `${chapters[chapterIndex].number} ${chapters[chapterIndex].name}` : `${c.name}${c.note ? ` · ${c.note}` : ''}`; node.hidden = Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z > 1 || !(mode === 'tour' && chapters[chapterIndex].place ? [chapters[chapterIndex].place, ...chapters[chapterIndex].visits].includes(c.id) : mode === 'explore' && c.id === activePlace); node.dataset.x = (p.x + 1) / 2 * width; node.dataset.y = (1 - p.y) / 2 * height; const pick = new THREE.Vector3(c.x, 0, c.z).project(camera); node.dataset.pickX = (pick.x + 1) / 2 * width; node.dataset.pickY = (1 - pick.y) / 2 * height; });
       placeLabels(document, stage, labelNodes, labelCache);
       const project = (x, y, z) => { const p = new THREE.Vector3(x, y, z).project(camera); return [(p.x + 1) / 2 * width, (1 - p.y) / 2 * height]; };
       root.dataset.hiveTarget = JSON.stringify(project(...current.target));

@@ -1,0 +1,55 @@
+PASS explore tap selects without pose or hash change
+PASS tour tap changes nothing
+PASS tour swipe advances continuous stage without selection or hash change
+PASS 60 single 100px wheel ticks advance monotonically
+wheel stop settled: {"pose":"{\"target\":[60.268,4.65,10.627],\"position\":[60.268,37.672,59.188]}","chapter":"workshop","stage":5.188,"selection":"","hash":"","scroll":7500}
+wheel stop after 2s still: {"pose":"{\"target\":[60.268,4.65,10.627],\"position\":[60.268,37.672,59.188]}","chapter":"workshop","stage":5.188,"selection":"","hash":"","scroll":7500}
+PASS wheel stop: stage and camera hold for 2s after settling
+wheel stages: 1.015 1.061 1.121 1.196 1.273 1.354 1.435 1.516 1.596 1.680 1.762 1.845 1.924 1.999 2.070 2.139 2.207 2.272 2.339 2.407 2.472 2.540 2.607 2.674 2.740 2.807 2.874 2.940 3.008 3.074 3.141 3.208 3.274 3.339 3.407 3.474 3.541 3.606 3.674 3.741 3.807 3.873 3.941 4.007 4.074 4.139 4.207 4.274 4.340 4.407 4.474 4.539 4.607 4.672 4.739 4.807 4.874 4.940 5.008 5.074
+PASS five short 60px touch swipes each change camera
+touch stop settled: {"pose":"{\"target\":[-1.95,6.015,-46.89],\"position\":[-1.95,858.782,78.544]}","chapter":"overview","stage":0.15,"selection":"","hash":"","scroll":225}
+touch stop after 2s still: {"pose":"{\"target\":[-1.95,6.015,-46.89],\"position\":[-1.95,858.782,78.544]}","chapter":"overview","stage":0.15,"selection":"","hash":"","scroll":225}
+PASS touch stop: stage and camera hold for 2s after settling
+PASS rail or picker click smoothly scrolls to requested chapter
+PASS scroll reaches the same three poses as chapter hashes
+scroll overview: card overlap 0.0000
+scroll signal: card overlap 0.0425
+scroll compass: card overlap 0.0000
+scroll drafting-table: card overlap 0.0000
+scroll queue: card overlap 0.0000
+scroll workshop: card overlap 0.0000
+scroll eyes: card overlap 0.0000
+scroll review-ladder: card overlap 0.0000
+scroll land-gate: card overlap 0.0000
+scroll identity-scan: card overlap 0.0000
+scroll release-route: card overlap 0.0000
+scroll customers: card overlap 0.0000
+scroll library: card overlap 0.0000
+scroll closing: card overlap 0.0000
+PASS full phone scroll visits every chapter in order with bounded card overlap
+PASS all 390px chapter targets project between header and card
+PASS one readable card and at least 0.8 reading screens per phone chapter
+PASS 31 samples across one boundary never overlap readable cards
+street pixel 1: 0.7433 / ground 0.5828
+street pixel 2: 0.7379 / ground 0.5828
+street pixel 3: 0.7433 / ground 0.5828
+street pixel 4: 0.6235 / ground 0.5828
+street pixel 5: 0.7084 / ground 0.5828
+PASS five street pixels are lighter than their neighbouring ground
+SCROLL {"width":1280,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10,"maxTaskMs":0,"maxWorldStep":6.939374683644045,"maxRelativeStep":0.043218235588164955,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":160,"textUpdates":6,"fades":160,"draws":1319,"renders":1319,"shadows":0,"layouts":89,"buffers":0,"geometries":0}}
+SCROLL {"width":1280,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1188,"p95Ms":10.099999999998545,"maxTaskMs":0,"maxWorldStep":8.553977612783434,"maxRelativeStep":0.10515841104957044,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":193,"textUpdates":9,"fades":193,"draws":1320,"renders":1320,"shadows":0,"layouts":141,"buffers":0,"geometries":0}}
+SCROLL {"width":390,"input":"ticks","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1149,"p95Ms":10.300000000000182,"maxTaskMs":0,"maxWorldStep":35.05183918141816,"maxRelativeStep":0.03817808454322808,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":182,"textUpdates":6,"fades":182,"draws":1278,"renders":1278,"shadows":0,"layouts":174,"buffers":0,"geometries":0}}
+SCROLL {"width":390,"input":"smooth","gpu":"ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)","frames":1187,"p95Ms":9.899999999999636,"maxTaskMs":0,"maxWorldStep":42.697123743877775,"maxRelativeStep":0.05572659862369955,"reversals":0,"stageReversals":0,"settleError":0,"idle":true,"counts":{"readings":194,"textUpdates":9,"fades":194,"draws":1318,"renders":1318,"shadows":0,"layouts":255,"buffers":0,"geometries":0}}
+PASS 1280/ticks: p95 below 20ms and no task above 50ms
+PASS 1280/ticks: bounded camera steps without reversal
+PASS 1280/ticks: exact page target after settling
+PASS 1280/smooth: p95 below 20ms and no task above 50ms
+PASS 1280/smooth: bounded camera steps without reversal
+PASS 1280/smooth: exact page target after settling
+PASS 390/ticks: p95 below 20ms and no task above 50ms
+PASS 390/ticks: bounded camera steps without reversal
+PASS 390/ticks: exact page target after settling
+PASS 390/smooth: p95 below 20ms and no task above 50ms
+PASS 390/smooth: bounded camera steps without reversal
+PASS 390/smooth: exact page target after settling
+gesture checks: 26 passed, 0 failed

@@ -289,6 +289,39 @@ export function buildDistrict(THREE, n, materials) {
       drum(building, 0, 4.7, 0, r, 0.25);
       const dome = new THREE.Mesh(new THREE.SphereGeometry(r * 0.9, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2), skin);
       dome.position.y = 4.85; dome.scale.y = 0.55; dome.castShadow = true; building.add(dome);
+    } else if (c.id === 'archive') {
+      // Open filing vault: three deep racks and pale labelled record boxes.
+      for (const x of [-r * 0.65, 0, r * 0.65]) {
+        for (const side of [-1, 1]) box(building, x + side * r * 0.22, 2.4, 0, 0.12, 4.8, r * 1.3);
+        for (let shelf = 0; shelf < 4; shelf++) {
+          const y = 0.3 + shelf * 1.15;
+          box(building, x, y, 0, r * 0.5, 0.12, r * 1.35, materials.ink);
+          for (const z of [-r * 0.4, r * 0.4]) {
+            box(building, x, y + 0.45, z, r * 0.4, 0.75, r * 0.45);
+            box(building, x, y + 0.45, z + r * 0.23, r * 0.2, 0.16, 0.03, materials.ink);
+          }
+        }
+      }
+      box(building, 0, 4.9, 0, r * 1.9, 0.2, r * 1.5);
+    } else if (c.id === 'ledger') {
+      // A bound defect ledger lies open on a low civic desk, beside a filing drawer.
+      box(building, 0, 1.3, 0, r * 1.8, 0.2, r * 1.4);
+      for (const x of [-r * 0.7, r * 0.7]) box(building, x, 0.65, 0, 0.2, 1.3, r);
+      for (const side of [-1, 1]) {
+        const leaf = box(building, side * r * 0.4, 1.65, 0, r * 0.78, 0.35, r, materials.ink); leaf.rotation.z = side * 0.08;
+        box(building, side * r * 0.4, 1.87, 0, r * 0.72, 0.08, r * 0.92);
+        for (let row = -3; row <= 3; row++) box(building, side * r * 0.4, 1.92, row * r * 0.11, r * 0.5, 0.03, 0.035, materials.ink);
+      }
+      box(building, 0, 2.8, -r * 0.65, r * 1.2, 1.5, r * 0.4);
+      for (const x of [-r * 0.35, 0, r * 0.35]) box(building, x, 2.8, -r * 0.42, r * 0.18, 0.12, 0.04, materials.ink);
+    } else if (c.id === 'watchtower') {
+      // Four braced legs carry a north-facing observation cabin, operated by the seat.
+      for (const x of [-r * 0.55, r * 0.55]) for (const z of [-r * 0.55, r * 0.55]) box(building, x, 3, z, 0.2, 6, 0.2);
+      for (const z of [-r * 0.55, r * 0.55]) for (const side of [-1, 1]) beam(building, [-r * 0.55, side < 0 ? 0.3 : 5.8, z], [r * 0.55, side < 0 ? 5.8 : 0.3, z], 0.1);
+      box(building, 0, 6, 0, r * 1.5, 0.2, r * 1.5);
+      box(building, 0, 6.9, 0, r * 1.2, 1.6, r * 1.2);
+      box(building, 0, 7, -r * 0.61, r * 0.95, 0.7, 0.05, materials.ink);
+      box(building, 0, 7.8, 0, r * 1.55, 0.18, r * 1.55);
     } else if (c.id === 'requirement-contract') {
       // A bound, open contract on a braced lectern: layered paper, stitched
       // covers, metal rings, row checkmarks, signatures and an embossed seal.

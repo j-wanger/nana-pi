@@ -13,26 +13,28 @@ export function checkCityPlan(plan, components) {
   if (!fields(plan, ['contract', 'version', 'places', 'journey', 'roads', 'residents']) || plan.contract !== 'nana-city-plan' || plan.version !== 1 || !['places', 'journey', 'roads', 'residents'].every(k => Array.isArray(plan[k]))) return ['city: invalid hand source or contract'];
   const problems = [], ids = new Set(), placed = new Set(), audit = new Set(components.map(c => c.id)), visited = new Set();
   for (const n of plan.places) {
-    if (!fields(n, ['id', 'name', 'district', 'bearing', 'form', 'component']) || !n.id || !n.name || !Number.isFinite(n.bearing)) problems.push(`${n?.id}: invalid hand source; no coordinate, radius or count`);
+    if (!fields(n, ['id', 'name', 'district', 'bearing', 'form', 'component', 'part']) || !n.id || !n.name || !Number.isFinite(n.bearing)) problems.push(`${n?.id}: invalid hand source; no coordinate, radius or count`);
     if (ids.has(n.id)) problems.push(`${n.id}: duplicate place`); ids.add(n.id);
     if (!CITY_DISTRICTS.includes(n.district)) problems.push(`${n.id}: unknown district`);
     if (!CITY_FORMS.includes(n.form)) problems.push(`${n.id}: unknown form`);
     if (n.component) { if (placed.has(n.component)) problems.push(`${n.component}: duplicate placement`); placed.add(n.component); if (!audit.has(n.component)) problems.push(`${n.component}: not in audit`); }
   }
+  for (const n of plan.places) if (n.part && !placed.has(n.part)) problems.push(`${n.id}: unknown part ${n.part}`);
   if (plan.places.filter(n => n.form === 'bay').length !== CITY.bayCount) problems.push('bays: count differs from sealed capacity');
   for (const id of audit) if (!placed.has(id)) problems.push(`${id}: no place yet`);
   const place = (id, context) => { if (!ids.has(id)) problems.push(`${context}: unknown place ${id}`); };
   const visit = (id, context) => { if (!placed.has(id)) problems.push(`${context}: unknown component ${id}`); if (visited.has(id)) problems.push(`${id}: visited twice`); visited.add(id); };
   const chapters = new Set();
   for (const step of plan.journey) {
-    if (!fields(step, ['id', 'place', 'component', 'visits', 'title', 'text']) || !Array.isArray(step.visits)) { problems.push('journey: invalid hand source'); continue; }
+    if (!fields(step, ['id', 'place', 'component', 'visits', 'flows', 'title', 'text']) || !Array.isArray(step.visits) || !Array.isArray(step.flows)) { problems.push('journey: invalid hand source'); continue; }
     if (chapters.has(step.id)) problems.push(`${step.id}: duplicate chapter`); chapters.add(step.id);
+    for (const flow of step.flows) if (!plan.roads.some(r => `${r.from}>${r.to}` === flow)) problems.push(`${step.id}: unknown flow ${flow}`);
     if (step.place !== null) place(step.place, step.id);
     if (step.component) visit(step.component, step.id);
     for (const id of step.visits) { place(id, step.id); const n = plan.places.find(n => n.id === id); if (n?.component) visit(n.component, step.id); }
   }
   for (const id of placed) if (!visited.has(id)) problems.push(`${id}: not visited`);
-  for (const road of plan.roads) { if (!fields(road, ['from', 'to', 'kind', 'chapter']) || !['forward', 'back', 'air'].includes(road.kind)) problems.push('road: invalid hand source'); place(road.from, 'road'); place(road.to, 'road'); if (road.kind === 'air' && !chapters.has(road.chapter)) problems.push('road: unknown chapter'); }
+  for (const road of plan.roads) { if (!fields(road, ['from', 'to', 'kind', 'chapter', 'built']) || !['forward', 'back', 'air'].includes(road.kind)) problems.push('road: invalid hand source'); if (Object.hasOwn(road, 'built') && typeof road.built !== 'boolean' || road.kind !== 'forward' && typeof road.built !== 'boolean') problems.push('road: built must be true or false'); place(road.from, 'road'); place(road.to, 'road'); if (road.kind === 'air' && !chapters.has(road.chapter)) problems.push('road: unknown chapter'); }
   for (const r of plan.residents) { if (!fields(r, ['kind', 'place'])) problems.push('resident: invalid hand source'); place(r.place, 'resident'); }
   return [...new Set(problems)];
 }
@@ -72,9 +74,10 @@ export function cityLayout(data, plan, overrides = {}) {
   const byComponent = new Map(data.components.map(c => [c.id, c]));
   const input = [...plan.places, ...data.components.filter(c => !plan.places.some(n => n.component === c.id)).map(c => ({ id: c.id, name: c.name, district: 'town', bearing: CITY.vacantBearing, form: 'hall', component: c.id, note: 'No place yet' }))];
   const places = input.map(n => {
-    const c = byComponent.get(n.component), radius = footprint({ status: 'sound', features: c?.features ?? [] });
+    const c = byComponent.get(n.component ?? n.part), radius = footprint({ status: 'sound', features: n.part ? [] : c?.features ?? [] });
     const bay = n.form === 'bay' ? plan.places.filter(p => p.form === 'bay').findIndex(p => p.id === n.id) : -1;
-    const status = c?.status ?? (bay >= 0 && bay < CITY.litBays && byComponent.has('workshop') ? 'sound' : ['tower', 'craft', 'customers'].includes(n.form) && !n.component ? 'sound' : 'absent');
+    let status = c?.status ?? (bay >= 0 && bay < CITY.litBays && byComponent.has('workshop') ? 'sound' : ['tower', 'craft', 'customers'].includes(n.form) && !n.component ? 'sound' : 'absent');
+    if (status === 'sound' && plan.roads.some(r => r.from === n.id && r.built === false)) status = 'partial';
     return { ...n, radius, y: 0, material: { status, kind: c?.kind ?? 'workflow' }, note: n.note ?? (n.component && !c ? 'Not in audit' : null) };
   });
   const park = places.filter(n => n.district === 'park' && !['tower', 'land-gate'].includes(n.id));
@@ -157,10 +160,12 @@ export function cityLayout(data, plan, overrides = {}) {
     add(`freight/${n.id}`, prevId, n.id, streetRoute(start, n.front, obstacles, outside), 'forward', n.district);
     if (n.district === 'edge' || n.id === 'customers') { prev = n.front; prevId = n.id; }
   }
-  // A back route uses the same entry, then the town ring. The separate dashes stay inside each district.
-  add('findings/park', 'inspection', 'entry', streetRoute(places.find(n => n.id === 'inspection').front, entryIn, parkObstacles, inside), 'back', 'park');
-  const theater = places.find(n => n.id === 'theater'), court = places.find(n => n.id === 'court');
-  for (const n of [theater, court]) {
+  // Declared built cross-district returns share entry, then the existing ring route.
+  const returnTowns = new Set(handoffs.filter(r => r.kind === 'back' && r.built).flatMap(r => {
+    const a = places.find(n => n.id === r.from), b = places.find(n => n.id === r.to);
+    return a.district === 'park' && b.district === 'town' ? [b] : b.district === 'park' && a.district === 'town' ? [a] : [];
+  }));
+  for (const n of returnTowns) {
     const index = ringIndex(n), start = CITY.arcSamples / 2, step = index >= start ? 1 : -1;
     const path = [entryOut]; for (let i = start + step; i !== index + step; i += step) path.push(ring[(i + CITY.arcSamples) % CITY.arcSamples]); path.push(...streetRoute(ring[index], n.front, obstacles, outside).slice(1));
     add(`back/${n.id}`, 'entry', n.id, path, 'back', 'town');
@@ -174,9 +179,11 @@ export function cityLayout(data, plan, overrides = {}) {
   const model = { places, roads };
   for (const handoff of handoffs) {
     const from = places.find(n => n.id === handoff.from), to = places.find(n => n.id === handoff.to);
-    if (handoff.kind === 'back' && from.district !== to.district) {
+    if (handoff.kind === 'back' && [from.district, to.district].includes('park') && from.district !== to.district) {
       const insidePlace = from.district === 'park' ? from : to, outsidePlace = from.district === 'park' ? to : from;
-      const path = [...pathBetween(model, insidePlace, { front: entryIn }), ...[entryIn, entryOut].map(p => [p[0], 0, p[1]]), ...pathBetween(model, { front: entryOut }, outsidePlace)];
+      const declared = roads.find(r => r.id === `back/${outsidePlace.id}`);
+      const outer = declared ? declared.path.map(p => [p[0], 0, p[1]]) : pathBetween(model, { front: entryOut }, outsidePlace);
+      const path = [...pathBetween(model, insidePlace, { front: entryIn }), ...[entryIn, entryOut].map(p => [p[0], 0, p[1]]), ...outer];
       handoff.path = from.district === 'park' ? path : path.reverse();
     } else handoff.path = pathBetween(model, from, to);
   }

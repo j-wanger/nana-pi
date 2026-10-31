@@ -32,6 +32,9 @@ await test('R-3171: one city plan names drift both ways and refuses malformed so
   assert.deepEqual([...placed].sort(), data.components.map(c => c.id).sort());
   for (const [change, expected] of [
     [q => q.places.push({ ...q.places[0], id: 'duplicate' }), 'duplicate placement'],
+    [q => { q.places[0].part = 'missing'; }, 'unknown part'],
+    [q => { q.roads[0].built = 'yes'; }, 'road: built must be true or false'],
+    [q => { q.journey[0].flows = ['x>y']; }, 'unknown flow'],
     [q => { q.places[0].district = 'wrong'; }, 'unknown district'],
     [q => { q.places[0].form = 'wrong'; }, 'unknown form'],
     [q => { q.journey[1].place = 'missing'; }, 'unknown place'],
@@ -152,6 +155,35 @@ await test('R-3173: scene streets match pale narrow connected frontage and the s
       if (a.join() === b.join()) continue;
       assert(m.roads.some(r => r.class !== 'air' && r.path.slice(1).some((end, j) => [r.path[j].join(), end.join()].sort().join('/') === [a.join(), b.join()].sort().join('/'))), `${handoff.from}/${handoff.to}: drawn handoff`);
     }
+    const { RETURNS } = await import('../../../apps/hive/config.mjs');
+    assert.equal(RETURNS.widthFraction, 0.3);
+    assert.deepEqual([RETURNS.dimFraction, RETURNS.builtOffset, RETURNS.unbuiltOffset, RETURNS.height, RETURNS.thickness], [0.25, -0.2, 0.2, 0.06, 0.04]);
+    const { animateHive } = await import('../../../apps/hive/assets/hive.mjs'); animateHive(scene, 1, false);
+    const ribbons = scene.children.filter(o => o.userData.returnRibbon);
+    assert.equal(ribbons.length, m.handoffs.filter(r => r.kind !== 'forward').length);
+    const shared = new Map();
+    for (const object of ribbons) {
+      const meta = object.userData.returnRibbon, handoff = m.handoffs.find(r => `${r.from}>${r.to}` === meta.flow);
+      assert(object.visible, meta.flow); assert(meta.width >= RETURNS.widthFraction * STREETS.laneWidth);
+      assert.deepEqual(meta.path, handoff.path);
+      assert.equal(meta.offset, handoff.built ? RETURNS.builtOffset : RETURNS.unbuiltOffset);
+      const pieces = meshes(object); assert(pieces.length > 0, meta.flow);
+      assert(pieces.every(o => o.material.color.equals((handoff.built ? materials.windows.lit : materials.windows.dark).color)), meta.flow);
+      for (let i = 1; i < handoff.path.length; i++) {
+        const a = handoff.path[i - 1], b = handoff.path[i]; if (a.join() === b.join()) continue;
+        const drawn = m.roads.some(r => (handoff.kind === 'air' ? r.class === 'air' : r.class !== 'air') && r.path.slice(1).some((p, j) => [r.path[j].join(), p.join()].sort().join('/') === [[a[0], a[2]].join(), [b[0], b[2]].join()].sort().join('/')));
+        assert(drawn, `${meta.flow}: ribbon leaves drawn street`);
+        const key = [a.join(), b.join()].sort().join('/'), occupants = shared.get(key) ?? [];
+        assert(!occupants.some(v => v.built !== handoff.built && v.offset === meta.offset), `${meta.flow}: coincident built and unbuilt`);
+        occupants.push({ built: handoff.built, offset: meta.offset }); shared.set(key, occupants);
+      }
+      assert(pieces.every(o => o.userData.returnPiece?.dashed === !handoff.built));
+      if (!handoff.built) assert(pieces.every(o => o.geometry.parameters.depth <= STREETS.dashLength + 1e-6));
+      else assert.equal(pieces.length, handoff.path.slice(1).filter((p, i) => p.join() !== handoff.path[i].join()).length);
+    }
+    const baseline = layout(data, { ...(await plan()), roads: (await plan()).roads.filter(r => r.kind === 'forward') });
+    const avenues = model => model.roads.filter(r => r.class === 'avenue').flatMap(r => r.path.slice(1).map((b, i) => [r.path[i].join(), b.join()].sort().join('/'))).sort();
+    assert.deepEqual(avenues(m), avenues(baseline), 'returns add no avenues');
     const forward = m.handoffs.filter(r => r.kind === 'forward'); let paths = 0;
     const walk = (id, visited) => { if (id === 'customers') { paths++; assert(visited.indexOf('land-gate') > 0); assert(visited.indexOf('customs') > visited.indexOf('land-gate')); return; } for (const r of forward.filter(r => r.from === id)) if (!visited.includes(r.to)) walk(r.to, [...visited, r.to]); };
     walk('drafting', ['drafting']); assert(paths > 0);
@@ -160,7 +192,10 @@ await test('R-3173: scene streets match pale narrow connected frontage and the s
 // req: R-3174
 await test('R-3174: request journey frames fourteen narrated chapters', async () => {
   const { tour, tourPose, chapterProgress } = await import('../../../apps/hive/tour.mjs'); const { layout } = await import('../../../apps/hive/layout.mjs');
-  const { CITY } = await import('../../../apps/hive/config.mjs'); const { VIEWPORT_WIDTHS, VIEWPORT_HEIGHT } = await import('../../../scripts/first-look-config.mjs'); const THREE = await import('../../../apps/hive/vendor/three.module.js');
+  const { CITY, NARRATION, RETURNS } = await import('../../../apps/hive/config.mjs'); const { VIEWPORT_HEIGHT } = await import('../../../scripts/first-look-config.mjs');
+  assert.deepEqual([NARRATION.chapterWords, NARRATION.sentenceWords], [40, 24]);
+  assert.equal(NARRATION.unbuiltLegend, 'Dark dashed roads are returns not built yet.');
+  assert.deepEqual([NARRATION.phoneFrameFraction, NARRATION.desktopFrameFraction], [0.28, 0.65]); const THREE = await import('../../../apps/hive/vendor/three.module.js');
   const p = await plan(), data = await audit(), m = layout(data, p), chapters = tour(m, p);
   assert.deepEqual(chapters.filter(c => !c.visit).map(c => c.id), ['overview', 'signal', 'compass', 'drafting-table', 'queue', 'workshop', 'eyes', 'review-ladder', 'land-gate', 'identity-scan', 'release-route', 'customers', 'library', 'closing']);
   assert.equal(chapters.length, 14);
@@ -170,12 +205,23 @@ await test('R-3174: request journey frames fourteen narrated chapters', async ()
   const { textLayer } = await import('../../../apps/hive/text-layer.mjs'); const text = textLayer(data, '#workshop', 'webgl', 'plain', chapters);
   assert.deepEqual(text.rail.map(r => r.href), chapters.map(c => `#${c.id}`)); for (const [i, r] of text.rail.entries()) assert(r.chapter.startsWith(`${chapters[i].number} ${chapters[i].name.toUpperCase()}`));
   const source = await fs.readFile(path.join(root, 'apps/hive/main.mjs'), 'utf8'); assert.match(source, /stageAtScroll/);
-  for (const width of VIEWPORT_WIDTHS) for (const [i, c] of chapters.entries()) {
+  const { buildHive, emphasizeReturns } = await import('../../../apps/hive/assets/hive.mjs'), { buildMaterials } = await import('../../../apps/hive/assets/materials.mjs'), { batchStatic } = await import('../../../apps/hive/assets/parts.mjs');
+  const scene = batchStatic(THREE, buildHive(THREE, m, buildMaterials(THREE)), m);
+  for (const c of chapters) {
+    assert(c.text.trim().split(/\s+/).length <= NARRATION.chapterWords, c.id);
+    for (const sentence of c.text.split(/[.!?]+/).filter(s => s.trim())) assert(sentence.trim().split(/\s+/).length <= NARRATION.sentenceWords, c.id);
+    emphasizeReturns(scene, c.flows);
+    for (const o of scene.children.filter(o => o.userData.returnRibbon)) for (const mesh of meshes(o)) assert.equal(mesh.material.opacity, c.flows.includes(o.userData.returnRibbon.flow) ? 1 : RETURNS.dimFraction);
+  }
+  for (const width of [1280, 390]) for (const [i, c] of chapters.entries()) {
     const aspect = width / VIEWPORT_HEIGHT, pose = tourPose(chapters, i, aspect); assert.equal(chapterProgress(chapters, `#${c.id}`), i);
     const cam = new THREE.PerspectiveCamera(pose.fov, aspect, 0.1, 10000); cam.position.set(...pose.position); cam.lookAt(...pose.target); cam.updateMatrixWorld();
-    for (const id of [c.place, ...(c.visit ? [chapters.find(s => s.id === c.step).place] : [])].filter(Boolean)) {
+    const { viewCentreOffset } = await import('../../../apps/hive/camera.mjs');
+    const top = width === 390 ? 170 : 100, bottom = width === 390 ? 448 : 160;
+    cam.setViewOffset(width, VIEWPORT_HEIGHT, 0, viewCentreOffset(VIEWPORT_HEIGHT, top, bottom), width, VIEWPORT_HEIGHT); cam.updateMatrixWorld();
+    for (const id of [...new Set([c.place, ...c.visits, ...c.flows.flatMap(f => f.split('>'))].filter(Boolean))]) {
       const bounds = m.chambers.find(n => n.id === id).bounds;
-      for (const x of [bounds.min[0], bounds.max[0]]) for (const y of [bounds.min[1], bounds.max[1]]) for (const z of [bounds.min[2], bounds.max[2]]) { const v = new THREE.Vector3(x, y, z).project(cam); assert(Math.abs(v.x) < 1 && Math.abs(v.y) < 1, `${c.id}/${width}`); }
+      for (const x of [bounds.min[0], bounds.max[0]]) for (const y of [bounds.min[1], bounds.max[1]]) for (const z of [bounds.min[2], bounds.max[2]]) { const v = new THREE.Vector3(x, y, z).project(cam); assert(Math.abs(v.x) < 1 && (1 - v.y) / 2 * VIEWPORT_HEIGHT > top && (1 - v.y) / 2 * VIEWPORT_HEIGHT < VIEWPORT_HEIGHT - bottom, `${c.id}/${id}/${width}`); }
     }
     if (i) for (const t of [0.25, 0.5, 0.75]) {
       const mid = tourPose(chapters, i - 1 + t, aspect);
@@ -191,11 +237,16 @@ await test('R-3174: request journey frames fourteen narrated chapters', async ()
 });
 // req: R-3174
 await test('R-3174: scroll position maps to continuous stage without short-input dead zones', async () => {
-  const { stageAtScroll, chapterSpans, scrollAtStage, cardBlend, tour } = await import('../../../apps/hive/tour.mjs');
+  const { stageAtScroll, chapterSpans, scrollAtStage, cardBlend, tour, tourPose } = await import('../../../apps/hive/tour.mjs');
   const { layout } = await import('../../../apps/hive/layout.mjs');
   const chapters = tour(layout(await audit(), await plan()), await plan()), spans = chapterSpans(chapters, 1280 / 900);
   assert.equal(spans.length, 14); assert(spans.at(-1).end >= 14 && spans.at(-1).end <= 21);
-  assert(new Set(spans.slice(0, -1).map(s => s.end - s.start)).size > 3);
+  const { TOUR_SCROLL } = await import('../../../apps/hive/config.mjs');
+  for (const [i, span] of spans.entries()) {
+    const a = tourPose(chapters, i, 1280 / 900), b = tourPose(chapters, Math.min(i + 1, chapters.length - 1), 1280 / 900);
+    const travel = Math.hypot(...a.target.map((v, j) => b.target[j] - v)) + Math.hypot(...a.position.map((v, j) => b.position[j] - v));
+    assert(Math.abs(span.end - span.start - TOUR_SCROLL.readingScreens - Math.min(TOUR_SCROLL.travelCap, travel / TOUR_SCROLL.travelScale)) < 1e-8);
+  }
   for (let i = 0; i < 14; i++) { const y = scrollAtStage(i, 900, spans); assert(Math.abs(stageAtScroll(y, 900, spans) - i) < 1e-8); }
   let previous = -1;
   for (let y = 0; y <= 7200; y += 10) { const s = stageAtScroll(y, 900, spans); assert(s >= previous); previous = s; }
@@ -275,7 +326,24 @@ await test('R-3177: window lights follow audit status and dark target forms stay
     for (const id of ['bay-3', 'bay-4', 'neighbour', 'feedback']) assert.equal(m.chambers.find(n => n.id === id).material.status, 'absent');
     if (data !== fixture) { for (const id of ['night-depot', 'vault']) assert.equal(m.chambers.find(n => n.id === id).material.status, 'absent'); for (const id of ['theater', 'control', 'test-lab', 'stage']) assert(['partial', 'gap'].includes(m.chambers.find(n => n.id === id).material.status)); }
   }
-  const { textLayer } = await import('../../../apps/hive/text-layer.mjs'); const legend = textLayer(fixture, '#', 'webgl').landing.legend; assert.match(legend, /lit.*half-lit.*dark/i); assert.equal(legend.split('.').filter(Boolean).length, 1);
+  const { textLayer } = await import('../../../apps/hive/text-layer.mjs'), { tour } = await import('../../../apps/hive/tour.mjs');
+  for (const data of [await audit(), fixture]) {
+    const p = await plan(), m = layout(data, p), chapters = tour(m, p);
+    for (const n of m.chambers.filter(n => n.part)) {
+      const parent = data.components.find(c => c.id === n.part);
+      const capped = p.roads.some(r => r.from === n.id && r.built === false);
+      assert.equal(n.material.status, !parent ? 'absent' : capped && parent.status === 'sound' ? 'partial' : parent.status, n.id);
+      const cards = textLayer(data, '#', 'webgl', 'work', chapters, 'explore').cards;
+      const card = cards.find(c => c.id === n.id); assert(card, n.id);
+      assert(!/absent|No gap recorded/.test(card.voices.technical + card.voices.work), n.id);
+      for (const road of p.roads.filter(r => r.from === n.id && r.built === false)) assert(card.voices.work.includes(`Not built yet: ${road.from} → ${road.to}`));
+    }
+    for (const ch of chapters) {
+      const card = textLayer(data, `#${ch.id}`, 'webgl', 'work', chapters).cards.find(c => c.id === ch.id);
+      for (const flow of ch.flows) { const r = p.roads.find(r => `${r.from}>${r.to}` === flow); if (!r.built) assert(card.voices.work.includes(`Not built yet: ${r.from} → ${r.to}`), ch.id); }
+    }
+  }
+  for (const mode of ['tour', 'explore']) { const legend = textLayer(fixture, '#', 'webgl', 'plain', null, mode).landing.legend; assert.match(legend, /lit.*half-lit.*dark/i); assert.equal(legend.split('.').filter(Boolean).length, 2); assert(legend.includes('Dark dashed roads are returns not built yet.')); }
 });
 // req: R-3175
 await test('R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches', async () => {
@@ -387,7 +455,7 @@ await test('R-3122: bay jib reaches over the opening and lowers a crate into it 
   assert(Math.max(...poses.map(p => p[1])) - Math.min(...poses.map(p => p[1])) > 3);
   assert(poses.some(p => Math.abs(p[0]) < 2 && Math.abs(p[2]) < 3 && p[1] < 3), 'load enters open roof');
 });
-// req: R-3122
+// req: R-3122 R-3173
 await test('R-3122: sheet runner bay carriers and outbound truck travel between places after batching', async () => {
   const THREE = await import('../../../apps/hive/vendor/three.module.js'), { layout } = await import('../../../apps/hive/layout.mjs'), { buildHive, animateHive } = await import('../../../apps/hive/assets/hive.mjs'), { buildMaterials } = await import('../../../apps/hive/assets/materials.mjs'), { batchStatic } = await import('../../../apps/hive/assets/parts.mjs');
   const m = layout(await audit(), await plan()), scene = batchStatic(THREE, buildHive(THREE, m, buildMaterials(THREE)), m), travelers = [];
@@ -395,8 +463,68 @@ await test('R-3122: sheet runner bay carriers and outbound truck travel between 
   assert(travelers.some(o => o.userData.role === 'runner'));
   for (const n of m.chambers.filter(n => n.form === 'bay' && n.material.status === 'sound')) assert(travelers.some(o => o.userData.role === 'builder' && o.userData.resident.place === n.id));
   const truck = travelers.find(o => o.userData.outbound); assert(truck?.userData.traffic?.truck);
+  const packet = scene.children.find(o => o.userData.packet?.returning); assert(packet, 'return packet');
+  const points = packet.userData.packet.points, at = id => m.chambers.find(n => n.id === id);
+  assert.deepEqual([points[0][0], points[0][2]], at('land-gate').front);
+  assert.deepEqual([points.at(-1)[0], points.at(-1)[2]], at('drafting').front);
+  assert.deepEqual(packet.userData.packet.flows, ['ladder>ledger', 'ledger>drafting']);
+  const edgeKey = (a, b) => [[a[0], a[2]].join(), [b[0], b[2]].join()].sort().join('/');
+  const allowed = m.handoffs.filter(r => r.built && r.kind !== 'forward').flatMap(r => r.path.slice(1).map((b, i) => edgeKey(r.path[i], b)));
+  const connector = m.handoffs.find(r => r.from === 'ladder' && r.to === 'land-gate').path;
+  const connectorEdges = connector.slice(1).map((b, i) => edgeKey(connector[i], b));
+  for (let i = 1; i < points.length; i++) { if (points[i].join() === points[i - 1].join()) continue; const edge = edgeKey(points[i - 1], points[i]); assert(allowed.includes(edge) || connectorEdges.includes(edge), 'packet leaves built return or gate connector'); }
+  animateHive(scene, 1, false); const start = packet.position.toArray(); assert(packet.visible); animateHive(scene, 1.5, false); assert(packet.visible); assert.notDeepEqual(packet.position.toArray(), start);
   const gate = m.chambers.find(n => n.id === 'land-gate');
   assert(truck.userData.traffic.points.some(p => p[1] > gate.z) && truck.userData.traffic.points.some(p => p[1] < gate.z));
   for (const o of travelers) { animateHive(scene, 0, false); const a = o.position.toArray(); animateHive(scene, 0.5, false); assert.notDeepEqual(o.position.toArray(), a); }
+});
+// req: R-3187
+await test('R-3187: every claimed flow matches one working code line and no text revives a retired claim', async () => {
+  const table = [
+    ['ledger', 'bay-1', 'back', true, 'packages/nana-pack/bin/pi-worker.mjs', /promptParts\.push\([^;]*readFileSync\(knownBugPath\)/],
+    ['ledger', 'drafting', 'back', true, 'packages/nana-pack/prompts/planner.md', /Read the feature's known-bug file when one exists/],
+    ['survey', 'drafting', 'back', true, 'packages/nana-pack/prompts/planner.md', /Run `npm run map:search -- "<need>"` for each part of the lane/],
+    ['court', 'drafting', 'back', true, 'packages/nana-pack/prompts/planner.md', /^2\. `\$HOME\/nana-pi\/packages\/nana-pack\/rules\/nana-rulings\.md`/m],
+    ['ladder', 'ledger', 'back', true, 'packages/nana-pack/prompts/review-standard.md', /the seat records them as known bugs/],
+    ['land-gate', 'archive', 'back', true, 'packages/nana-pack/bin/nana-land.mjs', /const kept = appendLandRecord\(common, end\)/],
+    ['watchtower', 'tower', 'back', true, 'packages/nana-pack/lib/frontier-summary-config.mjs', /export const MAIN_CI_COMMAND_PREFIX = .*nana-main-ci\.mjs/],
+    ['theater', 'tower', 'air', true, 'packages/nana-setup/lib/settings.mjs', /event: "UserPromptSubmit", label: "UserPromptSubmit knowledge pull"/],
+    ['archive', 'drafting', 'back', false, 'packages/nana-knowledge/lib/sources.ts', /exclude:\s*\["node_modules", "raw", "reviews"\]/],
+    ['customers', 'freight', 'back', false, null, 'No template drift checker'],
+    ['customers', 'tower', 'air', false, null, 'Owner brings feedback by hand'],
+    ['theater', 'bay-1', 'air', null, 'packages/nana-knowledge/lib/hook.ts', /NANA_ROLE === "worker"\) return none\("worker-role"\)/],
+    ['theater', 'bay-2', 'air', null, 'packages/nana-knowledge/lib/hook.ts', /NANA_ROLE === "worker"\) return none\("worker-role"\)/],
+    ['inspection', 'theater', 'back', null, 'packages/nana-knowledge/lib/sources.ts', /exclude:\s*\["node_modules", "raw", "reviews"\]/],
+  ];
+  const p = await plan(), key = r => `${r.from}>${r.to}`, expected = table.filter(r => r[3] !== null).map(([from, to, kind, built]) => ({ from, to, kind, built }));
+  assert.deepEqual(p.roads.filter(r => r.kind !== 'forward').map(({ from, to, kind, built }) => ({ from, to, kind, built })).sort((a, b) => key(a).localeCompare(key(b))), expected.sort((a, b) => key(a).localeCompare(key(b))), 'declared flows differ from working code');
+  for (const [from, to, , built, file, pattern] of table) {
+    const road = `${from}/${to}`;
+    if (built === null) assert(!p.roads.some(r => r.from === from && r.to === to), `${road}: flow the code lacks`);
+    if (!file) continue;
+    const source = await fs.readFile(path.join(root, file), 'utf8');
+    const check = input => {
+      const stripped = /\.(mjs|ts)$/.test(file) ? input.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\r\n]*/g, '') : input;
+      const matches = [...stripped.matchAll(new RegExp(pattern.source, pattern.flags + 'g'))];
+      assert.equal(matches.length, 1, `${road}: evidence line missing or duplicated`);
+    };
+    for (const variant of [source, source.replace(/\r?\n/g, '\r\n'), source.replace(/\r?\n/g, ' \t\n'), source.trimEnd()]) {
+      check(variant);
+      const broken = variant.split(/\r?\n/).filter(line => !new RegExp(pattern.source, pattern.flags).test(line)).join('\n');
+      assert.throws(() => check(broken), new RegExp(`${road}: evidence line missing`));
+    }
+  }
+  for (const ch of p.journey) for (const flow of ch.flows) assert(p.roads.some(r => key(r) === flow), `${ch.id}: unknown flow ${flow}`);
+  const library = p.journey.find(ch => ch.id === 'library');
+  for (const built of [false, true]) assert(library.flows.some(f => p.roads.some(r => key(r) === f && r.built === built)));
+  const { layout } = await import('../../../apps/hive/layout.mjs'), { tour } = await import('../../../apps/hive/tour.mjs'), { textLayer } = await import('../../../apps/hive/text-layer.mjs');
+  const data = await audit(), m = layout(data, p), chapters = tour(m, p);
+  const edges = m.handoffs.filter(r => r.kind === 'back' && r.built).flatMap(r => r.path.slice(1).map((b, i) => [[r.path[i][0], r.path[i][2]].join(), [b[0], b[2]].join()].sort().join('/')));
+  for (const r of m.roads.filter(r => r.class === 'back')) for (let i = 1; i < r.path.length; i++) assert(edges.includes([r.path[i - 1].join(), r.path[i].join()].sort().join('/')), `${r.id}: undeclared drawn back road`);
+  const strings = [await fs.readFile(path.join(root, 'apps/hive/README.md'), 'utf8')];
+  for (const mode of ['tour', 'explore']) for (const voice of ['plain', 'technical', 'work']) {
+    const model = textLayer(data, '#', 'webgl', voice, chapters, mode); strings.push(model.landing.text, model.landing.legend, ...model.cards.flatMap(c => Object.values(c.voices)));
+  }
+  for (const retired of [/broadcasts the memory/i, /findings return to the library/i, /feedback (rises|becomes|starts)/i]) for (const text of strings) assert(!retired.test(text), `retired claim: ${retired}`);
 });
 if (!process.exitCode) console.log(`${passed} hive city checks passed`);

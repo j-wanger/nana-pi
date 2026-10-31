@@ -6,25 +6,28 @@
  * @effects none
  * @errors None for contract-shaped data.
  */
+import { NARRATION } from './config.mjs';
 export function textLayer(data, hash, renderer, voice = 'plain', chapters = null, mode = 'tour') {
   const order = [...(chapters ?? data.components.map((c, i) => ({ id: c.id, component: c.id, number: String(i + 1).padStart(2, '0'), name: c.name })))];
-  if (mode === 'explore' && chapters) for (const n of chapters[0].model.chambers) if (!order.some(ch => ch.place === n.id)) order.push({ id: n.component ?? n.id, component: n.component, place: n.id, name: n.name, number: '—', model: chapters[0].model });
+  if (mode === 'explore' && chapters) for (const n of chapters[0].model.chambers) if (!order.some(ch => ch.place === n.id || ch.id === (n.component ?? n.id))) order.push({ id: n.component ?? n.id, component: n.component, place: n.id, name: n.name, number: '—', model: chapters[0].model });
   const components = order.map(ch => {
-    const c = data.components.find(c => c.id === ch.component), lot = ch.model?.chambers.find(n => n.id === ch.place);
-    return { id: ch.id, name: voice === 'plain' ? ch.name : c?.name ?? ch.name, narration: ch.text, componentName: c?.name ?? '', metaphor: c?.metaphor ?? (ch.id === 'signal' ? 'One wish becomes a signal. The reception tower catches it.' : ch.id === 'customers' ? 'Other projects receive the work. Their feedback becomes the next signal.' : 'Follow one wish through the city, then explore.'), kind: c?.kind ?? 'workflow', status: c?.status ?? 'absent', features: c?.features ?? [], parts: c?.parts ?? [], evidence: c?.evidence ?? [], gap: c?.gap, ask: c?.ask, note: lot?.note, number: ch.number };
+    const lot = ch.model?.chambers.find(n => n.id === ch.place), c = data.components.find(c => c.id === (ch.component ?? lot?.part));
+    const flows = ch.model?.handoffs?.filter(r => r.built === false && ((ch.flows ?? []).includes(`${r.from}>${r.to}`) || lot?.part && r.from === lot.id)) ?? [];
+    const unbuilt = flows.map(r => `Not built yet: ${r.from} → ${r.to}`);
+    return { id: ch.id, name: voice === 'plain' || lot?.part ? ch.name : c?.name ?? ch.name, narration: ch.text, componentName: c?.name ?? '', metaphor: lot?.part ? ({ archive: 'Review and land records stay here. They do not feed a later plan yet.', ledger: 'Known-bug lines reach the next planner and builder.', watchtower: 'The seat checks main here by hand at each session start.' })[lot.id] : c?.metaphor ?? (ch.id === 'signal' ? 'One wish becomes a signal. The reception tower catches it.' : ch.id === 'customers' ? 'Other projects receive the templates. The owner brings their feedback.' : 'Follow one wish through the city, then explore.'), kind: c?.kind ?? 'workflow', status: c?.status ?? 'absent', features: c?.features ?? [], parts: c?.parts ?? [], evidence: c?.evidence ?? [], gap: c?.gap, ask: c?.ask, note: lot?.note, part: lot?.part, light: lot?.material.status, unbuilt, number: ch.number };
   });
   const active = components.find(c => `#${c.id}` === hash && (chapters || !['overview', 'closing'].includes(c.id)))?.id ?? null;
   return {
     active, voice, mode, renderer: `Renderer: ${renderer}${renderer === 'pixel' ? ' · streets in 3D only' : ''}`,
     landing: mode === 'tour'
-      ? { title: 'One wish. A working city.', text: 'A signal reaches the tower. The park plans, builds and checks it. One gate ships it to customers. Feedback starts again.', legend: 'Lit windows mean sound, half-lit windows mean partial or gap, and dark windows mean absent or future work.', actions: ['explore'] }
-      : { title: 'Explore the city.', text: 'Tap a building to select it. Drag to orbit. Pinch to zoom. Only Enter takes you inside.', legend: 'Lit windows mean sound, half-lit windows mean partial or gap, and dark windows mean absent or future work.', actions: ['tour'] },
+      ? { title: 'One wish. A working city.', text: 'A signal reaches the tower. The park plans, builds and checks it. One gate ships it to customers. Records carry the next plan.', legend: `Lit windows mean sound, half-lit windows mean partial or gap, and dark windows mean absent or future work. ${NARRATION.unbuiltLegend}`, actions: ['explore'] }
+      : { title: 'Explore the city.', text: 'Tap a building to select it. Drag to orbit. Pinch to zoom. Only Enter takes you inside.', legend: `Lit windows mean sound, half-lit windows mean partial or gap, and dark windows mean absent or future work. ${NARRATION.unbuiltLegend}`, actions: ['tour'] },
     rail: components.map(c => ({ href: `#${c.id}`, name: c.name, chapter: `${c.number.toUpperCase()} ${c.name.toUpperCase()}`, active: c.id === active })),
     cards: components.map(c => {
       const voices = {
-        plain: c.narration ?? [c.componentName, c.metaphor, c.note].filter(Boolean).join(' · '),
-        technical: [c.componentName, c.metaphor, `${c.kind} · ${c.status}`, ...c.features.map(f => `${f.label} — ${f.implemented} of ${f.rows}`), !c.features.length ? 'No features recorded · empty foundation' : null, `Parts: ${c.parts.join('\n') || 'none'}`, `Evidence: ${c.evidence.join(', ')}`].filter(Boolean).join('\n\n'),
-        work: [c.gap || 'No gap recorded in this assessment.', ...(c.ask ? [`Question: ${c.ask.question}`, `Default: ${c.ask.default}`, `Gains and misses: ${c.ask.gains}`, `Cost: ${c.ask.cost}`, `Otherwise: ${c.ask.otherwise}`] : ['No decision requested.'])].join('\n\n'),
+        plain: c.narration ?? (c.part ? [c.metaphor, ...c.unbuilt].join('\n\n') : [c.componentName, c.metaphor, c.note].filter(Boolean).join(' · ')),
+        technical: c.part ? `Part of ${c.componentName || c.part} · ${c.light === 'absent' ? 'dark' : c.light}\n\n${c.unbuilt.join('\n')}` : [c.componentName, c.metaphor, `${c.kind} · ${c.status}`, ...c.features.map(f => `${f.label} — ${f.implemented} of ${f.rows}`), !c.features.length ? 'No features recorded · empty foundation' : null, `Parts: ${c.parts.join('\n') || 'none'}`, `Evidence: ${c.evidence.join(', ')}`].filter(Boolean).join('\n\n'),
+        work: [...c.unbuilt, c.part ? 'This place keeps records or checks for its parent component.' : c.gap || 'No gap recorded in this assessment.', ...(c.ask ? [`Question: ${c.ask.question}`, `Default: ${c.ask.default}`, `Gains and misses: ${c.ask.gains}`, `Cost: ${c.ask.cost}`, `Otherwise: ${c.ask.otherwise}`] : ['No decision requested.'])].join('\n\n'),
       };
       return { id: c.id, name: c.name, active: c.id === active, chapter: c.number, voices, text: Object.values(voices).join('\n') };
     }),

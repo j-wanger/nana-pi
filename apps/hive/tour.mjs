@@ -7,7 +7,7 @@
  * @errors None for a validated city plan.
  */
 import { focus, overview, blendPose } from './camera.mjs';
-import { CITY, TOUR_SCROLL } from './config.mjs';
+import { CITY, TOUR_SCROLL, NARRATION } from './config.mjs';
 export function tour(model, plan) {
   return plan.journey.map((step, i) => ({ ...step, number: String(i).padStart(2, '0'), name: step.title, model }));
 }
@@ -60,11 +60,18 @@ export function openingState(chapters, stage, aspect = 1, skip = false) {
 export function tourPose(chapters, progress, aspect = 1) {
   const p = Math.max(0, Math.min(chapters.length - 1, progress)), i = Math.floor(p);
   const anchor = ch => {
+    if (!ch.place && !ch.flows?.length) return overview(ch.model, aspect);
+    const fraction = aspect < 1 ? NARRATION.phoneFrameFraction : NARRATION.desktopFrameFraction;
     if (ch.id === 'signal') {
       const tower = ch.model.chambers.find(n => n.id === 'tower');
-      return focus({ ...ch.model, chambers: [{ id: 'arrival', bounds: { min: tower.bounds.min, max: [tower.bounds.max[0], CITY.skyHeight, tower.bounds.max[2]] } }] }, 'arrival', aspect);
+      const pose = focus({ ...ch.model, chambers: [{ id: 'arrival', bounds: { min: tower.bounds.min, max: [tower.bounds.max[0], CITY.skyHeight, tower.bounds.max[2]] } }] }, 'arrival', aspect / fraction);
+      return { ...pose, position: pose.position.map((v, axis) => pose.target[axis] + (v - pose.target[axis]) / fraction) };
     }
-    return ch.place ? focus(ch.model, ch.place, aspect) : overview(ch.model, aspect);
+    const ids = new Set([ch.place, ...(ch.visits ?? []), ...(ch.flows ?? []).flatMap(f => f.split('>'))]);
+    const lots = ch.place ? ch.model.chambers.filter(n => ids.has(n.id)) : ch.model.chambers;
+    const bounds = ch.place ? { min: [0, 1, 2].map(axis => Math.min(...lots.map(n => n.bounds.min[axis]))), max: [0, 1, 2].map(axis => Math.max(...lots.map(n => n.bounds.max[axis]))) } : ch.model.bounds;
+    const pose = focus({ ...ch.model, bounds, chambers: [] }, null, aspect / fraction);
+    return { ...pose, position: pose.position.map((v, axis) => pose.target[axis] + (v - pose.target[axis]) / fraction) };
   };
   const a = anchor(chapters[i]);
   if (Number.isInteger(p)) return a;

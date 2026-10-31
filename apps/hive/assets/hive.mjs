@@ -9,10 +9,27 @@
 import { buildCell } from './cell.mjs';
 import { buildDistrict, animateDistrict } from './district.mjs';
 import { buildResident, buildWorkplace, animateResident, animateWorkplace } from './residents.mjs';
-import { STYLE, STREETS, CITY, DENSITY, WORKERS, CARGO } from '../config.mjs';
-import { box, drum, hoop, fence, outline, trayName, houseInstances, cargo } from './parts.mjs';
+import { STYLE, STREETS, CITY, DENSITY, WORKERS, CARGO, RETURNS } from '../config.mjs';
+import { box, drum, hoop, fence, outline, trayName, houseInstances, cargo, ribbon } from './parts.mjs';
 import { buildRoad } from './road.mjs';
 import { visibleRoads } from '../city.mjs';
+// Moved from the request's inline mapping for its return-packet and ribbon callers.
+function laneOffset(points, model, offset = STREETS.laneWidth / 2) {
+  return points.map((p, i) => {
+    const next = points[Math.min(i + 1, points.length - 1)], prev = points[Math.max(0, i - 1)];
+    const dx = next[0] - prev[0], dz = next[2] - prev[2], length = Math.hypot(dx, dz) || 1;
+    // Canonical orientation keeps opposing returns on the same side of a shared segment.
+    const side = dx < 0 || dx === 0 && dz < 0 ? -1 : 1;
+    const elevation = p[1] || (Math.abs(Math.hypot(p[0], p[2]) - model.ringRadius) < 0.1 ? STREETS.ringElevation : STREETS.elevation);
+    return [p[0] + dz / length * offset * side, elevation + STREETS.thickness / 2, p[2] - dx / length * offset * side];
+  });
+}
+export function emphasizeReturns(group, flows = []) {
+  for (const o of group.children) if (o.userData.returnRibbon) {
+    const opacity = flows.includes(o.userData.returnRibbon.flow) ? 1 : RETURNS.dimFraction;
+    o.traverse(mesh => { if (mesh.isMesh) mesh.material.opacity = opacity; });
+  }
+}
 export function buildHive(THREE, model, materials) {
   const group = new THREE.Group(), cube = new THREE.BoxGeometry(1, 1, 1), rod = new THREE.CylinderGeometry(1, 1, 1, 8);
   for (const n of model.chambers) {
@@ -87,7 +104,29 @@ export function buildHive(THREE, model, materials) {
     for (const x of [-0.7, 0.7]) box(THREE, materials, cube, post, x, 0.7, 0, 0.18, 1.4, 0.18);
     box(THREE, materials, cube, post, 0, 1.4, 0, 1.6, 0.15, 0.25, materials.ink);
   }
-  for (const road of model.roads) { const mesh = buildRoad(THREE, { ...road, ringRadius: model.ringRadius }, materials); mesh.visible = visibleRoads(model.roads).includes(road); group.add(mesh); }
+  for (const road of model.roads) {
+    const mesh = road.class === 'air' ? new THREE.Group() : buildRoad(THREE, { ...road, ringRadius: model.ringRadius }, materials);
+    mesh.userData.road = road.id; mesh.visible = visibleRoads(model.roads).includes(road); group.add(mesh);
+  }
+  for (const road of (model.handoffs ?? []).filter(r => r.kind !== 'forward')) {
+    const object = new THREE.Group(), width = RETURNS.widthFraction * STREETS.laneWidth;
+    const offset = road.built ? RETURNS.builtOffset : RETURNS.unbuiltOffset;
+    object.userData.returnRibbon = { flow: `${road.from}>${road.to}`, path: road.path, width, offset };
+    const material = (road.built ? materials.windows.lit : materials.windows.dark).clone(); material.transparent = true; material.opacity = RETURNS.dimFraction;
+    for (let i = 1; i < road.path.length; i++) {
+      const a = road.path[i - 1], b = road.path[i], length = Math.hypot(...b.map((v, j) => v - a[j])); if (!length) continue;
+      const [start, end] = laneOffset([a, b], model, offset * STREETS.laneWidth);
+      const span = road.built ? length : STREETS.dashLength, step = road.built ? length : STREETS.dashLength + STREETS.dashGap;
+      for (let d = 0; d < length; d += step) {
+        const p = start.map((v, j) => v + (end[j] - v) * d / length), q = start.map((v, j) => v + (end[j] - v) * Math.min(length, d + span) / length);
+        const flat = Math.hypot(q[0] - p[0], q[2] - p[2]);
+        const mesh = ribbon(THREE, object, [p[0], p[2]], [q[0], q[2]], width, RETURNS.thickness, (p[1] + q[1]) / 2 + RETURNS.height, material);
+        mesh.rotation.x = -Math.atan2(q[1] - p[1], flat); mesh.scale.z = Math.hypot(flat, q[1] - p[1]) / (flat || 1);
+        mesh.userData.returnPiece = { dashed: !road.built };
+      }
+    }
+    group.add(object);
+  }
   if (model.fenceRadius) {
     const perimeter = new THREE.Group(); perimeter.userData.fence = true; group.add(perimeter);
     const gap = (model.chambers.find(n => n.id === 'land-gate').radius + STREETS.widths.avenue) / model.fenceRadius;
@@ -108,12 +147,15 @@ export function buildHive(THREE, model, materials) {
     const falling = [[tower.x, CITY.skyHeight, tower.z], [tower.x, 9, tower.z]];
     const sequence = ['tower', 'drafting', 'yard', 'bay-1', 'inspection', 'ladder', 'land-gate', 'customs', 'freight', 'customers'];
     const journey = sequence.slice(1).flatMap((id, i) => model.handoffs.find(r => r.from === sequence[i] && r.to === id)?.path ?? []);
-    for (const [index, points] of [falling, journey].entries()) {
-      const elevated = points.map((p, i) => { const next = points[Math.min(i + 1, points.length - 1)], dx = next[0] - p[0], dz = next[2] - p[2], length = Math.hypot(dx, dz) || 1; const elevation = Math.abs(Math.hypot(p[0], p[2]) - model.ringRadius) < 0.1 ? STREETS.ringElevation : STREETS.elevation; return index ? [p[0] + dz / length * STREETS.laneWidth / 2, elevation + STREETS.thickness / 2, p[2] - dx / length * STREETS.laneWidth / 2] : p; });
+    const returnFlows = ['ladder>ledger', 'ledger>drafting'];
+    const connector = [...(model.handoffs.find(r => r.from === 'ladder' && r.to === 'land-gate')?.path ?? [])].reverse();
+    const returning = [...connector, ...returnFlows.flatMap(flow => model.handoffs.find(r => `${r.from}>${r.to}` === flow && r.built)?.path ?? [])];
+    for (const [index, points] of [falling, journey, returning].entries()) {
+      const elevated = index ? laneOffset(points, model, index === 2 ? 0 : STREETS.laneWidth / 2) : points;
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(elevated.map(p => new THREE.Vector3(...p))), new THREE.LineDashedMaterial({ color: '#ffffff', dashSize: 1, gapSize: 0.6 })); line.computeLineDistances(); line.userData.signalTrace = true; group.add(line);
       const packet = cargo(THREE, materials, group, { lit: true, pallet: index !== 0 });
       const lengths = elevated.slice(1).map((p, i) => Math.hypot(...p.map((v, j) => v - elevated[i][j])));
-      packet.userData.packet = { points: elevated, lengths, total: lengths.reduce((a, b) => a + b, 0), speed: 1 / WORKERS.loopSeconds, signal: index === 0 }; group.add(packet);
+      packet.userData.packet = { points: elevated, lengths, total: lengths.reduce((a, b) => a + b, 0), speed: 1 / WORKERS.loopSeconds, signal: index === 0, returning: index === 2, flows: index === 2 ? returnFlows : [] }; group.add(packet);
     }
     const theater = model.chambers.find(n => n.id === 'theater');
     if (theater && theater.material.status !== 'absent') for (let i = 0; i < 3; i++) {

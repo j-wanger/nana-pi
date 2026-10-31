@@ -181,7 +181,7 @@ export function batchStatic(THREE, root, model) {
     root.userData.batchOwners = owners; root.userData.batchSelection = { value: -1 };
     const merged = new Map(), edgeGroups = new Map();
     for (const parent of [...root.children]) {
-      if (parent.userData.background || dynamic(parent) || model.roads.some(r => r.id === parent.userData.road && r.class === 'air')) continue;
+      if (parent.userData.background || parent.userData.returnRibbon || dynamic(parent) || model.roads.some(r => r.id === parent.userData.road && r.class === 'air')) continue;
       const road = model.roads.find(r => r.id === parent.userData.road), owner = owners.indexOf(parent.userData.component);
       const from = owners.indexOf(model.chambers.find(n => n.id === road?.from)?.component), to = owners.indexOf(model.chambers.find(n => n.id === road?.to)?.component);
       for (const mesh of [...parent.children]) {

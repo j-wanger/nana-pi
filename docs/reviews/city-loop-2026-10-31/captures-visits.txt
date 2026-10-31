@@ -1,0 +1,9 @@
+first-look: saved screenshots and reference in /tmp/city-loop-frames/visit-ledger
+visit ledger exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/visit-archive
+visit archive exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/visit-watchtower
+visit watchtower exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/visit-key-cabinet
+visit key-cabinet exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/explore-workshop

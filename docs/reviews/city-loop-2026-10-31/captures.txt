@@ -1,0 +1,28 @@
+first-look: saved screenshots and reference in /tmp/city-loop-frames/overview
+overview exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/signal
+signal exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/compass
+compass exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/drafting-table
+drafting-table exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/queue
+queue exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/workshop
+workshop exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/eyes
+eyes exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/review-ladder
+review-ladder exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/land-gate
+land-gate exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/identity-scan
+identity-scan exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/release-route
+release-route exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/customers
+customers exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/library
+library exit 0
+first-look: saved screenshots and reference in /tmp/city-loop-frames/closing
+closing exit 0

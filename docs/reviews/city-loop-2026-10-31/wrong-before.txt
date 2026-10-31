@@ -1,0 +1,121 @@
+FAIL R-3171: one city plan names drift both ways and refuses malformed sources before output AssertionError [ERR_ASSERTION]: unknown part
+    at <repo>/packages/nana-pack/tests/hive-city.test.mjs:48:46
+    at async test (<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async <repo>/packages/nana-pack/tests/hive-city.test.mjs:27:1
+(node:51172) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of <repo>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <repo>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3172: radial city separates districts and rejects grid and ring controls
+FAIL R-3173: scene streets match pale narrow connected frontage and the single outbound gate TypeError: Cannot read properties of undefined (reading 'widthFraction')
+    at <repo>/packages/nana-pack/tests/hive-city.test.mjs:159:26
+    at async test (<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async <repo>/packages/nana-pack/tests/hive-city.test.mjs:114:1
+FAIL R-3174: request journey frames fourteen narrated chapters TypeError: Cannot read properties of undefined (reading 'chapterWords')
+    at <repo>/packages/nana-pack/tests/hive-city.test.mjs:196:31
+    at async test (<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async <repo>/packages/nana-pack/tests/hive-city.test.mjs:193:1
+PASS R-3174: scroll position maps to continuous stage without short-input dead zones
+PASS R-3174: eased scroll settles within half a second then holds for two seconds
+PASS R-3172: dense town scale retains chosen lot and housing dimensions
+FAIL R-3177: window lights follow audit status and dark target forms stay complete TypeError: ch.flows is not iterable
+    at <repo>/packages/nana-pack/tests/hive-city.test.mjs:337:29
+    at async test (<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async <repo>/packages/nana-pack/tests/hive-city.test.mjs:304:1
+PASS R-3175: real gesture binding never enters or changes hash on phone taps swipes or pinches
+PASS R-3174: card boundary never overlaps readable text and slides upward
+PASS R-3174: every chapter keeps a reading screen at desktop and phone widths
+PASS R-3174: opening is a scroll-driven flat plan ending at the tower
+PASS R-3174: phone chapter targets project above the card and below the header
+PASS R-3172: whole-city housing retains the build-11 floor with one instance batch per house type
+PASS R-3174: opening title keeps an opaque calm band while the plan fades
+PASS R-3122: bay jib reaches over the opening and lowers a crate into it each loop
+FAIL R-3122: sheet runner bay carriers and outbound truck travel between places after batching AssertionError [ERR_ASSERTION]: return packet
+    at <repo>/packages/nana-pack/tests/hive-city.test.mjs:460:74
+    at async test (<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async <repo>/packages/nana-pack/tests/hive-city.test.mjs:453:1
+FAIL R-3187: every claimed flow matches one working code line and no text revives a retired claim AssertionError [ERR_ASSERTION]: declared flows differ from working code
++ actual - expected
+
+  [
+    {
++     built: undefined,
+-     built: false,
+-     from: 'archive',
+-     kind: 'back',
+-     to: 'drafting'
+-   },
+-   {
+-     built: true,
+      from: 'court',
+      kind: 'back',
+      to: 'drafting'
+    },
+    {
++     built: undefined,
+-     built: false,
+      from: 'customers',
+-     kind: 'back',
+-     to: 'freight'
+-   },
+-   {
+-     built: false,
+-     from: 'customers',
+      kind: 'air',
+      to: 'tower'
+    },
+    {
++     built: undefined,
++     from: 'inspection',
+-     built: true,
+-     from: 'ladder',
+      kind: 'back',
++     to: 'theater'
+-     to: 'ledger'
+    },
+    {
++     built: undefined,
++     from: 'theater',
++     kind: 'air',
+-     built: true,
+-     from: 'land-gate',
+-     kind: 'back',
+-     to: 'archive'
+-   },
+-   {
+-     built: true,
+-     from: 'ledger',
+-     kind: 'back',
+      to: 'bay-1'
+    },
+    {
++     built: undefined,
+-     built: true,
+-     from: 'ledger',
+-     kind: 'back',
+-     to: 'drafting'
+-   },
+-   {
+-     built: true,
+-     from: 'survey',
+-     kind: 'back',
+-     to: 'drafting'
+-   },
+-   {
+-     built: true,
+      from: 'theater',
+      kind: 'air',
++     to: 'bay-2'
+-     to: 'tower'
+    },
+-   {
+-     built: true,
+-     from: 'watchtower',
+-     kind: 'back',
+-     to: 'tower'
+-   }
+  ]
+
+    at <repo>/packages/nana-pack/tests/hive-city.test.mjs:493:10
+    at async test (<repo>/packages/nana-pack/tests/hive-city.test.mjs:19:51)
+    at async <repo>/packages/nana-pack/tests/hive-city.test.mjs:475:1
