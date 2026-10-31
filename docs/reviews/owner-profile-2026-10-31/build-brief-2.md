@@ -19,4 +19,3 @@ Rows implemented with backticked evidence. Green: locked full suite (foreground)
 ## Precedent
 
 - `packages/nana-pack/lib/memory-making-config.mjs`: the shape module on main.
-- `packages/nana-pack/lib/memory-making.mjs`: `resolveEvidence`.
