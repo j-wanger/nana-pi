@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { checkText, splitSentences } from "./writing-check.mjs";
+import { entriesIn, textFrom, edtDay, assistantText, transcriptFiles, privateFolder } from "./claude-transcript.mjs";
 
 /** Contract (R-2516): accepted attachment titles start with this role-neutral prefix. */
 export const RULE_TITLE = "# Nana — Writing for";
@@ -19,49 +20,11 @@ const RULE_ANCHOR = "Put the verdict in the first sentence. Use one of:";
 const DEFAULT_ROOT = path.join(process.env.HOME ?? "~", ".claude", "projects");
 const WORDS = (text) => text.trim().split(/\s+/u).filter(Boolean).length;
 const LENIENT = /\b(?:LANDED|DONE|BLOCKED|OPEN|FAILED|CARRIED)\b|\bYOUR CALL\b/i;
-function textFrom(value) {
-	if (typeof value === "string") return value;
-	if (Array.isArray(value)) return value.map(textFrom).filter(Boolean).join("\n");
-	if (!value || typeof value !== "object") return "";
-	if (typeof value.text === "string") return value.text;
-	return Object.values(value).map(textFrom).filter(Boolean).join("\n");
-}
-function entriesIn(file) {
-	const entries = [];
-	for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/u)) {
-		if (!line.trim()) continue;
-		try { entries.push(JSON.parse(line)); } catch { /* torn transcript line */ }
-	}
-	return entries;
-}
 function isRuleAttachment(entry) {
 	const type = String(entry.type ?? "").toLowerCase();
 	if (type !== "attachment" && entry.isAttachment !== true && !entry.attachment) return false;
 	const source = textFrom(entry.attachment ?? entry.message ?? entry.content ?? entry);
 	return source.includes(RULE_TITLE) && source.includes(RULE_ANCHOR);
-}
-function assistantText(entry) {
-	if (entry.type !== "assistant" || entry.isSidechain !== false) return "";
-	const message = entry.message ?? entry;
-	if (message.role && message.role !== "assistant") return "";
-	const content = message.content ?? entry.content;
-	return Array.isArray(content)
-		? content.filter((part) => part?.type === "text" || typeof part === "string").map(textFrom).join("\n")
-		: textFrom(content);
-}
-function edtDay(timestamp) {
-	const date = new Date(timestamp);
-	if (Number.isNaN(date.valueOf())) return null;
-	return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
-}
-function transcriptFiles(root) {
-	const found = [];
-	for (const project of fs.readdirSync(root, { withFileTypes: true })) {
-		if (!project.isDirectory() || project.name.includes("-wt-") || project.name.includes("-private-tmp-")) continue;
-		const dir = path.join(root, project.name);
-		for (const name of fs.readdirSync(dir)) if (name.endsWith(".jsonl")) found.push({ project: project.name, file: path.join(dir, name) });
-	}
-	return found.sort((a, b) => a.file.localeCompare(b.file));
 }
 function dateInRange(day, from, to) { return day && day >= from && day <= to; }
 function collect(root, from, to, mode = "baseline", until = null) {
@@ -138,18 +101,7 @@ function scoreDecisions(reports, { ownerWordDigests = OWNER_WORD_DIGESTS } = {})
 	});
 }
 function preserve(sessions, output) {
-	const destination = path.resolve(output);
-	let current = path.parse(destination).root;
-	for (const component of destination.slice(current.length).split(path.sep).filter(Boolean)) {
-		current = path.join(current, component);
-		try {
-			if (fs.lstatSync(current).isSymbolicLink()) throw new Error(`private output path contains symlink: ${current}`);
-		} catch (error) {
-			if (error.code === "ENOENT") break;
-			throw error;
-		}
-	}
-	fs.mkdirSync(destination, { recursive: true, mode: 0o700 });
+	const destination = privateFolder(output);
 	const manifest = [];
 	for (const session of sessions) {
 		const normalized = `${session.last.body}\n`;

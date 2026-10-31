@@ -1,0 +1,11 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs memory-making.test requirements-tree.test test-runner.test writing-trial-extractor.test writing-rule.test
+
+PASS  packages/nana-pack/tests/memory-making.test.mjs            23 pass  0.2s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs        98 pass  2.6s
+PASS  packages/nana-pack/tests/test-runner.test.mjs              52 pass  29.9s
+PASS  packages/nana-pack/tests/writing-trial-extractor.test.mjs  15 pass  0.1s
+PASS  packages/nana-setup/tests/writing-rule.test.mjs            4 pass  0.0s
+
+5 files: 5 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 192 pass, 0 fail, 0 skip · 33.1s

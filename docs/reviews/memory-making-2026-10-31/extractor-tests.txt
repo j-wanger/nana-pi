@@ -1,0 +1,15 @@
+PASS seal: the extractor's owner word digest
+PASS a rule attached under any Writing for title counts as attached
+PASS scope excludes worktree/private projects and windows by first entry
+PASS baseline chooses last qualifying main-thread assistant message
+PASS after includes only report-sized messages after canonical rule attachment, including pre-window sessions
+PASS scoring reports strict and former first-sentence lenient totals together
+PASS preservation writes normalized private text and matching session hash manifest
+PASS preservation refuses a symlink destination without changing its target
+PASS preservation rejects a symlinked output directory without writing externally
+PASS private corpus input verifies hashes and scores the exact preserved text
+PASS after reports obey their own date boundary and repeated attachments retain post-first-attachment calls
+PASS after JSON labels checker invocations and exposes session verdict separately from message audit
+PASS after cutoff is inclusive at the exact message timestamp
+PASS redacted decision golden corpus groups boundaries and preserves ordered rubric parts
+PASS a decision naming the owner by name or by role scores its fifth part
