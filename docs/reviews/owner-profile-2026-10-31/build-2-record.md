@@ -56,6 +56,8 @@ Importing main's list made the same check green. The touched run exited 0: 142 p
 Trace: 2262 total rows, 2008 implemented and traced, 0 off-form rows.
 Last-commit checks, push and the finished hosted CI result are reported in the final worker report.
 
+Post-commit verification caught an evidence-log issue: once tracked, Node's typeless-module warning exposed the absolute checkout path in the trace and known-bug logs. Identity scan exited 1 with two findings. Regenerating those two logs with `NODE_NO_WARNINGS=1` removed only the incidental runtime warning; both checks and identity scan then exited 0. A follow-up evidence-only commit follows another foreground locked full suite. No product code changed in that follow-up.
+
 ## Precedent and carry for the seat
 
 Read main's entire `packages/nana-pack/lib/memory-making-config.mjs` before designing. Imported its exports, copied no helper, and made no departure from this build's precedent. Main's `resolveEvidence` is imported, never reimplemented. No maker code or maker test changed relative to main.
