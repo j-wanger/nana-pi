@@ -169,3 +169,21 @@ No real-data quality claim is made here. Delivery, storage, upkeep, promotion an
 Open question for the seat: should a later checking lane require the retained review title on every resolution,
 or version the pointer with a content digest? Index-only pointers cannot certify replacements.
 No GitHub issue was posted.
+
+## CI correction after the first tip
+
+The draft pull request is number 280. The first tip's CI run 41222439133 finished:
+macOS and Linux suites and all four install checks passed; Windows failed the default-scope test.
+R-3104 passed, so the brief's timeout-flake rerun did not apply. See `ci-attempt-1.txt`.
+
+The default repository resolver returned git's path spelling rather than the filesystem's native canonical spelling.
+It now resolves the repository root through `fs.realpathSync.native`, covering casing, short paths and ancestor aliases.
+The existing default-scope must-meet now uses a native-realpath fixture root and injects a git response through a directory alias.
+R-3194 explicitly says canonical repository path. No test or row was added.
+
+Wrong code first: the resolver accepted the injected git response but returned its uncanonicalized path.
+The existing default-scope test failed, exit 1 (`windows-fix-wrong-first.txt`).
+Adding native realpath made all 23 tests pass, exit 0 (`windows-fix-tests.txt`).
+The 23 isolated code-mutation pairs also passed again (`windows-fix-mutations.txt`).
+The correction changes no sealed value and moves no helper. The git runner is now injected at this boundary.
+The foreground locked suite for this correction is kept in `windows-fix-full-suite.txt`.

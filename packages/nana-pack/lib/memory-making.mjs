@@ -179,11 +179,11 @@ export function memoryArgs(argv, allowed) {
  return args;
 }
 /** Resolve a linked worktree to the shared checkout for default project-key scope. */
-export function defaultMemoryRepo(cwd) {
- const result = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd, encoding: "utf8", windowsHide: true });
+export function defaultMemoryRepo(cwd, { runGit = (cwd) => spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd, encoding: "utf8", windowsHide: true }) } = {}) {
+ const result = runGit(cwd);
  if (result.status !== 0) throw new Error("repository unavailable");
  const common = path.resolve(cwd, result.stdout.trim());
- return path.basename(common) === ".git" ? path.dirname(common) : path.resolve(cwd);
+ return fs.realpathSync.native(path.basename(common) === ".git" ? path.dirname(common) : path.resolve(cwd));
 }
 /** Fixed/counts-only diagnostics, including errors; no raw exception text crosses this boundary. */
 export async function runMake(argv, { stdout = (s) => process.stdout.write(s), stderr = (s) => process.stderr.write(s), repoRoot = process.cwd(), projectsRoot = path.join(process.env.HOME ?? process.env.USERPROFILE ?? "~", ".claude", "projects") } = {}) {

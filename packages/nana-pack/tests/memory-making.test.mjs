@@ -36,7 +36,7 @@ const quote = base.at(-1).message.content[0].text;
 const entry = (type, uuid, content, extra = {}) => ({ type, uuid, sessionId: "synthetic", isSidechain: false, timestamp: "2026-10-02T03:59:00Z", message: { role: type, content }, ...extra });
 const form = (pattern, quote, context) => pattern.replace("<quote>", quote).replace("<context>", context);
 async function fixture(run) {
- const root = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "memory-making-")));
+ const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "memory-making-")));
  const repoRoot = path.join(root, "repo"), projectsRoot = path.join(root, "projects"), reviewsRoot = path.join(root, "reviews");
  fs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
  fs.mkdirSync(projectsRoot); fs.mkdirSync(reviewsRoot);
@@ -148,6 +148,9 @@ await check("default scope is this repo only", () => fixture(async ({ root, root
  const worktree = path.join(root, "repo-wt", "lane");
  assert.equal(git("worktree", "add", "-qb", "synthetic-lane", worktree).status, 0);
  assert.equal(defaultMemoryRepo(worktree), roots.repoRoot);
+ const alias = path.join(root, "repository-alias");
+ fs.symlinkSync(roots.repoRoot, alias, process.platform === "win32" ? "junction" : "dir");
+ assert.equal(defaultMemoryRepo(worktree, { runGit: () => ({ status: 0, stdout: path.join(alias, ".git") }) }), roots.repoRoot);
  add(); add(base, `${projectKey(`${roots.repoRoot}-wt`)}-lane`, "worktree"); add(base, "unrelated", "elsewhere");
  assert.deepEqual((await extractMemory(roots)).records.map((r) => r.evidence).sort(), ["claude-code:synthetic#owner+seat", "claude-code:worktree#owner+seat"]);
  assert.deepEqual((await extractMemory({ ...roots, project: "unrelated" })).records.map((r) => r.evidence), ["claude-code:elsewhere#owner+seat"]);
