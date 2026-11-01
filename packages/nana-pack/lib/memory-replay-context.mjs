@@ -48,7 +48,11 @@ export function rebuildContext(entries, point) {
    const command = attachment.command ?? '', output = textFrom(attachment.content ?? attachment.output ?? attachment.stdout ?? '');
    (C.SLOT_MARKERS.hooks.some(marker => command.includes(marker)) ? memoryHooks : hooks).push(output);
   }
-  if (entry.subtype === 'compact_boundary' || entry.type === 'compact_boundary') boundary = index;
+  if (entry.subtype === 'compact_boundary' || entry.type === 'compact_boundary') {
+   boundary = index;
+   // SessionStart:compact refreshes the hook outputs the seat sees after compaction.
+   hooks.length = 0; memoryHooks.length = 0;
+  }
   if (entry.isCompactSummary) summary = renderReplayEntry({ ...entry, isMeta: false });
  }
  const ancestors = new Set();

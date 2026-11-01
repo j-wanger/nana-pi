@@ -196,7 +196,7 @@ export async function executeReplay(plan, options) {
  for (const c of plan.cases) {
   const row = { ...header, type: 'case', id: c.id, evidence: c.evidence, session: c.session, stratum: c.stratum, kind: c.kind, status: c.status, bundle: c.bundle, replies: {}, original: null };
   delete row.plannedCases;
-  if (c.status === W.leaked) { emit(row); continue; }
+  if ([W.leaked, W.unrun].includes(c.status)) { emit(row); continue; }
   if (meter.reached(options.runCap ?? C.RUN_DOLLARS)) { row.status = W.unrun; emit(row); continue; }
   const arms = [['control', c.context.control], ['treatment', c.bundle], ...(c.oracleArm ? [[c.oracleArm, c.oracle]] : [])];
   for (const [arm, slot] of arms) {
@@ -217,7 +217,10 @@ export async function screenReplay(plan, options) {
  if (plan.screen.applied) throw Error('already screened');
  const meter = spendMeter(), kept = [], rows = [];
  for (const c of plan.cases) {
-  if (c.status === W.leaked || meter.reached(options.runCap ?? C.RUN_DOLLARS)) { rows.push({ id: c.id, status: c.status === W.leaked ? W.leaked : W.unrun }); continue; }
+  if (c.status === W.leaked) { rows.push({ id: c.id, status: W.leaked }); continue; }
+  if (meter.reached(options.runCap ?? C.RUN_DOLLARS)) {
+   rows.push({ id: c.id, status: W.unrun }); kept.push({ ...c, status: W.unrun }); continue;
+  }
   const replies = [];
   for (let k = 0; k < C.SCREEN_DRAWS; k++) replies.push({ reply: await drawReply(c.context, c.context.control, meter, options.runReplay), verdict: null });
   for (const draw of replies) draw.verdict = await judgeReply(c.description, draw.reply, meter, options.runJudge);
@@ -229,16 +232,31 @@ export async function screenReplay(plan, options) {
  screened.lines = [`cases ${kept.length} R ${kept.filter(c => c.stratum === 'R').length} F ${kept.filter(c => c.stratum === 'F').length}`, `case set ${screened.hash}`];
  return { plan: screened, rows, lines: [...screened.lines, ...meter.lines()] };
 }
-/** Exact sign-flip distribution over integer sums; zero differences add no information. */
+/** Reduce exact fractions before convolution, including sums within a session. */
+function fraction(n, d = 1n) {
+ if (d <= 0n) throw Error('invalid denominator');
+ let a = n < 0n ? -n : n, b = d;
+ while (b) [a, b] = [b, a % b];
+ return { n: n / a, d: d / a };
+}
+function addDifference(a, b) { return fraction(a.n * b.d + b.n * a.d, a.d * b.d); }
+/** Exact sign-flip distribution: scale rational rates to BigInt sums, never round keys. */
 export function signFlip(differences) {
- let probabilities = new Map([[0, 1]]);
- for (const d of differences.filter(Boolean)) {
-  if (!Number.isSafeInteger(d)) throw Error('noninteger difference');
+ const fractions = differences.map(d => {
+  if (Number.isSafeInteger(d)) return fraction(BigInt(d));
+  if (typeof d?.n === 'bigint' && typeof d?.d === 'bigint') return fraction(d.n, d.d);
+  throw Error('noninteger difference');
+ }).filter(d => d.n !== 0n);
+ // LCM(a, b) = a times the denominator of reduced a/b.
+ const scale = fractions.reduce((n, d) => n * fraction(n, d.d).d, 1n);
+ let probabilities = new Map([[0n, 1]]), observed = 0n;
+ for (const d of fractions) {
+  const value = d.n * (scale / d.d), magnitude = value < 0n ? -value : value;
+  observed += value;
   const next = new Map();
-  for (const [sum, p] of probabilities) for (const value of [sum - Math.abs(d), sum + Math.abs(d)]) next.set(value, (next.get(value) ?? 0) + p / 2);
+  for (const [sum, p] of probabilities) for (const outcome of [sum - magnitude, sum + magnitude]) next.set(outcome, (next.get(outcome) ?? 0) + p / 2);
   probabilities = next;
  }
- const observed = differences.reduce((n, d) => n + d, 0);
  return { fewer: [...probabilities].reduce((p, [sum, mass]) => p + (sum >= observed ? mass : 0), 0), more: [...probabilities].reduce((p, [sum, mass]) => p + (sum <= observed ? mass : 0), 0) };
 }
 function judged(draws) { return (draws ?? []).filter(d => d.verdict && d.verdict !== W.unclear); }
@@ -250,14 +268,17 @@ function classify(row, header) {
  if (Object.values(row.replies).some(draws => judged(draws).length < Math.min(C.MIN_JUDGED, header.draws)) || !row.replies.control || !row.replies.treatment) return W.unjudged;
  return 'complete';
 }
+function rateDifference(control, treatment) {
+ return fraction(BigInt(repeats(control)) * BigInt(treatment.length) - BigInt(failures(treatment)) * BigInt(control.length), BigInt(control.length) * BigInt(treatment.length));
+}
 function measurement(rows) {
  const pairs = rows.map(row => ({ row, control: judged(row.replies.control), treatment: judged(row.replies.treatment) }));
- for (const pair of pairs) pair.d = repeats(pair.control) - failures(pair.treatment);
+ for (const pair of pairs) pair.d = rateDifference(pair.control, pair.treatment);
  return { pairs, differences: pairs.map(p => p.d), control: pairs.flatMap(p => p.control), treatment: pairs.flatMap(p => p.treatment) };
 }
 function statistic(name, rows, planned, min) {
- const data = measurement(rows), informative = data.differences.filter(Boolean), p = signFlip(informative);
- return { ...data, p, informative, lines: [`${name ? name + ' ' : ''}cases planned ${planned} informative ${informative.length} favour bundle ${informative.filter(d => d > 0).length} favour control ${informative.filter(d => d < 0).length}`, `${name || 'pooled'} p fewer ${p.fewer.toFixed(6)} level ${C.BENEFIT_LEVEL} p more ${p.more.toFixed(6)} level ${C.HARM_LEVEL}`], verdict: informative.length < min ? W.few : p.fewer <= C.BENEFIT_LEVEL ? W.fewer : p.more <= C.HARM_LEVEL ? W.more : W.noDecision };
+ const data = measurement(rows), informative = data.differences.filter(d => d.n !== 0n), p = signFlip(informative);
+ return { ...data, p, informative, lines: [`${name ? name + ' ' : ''}cases planned ${planned} informative ${informative.length} favour bundle ${informative.filter(d => d.n > 0n).length} favour control ${informative.filter(d => d.n < 0n).length}`, `${name || 'pooled'} p fewer ${p.fewer.toFixed(6)} level ${C.BENEFIT_LEVEL} p more ${p.more.toFixed(6)} level ${C.HARM_LEVEL}`], verdict: informative.length < min ? W.few : p.fewer <= C.BENEFIT_LEVEL ? W.fewer : p.more <= C.HARM_LEVEL ? W.more : W.noDecision };
 }
 const rate = (name, draws) => `${name} repeats ${repeats(draws)}/${draws.length} Wilson ${wilson(repeats(draws), draws.length).map(n => n.toFixed(4)).join(' ')}`;
 function cites(reply, bundle) {
@@ -290,21 +311,22 @@ export function decideReplay(rows, { caseSet, blindAgree, random = Math.random }
   const statuses = new Map(cases.map(c => [c, classify(c, header)])), complete = cases.filter(c => statuses.get(c) === 'complete');
   const primary = statistic('', complete, header.planned, C.MIN_INFORMATIVE); lines.push(...primary.lines);
   lines.push(rate('control', primary.control), rate('treatment', primary.treatment));
-  const delta = repeats(primary.control) - failures(primary.treatment); lines.push(`${delta < 0 ? W.larger : W.smaller} ${Math.abs(delta)}`);
+  const delta = primary.differences.length ? primary.differences.reduce((n, d) => n + Number(d.n) / Number(d.d), 0) / primary.differences.length : 0;
+  lines.push(`${delta < 0 ? W.larger : W.smaller} ${Math.abs(delta).toFixed(6)}`);
   for (const stratum of ['R', 'F']) {
    const result = statistic(stratum, complete.filter(c => c.stratum === stratum), cases.filter(c => c.stratum === stratum).length, C.MIN_STRATUM);
    lines.push(...result.lines, `${stratum} ${result.verdict}`);
   }
-  const sessionD = new Map(); for (const pair of primary.pairs) sessionD.set(pair.row.session, (sessionD.get(pair.row.session) ?? 0) + pair.d);
+  const sessionD = new Map(); for (const pair of primary.pairs) sessionD.set(pair.row.session, addDifference(sessionD.get(pair.row.session) ?? fraction(0n), pair.d));
   const cluster = signFlip([...sessionD.values()]); lines.push(`sessions ${sessionD.size} p fewer ${cluster.fewer.toFixed(6)} p more ${cluster.more.toFixed(6)}`);
   for (const kind of ['correction', 'decision']) lines.push(rate(`reproduction ${kind}`, complete.filter(c => c.kind === kind).flatMap(c => judged(c.replies.control))));
   for (const arm of [W.oracle, W.ceiling]) {
    const subset = complete.filter(c => c.replies[arm]);
-   const d = subset.map(c => repeats(judged(c.replies.control)) - failures(judged(c.replies[arm]))), p = signFlip(d);
+   const d = subset.map(c => rateDifference(judged(c.replies.control), judged(c.replies[arm]))), p = signFlip(d);
    lines.push(`${arm} repeats ${subset.reduce((n, c) => n + failures(judged(c.replies[arm])), 0)}/${subset.reduce((n, c) => n + judged(c.replies[arm]).length, 0)} p fewer ${p.fewer.toFixed(6)}`);
   }
   for (const reason of [W.leaked, W.unjudged, W.judgeMiss, W.unrun]) lines.push(`${reason} ${cases.filter(c => statuses.get(c) === reason).length}`);
-  for (const word of [W.unclear, W.stalls]) lines.push(`${word} ${['control', 'treatment'].map(arm => cases.reduce((n, c) => n + (c.replies[arm] ?? []).filter(d => d.verdict === word).length, 0)).join('/')}`);
+  for (const word of [W.unclear, 'failed draws', W.stalls]) lines.push(`${word} ${['control', 'treatment'].map(arm => cases.reduce((n, c) => n + (c.replies[arm] ?? []).filter(d => d.verdict === (word === 'failed draws' ? null : word)).length, 0)).join('/')}`);
   lines.push(`${W.cites} ${['control', 'treatment'].map(arm => cases.reduce((n, c) => n + (c.replies[arm] ?? []).filter(d => cites(d.reply, c.bundle ?? '')).length, 0)).join('/')}`);
   lines.push(`${W.read} ${cases.reduce((n, c) => n + (c.replies.control ?? []).filter(d => (d.reply ?? '').split(/\r?\n/u).some(line => /^TOOL Read:/u.test(line) && C.SLOT_MARKERS.readPaths.some(marker => normalizeProfileText(line).includes(marker)))).length, 0)}`);
   if (!primary.control.length || repeats(primary.control) / primary.control.length < C.REPRODUCTION_FLOOR) lines.push(W.weak);
@@ -312,7 +334,7 @@ export function decideReplay(rows, { caseSet, blindAgree, random = Math.random }
   lines.push(`ran R ${cases.filter(c => c.stratum === 'R' && statuses.get(c) !== W.unrun).length} F ${cases.filter(c => c.stratum === 'F' && statuses.get(c) !== W.unrun).length}`);
   const blind = blindAgree === undefined ? W.pending : blindAgree < C.BLIND_AGREE ? W.disagreement : primary.verdict;
   lines.push(`verdict ${blind}${incomplete ? ' ' + W.incomplete : ''}; bias favours bundle`);
-  for (const pair of primary.pairs.filter(p => p.d !== 0)) for (const draws of Object.values(pair.row.replies)) for (const draw of judged(draws)) if (draw.reply) sheetPool.push(draw.reply);
+  for (const pair of primary.pairs.filter(p => p.d.n !== 0n)) for (const draws of Object.values(pair.row.replies)) for (const draw of judged(draws)) if (draw.reply) sheetPool.push(draw.reply);
   lines.push(...rows.filter(r => r.type === 'spend' && r.runId === header.runId).flatMap(r => r.lines));
  }
  // Fisher-Yates without replacement. The random source is injected for synthetic checks.

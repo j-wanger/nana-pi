@@ -230,11 +230,12 @@ entry; prompted re-asked decisions enter R only. All other corrections enter F. 
 instances after session start remain F and print as late. The primary statistic pools R and F.
 
 The replay point is the owner request before the corrected agent turn. Recorded instructions,
-SessionStart outputs, the last compaction summary and main-chain messages through that point
-form the reconstruction. Thinking, images, sidechains and bookkeeping stay out. Tool results
+SessionStart outputs after the last compaction boundary, the last compaction summary and
+main-chain messages through that point form the reconstruction. Thinking, images, sidechains and bookkeeping stay out. Tool results
 are capped; over budget, whole oldest history entries drop, keeping the replay point.
 All arms differ only in one slot, after standing text and before conversation. Control keeps
-the recorded AutoMem and shared-memory hook output. Treatment merges only candidates with
+the recorded AutoMem and shared-memory hook output, matched by command or recorded status
+label (`nana: shared memory index`). Treatment merges only candidates with
 resolved evidence and session starts before the cut, without events or saved records, in a
 private temporary store removed after use. Evidence instants, not write stamps, order the bundle.
 The oracle contains one earlier record in R; the deliberately leaking ceiling contains the
@@ -244,16 +245,20 @@ Both replay and judge use sealed isolated Claude runners with no tools, MCP, set
 or session persistence. Replay writes a JSON-wrapped whole turn, including `TOOL` lines; no
 results come back. One blind judge call sees one reply and the mistake description, never arm
 metadata or another reply. The original turn must reproduce under the same judge shape.
-There are five draws per arm. Unclear draws drop; each arm needs at least three judged draws
+There are five draws per arm. Unclear and failed draws drop; each arm needs at least three judged draws
 (or all draws in a deliberately shorter synthetic run). Treatment and sensitivity-arm stalls
-count against avoidance. Per-case repeat-count differences feed an exact one-sided sign-flip
-test, with benefit and harm levels each 0.05 and at least eight informative cases. Wilson rates,
-R/F lines, a session-level clustering check, attrition and per-kind reproduction sit beside it.
+count against avoidance. Per-case differences in rates over judged draws feed an exact
+one-sided sign-flip test, with benefit and harm levels each 0.05 and at least eight informative
+cases. Rational differences scale to exact integer sums, including the sensitivity and session
+checks. The effect line is the mean paired rate difference. Wilson rates, R/F lines, a session-level
+clustering check, attrition and per-kind reproduction sit beside it. Failed draws print per arm
+beside unclear draws, including draws from excluded cases.
 The blind check needs eight agreements among ten replies drawn only from informative cases;
 without it the verdict is pending, and below it the verdict is withheld.
 
 The optional screen writes a new plan in the private root's `screen` folder and prints its
-new hash. Point `run` at that folder with that hash; all its draws are fresh. Screen draws
+new hash. Cases the cap never screened remain marked `unrun` in that plan. Point `run` at
+that folder with that hash; all its draws are fresh, and unrun cases make no calls. Screen draws
 never enter decisions. Runs exclusively create private folders beneath their plan's `runs`
 folder and write `memory-replay.jsonl`; the plan file is named plan.json. Output files use 0600 and
 folders 0700 on POSIX. Every writer refuses checkout outputs and refuses overwrites.

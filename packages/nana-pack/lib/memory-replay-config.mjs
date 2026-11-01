@@ -28,7 +28,9 @@ export const TOOL_RESULT_CAP = 2000;
 export const REPLY_CAP = 8000;
 export const BUNDLE_BUDGET = 8000;
 // Contract: plan A4/A5, chosen marker spelling 2026-11-01 (R-3385).
-export const SLOT_MARKERS = Object.freeze({ instruction: 'AutoMem', hooks: Object.freeze(['nana-shared-memory.mjs', 'nana-shared-memory']), readPaths: Object.freeze(['memory/', 'memory\\', 'memory.md', 'shared-memory']) });
+// Recorded label source: packages/nana-setup/lib/settings.mjs desiredHooks() shared
+// statusMessage, recorded as hook_success.command by Claude Code 2.1.310 (build brief 2).
+export const SLOT_MARKERS = Object.freeze({ instruction: 'AutoMem', hooks: Object.freeze(['nana-shared-memory.mjs', 'nana-shared-memory', 'nana: shared memory index']), readPaths: Object.freeze(['memory/', 'memory\\', 'memory.md', 'shared-memory']) });
 export const KEPT_TYPES = Object.freeze(['user', 'assistant', 'text', 'tool_use', 'tool_result']);
 // Chosen 2026-11-01, owner questions 1 and 2 defaults (R-3385).
 export const CONTROL_MODE = 'historical';

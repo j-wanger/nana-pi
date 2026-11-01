@@ -85,13 +85,23 @@ await check('plan stratifies corrections without spend', async () => {
 // req: R-3371
 await check('context preserves past and replaces only memory slot', () => {
  const oldInstructions = instructions('alpha'); oldInstructions.attachment.files[0].content = 'SECRET OLD INSTRUCTION';
- const entries = [oldInstructions, entry('user', 'old-summary', 'SECRET OLD SUMMARY', 0, 'alpha', { isCompactSummary: true }), { type: 'system', subtype: 'compact_boundary' }, instructions('alpha'), entry('user', 'before', 'Synthetic old history', 1), { type: 'system', subtype: 'compact_boundary' }, entry('user', 'summary', 'Synthetic latest summary', 2, 'alpha', { isCompactSummary: true }), { type: 'attachment', attachment: { type: 'hook_success', hookEvent: 'SessionStart', command: 'node nana-shared-memory.mjs', content: 'Synthetic shared hook' } }, { type: 'attachment', attachment: { type: 'hook_success', hookEvent: 'SessionStart', command: 'other-hook', content: 'Synthetic other hook' } }, entry('assistant', 'think', [{ type: 'thinking', thinking: 'SECRET THINKING' }, { type: 'text', text: 'Synthetic visible text' }, { type: 'tool_use', name: 'Read', input: { file_path: '/synthetic/file' } }], 3), entry('user', 'tool', [{ type: 'tool_result', content: 'x'.repeat(C.TOOL_RESULT_CAP + 100), tool_use_id: 't1' }], 4), entry('assistant', 'side', 'SECRET SIDECHAIN', 5, 'alpha', { isSidechain: true }), { type: 'attachment', attachment: { type: 'bookkeeping', content: 'SECRET BOOKKEEPING' } }, entry('user', 'point', 'Synthetic current request', 6), entry('assistant', 'later', 'SECRET FUTURE', 7)];
+ // Claude Code 2.1.310 records statusMessage as command, not the executable path.
+ const hook = (command, content, hookName = 'SessionStart:compact') => ({ type: 'attachment', attachment: { type: 'hook_success', hookName, command, content } });
+ const entries = [oldInstructions, entry('user', 'old-summary', 'SECRET OLD SUMMARY', 0, 'alpha', { isCompactSummary: true }), { type: 'system', subtype: 'compact_boundary' }, instructions('alpha'), entry('user', 'before', 'Synthetic old history', 1), hook('nana: shared memory index', 'SECRET OLD SHARED HOOK', 'SessionStart:startup'), hook('nana: objective + current priority', 'SECRET OLD STANDING HOOK', 'SessionStart:startup'), { type: 'system', subtype: 'compact_boundary' }, entry('user', 'summary', 'Synthetic latest summary', 2, 'alpha', { isCompactSummary: true }), hook('nana: shared memory index', 'Synthetic shared hook'), hook('nana: objective + current priority', 'Synthetic other hook'), entry('assistant', 'think', [{ type: 'thinking', thinking: 'SECRET THINKING' }, { type: 'text', text: 'Synthetic visible text' }, { type: 'tool_use', name: 'Read', input: { file_path: '/synthetic/file' } }], 3), entry('user', 'tool', [{ type: 'tool_result', content: 'x'.repeat(C.TOOL_RESULT_CAP + 100), tool_use_id: 't1' }], 4), entry('assistant', 'side', 'SECRET SIDECHAIN', 5, 'alpha', { isSidechain: true }), { type: 'attachment', attachment: { type: 'bookkeeping', content: 'SECRET BOOKKEEPING' } }, entry('user', 'point', 'Synthetic current request', 6), entry('assistant', 'later', 'SECRET FUTURE', 7)];
  const c = rebuildContext(entries, entries.findIndex(e => e.uuid === 'point')); const control = withMemorySlot(c, c.control), treatment = withMemorySlot(c, 'Synthetic treatment'), oracle = withMemorySlot(c, 'Synthetic oracle');
+ // Pin the label slot before checking stale hooks, so the baseline fails for the MUST first.
+ assert.ok(c.control.includes('Synthetic shared hook'), 'recorded status label belongs in the memory slot');
+ assert.ok(!treatment.text.includes('Synthetic shared hook'), 'treatment replaces the historical shared index');
  assert.ok(control.text.includes(C.REPLAY_PREAMBLE));
  for (const text of ['Synthetic project instruction', 'Synthetic latest summary', 'Synthetic shared hook', 'Synthetic other hook', 'Synthetic visible text', 'Synthetic current request', 'TOOL Read:']) assert.ok(control.text.includes(text), text);
- for (const text of ['Synthetic old history', 'SECRET THINKING', 'SECRET SIDECHAIN', 'SECRET BOOKKEEPING', 'SECRET FUTURE', 'SECRET OLD SUMMARY', 'SECRET OLD INSTRUCTION']) assert.ok(!control.text.includes(text), text);
+ for (const text of ['Synthetic old history', 'SECRET THINKING', 'SECRET SIDECHAIN', 'SECRET BOOKKEEPING', 'SECRET FUTURE', 'SECRET OLD SUMMARY', 'SECRET OLD INSTRUCTION', 'SECRET OLD SHARED HOOK', 'SECRET OLD STANDING HOOK']) assert.ok(!control.text.includes(text), text);
  assert.ok(control.text.includes('x'.repeat(C.TOOL_RESULT_CAP))); assert.ok(!control.text.includes('x'.repeat(C.TOOL_RESULT_CAP + 1)));
  assert.equal(c.control, 'Synthetic historical memory\nSynthetic shared hook');
+ for (const command of ['node nana-shared-memory.mjs', 'nana-shared-memory']) {
+  const legacy = rebuildContext([instructions('alpha'), hook(command, 'Synthetic legacy hook', 'SessionStart'), entry('user', 'point', 'Synthetic request', 1)], 2);
+  assert.equal(legacy.control, 'Synthetic historical memory\nSynthetic legacy hook');
+  assert.ok(!legacy.prefix.includes('Synthetic legacy hook'));
+ }
  const remove = x => x.text.slice(0, x.slotStart) + x.text.slice(x.slotEnd); assert.equal(remove(control), remove(treatment)); assert.equal(remove(control), remove(oracle));
  const trimmed = rebuildContext([instructions('alpha'), entry('user', 'huge', 'z'.repeat(C.HISTORY_BUDGET), 1), entry('user', 'last', 'Synthetic point stays', 2)], 2);
  assert.ok(trimmed.removedChars >= C.HISTORY_BUDGET); assert.ok(!trimmed.history.includes('zz')); assert.ok(trimmed.history.includes('Synthetic point stays'));
@@ -150,8 +160,34 @@ await check('decision reports paired statistics attrition and confirmation', () 
  assert.ok(lines.some(l => l.startsWith('verdict bundle fewer repeats'))); assert.ok(lines.some(l => l.startsWith('R cases planned'))); assert.ok(lines.some(l => l.startsWith('F cases planned'))); assert.ok(lines.some(l => l.startsWith('sessions 3 p '))); assert.ok(lines.some(l => l.startsWith('oracle '))); assert.ok(lines.some(l => l.startsWith('ceiling ')));
  const swapped = structuredClone(rows); for (const row of swapped.filter(r => r.type === 'case')) [row.replies.control, row.replies.treatment] = [row.replies.treatment, row.replies.control]; assert.ok(linesOf(swapped).some(l => l.startsWith('verdict bundle more repeats')));
  const balanced = runRows(Array.from({ length: 12 }, (_, i) => i % 2 ? caseRow(i) : caseRow(i, ['avoids'], ['repeats']))); assert.ok(linesOf(balanced).some(l => l.startsWith('verdict no decision')));
- // Integer-sum enumeration: |d| = 3, 2, 1; observed sum 4. Two of eight flips reach 4.
+ // Equal-denominator rates scale to |d| = 3, 2, 1; observed sum 4. Two of eight flips reach 4.
  assert.equal(signFlip([3, 2, -1]).fewer, 0.25); const k3 = runRows([caseRow(1, ['repeats', 'repeats', 'repeats'], ['avoids', 'avoids', 'avoids']), caseRow(2, ['repeats', 'repeats', 'avoids'], ['avoids', 'avoids', 'avoids']), caseRow(3, ['avoids', 'avoids', 'avoids'], ['repeats', 'avoids', 'avoids'])], { draws: 3 }); has(linesOf(k3), `pooled p fewer 0.250000 level ${C.BENEFIT_LEVEL} p more 0.875000 level ${C.HARM_LEVEL}`);
+ // Unequal judged denominators: d = 1/3 - 1/2 = -1/6, 1/3, 1/3.
+ // In sixths |d| = 1, 2, 2, observed 3: 2/8 flips >= 3; 7/8 <= 3.
+ // Raw counts instead give 0, 1, 1 and falsely erase the case favouring control.
+ const unequal = runRows([
+  caseRow(0, ['repeats', 'avoids', 'avoids', 'unclear', null, null], ['repeats', 'repeats', 'avoids', 'avoids', 'unclear', null], { session: 'one' }),
+  caseRow(1, ['repeats', 'avoids', 'avoids', 'unclear', null, null], ['avoids', 'avoids', 'avoids', 'avoids', 'avoids', null], { session: 'two' }),
+  caseRow(2, ['repeats', 'avoids', 'avoids', 'unclear', null, null], ['avoids', 'avoids', 'avoids', 'avoids', 'avoids', null], { session: 'three' }),
+ ], { draws: 6 });
+ // Make sensitivity arms match treatment, including the stall penalty.
+ for (const row of unequal.filter(r => r.type === 'case')) {
+  row.replies[row.stratum === 'R' ? 'oracle' : 'ceiling'] = structuredClone(row.replies.treatment);
+ }
+ unequal[1].replies.treatment[1].verdict = 'stalls'; // numerator remains 2 failures / 4 judged.
+ const u = linesOf(unequal);
+ for (const line of ['cases planned 3 informative 3 favour bundle 2 favour control 1', `pooled p fewer 0.250000 level ${C.BENEFIT_LEVEL} p more 0.875000 level ${C.HARM_LEVEL}`, 'sessions 3 p fewer 0.250000 p more 0.875000', 'unclear 3/1', 'failed draws 6/3', 'stalls 0/1', 'smaller by 0.166667', 'oracle repeats 0/5 p fewer 0.500000', 'ceiling repeats 2/9 p fewer 0.500000']) has(u, line);
+ const swappedUnequal = structuredClone(unequal);
+ // With no stalls, swapping rates reverses both one-sided tails exactly.
+ unequal[1].replies.treatment[1].verdict = 'repeats';
+ for (const row of swappedUnequal.filter(r => r.type === 'case')) {
+  row.replies.treatment = structuredClone(unequal.find(r => r.id === row.id).replies.control);
+  row.replies.control = structuredClone(unequal.find(r => r.id === row.id).replies.treatment);
+ }
+ has(linesOf(swappedUnequal), `pooled p fewer 0.875000 level ${C.BENEFIT_LEVEL} p more 0.250000 level ${C.HARM_LEVEL}`);
+ // Cluster two positive cases: session magnitudes 1/6, 2/3; 2/4 flips reach 1/2.
+ const clustered = structuredClone(unequal); clustered[2].session = 'positive'; clustered[3].session = 'positive';
+ has(linesOf(clustered), 'sessions 2 p fewer 0.500000 p more 0.750000');
  const attrition = runRows([caseRow(0, ['repeats', 'unclear', 'unclear'], ['avoids', 'avoids', 'avoids']), caseRow(1, ['repeats', 'repeats', 'repeats'], ['stalls', 'stalls', 'stalls']), ...['leaked', 'judge-miss', 'unrun'].map((status, i) => caseRow(i + 2, ['repeats'], ['avoids'], { status }))], { draws: C.MIN_JUDGED });
  const a = linesOf(attrition); for (const line of ['unjudged 1', 'leaked 1', 'judge-miss 1', 'unrun 1', 'unclear 2/0', 'stalls 0/3']) has(a, line); assert.ok(a.some(l => l.includes('undecided: too few cases'))); assert.ok(a.some(l => l.startsWith('cases planned 5 informative 0')));
  has(linesOf(runRows([caseRow(1, ['avoids'], ['avoids'])])), C.WORDS.weak);
@@ -175,6 +211,15 @@ await check('caps stop at case boundaries and expose incomplete spend', () => fi
 await check('screen selects repeats but run uses fresh draws', () => fixture(async ({ session, plan }) => {
  session('alpha', 0, [1, 2]); const p = await plan([label('alpha', 1), label('alpha', 2)]); let calls = 0;
  const s = await screenReplay(p, { runReplay: async () => { calls++; return result({ reply: `Synthetic screen ${calls}` }); }, runJudge: async input => result({ id: 'r1', verdict: JSON.parse(input.prompt).reply === 'Synthetic screen 1' ? 'repeats' : 'avoids' }) });
+ const capped = await screenReplay(p, { runCap: 0.01, runReplay: replay, runJudge: judge });
+ assert.equal(capped.rows[1].status, 'unrun');
+ assert.deepEqual(capped.plan.cases.map(c => [c.id, c.status]), [[p.cases[0].id, 'planned'], [p.cases[1].id, 'unrun']]);
+ let cappedCalls = 0;
+ const afterCap = await executeReplay(capped.plan, { runReplay: async () => { cappedCalls++; return replay(); }, runJudge: judge });
+ assert.equal(cappedCalls, C.DRAWS * 3);
+ assert.equal(afterCap.rows.find(r => r.id === p.cases[1].id).status, 'unrun');
+ has(decideReplay(afterCap.rows, { caseSet: capped.plan.hash }).lines, 'unrun 1');
+ assert.equal(p.cases[1].status, 'planned');
  assert.equal(calls, p.cases.length * C.SCREEN_DRAWS); assert.equal(s.plan.cases.length, 1); assert.notEqual(s.plan.hash, p.hash); assert.equal(s.plan.cases[0].id, p.cases[0].id); assert.equal(s.plan.parentHash, p.hash);
  let fresh = 0; const r = await executeReplay(s.plan, { runReplay: async () => { fresh++; return result({ reply: `Synthetic fresh ${fresh}` }); }, runJudge: judge }); assert.equal(fresh, C.DRAWS * 3); assert.ok(r.rows.filter(r => r.type === 'case').every(r => Object.values(r.replies).flat().every(d => d.reply.startsWith('Synthetic fresh')))); has(decideReplay(r.rows, { caseSet: s.plan.hash }).lines, 'cases planned 1 informative 0 favour bundle 0 favour control 0');
 }));
@@ -221,7 +266,7 @@ await check('seal: context and reply caps', () => assert.deepEqual([C.HISTORY_BU
 // req: R-3384
 await check('seal: bundle budget', () => assert.equal(C.BUNDLE_BUDGET, 8000));
 // req: R-3385
-await check('seal: slot markers and kept types', () => assert.deepEqual([C.SLOT_MARKERS, C.KEPT_TYPES, C.CONTROL_MODE, C.CEILING_ENABLED], [{ instruction: 'AutoMem', hooks: ['nana-shared-memory.mjs', 'nana-shared-memory'], readPaths: ['memory/', 'memory\\', 'memory.md', 'shared-memory'] }, ['user', 'assistant', 'text', 'tool_use', 'tool_result'], 'historical', true]));
+await check('seal: slot markers and kept types', () => assert.deepEqual([C.SLOT_MARKERS, C.KEPT_TYPES, C.CONTROL_MODE, C.CEILING_ENABLED], [{ instruction: 'AutoMem', hooks: ['nana-shared-memory.mjs', 'nana-shared-memory', 'nana: shared memory index'], readPaths: ['memory/', 'memory\\', 'memory.md', 'shared-memory'] }, ['user', 'assistant', 'text', 'tool_use', 'tool_result'], 'historical', true]));
 // req: R-3386
 await check('seal: statistic and blind bars', () => assert.deepEqual([C.BENEFIT_LEVEL, C.HARM_LEVEL, C.MIN_INFORMATIVE, C.MIN_STRATUM, C.MIN_JUDGED, C.REPRODUCTION_FLOOR, C.BLIND_AGREE, C.BLIND_SIZE], [0.05, 0.05, 8, 8, 3, 0.30, 8, 10]));
 // req: R-3387
