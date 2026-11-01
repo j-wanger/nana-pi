@@ -1,0 +1,6 @@
+FAIL R-3353: SessionEnd install repair remove and check preserve foreign hooks Error: ENOENT: no such file or directory, open '/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/memory-wiring-18L5F0/check-good/.pi/agent/nana-objective.md'
+    at Object.writeFileSync (node:fs:2430:20)
+    at runInstallCheck (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/lib/install-check.mjs:380:8)
+    at async file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-wiring.test.mjs:50:17
+    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/profile-fixture.mjs:61:8)
+    at async file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-wiring.test.mjs:23:1

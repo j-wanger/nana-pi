@@ -36,6 +36,8 @@ export const STORE_FIELDS=Object.freeze([...CANDIDATE_FIELDS,'subject','scope','
 export const OPT_IN_MEMBER='memoryRepositories';
 // Chosen 2026-11-01, counts-only public vocabulary (R-3341).
 export const WORDS=Object.freeze({enabled:'memory: enabled',disabled:'memory: not enabled',shallow:'memory: shallow',unavailable:'memory: unavailable',ci:'memory: ci',role:'memory: role',busy:'memory: busy',mergeFailed:'memory: merge failed',failed:'memory: failed',cap:'memory: capped',complete:'memory: complete',malformed:'memory: unclassified',pointer:'memory: profile unavailable',collision:'memory: repository collision',invalid:'memory: invalid command',notStarted:'memory: not started',started:'memory: started',status:'memory: status',never:'never',unknown:'unknown',pending:'pending',unparseable:'unparseable',done:'done',skipped:'skipped',unclassified:'unclassified',project:'project',scope:'local'});
+// Contract R-3361, 2026-11-01: public push outcome and local ahead-count words.
+export const PUSH_WORDS=Object.freeze({pushed:'pushed',unpushed:'unpushed'});
 // Contract, anchored lane name followed by an ISO day (R-3342).
 export const LANE_FOLDER_SUFFIX='-\\d{4}-\\d{2}-\\d{2}$';
 export const laneFolderPattern=lane=>new RegExp('^'+lane.replace(/[.*+?^${}()|[\]\\]/gu,'\\$&')+LANE_FOLDER_SUFFIX,'u');

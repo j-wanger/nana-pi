@@ -65,7 +65,7 @@ export function mapHookEntries(groups, platformName) {
         (e.args !== undefined && (!Array.isArray(e.args) || e.args.some((arg) => typeof arg !== "string"))) ||
         Object.keys(e).some((k) => !ALLOWED_HOOK_KEYS.includes(k))) for (const item of labelsFor(expected)) failures.push({ item, code: "bad-shape" });
     const requiredTools = expected.tools?.[platformName] ?? (expected.event === "SessionStart" ? ["startup"] : []);
-    if (expected.event === "UserPromptSubmit" && hit.matcher !== undefined) failures.push({ item: expected.label, code: "bad-matcher" });
+    if (expected.matcher === null && hit.matcher !== undefined) failures.push({ item: expected.label, code: "bad-matcher" });
     for (const tool of requiredTools) if (!matches(hit.matcher, tool)) {
       const item = expected.tools ? `${expected.label} (${tool})` : expected.label;
       failures.push({ item, code: "bad-matcher" });
@@ -497,11 +497,12 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     if (!mappedEntry) { report(label, structural?.code ?? "missing-entry", false); return; }
     const entry = mappedEntry.entry;
     if (structural) { report(label, structural.code, false, hookFailureReason(entry, expected, structural.code, platformName)); return; }
-    const input = expected.event === "SessionStart" ? sample : expected.event === "UserPromptSubmit"
+    const input = ["SessionStart", "SessionEnd"].includes(expected.event) ? sample : expected.event === "UserPromptSubmit"
       ? { prompt: `${SAMPLE_INPUTS.prompt} ${token}`, cwd: project }
       : { hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command: tool === "PowerShell" ? SAMPLE_INPUTS.verifier.powershellHit : SAMPLE_INPUTS.verifier.bashHit } };
     const invocation = hookInvocation(entry, platformName, bash);
     const hookEnv = { ...childEnv, CLAUDE_PROJECT_DIR: project };
+    for (const key of Object.keys(hookEnv)) if (expected.removeEnv?.some(name => name.toLowerCase() === key.toLowerCase())) delete hookEnv[key];
     const result = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(input), env: hookEnv });
     const stdout = result.stdout ?? "";
     let passed = !structural && okay(result) && stdout.length <= SAMPLE_INPUTS.maxOutput;
@@ -514,6 +515,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
       try { loads = fs.readFileSync(path.join(home, '.pi', 'agent', CONTEXT_LOAD_FILE), 'utf8').split(/\r?\n/).filter(Boolean).map(JSON.parse).filter(row => row.launcher === 'nana-shared-memory'); } catch {}
       passed &&= stdout.includes("[nana:shared-memory]") && stdout.includes(`- [${token}]`) && target === memoryTarget && loads.length === 1 && loads[0].v === 1 && loads[0].printedChars === stdout.length;
     }
+    if (expected.event === "SessionEnd") passed &&= stdout === "" && (result.stderr ?? "") === "";
     if (expected.shortLabel === "roster notice") passed &&= rosterNoticeOutputOk(stdout);
     if (expected.shortLabel === "knowledge pull") passed &&= stdout.includes("[nana:knowledge]") && stdout.includes(PI_TURN.noteFile);
     let miss = null;

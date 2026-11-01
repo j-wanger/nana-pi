@@ -16,6 +16,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_SUBAGENTS_RETRY, PULL_LOG_PATH, README_REHEARSAL } from "../lib/install-check-config.mjs";
 import * as installConfig from "../lib/install-check-config.mjs";
+import { MEMORY_END_ENTRY, MEMORY_END_TIMEOUT_SECONDS, MEMORY_MAKING_NOTE } from '../lib/memory-end-config.mjs';
 import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck, rosterNoticeOutputOk } from "../lib/install-check.mjs";
 import * as installCheck from "../lib/install-check.mjs";
 import { STALE_PREFIX, STALE_UNAVAILABLE_PREFIX } from "../lib/stale-copies-config.mjs";
@@ -47,9 +48,9 @@ async function runChecks() {
 
 // req: R-1074
 check("sealed hook table and allowed entry shape", () => {
-  assert.equal(HOOKS.length, 6);
+  assert.equal(HOOKS.length, 7);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
-  assert.deepEqual(HOOKS.map((h) => h.label), ["hook objective", "hook adoption", "hook shared memory", "hook roster notice", "hook verifier pipe", "hook knowledge pull"]);
+  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice", "hook verifier pipe", "hook knowledge pull"]);
   assert.ok(HOOKS.every((h) => h.form.darwin && h.form.linux && h.form.win32));
 });
 
@@ -640,6 +641,7 @@ check("form: each row's form is read from the sealed table, never inferred from 
 // req: R-1074, R-1082
 check("pin R-1074 R-1082: the hook table with its form columns and the allowed entry keys", () => {
   assert.deepEqual(HOOKS.map(h => [h.label, h.event, h.matcher, h.tools ?? null, h.script, h.timeout, h.form]), [
+    ['hook memory making', MEMORY_END_ENTRY.event, null, null, MEMORY_END_ENTRY.file, MEMORY_END_TIMEOUT_SECONDS, { darwin: 'shell', linux: 'shell', win32: 'exec' }],
     ["hook objective", "SessionStart", "startup", null, "nana-objective.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook adoption", "SessionStart", "startup", null, "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook shared memory", "SessionStart", "startup", null, "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
@@ -957,9 +959,9 @@ check("pin R-1096: the pull.log path under the temporary home", () => {
 // req: R-1081
 check("pin R-1081: the doctor note list", () => {
   assert.deepEqual(DOCTOR_NOTES, {
-    darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-    linux: ["pi agent dir", "pi mcp.json", "desk service", "release status"],
-    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor"],
+    darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status", MEMORY_MAKING_NOTE.label],
+    linux: ["pi agent dir", "pi mcp.json", "desk service", "release status", MEMORY_MAKING_NOTE.label],
+    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor", MEMORY_MAKING_NOTE.label],
   });
 });
 // req: R-1073

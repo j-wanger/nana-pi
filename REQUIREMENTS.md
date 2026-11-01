@@ -475,7 +475,7 @@ Artifact: A-090 · owner profile records · other project: <project>/records/ an
 Read by: A-090 · code: packages/nana-pack/lib/profile-store.mjs
 Artifact: A-091 · shaped memory candidates · user-home store: ~/<private --out folder>/shaped-candidates.jsonl · manual: the seat runs npm run memory:shape by hand
 Read by: A-091 · code: packages/nana-pack/lib/memory-score.mjs
-Artifact: A-093 · project memory store · other project: <project>/projects/<repository-folder>/ · land: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/bin/nana-memory.mjs
+Artifact: A-093 · project memory store · other project: <project>/projects/<repository-folder>/ · land: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/bin/nana-memory.mjs, packages/nana-setup/claude/hooks/nana-memory-end.mjs
 Read by: A-093 · code: packages/nana-pack/lib/memory-store.mjs, packages/nana-pack/bin/nana-memory.mjs
 
 | ID | Requirement | Status | Evidence |
@@ -557,6 +557,22 @@ Purpose: Classify owner turns and review findings with a capped, isolated model 
 
 ### SUB-024 · Make memory when sessions and lands end
 Purpose: Make new enabled repository units once into a private, synchronized project store through one merge step.
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3350 | WHEN a seat session ends with a transcript and a usable project folder, the hook shall start one quiet hidden detached run with the transcript and folder, using the same starter as land. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3350: session and land share one quiet hidden starter` |
+| R-3351 | The hook shall guard CI and every defined role, bound stdin by its deadline, fail quietly and exit without waiting after spawn. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3351: guards deadline errors and open stdin stay quiet` |
+| R-3352 | IF the checkout cannot load its modules, the hook shall exit zero without output. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3352: broken checkout exits silently` |
+| R-3353 | The installer shall install, check, repair and remove the SessionEnd hook while preserving foreign entries and reporting stale links. | implemented | `packages/nana-setup/tests/memory-end-wiring.test.mjs::R-3353: SessionEnd install repair remove and check preserve foreign hooks` |
+| R-3354 | The maker shall report push results and update the tracking ref only after success using compare-and-swap, preserving concurrent updates and reporting unpushed commits locally. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3354: push words and compare-and-swap tracking stay honest` |
+| R-3355 | The started run shall outlive the hook exit and the subsequent simulated timeout kill. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3355: run survives hook exit and timeout descendant kill` |
+| R-3356 | Doctor shall report only enabled counts, this machine's last making age and outcome, and unpushed commits in an informational note with fixed unreadable fallbacks. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3356: doctor and status use only local count-only making health` |
+| R-3357 | WHEN no units are pending, making shall write only its local last-run file without committing or pushing. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3357: empty runs leave HEAD store and remote unchanged` |
+| R-3358 | The SessionEnd entry timeout shall be 1.5 seconds. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3358: seal entry timeout` |
+| R-3359 | The hook stdin deadline shall be 300 milliseconds. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3359: seal stdin deadline` |
+| R-3360 | The memory hook entry shall use SessionEnd without a matcher, nana-memory-end.mjs and status message nana: memory. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3360: seal hook identity` |
+| R-3361 | Push diagnostics shall use pushed, not pushed: followed by the existing reason, and unpushed for the local commit count. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3361: seal push vocabulary` |
+| R-3362 | The doctor note shall use memory making, not enabled, never and unreadable as its fixed vocabulary. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3362: seal doctor vocabulary` |
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|

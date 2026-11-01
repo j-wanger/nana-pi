@@ -223,6 +223,7 @@ const adviceDeadPaths = [
 	`${adviceDeadRoot}/nana-roster-notice.mjs`,
 	`${adviceDeadRoot}/verifier-pipe.mjs`,
 	`${adviceDeadRoot}/nana-knowledge.ts`,
+	`${adviceDeadRoot}/nana-memory-end.mjs`,
 ];
 const vEntries = sessionLabels.map((label, index) => ({ ...clone(byLabel(winWanted, label).entry), args: [adviceDeadPaths[index]] }));
 const vVerifier = { ...clone(byLabel(winWanted, "PreToolUse verifier pipe").entry), args: [adviceDeadPaths[4]] };
@@ -232,6 +233,7 @@ seed(vHome, { hooks: {
 	SessionStart: [{ hooks: vEntries }],
 	PreToolUse: [{ matcher: WIN_VERIFIER_MATCHER, hooks: [vVerifier] }],
 	UserPromptSubmit: [{ hooks: [vKnowledge] }],
+	SessionEnd: [{ hooks: [{...clone(byLabel(winWanted, 'SessionEnd memory making').entry), args:[adviceDeadPaths[6]]}] }],
 } });
 const vInstall = run(["install", "--home", vHome]);
 const vDoctor = run(["doctor", "--home", vHome]);
