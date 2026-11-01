@@ -38,3 +38,10 @@
 - Owner profile (making-trigger, independent recheck): a damaged file already in the profile's own records or events folders still blocks saves; only new writes are safe.
 - Memory making (making-trigger, independent recheck): the temp name adds 41 characters to store paths, so a long clone folder on Windows can pass the 260-character limit without long paths enabled.
 - Memory making (making-trigger, independent recheck): store writes need hard links, so on FAT, exFAT or some network drives every write fails with an error.
+- Memory making (making-trigger, final review): review units come only from `refs/heads/main`, so a repository whose main branch has another name never gets review lessons.
+- Memory making (making-trigger, final review): if a lock holder releases between the create failure and the read, `acquireMemoryLock` throws past its catch; on the day lock this aborts a run after spend, and its units are re-sent next run.
+- Memory making (making-trigger, final review): unit keys include the session id, so if a real Claude Code fork rewrites it on copied entries, those turns are sent again.
+- Memory making (making-trigger, plan residual A6): on Windows an npm-installed `claude.cmd` does not start from `spawnSync("claude")`, so every call fails and units stay pending.
+- Memory making (making-trigger, final review): a run's fetch outside the clone lock can collide with a seat save's fetch, so the save briefly reports not pushed and is pushed at the next sync.
+- Memory making (making-trigger, final review): the merge step re-reads the whole store for each candidate while holding the clone lock, so the hold grows with candidates times store files.
+- Memory making (making-trigger, final review): the land line prints `memory: started` even for a repository that is not enabled, and repeats its prefix.
