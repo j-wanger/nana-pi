@@ -104,8 +104,8 @@ node packages/nana-pack/bin/nana-profile.mjs show
 node packages/nana-pack/bin/nana-profile.mjs sync
 ```
 
-Saving stays off on each machine until that machine's `init --save`. Writers refuse under
-`NANA_ROLE` or from linked worktrees. The seat saves automatically without approval, shows the
+Saving stays off on each machine until that machine's `init --save`. Every profile command
+refuses when `NANA_ROLE` is set; writers also refuse from linked worktrees. The seat saves automatically without approval, shows the
 `Saved:` line for veto, and writes to both this profile and today's shared memory until delivery.
 Confirm only an explicit owner yes, using new owner words. Decisions go to rulings; open threads
 belong in GitHub issues. Supported kinds are preference, correction, fact and thinking.
@@ -122,6 +122,9 @@ keeping other members and a backup. A dotfiles-linked target therefore receives 
 Records and events are exclusive-created JSON files; git history keeps retracted quotes.
 Retract hides a record, not its history. Every save starts low. Three distinct sessions with
 new quotes earn medium; explicit confirmation with new owner words earns high.
+`confirm`, `retract` and `supersede` accept a unique prefix of at least 12 hexadecimal characters
+across profile and project records. The printed 12-hex id is the claim's SHA-256 prefix. Events
+for project records stay in that project's own event area.
 `effectiveState` in `lib/profile-store.mjs` is the sole reader of effective trust and liveness;
 stored `trust` and `invalidAt` remain write-time values. Cycles keep the newest superseder;
 competing live replacements print a marked line. Show orders high, medium, low within 4000

@@ -12,13 +12,13 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { profileGuard, seatGuard, dailyCounter } from '../lib/profile-guards.mjs';
-import { mergeMemory } from '../lib/memory-store.mjs';
+import { mergeMemory, readMemoryStore, writeMemoryFile } from '../lib/memory-store.mjs';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
 import { ghFromEnvironment, ghResult } from '../lib/gh-runner.mjs';
 import { writePackConfigMember } from '../lib/pack-config-write.mjs';
 import { profileGit, gitText, withProfileLock, recoverProfile, commitProfile, syncProfile } from '../lib/profile-sync.mjs';
-import { claimId, readProfileStore, effectiveState, show, validateProfileSave, writeProfileEvent, normalizeProfileText } from '../lib/profile-store.mjs';
+import { claimId, readProfileStore, effectiveState, show, validateProfileSave, writeProfileEvent, normalizeProfileText, profileStamp } from '../lib/profile-store.mjs';
 import { PROFILE_GIT_TIMEOUT_MS, PROFILE_LIMITS, PROFILE_REMOTE_FORMS, PROFILE_LAYOUT as L, PROFILE_WORDS as W } from '../lib/profile-config.mjs';
 
 /** Like resolveRoster, read only this member and refuse dangling links and malformed bytes. */
@@ -61,6 +61,7 @@ function layout(dir,runGit) {
 }
 export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=process.cwd(),runGit=profileGit(env),runGh=ghFromEnvironment(env,{timeoutMs:PROFILE_GIT_TIMEOUT_MS}),now=()=>new Date(),log=console.log,error=console.error}={}) {
  try {
+  if(env.NANA_ROLE!==undefined) throw Error(W.role);
   const p=parse(args);
   if(p.command==='init') {
    if(!p.dir) throw Error(W.pointer); const dir=fs.realpathSync(path.resolve(p.dir));
@@ -81,8 +82,6 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
    });
    log(W.initialized); return 0;
   }
-  // Role refuses before even resolving a missing pointer.
-  if(p.command!=='show'&&p.command!=='sync'&&env.NANA_ROLE!==undefined) throw Error(W.role);
   const resolved=resolveProfile(agentDir); if(!resolved.ok) throw Error(resolved.problem);const pointer=resolved.pointer;const dir=pointer.dir;
   profileGuard(dir,runGit); if(!fs.existsSync(path.join(dir,L.marker))) throw Error(W.marker);
   if(p.command==='show') {const input=readProfileStore(dir);const text=show(effectiveState(input.recordFiles,input.events));if(text) log(text.replace(/\n$/,''));return 0;}
@@ -90,22 +89,32 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
   return withProfileLock(dir,runGit,gitdir=>{
    recoverProfile(dir,runGit,log,{now});
    if(p.command==='sync') {const result=syncProfile(pointer,{runGit,log});if(!result.ok) {error(`${W.notPushed}${result.reason}`);return 1;}log(W.synced);return 0;}
-   const input=readProfileStore(dir); const states=effectiveState(input.recordFiles,input.events); const previous=states.find(r=>r.id===p.id);
-   if(p.command!=='save'&&!previous) throw Error(W.unknown);
+   const input=readProfileStore(dir);
+   const memory=readMemoryStore(dir); const targets=memory.filter(r=>r.id.startsWith(p.id));
+   if(p.command!=='save'&&(!/^[a-f0-9]{12,}$/i.test(p.id)||targets.length!==1)) throw Error(W.unknown);
+   const previous=p.command==='save'?undefined:targets[0]; const id=previous?.id;
    if(['confirm','retract'].includes(p.command)) {
     if(!p.quote?.trim()) throw Error(W.quote);
-    const quotes=input.recordFiles.filter(x=>x.record.id===p.id).map(x=>normalizeProfileText(x.record.quote));
+    const quotes=previous?.repository?[normalizeProfileText(previous.quote)]:input.recordFiles.filter(x=>x.record.id===id).map(x=>normalizeProfileText(x.record.quote));
     if(p.command==='confirm'&&quotes.includes(normalizeProfileText(p.quote))) throw Error(W.repeatedQuote);
     // Check unrelated changes before exclusive-create; refused commands leave no record.
     commitProfile(dir,runGit,'Keep profile records');
-    writeProfileEvent(dir,p.id,p.command,{quote:p.quote},{now});
+    if(previous.repository) {
+     const date=now(),stamp=profileStamp(date);
+     writeMemoryFile(dir,previous.repository,L.events,id,{id,action:p.command,quote:p.quote,stamp},{now:()=>date});
+    } else writeProfileEvent(dir,id,p.command,{quote:p.quote},{now});
    } else {
     validateProfileSave(p);
     const {file,counter}=dailyCounter(gitdir,now);if(counter.count>=PROFILE_LIMITS.daily) throw Error(W.dailyCap);
-    if(p.command==='supersede'&&claimId(p.claim)===p.id) throw Error(W.usage);
+    if(p.command==='supersede'&&claimId(p.claim)===id) throw Error(W.usage);
     commitProfile(dir,runGit,'Keep profile records');
     const record=mergeMemory(dir,p,{env,now,saved:true});
-    if(p.command==='supersede') writeProfileEvent(dir,p.id,'supersede',{quote:p.quote,target:record.id},{now});
+    if(p.command==='supersede') {
+     if(previous.repository) {
+      const date=now(),stamp=profileStamp(date);
+      writeMemoryFile(dir,previous.repository,L.events,id,{id,action:'supersede',quote:p.quote,target:record.id,stamp},{now:()=>date});
+     } else writeProfileEvent(dir,id,'supersede',{quote:p.quote,target:record.id},{now});
+    }
     commitProfile(dir,runGit,'Save owner profile');
     fs.writeFileSync(file,JSON.stringify({...counter,count:counter.count+1}),{mode:0o600});
     log(`${W.saved}${record.claim} (${record.id})`);

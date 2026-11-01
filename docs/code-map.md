@@ -2511,7 +2511,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Live states, exclusive records/events/seen/evidence/run files and repository collision refusals.
 - **effects** — disk
 - **errors** — Filesystem failures and fixed collision refusal.
-- **callers** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-replay.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-replay.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
 - **callees** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`
 
 ### `packages/nana-pack/lib/mutation-runner-config.mjs`
@@ -4088,7 +4088,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk, process
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
+- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
 
 ### `packages/nana-pack/tests/profile-sync.test.mjs`
 
