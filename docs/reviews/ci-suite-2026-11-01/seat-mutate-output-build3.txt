@@ -1,19 +1,19 @@
-seat-mutate: lane ci-suite, tip aedc5592081ecc53cdeea20cde256049a40f3cb1, table 224545c8430e723d23552060089461143ec4da5a40ec723ccdeebd3d8d38effe, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 17 pairs in 5 shards (4+4+3+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-11-01T18:49:09.304Z
+seat-mutate: lane ci-suite, tip f806f98ed4c1b833602af0f5388ac2b220ccc3df, table 224545c8430e723d23552060089461143ec4da5a40ec723ccdeebd3d8d38effe, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 17 pairs in 5 shards (4+4+3+3+3, round-robin, 4s apart), darwin, node v22.22.2, 2026-11-01T18:55:06.654Z
 DECLARED Plan pairs 1–9, split where the plan names alternatives; runner filter and new seals are also broken.
-[1/5] seat-mutate: lane ci-suite, shard 1/5, tip aedc5592081ecc53cdeea20cde256049a40f3cb1, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 4 pairs, darwin, node v22.22.2, 2026-11-01T18:49:10.505Z
+[1/5] seat-mutate: lane ci-suite, shard 1/5, tip f806f98ed4c1b833602af0f5388ac2b220ccc3df, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 4 pairs, darwin, node v22.22.2, 2026-11-01T18:55:07.950Z
 [1/5] BASELINE ok   packages/nana-pack/tests/land-ci-suite.test.mjs (exit 0, 6 PASS, 0 FAIL, )
 [1/5] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 53 PASS, 0 FAIL, )
 [1/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
-[2/5] seat-mutate: lane ci-suite, shard 2/5, tip aedc5592081ecc53cdeea20cde256049a40f3cb1, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 4 pairs, darwin, node v22.22.2, 2026-11-01T18:49:14.569Z
+[2/5] seat-mutate: lane ci-suite, shard 2/5, tip f806f98ed4c1b833602af0f5388ac2b220ccc3df, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 4 pairs, darwin, node v22.22.2, 2026-11-01T18:55:11.916Z
 [2/5] BASELINE ok   packages/nana-pack/tests/land-ci-suite.test.mjs (exit 0, 6 PASS, 0 FAIL, )
 [2/5] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
-[3/5] seat-mutate: lane ci-suite, shard 3/5, tip aedc5592081ecc53cdeea20cde256049a40f3cb1, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 3 pairs, darwin, node v22.22.2, 2026-11-01T18:49:18.603Z
+[3/5] seat-mutate: lane ci-suite, shard 3/5, tip f806f98ed4c1b833602af0f5388ac2b220ccc3df, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 3 pairs, darwin, node v22.22.2, 2026-11-01T18:55:15.989Z
 [3/5] BASELINE ok   packages/nana-pack/tests/land-ci-suite.test.mjs (exit 0, 6 PASS, 0 FAIL, )
 [3/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
-[4/5] seat-mutate: lane ci-suite, shard 4/5, tip aedc5592081ecc53cdeea20cde256049a40f3cb1, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 3 pairs, darwin, node v22.22.2, 2026-11-01T18:49:22.944Z
+[4/5] seat-mutate: lane ci-suite, shard 4/5, tip f806f98ed4c1b833602af0f5388ac2b220ccc3df, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 3 pairs, darwin, node v22.22.2, 2026-11-01T18:55:20.067Z
 [4/5] BASELINE ok   packages/nana-pack/tests/land-ci-suite.test.mjs (exit 0, 6 PASS, 0 FAIL, )
 [4/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
-[5/5] seat-mutate: lane ci-suite, shard 5/5, tip aedc5592081ecc53cdeea20cde256049a40f3cb1, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 3 pairs, darwin, node v22.22.2, 2026-11-01T18:49:26.871Z
+[5/5] seat-mutate: lane ci-suite, shard 5/5, tip f806f98ed4c1b833602af0f5388ac2b220ccc3df, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 3 pairs, darwin, node v22.22.2, 2026-11-01T18:55:24.258Z
 [5/5] BASELINE ok   packages/nana-pack/tests/land-ci-suite.test.mjs (exit 0, 6 PASS, 0 FAIL, )
 [5/5] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 67 PASS, 0 FAIL, )
 [5/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
