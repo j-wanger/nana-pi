@@ -101,7 +101,14 @@ for (const name of ["index.db-wal", "index.db-shm", "build.lock.reclaim", "unkno
 fs.writeFileSync(sourceLayout.piPackConfig, JSON.stringify({ objective: { path: objective } }));
 fs.mkdirSync(path.join(home, ".local", "share", "nana"), { recursive: true });
 const secrets = sourceRows.filter((row) => row.class === "secret");
-const forbiddenArchivePaths = ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json"].map((name) => path.relative(home, path.join(sourceLayout.piHome, name))).concat([path.relative(home, path.join(sourceLayout.piHome, "trust.json")), path.relative(home, path.join(sourceLayout.claudeHome, ".credentials.json")), path.relative(home, sourceLayout.claudeSettings), path.relative(home, transcript)], sourceRows.filter((row) => ["review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal"].includes(row.store)).map((row) => path.relative(home, row.path)));
+// A listing line is a name: tar (bsdtar on Windows) ends lines with CRLF, GNU tar with LF; directories end in "/".
+const parseListing = (text) => text.split(/\r?\n/).filter(Boolean).map((name) => name.replace(/\/$/, ""));
+const slashRelative = (file) => path.relative(home, file).split(path.sep).join("/");
+// Every secret and disposable row, plus the re-ratified project trust file, in the archive's slash form.
+// The one wildcard secret row (Claude transcripts) stands in as the fixture transcript.
+const forbiddenArchivePaths = sourceRows.filter((row) => row.class === "secret" || row.class === "disposable" || row.store === "project trust").map((row) => slashRelative(row.path.includes("*") ? transcript : row.path));
+// The one guard the archive check and its own check share: the archive names equal to, or under, a forbidden path.
+const forbiddenInArchive = (names, forbidden) => names.filter((name) => forbidden.some((entry) => name === entry || name.startsWith(`${entry}/`)));
 for (const store of ["review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal"]) {
   const row = byStore.get(store);
   if (row.kind === "dir") { if (fs.existsSync(row.path) && !fs.statSync(row.path).isDirectory()) fs.unlinkSync(row.path); fs.mkdirSync(row.path, { recursive: true }); fs.writeFileSync(path.join(row.path, "disposable.txt"), `disposable:${store}`); }
@@ -124,8 +131,8 @@ const listedPaths = run(["state", "--paths", "--home", home]);
 fs.writeFileSync(listingFile, listedPaths.stdout);
 const archived = spawnSync("tar", ["-czf", archiveName, "-C", home, "-T", listingFile], { cwd: root, encoding: "utf8" });
 const tarList = spawnSync("tar", ["-tzf", archiveName], { cwd: root, encoding: "utf8" });
-const listedNames = listedPaths.stdout.trim().split("\n").filter(Boolean).sort();
-const archiveNames = tarList.stdout.trim().split("\n").filter(Boolean).map((name) => name.replace(/\/$/, "")).sort();
+const listedNames = parseListing(listedPaths.stdout).sort();
+const archiveNames = parseListing(tarList.stdout).sort();
 const allSourceEntries = [];
 const collectSourceEntries = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); allSourceEntries.push(file); if (entry.isDirectory()) collectSourceEntries(file); } };
 collectSourceEntries(home);
@@ -148,8 +155,12 @@ const expectedRelative = expectedDurableFiles.map((file) => path.relative(home, 
 check("independent durable fixtures are all listed", expectedRelative.every((name) => listedNames.includes(name)), `${expectedRelative.filter((name) => !listedNames.includes(name)).join(", ")}\n${listedPaths.stderr}\n${listedNames.join("\n")}`);
 // req: R-958
 check("knowledge generated sidecars, reclaim lock and unknown future files are excluded", listedPaths.status === 0 && ["index.db-wal", "index.db-shm", "build.lock.reclaim", "unknown-future-artifact"].every((name) => !listedNames.includes(path.relative(home, path.join(sourceLayout.knowledgeHome, name)).split(path.sep).join("/"))), listedNames.filter((name) => /(?:index\.db-(?:wal|shm)|build\.lock\.reclaim|unknown-future-artifact)$/.test(name)).join(", "));
-// req: R-958
-check("archive excludes every independently derived non-durable fixture", listedPaths.status === 0 && archived.status === 0 && tarList.status === 0 && JSON.stringify(archiveNames) === JSON.stringify(listedNames) && !nonDurableFixtures.some((fixture) => { const relative = path.relative(home, fixture).split(path.sep).join("/"); return archiveNames.some((name) => name === relative || name.startsWith(`${relative}/`)); }) && !archiveNames.some((name) => forbiddenArchivePaths.some((forbidden) => name === forbidden || name.startsWith(`${forbidden}/`))), `${listedPaths.stderr} ${archived.stderr} ${tarList.stderr} excluded fixtures=${nonDurableFixtures.map((file) => path.relative(home, file)).join(", ")}`);
+// req: R-958 R-3451
+check("archive excludes every independently derived non-durable fixture", listedPaths.status === 0 && archived.status === 0 && tarList.status === 0 && JSON.stringify(archiveNames) === JSON.stringify(listedNames) && !nonDurableFixtures.some((fixture) => { const relative = path.relative(home, fixture).split(path.sep).join("/"); return archiveNames.some((name) => name === relative || name.startsWith(`${relative}/`)); }) && forbiddenInArchive(archiveNames, forbiddenArchivePaths).length === 0, `${listedPaths.stderr} ${archived.stderr} ${tarList.stderr} excluded fixtures=${nonDurableFixtures.map((file) => path.relative(home, file)).join(", ")}`);
+// req: R-3450
+check("tar listings split on CRLF and LF", JSON.stringify(parseListing("a\r\nb/\r\n")) === JSON.stringify(["a", "b"]) && JSON.stringify(parseListing("a\nb/\n")) === JSON.stringify(["a", "b"]));
+// req: R-3451
+check("a forbidden path in the archive listing is caught in slash form", JSON.stringify(forbiddenInArchive(parseListing(".pi/agent/auth.json\r\n"), forbiddenArchivePaths)) === JSON.stringify([".pi/agent/auth.json"]) && forbiddenArchivePaths.every((name) => !name.includes("\\")), forbiddenArchivePaths.join(", "));
 const clean = run(["state", "--home", destination]);
 // req: R-958
 check("clean destination reports every durable store absent", clean.status === 0 && stateRows(resolveLayout({ home: destination })).filter((row) => row.class === "durable").every((row) => clean.stdout.split("\n").some((line) => line.startsWith(`${row.store}\t`) && line.endsWith("\tabsent"))), `${clean.status} ${clean.stderr}`);
