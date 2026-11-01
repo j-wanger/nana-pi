@@ -1,0 +1,9 @@
+PASS R-3210: reviewer isolation and configured effort preserve exact argv order
+PASS R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits
+PASS R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes
+PASS R-3213: exactly-at-cap non-ASCII builder files pass unchanged at the original pi path
+PASS R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading
+PASS R-3215: launchers log once before outcomes with exact part counts and default-home resolution
+PASS R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery
+PASS R-3217: seat memory log names whole shortened and omitted entries without changing stdout
+PASS R-3218: known-bug digest seal is 6000 UTF-16 units

@@ -1,0 +1,10 @@
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs    12 pass  1.8s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs    9 pass  25.2s
+PASS  packages/nana-pack/tests/hive-city.test.mjs          19 pass  81.3s
+PASS  packages/nana-pack/tests/identity-scan.test.mjs      8 pass  16.1s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs  98 pass  2.7s
+FAIL  packages/nana-pack/tests/test-runner.test.mjs        51 pass, 1 fail  30.0s  — exit 1
+      | FAIL the source check detects direct mkdtemp calls while ignoring only generated leak fixtures
+
+6 files: 5 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 197 pass, 1 fail, 0 skip · 157.3s
+failed: packages/nana-pack/tests/test-runner.test.mjs

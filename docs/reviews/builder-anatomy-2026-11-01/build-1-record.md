@@ -118,7 +118,8 @@ Long output is committed beside this record; only summary lines belong in the fi
 | `npm run map`, `node scripts/requirements-tree.mjs --write` | 0 each; generated tracked maps |
 | `npm run map:check`, `npm run readme:check`, requirements trace, tree, known-bugs, identity scan | Tip results recorded separately in `tip-checks.txt` and rerun on the commit |
 
-Full-suite summary: `247 files: 245 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8838 pass, 0 fail, 44 skip`.
+Final merged full-suite summary: `248 files: 246 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8849 pass, 0 fail, 44 skip`.
+Before the prerequisite merge, the green suites had 247 files and 8838 passing checks.
 
 An early readme check found two output filenames interpreted as tracked paths and one layout phrase interpreted as a path; prose was corrected, not the checker.
 An early known-bugs invocation omitted `--root .` and exited 2; the corrected check exited 0.
@@ -143,6 +144,12 @@ Its finished hosted CI result is reported separately after the push.
 The seat's real-session segmentation, 90% recorded-build matching gate, independent labelling, reliability marks and anatomy-counts report are intentionally not run here.
 Those need private owner text and are assigned to the seat after build 1. No empirical reliability claim is made from synthetic labels.
 No causal replay, paid study, launcher change, model labeller, install check or reviewer session was run.
-The context-anatomy merge-order requirement remains: FEAT-041 lands first, then this branch merges main before its final review.
-At the last fetch during implementation, origin/main was still 11454d44.
+FEAT-041 landed at 8c665dcd while this build's first hosted CI was running.
+The branch now merges that main tip before its final review. The sole textual merge conflict was the generated code map; it was regenerated.
+The merged ledger has 73 headings, so the same two existing tree-test assertions advance from 72 to 73.
+Requirements and the outline merged without a textual conflict; the outline was regenerated as well.
+Protected handoff, known-bug and archive files came only from the already-landed main history; none received a direct builder edit.
+The first post-fix push had no CI run because the conflicted PR could not form its test merge; the main merge resolves that condition.
+`merge-targeted.txt` records the targeted tests at exit 0. The merged locked `npm run map:measure` exited 0; its output is in `full-suite-merge.txt`.
+The merge commit stages only the named manual resolutions and this lane's evidence; all other staged files are git's automatic main merge.
 A final reviewer and land are seat operations. Hosted CI and the draft PR are reported on the new tip, not committed through a self-referential follow-up.

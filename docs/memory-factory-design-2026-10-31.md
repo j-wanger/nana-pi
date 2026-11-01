@@ -1,6 +1,6 @@
 # Memory factory — vision and principles
 
-*Confirmed by the owner on 2026-10-31. Every memory lane cites this file. An outside idea joins a lane only when it passes the fold test below.*
+*Confirmed by the owner on 2026-10-31; version 2 adds subject and scope, the private-store rule, stage needs, retrieval and when making runs. Every memory lane cites this file. An outside idea joins a lane only when it passes the fold test below.*
 
 ## Vision
 
@@ -16,10 +16,23 @@ Research on 2026-10-31 found four failures:
 - Written corrections did not stop the next instance in at least four of six classes.
 - Most of every agent's starting context was standing text, not memory.
 
-## Two memory types
+## What a memory is about, and how far it reaches
 
-1. Worker memory, for agents that do not talk to the owner: planner, adversary, builder, reviewers, and the seat while planning.
-2. User-facing memory, for the seat's conversations with the owner. It lives in a private repo, never in this one.
+Every record answers two questions.
+
+- Subject. User memory is about the owner as a person and holds in any project. Project memory is about a body of work: its product, code, decisions and lessons. A decision the owner makes about a project is project memory, credited to the owner.
+- Scope. Global applies everywhere. Local applies to one project, named in the record.
+
+| | Global | Local |
+|---|---|---|
+| User | How the owner communicates, decides and works everywhere; standing preferences; context such as machines and time pressure. | How the owner wants to work in this one project, where it differs. |
+| Project | Lessons true of any project built the nana way. | This project's objective, priority, rulings, decisions, known bugs and code facts. |
+
+A new record starts local to the project where it arose. It becomes global when the same lesson or preference appears in a second project. A global project lesson can rise further, into a nana rule or check.
+
+## Where memory lives
+
+The memory store is always private. Nothing in it reaches a public repo. A lesson goes public only by promotion into a nana requirement or rule, rewritten without the owner's words. Project memory is keyed by repository, never by folder.
 
 ## Six stations
 
@@ -29,6 +42,25 @@ Research on 2026-10-31 found four failures:
 4. Upkeep: merge, recheck evidence, retire, and move repeated lessons up.
 5. Checking: log what each agent loaded and used; probe whether the seat still pushes back.
 6. Delivery: a sized bundle per role, placed in the slot that role's context already has.
+
+## What each stage needs
+
+| Stage | Pushed at start | May search | Never gets |
+|---|---|---|---|
+| Seat with the owner | user global and local profile; objective and priority; open decisions | all project memory | — |
+| Planner | the feature's decisions and lessons; rulings in scope | past findings on similar work | user memory |
+| Adversary | past blocking findings and known bugs in the area | — | user memory |
+| Builder | brief, precedent, known-bug digest, code facts for the touched files | — | user memory; anything not handed to it |
+| Reviewers | the feature's known bugs; decisions the change must honour | — | user memory; the builder's reasoning |
+| Lands and CI | — | — | they are sources for making, not consumers |
+
+## How retrieval works
+
+Hybrid, set by role. A push bundle is small, budgeted and placed in the slot each role's context already has; it carries what the role must not miss, chosen by role, feature, the files the brief touches and scope. Search covers the long tail and is open only to the seat and the planner. Builders and reviewers are push-only, so builds repeat, reviews stay independent and builders get no automatic pull. The load log records every push and a pull log records every search, so checking can tell whether a memory was used.
+
+## When making runs
+
+At the end of each session, over that session's new turns, and as part of each land, over the lane's review folder. A watermark keeps each run to new units. Seat saves and extracted candidates enter the store through one merge step.
 
 ## Principles
 

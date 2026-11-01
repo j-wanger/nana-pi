@@ -125,7 +125,7 @@ const piReview = fileURLToPath(new URL("../bin/pi-review.mjs", import.meta.url))
 const r = spawnSync(process.execPath, [piReview, "--item", "handoff-writer-role-test", "--out", out, "--poll", "1", "--stall-secs", "10", "--retries", "1", "--", "-p", "x"], {
 	cwd: reviewRepo,
 	// HOME → the temp dir: the T2b review ledger this call writes must never be the real one
-	env: { ...process.env, HOME: scratchRoot, USERPROFILE: scratchRoot, PATH: `${stubBin}${path.delimiter}${process.env.PATH}` },
+	env: { ...process.env, HOME: scratchRoot, USERPROFILE: scratchRoot, PI_CODING_AGENT_DIR: path.join(scratchRoot, '.pi', 'agent'), PATH: `${stubBin}${path.delimiter}${process.env.PATH}` },
 	encoding: "utf-8",
 	timeout: 60_000,
 });

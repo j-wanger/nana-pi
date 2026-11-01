@@ -457,9 +457,9 @@ const carryCall = readRows(RECORD)[0];
 const carried = fs.existsSync(SETTINGS_COPY) ? JSON.parse(fs.readFileSync(SETTINGS_COPY, "utf8")) : null;
 const carryTop = carried ? Object.keys(carried).sort() : [];
 const carryEnv = carried ? Object.keys(carried.env).sort() : [];
-const expectedCarryEnv = [...new Set(["HTTPS_PROXY", "no_proxy", "NODE_EXTRA_CA_CERTS", "ANTHROPIC_API_KEY", ...Object.keys(sealedEnv())])].sort();
+const expectedCarryEnv = [...new Set(["HTTPS_PROXY", "no_proxy", "NODE_EXTRA_CA_CERTS", "ANTHROPIC_API_KEY", "CLAUDE_CODE_USE_BEDROCK", ...Object.keys(sealedEnv())])].sort();
 const carryLines = carryRun.stderr.split(/\r?\n/).filter((line) => line.startsWith("pi-worker: claude settings carry:"));
-const expectedCarryLine = `pi-worker: claude settings carry: apiKeyHelper, awsCredentialExport, proxyAuthHelper, env ANTHROPIC_API_KEY, HTTPS_PROXY, NODE_EXTRA_CA_CERTS, no_proxy; source: ${homeSettings}`;
+const expectedCarryLine = `pi-worker: claude settings carry: apiKeyHelper, awsAuthRefresh, awsCredentialExport, proxyAuthHelper, env ANTHROPIC_API_KEY, CLAUDE_CODE_USE_BEDROCK, HTTPS_PROXY, NODE_EXTRA_CA_CERTS, no_proxy; source: ${homeSettings}`;
 const allCarryOutput = `${carryRun.stdout}\n${carryRun.stderr}\n${fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf8") : ""}\n${fs.existsSync(LEDGER) ? fs.readFileSync(LEDGER, "utf8") : ""}`;
 const configDir = path.join(TEMP, "config-home"); fs.mkdirSync(configDir, { recursive: true });
 const configSettings = path.join(configDir, "settings.json");
@@ -470,7 +470,7 @@ const configCarried = fs.existsSync(SETTINGS_COPY) ? JSON.parse(fs.readFileSync(
 const configCall = readRows(RECORD)[0];
 // req: R-2655
 check("R-2655: a Claude Code builder gets a settings file outside the worktree carrying only the login keys and network env names from the user settings, named in one line without values, and gone after the build",
-	carryRun.status === 0 && carryCall && JSON.stringify(carryTop) === JSON.stringify(["apiKeyHelper", "awsCredentialExport", "env", "proxyAuthHelper"]) &&
+	carryRun.status === 0 && carryCall && JSON.stringify(carryTop) === JSON.stringify(["apiKeyHelper", "awsAuthRefresh", "awsCredentialExport", "claudeMdExcludes", "env", "proxyAuthHelper"]) &&
 	JSON.stringify(carryEnv) === JSON.stringify(expectedCarryEnv) && carried.apiKeyHelper === "/fake/api-helper" && carried.env.ANTHROPIC_API_KEY === secretOne && carried.env.no_proxy === "localhost" &&
 	carryLines.length === 1 && carryLines[0] === expectedCarryLine && !allCarryOutput.includes(secretOne) && !path.relative(real(LANE), carryCall.settings).split(path.sep).every((part) => part !== "..") &&
 	!fs.existsSync(carryCall.settings) && (process.platform === "win32" || (carryCall.settingsMode & 0o077) === 0) && git(LANE, "status", "--porcelain") === "" &&
@@ -510,7 +510,7 @@ for (const [name, reason, arrange] of failureCases) {
 	const copy = fs.existsSync(SETTINGS_COPY) ? JSON.parse(fs.readFileSync(SETTINGS_COPY, "utf8")) : null;
 	const carry = result.stderr.split(/\r?\n/).filter((line) => line.startsWith("pi-worker: claude settings carry:"));
 	const outputs = `${result.stdout}\n${result.stderr}\n${fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf8") : ""}`;
-	failureObservations.push({ name, ok: result.status === 0 && readRows(RECORD).length === 1 && carry.length === 1 && carry[0] === `pi-worker: claude settings carry: none; ${reason}; source: ${homeSettings}` && !outputs.includes("sk-ant-SEC") && !outputs.includes("SECRET-MARKER") && copy && JSON.stringify(Object.keys(copy)) === JSON.stringify(["env"]) && JSON.stringify(copy.env) === JSON.stringify(sealedEnv()) && call?.argv.includes(CLAUDE_SETTINGS_FLAG), status: result.status, stderr: result.stderr, copy });
+	failureObservations.push({ name, ok: result.status === 0 && readRows(RECORD).length === 1 && carry.length === 1 && carry[0] === `pi-worker: claude settings carry: none; ${reason}; source: ${homeSettings}` && !outputs.includes("sk-ant-SEC") && !outputs.includes("SECRET-MARKER") && copy && JSON.stringify(Object.keys(copy)) === JSON.stringify(["claudeMdExcludes", "env"]) && JSON.stringify(copy.env) === JSON.stringify(sealedEnv()) && call?.argv.includes(CLAUDE_SETTINGS_FLAG), status: result.status, stderr: result.stderr, copy });
 }
 // req: R-2665
 check("R-2665: a missing, unreadable, malformed or non-object user settings file prints one carry line without its content, and the builder still starts with only the sealed env",
@@ -925,6 +925,8 @@ const literalCarryNames = [
 	"HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "CLAUDE_CODE_PROXY_RESOLVES_HOSTS", "CLAUDE_CODE_PROXY_AUTH_HELPER_TTL_MS", "CLAUDE_CODE_ENABLE_PROXY_AUTH_HELPER",
 	"NODE_EXTRA_CA_CERTS", "CLAUDE_CODE_CERT_STORE", "CLAUDE_CODE_CLIENT_CERT", "CLAUDE_CODE_CLIENT_KEY", "CLAUDE_CODE_CLIENT_KEY_PASSPHRASE",
 	"ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_CUSTOM_HEADERS",
+	"CLAUDE_CODE_GIT_BASH_PATH", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "AWS_REGION", "AWS_PROFILE", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID",
+	"AWS_BEARER_TOKEN_BEDROCK", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "ANTHROPIC_BEDROCK_BASE_URL", "ANTHROPIC_VERTEX_BASE_URL", "CLAUDE_CODE_SKIP_BEDROCK_AUTH", "CLAUDE_CODE_SKIP_VERTEX_AUTH", "GOOGLE_APPLICATION_CREDENTIALS", "CLAUDE_CODE_USE_FOUNDRY", "ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL", "ANTHROPIC_DEFAULT_HAIKU_MODEL",
 ];
 const foldedCarry = new Set((CLAUDE_CARRY_ENV_NAMES ?? []).map((name) => name.toLowerCase()));
 // req: R-2646 R-2651 R-2654 R-2655
@@ -934,7 +936,7 @@ check("seal: a Claude Code builder uses default permission mode, project and loc
 	CLAUDE_SETTINGS_FLAG === "--settings" && CLAUDE_STRICT_MCP_FLAG === "--strict-mcp-config" && CLAUDE_TOOLS_FLAG === "--tools" && CLAUDE_BUILDER_TOOLS === "Read,Grep,Glob,Bash,Edit,Write" &&
 	CLAUDE_APPEND_PROMPT_FILE_FLAG === "--append-system-prompt-file" && CLAUDE_BUILDER_PROMPT_FILE === "builder-prompt.md" && CLAUDE_BUILDER_SETTINGS_FILE === "builder-settings.json" && CLAUDE_BUILDER_STALL_SECS === Infinity &&
 	JSON.stringify(CLAUDE_BUILDER_CHILD_ENV) === JSON.stringify({ CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }) && CLAUDE_BUILDER_BASH_LIMIT_MS === 3600000 &&
-	JSON.stringify(CLAUDE_CARRY_KEYS) === JSON.stringify(["apiKeyHelper", "awsCredentialExport", "proxyAuthHelper"]) && JSON.stringify(CLAUDE_CARRY_ENV_NAMES) === JSON.stringify(literalCarryNames) &&
+	JSON.stringify(CLAUDE_CARRY_KEYS) === JSON.stringify(["apiKeyHelper", "awsCredentialExport", "proxyAuthHelper", "awsAuthRefresh", "gcpAuthRefresh"]) && JSON.stringify(CLAUDE_CARRY_ENV_NAMES) === JSON.stringify(literalCarryNames) &&
 	Object.keys(sealedEnv()).every((name) => !foldedCarry.has(name.toLowerCase())), JSON.stringify(config));
 
 fs.rmSync(TEMP, { recursive: true, force: true });

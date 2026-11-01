@@ -32,7 +32,6 @@
 - Precedent check (precedent-first, plan): entries are paths only. A commit or a review finding goes in an entry's note after a tracked path, or as `none:`. Line suffixes are not checked against the file, and path case must match git's.
 - Precedent check (precedent-first, plan): on POSIX a tracked file whose name holds a backslash cannot be named.
 - Precedent check (precedent-first, amendment 1): a loose list under a plain `Precedent:` label loses the entries after its first blank line, which go unchecked. The heading form keeps a loose list whole.
-- Known-bug attachment (precedent-first, plan): no size guard on the attached file; the largest today is 46,035 bytes, under one read window.
 - Precedent check (precedent-first, plan): no tool reads the builder's departure report; it reaches review when the seat puts it in the review brief.
 - brief-check (precedent-first, build 2): its lines start `pi-worker:`, because it prints exactly what pi-worker prints for the same brief.
 - Precedent check (brief-reader-fixes, plan): under a plain label, a bulleted list right after the list with no blank line is still read as entries (`Done:` then `- …`); a blank line ends the section.

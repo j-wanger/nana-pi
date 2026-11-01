@@ -1,0 +1,6 @@
+FAIL R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(result.text.startsWith(header + line + newline))
+
+    at Object.fn (file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:158:12)
+    at async file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:254:9

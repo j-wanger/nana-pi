@@ -70,13 +70,18 @@ export const CLAUDE_STRICT_MCP_FLAG = '--strict-mcp-config';
 export const CLAUDE_PERMISSION_MODE_FLAG = '--permission-mode';
 export const CLAUDE_SETTING_SOURCES_FLAG = '--setting-sources';
 export const CLAUDE_SETTINGS_FLAG = '--settings';
+// contract: Claude Code 2.1.310 --help, read 2026-10-31 (R-3210).
+export const CLAUDE_EFFORT_FLAG = '--effort';
 // contract, measured 2026-10-22: named by Claude Code's `--bare` text though absent from `--help` (R-2646).
 export const CLAUDE_APPEND_PROMPT_FILE_FLAG = '--append-system-prompt-file';
 // chosen 2026-10-22: pi's sealed builder tools mapped one-to-one, without Agent, web or notebook tools (R-2646).
 export const CLAUDE_BUILDER_TOOLS = 'Read,Grep,Glob,Bash,Edit,Write';
 // measured 2026-10-22: default mode permits builder commands without auto-mode classification (R-2646).
 export const CLAUDE_BUILDER_PERMISSION_MODE = 'default';
-// measured 2026-10-22: project and local keep project CLAUDE.md while dropping user rules and hooks (R-2646).
+// contract: Claude Code 2.1.310 embedded settings schema and memory walk, read 2026-10-31 (R-3219).
+// Only ancestor paths receive these suffixes; the tree's own instructions remain eligible.
+export const CLAUDE_ANCESTOR_MEMORY_PATHS = Object.freeze(['CLAUDE.md', 'CLAUDE.local.md', '.claude/CLAUDE.md', '.claude/rules/**']);
+// measured 2026-10-31: project/local drop user settings and hooks, but ancestor rules are Project memory (R-2646, R-3219).
 export const CLAUDE_BUILDER_SETTING_SOURCES = 'project,local';
 // measured 2026-10-22: a native Claude process can stay flat during a healthy or hung request (R-2651).
 export const CLAUDE_BUILDER_STALL_SECS = Infinity;
@@ -88,7 +93,9 @@ export const CLAUDE_BUILDER_BASH_LIMIT_MS = 3_600_000;
 export const CLAUDE_BUILDER_PROMPT_FILE = 'builder-prompt.md';
 export const CLAUDE_BUILDER_SETTINGS_FILE = 'builder-settings.json';
 // measured 2026-10-22/23: these helpers work only when carried into flag settings (R-2655).
-export const CLAUDE_CARRY_KEYS = Object.freeze(['apiKeyHelper', 'awsCredentialExport', 'proxyAuthHelper']);
+// Claude Code 2.1.310 embedded settings readers verified 2026-11-01 (R-3211):
+// cloud-carry-provenance.log in docs/reviews/context-anatomy-2026-10-31 records all three cloud auth readers.
+export const CLAUDE_CARRY_KEYS = Object.freeze(['apiKeyHelper', 'awsCredentialExport', 'proxyAuthHelper', 'awsAuthRefresh', 'gcpAuthRefresh']);
 // contract: Claude Code 2.1.299's connection-and-identity set, read 2026-10-23; proxy, CA, base URL and key names measured (R-2655).
 export const CLAUDE_CARRY_ENV_NAMES = Object.freeze([
   'HTTPS_PROXY', 'HTTP_PROXY', 'NO_PROXY', 'ALL_PROXY', 'CLAUDE_CODE_PROXY_RESOLVES_HOSTS',
@@ -96,6 +103,15 @@ export const CLAUDE_CARRY_ENV_NAMES = Object.freeze([
   'CLAUDE_CODE_CERT_STORE', 'CLAUDE_CODE_CLIENT_CERT', 'CLAUDE_CODE_CLIENT_KEY',
   'CLAUDE_CODE_CLIENT_KEY_PASSPHRASE', 'ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY',
   'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_CUSTOM_HEADERS',
+  // measured 2026-10-31 in Claude Code 2.1.310 binary; carry-provenance.log in the context-anatomy review corpus (R-3211).
+  'CLAUDE_CODE_GIT_BASH_PATH', 'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX',
+  'AWS_REGION', 'AWS_PROFILE', 'CLOUD_ML_REGION', 'ANTHROPIC_VERTEX_PROJECT_ID',
+  // Claude Code 2.1.310 embedded env readers verified 2026-11-01 (R-3211):
+  // docs/reviews/context-anatomy-2026-10-31/cloud-carry-provenance.log; none of the requested names were unread.
+  'AWS_BEARER_TOKEN_BEDROCK', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN',
+  'ANTHROPIC_BEDROCK_BASE_URL', 'ANTHROPIC_VERTEX_BASE_URL', 'CLAUDE_CODE_SKIP_BEDROCK_AUTH',
+  'CLAUDE_CODE_SKIP_VERTEX_AUTH', 'GOOGLE_APPLICATION_CREDENTIALS', 'CLAUDE_CODE_USE_FOUNDRY',
+  'ANTHROPIC_MODEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL', 'ANTHROPIC_DEFAULT_HAIKU_MODEL',
 ]);
 
 // provenance: R-1120 — roles: the owner, 2026-10-06; provider and model ids: the seat's. The builder

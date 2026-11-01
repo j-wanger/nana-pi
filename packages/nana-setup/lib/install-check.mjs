@@ -15,6 +15,7 @@ import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
 import { runReadmeRehearsal } from "./readme-rehearsal.mjs";
 import { STALE_PREFIX, STALE_UNAVAILABLE_PREFIX } from "./stale-copies-config.mjs";
+import { CONTEXT_LOAD_FILE } from "../../nana-pack/lib/context-load-log.mjs";
 
 export function buildEnvironment(source, home, platformName = process.platform) {
   const env = {};
@@ -509,7 +510,9 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     if (expected.shortLabel === "shared memory") {
       const link = path.join(sessionDir, "memory/shared"); let target = null; try { target = fs.realpathSync(link); } catch {}
       let memoryTarget = null; try { memoryTarget = fs.realpathSync(path.join(home, ".claude/nana-memory/shared")); } catch {}
-      passed &&= stdout.includes("[nana:shared-memory]") && stdout.includes(`- [${token}]`) && target === memoryTarget;
+      let loads = [];
+      try { loads = fs.readFileSync(path.join(home, '.pi', 'agent', CONTEXT_LOAD_FILE), 'utf8').split(/\r?\n/).filter(Boolean).map(JSON.parse).filter(row => row.launcher === 'nana-shared-memory'); } catch {}
+      passed &&= stdout.includes("[nana:shared-memory]") && stdout.includes(`- [${token}]`) && target === memoryTarget && loads.length === 1 && loads[0].v === 1 && loads[0].printedChars === stdout.length;
     }
     if (expected.shortLabel === "roster notice") passed &&= rosterNoticeOutputOk(stdout);
     if (expected.shortLabel === "knowledge pull") passed &&= stdout.includes("[nana:knowledge]") && stdout.includes(PI_TURN.noteFile);

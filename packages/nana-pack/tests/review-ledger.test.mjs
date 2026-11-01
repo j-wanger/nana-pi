@@ -62,7 +62,7 @@ const freshHome = (name) => {
 	resDir = path.join(agent, "review-ledger.reservations");
 	fs.mkdirSync(home, { recursive: true });
 };
-const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PATH: `${stubs}${path.delimiter}${process.env.PATH}`, ...extra });
+const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, '.pi/agent'), PATH: `${stubs}${path.delimiter}${process.env.PATH}`, ...extra });
 // Printed in the detail of a check the plan names as blocked, until W7c's product fix, by the
 // repo-key/--out short-vs-long split (R-705/R-724): the same path through JS realpathSync (which
 // on a Windows CI runner keeps the short RUNNER~1 TEMP, kept on purpose here) against its native

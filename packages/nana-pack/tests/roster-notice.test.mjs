@@ -403,7 +403,7 @@ async function withAgentDir(agentDir, fn) {
 
 /* --- parity: the hook (spawned) and the extension (in-process) compose the same line ----- */
 function runHookOnce(agentDir) {
-	const r = spawnSync(process.execPath, [hookPath], { encoding: "utf8", input: JSON.stringify({ source: "startup" }), cwd: agentDir, env: { PATH: process.env.PATH, HOME: os.homedir(), PI_CODING_AGENT_DIR: agentDir } });
+	const r = spawnSync(process.execPath, [hookPath], { encoding: "utf8", input: JSON.stringify({ source: "startup" }), cwd: agentDir, env: { PATH: process.env.PATH, HOME: os.homedir(), USERPROFILE: os.homedir(), PI_CODING_AGENT_DIR: agentDir } });
 	const parsed = JSON.parse(r.stdout.trim());
 	return parsed.hookSpecificOutput.additionalContext;
 }
@@ -442,7 +442,7 @@ async function runExtensionOnce(agentDir, { cwd } = {}) {
 			const relDir = path.join(startFolder, "rel");
 			fs.mkdirSync(relDir, { recursive: true });
 			arrange(relDir);
-			const hookRun = spawnSync(process.execPath, [hookPath], { encoding: "utf8", input: JSON.stringify({ source: "startup" }), cwd: startFolder, env: { PATH: process.env.PATH, HOME: os.homedir(), PI_CODING_AGENT_DIR: "rel" } });
+			const hookRun = spawnSync(process.execPath, [hookPath], { encoding: "utf8", input: JSON.stringify({ source: "startup" }), cwd: startFolder, env: { PATH: process.env.PATH, HOME: os.homedir(), USERPROFILE: os.homedir(), PI_CODING_AGENT_DIR: "rel" } });
 			const hookLine = JSON.parse(hookRun.stdout.trim()).hookSpecificOutput.additionalContext;
 			const extensionLine = await runExtensionOnce("rel", { cwd: startFolder });
 			const isUnknown = (line) => typeof line === "string" && line.startsWith(`${NOTICE_PREFIX} ${RELATIVE_DIR_TEXT}`) && line.endsWith(`${CHANGE_POINTER} ${path.join(startFolder, "rel", "nana-pack.json")}`) && !line.includes("zz-");

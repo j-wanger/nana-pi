@@ -88,7 +88,7 @@
 - Claude review launcher (claude-review-launcher, plan): no liveness watchdog and no retries beyond Claude Code's own; a hung `claude` hangs the launcher.
 - Claude review launcher (claude-review-launcher, plan): the ledger records the alias (`opus`), not the resolved model id, and a null provider.
 - Claude review launcher (claude-review-launcher, plan): not on PATH and no doctor line; the seat runs it through node on every platform.
-- Claude review launcher (claude-review-launcher, plan): read-only is instructed, not enforced (Bash is allowed), and `claude -p` loads user rules, hooks and memory, as the scratch wrapper did.
+- Claude review launcher (claude-review-launcher, plan): read-only is instructed, not enforced (Bash is allowed).
 - Claude review launcher (claude-review-launcher, plan): only the reviewer slot; a Claude land model or a second-opinion review needs another lane. On Windows the reviewer's tool list has no PowerShell.
 - Claude review launcher (claude-review-launcher, plan): a logged-out `claude` exits 1 and review-ledger returns the reservation.
 - Claude review launcher (claude-review-launcher, independent check): a kill of the launcher's own process leaves review-ledger and `claude` running, and they record the round; the launcher forwards no signal. A process-group kill (Ctrl-C) stops all three and leaves a dead-pid reservation that the next admission prunes.

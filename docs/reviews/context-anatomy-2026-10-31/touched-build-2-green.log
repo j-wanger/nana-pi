@@ -1,0 +1,9 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs context-anatomy.test worker-claude.test claude-review.test
+
+PASS  packages/nana-pack/tests/claude-review.test.mjs    10 pass, 1 skip  12.1s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs  10 pass  27.2s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs    21 pass, 2 skip  30.2s
+
+3 files: 3 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 41 pass, 0 fail, 3 skip · 69.8s

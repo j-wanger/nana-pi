@@ -11,21 +11,23 @@ import { accessSync, closeSync, constants, existsSync, mkdtempSync, openSync, re
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { homedir, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 import {
 	CLAUDE_APPEND_PROMPT_FILE_FLAG, CLAUDE_BUILDER_BASH_LIMIT_MS, CLAUDE_BUILDER_CHILD_ENV,
 	CLAUDE_BUILDER_PERMISSION_MODE, CLAUDE_BUILDER_PROMPT_FILE, CLAUDE_BUILDER_SETTING_SOURCES,
 	CLAUDE_BUILDER_SETTINGS_FILE, CLAUDE_BUILDER_STALL_SECS, CLAUDE_BUILDER_TOOLS,
-	CLAUDE_CARRY_ENV_NAMES, CLAUDE_CARRY_KEYS, CLAUDE_CODE_RUNTIME, CLAUDE_PERMISSION_MODE_FLAG,
+	CLAUDE_CODE_RUNTIME, CLAUDE_PERMISSION_MODE_FLAG,
 	CLAUDE_SETTINGS_FLAG, CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_STRICT_MCP_FLAG, CLAUDE_TOOLS_FLAG,
 	LANE_BUILDER_PID_FILE, LANE_DEFAULTS, LANE_MAX_SECS, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL,
 } from './worker-config.mjs';
 import { resolveRoster } from './nana-roster.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
-import { parseJsonBytes, jsonErrorPlace } from '../lib/json-text.mjs';
+import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
+import { digestKnownBugs } from '../lib/known-bug-digest.mjs';
+import { appendContextLoad, contextPart } from '../lib/context-load-log.mjs';
 import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from '../lib/claude-review-config.mjs';
 import { reviewLaunch } from './review-launch.mjs';
 import { appendBuildRecord, buildBriefPath, buildEndRecord, buildRecordsPath, buildSessionDir, collectBuildUsage, readBuildLedger, renderLaneLine } from '../lib/build-records.mjs';
@@ -94,6 +96,7 @@ let selectedBuilder, selectedLaneSize, selectedSlot, selectedFeature, claudeLaun
 let buildStartTip = null, buildId = null, buildStart = null, buildStartKept = false, buildEnd = null, buildEndKept = false;
 let builderLaunchKind = 'direct';
 let precedentLine = '';
+let contextLoad = null;
 let validateLaneAttempt = () => null;
 // Duplicates are refused only in lane mode; non-lane parsing stays byte-identical to the
 // pre-lane launcher (first occurrence wins) — astra land r7 on t3-launcher.
@@ -164,7 +167,7 @@ if (laneMode) {
 		BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
 		BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
 	} : null;
-	const carry = sealed ? readClaudeBuilderSettings(sealed) : null;
+	const carry = sealed ? readClaudeBuilderSettings(sealed, 'pi-worker', null, cwd) : null;
 	if (carry) process.stderr.write(`${carry.line}\n`);
 	try { buildStartTip = git('rev-parse', 'HEAD'); } catch { buildStartTip = null; }
 	for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => {});
@@ -180,14 +183,25 @@ if (laneMode) {
 	});
 	writeFileSync(preambleFile, preamble);
 	const instruction = `Do the work in your brief for lane ${lane}. Your cwd is the lane worktree. Finish with the report shape the brief gives.`;
+	const briefText = readFileSync(briefPath, 'utf8');
+	const bugText = knownBugPath ? readFileSync(knownBugPath, 'utf8') : null;
+	const digest = bugText === null ? null : digestKnownBugs(bugText, path.relative(cwd, knownBugPath).split(path.sep).join('/'), briefText);
+	let deliveredBugPath = knownBugPath;
+	if (digest && digest.text !== bugText) {
+		deliveredBugPath = path.join(preambleDir, 'known-bugs.md');
+		writeFileSync(deliveredBugPath, digest.text);
+	}
+	const parts = [contextPart('preamble', fileURLToPath(preamblePath), preamble), contextPart('brief', briefPath, briefText)];
+	if (digest) parts.push(contextPart('known bugs', knownBugPath, bugText, digest.text));
 	let builderArgs;
 	if (isClaudeBuilder) {
 		const promptFile = path.join(preambleDir, CLAUDE_BUILDER_PROMPT_FILE);
 		const promptParts = [Buffer.from(preamble), Buffer.from('\n\n'), readFileSync(briefPath)];
-		if (knownBugPath) promptParts.push(Buffer.from('\n\n'), readFileSync(knownBugPath));
+		if (digest) promptParts.push(Buffer.from('\n\n'), Buffer.from(digest.text));
 		writeFileSync(promptFile, Buffer.concat(promptParts));
 		const settingsFile = path.join(preambleDir, CLAUDE_BUILDER_SETTINGS_FILE);
 		writeClaudeBuilderSettings(settingsFile, carry);
+		parts.push({ name: 'settings', source: carry.source, fullChars: carry.fullChars, deliveredChars: JSON.stringify(carry.settings).length });
 		builderArgs = [
 			CLAUDE_PRINT_FLAG, CLAUDE_MODEL_FLAG, builder.model,
 			CLAUDE_PERMISSION_MODE_FLAG, CLAUDE_BUILDER_PERMISSION_MODE,
@@ -208,9 +222,10 @@ if (laneMode) {
 				: launch;
 		};
 	} else {
-		builderArgs = ['--provider', builder.provider, '--model', builder.model, ...(builder.thinking === null ? [] : ['--thinking', builder.thinking]), '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, ...(knownBugPath ? ['--append-system-prompt', knownBugPath] : []), '-p', instruction];
+		builderArgs = ['--provider', builder.provider, '--model', builder.model, ...(builder.thinking === null ? [] : ['--thinking', builder.thinking]), '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, ...(deliveredBugPath ? ['--append-system-prompt', deliveredBugPath] : []), '-p', instruction];
 		childEnv = { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
 	}
+	contextLoad = { launcher: 'pi-worker', role: 'worker', runtime: isClaudeBuilder ? CLAUDE_CODE_RUNTIME : 'pi', model: builder.model, cwd, lane, parts };
 	const argvSeparator = argv.indexOf('--');
 	if (argvSeparator >= 0) argv.splice(argvSeparator + 1, argv.length, ...builderArgs);
 	else argv.push('--', ...builderArgs);
@@ -233,52 +248,6 @@ if (laneMode) {
 // R-1125: win32 resolves a lane's paths by native real path, which keeps an 8.3 or differently
 // cased form the way git itself sees it; POSIX keeps the JS implementation, as landed.
 function fsReal(p) { return process.platform === 'win32' ? realpathSync.native(p) : realpathSync(p); }
-function readClaudeBuilderSettings(sealed) {
-	const configured = process.env.CLAUDE_CONFIG_DIR;
-	const source = path.join(configured !== undefined && configured !== '' ? configured : path.join(homedir(), '.claude'), 'settings.json');
-	let parsed;
-	let reason = null;
-	try {
-		const bytes = readFileSync(source);
-		try { parsed = parseJsonBytes(bytes); }
-		catch (error) {
-			const place = jsonErrorPlace(error);
-			reason = `not valid JSON${place ? ` at line ${place.line}, column ${place.column}` : ''}`;
-		}
-	} catch (error) {
-		reason = error?.code === 'ENOENT' ? 'not found' : `cannot read (${error?.code ?? 'unknown'})`;
-	}
-	if (!reason && (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed))) reason = 'not a JSON object';
-	const settings = {};
-	const carriedKeys = [];
-	const carriedEnvNames = [];
-	if (!reason) {
-		for (const key of CLAUDE_CARRY_KEYS) if (Object.hasOwn(parsed, key)) {
-			settings[key] = parsed[key];
-			carriedKeys.push(key);
-		}
-		const sourceEnv = parsed.env;
-		if (sourceEnv !== null && typeof sourceEnv === 'object' && !Array.isArray(sourceEnv)) {
-			const allowed = new Set(CLAUDE_CARRY_ENV_NAMES.map((name) => name.toLowerCase()));
-			settings.env = {};
-			for (const [name, value] of Object.entries(sourceEnv)) if (allowed.has(name.toLowerCase())) {
-				settings.env[name] = value;
-				carriedEnvNames.push(name);
-			}
-		}
-	}
-	settings.env = { ...(settings.env ?? {}), ...sealed };
-	let detail;
-	if (reason) detail = `none; ${reason}`;
-	else {
-		const names = [...carriedKeys.sort(), ...(carriedEnvNames.length ? [`env ${carriedEnvNames.sort().join(', ')}`] : [])];
-		detail = names.length ? names.join(', ') : 'none';
-	}
-	return { settings, line: `pi-worker: claude settings carry: ${detail}; source: ${source}` };
-}
-function writeClaudeBuilderSettings(settingsFile, carry) {
-	writeFileSync(settingsFile, JSON.stringify(carry.settings), { mode: 0o600 });
-}
 function workerExit(result) {
 	if (result.signal) return { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[result.signal] ?? 1;
 	return result.ok ? 0 : 1;
@@ -362,6 +331,7 @@ try {
 		const preambleDir = path.dirname(preambleFile);
 		const builderPidFile = path.join(preambleDir, LANE_BUILDER_PID_FILE);
 		const onSpawn = (child) => {
+			appendContextLoad(contextLoad);
 			try { writeFileSync(builderPidFile, JSON.stringify({ pid: child.pid, launch: builderLaunchKind })); } catch { /* watcher falls back to cleanup without a builder identity */ }
 			child.once('exit', () => { try { rmSync(builderPidFile, { force: true }); } catch {} });
 		};

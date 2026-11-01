@@ -323,7 +323,9 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
     if (joined.includes("nana-adoption.mjs")) return { status: 0, stdout: `[nana:adoption] ${path.join(home, "project")}` };
     if (joined.includes("nana-shared-memory.mjs")) {
       const memory = fs.readFileSync(path.join(home, ".claude/nana-memory/shared/MEMORY.md"), "utf8");
-      return { status: 0, stdout: `[nana:shared-memory] ${memory.split("\n").find((line) => line.startsWith("- [")) ?? ""}` };
+      const stdout = `[nana:shared-memory] ${memory.split("\n").find((line) => line.startsWith("- [")) ?? ""}`;
+      fs.writeFileSync(path.join(home, '.pi/agent/nana-context-loads.jsonl'), JSON.stringify({ v: 1, launcher: 'nana-shared-memory', printedChars: stdout.length }) + '\n');
+      return { status: 0, stdout };
     }
     if (joined.includes("nana-roster-notice.mjs")) {
       const notice = "nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra";
@@ -826,7 +828,7 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       assert.equal((memory.match(/^- \[/gm) ?? []).length, 1);
       assert.equal(fs.existsSync(path.join(fixture.home, ".claude-placeholder")), false);
       assert.equal(fixture.calls.find(call => call.args[0] === "init").options.cwd, path.join(fixture.home, "notes"));
-      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative.startsWith(".local/bin/pi-review") || relative.startsWith(".local/bin/pi-worker") || relative === ".pi/agent/nana-pack.json" || relative === ".pi/agent/settings.json" || relative === ".pi/agent/nana-journal.jsonl" || relative === installConfig.PI_TURN?.record || relative === ["notes", "docs", installConfig.PI_TURN.noteFile].join("/");
+      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative.startsWith(".local/bin/pi-review") || relative.startsWith(".local/bin/pi-worker") || relative === ".pi/agent/nana-pack.json" || relative === ".pi/agent/settings.json" || relative === ".pi/agent/nana-journal.jsonl" || relative === '.pi/agent/nana-context-loads.jsonl' || relative === installConfig.PI_TURN?.record || relative === ["notes", "docs", installConfig.PI_TURN.noteFile].join("/");
       const written = [];
       const visit = (directory) => {
         for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {

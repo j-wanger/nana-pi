@@ -1,0 +1,92 @@
+FAIL R-3210: reviewer isolation and configured effort preserve exact argv order AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  [
+    '-p',
+    '--model',
+    'fable',
+    '--allowedTools',
+...
+    'Edit,Write,NotebookEdit',
+-   '--setting-sources',
+-   'project,local',
+-   '--settings',
+-   null,
+-   '--strict-mcp-config',
+-   '--effort',
+-   'xhigh'
+  ]
+
+    at Object.fn (file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:78:12)
+    at file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:194:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+FAIL R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits AssertionError [ERR_ASSERTION]: CLAUDE_CODE_GIT_BASH_PATH
+    at Object.fn (file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:84:310)
+    at async file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:194:9
+FAIL R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<checkout>/packages/nana-pack/lib/known-bug-digest-config.mjs' imported from <checkout>/packages/nana-pack/tests/context-anatomy.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL R-3213: exactly-at-cap non-ASCII builder files pass unchanged at the original pi path Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<checkout>/packages/nana-pack/lib/known-bug-digest-config.mjs' imported from <checkout>/packages/nana-pack/tests/context-anatomy.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<checkout>/packages/nana-pack/lib/known-bug-digest.mjs' imported from <checkout>/packages/nana-pack/tests/context-anatomy.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL R-3215: launchers log once before outcomes with exact part counts and default-home resolution AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at Object.fn (file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:146:37)
+    at file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:194:31
+FAIL R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<checkout>/packages/nana-pack/lib/context-load-log.mjs' imported from <checkout>/packages/nana-pack/tests/context-anatomy.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL R-3217: seat memory log names whole shortened and omitted entries without changing stdout TypeError: Cannot read properties of undefined (reading 'launcher')
+    at Object.fn (file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:184:42)
+    at file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:194:31
+FAIL R-3218: known-bug digest seal is 6000 UTF-16 units Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<checkout>/packages/nana-pack/lib/known-bug-digest-config.mjs' imported from <checkout>/packages/nana-pack/tests/context-anatomy.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)

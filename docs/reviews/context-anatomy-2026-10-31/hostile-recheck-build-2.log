@@ -1,0 +1,7 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs agent-dir-hostile.test
+
+PASS  packages/nana-pack/tests/agent-dir-hostile.test.mjs  28 pass  9.6s
+
+1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 28 pass, 0 fail, 0 skip · 9.9s

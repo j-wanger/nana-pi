@@ -78,7 +78,7 @@ function freshHome() {
   fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
   return home;
 }
-const env = (home, extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`, ...extra });
+const env = (home, extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, '.pi/agent'), PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`, ...extra });
 
 const git = (cwd, ...args) => {
   const r = spawnSync("git", args, { cwd, encoding: "utf8" });

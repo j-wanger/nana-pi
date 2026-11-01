@@ -29,7 +29,7 @@ fs.mkdirSync(path.join(shared), { recursive: true });
 fs.writeFileSync(path.join(shared, "MEMORY.md"), "- [index] retained\n");
 const entry = fileURLToPath(new URL("../claude/hooks/nana-shared-memory.mjs", import.meta.url));
 const probe = `Object.defineProperty(process.stdin, "isTTY", { value: true }); let read = false; process.stdin[Symbol.asyncIterator] = async function* () { read = true; }; await import(${JSON.stringify(new URL(`file://${entry}`).href)}); if (read) process.exitCode = 9;`;
-const run = spawnSync(process.execPath, ["--input-type=module", "-e", probe], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH, HOME: root, CLAUDE_CONFIG_DIR: claudeHome, CLAUDE_PROJECT_DIR: project, NANA_SHARED_MEMORY_DIR: shared } });
+const run = spawnSync(process.execPath, ["--input-type=module", "-e", probe], { cwd: root, encoding: "utf8", env: { PATH: process.env.PATH, HOME: root, USERPROFILE: root, PI_CODING_AGENT_DIR: path.join(root, '.pi', 'agent'), CLAUDE_CONFIG_DIR: claudeHome, CLAUDE_PROJECT_DIR: project, NANA_SHARED_MEMORY_DIR: shared } });
 const link = path.join(claudeHome, "projects", projectKey(project), "memory", "shared");
 // req: R-872
 check("TTY entry heals without consuming stdin", run.status === 0 && run.stdout.includes("- [index] retained") && fs.existsSync(link) && fs.lstatSync(link).isSymbolicLink());

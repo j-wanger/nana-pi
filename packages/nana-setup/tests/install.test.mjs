@@ -525,13 +525,13 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 		// the real proof: run the SessionStart commands through a shell
 		const sessionStart = s.hooks.SessionStart.flatMap((g) => g.hooks.map((h) => h.command));
 		for (const c of sessionStart) {
-			const out = spawnSync("bash", ["-c", c], { encoding: "utf8", input: "", env: { ...process.env, HOME: spaced, CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" } });
+			const out = spawnSync("bash", ["-c", c], { encoding: "utf8", input: "", env: { ...process.env, HOME: spaced, USERPROFILE: spaced, PI_CODING_AGENT_DIR: path.join(spaced, '.pi', 'agent'), CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" } });
 			check(`space in home: \`${c.slice(0, 40)}…\` runs cleanly`, out.status === 0 && !/No such file|command not found/.test(out.stderr), out.stderr);
 		}
 		const shared = spawnSync("bash", ["-c", sessionStart.find((c) => c.includes("nana-shared-memory"))], {
 			encoding: "utf8",
 			input: "",
-			env: { ...process.env, HOME: spaced, CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" },
+			env: { ...process.env, HOME: spaced, USERPROFILE: spaced, PI_CODING_AGENT_DIR: path.join(spaced, '.pi', 'agent'), CLAUDE_PROJECT_DIR: "/Users/x/spaced-repo" },
 		});
 		// req: R-319
 		check("space in home: the shared-memory hook printed its index", shared.stdout.includes("[nana:shared-memory]"), shared.stdout + shared.stderr);

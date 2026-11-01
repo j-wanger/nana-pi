@@ -509,7 +509,7 @@ await test('R-3122: sheet runner bay carriers and outbound truck travel between 
 // req: R-3187
 await test('R-3187: every claimed flow matches one working code line and no text revives a retired claim', async () => {
   const table = [
-    ['ledger', 'bay-1', 'back', true, 'packages/nana-pack/bin/pi-worker.mjs', /promptParts\.push\([^;]*readFileSync\(knownBugPath\)/],
+    ['ledger', 'bay-1', 'back', true, 'packages/nana-pack/bin/pi-worker.mjs', /promptParts\.push\([^;]*Buffer\.from\(digest\.text\)/],
     ['ledger', 'drafting', 'back', true, 'packages/nana-pack/prompts/planner.md', /Read the feature's known-bug file when one exists/],
     ['survey', 'drafting', 'back', true, 'packages/nana-pack/prompts/planner.md', /Run `npm run map:search -- "<need>"` for each part of the lane/],
     ['court', 'drafting', 'back', true, 'packages/nana-pack/prompts/planner.md', /^2\. `\$HOME\/nana-pi\/packages\/nana-pack\/rules\/nana-rulings\.md`/m],

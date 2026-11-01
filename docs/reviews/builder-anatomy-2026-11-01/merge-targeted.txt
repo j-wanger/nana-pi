@@ -1,0 +1,9 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs anatomy.test.mjs requirements-tree.test.mjs
+
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs    11 pass  29.9s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs  98 pass  2.6s
+PASS  apps/bench/test/anatomy.test.mjs                     9 pass  0.8s
+
+3 files: 3 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 118 pass, 0 fail, 0 skip · 33.6s
