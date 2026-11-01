@@ -1,0 +1,17 @@
+Wrong-code-first record: existing making implementation. Exit 1.
+Identity-sanitized: absolute machine paths and repetitive Node stacks omitted.
+
+FAIL R-3354: push words and compare-and-swap tracking stay honest
+  AssertionError: expected /; pushed\n$/; actual:
+  memory: complete; sent 1; done 1; pending 0; unsent 0; unknown 0; tokens 100
+FAIL R-3356: doctor and status use only local count-only making health
+  AssertionError: Expected values to be strictly equal: 0 !== 1
+FAIL R-3357: empty runs leave HEAD store and remote unchanged
+  AssertionError: actual HEAD 0b2ba1a07af14b1265a8000c0dac2abbf205a38e
+                  expected b21edd4d6c6537b41f44de5954d5418da89793f8
+FAIL R-3361: seal push vocabulary
+  TypeError: Cannot read properties of undefined (reading 'pushed')
+FAIL R-3362: seal doctor vocabulary
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+
+The later mutation record breaks each implemented behavior and requires these same named tests to fail.

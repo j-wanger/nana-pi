@@ -475,7 +475,7 @@ Artifact: A-090 · owner profile records · other project: <project>/records/ an
 Read by: A-090 · code: packages/nana-pack/lib/profile-store.mjs
 Artifact: A-091 · shaped memory candidates · user-home store: ~/<private --out folder>/shaped-candidates.jsonl · manual: the seat runs npm run memory:shape by hand
 Read by: A-091 · code: packages/nana-pack/lib/memory-score.mjs
-Artifact: A-093 · project memory store · other project: <project>/projects/<repository-folder>/ · land: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/bin/nana-memory.mjs
+Artifact: A-093 · project memory store · other project: <project>/projects/<repository-folder>/ · land: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/bin/nana-memory.mjs, packages/nana-setup/claude/hooks/nana-memory-end.mjs
 Read by: A-093 · code: packages/nana-pack/lib/memory-store.mjs, packages/nana-pack/bin/nana-memory.mjs
 
 | ID | Requirement | Status | Evidence |
@@ -560,6 +560,22 @@ Purpose: Make new enabled repository units once into a private, synchronized pro
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-3350 | WHEN a seat session ends with a transcript and a usable project folder, the hook shall start one quiet hidden detached run with the transcript and folder, using the same starter as land. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3350: session and land share one quiet hidden starter` |
+| R-3351 | The hook shall guard CI and every defined role, bound stdin by its deadline, fail quietly and exit without waiting after spawn. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3351: guards deadline errors and open stdin stay quiet` |
+| R-3352 | IF the checkout cannot load its modules, the hook shall exit zero without output. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3352: broken checkout exits silently` |
+| R-3353 | The installer shall install, check, repair and remove the SessionEnd hook while preserving foreign entries and reporting stale links. | implemented | `packages/nana-setup/tests/memory-end-wiring.test.mjs::R-3353: SessionEnd install repair remove and check preserve foreign hooks` |
+| R-3354 | The maker shall report push results and update the tracking ref only after success using compare-and-swap, preserving concurrent updates and reporting unpushed commits locally. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3354: push words and compare-and-swap tracking stay honest` |
+| R-3355 | The started run shall outlive the hook exit and the subsequent simulated timeout kill. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3355: run survives hook exit and timeout descendant kill` |
+| R-3356 | Making health shall report only enabled counts, this machine's last making age and outcome, and the local unpushed count in an informational note; when that count is unavailable, status preserves its run line and prints unknown. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3356: doctor and status use only local count-only making health` |
+| R-3357 | WHEN no units are pending, making shall write only its local last-run file without committing or pushing. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3357: empty runs leave HEAD store and remote unchanged` |
+| R-3358 | The SessionEnd entry timeout shall be 1.5 seconds. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3358: seal entry timeout` |
+| R-3359 | The hook stdin deadline shall be 300 milliseconds. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3359: seal stdin deadline` |
+| R-3360 | The memory hook entry shall use SessionEnd without a matcher, nana-memory-end.mjs and status message nana: memory. | implemented | `packages/nana-setup/tests/memory-end-hook.test.mjs::R-3360: seal hook identity` |
+| R-3361 | Push diagnostics shall use pushed, not pushed: followed by the existing reason, and unpushed for the local commit count. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3361: seal push vocabulary` |
+| R-3362 | The doctor note shall use memory making, not enabled, never and unreadable as its fixed vocabulary. | implemented | `packages/nana-pack/tests/memory-session-end.test.mjs::R-3362: seal doctor vocabulary` |
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
 | R-3290 | The automatic maker shall process each owner and ask unit once across appended and copied transcripts. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3290: each owner and ask unit is made once` |
 | R-3291 | The maker shall sweep pending units after busy, capped or failed runs, finish malformed replies once, recover dead or expired locks, skip and count unparseable project files without blocking seat saves or resending done units, and distinguish local preparation and merge errors from busy outcomes. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3291: pending units survive busy caps failures and stale locks`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3291: torn records do not block saves or repeat done units`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3291: empty seen files do not block saves or repeat done units`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3291: preparation failures are not busy` |
 | R-3292 | The maker shall bound run calls and tokens and reserve then settle a shared UTC day budget, charging unknown usage pessimistically across concurrent repositories. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3292: known and unknown usage obey run and shared day caps` |
@@ -589,9 +605,11 @@ Purpose: Count, per window of owner interactions and pooled, owner corrections a
 Status: active
 Artifact: A-095 · outcome meter rows · user-home store: ~/<private --out folder>/outcome-meter.jsonl · manual: the seat runs npm run memory:meter by hand
 Read by: A-095 · code: packages/nana-pack/lib/outcome-score.mjs
+Artifact: A-097 · replay rows · user-home store: ~/<private replay root>/<run>/memory-replay.jsonl · manual: the seat runs npm run memory:replay -- run by hand
+Read by: A-097 · code: packages/nana-pack/lib/memory-replay.mjs
 Reads: A-088 · packages/nana-pack/lib/outcome-meter.mjs
 Reads: A-089 · packages/nana-pack/lib/outcome-meter.mjs
-Reads: A-091 · packages/nana-pack/lib/outcome-meter.mjs
+Reads: A-091 · packages/nana-pack/lib/outcome-meter.mjs, packages/nana-pack/lib/memory-replay.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -622,6 +640,32 @@ Reads: A-091 · packages/nana-pack/lib/outcome-meter.mjs
 | R-3334 | The interval confidence and detection power shall respectively be 0.95 and 0.80. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: interval and power` |
 | R-3335 | The judge system prompt shall have SHA-256 b522dbca4d472999b811304a5a8c1fa166f835e756c328c7b4c196dca048712a. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: system prompt hash` |
 | R-3336 | The output shall use outcome-meter.jsonl and the sealed warm-up, partial, parallel, pasted, outside, unprompted, re-decided, unjudged, thin-load, test-load, missing-log, spend-cap, unscored and window-verdict words with the context naming vocabulary. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: output words` |
+
+### SUB-025 · Replay past corrections with and without memory
+Purpose: Replay past owner corrections from their recorded context with and without a candidate memory bundle, and judge blind whether the agent repeats the mistake, so a delivery is decided without waiting for field volume.
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3370 | The replay planner shall select all valid corrections into pre-cut repeat or first-correction strata and prompted repeat decisions only, reporting skip counts, sessions and a seeded case-set hash without calls. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::plan stratifies corrections without spend` |
+| R-3371 | The context builder shall retain recorded instructions, only SessionStart outputs after the last compaction boundary, and main-chain history through the replay point with capped tool results and whole-entry trimming, changing only the AutoMem and shared-memory command-or-label slot across arms. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::context preserves past and replaces only memory slot` |
+| R-3372 | The treatment shall merge only resolved pre-cut candidates without events in a disposable private store, order by evidence instant, enforce its budget and leak backstop, and keep one earlier-record oracle or own-correction ceiling. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::bundle uses pre-cut candidates and one oracle record` |
+| R-3373 | The judge shall assess one capped reply at a time under a call-local id without arm metadata, reject malformed calls, require original reproduction and export a blind sheet from informative cases only. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::judge is isolated blind and fail-closed` |
+| R-3374 | The decision shall derive exact paired sign-flip statistics from per-arm rates over judged draws, Wilson rates, strata, clustering, attrition including failed draws per arm, sensitivity, blind-check and confirmation status from run rows alone with unclear and failed draws dropped and treatment stalls penalized. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::decision reports paired statistics attrition and confirmation` |
+| R-3375 | The replay shall honor expected hashes and per-call caps, finish a case before stopping at the run cap, mark later cases unrun and disclose incomplete runs and unknown cost. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::caps stop at case boundaries and expose incomplete spend` |
+| R-3376 | The optional screen shall retain cases with judged control repeats and mark cap-skipped cases unrun in its new hashed plan, excluding screen draws and unrun cases from subsequent fresh calls and decisions. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::screen selects repeats but run uses fresh draws` |
+| R-3377 | The commands shall refuse checkout outputs, exclusively create private files, remove temporary stores, print no private text even on failures and send text only to sealed isolated Claude runners. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::private commands and sealed Claude runners` |
+| R-3378 | Replay and judge runners shall both be claude. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: runners` |
+| R-3379 | Replay shall use claude-opus-5-5 at xhigh effort. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: replay model and effort` |
+| R-3380 | Judging shall use claude-sonnet-5 at low effort. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: judge model and effort` |
+| R-3381 | Each arm and screen shall draw 5 replies, with the screen keeping at least 1 judged repeat. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: draws and screen rule` |
+| R-3382 | Replay, judge and run dollar caps shall respectively be 1.00, 0.10 and 150. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: dollar caps` |
+| R-3383 | History, tool-result and reply caps shall respectively be 160000, 2000 and 8000 characters. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: context and reply caps` |
+| R-3384 | The treatment bundle budget shall be 8000 characters. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: bundle budget` |
+| R-3385 | Replay shall use the sealed AutoMem and shared-memory command and recorded status-label slot markers, read-path markers and kept-entry allow-list with historical control and the ceiling arm enabled. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: slot markers and kept types` |
+| R-3386 | Replay shall use one-sided levels 0.05 and 0.05, informative minima 8 pooled and 8 per stratum, at least 3 judged draws per arm, reproduction floor 0.30 and blind agreement 8 of 10. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: statistic and blind bars` |
+| R-3387 | Replay shall seal its replay preamble and judge prompt by SHA-256 7893c6547fd75757df56a1d8a92345e0f36445ff59c248d076cb5840b39c7e2c and 89b0101cc9ff07a9033007d6161aa7f77d183370bfec6625deeeadf1ee3f62c9 respectively. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: prompt hashes` |
+| R-3388 | Replay shall count citations at 8 shared words, time out calls at 900000 milliseconds and cap capture at 67108864 bytes. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: citation and capture` |
+| R-3389 | Replay shall use memory-replay.jsonl, plan.json, screen.jsonl, blind.jsonl and the runs and screen directories with the sealed attrition, sensitivity, confirmation, verdict and diagnostic vocabulary. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: output and fixed words` |
 
 ## FEAT-005 · Communicate decisions clearly
 Purpose: Deliver the preferred writing guidance and check report readability and structure.

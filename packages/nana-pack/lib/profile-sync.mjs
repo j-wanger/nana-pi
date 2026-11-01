@@ -87,8 +87,23 @@ export function rebaseProfile(dir,branch,runGit) {
 /** Push a captured commit after releasing the clone lock, never a moving HEAD. */
 export function pushProfile(pointer,branch,sha,runGit) {
  if(gitText(runGit,pointer.dir,['remote','get-url','--push','origin'])!==pointer.verifiedPushUrl) return {ok:false,reason:W.reasons[3]};
+ const ref=`refs/remotes/origin/${branch}`;
+ const previous=runGit(pointer.dir,['rev-parse','--verify',ref]);
+ const old=!previous.error&&previous.status===0?String(previous.stdout).trim():'';
  const pushed=runGit(pointer.dir,['push',pointer.verifiedPushUrl,`${sha}:refs/heads/${branch}`]);
- return !pushed.error&&pushed.status===0 ? {ok:true} : {ok:false,reason:reason(pushed)};
+ if(pushed.error||pushed.status!==0)return {ok:false,reason:reason(pushed)};
+ // URL pushes do not advance origin's ref. CAS refuses a late backwards update.
+ // Empty old means the ref must not yet exist (also supports SHA-256 clones).
+ try {runGit(pointer.dir,['update-ref','-m','push',ref,sha,old]);}catch{/* Transport succeeded regardless of a local ref failure. */}
+ return {ok:true};
+}
+/** Local count only: no fetch and no owner content. */
+export function unpushedProfile(dir,{runGit=profileGit()}={}) {
+ try {
+  const branch=gitText(runGit,dir,['symbolic-ref','--short','HEAD']);
+  const count=Number(gitText(runGit,dir,['rev-list','--count',`refs/remotes/origin/${branch}..HEAD`]));
+  return Number.isSafeInteger(count)&&count>=0?count:null;
+ } catch { return null; }
 }
 /** Caller owns the clone lock; retry only a rejected push, never expose stderr. */
 export function syncProfile(pointer,{runGit=profileGit(),log=()=>{}}={}) {
@@ -101,7 +116,8 @@ export function syncProfile(pointer,{runGit=profileGit(),log=()=>{}}={}) {
  for(let attempt=0;attempt<=PROFILE_PUSH_RETRIES;attempt++) {
   const fetched=fetchProfile(pointer,runGit); if(!fetched.ok) return fetched;
   const rebased=rebaseProfile(dir,branch,runGit); if(!rebased.ok) return rebased;
-  const pushed=pushProfile(pointer,branch,'HEAD',runGit);
+  const sha=gitText(runGit,dir,['rev-parse','HEAD']);
+  const pushed=pushProfile(pointer,branch,sha,runGit);
   if(pushed.ok) return {ok:true};
   const why=pushed.reason; if(why!==W.reasons[2]||attempt===PROFILE_PUSH_RETRIES) return {ok:false,reason:why};
  }

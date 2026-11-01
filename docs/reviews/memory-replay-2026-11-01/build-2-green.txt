@@ -1,0 +1,21 @@
+PASS plan stratifies corrections without spend
+PASS context preserves past and replaces only memory slot
+PASS bundle uses pre-cut candidates and one oracle record
+PASS judge is isolated blind and fail-closed
+PASS decision reports paired statistics attrition and confirmation
+PASS caps stop at case boundaries and expose incomplete spend
+PASS screen selects repeats but run uses fresh draws
+PASS private commands and sealed Claude runners
+PASS seal: runners
+PASS seal: replay model and effort
+PASS seal: judge model and effort
+PASS seal: draws and screen rule
+PASS seal: dollar caps
+PASS seal: context and reply caps
+PASS seal: bundle budget
+PASS seal: slot markers and kept types
+PASS seal: statistic and blind bars
+PASS seal: prompt hashes
+PASS seal: citation and capture
+PASS seal: output and fixed words
+exit 0

@@ -55,7 +55,9 @@ units with an isolated Claude CLI by default, or pi through a sealed runner choi
 re-asked decisions and logged context in interaction windows, using the isolated Claude CLI.
 `npm run memory:meter-score` (`scripts/outcome-score.mjs`) scores private labels;
 `npm run memory:meter-compare` (`scripts/outcome-compare.mjs`) compares private repeat sets.
-These hand-run commands need Node and git; only the meter needs authenticated Claude.
+`npm run memory:replay` (`scripts/memory-replay.mjs`) plans paired historical replays,
+optionally screens control reproduction, runs isolated Claude arms and decides from private rows.
+These hand-run commands need Node and git; the meter and paid replay commands need authenticated Claude.
 See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
 
 ## Requirements-first
