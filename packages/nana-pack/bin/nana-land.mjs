@@ -174,7 +174,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			ciReadPassed = true;
 			lifecycle.ci = "passed";
 			lifecycle.ciWaitMs = landCiWaitMs(verdict.runs);
-			suiteProof = changedSuitePaths(git(runGit, tree, "diff", "--name-only", capturedMain, tip));
+			suiteProof = changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", capturedMain, tip));
 			if (suiteProof.ok) {
 				try {
 					const budget = budgetedGh({ runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env }), now: recordsNow });

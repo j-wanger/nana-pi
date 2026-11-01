@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import * as config from "../lib/land-config.mjs";
 import { landReportLines, readLandLedger, landRecordsPath, renderLandRecordLine } from "../lib/land-records.mjs";
 import { LAND_SUITE_SOURCES } from "../lib/land-records-config.mjs";
@@ -82,6 +83,18 @@ check("R-3432: changed workflow or runner forces local coverage, but other scrip
 		assert.match(out.text, /^suite: local the lane changes the CI workflow or test runner$/m);
 	}
 	const other = exercise([item()], { changed: "scripts/other.mjs" }); assert.equal(other.code, 0, other.text); assert.equal(other.calls, 0);
+	const renamed = ciFixture("suite-rename", { workflowOnMain: true });
+	fs.mkdirSync(path.join(renamed.main, "scripts"), { recursive: true });
+	fs.writeFileSync(path.join(renamed.main, "scripts/test.mjs"), "console.log('suite');\\n");
+	git(renamed.main, "add", "scripts/test.mjs"); git(renamed.main, "commit", "-m", "add test runner");
+	git(renamed.feature, "reset", "--hard", "main");
+	execFileSync("git", ["mv", "scripts/test.mjs", "scripts/runner.mjs"], { cwd: renamed.feature });
+	git(renamed.feature, "commit", "-m", "rename test runner");
+	renamed.tip = git(renamed.feature, "rev-parse", "HEAD");
+	let renameCalls = 0;
+	const renamedOut = executeCi(renamed, [run()], { platform: "darwin", runGh: artifactGh([run()], [item()]), runCommand: () => { renameCalls++; return { status: 0, stdout: "" }; } });
+	assert.equal(renamedOut.code, 0, renamedOut.text); assert.equal(renameCalls, 1);
+	assert.match(renamedOut.text, /^suite: local the lane changes the CI workflow or test runner$/m);
 	// Line-reader variants include CRLF, trailing space/tab, and no final newline.
 	for (const diffText of [".github/workflows/ci.yml\r\n", "scripts/test.mjs \t\n", "scripts/test.mjs"]) {
 		const out = exercise([item()], { diffText }); assert.equal(out.code, 0, out.text); assert.equal(out.calls, 1);

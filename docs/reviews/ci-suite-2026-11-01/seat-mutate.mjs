@@ -33,6 +33,7 @@ const pairs = [
   pair("5a", "accept a superseded run", [one(LC, '!judged.has(String(item.run?.id)) || ', '')], 3431),
   pair("5b", "keep an earlier passing attempt over a failed later one", [one(LC, 'item.attempt > prior.attempt', 'item.attempt < prior.attempt')], 3431),
   pair("6", "ignore the changed-path list", [one(LC, 'const changed = linesOf(changedPaths).some', 'const changed = false && linesOf(changedPaths).some')], 3432),
+  pair("rename", "restore rename detection for changed paths", [one(NL, '"diff", "--no-renames", "--name-only"', '"diff", "--name-only"')], 3432),
   pair("7a", "turn an unreadable run list into a local fallback", [one(NL, nonzero, `if (response?.status !== 0) response = { status: 0, stdout: ${JSON.stringify(JSON.stringify({ total_count: 1, workflow_runs: [passing] }))} };`)], 3434),
   pair("7b", "allow cancelled CI to fall back or substitute", [one(LC, 'if (bad.length) {', 'if (bad.length && !bad.every((run) => run.conclusion === "cancelled")) {')], 3434),
   pair("8a", "record CI suite time as zero instead of null", [one(NL, 'suiteMs: lifecycle.suiteMs,', 'suiteMs: lifecycle.suite === "ci" ? 0 : lifecycle.suiteMs,')], 3430),
