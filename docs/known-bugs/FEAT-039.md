@@ -154,3 +154,4 @@
 - City page (city-loop, seat check): in "The way back" at 1280 px the painted road names cross buildings and each other; at 390 px the chapter shows the whole city and the names cannot be read.
 - City page (city-loop, seat check): a visit draws the selection box from the place's full bounds, so its thin wire lines run far above the building and behind the card.
 - City page (city-loop build 2): the gesture checker run on its own can sample before the chapter is ready; the builder waited for each chapter in a wrapper instead of fixing the checker.
+- Land report (ci-suite, plan residual): a land that uses CI as the suite does not refresh the land report; fallback lands and hand runs do.
