@@ -57,3 +57,4 @@
 - Session-end making (making-session-end, independent check): an empty run returns after the recovery commit and before any push, so that commit stays local until a later run or sync; status shows it as unpushed.
 - Session-end making (making-session-end, independent check): win32 uninstall matches only the current checkout's entry, so a moved checkout leaves the old SessionEnd entry failing at every exit.
 - Session-end making (making-session-end, independent check): the settings doc comment still says "all six entries" and "timeout: 5"; the code uses each row's own timeout.
+- Session-end making (making-session-end, land review round 1): the hook starts the detached run for every repository; a repository not enabled starts a node process that exits at the opt-in check without reading the profile or calling a model.
