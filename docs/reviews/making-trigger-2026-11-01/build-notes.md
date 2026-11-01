@@ -45,4 +45,17 @@ The model maker is now the automatic path, but this does not claim improved scor
 
 - Should a lane-triggered sweep read every other dated main review folder even when no land request for it was observed? This build chooses the mandatory exact-lane isolation case and remembered earlier lands; no-lane make/status can discover the remaining folders.
 - The next lane owns SessionEnd, install wiring, doctor and the real Claude-parent Windows survival check.
-- Final mutation/full-suite/seat-check/CI evidence follows in this folder after the implementation commit. No independent model review was launched; the builder is prohibited from starting sessions or subagents.
+- No independent model review was launched; the builder is prohibited from starting sessions or subagents.
+
+## Completion evidence
+
+Implementation commit: `b831ca19`.
+
+- Draft PR: https://github.com/j-wanger/nana-pi/pull/289 (opened at build 1).
+- Mutation command: `SEAT_MUTATE_OUT=<lane folder>/mutation-result.txt node <lane folder>/seat-mutate.mjs`, exit 0. `mutation-result.txt` records five of five red, all exactly their named titles, zero survivors. The pairs break land isolation, land placement, failed/malformed state, unknown-usage charge and start filtering. Every shard first passed its eight-case baseline.
+- Foreground full suite: `npm run test:locked`, exit 0. `full-suite.txt`: 249 files, 247 PASS, 0 FAIL, 2 SKIP, 0 WARN; 8863 passing checks, 0 failing checks, 44 skips; 664.2 seconds.
+- `npm run map:check`, `npm run readme:check`, `node --experimental-strip-types scripts/requirements-trace.mjs`, `node scripts/requirements-tree.mjs --root .`, `node scripts/known-bugs.mjs --root .` and the tree-movement command all exited 0. The requirement rail reports 2314 total rows, 2060 implemented and traced, zero EARS problems.
+- Identity scan: exit 0 after staging all new source and records. Three builder-home prefixes in the install rehearsal log were redacted before commit; no owner text was involved.
+- Class: `gate: packages/nana-pack/bin/nana-land.mjs — land tool`.
+- `tree-movement.md` is the requirements/artifact movement record for the seat.
+- The final evidence commit contains no code change. Seat checks are repeated on that commit; the pushed tip's finished CI result, including its Windows suite leg, is reported in the final worker report rather than making another self-referential evidence commit.

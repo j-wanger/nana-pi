@@ -1,6 +1,2 @@
 requirements tree: 0 problems; rows 2314; features 41
 deliverables: 21 of 21 made and read by code, 21 more parked
-deliverable note: A-093 Artifact: location "<private profile clone>/projects/<repository folder>/" has the wrong shape for other project
-deliverable note: A-093 Artifact: writer path "packages/nana-pack/bin/nana-memory.mjs" is not a tracked file at HEAD
-deliverable note: line 480: Read by: A-093 reader path "packages/nana-pack/lib/memory-store.mjs" is not a tracked file at HEAD
-deliverable note: A-093 has no declared reader
