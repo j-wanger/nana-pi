@@ -65,16 +65,18 @@ async function fixture(n, fn, { specs = {}, starts = {}, eol = "\n", final = tru
 const items = result => result.rows.filter(r => r.type === "item");
 // req: R-3310
 await check("counts interaction windows and pooled outcomes", async () => {
- for (const [eol, final] of [["\n", true], ["\r\n", true], ["\n", false]]) await fixture(C.WINDOW_SIZE * 3 + 1, async ({ names, cli, measure }) => {
-  const a = candidate(names[C.WINDOW_SIZE], C.WINDOW_SIZE, "correction", "Synthetic repeat");
-  const b = candidate(names[C.WINDOW_SIZE + 1], C.WINDOW_SIZE + 1, "correction", "SYNTHETIC repeat!");
-  const c = candidate(names[C.WINDOW_SIZE * 2 + 1], C.WINDOW_SIZE * 2 + 1, "decision");
-  const d = candidate(names[C.WINDOW_SIZE * 3 + 1], C.WINDOW_SIZE * 3 + 1, "correction");
-  const r = await cli([a, b, c, d, b, { evidence: "review:synthetic", kind: "lesson", date: "2026-01-01" }]); assert.equal(r.code, 0);
-  for (const line of ["interactions " + (C.WINDOW_SIZE * 3 + 1), "1 warm-up", "4 partial", "1 corrections 1 repeated 0 exact 0 parallel 0 unjudged 0", "2 corrections 1 repeated 1 exact 1 parallel 0 unjudged 0", "3 decisions 1 asked again 0 re-decided 0 unprompted 0 exact 0 parallel 0 unjudged 0", "2 pasted 1", "pooled correction 1/1 Wilson 0.2065 1.0000 halving needs 1682 interactions each side", "pooled decision 0/1 Wilson 0.0000 0.7935 halving needs unavailable interactions each side", C.WORDS.windowNote]) assert.ok(r.stdout.split("\n").includes(line), line);
-  const result = await measure([a, b, c, d]); assert.equal(result.windows.length, 4); assert.equal(result.windows[1].interactions, C.WINDOW_SIZE);
+ const k = 13, total = C.LOOKBACK + 2 * C.WINDOW_SIZE + k;
+ for (const [eol, final] of [["\n", true], ["\r\n", true], ["\n", false]]) await fixture(total, async ({ names, cli, measure }) => {
+  const warm = candidate("warmup", 1, "correction", "Synthetic repeat");
+  const firstClosed = candidate("closed", C.LOOKBACK + 1, "correction", "SYNTHETIC repeat!");
+  const tail = candidate(names[total], total, "decision");
+  const r = await cli([warm, firstClosed, tail]); assert.equal(r.code, 0);
+  for (const line of [`interactions ${total}`, "1 warm-up", "4 partial", "2 corrections 1 repeated 1 exact 1 parallel 0 unjudged 0", "4 decisions 1 asked again 0 re-decided 0 unprompted 0 exact 0 parallel 0 unjudged 0", `pooled correction 1/1 Wilson 0.2065 1.0000 halving needs ${halvingExposure(1, 1, 2 * C.WINDOW_SIZE)} interactions each side`, C.WORDS.windowNote]) assert.ok(r.stdout.split("\n").includes(line), line);
+  const result = await measure([warm, firstClosed, tail]);
+  assert.deepEqual(result.windows.map(w => [w.interactions, w.warmUp, w.partial]), [[C.LOOKBACK, true, false], [C.WINDOW_SIZE, false, false], [C.WINDOW_SIZE, false, false], [k, false, true]]);
+  assert.equal(items(result)[1].window, 2); assert.equal(items(result)[1].repeatOf, warm.evidence); assert.equal(items(result)[2].window, 4);
   assert.deepEqual(wilson(0, 0), [0, 1]); assert.equal(halvingExposure(0, 1, C.WINDOW_SIZE), null);
- }, { eol, final, specs: { [C.WINDOW_SIZE]: { quote: "Synthetic pasted" }, [C.WINDOW_SIZE + 1]: { quote: "SYNTHETIC pasted!" } } });
+ }, { eol, final, specs: { 1: { session: "warmup" }, [C.LOOKBACK + 1]: { session: "closed" } } });
 });
 // req: R-3311
 await check("repeats need earlier in-scope nonparallel sessions", () => fixture(C.LOOKBACK + 4, async ({ measure }) => {

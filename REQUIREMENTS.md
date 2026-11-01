@@ -564,7 +564,7 @@ Reads: A-091 · packages/nana-pack/lib/outcome-meter.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-3310 | The meter shall count eligible owner interactions, repeats, pasted interactions and pooled Wilson rates with halving exposure, excluding warm-up and partial windows from the baseline. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::counts interaction windows and pooled outcomes` |
+| R-3310 | The meter shall report a warm-up prefix of the first 60 interactions, then consecutive 80-interaction windows and a partial tail, excluding the warm-up prefix and partial tail from pooled Wilson rates with halving exposure. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::counts interaction windows and pooled outcomes` |
 | R-3311 | The meter shall count repeats only within the interaction lookback across distinct, nonparallel sessions, skipping seat pointers and unresolved snapshot evidence. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::repeats need earlier in-scope nonparallel sessions` |
 | R-3312 | The meter shall count only prompted decisions settled the same way, separating changed decisions and unprompted decisions with prompting consistent with resolved evidence. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::decisions require prompting and same settlement` |
 | R-3313 | The judge shall receive capped call-local claims and every in-scope earlier item, bypass exact matches and reject an entire malformed reply without exposing text. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::judge sees full lookback and rejects bad calls` |

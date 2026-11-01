@@ -160,9 +160,14 @@ export async function measureOutcomes(options) {
  const candidates = validCandidates(options.candidates);
  const snap = await snapshot(options), { owners, turns, entries, starts, askPointers } = snap;
  const windows = [];
- for (let start = 0; start < owners.length; start += C.WINDOW_SIZE) {
-  const slice = owners.slice(start, start + C.WINDOW_SIZE);
-  windows.push({ type: "window", window: windows.length + 1, interactions: slice.length, warmUp: start < C.LOOKBACK, partial: slice.length < C.WINDOW_SIZE, start: slice[0].at, end: owners[start + C.WINDOW_SIZE]?.at ?? null, pasted: slice.filter(owner => owners.some(prior => prior.position < owner.position && owner.position - prior.position <= C.LOOKBACK && prior.normal === owner.normal)).length, context: [], outcomes: {} });
+ const addWindow = (start, end, warmUp, partial) => {
+  const slice = owners.slice(start, end);
+  windows.push({ type: "window", window: windows.length + 1, interactions: slice.length, warmUp, partial, start: slice[0].at, end: owners[end]?.at ?? null, pasted: slice.filter(owner => owners.some(prior => prior.position < owner.position && owner.position - prior.position <= C.LOOKBACK && prior.normal === owner.normal)).length, context: [], outcomes: {} });
+ };
+ if (owners.length) addWindow(0, Math.min(C.LOOKBACK, owners.length), true, false);
+ for (let start = C.LOOKBACK; start < owners.length; start += C.WINDOW_SIZE) {
+  const end = Math.min(start + C.WINDOW_SIZE, owners.length);
+  addWindow(start, end, false, end - start < C.WINDOW_SIZE);
  }
  const counts = { skipped: 0, unresolved: 0, calls: 0, unknownUsage: 0 };
  const work = [];
@@ -172,7 +177,8 @@ export async function measureOutcomes(options) {
   const owner = match && (askPointers.get(candidate.evidence) ?? turns.get(basePointer(candidate.evidence)));
   const seat = match && entries.get(`claude-code:${match[1]}#${match[3]}`);
   if (!owner || !seat?.seat) { counts.unresolved++; continue; }
-  const row = { type: "item", kind: candidate.kind, evidence: candidate.evidence, position: owner.position, window: Math.floor((owner.position - 1) / C.WINDOW_SIZE) + 1, repeatOf: null, relation: "new", how: "local", prompted: candidate.kind === "decision" ? askPointers.has(candidate.evidence) || seat.prompted : null };
+  const window = owner.position <= C.LOOKBACK ? 1 : Math.floor((owner.position - C.LOOKBACK - 1) / C.WINDOW_SIZE) + 2;
+  const row = { type: "item", kind: candidate.kind, evidence: candidate.evidence, position: owner.position, window, repeatOf: null, relation: "new", how: "local", prompted: candidate.kind === "decision" ? askPointers.has(candidate.evidence) || seat.prompted : null };
   work.push({ row, session: match[1], at: owner.at, order: owner.order, claim: candidate.claim, normal: normalise(candidate.claim) });
  }
  work.sort((a, b) => a.at - b.at || a.order - b.order);

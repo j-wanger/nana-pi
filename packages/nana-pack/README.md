@@ -167,8 +167,9 @@ occupy their instant's position but add no interaction. Duplicate candidate poin
 first row; lessons are ignored; malformed candidates fail before any judge call. Missing evidence
 is unresolved and seat-saved pointers are skipped.
 
-Windows contain 80 interactions; the lookback is 60. Warm-up windows lack a complete lookback
-at their first interaction. The open tail is partial. Neither enters the pooled baseline.
+The first 60 interactions form one warm-up prefix; then consecutive windows contain 80
+interactions, with an unfilled final window marked partial. The warm-up prefix and partial tail
+never enter the pooled baseline, though warm-up items can match later repeats.
 Window rows are not a verdict. Pooled rates include Wilson intervals and the equal-arm,
 two-proportion interactions needed to detect a halving at 95% confidence and 80% power,
 using observed item density; zero repeats cannot estimate that number. Repeats must cross
