@@ -26,7 +26,7 @@ FEAT-040 · Make and keep memory
 artifacts:
   A-093 new under FEAT-040
   FEAT-040 A-093 reader code added
-(node:72315) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/making-trigger/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+(node:72315) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<home>/nana-pi-wt/making-trigger/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
-To eliminate this warning, add "type": "module" to /Users/jwang/nana-pi-wt/making-trigger/package.json.
+To eliminate this warning, add "type": "module" to <home>/nana-pi-wt/making-trigger/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,2 @@
+docs/reviews/making-trigger-2026-11-01/build5-tree-movement.md: wordIndex=1 expected=0 actual=2 unallowlisted
+summary files=5528 findings=1 totals=5,2,0,4

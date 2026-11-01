@@ -5,9 +5,10 @@ VERDICT: DONE
 ## Commits
 
 - `807c4caa`: fix the round-1 land MUST, final SHOULD and NOTE 1; retain requirement changes, three tagged regressions, red/green evidence and four new mutation pairs.
-- The following evidence-only commit retains the locked full suite, mutation results, install rehearsal and this report. Its hash, final-tip checks and finished CI result belong in the final worker response.
+- `6d7faa44`: evidence-only commit retaining the first locked full suite, mutation results, install rehearsal and this report.
+- The following evidence-only correction removes the generated movement-log home prefix and retains the subsequent green full suite and initial CI failure. Its hash, final-tip checks and finished CI result belong in the final worker response.
 - The code commit followed the green focused run (12 files, 213 checks, exit 0). Its amendment redacted a generated trace log after the green locked full suite; no code changed.
-- The evidence commit follows the green locked full suite. No implementation or assertion changed after the green focused run.
+- Both evidence commits follow green locked full suites. No implementation or assertion changed after the green focused run. The correction is a separate commit because the gate refused an attempt to rewrite the already pushed evidence tip.
 
 ## Closures
 
@@ -64,7 +65,7 @@ All ten previous pairs remain. Four new pairs cover the three closures above. Ev
 Long output is retained in the adjacent `build5-*.txt` files and `build5-tree-movement.md`.
 
 - `npm test -- memory-run profile-sync profile-store memory-making memory-shaping outcome-meter land`: exit 0; 12 files, 213 checks. An initial 300-second outer tool deadline interrupted the first attempt; the complete rerun passed with a sufficient limit.
-- `npm run test:locked`, foreground, one machine-wide lock: exit 0.
+- `npm run test:locked`, foreground, one machine-wide lock: exit 0, then exit 0 again after movement-log redaction. An intervening rerun exited 1 only because shell redirection changed an already tracked suite-output file during the run; all 8898 checks passed. The successful rerun wrote outside the checkout and copied its output afterward. Both outputs are retained.
 - `npm run map`, `npm run map:check`: exits 0; 552 modules.
 - `npm run readme:check`: exit 0; 999 claims, zero problems.
 - `node --experimental-strip-types scripts/requirements-trace.mjs`: exit 0; 2341 rows, 2087 implemented and traced, zero EARS problems.
@@ -73,10 +74,12 @@ Long output is retained in the adjacent `build5-*.txt` files and `build5-tree-mo
 - `npm test -- requirements-deliverables`: exit 0; 21 checks.
 - `node scripts/requirements-moved.mjs --root . --base origin/main`: exit 0; FEAT-040, 23 lane rows and A-093 only.
 - `node scripts/lane-class.mjs --root . --base origin/main`: exit 0; gate, inherited land-tool change.
-- `node scripts/identity-scan.mjs --root .`: exit 0; zero findings. Generated local-home prefixes were redacted before push.
+- `node scripts/identity-scan.mjs --root .`: exit 0; zero findings. The first final-tip check exited 1 because the newly tracked movement log retained a local-home prefix in a Node warning. The corrected evidence redacts it; the rerun passes. The initial failure is retained in `build5-initial-tip-identity.txt`.
 - `node packages/nana-setup/bin/install-check.mjs`: exit 1, solely `FAIL pi post-edit — write-error: write tool result is marked as an error`. All other rehearsal checks passed. This is the brief's known builder-environment exception.
 
-Suite summary: `251 files: 249 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8898 pass, 0 fail, 44 skip · 675.1s`.
+Suite summary: `251 files: 249 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8898 pass, 0 fail, 44 skip · 674.9s`.
+
+The first pushed evidence tip's finished CI run, 41298713352, failed all three suite legs solely on that same movement-log identity finding. All three new regressions passed, including Windows. All four install-check legs passed. The run was not cancelled; its failed-suite output is retained in `build5-ci-attempt-1.txt`. The final corrected tip's finished run belongs in the worker response.
 
 ## Precedent and known-bug scope
 
