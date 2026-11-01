@@ -323,7 +323,6 @@ Purpose: Give each launched agent bounded context for its role and record each d
 Status: active
 Also applies: R-2560, R-2561, R-2581, R-2646, R-2647, R-2655
 Artifact: A-089 · context load log · user-home store: <pi agent dir>/nana-context-loads.jsonl · build: packages/nana-pack/lib/context-load-log.mjs
-Parked: A-089 · since 2026-10-31: memory lanes will add readers; this lane records the baseline only
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -581,9 +580,48 @@ Purpose: Make new enabled repository units once into a private, synchronized pro
 | R-3307 | Repository folder ids shall contain the first 16 hex characters with a full-root collision check. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3307: seal root folder length and collision refusal` |
 | R-3308 | The project store shall use the sealed projects, repository.json, records, events, seen, units and runs layout, including safe paths for 64-hex roots. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3308: seal safe immutable store layout for a 64 hex root` |
 | R-3309 | Project records shall contain the candidate fields followed by subject, scope and repository. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3309: seal project record fields` |
-| R-3310 | Machine opt-in shall use the memoryRepositories configuration member. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3310: seal opt-in member` |
-| R-3311 | The maker shall use the sealed fixed run, status, land and refusal vocabulary. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3311: seal fixed words` |
-| R-3312 | Trigger lane folders shall match the escaped anchored lane followed by an ISO day. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3312: seal anchored escaped lane folder pattern` |
+| R-3340 | Machine opt-in shall use the memoryRepositories configuration member. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3340: seal opt-in member` |
+| R-3341 | The maker shall use the sealed fixed run, status, land and refusal vocabulary. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3341: seal fixed words` |
+| R-3342 | Trigger lane folders shall match the escaped anchored lane followed by an ISO day. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3342: seal anchored escaped lane folder pattern` |
+
+## FEAT-043 · Measure memory outcomes
+Purpose: Count, per window of owner interactions and pooled, owner corrections and decisions given again, review findings that recur and each role's logged context size, so memory changes are judged against a measured baseline.
+Status: active
+Artifact: A-095 · outcome meter rows · user-home store: ~/<private --out folder>/outcome-meter.jsonl · manual: the seat runs npm run memory:meter by hand
+Read by: A-095 · code: packages/nana-pack/lib/outcome-score.mjs
+Reads: A-088 · packages/nana-pack/lib/outcome-meter.mjs
+Reads: A-089 · packages/nana-pack/lib/outcome-meter.mjs
+Reads: A-091 · packages/nana-pack/lib/outcome-meter.mjs
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3310 | The meter shall report a warm-up prefix of the first 60 interactions, then consecutive 80-interaction windows and a partial tail, excluding the warm-up prefix and partial tail from pooled Wilson rates with halving exposure. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::counts interaction windows and pooled outcomes` |
+| R-3311 | The meter shall count repeats only within the interaction lookback across distinct, nonparallel sessions, skipping seat pointers and unresolved snapshot evidence. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::repeats need earlier in-scope nonparallel sessions` |
+| R-3312 | The meter shall count only prompted decisions settled the same way, separating changed decisions and unprompted decisions with prompting consistent with resolved evidence. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::decisions require prompting and same settlement` |
+| R-3313 | The judge shall receive capped call-local claims and every in-scope earlier item, bypass exact matches and reject an entire malformed reply without exposing text. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::judge sees full lookback and rejects bad calls` |
+| R-3314 | The meter shall process calls in interaction order, stop at its token cap, attribute unjudged items to their windows and disclose incomplete and unknown spend. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::spend cap and unknown usage remain visible` |
+| R-3315 | The meter shall report bounded load-log measurements per window, role, launcher and part, separating thin samples, test loads, outside loads, missing logs and bad lines. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::context loads split by window role launcher and part` |
+| R-3316 | The commands shall keep output private and counts-only and send judge text only through an isolated sealed Claude runner while preserving default shaper behaviour. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::commands stay private and Claude options stay isolated` |
+| R-3317 | The scorer and comparison shall report validity-corrected accuracy with Wilson lower bounds, unscored conditions and owner-turn repeat-set agreement, rejecting malformed files and duplicate labels. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::scorer and comparison measure valid item agreement` |
+| R-3318 | The judge runner shall be claude. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: judge runner` |
+| R-3319 | The judge model shall be claude-sonnet-5. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: judge model` |
+| R-3320 | The judge effort shall be low. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: judge effort` |
+| R-3321 | The judge dollar cap shall be 0.50 per call. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: dollar cap` |
+| R-3322 | The judge token cap shall be 1000000 per run. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: token cap` |
+| R-3323 | The judge shall send at most 20 items per call. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: batch size` |
+| R-3324 | The meter shall use windows of 80 interactions and a lookback of 60 interactions. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: interaction sizes` |
+| R-3325 | The judge claim cap shall be 600 characters. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: claim cap` |
+| R-3326 | The judge timeout shall be 300000 milliseconds. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: timeout` |
+| R-3327 | The judge capture buffer shall be 67108864 bytes. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: buffer` |
+| R-3328 | The load-log byte cap shall be 16777216. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: log cap` |
+| R-3329 | The minimum loads per window, role and launcher shall be 10. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: minimum loads` |
+| R-3330 | The minimum labelled repeats per kind shall be 15. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: minimum repeats` |
+| R-3331 | The kind-precision Wilson lower-bound bar shall be 0.80. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: kind precision bar` |
+| R-3332 | The repeat-precision Wilson lower-bound bar shall be 0.80. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: repeat precision bar` |
+| R-3333 | The repeat-recall Wilson lower-bound bar shall be 0.70. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: repeat recall bar` |
+| R-3334 | The interval confidence and detection power shall respectively be 0.95 and 0.80. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: interval and power` |
+| R-3335 | The judge system prompt shall have SHA-256 b522dbca4d472999b811304a5a8c1fa166f835e756c328c7b4c196dca048712a. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: system prompt hash` |
+| R-3336 | The output shall use outcome-meter.jsonl and the sealed warm-up, partial, parallel, pasted, outside, unprompted, re-decided, unjudged, thin-load, test-load, missing-log, spend-cap, unscored and window-verdict words with the context naming vocabulary. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::seal: output words` |
 
 ## FEAT-005 · Communicate decisions clearly
 Purpose: Deliver the preferred writing guidance and check report readability and structure.

@@ -1,0 +1,8 @@
+requirements tree: 0 problems; rows 2318; features 42
+deliverables: 21 of 21 made and read by code, 21 more parked
+deliverable note: line 561: Reads: reader path "packages/nana-pack/lib/outcome-meter.mjs" is not a tracked file at HEAD
+deliverable note: line 562: Reads: reader path "packages/nana-pack/lib/outcome-meter.mjs" is not a tracked file at HEAD
+deliverable note: line 563: Reads: reader path "packages/nana-pack/lib/outcome-meter.mjs" is not a tracked file at HEAD
+deliverable note: line 560: Read by: A-095 reader path "packages/nana-pack/lib/outcome-score.mjs" is not a tracked file at HEAD
+deliverable note: A-089 has no declared reader
+deliverable note: A-095 has no declared reader

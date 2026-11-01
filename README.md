@@ -51,6 +51,11 @@ private candidates with independent JSONL labels and prints counts only. Both ru
 by hand. `npm run memory:shape` (`scripts/memory-shape.mjs`) classifies the same
 units with an isolated Claude CLI by default, or pi through a sealed runner choice.
 `scripts/memory-shape-runners.mjs` holds both adapters; tests inject all calls.
+`npm run memory:meter` (`scripts/outcome-meter.mjs`) measures repeated corrections,
+re-asked decisions and logged context in interaction windows, using the isolated Claude CLI.
+`npm run memory:meter-score` (`scripts/outcome-score.mjs`) scores private labels;
+`npm run memory:meter-compare` (`scripts/outcome-compare.mjs`) compares private repeat sets.
+These hand-run commands need Node and git; only the meter needs authenticated Claude.
 See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
 
 ## Requirements-first

@@ -71,10 +71,11 @@ function askAnswer(entry, result, call) {
  return { quote: questions.map((q) => answers[q]).join("; "), context: questions.join("; ") };
 }
 /** Shared unit walk; rule text stays sentence-sized while model context keeps the whole entry. */
-export async function* unitsIn(file, options) {
+export async function* unitsIn(file, options, onEntry = options.onEntry) {
  let question = null, substantial = null, lastSeat = null;
  const calls = new Map();
  for await (const entry of streamEntriesIn(file)) {
+  onEntry?.(entry, { file });
   if (entry.isSidechain || entry.isMeta || entry.isCompactSummary) continue;
   const timestamp = entry.timestamp ?? entry.message?.timestamp;
   if (options.until && Date.parse(timestamp) > Date.parse(options.until)) continue;
@@ -105,8 +106,8 @@ export async function* unitsIn(file, options) {
   question = null; substantial = null;
  }
 }
-export async function* transcriptUnits(options) {
- for (const { file } of sourceFiles(options)) yield* unitsIn(file, options);
+export async function* transcriptUnits(options, onEntry = options.onEntry) {
+ for (const { file } of sourceFiles(options)) yield* unitsIn(file, options, onEntry);
 }
 export function* reviewUnits(options) {
  const { reviewsRoot } = options;

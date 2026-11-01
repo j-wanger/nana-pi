@@ -138,6 +138,73 @@ Known limits: the CLI cannot prove that quoted words came from the owner, preven
 poisoning, or protect against a hostile process changing the pointer. Saved lines can contain
 private text: never paste real records or show output into the public repository.
 
+## Memory outcomes
+
+Run from the repository root with Node 22.18+, git and an authenticated Claude CLI
+for the meter. Scoring and comparison need only Node. Tests inject every runner and spend nothing.
+
+```bash
+npm run memory:meter -- --candidates <private-jsonl> --root <private-transcript-projects> --out <private-folder>
+npm run memory:meter-score -- --rows <private-rows-jsonl> --labels <private-labels-jsonl>
+npm run memory:meter-compare -- --rows <private-rows-jsonl> --against <private-rows-jsonl>
+```
+
+The adapters are `scripts/outcome-meter.mjs`, `scripts/outcome-score.mjs` and
+`scripts/outcome-compare.mjs`.
+
+The meter in `scripts/outcome-meter.mjs` also accepts `--repo <repository>`,
+`--project <key>` and `--load-log <private-log>`; the default log is
+`nana-context-loads.jsonl` under the active pi agent directory. The meter never accepts labels.
+Only synthetic fixtures and counts belong in this repository. Keep real snapshots, candidates,
+labels, output and every run count private, outside any checkout. Each run exclusively creates
+`outcome-meter.jsonl` with mode 0600 in a 0700 folder on POSIX. Diagnostics never expose input,
+pointers, model replies or exception messages. A prior output file is never replaced.
+
+One interaction is an eligible owner turn with prior seat text. Session openers, tool results,
+meta, sidechains, compaction summaries and wrappers do not add interactions. All transcripts
+are walked once and ordered by entry instant, with file-entry order breaking ties. Ask results
+occupy their instant's position but add no interaction. Duplicate candidate pointers use the
+first row; lessons are ignored; malformed candidates fail before any judge call. Missing evidence
+is unresolved and seat-saved pointers are skipped.
+
+The first 60 interactions form one warm-up prefix; then consecutive windows contain 80
+interactions, with an unfilled final window marked partial. The warm-up prefix and partial tail
+never enter the pooled baseline, though warm-up items can match later repeats.
+Window rows are not a verdict. Pooled rates include Wilson intervals and the equal-arm,
+two-proportion interactions needed to detect a halving at 95% confidence and 80% power,
+using observed item density; zero repeats cannot estimate that number. Repeats must cross
+sessions. A session that began before the earlier item existed is parallel, not a repeat.
+Exact normalised claims need no judge. Pasted interactions print separately.
+
+Only prompted decisions settled the same way count as asked again; changed settlements print
+as re-decided and volunteered decisions as unprompted. The isolated, sealed Claude judge sees
+capped claims and call-local ids only, without pointers, sessions, instants or positions.
+Each chunk includes the entire in-lookback earlier set, without word blocking. Bad replies
+fail closed for the whole call. Token caps stop later calls with per-window unjudged counts;
+missing usage stays explicitly unknown. The runner uses no tools, MCP, settings sources or
+session persistence, replaces its system prompt, and receives text on stdin in OS temp.
+
+The scorer uses labels shaped as `{ evidence, kind, valid, repeatOf: [], relation }`, where
+`repeatOf` lists every acceptable earlier pointer and relation is same, changed or none.
+It scores only closed, non-warm-up windows. Kind precision counts valid items; repeat recall
+and precision count only valid items. Pointer agreement checks acceptable evidence among
+predicted repeats. Ratios carry Wilson lower bounds, bars use those bounds, and fewer than
+15 labelled repeats or any unlabelled items make a kind unscored. Comparison matches repeats
+by owner-turn pointer, ignoring the paired seat id, and prints intersection over union.
+The meter's own rates include invalid candidates and are therefore an upper reading; only
+labels correct validity. Shared Claude lineage remains a limit. The seat's private owner
+check and four-run noise comparison are baseline steps, not automated delivery verdicts.
+Replay, in the next lane, judges the first delivery; this long-run field meter confirms it later.
+
+Logged context reports total and per-part median, nearest-rank 90th percentile and maximum,
+split by role and launcher. Fewer than ten loads prints too few loads. OS-temp loads are test
+loads, excluded from context statistics. Missing, malformed and outside-window lines are counted.
+Unknown role, launcher and part names receive distinct numbered aliases instead of exposing log text.
+Only logged parts can support a no-growth claim: planners and adversaries launched through the
+Agent tool are not logged, standing rules and AGENTS files are outside the log, and the seat
+line covers only the shared-memory index. Known limit: one machine and Claude Code transcripts
+only; pi sessions and cross-machine repeats are invisible. Recurring findings are a later lane.
+
 ## Offline memory candidates
 
 From the repository root, `npm run memory:make -- --out <private-folder>` runs
@@ -211,10 +278,9 @@ start nothing unless their caller injects a starter.
 
 Making uses the unchanged model shaper, starting at `2026-10-31T18:16:00Z`, never a nightly
 backfill. It sweeps new transcript units for the main checkout and its standard worktree
-folder keys. The `--session <file>` flag prioritizes one transcript. A land prioritizes its
-exact dated lane review folders in main, then drains remembered earlier land requests.
-Those requests are immutable machine-local files recorded even when a run is busy or capped.
-Omitting the lane flag sweeps all landed reviews. Only committed main review paths are eligible. Per-unit immutable seen files cover asks,
+folder keys. The `--session <file>` flag prioritizes one transcript.
+A land makes its own lane and drains remembered earlier lands; only commands without a lane sweep all landed review folders.
+Those requests are immutable machine-local files recorded even when a run is busy or capped. Only committed main review paths are eligible. Per-unit immutable seen files cover asks,
 skipped turns, valid replies and completed malformed replies. Failed calls remain pending.
 
 The run caps calls at 20 and tokens at 200,000. A machine-wide UTC day ledger reserves

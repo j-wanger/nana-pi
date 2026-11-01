@@ -20,9 +20,9 @@ FEAT-040 · Make and keep memory
   R-3307 new (implemented)
   R-3308 new (implemented)
   R-3309 new (implemented)
-  R-3310 new (implemented)
-  R-3311 new (implemented)
-  R-3312 new (implemented)
+  R-3340 new (implemented)
+  R-3341 new (implemented)
+  R-3342 new (implemented)
 artifacts:
   A-093 new under FEAT-040
   FEAT-040 A-093 reader code added

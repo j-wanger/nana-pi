@@ -2,7 +2,7 @@
 
 ## Scope
 
-FEAT-040, SUB-024, R-3290–R-3312, A-093. The objective served is carrying learning into subsequent work. No session-end hook, installer wiring, doctor row, real transcript read, real profile read, real opt-in, model call or real making run was used.
+FEAT-040, SUB-024, R-3290–R-3309 and R-3340–R-3342 (the last three renumbered after the main merge), A-093. The objective served is carrying learning into subsequent work. No session-end hook, installer wiring, doctor row, real transcript read, real profile read, real opt-in, model call or real making run was used.
 
 ## Implementation
 
@@ -43,7 +43,7 @@ The model maker is now the automatic path, but this does not claim improved scor
 
 ## Open questions / not done
 
-- Should a lane-triggered sweep read every other dated main review folder even when no land request for it was observed? This build chooses the mandatory exact-lane isolation case and remembered earlier lands; no-lane make/status can discover the remaining folders.
+- Closed by the build 3 ruling: a lane-triggered sweep reads its lane and remembered earlier lands; only no-lane make/status sweeps all landed review folders.
 - The next lane owns SessionEnd, install wiring, doctor and the real Claude-parent Windows survival check.
 - No independent model review was launched; the builder is prohibited from starting sessions or subagents.
 

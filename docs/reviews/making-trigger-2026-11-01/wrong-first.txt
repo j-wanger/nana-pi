@@ -11,9 +11,9 @@ FAIL  packages/nana-pack/tests/memory-run-seals.test.mjs  0 pass, 15 fail  1.2s 
       | FAIL R-3307: seal root folder length and collision refusal AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
       | FAIL R-3308: seal safe immutable store layout for a 64 hex root AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
       | FAIL R-3309: seal project record fields AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
-      | FAIL R-3310: seal opt-in member AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-      | FAIL R-3311: seal fixed words AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
-      | FAIL R-3312: seal anchored escaped lane folder pattern AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3340: seal opt-in member AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3341: seal fixed words AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL R-3342: seal anchored escaped lane folder pattern AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
 FAIL  packages/nana-pack/tests/memory-run.test.mjs        0 pass, 8 fail  8.3s  — exit 1
       | FAIL R-3290: each owner and ask unit is made once AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
       | FAIL R-3291: pending units survive busy caps failures and stale locks TypeError: Cannot read properties of undefined (reading 'runLock')
