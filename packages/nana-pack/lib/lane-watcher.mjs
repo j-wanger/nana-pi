@@ -83,9 +83,31 @@ function readBuilder(folder, { readFile = fs.readFileSync, stat = fs.statSync } 
 	}
 }
 
-function defaultProcessStartedAt(pid, { run = spawnSync } = {}) {
+function elapsedMilliseconds(value) {
+	const text = String(value).trim();
+	const dayMatch = /^(\d+)-(\d{1,2}):(\d{2}):(\d{2})$/.exec(text);
+	const parts = dayMatch ? dayMatch.slice(2).map(Number) : text.split(":").map(Number);
+	if (!parts.every(Number.isSafeInteger) || parts.some((part) => part < 0)) return null;
+	let seconds;
+	if (dayMatch) {
+		const [hours, minutes, remainder] = parts;
+		if (hours > 23 || minutes > 59 || remainder > 59) return null;
+		seconds = (Number(dayMatch[1]) * 24 + hours) * 3600 + minutes * 60 + remainder;
+	} else if (parts.length === 2) {
+		const [minutes, remainder] = parts;
+		if (remainder > 59) return null;
+		seconds = minutes * 60 + remainder;
+	} else if (parts.length === 3) {
+		const [hours, minutes, remainder] = parts;
+		if (minutes > 59 || remainder > 59) return null;
+		seconds = hours * 3600 + minutes * 60 + remainder;
+	} else return null;
+	return Number.isSafeInteger(seconds * 1000) ? seconds * 1000 : null;
+}
+
+function defaultProcessStartedAt(pid, { run = spawnSync, now = Date.now } = {}) {
 	try {
-		const result = run("ps", ["-o", "lstart=", "-p", String(pid)], {
+		const result = run("ps", ["-o", "etime=", "-p", String(pid)], {
 			encoding: "utf8",
 			env: { ...process.env, LC_ALL: "C" },
 			stdio: ["ignore", "pipe", "ignore"],
@@ -93,8 +115,10 @@ function defaultProcessStartedAt(pid, { run = spawnSync } = {}) {
 			windowsHide: true,
 		});
 		if (result?.status !== 0 || result?.error) return null;
-		const value = Date.parse(String(result.stdout ?? "").trim());
-		return Number.isFinite(value) ? new Date(value) : null;
+		const elapsed = elapsedMilliseconds(result.stdout);
+		const current = now();
+		const timestamp = current instanceof Date ? current.getTime() : Number(current);
+		return elapsed !== null && Number.isFinite(timestamp) ? new Date(timestamp - elapsed) : null;
 	} catch {
 		return null;
 	}
@@ -158,7 +182,7 @@ export async function cleanLane(spec, options = {}) {
 	const platform = options.platform ?? process.platform;
 	const alive = options.alive ?? pidAlive;
 	const killTree = options.killTree ?? killProcessTree;
-	const processStartedAt = options.processStartedAt ?? defaultProcessStartedAt;
+	const processStartedAt = options.processStartedAt ?? ((pid) => defaultProcessStartedAt(pid, { run: options.run, now: options.now }));
 	const waitForExit = options.waitForExit ?? ((pid) => defaultWaitForExit(pid, LANE_WATCHER_STOP_WAIT_MS, alive));
 	const exists = options.exists ?? fs.existsSync;
 	try {
