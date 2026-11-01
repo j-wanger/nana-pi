@@ -115,6 +115,12 @@ export const LABEL_FAIL_STREAK = 3;
 export const LABEL_ORDER_SEED = "anatomy-labeller-2026-11-01";
 // Chosen 2026-11-01, O4 / R-3394, R-3395: private append log and fingerprint.
 export const LABEL_FILE = "labels.jsonl";
+// Chosen 2026-11-01, Part 1 O7 / R-3401: independent model/rule rare strata.
+export const LABEL_SAMPLE_MIN = 15;
+// Chosen 2026-11-01, Part 1 O7 / R-3401: pre-registered heavy occurrence set.
+export const LABEL_HEAVY_MIN = 60;
+// Chosen 2026-11-01, Part 1 T13 / R-3404: raw short-text residual boundary.
+export const LABEL_SHORT_CHARS = 40;
 export const LABEL_MANIFEST_FILE = "manifest.json";
 // Contract 2026-11-01, R-3398: definitions from the blind labelling guide;
 // surrounding wording registered at build 1. SHA-256 is sealed in the tagged test.

@@ -11,19 +11,22 @@ import path from "node:path";
 import { entriesIn, privateFolder } from "../../../packages/nana-pack/lib/claude-transcript.mjs";
 import { CONTEXT_FILE, MANIFEST_FILE, SAMPLE_SIZE, SHEET_FILE, STAGED_FILE } from "./anatomy-config.mjs";
 import { extractContexts } from "./anatomy-sessions.mjs";
-import { agreement, assembleParts, drawSample, reportContexts } from "./anatomy-measures.mjs";
-import { labelContexts } from "./anatomy-labels.mjs";
+import { agreement, agreementLabels, assembleParts, drawLabelSample, drawSample, reportContexts, reportLabels } from "./anatomy-measures.mjs";
+import { labelContexts, readLabels } from "./anatomy-labels.mjs";
 
 const COMMANDS = ["segment", "report", "sample", "agree", "assemble", "label"];
-const OPTIONS = ["repo", "sessions", "out", "in", "seed", "n", "a", "b", "context", "drop", "stage", "resume"];
+const OPTIONS = ["repo", "sessions", "out", "in", "seed", "n", "a", "b", "context", "drop", "stage", "resume", "labels", "model", "a2", "b2"];
+const BOOLEAN_OPTIONS = ["heavy"];
 function argsIn(argv) {
  const [command, ...rest] = argv;
  if (!COMMANDS.includes(command)) throw new Error("arguments");
  const args = { command };
- for (let i = 0; i < rest.length; i += 2) {
+ for (let i = 0; i < rest.length;) {
   const name = rest[i].slice(2), value = rest[i + 1];
-  if (!rest[i].startsWith("--") || !OPTIONS.includes(name) || args[name] !== undefined || !value || value.startsWith("--")) throw new Error("arguments");
-  args[name] = value;
+  if (!rest[i].startsWith("--") || args[name] !== undefined) throw new Error("arguments");
+  if (BOOLEAN_OPTIONS.includes(name)) { args[name] = true; i++; continue; }
+  if (!OPTIONS.includes(name) || !value || value.startsWith("--")) throw new Error("arguments");
+  args[name] = value; i += 2;
  }
  return args;
 }
@@ -33,6 +36,7 @@ const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + (rows.le
 export async function runAnatomy(argv, { runModel, caps, stdout = (s) => process.stdout.write(s), stderr = (s) => process.stderr.write(s) } = {}) {
  try {
   const args = argsIn(argv), print = (o) => stdout(`${JSON.stringify(o)}\n`);
+  if ((args.heavy && (args.command !== "sample" || !args.labels)) || (args.labels && !["report", "sample"].includes(args.command)) || (args.model && args.command !== "agree") || ((args.a2 || args.b2) && (args.command !== "agree" || !args.model || !args.a2 || !args.b2))) throw new Error("arguments");
   let out;
   if (args.resume && args.command !== "label") throw new Error("arguments");
   if (args.command === "label") {
@@ -56,14 +60,18 @@ export async function runAnatomy(argv, { runModel, caps, stdout = (s) => process
   if (!args.in) throw new Error("arguments");
   const contexts = entriesIn(path.join(args.in, CONTEXT_FILE));
   if (args.command === "label") await labelContexts(contexts, { out, resume: Boolean(args.resume), runModel, caps, stdout });
-  if (args.command === "report") print(reportContexts(contexts));
+  const labelStore = args.labels || args.model ? await readLabels(args.labels ?? args.model, contexts) : null;
+  if (args.command === "report") print(labelStore ? reportLabels(contexts, labelStore) : reportContexts(contexts));
   if (args.command === "sample") {
-   const sheet = drawSample(contexts, { seed: args.seed, n: args.n === undefined ? SAMPLE_SIZE : Number(args.n) });
-   write(out, SHEET_FILE, jsonl(sheet)); print({ command: "sample", units: sheet.length, chars: sheet.reduce((n, u) => n + u.text.length, 0) });
+   const options = { seed: args.seed, n: args.n === undefined ? SAMPLE_SIZE : Number(args.n), heavy: Boolean(args.heavy) };
+   const result = labelStore ? drawLabelSample(labelStore, options) : { sheet: drawSample(contexts, options) };
+   const { sheet } = result;
+   write(out, SHEET_FILE, jsonl(sheet)); print({ command: "sample", units: sheet.length, chars: sheet.reduce((n, u) => n + u.text.length, 0), ...(labelStore ? { provenance: labelStore.provenance, unlabelledKeys: result.unlabelledKeys, emptyNormalized: result.emptyNormalized } : {}) });
   }
   if (args.command === "agree") {
    if (!args.a || !args.b) throw new Error("arguments");
-   print(agreement(contexts, entriesIn(args.a), entriesIn(args.b)));
+   const a = entriesIn(args.a), b = entriesIn(args.b);
+   print(labelStore ? agreementLabels(contexts, a, b, labelStore, args.a2 ? entriesIn(args.a2) : null, args.b2 ? entriesIn(args.b2) : null) : agreement(contexts, a, b));
   }
   if (args.command === "assemble") {
    const c = args.context ? contexts.find((c) => c.id === args.context) : contexts.length === 1 ? contexts[0] : null;
@@ -77,7 +85,7 @@ export async function runAnatomy(argv, { runModel, caps, stdout = (s) => process
   }
   return 0;
  } catch (error) {
-  const reason = error.code === "OUTPUT_CHECKOUT" ? "output checkout refused" : error.code === "OUTPUT_SYMLINK" ? "output symlink refused" : error.code === "OUTPUT_OCCUPIED" ? "output not empty" : error.code === "LABEL_FINGERPRINT" ? "label fingerprint mismatch" : /^ids differ: \d+$/u.test(error.message) ? error.message : "invalid inputs or read/write failure";
+  const reason = error.code === "OUTPUT_CHECKOUT" ? "output checkout refused" : error.code === "OUTPUT_SYMLINK" ? "output symlink refused" : error.code === "OUTPUT_OCCUPIED" ? "output not empty" : error.code === "LABEL_FINGERPRINT" ? "label fingerprint mismatch" : error.code === "INVALID_LABELS" ? "invalid labels" : error.code === "LABEL_STORE_MISMATCH" ? "label store mismatch" : error.code === "MODEL_LABELS_MISSING" && /^model labels missing: \d+$/u.test(error.message) ? error.message : /^ids differ: \d+$/u.test(error.message) ? error.message : "invalid inputs or read/write failure";
   stderr(`anatomy: ${reason}\n`); return 1;
  }
 }

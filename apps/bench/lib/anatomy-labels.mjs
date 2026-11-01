@@ -1,6 +1,6 @@
 /**
  * @module apps/bench/lib/anatomy-labels.mjs
- * @purpose Label distinct blind builder texts through an injected capped runner with durable private resume.
+ * @purpose Own the private model-label format, its capped writer, resume and read-only validation.
  * @inputs Segmented contexts, guarded private output folder, injected runner, optional caps and counts-only stdout.
  * @outputs Private manifest and appended key/id/label rows; counts-only progress and spend lines.
  * @effects disk (private label store); network (only through injected runner)
@@ -9,10 +9,10 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { normalize } from "./anatomy-measures.mjs";
+import { distinctUnits } from "./anatomy-measures.mjs";
 import { seededSample } from "./catch-stats.mjs";
 import { readJsonl } from "./plan.mjs";
-import { FUNCTIONS, LABEL_BATCH_CHARS, LABEL_BATCH_UNITS, LABEL_EFFORT, LABEL_FAIL_STREAK, LABEL_FILE, LABEL_MANIFEST_FILE, LABEL_MODEL, LABEL_ORDER_SEED, LABEL_PROGRESS_EVERY, LABEL_SYSTEM_PROMPT, LABEL_TOKEN_CAP, LABEL_UNKNOWN_CHARGE, NORMAL_TOKENS, OVERSIZE_UNIT_CHARS } from "./anatomy-config.mjs";
+import { FUNCTIONS, LABEL_BATCH_CHARS, LABEL_BATCH_UNITS, LABEL_EFFORT, LABEL_FAIL_STREAK, LABEL_FILE, LABEL_MANIFEST_FILE, LABEL_MODEL, LABEL_ORDER_SEED, LABEL_PROGRESS_EVERY, LABEL_SYSTEM_PROMPT, LABEL_TOKEN_CAP, LABEL_UNKNOWN_CHARGE } from "./anatomy-config.mjs";
 
 const sha256 = (text) => crypto.createHash("sha256").update(text).digest("hex");
 const vocabulary = [...FUNCTIONS, "unsorted"];
@@ -32,18 +32,35 @@ function validate(text, size) {
  const labels = Array.from({ length: size }, (_, i) => found.get(`u${i + 1}`));
  return labels.every((label) => label !== undefined) ? labels : null;
 }
-/** Keys stay private; only the representative's cwd and branch are replaced in sent text. */
-export function distinctUnits(contexts) {
- const units = new Map();
- for (const c of contexts) for (const p of c.parts) for (const s of p.spans) {
-  if (s.kind !== "unit" || s.text.length > OVERSIZE_UNIT_CHARS) continue;
-  const key = sha256(normalize(s.text, c));
-  let text = s.text;
-  if (c.cwd) text = text.split(c.cwd).join(NORMAL_TOKENS.cwd);
-  if (c.branch) text = text.split(c.branch).join(NORMAL_TOKENS.branch);
-  if (!units.has(key)) units.set(key, { key, id: s.id, text });
+function validStored(row, done) {
+ return row && /^[a-f0-9]{64}$/u.test(row.key) && typeof row.id === "string" && vocabulary.includes(row.label) && !done.has(row.key);
+}
+const invalid = () => Object.assign(new Error("invalid labels"), { code: "INVALID_LABELS" });
+const mismatch = () => Object.assign(new Error("label store mismatch"), { code: "LABEL_STORE_MISMATCH" });
+/** Read-only format owner: never repairs, chmods or prints private material. */
+export async function readLabels(folder, contexts) {
+ const file = path.join(folder, LABEL_FILE), manifestFile = path.join(folder, LABEL_MANIFEST_FILE);
+ let manifest, raw, rows;
+ try {
+  for (const name of [file, manifestFile]) if (!fs.lstatSync(name).isFile()) throw invalid();
+  manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
+  if (!manifest || typeof manifest.model !== "string" || typeof manifest.promptSha256 !== "string") throw invalid();
+  raw = fs.readFileSync(file);
+  const parsed = await readJsonl(file, { repair: false }); rows = parsed.rows;
+  // Count nonempty lines as well as parsed rows: this catches torn/malformed rows,
+  // but does not mistake an unterminated whitespace-only final line for damage.
+  if (rows.length !== raw.toString("utf8").split("\n").filter((line) => line.trim()).length) throw invalid();
+ } catch { throw invalid(); }
+ const units = distinctUnits(contexts), byId = new Map();
+ for (const u of units.values()) for (const { s } of u.occurrences) byId.set(s.id, u.key);
+ if (manifest.contexts !== contexts.length || manifest.distinctUnits !== units.size) throw mismatch();
+ const labels = new Map();
+ for (const row of rows) {
+  if (!validStored(row, labels)) throw invalid();
+  if (!units.has(row.key) || byId.get(row.id) !== row.key) throw mismatch();
+  labels.set(row.key, row);
  }
- return units;
+ return { units, byId, labels, provenance: { model: manifest.model, promptSha256: manifest.promptSha256, labelsSha256: sha256(raw) } };
 }
 function regularFile(file) {
  if (!fs.lstatSync(file).isFile()) throw new Error("invalid label file");
@@ -70,7 +87,7 @@ export async function labelContexts(contexts, { out, resume = false, runModel, c
    // append boundary; no quarantine file with a weaker mode is created.
    const { rows } = await readJsonl(file, { repair: false });
    for (const row of rows) {
-    if (!row || !/^[a-f0-9]{64}$/u.test(row.key) || typeof row.id !== "string" || !vocabulary.includes(row.label) || done.has(row.key)) throw new Error("invalid stored labels");
+    if (!validStored(row, done)) throw new Error("invalid stored labels");
     done.add(row.key);
    }
    const clean = jsonl(rows);

@@ -1,0 +1,31 @@
+PASS R-3390: distinct blind texts are labelled once
+PASS R-3391: bounded batches charge unknown usage and print progress
+PASS R-3392: malformed batches are rejected whole
+PASS R-3393: unsafe destinations and echoed text stay private
+PASS R-3394: capped and killed runs resume only missing keys
+PASS R-3395: changed model or prompt refuses resume
+PASS R-3396: consecutive failure stop resets after success
+PASS R-3397: seal label model
+PASS R-3397: seal label effort
+PASS R-3398: seal system prompt hash
+PASS R-3391: seal batch unit limit
+PASS R-3391: seal batch char limit
+PASS R-3391: seal run token cap
+PASS R-3391: seal unknown usage charge
+PASS R-3391: seal progress interval
+PASS R-3396: seal failure streak
+PASS R-3390: seal order seed
+PASS R-3394: seal label file
+PASS R-3395: seal manifest file
+PASS R-3399: model pairs map normalized keys and preserve rule pairs
+PASS R-3400: weights count heavy keys once and expose disputed weight
+PASS R-3401: dual minima seeded ids and heavy boundary make blind sheets
+FAIL R-3402: model shares have occurrence and per-part distinct denominators
+PASS R-3403: all report readers follow model labels and mark mixed pulls
+PASS R-3404: context dependence short raw boundary and empty counts
+PASS R-3405: readers refuse damage privately without changing files
+PASS R-3406: two sheet pairs pool every function once per key
+PASS R-3401: seal label sample minimum
+PASS R-3401: seal label heavy minimum
+PASS R-3404: seal label short chars
+anatomy labels: 29/30 checks passed
