@@ -2,7 +2,7 @@
 
 Read every feature this names before you judge the change.
 
-tree movement 6c4b536..6853841: 16 rows in 6 features
+tree movement 6c4b536..fffb9fc: 16 rows in 6 features
 FEAT-001 · Keep goals and priorities in view
   R-3437 new (implemented)
 FEAT-006 · Launch builders with execution limits

@@ -69,3 +69,6 @@
 - CI as the suite (ci-suite, independent check): an attempt-1 record is accepted when attempt 2 re-ran that platform with no record and its job lacks `started_at`.
 - CI as the suite (ci-suite, independent check): a reader problem on any leg, Linux included, sends the land to the local suite; safe, but it costs the full local run.
 - CI as the suite (ci-suite, independent check): the records are read twice, once for the proof and once to keep them after the merge (plan choice O1); this costs time only.
+- CI as the suite (ci-suite, final review): the budget wrapper's stop flag counts time after the last call, so the post-merge "stopped at the 60 s budget" note can appear on a finished read; it is advisory.
+- CI as the suite (ci-suite, final review): the changed-path listing quotes non-ASCII paths, so a workflow file with a non-ASCII name would not match the workflows folder.
+- CI as the suite (ci-suite, final review): a future `.github/actions/` folder is not on the fallback list.
