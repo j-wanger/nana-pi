@@ -12,22 +12,26 @@ import { wilson } from "./outcome-meter.mjs";
 import { KIND_BAR, PRECISION_BAR, RECALL_BAR, MIN_REPEATS, WORDS } from "./outcome-meter-config.mjs";
 const kinds = ["correction", "decision"];
 const turn = pointer => pointer.split("+")[0];
-function readRows(file, labels = false) {
- const rows = fs.readFileSync(file, "utf8").split(/\r\n|\r|\n/u).filter(line => line.trim()).map(line => JSON.parse(line));
+export function readOutcomeRows(file, labels = false) {
+ const rows = Array.isArray(file) ? structuredClone(file) : fs.readFileSync(file, "utf8").split(/\r\n|\r|\n/u).filter(line => line.trim()).map(line => JSON.parse(line));
  const seen = new Set();
  for (const row of rows) {
   if (!labels && row?.type === "window") {
    if (!Number.isInteger(row.window) || typeof row.warmUp !== "boolean" || typeof row.partial !== "boolean") throw new Error("invalid window");
    continue;
   }
-  if (!row || !kinds.includes(row.kind) || typeof row.evidence !== "string" || !row.evidence) throw new Error("invalid row");
+  const kindOnly = labels && row && Object.keys(row).sort().join(',') === 'evidence,kind';
+  if (!row || !(kindOnly ? [...kinds, 'lesson', 'none'] : kinds).includes(row.kind) || typeof row.evidence !== "string" || !row.evidence) throw new Error("invalid row");
+  if (kindOnly) Object.assign(row, { valid: true, repeatOf: [], relation: 'none' });
   if (seen.has(row.evidence)) throw new Error("duplicate row"); seen.add(row.evidence);
   if (labels) {
    if (typeof row.valid !== "boolean" || !Array.isArray(row.repeatOf) || row.repeatOf.some(pointer => typeof pointer !== "string" || !pointer) || !["same", "changed", "none"].includes(row.relation)) throw new Error("invalid label");
   } else if (row.type !== "item" || !(row.repeatOf === null || (typeof row.repeatOf === "string" && row.repeatOf)) || !Number.isInteger(row.window)) throw new Error("invalid item");
  }
- return rows;
+ return labels ? rows.filter(row => kinds.includes(row.kind)) : rows;
 }
+// Keep the scorer and comparison's existing call sites unchanged.
+const readRows = readOutcomeRows;
 function baselineItems(rows) {
  const windows = new Map(rows.filter(row => row.type === "window").map(row => [row.window, row]));
  return rows.filter(row => row.type === "item" && windows.has(row.window) && !windows.get(row.window).warmUp && !windows.get(row.window).partial);

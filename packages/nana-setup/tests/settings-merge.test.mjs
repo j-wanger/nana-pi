@@ -34,7 +34,7 @@ const posixModeReason = "POSIX mode bits (win32 stat reports a fixed mode regard
 
 const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
 const spec = (label) => wanted.find((w) => w.label === label).spec;
-check("six active hook entries are wanted", wanted.length === 6);
+check("six active hook entries are wanted", wanted.length === 7);
 
 /* --- paths are quoted, so a space in the home or clone still runs --------------------- */
 {
@@ -148,7 +148,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 {
 	const s = {};
 	const r = mergeHooks(s, wanted);
-	check("empty settings: all six active entries added", r.added.length === 6);
+	check("empty settings: all six active entries added", r.added.length === 7);
 	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit.length === 1);
 	// req: R-316
 	check("empty settings: merging again adds nothing", mergeHooks(s, wanted).added.length === 0);
@@ -169,7 +169,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 	};
 	const before = JSON.stringify(s.hooks.Stop);
 	const r = mergeHooks(s, wanted);
-	check("the other six are added", r.added.length === 6);
+	check("the other six are added", r.added.length === 7);
 	// req: R-316
 	check("foreign SessionStart hook still first", s.hooks.SessionStart[0].hooks[0].command.endsWith("session-start.sh"));
 	// req: R-316
@@ -325,6 +325,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 	// (R-1061) POSIX desiredHooks is byte-identical to today's, with or without an explicit non-win32 platform.
 	const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
 	const eq = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+	const { MEMORY_END_ENTRY: E, MEMORY_END_TIMEOUT_SECONDS: timeout } = await import('../lib/memory-end-config.mjs');
 	const fixture = [
 		{ event: "SessionStart", label: "SessionStart objective", marker: "nana-objective.mjs", spec: { interpreters: ["node"], script: "nana-objective.mjs" }, entry: { type: "command", command: "node '/h/nana-objective.mjs'", timeout: 5, statusMessage: "nana: objective + current priority" } },
 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: { interpreters: ["node"], script: "nana-adoption.mjs" }, entry: { type: "command", command: "node '/h/nana-adoption.mjs'", timeout: 5, statusMessage: "nana: unadopted repositories" } },
@@ -332,6 +333,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: { interpreters: ["node"], script: "nana-roster-notice.mjs" }, entry: { type: "command", command: "node '/h/nana-roster-notice.mjs'", timeout: 5, statusMessage: "nana: roster notice" } },
 		{ event: "PreToolUse", matcher: "Bash", label: "PreToolUse verifier pipe", marker: "verifier-pipe.mjs", spec: { interpreters: ["node"], script: "verifier-pipe.mjs" }, entry: { type: "command", command: "node '/h/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" } },
 		{ event: "UserPromptSubmit", label: "UserPromptSubmit knowledge pull", marker: "nana-knowledge.ts hook", spec: { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] }, entry: { type: "command", command: "NODE_NO_WARNINGS=1 node '/r/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" } },
+		{ event: E.event, label: `${E.event} memory making`, marker: E.file, spec: { interpreters: ['node'], script: E.file }, entry: { type: 'command', command: `node '/h/${E.file}'`, timeout, statusMessage: E.statusMessage } },
 	];
 	// req: R-1061
 	// req: R-1208
@@ -425,7 +427,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 	settings.hooks.SessionStart[0].hooks.push({ type: "command", command: "node", args: ["/repo/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5, statusMessage: "nana: objective + current priority" });
 	const removed = removeInstallerHooks(settings, { hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
 	// req: R-1050
-	check("forced-win32 removeInstallerHooks removes exactly the six entries", removed.length === 6, JSON.stringify(removed));
+	check("forced-win32 removeInstallerHooks removes exactly the six entries", removed.length === 7, JSON.stringify(removed));
 	// Guarded with optional chaining, not a plain settings.hooks.SessionStart[0] read: a wrong
 	// removeInstallerHooks that over-removes can empty and delete the whole SessionStart group (or
 	// settings.hooks itself), and this case must still report FAIL rather than throw and abort

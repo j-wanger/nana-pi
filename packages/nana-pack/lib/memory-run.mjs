@@ -11,7 +11,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { spawn as spawnDefault } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { spawnMemory } from './memory-start.mjs';
 import { unitsIn, sourceFiles, reviewUnits, resolveEvidence, defaultMemoryRepo } from './memory-making.mjs';
 import { extractShaped } from './memory-shaping.mjs';
 import { projectStore, repositoryFolder, ensureRepository, readMemoryFiles, writeMemoryFile, mergeMemory, unitKey } from './memory-store.mjs';
@@ -90,6 +90,13 @@ export function lastMemoryRun(dir,repository,{runGit=profileGit()}={}) {
  const runs=readMemoryFiles(dir,repository,L.runs);if(local)runs.unshift(local);
  return runs.sort((a,b)=>b.time.localeCompare(a.time))[0]??null;
 }
+/** Machine-local only; malformed content is an error rather than another machine's success. */
+export function localMemoryRun(dir,repository,{runGit=profileGit()}={}) {
+ const file=path.join(gitCommonDir(dir,{runGit}),R.lastRun.replace('<id>',repositoryFolder(repository)));
+ let run;try {run=JSON.parse(fs.readFileSync(file,'utf8'));}catch(error){if(error.code==='ENOENT')return null;throw error;}
+ if(!run||!Number.isFinite(Date.parse(run.time))||!Object.values(W).includes(run.outcome))throw Error(W.failed);
+ return run;
+}
 export function healthWords(run,now=()=>new Date()) {
  return run?`${Math.max(0,Math.floor((now().getTime()-Date.parse(run.time))/1000))}s ${run.outcome}`:`${W.never} ${W.unknown}`;
 }
@@ -112,6 +119,7 @@ export async function makeMemory(options) {
    withProfileLock(dir,runGit,()=>{recoverProfile(dir,runGit,()=>{},{now});commitProfile(dir,runGit,'Keep private memory');if(fetched.ok&&!rebaseProfile(dir,branch,runGit).ok)throw Error(W.failed);},{waitMs:0});
   }catch(error) {health.outcome=error.message===PROFILE_WORDS.locked?W.busy:W.failed;keepLocal();return health;}
   const repoRoot=defaultMemoryRepo(options.repoRoot,{runGit:root=>runGit(root,['rev-parse','--git-common-dir'])}),units=await pendingUnits({...options,repoRoot});
+  if(!units.length) {health.outcome=W.complete;keepLocal();return health;}
   const reservation=dayReservation(gitdir,{now,dayCap:options.caps?.dayTokens??DAY_TOKEN_CAP});let settle=null;
   const result=await extractShaped({...options,unitSource:units,runModel:options.runModel,caps:{tokens:RUN_TOKEN_CAP,calls:RUN_CALL_CAP,...options.caps,unknownCharge:UNKNOWN_USAGE_CHARGE},beforeCall:()=>{
    if(now().getTime()-started+TIMEOUT_MS>MAX_RUN_MS)return false;
@@ -133,8 +141,8 @@ export async function makeMemory(options) {
    health.done=result.states.length;health.pending=units.length-result.states.length;
    writeMemoryFile(dir,repository,L.runs,'run',health,{now});commitProfile(dir,runGit,'Make project memory');sha=gitText(runGit,dir,['rev-parse','HEAD']);
   },{waitMs:MERGE_LOCK_WAIT_MS});}catch(error) {health.outcome=error.message===W.collision?W.collision:error.message===PROFILE_WORDS.locked?W.busy:W.mergeFailed;health.done=0;health.pending=units.length;}
-  if(sha)pushProfile(pointer,branch,sha,runGit);
-  keepLocal();return health;
+  const pushed=sha?pushProfile(pointer,branch,sha,runGit):null;
+  keepLocal();return {...health,...(pushed?{push:pushed}:{})};
  }catch {health.outcome=W.failed;keepLocal();return health;}
  finally{release();}
 }
@@ -146,7 +154,6 @@ export function startMemory({repo,lane},{env=process.env,spawn=spawnDefault,home
   const roots=gitText(runGit,repo,['rev-list','--max-parents=0','HEAD']).split(/\r?\n/u);const config=JSON.parse(fs.readFileSync(path.join(agentDir,'nana-pack.json'),'utf8'));
   const repository=roots.find(id=>config[OPT_IN_MEMBER]?.includes(id));if(repository)last=lastMemoryRun(resolved.pointer.dir,repository,{runGit});
  }}catch{}
- const cli=fileURLToPath(new URL('../bin/nana-memory.mjs',import.meta.url));
- const child=spawn(process.execPath,[cli,'make','--repo',repo,'--lane',lane],{detached:true,stdio:'ignore',windowsHide:true,cwd:home,env});
- child.on('error',()=>{});child.unref();return `${W.started}; last ${healthWords(last,now)}`;
+ if(!spawnMemory(['make','--repo',repo,'--lane',lane],{env,spawn,home}))return W.notStarted;
+ return `${W.started}; last ${healthWords(last,now)}`;
 }

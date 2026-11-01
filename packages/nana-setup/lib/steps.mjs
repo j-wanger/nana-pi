@@ -54,10 +54,11 @@ import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
 import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
 import { openCopyRecord } from "./copy-record.mjs";
+import { MEMORY_END_ENTRY } from './memory-end-config.mjs';
 
 export class SetupError extends Error {}
 
-export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"];
+export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", MEMORY_END_ENTRY.file];
 const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md and RULINGS_FILE, sourced from the pack (see ruleSource below;

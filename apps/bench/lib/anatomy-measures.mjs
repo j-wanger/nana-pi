@@ -24,7 +24,7 @@ function counts(rows) {
   return { function: label, units: found.length, unitShare: pct(found.length, total), chars: size, charShare: pct(size, chars) };
  });
 }
-function normalize(text, c) {
+export function normalize(text, c) {
  for (const step of NORMALIZATION) {
   if (step === "cwd" && c.cwd) text = text.split(c.cwd).join(NORMAL_TOKENS.cwd);
   if (step === "branch" && c.branch) text = text.split(c.branch).join(NORMAL_TOKENS.branch);

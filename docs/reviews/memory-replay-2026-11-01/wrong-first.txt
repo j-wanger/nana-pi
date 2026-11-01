@@ -1,0 +1,223 @@
+FAIL plan stratifies corrections without spend Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   [
+-     'claude-code:beta#u4+s4',
+-     'R'
+-   ],
+-   [
+-     'claude-code:beta#u5+s5',
+-     'R'
+-   ],
+-   [
+-     'claude-code:beta#u6+s6',
+-     'F'
+-   ],
+-   [
+-     'claude-code:beta#u8+s8',
+-     'F'
+-   ],
+-   [
+-     'claude-code:beta#u9+s9',
+-     'F'
+-   ]
+- ]
+
+FAIL context preserves past and replaces only memory slot The expression evaluated to a falsy value:
+
+  assert.ok(control.text.includes(C.REPLAY_PREAMBLE))
+
+FAIL bundle uses pre-cut candidates and one oracle record Expected values to be strictly equal:
+
+0 !== 2
+
+FAIL judge is isolated blind and fail-closed Expected values to be strictly equal:
+
+0 !== 7
+
+FAIL decision reports paired statistics attrition and confirmation cases planned 12 informative 10 favour bundle 9 favour control 1
+FAIL caps stop at case boundaries and expose incomplete spend Expected values to be strictly equal:
+
+0 !== 2
+
+FAIL screen selects repeats but run uses fresh draws Expected values to be strictly equal:
+
+0 !== NaN
+
+FAIL private commands and sealed Claude runners Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL seal: runners Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   undefined,
++   undefined
+-   'claude',
+-   'claude'
+  ]
+
+FAIL seal: replay model and effort Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   undefined,
++   undefined
+-   'claude-opus-5-5',
+-   'xhigh'
+  ]
+
+FAIL seal: judge model and effort Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   undefined,
++   undefined
+-   'claude-sonnet-5',
+-   'low'
+  ]
+
+FAIL seal: draws and screen rule Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   0,
++   undefined,
++   undefined
+-   5,
+-   5,
+-   1
+  ]
+
+FAIL seal: dollar caps Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   undefined,
++   undefined,
++   undefined
+-   1,
+-   0.1,
+-   150
+  ]
+
+FAIL seal: context and reply caps Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   undefined,
++   undefined,
++   undefined
+-   160000,
+-   2000,
+-   8000
+  ]
+
+FAIL seal: bundle budget Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 8000
+
+FAIL seal: slot markers and kept types Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   undefined,
++   undefined
+-   {
+-     hooks: [
+-       'nana-shared-memory.mjs',
+-       'nana-shared-memory'
+-     ],
+-     instruction: 'AutoMem'
+-   },
+-   [
+-     'user',
+-     'assistant',
+-     'text',
+-     'tool_use',
+-     'tool_result'
+-   ]
+  ]
+
+FAIL seal: statistic and blind bars Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   undefined,
++   undefined,
++   undefined,
++   undefined,
++   undefined,
++   undefined,
++   undefined,
++   undefined
+-   0.05,
+-   0.05,
+-   8,
+-   8,
+-   3,
+-   0.3,
+-   8,
+-   10
+  ]
+
+FAIL seal: prompt hashes Expected values to be strictly equal:
++ actual - expected
+
++ 'undefined'
+- 'string'
+
+FAIL seal: citation and capture Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   undefined,
++   undefined,
++   undefined
+-   8,
+-   900000,
+-   67108864
+  ]
+
+FAIL seal: output and fixed words Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   undefined,
++   undefined
+-   'memory-replay.jsonl',
+-   {
+-     ceiling: 'ceiling',
+-     changed: 'changed',
+-     cites: 'cites bundle',
+-     confirmatory: 'confirmatory',
+-     disagreement: 'judge disagreement',
+-     exploratory: 'exploratory',
+-     few: 'undecided: too few cases',
+-     fewer: 'bundle fewer repeats',
+-     incomplete: 'incomplete',
+-     invalid: 'invalid',
+-     judgeMiss: 'judge-miss',
+-     larger: 'larger by',
+-     late: 'late earlier instance',
+-     leaked: 'leaked',
+-     more: 'bundle more repeats',
+-     noContext: 'no recorded context',
+-     noDecision: 'no decision',
+-     oracle: 'oracle',
+-     pending: 'pending blind check',
+-     read: 'control would read memory',
+-     smaller: 'smaller by',
+-     stalls: 'stalls',
+-     unclear: 'unclear',
+-     unjudged: 'unjudged',
+-     unresolved: 'unresolved',
+-     unrun: 'unrun',
+-     weak: 'weak replay: control seldom repeats'
+-   }
+  ]

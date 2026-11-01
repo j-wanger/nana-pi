@@ -31,7 +31,7 @@ async function recover(f,folder,text) {
  f.transcript(pair('later'),'later');
  const later=await f.command(['make'],{runModel:runner(calls)});assert.equal(later.code,0,later.output);assert.match(later.output,/memory: complete; sent 1; done 1; pending 0/);
  await f.command(['make'],{runModel:runner(calls)});assert.deepEqual(calls.flat().map(u=>u.owner),['Synthetic claim done.','Synthetic claim later.']);
- const status=await f.command(['status']);assert.equal(status.code,0,status.output);assert.match(status.output,/pending 0; unparseable 1\n$/);
+ const status=await f.command(['status']);assert.equal(status.code,0,status.output);assert.match(status.output,/pending 0; unparseable 1; unpushed 0\n$/);
  return repository;
 }
 // req: R-3291

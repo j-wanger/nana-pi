@@ -1,0 +1,7 @@
+Wrong-code-first record: SessionEnd wiring/config absent. Exit 1.
+Identity-sanitized: absolute machine paths and repetitive Node stacks omitted.
+
+FAIL R-3353: SessionEnd install repair remove and check preserve foreign hooks
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+
+The later mutation record restores timeout-five-only recognition and inherited CI; this same named test fails both changes.

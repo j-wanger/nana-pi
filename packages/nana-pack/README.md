@@ -194,7 +194,7 @@ by owner-turn pointer, ignoring the paired seat id, and prints intersection over
 The meter's own rates include invalid candidates and are therefore an upper reading; only
 labels correct validity. Shared Claude lineage remains a limit. The seat's private owner
 check and four-run noise comparison are baseline steps, not automated delivery verdicts.
-Replay, in the next lane, judges the first delivery; this long-run field meter confirms it later.
+The paired replay below judges the first delivery; this long-run field meter confirms it later.
 
 Logged context reports total and per-part median, nearest-rank 90th percentile and maximum,
 split by role and launcher. Fewer than ten loads prints too few loads. OS-temp loads are test
@@ -204,6 +204,79 @@ Only logged parts can support a no-growth claim: planners and adversaries launch
 Agent tool are not logged, standing rules and AGENTS files are outside the log, and the seat
 line covers only the shared-memory index. Known limit: one machine and Claude Code transcripts
 only; pi sessions and cross-machine repeats are invisible. Recurring findings are a later lane.
+
+## Paired memory replay
+
+Runtime dependencies: Node 22.18+ and git. Only `screen` and `run` need an authenticated
+Claude CLI; `plan` and `decide` make no model calls. The adapter is `scripts/memory-replay.mjs`.
+Tests inject synthetic runners and spend nothing. Run these commands from the repository root:
+
+```bash
+npm run memory:replay -- plan --labels <private-labels> --candidates <private-shaped-candidates> --root <frozen-projects-snapshot> --seed <fixed-seed> --out <private-replay-root>
+npm run memory:replay -- screen --in <private-replay-root> --expect <case-set-hash>
+npm run memory:replay -- run --in <private-plan-folder> --expect <case-set-hash>
+npm run memory:replay -- decide --in <private-replay-root> --case-set <case-set-hash> --sheet <private-blind-folder>
+npm run memory:replay -- decide --in <private-replay-root> --case-set <case-set-hash> --blind-agree <agreement-count>
+```
+
+Planning also accepts `--repo <repository>` and `--project <key>`.
+Freeze transcripts before planning: the live Claude projects directory is refused, and the
+transcript list and sizes enter the case-set hash. The labels can use the outcome shape above
+or kind-only `{ evidence, kind }` rows; kind-only corrections mean valid first corrections.
+Lesson and none rows do not become replay cases. Duplicate labels refuse. Missing pointers,
+changed claims, invalid labels and sessions without recorded instructions print skip counts.
+Stratum R needs a same-behaviour instance whose instant precedes the replay session's first
+entry; prompted re-asked decisions enter R only. All other corrections enter F. Earlier
+instances after session start remain F and print as late. The primary statistic pools R and F.
+
+The replay point is the owner request before the corrected agent turn. Recorded instructions,
+SessionStart outputs after the last compaction boundary, the last compaction summary and
+main-chain messages through that point form the reconstruction. Thinking, images, sidechains and bookkeeping stay out. Tool results
+are capped; over budget, whole oldest history entries drop, keeping the replay point.
+All arms differ only in one slot, after standing text and before conversation. Control keeps
+the recorded AutoMem and shared-memory hook output, matched by command or recorded status
+label (`nana: shared memory index`). Treatment merges only candidates with
+resolved evidence and session starts before the cut, without events or saved records, in a
+private temporary store removed after use. Evidence instants, not write stamps, order the bundle.
+The oracle contains one earlier record in R; the deliberately leaking ceiling contains the
+case's own correction in F. Neither sensitivity arm enters the treatment verdict.
+
+Both replay and judge use sealed isolated Claude runners with no tools, MCP, settings sources
+or session persistence. Replay writes a JSON-wrapped whole turn, including `TOOL` lines; no
+results come back. One blind judge call sees one reply and the mistake description, never arm
+metadata or another reply. The original turn must reproduce under the same judge shape.
+There are five draws per arm. Unclear and failed draws drop; each arm needs at least three judged draws
+(or all draws in a deliberately shorter synthetic run). Treatment and sensitivity-arm stalls
+count against avoidance. Per-case differences in rates over judged draws feed an exact
+one-sided sign-flip test, with benefit and harm levels each 0.05 and at least eight informative
+cases. Rational differences scale to exact integer sums, including the sensitivity and session
+checks. The effect line is the mean paired rate difference. Wilson rates, R/F lines, a session-level
+clustering check, attrition and per-kind reproduction sit beside it. Failed draws print per arm
+beside unclear draws, including draws from excluded cases.
+The blind check needs eight agreements among ten replies drawn only from informative cases;
+without it the verdict is pending, and below it the verdict is withheld.
+
+The optional screen writes a new plan in the private root's `screen` folder and prints its
+new hash. Cases the cap never screened remain marked `unrun` in that plan. Point `run` at
+that folder with that hash; all its draws are fresh, and unrun cases make no calls. Screen draws
+never enter decisions. Runs exclusively create private folders beneath their plan's `runs`
+folder and write `memory-replay.jsonl`; the plan file is named plan.json. Output files use 0600 and
+folders 0700 on POSIX. Every writer refuses checkout outputs and refuses overwrites.
+Only counts, fixed diagnostics and hashes print. Keep every real input, reply, sheet, count,
+rate and verdict outside the public repository. A treatment quoting the case is marked leaked.
+
+Each replay call has a $1 cap, each judge call $0.10, and the run cap is $150. The run finishes
+a started case before stopping, marks remaining cases unrun and prints incomplete with the
+verdict. Missing or unpriced usage prints cost unknown and reserves the call cap when checking
+the boundary. Case order is seeded and interleaved by stratum. Fix the seed and seals before
+spending. `decide` reads every matching run; only the first per bundle-maker hash is confirmatory.
+Later runs are exploratory. After tuning on results, use fresh cases from after the tuning date.
+
+Limits: control cannot open historical memory files, so the bias favours the bundle; its read
+attempts print separately. Shared bundle phrases in both arms show unblinding risk. Case-level
+power overstates precision when cases share sessions. The real Claude system prompt, tool loop,
+recorded ultra-effort API level, pi sessions and the other machine are not reconstructed.
+A replay shows a bundle can prevent a repeat, not that it does in live work.
 
 ## Offline memory candidates
 
@@ -255,7 +328,7 @@ cross-run deduplication, automatic trigger, delivery or real-data scoring happen
 `node packages/nana-pack/bin/nana-memory.mjs` provides `enable`, `make` and `status`.
 The command delegates to `scripts/memory-run.mjs` for the existing model adapter.
 Runtime dependencies: Node, git, the initialized private profile clone, and the authenticated
-Claude CLI used by the model shaper. There is no new hook, install wiring or PATH shim.
+Claude CLI used by the model shaper. Nana-setup installs the Claude Code SessionEnd hook; there is no PATH shim.
 
 ```bash
 node packages/nana-pack/bin/nana-memory.mjs enable --repo <checkout>
@@ -275,6 +348,17 @@ release, even if its land record could not be kept. Its extra fixed line reports
 last run's age and outcome. The detached child has ignored stdio, a hidden Windows window
 and home-directory cwd. CI and every launcher role skip making. Library `runLand` calls
 start nothing unless their caller injects a starter.
+
+Claude Code's `packages/nana-setup/claude/hooks/nana-memory-end.mjs` starts the same run at every SessionEnd reason.
+It passes the transcript and existing input folder, falling back to `CLAUDE_PROJECT_DIR`.
+It reads stdin for at most 300 ms, spawns last, and exits zero without waiting or printing.
+The entry timeout is 1.5 seconds. Missing modules or invalid input start nothing.
+A slow Windows startup can still exceed that limit; the next run sweeps pending units.
+
+The make line reports `pushed` or `not pushed: <reason>` after a push attempt.
+Status and doctor's informational `memory making` note use this machine's local last-run file, not another machine's synced run.
+Both show `unpushed <n>` from local tracking refs. Successful URL pushes update that ref with compare-and-swap without overwriting a concurrent save.
+An empty run keeps only local health, with no store run file, commit or push.
 
 Making uses the unchanged model shaper, starting at `2026-10-31T18:16:00Z`, never a nightly
 backfill. It sweeps new transcript units for the main checkout and its standard worktree

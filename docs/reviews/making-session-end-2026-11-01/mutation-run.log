@@ -1,0 +1,41 @@
+seat-mutate: lane making-session-end, tip cdcd45fc61fe53de07e50a783c7a93f488aee355, table 0743e53622df4953620442f4c4e92903600f6de23b413b1094775708078bd680, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 24 pairs in 3 shards (8+8+8, round-robin, 4s apart), darwin, node v22.22.2, 2026-11-01T18:44:52.862Z
+[1/3] seat-mutate: lane making-session-end, shard 1/3, tip cdcd45fc61fe53de07e50a783c7a93f488aee355, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 8 pairs, darwin, node v22.22.2, 2026-11-01T18:44:53.920Z
+[1/3] BASELINE ok   packages/nana-setup/tests/memory-end-hook.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[1/3] BASELINE ok   packages/nana-pack/tests/memory-session-end.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[1/3] RESULT: 8/8 red (8 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/3] seat-mutate: lane making-session-end, shard 2/3, tip cdcd45fc61fe53de07e50a783c7a93f488aee355, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 8 pairs, darwin, node v22.22.2, 2026-11-01T18:44:57.916Z
+[2/3] BASELINE ok   packages/nana-setup/tests/memory-end-hook.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[2/3] BASELINE ok   packages/nana-setup/tests/memory-end-wiring.test.mjs (exit 0, 1 PASS, 0 FAIL, )
+[2/3] BASELINE ok   packages/nana-pack/tests/memory-session-end.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[2/3] RESULT: 8/8 red (8 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/3] seat-mutate: lane making-session-end, shard 3/3, tip cdcd45fc61fe53de07e50a783c7a93f488aee355, merge-base 81b78dfaab52d58fcbdd4cab273b60289a994b56, 8 pairs, darwin, node v22.22.2, 2026-11-01T18:45:02.232Z
+[3/3] BASELINE ok   packages/nana-setup/tests/memory-end-hook.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[3/3] BASELINE ok   packages/nana-setup/tests/memory-end-wiring.test.mjs (exit 0, 1 PASS, 0 FAIL, )
+[3/3] BASELINE ok   packages/nana-pack/tests/memory-session-end.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[3/3] RESULT: 8/8 red (8 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1-hidden drop hidden Windows spawn — 1/1 named: /^R-3350:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 1-cwd drop removed-folder fallback — 1/1 named: /^R-3350:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2-role guard only workers — 1/1 named: /^R-3351:/; 1 FAIL total (2 files changed, 2 insertions(+), 2 deletions(-))
+RED 2-empty-role treat empty role as unset — 1/1 named: /^R-3351:/; 1 FAIL total (2 files changed, 2 insertions(+), 2 deletions(-))
+RED 2-ci drop CI guard — 1/1 named: /^R-3351:/; 1 FAIL total (2 files changed, 2 insertions(+), 2 deletions(-))
+RED 2-transcript accept non-string transcript — 1/1 named: /^R-3351:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2-deadline read stdin without deadline — 1/1 named: /^R-3351:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2-exit wait for stdin after return — 1/1 named: /^R-3351:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3-import statically import a nana module — 1/1 named: /^R-3352:/; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 4-timeout retune timeout to one second — 1/1 named: /^R-3358:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4-repair recognize only timeout five — 1/1 named: /^R-3353:/; 1 FAIL total (1 file changed, 3 insertions(+), 3 deletions(-))
+RED 4-check-ci inherit CI during check — 1/1 named: /^R-3353:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5-cas update tracking ref without old value — 1/1 named: /^R-3354:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5-push-failure advance ref even when push failed — 1/1 named: /^R-3354:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5-ref-result report successful push as failed on refused ref update — 1/1 named: /^R-3354:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5-result drop push outcome from make line — 1/1 named: /^R-3354:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6-wait wait after spawning while descendants remain attached — 1/1 named: /^R-3355:/; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 7-local doctor reads newest run across machines — 1/1 named: /^R-3356:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7-note making error fails doctor — 1/1 named: /^R-3356:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8-empty commit an empty run — 1/1 named: /^R-3357:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED seal-deadline retune stdin deadline — 1/1 named: /^R-3359:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED seal-entry change status message — 1/1 named: /^R-3360:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED seal-push change push word — 1/1 named: /^R-3361:/; also (declared): /^R-3354:/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED seal-note change doctor label — 2/2 named: /^R-3362:/ | /^R-3356:/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 24/24 red (24 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 3 shards
+seat-mutate: merged output docs/reviews/making-session-end-2026-11-01/mutation-result.txt
