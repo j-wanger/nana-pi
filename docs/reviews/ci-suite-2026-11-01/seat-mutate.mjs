@@ -17,7 +17,7 @@ const titles = {
   3433: "R-3433: whole-run records carry the actual path filters, empty for an unfiltered run",
   3434: "R-3434: unreadable, absent, unfinished and unsuccessful CI refuse before any suite",
   3435: "R-3435: land readers distinguish CI, local and legacy suite times without changing old lines",
-  3436: "R-3436: the preamble pins the CI full-suite fallback and contains none of the replaced lines",
+  3436: "R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the replaced lines",
 };
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 const pair = (n, name, edits, row, test = T) => ({ n, name, edits, tests: [test], expectRed: [titles[row]] });
@@ -38,7 +38,7 @@ const pairs = [
   pair("7b", "allow cancelled CI to fall back or substitute", [one(LC, 'if (bad.length) {', 'if (bad.length && !bad.every((run) => run.conclusion === "cancelled")) {')], 3434),
   pair("8a", "record CI suite time as zero instead of null", [one(NL, 'suiteMs: lifecycle.suiteMs,', 'suiteMs: lifecycle.suite === "ci" ? 0 : lifecycle.suiteMs,')], 3430),
   pair("8b", "render a legacy end record differently", [one(LR, 'end.suite === "ci" ? "suite ci"', '(end.suite === undefined || end.suite === "ci") ? "suite ci"')], 3435),
-  pair("9", "retain the obsolete full-suite-before-last instruction", [one(P, '- Each commit follows a green run of the tests your change touches.', '- Each commit follows a green run of the tests your change touches.\n- Each commit follows a green run of the tests your change touches; your last commit follows a green full suite.')], 3436, W),
+  pair("9", "restore the reversed CI full-suite default", [one(P, "Run the repository's full suite unless its `AGENTS.md` says CI covers it", "Run the repository's full suite only where its `AGENTS.md` says CI does not cover it")], 3436, W),
   pair("runner", "omit the runner filter field", [one("scripts/test.mjs", '\n\t\t\tfilters,', '')], 3433, R),
   { n: "seals", name: "retune every new declared contract value", edits: [
     one(CFG, 'CI_RUN_LIST_RETRIES = 1;', 'CI_RUN_LIST_RETRIES = 2;'),

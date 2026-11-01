@@ -28,7 +28,7 @@ Tests
 
 Before you report
 - Each commit follows a green run of the tests your change touches.
-- Run the repository's full suite only where its `AGENTS.md` says CI does not cover it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.
+- Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.
 - Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.
 - Send long script output to a committed file and paste only the lines your brief asks for.
 - Where `AGENTS.md` says CI covers the suite, push your last commit and stop: do not wait for or read its CI run, and commit nothing after the push.

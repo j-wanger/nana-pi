@@ -113,7 +113,7 @@ await test("R-3104: activity counts recent first-parent changes and unmerged fea
     await fs.writeFile(path.join(root, "part.txt"), "branch\n");
     commit(root, "branch change", "2026-10-29T00:00:00Z");
     run(root, ["update-ref", "refs/remotes/origin/feat/open", "HEAD"]);
-    const source = (await buildAudit({ root: ROOT, mappedModules: [] })).source;
+    const source = { contract: "nana-components", version: 1, project: "nana-pi", components: [{ id: "fixture", name: "Fixture", metaphor: "A fixed activity fixture", kind: "workflow", parts: ["part.txt"], features: [], status: "sound", gap: null, ask: null, evidence: ["part.txt"], auditedAt: run(root, ["rev-parse", "HEAD"]), anchors: [] }] };
     const counts = await buildAudit({ root, source, parts: ["part.txt"], windowDays: ACTIVITY_WINDOW_DAYS, mappedModules: [], trackedPaths: ["part.txt"] });
     assert.equal(counts.activity.recentCommits, 2);
     assert.equal(counts.activity.inFlight, 1);

@@ -412,7 +412,7 @@ const RULE_LINE = {
 	noSuiteTestRunsSeatScript: "No suite test runs, imports or copies a seat script.",
 	noUnnamedTestDeleted: "Never delete a test your brief does not name.",
 	touchedTestsBeforeCommit: "Each commit follows a green run of the tests your change touches.",
-	fullSuiteFallback: "Run the repository's full suite only where its `AGENTS.md` says CI does not cover it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.",
+	fullSuiteFallback: "Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.",
 	seatChecksBeforeDone: "Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.",
 	longOutputToFile: "Send long script output to a committed file and paste only the lines your brief asks for.",
 	readCiOnce: "Where `AGENTS.md` says CI covers the suite, push your last commit and stop: do not wait for or read its CI run, and commit nothing after the push.",
@@ -452,8 +452,9 @@ check("lane preamble carries: push and stop without reading CI", preambleOnce(RU
 // req: R-3436
 check("lane preamble carries: pushed tip or local suite evidence in the report", preambleOnce(RULE_LINE.suiteCheckCountInReport), RULE_LINE.suiteCheckCountInReport);
 // req: R-3436
-check("R-3436: the preamble pins the CI full-suite fallback and contains none of the replaced lines",
+check("R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the replaced lines",
 	preambleOnce(RULE_LINE.fullSuiteFallback) && preambleOnce(RULE_LINE.mustMeetTests)
+		&& !preambleText.includes("Run the repository's full suite only where its `AGENTS.md` says CI does not cover it")
 		&& !preambleText.includes("Fix the class, not the named example")
 		&& !preambleText.includes("your last commit follows a green full suite")
 		&& !preambleText.includes("When your brief asks for CI, read the finished run once and report")

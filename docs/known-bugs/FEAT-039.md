@@ -131,13 +131,11 @@
 - Component audit (component-audit, final review): "sound" means no planned or violated row and no anchor, not that someone checked the component; 18 of 23 are sound while their features hold many known-bug lines.
 - Component audit (component-audit, final review): absent components have no parts, so the stale count counts every commit and names them stale after 20 commits anywhere.
 - Component audit (component-audit, final review): the library component cites only the dated measurement, not the FEAT-003 known-bug line the plan named.
-- Component audit (component-audit, CI): the R-3104 activity test exceeded its 20 s case limit once on the Windows runner; a rerun passed.
 - Visual check (visual-check, seat check): the `--control` run has no phone frame among the references, so the 380 px spec line is always unjudged there.
 - Visual check (visual-check, final review): R-3143's test does not check the usage line, nor `--reference` given with `--before`; the code handles both.
 - Visual check (visual-check, final review): the R-3145 demo fixture is a made-up two-line answer, not the adversary's recorded hive answer the plan named.
 - Visual check (visual-check, final review): the watchdog writes the child's error stream into reader.md, so a Claude Code warning can add a stray line.
 - Visual check (hive-render, seat check): a `--hive` first-look capture fell back to the pixel view at 380 px in 1 of 3 runs on build 4; the ready check does not refuse a pixel-renderer capture, so the judge judged the fallback.
-- Component audit (hive-render build 4, CI): the R-3104 Windows timeout recurred on attempt 1; the unchanged retry passed, so it is now twice in one day.
 - Hive page (hive-render, seat check): at 1280 px the "CABINET" label is clipped by the rail, the card's lower edge meets the "RELEASE ROUTE" label, and rail items 14 to 16 sit over a busy blurred scene.
 - Hive page (hive-render, final review): the Pages hive steps are fail-closed by design; if the audit fails on main, the deploy stops and the product page stays at its last version.
 - Hive page (hive-render, final review): the hive identity scan covers only components.json, not the copied page files.
@@ -155,3 +153,6 @@
 - City page (city-loop, seat check): a visit draws the selection box from the place's full bounds, so its thin wire lines run far above the building and behind the card.
 - City page (city-loop build 2): the gesture checker run on its own can sample before the chapter is ready; the builder waited for each chapter in a wrapper instead of fixing the checker.
 - Land report (ci-suite, plan residual): a land that uses CI as the suite does not refresh the land report; fallback lands and hand runs do.
+- Component audit (audit-test-speed, build 1): three other cases audit the real repository and run 5 to 12 seconds locally (R-3101, R-3103, R-3106 at 12.3 s), so they grow with the repository toward the 20 s limit.
+- City page (city-loop, final review): two landing lines ("Each place reads records before it acts and leaves a record behind", "Records carry the next plan") claim more than the drawn roads, and the retired-claim check does not cover them.
+- City page (city-loop, final review): parts of the R-3173 ribbon test pin exact material colours and offset constants, restating the implementation.
