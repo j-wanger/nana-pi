@@ -2,7 +2,7 @@
 
 Read every feature this names before you judge the change.
 
-tree movement 6c4b536..c0ec911: 13 rows in 1 features, 1 artifact change(s)
+tree movement 6c4b536..fdd7b60: 13 rows in 1 features, 1 artifact change(s)
 FEAT-040 · Make and keep memory
   R-3350 new (implemented)
   R-3351 new (implemented)
