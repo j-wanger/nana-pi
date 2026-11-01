@@ -4,7 +4,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 
 - **CAP-01 · Maintain direction and useful context**
   Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
-  Parent: — · Rows: 401 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863, R-2970–R-2977, R-2979, R-2990–R-2999, R-3188–R-3219, R-3230–R-3269, R-3290–R-3336, R-3340–R-3342, R-3350–R-3362
+  Parent: — · Rows: 421 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863, R-2970–R-2977, R-2979, R-2990–R-2999, R-3188–R-3219, R-3230–R-3269, R-3290–R-3336, R-3340–R-3342, R-3350–R-3362, R-3370–R-3389
   Kind: product
   Deliverables: R-001, R-108, R-873, R-201, R-217, R-749
   - **FEAT-001 · Keep goals and priorities in view**
@@ -75,9 +75,12 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Count, per window of owner interactions and pooled, owner corrections and decisions given again, review findings that recur and each role's logged context size, so memory changes are judged against a measured baseline.
     Status: active
     Also applies: —
-    Parent: CAP-01 · Rows: 27 · IDs: R-3310–R-3336
-    Artifacts: A-095
+    Parent: CAP-01 · Rows: 47 · IDs: R-3310–R-3336, R-3370–R-3389
+    Artifacts: A-095, A-097
     Reads: A-088, A-089, A-091
+    - **SUB-025 · Replay past corrections with and without memory**
+      Purpose: Replay past owner corrections from their recorded context with and without a candidate memory bundle, and judge blind whether the agent repeats the mistake, so a delivery is decided without waiting for field volume.
+      Parent: FEAT-043 · Rows: 20 · IDs: R-3370–R-3389
   - **FEAT-005 · Communicate decisions clearly**
     Purpose: Deliver the preferred writing guidance and check report readability and structure.
     Status: active

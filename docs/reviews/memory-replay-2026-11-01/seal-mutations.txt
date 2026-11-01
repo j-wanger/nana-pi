@@ -1,0 +1,117 @@
+FAIL seal: runners Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'pi',
+    'claude',
+-   'claude'
+  ]
+
+FAIL seal: replay model and effort Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'claude-opus-0',
+-   'claude-opus-5-5',
+    'xhigh'
+  ]
+
+FAIL seal: judge model and effort Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'claude-sonnet-0',
+-   'claude-sonnet-5',
+    'low'
+  ]
+
+FAIL seal: draws and screen rule Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   4,
+    5,
+-   5,
+    1
+  ]
+
+FAIL seal: dollar caps Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   2,
+-   1,
+    0.1,
+    150
+  ]
+
+FAIL seal: context and reply caps Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   159999,
+-   160000,
+    2000,
+    8000
+  ]
+
+FAIL seal: bundle budget Expected values to be strictly equal:
+
+7999 !== 8000
+
+FAIL seal: slot markers and kept types Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  [
+    {
+      hooks: [
+        'nana-shared-memory.mjs',
+        'nana-shared-memory'
+...
+    ],
++   'empty',
+-   'historical',
+    true
+  ]
+
+FAIL seal: statistic and blind bars Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   0.04,
+    0.05,
+-   0.05,
+    8,
+    8,
+    3,
+    0.3,
+    8,
+
+FAIL seal: prompt hashes Expected values to be strictly equal:
++ actual - expected
+
++ 'c6e88a0b4c6147466e297309e2b91c3c045449ffe083ea4ede61dd212b95813a'
+- '7893c6547fd75757df56a1d8a92345e0f36445ff59c248d076cb5840b39c7e2c'
+
+FAIL seal: citation and capture Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   9,
+-   8,
+    900000,
+    67108864
+  ]
+
+FAIL seal: output and fixed words Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'wrong.jsonl',
+-   'memory-replay.jsonl',
+    'plan.json',
+    'screen.jsonl',
+    'blind.jsonl',
+    'runs',
+    'screen',
