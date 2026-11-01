@@ -93,6 +93,7 @@ await check('R-3293: only enabled post-start main sources use a stable root key'
 await check('R-3294: two machines and seat saves converge without machine files',()=>using(async f=>{
  await enabled(f);f.transcript(pair('first'));let saved;
  await f.command(['make'],{runModel:async input=>{saved=f.profile(['save','--kind','correction','--claim','Seat while model waits','--quote','Synthetic seat words']);assert.equal(saved.code,0,saved.output);return runner()(input);}});
+ assert.equal(saved?.code,0,'the model callback must actually run the concurrent seat save');
  const b=f.clone('machine-b');f.git(b.dir,'fetch','origin');f.git(b.dir,'checkout','-B','main','origin/main');
  fs.copyFileSync(path.join(f.a.agent,'nana-pack.json'),path.join(b.agent,'nana-pack.json'));const config=JSON.parse(fs.readFileSync(path.join(b.agent,'nana-pack.json')));config.ownerProfile.dir=b.dir;fs.writeFileSync(path.join(b.agent,'nana-pack.json'),JSON.stringify(config));
  const offlineGit=(cwd,args)=>args[0]==='push'?{status:1,stderr:'synthetic offline'}:f.runGit(cwd,args);
@@ -111,7 +112,7 @@ await check('R-3295: one live normalized claim prefers the seat in either order'
  await enabled(f);const save=claim=>f.profile(['save','--kind','correction','--claim',claim,'--quote','Synthetic owner quote']);
  assert.equal(save('Prefer Calm Colors').code,0);f.transcript(pair('saved-first',' prefer  calm colors '));await f.command(['make']);
  assert.equal(f.states().filter(r=>r.claim.toLowerCase().includes('calm')).length,1);
- f.transcript(pair('extracted-first','Keep synthetic boundaries'),'b');await f.command(['make']);assert.equal(save('KEEP synthetic boundaries').code,0);
+ f.transcript(pair('extracted-first','Keep synthetic boundaries'),'b');await f.command(['make']);assert.equal(f.states().filter(r=>r.claim==='Keep synthetic boundaries'&&r.source==='extracted').length,1);assert.equal(save('KEEP synthetic boundaries').code,0);
  let matching=f.states().filter(r=>r.claim.toLowerCase().includes('boundaries'));assert.equal(matching.length,1);assert.equal(matching[0].source,'saved');
  const file=f.transcript(pair('retry','Only one retry record'),'retry');await f.command(['make','--session',file],{runModel:async()=>({ok:false})});await f.command(['make','--session',file]);await f.command(['make','--session',file]);matching=f.states().filter(r=>r.claim==='Only one retry record');assert.equal(matching.length,1);
 }));

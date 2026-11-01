@@ -31,7 +31,7 @@ export function memoryFixture() {
  const profile=(args,over={})=>{let output='';const code=runProfile(args,{...deps,log:s=>output+=s+'\n',error:s=>output+=s+'\n',...over});return {code,output};};
  const initialized=profile(['init','--dir',a.dir,'--save','--unverified-remote']);if(initialized.code) throw Error(initialized.output);
  const command=async(args,over={})=>{let output='';const code=await runMemory(args,{...deps,stdout:s=>output+=s,stderr:s=>output+=s,...over});return {code,output};};
- const transcript=(entries,name='a',repo=f.main,{eol='\n',final=true}={})=>{const dir=path.join(projectsRoot,projectKey(repo));fs.mkdirSync(dir,{recursive:true});const file=path.join(dir,`${name}.jsonl`);fs.writeFileSync(file,entries.map(e=>JSON.stringify(e)+' \t').join(eol)+(final?eol:''));return file;};
+ const transcript=(entries,name='a',repo=f.main,{eol='\n',final=true}={})=>{const dir=path.join(projectsRoot,projectKey(fs.realpathSync.native(repo)));fs.mkdirSync(dir,{recursive:true});const file=path.join(dir,`${name}.jsonl`);fs.writeFileSync(file,entries.map(e=>JSON.stringify(e)+' \t').join(eol)+(final?eol:''));return file;};
  const review=(folder,title='Keep synthetic review evidence',repo=f.main)=>{const dir=path.join(repo,'docs','reviews',folder);fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'r1.md'),`VERDICT: SEND-BACK\r\n## MUST — ${title} \t`);return dir;};
  return {...f,a,deps,runGit,profile,command,transcript,review,states:()=>readMemoryStore(a.dir).filter(r=>r.live)};
 }
