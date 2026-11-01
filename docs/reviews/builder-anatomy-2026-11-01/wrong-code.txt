@@ -1,0 +1,10 @@
+FAIL R-3270: pushed parts and recorded attempts preserve committed context
+FAIL R-3271: configured labels and fence-aware spans tile exact input
+FAIL R-3272: counts shares oversize duplicates sizes and zero supply
+FAIL R-3273: all writers refuse unsafe output and all printers keep text private
+FAIL R-3274: assembly uses spans and preserves whole cut and staged text
+FAIL R-3275: wrapped and dedicated pulls count exact calls chars and functions
+FAIL R-3276: blinded seeded sample and three-pair agreement reject unequal ids
+FAIL R-3277: one complete count row per build sums attempt usage
+FAIL R-3278: seal oversize threshold is 3000 UTF-16 chars
+anatomy: 0/9 checks passed

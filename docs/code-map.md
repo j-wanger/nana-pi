@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 530 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 538 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -37,6 +37,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — `apps/bench/test/aggregate.test.mjs`
 - **callees** — `apps/bench/lib/usage.mjs`
 
+### `apps/bench/anatomy.mjs`
+
+- **purpose** — Expose the zero-spend builder anatomy CLI.
+- **inputs** — argv: segment --repo --sessions --out; report --in; sample --in --seed --n --out; agree --in --a --b; assemble --in --context --drop --stage --out.
+- **outputs** — Counts-only JSON and private files through runAnatomy.
+- **effects** — disk, process (read-only git)
+- **errors** — Exit 1 on unsafe output, invalid arguments or failed reads/writes.
+- **callers** — —
+- **callees** — `apps/bench/lib/anatomy.mjs`
+
 ### `apps/bench/catch-ledger.mjs`
 
 - **purpose** — CLI for the retroactive catch ledger — extract reviewer findings, label and match them with judge models, then build the kappa table and the pre-registered claims.
@@ -62,6 +72,66 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — throws Error when the source auth.json is missing or the bench auth.json is not the expected symlink
 - **callers** — `apps/bench/lib/plan.mjs`, `apps/bench/run.mjs`, `apps/bench/test/agentdir.test.mjs`
 - **callees** — —
+
+### `apps/bench/lib/anatomy-config.mjs`
+
+- **purpose** — Define builder anatomy's descriptive vocabulary and policy with provenance before corpus labels.
+- **inputs** — none
+- **outputs** — Named segmentation, labelling, normalization, sampling and reporting choices.
+- **effects** — none
+- **errors** — none
+- **callers** — `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callees** — —
+
+### `apps/bench/lib/anatomy-measures.mjs`
+
+- **purpose** — Measure segmented builder contexts and transform their spans for blinded labels and replay.
+- **inputs** — Private contexts and filled id/label sheets; explicit sampling and assembly options.
+- **outputs** — Counts-only reports and agreement, blind samples, or assembled private text.
+- **effects** — none
+- **errors** — Invalid labels, duplicate ids, unknown ids and differing sheet id sets throw fixed diagnostics.
+- **callers** — `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/catch-stats.mjs`
+
+### `apps/bench/lib/anatomy-pulls.mjs`
+
+- **purpose** — Count builder-initiated reads by configured target class and function without exporting targets.
+- **inputs** — Pi message entries, cwd and readBrief's public precedent paths.
+- **outputs** — Read rows with class, function and result chars, including unclassified bash.
+- **effects** — none
+- **errors** — Missing or errored results contribute zero chars.
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
+
+### `apps/bench/lib/anatomy-sessions.mjs`
+
+- **purpose** — Extract ordered pushed context and pulls from pi builder sessions grouped through build records.
+- **inputs** — Explicit sessions and repository roots, committed brief history and clone-shared ledgers.
+- **outputs** — Private segmented contexts, counted exclusions, skip reasons and extraction denominators.
+- **effects** — disk (explicit roots), process (read-only bounded git queries)
+- **errors** — Filesystem or git discovery failures propagate to the counts-only CLI boundary.
+- **callers** — `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/pi-usage.mjs`
+
+### `apps/bench/lib/anatomy-spans.mjs`
+
+- **purpose** — Tile pushed parts with lossless Markdown spans and deterministic function labels.
+- **inputs** — Part text, part name and a stable private id prefix.
+- **outputs** — Ordered contiguous unit/glue spans with offsets, heading ancestry and rule tiers.
+- **effects** — none
+- **errors** — none; unrecognized prose receives a fixed unsorted reason.
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`
+
+### `apps/bench/lib/anatomy.mjs`
+
+- **purpose** — Run the five hand-operated builder anatomy subcommands with private writers and counts-only printers.
+- **inputs** — Explicit argv roots and injected stdout/stderr callbacks.
+- **outputs** — Private contexts, blind sheets or replay parts; counts-only JSON on stdout.
+- **effects** — disk (explicit private folders), process (extractor's read-only git queries)
+- **errors** — Returns 1 with fixed diagnostics on invalid inputs, unsafe output or malformed data.
+- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
 
 ### `apps/bench/lib/catch-extract.mjs`
 
@@ -91,7 +161,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports cohensKappa/seededSample/canonSegments/samePath/sameBase/stageHints/matchGraph/components/buildLedger/componentSizes/table/claims/matchConfidence; returns plain objects and markdown strings
 - **effects** — none
 - **errors** — throws Error when kappa is given empty or unequal-length label vectors
-- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/test/catch-ledger.test.mjs`
+- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`
 - **callees** — —
 
 ### `apps/bench/lib/checkers.mjs`
@@ -197,6 +267,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `apps/bench/aggregate.mjs`, `apps/bench/lib/usage.mjs`
+
+### `apps/bench/test/anatomy.test.mjs`
+
+- **purpose** — Pin the nine builder anatomy contracts on synthetic private OS-temp fixtures.
+- **inputs** — Anatomy modules, synthetic pi entries and temporary git history.
+- **outputs** — Nine awaited bounded PASS/FAIL cases and counts-only synthetic CLI evidence.
+- **effects** — disk (OS-temp fixtures), process (bounded git commands)
+- **errors** — Assertion failures set a nonzero exit; no private fixture text is printed.
+- **callers** — —
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/pi-usage.mjs`
 
 ### `apps/bench/test/argv.test.mjs`
 
@@ -316,7 +396,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`, `apps/bench/test/usage.test.mjs`
+- **callers** — `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`, `apps/bench/test/usage.test.mjs`
 - **callees** — —
 
 ### `apps/bench/test/usage.test.mjs`
@@ -1878,7 +1958,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Parsed entries, path judgments, or the worker-compatible refusal/launch line and known-bug path.
 - **effects** — disk (the launch check reads the brief and regular known-bug file metadata)
 - **errors** — Read and git failures become fail-closed result objects; pure helpers represent malformed entries as data.
-- **callers** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/planner-prompt.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `scripts/component-audit.mjs`, `scripts/deliverables.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/planner-prompt.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `scripts/component-audit.mjs`, `scripts/deliverables.mjs`
 - **callees** — `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`
 
 ### `packages/nana-pack/lib/build-records-config.mjs`
@@ -1898,7 +1978,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — End records, best-effort append results, ledger reads, session usage, paired build views, and shared report lines.
 - **effects** — disk (record append and bounded ledger/session reads)
 - **errors** — Append operations return named failures; bounded ledger reads throw ERR_TOO_LARGE or filesystem errors.
-- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/pi-usage.mjs`, `packages/nana-pack/lib/record-ledger.mjs`
 
 ### `packages/nana-pack/lib/ci-records.mjs`
@@ -1928,7 +2008,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Entries, text, dated days, sorted transcript paths and private folders.
 - **effects** — disk (reads transcripts and creates private folders)
 - **errors** — Filesystem errors propagate; torn JSON lines are skipped; unsafe output folders are refused.
-- **callers** — `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/lib/writing-trial-extractor.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/lib/writing-trial-extractor.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/config.ts`
@@ -2160,7 +2240,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Ledger paths and append/read results, CI waits, paired attempt views, and shared attempt, lane, total, and closing lines.
 - **effects** — disk (record append and bounded ledger reads)
 - **errors** — Appends return named failures; bounded reads throw ERR_TOO_LARGE or filesystem errors.
-- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/nana-land.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/nana-land.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/record-ledger.mjs`
 
 ### `packages/nana-pack/lib/lane-class-config.mjs`
@@ -2333,7 +2413,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — emptyUsage, addUsage, totalTokens, costTotal, and the numeric/cost helpers used by bench parsing.
 - **effects** — none
 - **errors** — none; absent and non-finite fields contribute zero.
-- **callers** — `apps/bench/lib/usage.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/usage.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/pipe-guard.mjs`

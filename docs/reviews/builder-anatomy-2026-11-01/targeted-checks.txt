@@ -1,0 +1,8 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-pack/tests/test-runner.test.mjs
+
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs  98 pass  2.6s
+PASS  packages/nana-pack/tests/test-runner.test.mjs        52 pass  30.0s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 150 pass, 0 fail, 0 skip · 32.9s

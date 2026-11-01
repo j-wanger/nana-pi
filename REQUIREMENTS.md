@@ -3119,7 +3119,9 @@ Read by: A-086 · code: scripts/component-audit.mjs, scripts/hive-page.mjs
 Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
 Outcome: A developer can judge whether an agent, prompt or workflow change improves relevant outcomes at an understood cost.
 Kind: product
-Deliverables: R-509, R-532, R-507, R-535, R-536, R-694
+Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270
+Made by: R-3270 · manual: the seat runs node apps/bench/anatomy.mjs segment with a private output folder outside git · A-092
+Read by: R-3270 · code: apps/bench/anatomy.mjs
 Made by: R-509 · manual: someone starts a paid study, or a free dry run, with node apps/bench/run.mjs by hand · A-039
 Read by: R-509 · code: apps/bench/lib/plan.mjs, apps/bench/aggregate.mjs
 Parked: R-509 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
@@ -3290,6 +3292,24 @@ Read by: A-078 · person: the owner decides from it through RESULTS.md; R-538 ke
 | R-540 | pi's default tool profile shall stand until a failure-capable task set exists, because the measured study hit a correctness ceiling and every verdict in it was a cost verdict. | untested | — |
 | R-577 | The web-access extension shall stay uninstalled until a failure-capable task set exists, because the measured study hit a correctness ceiling and every verdict in it was a cost verdict. | untested | split from R-540 2026-10-04 (EARS form batch C): no recorded red mutation per named condition; 6b worklist |
 | R-699 | The desk shall write a usage line to its stdout only when a browser loads the desk page or an app page, opens a historical transcript, or sends a prompt to a live session, the line carrying only the time, the event name, the surface and the action. | implemented | `apps/desk/test/usage-line.test.mjs::usage triggers are exactly desk open/view/prompt and app open/prompt`, `apps/desk/test/usage-line.test.mjs::each usage record carries exactly the four permitted keys`, `apps/desk/test/usage-line.test.mjs::usage timestamps parse and fall within the request window`, `apps/desk/test/usage-line.test.mjs::usage records expose no request, prompt, cwd or session markers`, `apps/desk/test/usage-line.test.mjs::usage lines are written to stdout only`, `apps/desk/test/usage-line.test.mjs::SSE attach, entries, data, RPC and rejected requests add no usage line` |
+
+## FEAT-042 · Measure what a builder's context is for
+Purpose: Split real builder contexts into units labelled by function, report their cost and builder fetches, and keep spans for later cut or staged replay.
+Status: active
+Artifact: A-092 · segmented builder contexts · user-home store: ~/<private --out folder>/contexts.jsonl · manual: the seat runs node apps/bench/anatomy.mjs segment outside any git checkout; synthetic runs use OS temp
+Read by: A-092 · code: apps/bench/anatomy.mjs
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3270 | WHEN segment reads pi builders, it shall group recorded attempts by build, recover committed briefs, preserve ordered pushed parts and count exclusions and skips with reasons. | implemented | `apps/bench/test/anatomy.test.mjs::R-3270: pushed parts and recorded attempts preserve committed context` |
+| R-3271 | WHEN segment labels parts, it shall tile each part with contiguous unit and glue spans using fence-aware paragraph, list-item and table-row boundaries and deterministic configured rule tiers. | implemented | `apps/bench/test/anatomy.test.mjs::R-3271: configured labels and fence-aware spans tile exact input` |
+| R-3272 | WHEN report reads segmented contexts, it shall describe units and chars with shares overall and per part, oversize rows, part size distributions, normalized duplicates and zero supply by build number. | implemented | `apps/bench/test/anatomy.test.mjs::R-3272: counts shares oversize duplicates sizes and zero supply` |
+| R-3273 | Each subcommand shall print counts without private unit text and refuse writer destinations inside git or at final-component symlinks before writing anything. | implemented | `apps/bench/test/anatomy.test.mjs::R-3273: all writers refuse unsafe output and all printers keep text private` |
+| R-3274 | WHEN assemble reads stored spans, it shall reconstruct parts exactly or drop labelled units and orphan headings or replace staged runs with pointers and preserve their ordered units privately. | implemented | `apps/bench/test/anatomy.test.mjs::R-3274: assembly uses spans and preserves whole cut and staged text` |
+| R-3275 | WHEN segment reads tool calls, it shall count dedicated and wrapped shell reads by configured target class and function, result chars and unclassified bash calls. | implemented | `apps/bench/test/anatomy.test.mjs::R-3275: wrapped and dedicated pulls count exact calls chars and functions` |
+| R-3276 | WHEN sample or agree runs, it shall draw deterministic blinded stratified sheets and measure three-pair kappa, char agreement, per-function kappa, consensus and confusion counts or refuse differing ids. | implemented | `apps/bench/test/anatomy.test.mjs::R-3276: blinded seeded sample and three-pair agreement reject unequal ids` |
+| R-3277 | WHEN report runs, it shall emit one row per build with lane, brief build number, model, final verdict, function counts, pulls, canonical usage tokens, wall minutes and land status. | implemented | `apps/bench/test/anatomy.test.mjs::R-3277: one complete count row per build sums attempt usage` |
+| R-3278 | The oversize-unit threshold shall be 3000 UTF-16 code units. | implemented | `apps/bench/test/anatomy.test.mjs::R-3278: seal oversize threshold is 3000 UTF-16 chars` |
 
 # Open questions and deliberate omissions
 

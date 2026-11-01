@@ -435,6 +435,50 @@ node apps/bench/lib/fixture.mjs hash  <study>/fixture
 Not a tarball: extracting one needs an external `tar` binary and its hash changes with mtimes on
 every rebuild, while `fs.cp` is built in and byte-identical on darwin and win32.
 
+## Builder context anatomy (descriptive, zero spend)
+
+`anatomy.mjs` splits pi builder contexts by function, not file. It never starts a model or changes a live build.
+It needs only Node and git; the paid bench's pi dependency is not needed for these five subcommands.
+
+```bash
+node apps/bench/anatomy.mjs segment --sessions <sessions-root> --repo <repo-root> --out <private-folder>
+node apps/bench/anatomy.mjs report --in <private-folder>
+node apps/bench/anatomy.mjs sample --in <private-folder> --seed <printed-seed> --out <private-sheet-folder>
+node apps/bench/anatomy.mjs agree --in <private-folder> --a <filled-sheet-a> --b <filled-sheet-b>
+node apps/bench/anatomy.mjs assemble --in <private-folder> --context <build-id> --out <private-replay-folder>
+node apps/bench/test/anatomy.test.mjs
+```
+
+All writers require an empty folder outside every git checkout. They reject a final-component symlink;
+OS-temp ancestor symlinks are allowed. Files hold private text and use exclusive creation and owner-only POSIX modes.
+No subcommand prints unit text, headings, targets or duplicate text. Keep the contexts, sheets and replay files outside git.
+The synthetic test runs all five subcommands without reading real sessions.
+
+The private segmented store is `contexts.jsonl` (A-092); `report`, `sample` and `assemble` read it.
+It keeps ordered parts, original text, contiguous unit/glue spans, brief blob/start tip, exclusions, pulls and build metadata.
+Characters mean UTF-16 code units. System sections retain stored order; attempts share one build via the end record's sessions.
+Recorded briefs use the start tip; older briefs search committed history across all review folders.
+Claude Code builders remain outside this slice because their transcripts omit the system message.
+
+Reports are counts-only JSON: units and chars with shares overall/per part, glue and unsorted counts,
+separate oversize rows, part max/p90 sizes, supply gaps by build number, opaque duplicate ids, pushed/pulled function totals,
+and one row per build. Oversize units are outside function shares and zero-supply calculations.
+A shell result's chars divide equally across its counted segments, with any integer remainder on the last segment;
+this keeps pipe output from being counted twice. Segment-level attribution is approximate.
+Reworded repeats and interpreter-mediated reads remain residuals; interpreter commands enter `unclassified-bash`.
+
+The blind `sheet.jsonl` has only `id` and `text`. Labellers add a `label` from the definitions in
+`lib/anatomy-config.mjs` (or `unsorted`). `sample` accepts `--n`; function/tier minima may exceed that request.
+`agree` prints all three rater pairs, char-weighted agreement, per-function kappa above the configured count,
+confusions and the count of units where both labellers agree. It also compares rules against that consensus.
+Definitions and rules were written before corpus labelling; the seat measures reliability before interpreting shares.
+These results describe supply, not causal effects or slice-2 target choices.
+
+Assembly writes numbered part files plus a parts.json manifest. Omit `--context` only for a store with one build.
+Use `--drop <function>` to remove units and orphan headings, or `--stage <function>` to replace runs with a fixed pointer
+and put the ordered units in staged.txt. These options are mutually exclusive. Separators stay glue.
+Assembly uses spans, never the audit copy of the raw part. A later replay must pass these private files from outside its checkout.
+
 ## Layout
 
 ```
@@ -449,12 +493,19 @@ lib/pi-exports.mjs  resolve the installed pi; import its PUBLIC Usage/calculateC
 lib/eval-module.mjs  the trusted evaluator: nonce over fd 4, HMAC-signed verdict over fd 3
 lib/agentdir.mjs    the prepared, pinned pi config dir and its credential handling
 lib/nested.mjs      nested-LLM-spend accounting: scope, dedupe, completion, unknown
+anatomy.mjs         builder anatomy CLI: segment, report, sample, agree, assemble (no spend)
+lib/anatomy.mjs     private writer policy and counts-only subcommand boundary
+lib/anatomy-config.mjs  vocabulary, rules, splitters, sampling and reporting choices with provenance
+lib/anatomy-sessions.mjs  committed brief matching and multi-attempt pi context extraction
+lib/anatomy-spans.mjs  lossless Markdown units and glue with deterministic labels
+lib/anatomy-pulls.mjs  dedicated and wrapped shell reads by function
+lib/anatomy-measures.mjs  counts, agreement, blind sampling and span-based assembly
 catch-ledger.mjs    the catch ledger CLI: extract, label, match, stats over review findings
 lib/catch-extract.mjs  pull candidate findings out of a review corpus
 lib/catch-judge.mjs    the ONLY model call in apps/bench: label + match prompts, schemas, validation
 lib/catch-stats.mjs    the ledger's tallies and rates
 ext/                bench-owned pi extensions (the nested-usage sidecar)
-test/               fourteen test files, no model calls (stub-child integration + every
+test/               test files with no model calls (stub-child integration + every
                     orchestration path incl. a real-fixture run + an adversarial matrix against
                     the trusted evaluator)
 studies/            one directory per study
