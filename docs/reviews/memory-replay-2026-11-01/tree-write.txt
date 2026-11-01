@@ -1,0 +1,9 @@
+
+> nana-pi@0.5.0 req:tree
+> node scripts/requirements-tree.mjs --write
+
+requirements tree: 0 problems; rows 2370; features 43
+deliverables: 21 of 22 made and read by code, 21 more parked
+deliverable note: line 596: Reads: reader path "packages/nana-pack/lib/memory-replay.mjs" is not a tracked file at HEAD
+deliverable note: line 593: Read by: A-097 reader path "packages/nana-pack/lib/memory-replay.mjs" is not a tracked file at HEAD
+deliverable note: A-097 has no declared reader

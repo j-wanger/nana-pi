@@ -1,0 +1,38 @@
+FAIL seal: slot markers and kept types Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    {
+      hooks: [
+        'nana-shared-memory.mjs',
+        'nana-shared-memory'
+      ],
+      instruction: 'AutoMem',
+-     readPaths: [
+-       'memory/',
+-       'memory\\',
+-       'memory.md',
+-       'shared-memory'
+-     ]
+    },
+    [
+      'user',
+      'assistant',
+      'text',
+
+FAIL seal: output and fixed words Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'memory-replay.jsonl',
+    'plan.json',
+    'screen.jsonl',
+    'blind.jsonl',
+    'runs',
++   undefined,
+-   'screen',
+    {
+      ceiling: 'ceiling',
+      changed: 'changed',
+      cites: 'cites bundle',
+      confirmatory: 'confirmatory',

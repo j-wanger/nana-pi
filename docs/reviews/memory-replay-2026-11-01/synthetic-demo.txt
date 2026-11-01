@@ -1,0 +1,42 @@
+cases 2 R 0 F 2
+changed 0
+invalid 0
+unresolved 0
+no recorded context 0
+late earlier instance 0
+sessions 1
+case set c9cd97fe06902f892af4971f8cad3457b925e49b15d12da470a54ccbc35f21e3
+plan exit 0
+runs on this case set 1
+run 1 confirmatory
+cases planned 2 informative 0 favour bundle 0 favour control 0
+pooled p fewer 1.000000 level 0.05 p more 1.000000 level 0.05
+control repeats 10/10 Wilson 0.7225 1.0000
+treatment repeats 10/10 Wilson 0.7225 1.0000
+smaller by 0
+R cases planned 0 informative 0 favour bundle 0 favour control 0
+R p fewer 1.000000 level 0.05 p more 1.000000 level 0.05
+R undecided: too few cases
+F cases planned 2 informative 0 favour bundle 0 favour control 0
+F p fewer 1.000000 level 0.05 p more 1.000000 level 0.05
+F undecided: too few cases
+sessions 1 p fewer 1.000000 p more 1.000000
+reproduction correction repeats 10/10 Wilson 0.7225 1.0000
+reproduction decision repeats 0/0 Wilson 0.0000 1.0000
+oracle repeats 0/0 p fewer 1.000000
+ceiling repeats 10/10 p fewer 1.000000
+leaked 0
+unjudged 0
+judge-miss 0
+unrun 0
+unclear 0/0
+stalls 0/0
+cites bundle 0/0
+control would read memory 0
+ran R 0 F 2
+verdict pending blind check; bias favours bundle
+calls 62
+calls with unknown usage 0
+tokens 62
+cost unknown
+decide exit 0

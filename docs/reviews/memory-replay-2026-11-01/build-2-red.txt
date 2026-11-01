@@ -1,0 +1,49 @@
+PASS plan stratifies corrections without spend
+FAIL context preserves past and replaces only memory slot recorded status label belongs in the memory slot
+PASS bundle uses pre-cut candidates and one oracle record
+PASS judge is isolated blind and fail-closed
+FAIL decision reports paired statistics attrition and confirmation pooled p fewer 0.250000 level 0.05 p more 0.875000 level 0.05
+PASS caps stop at case boundaries and expose incomplete spend
+FAIL screen selects repeats but run uses fresh draws Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    [
+      '914b9b6c3420eb8d4c7b3dad92066c9cec4efb9540ff53bad9161041059355d5',
+      'planned'
+    ],
+-   [
+-     '3f80e38be85bdaf4dcccacb12863a73c63cd0947d7bc824f1b7527278a8997be',
+-     'unrun'
+-   ]
+  ]
+
+PASS private commands and sealed Claude runners
+PASS seal: runners
+PASS seal: replay model and effort
+PASS seal: judge model and effort
+PASS seal: draws and screen rule
+PASS seal: dollar caps
+PASS seal: context and reply caps
+PASS seal: bundle budget
+FAIL seal: slot markers and kept types Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    {
+      hooks: [
+        'nana-shared-memory.mjs',
+        'nana-shared-memory',
+-       'nana: shared memory index'
+      ],
+      instruction: 'AutoMem',
+      readPaths: [
+        'memory/',
+        'memory\\',
+
+PASS seal: statistic and blind bars
+PASS seal: prompt hashes
+PASS seal: citation and capture
+PASS seal: output and fixed words
+baseline source c5931f51 (current tip changes only the build brief)
+exit 1

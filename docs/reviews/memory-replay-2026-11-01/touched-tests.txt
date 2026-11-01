@@ -1,0 +1,10 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs memory-replay outcome-meter requirements-tree test-runner.test
+
+PASS  packages/nana-pack/tests/memory-replay.test.mjs      20 pass  0.5s
+PASS  packages/nana-pack/tests/outcome-meter.test.mjs      27 pass  0.7s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs  98 pass  2.6s
+PASS  packages/nana-pack/tests/test-runner.test.mjs        52 pass  30.0s
+
+4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 197 pass, 0 fail, 0 skip · 34.1s

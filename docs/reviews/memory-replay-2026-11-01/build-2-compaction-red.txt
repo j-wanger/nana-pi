@@ -1,0 +1,3 @@
+FAIL context preserves past and replaces only memory slot SECRET OLD SHARED HOOK
+PASS seal: context and reply caps
+exit 1
