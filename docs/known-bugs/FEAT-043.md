@@ -5,7 +5,7 @@
 - Outcome meter (outcome-meter, seat baseline run): about one in six decision items comes back unjudged because their judge calls fail closed, and the run prints no reason for the rejection.
 - Outcome meter (outcome-meter, seat baseline run): two meter runs over the two shaper runs found repeats in different items and agreed on none, so a repeat count below a handful is noise, not a signal.
 - Outcome meter (outcome-meter, plan residual): the meter sees only this machine's Claude Code transcripts; the second machine and pi sessions are not counted.
-- Outcome meter (seat, scored against the 2026-11-01 private labels): correction repeat recall is 2 of 8 in one run and 0 in the other, and decision repeat recall is 0 of 4; the labels find 12 repeats among 41 valid corrections, so the meter's low repeat counts are mostly misses.
+- Outcome meter (seat, scored against the 2026-11-01 private labels): the meter misses most correction and decision repeats the labels find, so its low repeat counts are mostly misses; the counts stay private.
 - Outcome meter (outcome-meter, final review): batches split at every change of kind, so alternating items make one call each and re-send the lookback; cost rises, counts do not change.
 - Outcome meter (outcome-meter, final review): the load-log size check runs after the judge calls and leaves an empty rows file, so that output folder cannot be reused.
 - Outcome meter (outcome-meter, final review): pooled denominators include unjudged items, and for decisions unprompted ones, so pooled shares read low.
