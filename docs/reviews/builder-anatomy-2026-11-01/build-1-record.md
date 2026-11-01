@@ -98,6 +98,7 @@ Read every named precedent before writing rules or implementation, including the
 - Followed the bench test form and its imported temporary-directory helper. **Departure from the forecast of no existing-test edits:** the two stale heading-count assertions above must change when adding a feature.
 - **Definition clarification:** the seat's hand-labelled completion sentence is `feedback`, even though the broad definition table also mentions completion under output contract. The explicit fixture wins. Config calls out that choice.
 - JSON counts-only reports and JSONL/private replay formats are O3 choices, not departures.
+- **Windows correction to literal blob matching:** git may normalize a committed CRLF brief to LF while pi receives CRLF from the worktree. Matching now tries only the original/LF/CRLF/CR line-ending representations, preserves all other whitespace, keeps the committed blob identity, and tiles the exact received text. This departs from byte-verbatim blob matching to meet the plan's honest CRLF threat model; no prompt bytes are normalized in storage or assembly.
 
 No private helper was moved. No existing test was deleted. No known-bug entry was touched; no FEAT-042 known-bug file exists.
 
@@ -124,6 +125,18 @@ An early known-bugs invocation omitted `--root .` and exited 2; the corrected ch
 The first post-commit identity scan detected four local-path identifiers echoed by Node warnings in tip-checks.txt.
 Those warning lines were removed before any push, and the unpushed build commit was amended; no such path is in the published build history.
 The counts-only command results were retained. The identity check was rerun on the amended tip.
+
+## Hosted CI correction (same build, second implementation commit)
+
+Finished run 41266548069 on the first implementation tip: macOS/Linux suites and all four install-check jobs passed; Windows failed only R-3270.
+The exact assertion was the committed brief identity. This was not the known R-3104 timeout and was not rerun as a flake.
+The synthetic fixture now sets core.autocrlf=true before committing its CRLF brief on every OS.
+Against the unchanged extractor it failed R-3270 locally with the same assertion; `windows-wrong-code.txt` records exit 1 and 8/9 passed.
+After the line-ending representation fix, the same nine tests passed, exit 0; `synthetic-checks.txt` was refreshed.
+This edits one fixture setup line within the existing R-3270 test, not its assertion or title. No new test was added.
+The README now states this matching behavior. The new tip's full locked suite is recorded in `full-suite-windows-fix.txt`.
+The correction's `npm run map:measure` exited 0: 247 files, 245 PASS, 0 FAIL, 2 SKIP; 8838 checks passed, 44 skipped.
+Its finished hosted CI result is reported separately after the push.
 
 ## Not done / seat work
 

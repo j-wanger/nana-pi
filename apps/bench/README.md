@@ -458,6 +458,7 @@ The private segmented store is `contexts.jsonl` (A-092); `report`, `sample` and 
 It keeps ordered parts, original text, contiguous unit/glue spans, brief blob/start tip, exclusions, pulls and build metadata.
 Characters mean UTF-16 code units. System sections retain stored order; attempts share one build via the end record's sessions.
 Recorded briefs use the start tip; older briefs search committed history across all review folders.
+Matching accepts git checkout line-ending conversion without trimming whitespace or rewriting the received spans.
 Claude Code builders remain outside this slice because their transcripts omit the system message.
 
 Reports are counts-only JSON: units and chars with shares overall/per part, glue and unsorted counts,

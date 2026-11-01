@@ -44,7 +44,7 @@ async function test(title, fn) {
 }
 function fixture(marker = "") {
  const root = folder("corpus"), repo = path.join(root, "project"), cwd = path.join(root, "project-wt", "alpha"), sessions = path.join(root, "sessions"), sd = path.join(sessions, "--project-wt-alpha--");
- fs.mkdirSync(repo); fs.mkdirSync(cwd, { recursive: true }); fs.mkdirSync(sd, { recursive: true }); git(repo, "init", "-q");
+ fs.mkdirSync(repo); fs.mkdirSync(cwd, { recursive: true }); fs.mkdirSync(sd, { recursive: true }); git(repo, "init", "-q"); git(repo, "config", "core.autocrlf", "true");
  const briefPath = "docs/reviews/unrelated-folder/build-brief-1.md";
  const brief = `Feature: FEAT-042 · Synthetic\r\n${marker}\r\n## Precedent\r\n- lib/report-table.mjs \t`;
  put(path.join(repo, briefPath), brief); git(repo, "add", briefPath); git(repo, "commit", "-qm", "fixture brief"); const tip = git(repo, "rev-parse", "HEAD");

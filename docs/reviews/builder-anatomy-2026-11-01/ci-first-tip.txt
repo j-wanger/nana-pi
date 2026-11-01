@@ -1,0 +1,10 @@
+run 41266548069; tip ec6fa6e97b7a9cf826c08dd0a61daf4133173a41; completed; conclusion failure
+suite macos-latest: success
+suite ubuntu-latest: success
+install-check macos-latest floor: success
+install-check macos-latest ceiling: success
+install-check windows-latest floor: success
+install-check windows-latest ceiling: success
+suite windows-latest: failure; anatomy 8/9; only failed row R-3270; committed brief identity assertion
+Windows summary: 247 files: 228 PASS, 1 FAIL, 18 SKIP, 0 WARN; checks: 7762 pass, 1 fail, 137 skip
+R-3104 passed; no flake rerun was used.

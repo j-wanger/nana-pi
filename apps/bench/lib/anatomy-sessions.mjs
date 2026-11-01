@@ -48,10 +48,20 @@ function historicalBriefs(repo) {
  // Longest first avoids matching a short brief that is embedded in a later revision.
  return found.sort((a, b) => b.text.length - a.text.length || a.blob.localeCompare(b.blob));
 }
+/** Git's text checkout conversion can change only line endings between blob and prompt.
+ * Match that honest variation without trimming spaces/tabs or rewriting the stored spans.
+ * The blob identity still names the committed source; matchedText names the received bytes.
+ */
+function matchBrief(raw, brief) {
+ if (!brief) return null;
+ const lf = brief.text.replace(/\r\n|\r/gu, "\n");
+ const matchedText = [brief.text, lf, lf.replaceAll("\n", "\r\n"), lf.replaceAll("\n", "\r")].find((text) => raw.includes(text));
+ return matchedText === undefined ? null : { ...brief, matchedText };
+}
 function splitAddendum(raw, brief) {
- const at = brief ? raw.indexOf(brief.text) : -1;
+ const at = brief ? raw.indexOf(brief.matchedText) : -1;
  if (at < 0) return [{ name: "addendum", raw, reason: "brief-unmatched" }];
- const after = at + brief.text.length, tail = raw.slice(after), bug = KNOWN_BUG_HEADER.exec(tail);
+ const after = at + brief.matchedText.length, tail = raw.slice(after), bug = KNOWN_BUG_HEADER.exec(tail);
  const bugAt = bug ? after + bug.index : raw.length;
  return [
   { name: "preamble", raw: raw.slice(0, at) },
@@ -107,7 +117,8 @@ export function extractContexts({ repo, sessions }) {
     for (const [section, value] of Object.entries(sections)) {
      const raw = typeof value === "string" ? value : textFrom(value);
      if (section === "addendum") {
-      brief = exact && raw.includes(exact.text) ? exact : (history ??= historicalBriefs(repo)).find((b) => raw.includes(b.text));
+      brief = matchBrief(raw, exact);
+      if (!brief) for (const candidate of (history ??= historicalBriefs(repo))) { brief = matchBrief(raw, candidate); if (brief) break; }
       if (brief) { c.briefBlob ??= brief.blob; if (c.buildNumber === "unknown") c.buildNumber = buildNumber(brief.file); }
       for (const p of splitAddendum(raw, brief)) push(p.name, p.raw, { section, ...(p.reason ? { reason: p.reason } : {}) });
      } else push(section, raw, { section });
