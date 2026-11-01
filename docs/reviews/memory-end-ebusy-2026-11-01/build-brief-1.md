@@ -12,7 +12,6 @@ Threat model: honest variation in timing on hosted Windows runners is in scope; 
 - `packages/nana-setup/tests/memory-end-hook.test.mjs` (its detached-fixture marker wait and the `finally` cleanup)
 - `packages/nana-pack/tests/profile-fixture.mjs` (`close`)
 - `packages/nana-pack/tests/tmp-dir.mjs`
-- `packages/nana-pack/lib/fsops.mjs` or wherever R-2659's shared rename/remove retry lives (find it with `npm run map:search -- "retry EBUSY"`)
 
 Report each departure.
 
