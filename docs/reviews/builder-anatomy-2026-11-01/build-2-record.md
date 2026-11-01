@@ -33,19 +33,19 @@ The old implementations themselves were the wrong-code mutations; assertions wer
 - `node scripts/lane-class.mjs --root . --files REQUIREMENTS.md,apps/bench/lib/anatomy-measures.mjs,apps/bench/lib/catch-stats.mjs,apps/bench/lib/anatomy.mjs,apps/bench/test/anatomy.test.mjs`: 0, ordinary.
 - `node apps/bench/test/anatomy.test.mjs`: 1 old, then 0 fixed; paired logs above.
 - `node apps/bench/test/catch-ledger.test.mjs`: 0, tests unedited; `build-2-catch-ledger.txt`.
-- `npm run test:locked`: 0, foreground, repository machine lock; `build-2-full-suite.txt`.
+- `npm run test:locked`: 0 twice, foreground, repository machine lock; `build-2-full-suite.txt` and `build-2-full-suite-final.txt`.
 - `npm run map:check`: 0, 543 modules, 0 problems.
 - `npm run readme:check`: 0, 993 claims, 0 problems.
 - `node scripts/requirements-trace.mjs`: 0, 2046 implemented rows traced, 0 off-form rows.
 - `node scripts/requirements-tree.mjs --root .`: 0, 2300 rows, 42 features, 0 problems.
-- `node scripts/identity-scan.mjs --root .`: 0, 0 findings.
+- `node scripts/identity-scan.mjs --root .`: pre-commit 0; first post-commit 1 because a captured Node warning included two local-path tokens. Redacting those warning paths in `build-2-checks.txt` restores exit 0, 0 findings. No production change was needed.
 - `git diff --check`: 0.
 
 Checks are recorded in `build-2-checks.txt`. The map needed no regeneration: imports and module headers retain their graph and contracts. Post-commit checks and the finished CI run for the pushed tip are reported in the builder's final response.
 
 Suite summary:
 
-`248 files: 246 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8849 pass, 0 fail, 44 skip · 671.1s`
+`248 files: 246 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8849 pass, 0 fail, 44 skip · 648.1s`
 
 ## Precedent and scope
 

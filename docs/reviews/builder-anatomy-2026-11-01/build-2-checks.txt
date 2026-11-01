@@ -10,9 +10,9 @@ code map: 543 modules over scripts, apps/desk, apps/bench, apps/hive, packages/n
 readme: 993 claims checked; 0 problem(s)
 requirements: 2300 total (2046 implemented · 7 planned · 53 retired · 189 untested · 5 violated); 2046 traced by tests
 ears: 0 rows off form (allowance 0)
-(node:94312) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/builder-anatomy/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+(node:94312) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
-To eliminate this warning, add "type": "module" to /Users/jwang/nana-pi-wt/builder-anatomy/package.json.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
 requirements tree: 0 problems; rows 2300; features 42
 deliverables: 21 of 22 made and read by code, 21 more parked
