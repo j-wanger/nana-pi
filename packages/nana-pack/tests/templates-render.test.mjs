@@ -474,7 +474,8 @@ const RUNTIME_INVENTORY_TEXT = {
 };
 
 function runtimeInventory() {
-	const hooks = desiredHooks({ hooksDir: "/hooks", repoRoot: REPO }).map(({ marker }) => marker);
+	// The runtime table covers in-session context and tools, not end-of-session makers (plan A4).
+	const hooks = desiredHooks({ hooksDir: "/hooks", repoRoot: REPO }).filter(({event}) => event !== 'SessionEnd').map(({ marker }) => marker);
 	const extensions = ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"]
 		.flatMap((directory) => fs.readdirSync(path.join(REPO, directory), { withFileTypes: true })
 			.filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))

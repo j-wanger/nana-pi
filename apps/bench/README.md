@@ -435,10 +435,12 @@ node apps/bench/lib/fixture.mjs hash  <study>/fixture
 Not a tarball: extracting one needs an external `tar` binary and its hash changes with mtimes on
 every rebuild, while `fs.cp` is built in and byte-identical on darwin and win32.
 
-## Builder context anatomy (descriptive, zero spend)
+## Builder context anatomy (descriptive)
 
-`anatomy.mjs` splits pi builder contexts by function, not file. It never starts a model or changes a live build.
-It needs only Node and git; the paid bench's pi dependency is not needed for these five subcommands.
+`anatomy.mjs` splits pi builder contexts by function, not file. It never changes a live build.
+The original five subcommands need only Node and git and spend nothing.
+The optional `label` command also needs an authenticated Claude CLI on PATH and spends through an isolated Sonnet runner.
+It does not need the paid bench's pi dependency.
 
 ```bash
 node apps/bench/anatomy.mjs segment --sessions <sessions-root> --repo <repo-root> --out <private-folder>
@@ -446,13 +448,18 @@ node apps/bench/anatomy.mjs report --in <private-folder>
 node apps/bench/anatomy.mjs sample --in <private-folder> --seed <printed-seed> --out <private-sheet-folder>
 node apps/bench/anatomy.mjs agree --in <private-folder> --a <filled-sheet-a> --b <filled-sheet-b>
 node apps/bench/anatomy.mjs assemble --in <private-folder> --context <build-id> --out <private-replay-folder>
+node apps/bench/anatomy.mjs label --in <private-folder> --out <private-labels-folder>
+node apps/bench/anatomy.mjs label --in <private-folder> --resume <private-labels-folder>
 node apps/bench/test/anatomy.test.mjs
+node apps/bench/test/anatomy-labels.test.mjs
 ```
 
-All writers require an empty folder outside every git checkout. They reject a final-component symlink;
-OS-temp ancestor symlinks are allowed. Files hold private text and use exclusive creation and owner-only POSIX modes.
-No subcommand prints unit text, headings, targets or duplicate text. Keep the contexts, sheets and replay files outside git.
-The synthetic test runs all five subcommands without reading real sessions.
+New output requires an empty folder outside every git checkout. Writers reject a final-component symlink;
+OS-temp ancestor symlinks are allowed. Files use exclusive creation and owner-only POSIX modes.
+Only `label --resume` appends to an existing matching store.
+No subcommand prints unit text, headings, targets or duplicate text. Keep contexts, sheets, replay files and labels outside git.
+Label keys are private too: short-text hashes can be reversed from a dictionary.
+Synthetic tests exercise every subcommand without reading real sessions, calling a model or spending.
 
 The private segmented store is `contexts.jsonl` (A-092); `report`, `sample` and `assemble` read it.
 It keeps ordered parts, original text, contiguous unit/glue spans, brief blob/start tip, exclusions, pulls and build metadata.
@@ -476,6 +483,21 @@ confusions and the count of units where both labellers agree. It also compares r
 Definitions and rules were written before corpus labelling; the seat measures reliability before interpreting shares.
 These results describe supply, not causal effects or slice-2 target choices.
 
+`label` hashes the report's existing duplicate normalization and sends one representative per non-oversize key.
+The representative keeps its Markdown; only its cwd and branch become `<WORKTREE>` and `<BRANCH>`.
+Seed-shuffled batches are blind to headings, parts and rule labels, with at most 40 units and 24,000 text chars per call.
+Replies must cover each call's `u1..un` ids exactly once using the definitions or `unsorted`; a bad reply rejects its whole batch.
+The private store holds manifest.json (model, effort, prompt hash, order seed and input counts) and labels.jsonl (key, id, label).
+Rows append and flush after each successful batch; resume repairs a torn tail and skips already-labelled keys.
+Resume refuses a changed model, effort, prompt hash or order seed. A new prompt needs a new private folder.
+Calls run serially with the shared runner's USD 0.50 per-call cap and five-minute timeout.
+The run stops after 2,500,000 charged tokens or three consecutive failed calls; missing usage charges 20,000 tokens per call.
+Progress prints every ten calls. Final counts include distinct units, labelled, calls, tokens, charged tokens, cost, unclassified and unsent.
+With missing usage, `tokens >=` shows only known tokens; charged tokens include the conservative unknown-call charge and cost is `unknown`.
+The model and prompt hash print, but never unit text, keys, replies or runner errors.
+A capped or interrupted run continues with `--resume`; rejected keys are eligible again.
+The current report and agreement commands still use rule labels, not this store; model-label readers come in a later slice.
+
 Assembly writes numbered part files plus a parts.json manifest with each part's zero-based attempt.
 Omit `--context` only for a store with one build.
 Use `--drop <function>` to remove units and orphan headings, or `--stage <function>` to replace runs with a fixed pointer
@@ -496,13 +518,14 @@ lib/pi-exports.mjs  resolve the installed pi; import its PUBLIC Usage/calculateC
 lib/eval-module.mjs  the trusted evaluator: nonce over fd 4, HMAC-signed verdict over fd 3
 lib/agentdir.mjs    the prepared, pinned pi config dir and its credential handling
 lib/nested.mjs      nested-LLM-spend accounting: scope, dedupe, completion, unknown
-anatomy.mjs         builder anatomy CLI: segment, report, sample, agree, assemble (no spend)
+anatomy.mjs         builder anatomy CLI: segment, report, sample, agree, assemble, label (label spends)
 lib/anatomy.mjs     private writer policy and counts-only subcommand boundary
 lib/anatomy-config.mjs  vocabulary, rules, splitters, sampling and reporting choices with provenance
 lib/anatomy-sessions.mjs  committed brief matching and multi-attempt pi context extraction
 lib/anatomy-spans.mjs  lossless Markdown units and glue with deterministic labels
 lib/anatomy-pulls.mjs  dedicated and wrapped shell reads by function
-lib/anatomy-measures.mjs  counts, agreement, blind sampling and span-based assembly
+lib/anatomy-measures.mjs  counts, shared normalization, agreement, blind sampling and span-based assembly
+lib/anatomy-labels.mjs  private capped model labelling, per-batch append and fingerprinted resume
 catch-ledger.mjs    the catch ledger CLI: extract, label, match, stats over review findings
 lib/catch-extract.mjs  pull candidate findings out of a review corpus
 lib/catch-judge.mjs    the ONLY model call in apps/bench: label + match prompts, schemas, validation

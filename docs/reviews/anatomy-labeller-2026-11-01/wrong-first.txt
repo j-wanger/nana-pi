@@ -1,0 +1,20 @@
+FAIL R-3390: distinct blind texts are labelled once
+FAIL R-3391: bounded batches charge unknown usage and print progress
+FAIL R-3392: malformed batches are rejected whole
+FAIL R-3393: unsafe destinations and echoed text stay private
+FAIL R-3394: capped and killed runs resume only missing keys
+FAIL R-3395: changed model or prompt refuses resume
+FAIL R-3396: consecutive failure stop resets after success
+FAIL R-3397: seal label model
+FAIL R-3397: seal label effort
+FAIL R-3398: seal system prompt hash
+FAIL R-3391: seal batch unit limit
+FAIL R-3391: seal batch char limit
+FAIL R-3391: seal run token cap
+FAIL R-3391: seal unknown usage charge
+FAIL R-3391: seal progress interval
+FAIL R-3396: seal failure streak
+FAIL R-3390: seal order seed
+FAIL R-3394: seal label file
+FAIL R-3395: seal manifest file
+anatomy labels: 0/19 checks passed

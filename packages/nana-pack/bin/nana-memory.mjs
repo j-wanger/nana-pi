@@ -14,13 +14,14 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { memoryArgs, defaultMemoryRepo } from '../lib/memory-making.mjs';
-import { profileGit, gitText } from '../lib/profile-sync.mjs';
+import { profileGit, gitText, unpushedProfile } from '../lib/profile-sync.mjs';
 import { profileGuard } from '../lib/profile-guards.mjs';
 import { resolveProfile } from './nana-profile.mjs';
 import { writePackConfigMember } from '../lib/pack-config-write.mjs';
-import { makeMemory, pendingUnits, lastMemoryRun, healthWords } from '../lib/memory-run.mjs';
+import { makeMemory, pendingUnits, localMemoryRun, healthWords } from '../lib/memory-run.mjs';
 import { countUnparseableMemoryFiles } from '../lib/memory-store.mjs';
-import { WORDS as W, OPT_IN_MEMBER } from '../lib/memory-run-config.mjs';
+import { PROFILE_WORDS } from '../lib/profile-config.mjs';
+import { WORDS as W, PUSH_WORDS, OPT_IN_MEMBER } from '../lib/memory-run-config.mjs';
 import { LANE_NAME_PATTERN } from '../lib/land-config.mjs';
 
 export async function runMemory(argv,{agentDir=piAgentDir(),env=process.env,cwd=process.cwd(),runGit=profileGit(env),now=()=>new Date(),projectsRoot=path.join(os.homedir(),'.claude','projects'),stdout=s=>process.stdout.write(s),stderr=s=>process.stderr.write(s),runModel,caps}={}) {
@@ -44,9 +45,9 @@ export async function runMemory(argv,{agentDir=piAgentDir(),env=process.env,cwd=
   const pointer=resolved.pointer,dir=pointer.dir;
   if(profileGuard(dir,runGit)!==pointer.verifiedPushUrl)return say(W.pointer);
   const options={repoRoot,repository,dir,pointer,runGit,now,projectsRoot,session:args.session,lane:args.lane,runModel,caps};
-  if(command==='status') {const units=await pendingUnits(options),last=lastMemoryRun(dir,repository,{runGit});return say(`${W.status}; last ${healthWords(last,now)}; ${W.pending} ${units.length}; ${W.unparseable} ${countUnparseableMemoryFiles(dir)}`);}
+  if(command==='status') {const units=await pendingUnits(options),last=localMemoryRun(dir,repository,{runGit});return say(`${W.status}; last ${healthWords(last,now)}; ${W.pending} ${units.length}; ${W.unparseable} ${countUnparseableMemoryFiles(dir)}; ${PUSH_WORDS.unpushed} ${unpushedProfile(dir,{runGit})??W.unknown}`);}
   const result=await makeMemory(options);
-  return say(`${result.outcome}; sent ${result.sent}; done ${result.done}; pending ${result.pending}; unsent ${result.unsent}; unknown ${result.unknownUsage}; tokens ${result.tokens}`);
+  return say(`${result.outcome}; sent ${result.sent}; done ${result.done}; pending ${result.pending}; unsent ${result.unsent}; unknown ${result.unknownUsage}; tokens ${result.tokens}${result.push?`; ${result.push.ok?PUSH_WORDS.pushed:PROFILE_WORDS.notPushed+result.push.reason}`:''}`);
  }catch(error) {stderr(`${Object.values(W).includes(error.message)?error.message:W.failed}\n`);return 1;}
 }
 if(process.argv[1]&&fs.realpathSync(process.argv[1])===fs.realpathSync(fileURLToPath(import.meta.url))) {

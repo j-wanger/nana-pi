@@ -65,3 +65,4 @@
 - Launch edges (map-spawn-edges, plan residual): self-relaunches, extensions pi loads from a folder, hooks loaded through settings, temporary copies and browser-loaded code stay unresolved or declared, never linked.
 - Launch edges (map-spawn-edges, final review): renamed or injected runners (`start` in `lane-watcher.mjs`, `run` in `review-movement.mjs`, `runner("powershell")` in `process-tree-helper.mjs`, `run = spawnSync` in `hook-producer.mjs`) are invisible and unreported; their tests are always-run today only through other routes.
 - Launch edges (map-spawn-edges, final review): `config-display-text`, `config-handlers-malformed` and `hive-page` tests load modules through computed `import(new URL(...))` and template specifiers, so they are neither linked nor always-run.
+- Runtime map (ci-suite, plan residual): a land that uses CI as the suite does not refresh the runtime map; fallback lands and hand runs do.

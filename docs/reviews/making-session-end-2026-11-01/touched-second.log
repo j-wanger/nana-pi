@@ -1,0 +1,14 @@
+PASS  packages/nana-pack/tests/handoff-trust.test.mjs       53 pass  0.1s
+PASS  packages/nana-setup/tests/memory-end-wiring.test.mjs  1 pass  0.4s
+PASS  packages/nana-setup/tests/doctor-trust.test.mjs       1 pass  0.6s
+PASS  packages/nana-pack/tests/config-trust.test.mjs        27 pass  0.6s
+PASS  packages/nana-setup/tests/install-check.test.mjs      142 pass  1.3s
+PASS  packages/nana-setup/tests/restore.test.mjs            15 pass  1.7s
+PASS  packages/nana-setup/tests/trust.test.mjs              13 pass  1.3s
+PASS  packages/nana-setup/tests/uninstall.test.mjs          31 pass  2.4s
+PASS  packages/nana-setup/tests/settings-merge.test.mjs     224 pass  5.2s
+PASS  packages/nana-setup/tests/win32-hook-repair.test.mjs  14 pass  2.8s
+PASS  packages/nana-setup/tests/win32-degrade.test.mjs      95 pass  7.5s
+PASS  packages/nana-setup/tests/project.test.mjs            124 pass  30.7s
+
+12 files: 12 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 740 pass, 0 fail, 0 skip · 31.8s

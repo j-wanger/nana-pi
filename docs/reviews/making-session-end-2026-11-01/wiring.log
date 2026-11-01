@@ -1,0 +1,9 @@
+Early direct wiring run: exit 1.
+Identity-sanitized: absolute machine paths and repetitive Node stacks omitted.
+
+FAIL R-3353: SessionEnd install repair remove and check preserve foreign hooks
+  ENOENT: open <scratch HOME>/.pi/agent/nana-objective.md
+  at runInstallCheck (packages/nana-setup/lib/install-check.mjs:380:8)
+
+Cause: the synthetic installer fixture did not create the agent directory.
+The fixture now creates that directory; touched-second.log and touched-final.log record passing runs.

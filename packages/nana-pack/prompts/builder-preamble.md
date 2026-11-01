@@ -27,12 +27,12 @@ Tests
 - Never delete a test your brief does not name.
 
 Before you report
-- Each commit follows a green run of the tests your change touches; your last commit follows a green full suite.
-- Run the repository's full suite as its `AGENTS.md` says, including one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.
+- Each commit follows a green run of the tests your change touches.
+- Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.
 - Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.
 - Send long script output to a committed file and paste only the lines your brief asks for.
-- When your brief asks for CI, read the finished run once and report. Do not wait for another notification.
+- Where `AGENTS.md` says CI covers the suite, push your last commit and stop: do not wait for or read its CI run, and commit nothing after the push.
 
 Report shape:
 First line: `VERDICT: DONE`, `VERDICT: PARTIAL` or `VERDICT: BLOCKED`.
-Then commits; per item, files, rows, mutation pairs, commands and exit codes; the suite summary line with its check count; and what was not done.
+Then commits; per item, files, rows, mutation pairs, commands and exit codes; the pushed branch, the pushed tip's full SHA and the push's exit code, or the full-suite summary line with its check count where you ran it; and what was not done.

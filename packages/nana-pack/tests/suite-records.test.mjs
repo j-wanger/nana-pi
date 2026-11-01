@@ -315,7 +315,7 @@ check("R-2549: a locked run names the nearest clean baseline record, land first,
 		&& !dirtyBaseLine.includes(dirtyBaseRepo.mergeBase.slice(0, 8))
 		&& outputOf(noMainRun).includes("no baseline exists") && outputOf(noMainRun).includes("no main branch")
 		&& !outputOf(noMainRun).includes("git ")
-		&& outputOf(movedRun).includes("merge main") && outputOf(nextLandRun).includes("next land records one"),
+		&& outputOf(movedRun).includes("merge main") && outputOf(nextLandRun).includes("next local land or hand run records one"),
 	JSON.stringify({ baseline: outputOf(baselineRun), dirtyBase: outputOf(dirtyBaseRun), noMain: outputOf(noMainRun), moved: outputOf(movedRun), nextLand: outputOf(nextLandRun) }));
 
 const classesRepo = comparisonRepo("classes");

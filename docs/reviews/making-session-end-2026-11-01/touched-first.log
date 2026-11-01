@@ -1,0 +1,18 @@
+Early touched-suite record: exit 1.
+Identity-sanitized: machine paths and repetitive stacks omitted; later green records retained separately.
+
+69 files: 59 PASS, 9 FAIL, 1 SKIP, 0 WARN · checks: 1538 pass, 16 fail, 15 skip · 142.1s
+
+Failures:
+- install-check.test.mjs: 139 pass, 3 fail; old hook inventory and doctor note seals.
+- memory-end-wiring.test.mjs: 0 pass, 1 fail; fixture assertion.
+- project.test.mjs: 57 pass, exit 1; local npm-prefix mismatch.
+- restore.test.mjs: 0 pass, exit 1; ERR_MODULE_NOT_FOUND for global pi dist/core/trust-manager.js.
+- settings-merge.test.mjs: 218 pass, 6 fail; old six-entry inventory.
+- trust.test.mjs: 0 pass, exit 1; same global pi prefix mismatch.
+- uninstall.test.mjs: 30 pass, 1 fail; old dry-run inventory count.
+- win32-degrade.test.mjs: 91 pass, 4 fail; old hook inventory and timeout fixture.
+- win32-hook-repair.test.mjs: 13 pass, 1 fail; old repair advice fixture.
+
+The new hook suite (7 checks) and new memory suite (5 checks) passed here.
+Fixture updates and npm_config_prefix resolve the above; touched-second.log and touched-final.log record the passing runs.

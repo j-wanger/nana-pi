@@ -411,11 +411,12 @@ const RULE_LINE = {
 	idsFromBriefRange: "New requirement rows take IDs only from the range your brief names.",
 	noSuiteTestRunsSeatScript: "No suite test runs, imports or copies a seat script.",
 	noUnnamedTestDeleted: "Never delete a test your brief does not name.",
-	touchedTestsBeforeCommit: "Each commit follows a green run of the tests your change touches; your last commit follows a green full suite.",
+	touchedTestsBeforeCommit: "Each commit follows a green run of the tests your change touches.",
+	fullSuiteFallback: "Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.",
 	seatChecksBeforeDone: "Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.",
 	longOutputToFile: "Send long script output to a committed file and paste only the lines your brief asks for.",
-	readCiOnce: "When your brief asks for CI, read the finished run once and report. Do not wait for another notification.",
-	suiteCheckCountInReport: "Then commits; per item, files, rows, mutation pairs, commands and exit codes; the suite summary line with its check count; and what was not done.",
+	readCiOnce: "Where `AGENTS.md` says CI covers the suite, push your last commit and stop: do not wait for or read its CI run, and commit nothing after the push.",
+	suiteCheckCountInReport: "Then commits; per item, files, rows, mutation pairs, commands and exit codes; the pushed branch, the pushed tip's full SHA and the push's exit code, or the full-suite summary line with its check count where you ran it; and what was not done.",
 };
 const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
 // req: R-2510
@@ -426,33 +427,38 @@ check("R-2582: the builder preamble tells the builder to read its Precedent file
 check("R-2662: the builder preamble tells the builder to import a needed function, never copy it, and stop on a private helper the brief does not move", preambleOnce(RULE_LINE.reuseNotCopy), RULE_LINE.reuseNotCopy);
 // req: R-2583
 check("R-2583: the builder preamble frames the attached known bugs as context to report, not to fix", preambleOnce(RULE_LINE.knownBugsContext), RULE_LINE.knownBugsContext);
-// req: R-1110
+// req: R-3436
 check("lane preamble carries: wrong code first", preambleOnce(RULE_LINE.wrongCodeFirst), RULE_LINE.wrongCodeFirst);
-// req: R-1110
+// req: R-3436
 check("lane preamble carries: must-meet tests and no other new test, with the seal-test exception", preambleOnce(RULE_LINE.mustMeetTests), RULE_LINE.mustMeetTests);
-// req: R-1110
+// req: R-3436
 check("lane preamble carries: await every async case", preambleOnce(RULE_LINE.awaitEveryAsyncCase), RULE_LINE.awaitEveryAsyncCase);
-// req: R-1110
+// req: R-3436
 check("lane preamble carries: CRLF and whitespace cases", preambleOnce(RULE_LINE.crlfAndWhitespace), RULE_LINE.crlfAndWhitespace);
-// req: R-1110
+// req: R-3436
 check("lane preamble carries: IDs from the brief's range", preambleOnce(RULE_LINE.idsFromBriefRange), RULE_LINE.idsFromBriefRange);
-// req: R-1110
+// req: R-3436
 check("lane preamble carries: no suite test runs a seat script", preambleOnce(RULE_LINE.noSuiteTestRunsSeatScript), RULE_LINE.noSuiteTestRunsSeatScript);
-// req: R-1110
+// req: R-3436
 check("lane preamble carries: no unnamed test deleted", preambleOnce(RULE_LINE.noUnnamedTestDeleted), RULE_LINE.noUnnamedTestDeleted);
-// req: R-1110
-check("lane preamble carries: touched tests before each commit and the full suite before the last", preambleOnce(RULE_LINE.touchedTestsBeforeCommit), RULE_LINE.touchedTestsBeforeCommit);
-// req: R-1110
+// req: R-3436
+check("lane preamble carries: touched tests before each commit", preambleOnce(RULE_LINE.touchedTestsBeforeCommit), RULE_LINE.touchedTestsBeforeCommit);
+// req: R-3436
 check("lane preamble carries: seat checks before DONE", preambleOnce(RULE_LINE.seatChecksBeforeDone), RULE_LINE.seatChecksBeforeDone);
-// req: R-1110
+// req: R-3436
 check("lane preamble carries: long output to a committed file", preambleOnce(RULE_LINE.longOutputToFile), RULE_LINE.longOutputToFile);
-// req: R-1110
-check("lane preamble carries: read CI once", preambleOnce(RULE_LINE.readCiOnce), RULE_LINE.readCiOnce);
-// req: R-1110
-check("lane preamble carries: the suite check count in the report", preambleOnce(RULE_LINE.suiteCheckCountInReport), RULE_LINE.suiteCheckCountInReport);
-// req: R-1110
-check("R-1110: the builder preamble has the must-meet line with its seal-test exception and no fix-the-class line",
-	preambleOnce(RULE_LINE.mustMeetTests) && !preambleText.includes("Fix the class, not the named example"),
+// req: R-3436
+check("lane preamble carries: push and stop without reading CI", preambleOnce(RULE_LINE.readCiOnce), RULE_LINE.readCiOnce);
+// req: R-3436
+check("lane preamble carries: pushed tip or local suite evidence in the report", preambleOnce(RULE_LINE.suiteCheckCountInReport), RULE_LINE.suiteCheckCountInReport);
+// req: R-3436
+check("R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the replaced lines",
+	preambleOnce(RULE_LINE.fullSuiteFallback) && preambleOnce(RULE_LINE.mustMeetTests)
+		&& !preambleText.includes("Run the repository's full suite only where its `AGENTS.md` says CI does not cover it")
+		&& !preambleText.includes("Fix the class, not the named example")
+		&& !preambleText.includes("your last commit follows a green full suite")
+		&& !preambleText.includes("When your brief asks for CI, read the finished run once and report")
+		&& !preambleText.includes("the suite summary line with its check count; and what was not done."),
 	preambleText);
 const defaultPairs = [["--provider", "openai-codex"], ["--model", "gpt-6-luna"], ["--thinking", "high"], ["-t", "read,grep,find,bash,edit,write"]];
 const receivedArgs = result.split("\n");

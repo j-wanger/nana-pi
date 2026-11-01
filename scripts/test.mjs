@@ -617,6 +617,7 @@ if (suiteRecordFile) {
 		fs.mkdirSync(path.dirname(suiteRecordFile), { recursive: true });
 		fs.writeFileSync(suiteRecordFile, JSON.stringify({
 			schema: RECORD_SCHEMA,
+			filters,
 			files: suiteFiles.filter(Boolean),
 			unnamedFailures,
 			exitCode: finalExitCode,
