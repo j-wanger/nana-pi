@@ -22,3 +22,14 @@
 - Memory shaper (memory-shaper, seat scored runs): two runs on the frozen labels miss the bar, with correction recall 28/46 and 26/46 and precision 217/318 and 227/329; the rules stay the maker until the owner decides.
 - Memory shaper (memory-shaper, seat scored runs): the shaper finds 54 of 56 review lessons, two fewer than the rules.
 - Memory shaper (memory-shaper build 1): the reply schema was array-rooted and every Claude call failed; only the seat's synthetic canary caught it, since tests inject the runner.
+- Memory shaper (memory-shaper, final review): the sealed prompt asks for a bare JSON array while the validator expects an object with a units key; the Claude runner works because its schema forces the object, but the pi runner gets no schema and would leave every batch unclassified.
+- Memory shaper (memory-shaper, final review): the model check accepts any reply model whose name starts with the requested one, and passes when one of several named models matches (inherited from callJudge).
+- Memory shaper (memory-shaper, final review): the token cap is checked before each batch, so one batch can push the total past the cap.
+- Owner profile (owner-profile, confirmation review): the lock poll interval is the total wait over 100, now 4,200 ms, so a waiting save can notice a released lock about four seconds late.
+- Owner profile (owner-profile, confirmation review): the 28 locked git steps behind the lock wait are not counted from the code; the risk runs only toward waiting too long.
+- Requirements (owner-profile, round-3 review): SUB-023 sits above SUB-022 in REQUIREMENTS.md; the tree keeps the same order.
+- Requirements (owner-profile, round-3 review): the SUB-022 heading follows the R-3249 table row with no blank line, so a strict Markdown renderer may read it as part of the table.
+- Memory making (making-trigger, plan residual): the merge step catches exact normalized repeats only; a reworded duplicate of a saved claim is stored again until upkeep lands.
+- Memory making (making-trigger, plan residual): whether a detached making run survives Claude Code's exit, especially on Windows, stays unchecked until the session-end lane.
+- Memory making (making-trigger, plan residual): background making draws on the seat's Claude account when a land ends; the day cap bounds tokens, not rate limits.
+- Memory making (making-trigger, plan residual): a repository started from another's history (a fork) shares its memory key.
