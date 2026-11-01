@@ -2524,7 +2524,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Named sealed values with chosen provenance.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`
 - **callees** — `packages/nana-pack/lib/memory-making-config.mjs`
 
 ### `packages/nana-pack/lib/profile-guards.mjs`
@@ -2554,7 +2554,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Bounded git results, lock-scoped results and sync success or sealed reason.
 - **effects** — disk, process, network
 - **errors** — Throws sealed refusal lines for local failures; sync returns classified transport failure.
-- **callers** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
 - **callees** — `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`
 - **repo-code launches** — line 20: spawnSync; binding line 94
 
@@ -3606,8 +3606,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk, process
 - **errors** — Assertion failures set exit code one.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
-- **unresolved launches** — line 42: spawnSync
+- **callees** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
+- **unresolved launches** — line 44: spawnSync
 
 ### `packages/nana-pack/tests/memory-run-seals.test.mjs`
 

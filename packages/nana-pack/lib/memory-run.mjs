@@ -61,20 +61,27 @@ export async function pendingUnits({repoRoot,projectsRoot,session,lane,dir,repos
  const seen=new Set(readMemoryFiles(dir,repository,L.seen).flatMap(file=>file.map(row=>row.key))),found=new Set(),units=[];
  const add=unit=>{const key=unitKey(unit.evidence);if(!seen.has(key)&&!found.has(key)){found.add(key);units.push(unit);}};
  const reviewsRoot=path.join(repoRoot,'docs','reviews');
- const tracked=runGit(repoRoot,['ls-tree','-r','--name-only','refs/heads/main','--','docs/reviews/']);
- const allowedFiles=new Set(tracked.status===0?String(tracked.stdout).split(/\r?\n/u).map(n=>n.trim()).filter(Boolean):[]);
- const reviewOptions={reviewsRoot,from:START_INSTANT.slice(0,10),...(lane?{lanePattern:laneFolderPattern(lane)}:{}),allowedFiles,repoRoot};
- if(lane) for(const unit of reviewUnits(reviewOptions)) add(unit);
+ const reviews=lanePattern=>{
+  const allowedFiles=new Set();
+  // Bound each Git response to one needed folder, not the lifetime review corpus.
+  if(fs.existsSync(reviewsRoot)) for(const folder of fs.readdirSync(reviewsRoot,{withFileTypes:true})) {
+   if(!folder.isDirectory()||(lanePattern&&!lanePattern.test(folder.name)))continue;
+   const tracked=gitText(runGit,repoRoot,['ls-tree','-r','--name-only','refs/heads/main','--',`docs/reviews/${folder.name}/`]);
+   for(const file of tracked.split(/\r?\n/u).map(n=>n.trim()).filter(Boolean))allowedFiles.add(file);
+  }
+  return reviewUnits({reviewsRoot,from:START_INSTANT.slice(0,10),lanePattern,allowedFiles,repoRoot});
+ };
+ if(lane) for(const unit of reviews(laneFolderPattern(lane))) add(unit);
  if(session&&fs.existsSync(session)) for await(const unit of unitsIn(session,{since:START_INSTANT})) add(unit);
  for(const {file} of sourceFiles({repoRoot,projectsRoot})) for await(const unit of unitsIn(file,{since:START_INSTANT})) add(unit);
- if(!lane) for(const unit of reviewUnits(reviewOptions)) add(unit);
+ if(!lane) for(const unit of reviews()) add(unit);
  else {
   // Remembered land requests distinguish pending earlier lands from an unrelated prefix folder.
   const requests=path.join(gitCommonDir(dir,{runGit}),R.sources,repositoryFolder(repository),'run'),lanes=new Set();
   if(fs.existsSync(requests)) for(const file of fs.readdirSync(requests).sort()) {
    try {const request=JSON.parse(fs.readFileSync(path.join(requests,file),'utf8'));if(request.lane!==lane)lanes.add(request.lane);}catch{}
   }
-  for(const previous of lanes) for(const unit of reviewUnits({...reviewOptions,lanePattern:laneFolderPattern(previous)})) add(unit);
+  for(const previous of lanes) for(const unit of reviews(laneFolderPattern(previous))) add(unit);
  }
  return units;
 }
@@ -95,11 +102,15 @@ export async function makeMemory(options) {
  const keepLocal=()=>atomicJson(path.join(gitdir,R.lastRun.replace('<id>',repositoryFolder(repository))),health);
  const release=acquireMemoryLock(lock,{now});if(!release) {keepLocal();return health;}
  try {
-  const fetched=fetchProfile(pointer,runGit);
-  const branch=fetched.branch??gitText(runGit,dir,['symbolic-ref','--short','HEAD']);
-  // Fail fast on clone contention before sending anything. Network fetch has already finished.
-  try {withProfileLock(dir,runGit,()=>{recoverProfile(dir,runGit,()=>{},{now});commitProfile(dir,runGit,'Keep private memory');if(fetched.ok&&!rebaseProfile(dir,branch,runGit).ok)throw Error(W.failed);},{waitMs:0});}
-  catch {keepLocal();return health;}
+  let fetched,branch;
+  // A stopped rebase can detach HEAD: recover under ownership before fetch reads the branch.
+  try {
+   withProfileLock(dir,runGit,()=>recoverProfile(dir,runGit,()=>{},{now}),{waitMs:0});
+   fetched=fetchProfile(pointer,runGit);
+   branch=fetched.branch??gitText(runGit,dir,['symbolic-ref','--short','HEAD']);
+   // Network is outside ownership; recover again in case another writer stopped meanwhile.
+   withProfileLock(dir,runGit,()=>{recoverProfile(dir,runGit,()=>{},{now});commitProfile(dir,runGit,'Keep private memory');if(fetched.ok&&!rebaseProfile(dir,branch,runGit).ok)throw Error(W.failed);},{waitMs:0});
+  }catch(error) {health.outcome=error.message===PROFILE_WORDS.locked?W.busy:W.failed;keepLocal();return health;}
   const repoRoot=defaultMemoryRepo(options.repoRoot,{runGit:root=>runGit(root,['rev-parse','--git-common-dir'])}),units=await pendingUnits({...options,repoRoot});
   const reservation=dayReservation(gitdir,{now,dayCap:options.caps?.dayTokens??DAY_TOKEN_CAP});let settle=null;
   const result=await extractShaped({...options,unitSource:units,runModel:options.runModel,caps:{tokens:RUN_TOKEN_CAP,calls:RUN_CALL_CAP,...options.caps,unknownCharge:UNKNOWN_USAGE_CHARGE},beforeCall:()=>{

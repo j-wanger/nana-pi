@@ -280,7 +280,9 @@ Making uses the unchanged model shaper, starting at `2026-10-31T18:16:00Z`, neve
 backfill. It sweeps new transcript units for the main checkout and its standard worktree
 folder keys. The `--session <file>` flag prioritizes one transcript.
 A land makes its own lane and drains remembered earlier lands; only commands without a lane sweep all landed review folders.
-Those requests are immutable machine-local files recorded even when a run is busy or capped. Only committed main review paths are eligible. Per-unit immutable seen files cover asks,
+Those requests are immutable machine-local files recorded even when a run is busy or capped. Only committed main review paths are eligible.
+Git lists each needed review folder separately; a failed or over-cap listing makes status fail, never report zero pending.
+Per-unit immutable seen files cover asks,
 skipped turns, valid replies and completed malformed replies. Failed calls remain pending.
 
 The run caps calls at 20 and tokens at 200,000. A machine-wide UTC day ledger reserves
@@ -291,8 +293,9 @@ leaves units pending. Model calls, fetch and captured-SHA push do not hold the c
 Every synchronized project record, event, seen file, evidence copy and count-only run
 file publishes complete bytes atomically without replacing an existing name.
 Project readers skip unparseable JSON; status reports its count as `unparseable`.
-Root profile reads remain strict. Merge errors report `memory: merge failed`, not busy.
-The second, local-only clone-lock step waits up to 1,000 milliseconds for a brief seat save.
+Root profile reads remain strict. Preparation errors report `memory: failed`; merge errors report `memory: merge failed`, not busy.
+Before fetch reads the branch, the maker recovers paused rebases under the clone lock.
+The final, local-only clone-lock step waits up to 1,000 milliseconds for a brief seat save.
 Each model call requires elapsed time plus its full batch timeout to fit within the run limit.
 Busy runs retain local health when the clone cannot be written.
 
