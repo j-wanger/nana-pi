@@ -1,18 +1,18 @@
-seat-mutate: lane ci-suite, tip c7d362055cff5168f44f6ea56fbde7331890de76, table 7bbb47b3f6ba4bfb8809eddd4c1fb5d473f61dd75f660c0cb3fb0ee0191b5cf5, merge-base 6c4b536332dd7bc10f1cc43163946336a4816fad, 16 pairs in 4 shards (4+4+4+4, round-robin, 1s apart), darwin, node v22.22.2, 2026-11-01T17:44:35.612Z
+seat-mutate: lane ci-suite, tip c4a0a450fc9705e8b3805efc37229b827c904f89, table 224545c8430e723d23552060089461143ec4da5a40ec723ccdeebd3d8d38effe, merge-base 0b434e9449d853cf3156084271a1378f9247035a, 17 pairs in 4 shards (5+4+4+4, round-robin, 1s apart), darwin, node v22.22.2, 2026-11-01T21:55:33.953Z
 DECLARED Plan pairs 1–9, split where the plan names alternatives; runner filter and new seals are also broken.
-[1/4] seat-mutate: lane ci-suite, shard 1/4, tip c7d362055cff5168f44f6ea56fbde7331890de76, merge-base 6c4b536332dd7bc10f1cc43163946336a4816fad, 4 pairs, darwin, node v22.22.2, 2026-11-01T17:44:36.961Z
+[1/4] seat-mutate: lane ci-suite, shard 1/4, tip c4a0a450fc9705e8b3805efc37229b827c904f89, merge-base 0b434e9449d853cf3156084271a1378f9247035a, 5 pairs, darwin, node v22.22.2, 2026-11-01T21:55:35.022Z
 [1/4] BASELINE ok   packages/nana-pack/tests/land-ci-suite.test.mjs (exit 0, 6 PASS, 0 FAIL, )
-[1/4] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
-[2/4] seat-mutate: lane ci-suite, shard 2/4, tip c7d362055cff5168f44f6ea56fbde7331890de76, merge-base 6c4b536332dd7bc10f1cc43163946336a4816fad, 4 pairs, darwin, node v22.22.2, 2026-11-01T17:44:38.303Z
+[1/4] RESULT: 5/5 red (4 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/4] seat-mutate: lane ci-suite, shard 2/4, tip c4a0a450fc9705e8b3805efc37229b827c904f89, merge-base 0b434e9449d853cf3156084271a1378f9247035a, 4 pairs, darwin, node v22.22.2, 2026-11-01T21:55:36.057Z
 [2/4] BASELINE ok   packages/nana-pack/tests/land-ci-suite.test.mjs (exit 0, 6 PASS, 0 FAIL, )
-[2/4] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 67 PASS, 0 FAIL, )
 [2/4] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
-[3/4] seat-mutate: lane ci-suite, shard 3/4, tip c7d362055cff5168f44f6ea56fbde7331890de76, merge-base 6c4b536332dd7bc10f1cc43163946336a4816fad, 4 pairs, darwin, node v22.22.2, 2026-11-01T17:44:39.727Z
+[3/4] seat-mutate: lane ci-suite, shard 3/4, tip c4a0a450fc9705e8b3805efc37229b827c904f89, merge-base 0b434e9449d853cf3156084271a1378f9247035a, 4 pairs, darwin, node v22.22.2, 2026-11-01T21:55:37.228Z
 [3/4] BASELINE ok   packages/nana-pack/tests/land-ci-suite.test.mjs (exit 0, 6 PASS, 0 FAIL, )
-[3/4] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 53 PASS, 0 FAIL, )
-[3/4] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
-[4/4] seat-mutate: lane ci-suite, shard 4/4, tip c7d362055cff5168f44f6ea56fbde7331890de76, merge-base 6c4b536332dd7bc10f1cc43163946336a4816fad, 4 pairs, darwin, node v22.22.2, 2026-11-01T17:44:41.276Z
+[3/4] BASELINE ok   packages/nana-pack/tests/worker-lane.test.mjs (exit 0, 67 PASS, 0 FAIL, )
+[3/4] RESULT: 4/4 red (4 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/4] seat-mutate: lane ci-suite, shard 4/4, tip c4a0a450fc9705e8b3805efc37229b827c904f89, merge-base 0b434e9449d853cf3156084271a1378f9247035a, 4 pairs, darwin, node v22.22.2, 2026-11-01T21:55:38.371Z
 [4/4] BASELINE ok   packages/nana-pack/tests/land-ci-suite.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[4/4] BASELINE ok   packages/nana-pack/tests/test-runner.test.mjs (exit 0, 53 PASS, 0 FAIL, )
 [4/4] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
 RED 1 passing workflow runs skip without record proof — 1/1 named: R-3431: unproven full-suite CI falls back once, while a carried rerun leg qualifies; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED 2a accept a filtered record — 1/1 named: R-3431: unproven full-suite CI falls back once, while a carried rerun leg qualifies; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
@@ -23,11 +23,12 @@ RED 4b ignore the injected proof platform — 1/1 named: R-3430: passing same-pl
 RED 5a accept a superseded run — 1/1 named: R-3431: unproven full-suite CI falls back once, while a carried rerun leg qualifies; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED 5b keep an earlier passing attempt over a failed later one — 1/1 named: R-3431: unproven full-suite CI falls back once, while a carried rerun leg qualifies; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED 6 ignore the changed-path list — 1/1 named: R-3432: changed workflow or runner forces local coverage, but other scripts do not; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED rename restore rename detection for changed paths — 1/1 named: R-3432: changed workflow or runner forces local coverage, but other scripts do not; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED 7a turn an unreadable run list into a local fallback — 1/1 named: R-3434: unreadable, absent, unfinished and unsuccessful CI refuse before any suite; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED 7b allow cancelled CI to fall back or substitute — 1/1 named: R-3434: unreadable, absent, unfinished and unsuccessful CI refuse before any suite; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED 8a record CI suite time as zero instead of null — 1/1 named: R-3430: passing same-platform full-suite CI replaces the local suite and records its source; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED 8b render a legacy end record differently — 1/1 named: R-3435: land readers distinguish CI, local and legacy suite times without changing old lines; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
-RED 9 retain the obsolete full-suite-before-last instruction — 1/1 named: R-3436: the preamble pins the CI full-suite fallback and contains none of the replaced lines; 1 FAIL total (1 file changed, 1 insertion(+))
+RED 9 restore the reversed CI full-suite default — 1/1 named: R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the …; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED runner omit the runner filter field — 1/1 named: R-3433: whole-run records carry the actual path filters, empty for an unfiltered run; UNNAMED red: [test-runner.test.mjs] packages/probe/tests/c-silent.test.mjs  0 pass  0.0s  — no check passed and no skip was declared; 2 FAIL total (1 file changed, 1 deletion(-))
-RED seals retune every new declared contract value — 1/1 named: seal: CI suite prefix, fallback paths and one run-list retry are declared once; UNNAMED red: [land-ci-suite.test.mjs] R-3430: passing same-platform full-suite CI replaces the local suite and records its source AssertionError [E… | [land-ci-suite.test.mjs] R-3431: unproven full-suite CI falls back once, while a carried rerun leg qualifies AssertionError [ERR_ASSER… | [land-ci-suite.test.mjs] R-3432: changed workflow or runner forces local coverage, but other scripts do not AssertionError [ERR_ASSERT… | [land-ci-suite.test.mjs] R-3435: land readers distinguish CI, local and legacy suite times without changing old lines AssertionError […; 5 FAIL total (2 files changed, 5 insertions(+), 5 deletions(-))
-RESULT: 16/16 red (14 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived, across 4 shards
+RED seals retune every new declared contract value — 1/1 named: seal: CI suite prefix, fallback paths and one run-list retry are declared once; UNNAMED red: [land-ci-suite.test.mjs] R-3430: passing same-platform full-suite CI replaces the local suite and records its source AssertionError [E… | [land-ci-suite.test.mjs] R-3431: unproven full-suite CI falls back once, while a carried rerun leg qualifies AssertionError [ERR_ASSER… | [land-ci-suite.test.mjs] R-3432: changed workflow or runner forces local coverage, but other scripts do not AssertionError […; 5 FAIL total (2 files changed, 5 insertions(+), 5 deletions(-))
+RESULT: 17/17 red (15 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived, across 4 shards
