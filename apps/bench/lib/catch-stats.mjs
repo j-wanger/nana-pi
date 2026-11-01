@@ -27,10 +27,11 @@ export function cohensKappa(a, b) {
 	return { kappa, po, pe, n };
 }
 
-/** Deterministic seeded sample: order by sha256(seed|id), take k. */
-export function seededSample(ids, k, seed) {
+/** Order by sha256(seed|id), take k; return sorted ids unless seedOrder is requested. */
+export function seededSample(ids, k, seed, { seedOrder = false } = {}) {
 	const h = (id) => crypto.createHash("sha256").update(`${seed}|${id}`).digest("hex");
-	return [...ids].sort((x, y) => (h(x) < h(y) ? -1 : h(x) > h(y) ? 1 : 0)).slice(0, k).sort();
+	const sample = [...ids].sort((x, y) => (h(x) < h(y) ? -1 : h(x) > h(y) ? 1 : 0)).slice(0, k);
+	return seedOrder ? sample : sample.sort();
 }
 
 /**

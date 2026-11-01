@@ -62,7 +62,7 @@ export async function runAnatomy(argv, { stdout = (s) => process.stdout.write(s)
    if (!c) throw new Error("context selection");
    const result = assembleParts(c, { drop: args.drop, stage: args.stage });
    const manifest = [];
-   for (const p of result.parts) { const file = `part-${p.index + 1}.txt`; write(out, file, p.text); manifest.push({ file, part: p.name, chars: p.text.length }); }
+   for (const p of result.parts) { const file = `part-${p.index + 1}.txt`; write(out, file, p.text); manifest.push({ file, part: p.name, attempt: p.attempt, chars: p.text.length }); }
    if (args.stage) write(out, STAGED_FILE, result.staged);
    write(out, MANIFEST_FILE, JSON.stringify(manifest) + "\n");
    print({ command: "assemble", parts: result.parts.length, chars: result.parts.reduce((n, p) => n + p.text.length, 0), removedUnits: result.removedUnits, removedChars: result.removedChars, stagedChars: result.staged.length });

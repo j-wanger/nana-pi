@@ -17,8 +17,8 @@ import { extractContexts } from "../lib/anatomy-sessions.mjs";
 import { segmentPart } from "../lib/anatomy-spans.mjs";
 import { pullsOf } from "../lib/anatomy-pulls.mjs";
 import { reportContexts, drawSample, agreement, assembleParts } from "../lib/anatomy-measures.mjs";
-import { FUNCTIONS, RULES, OVERSIZE_UNIT_CHARS, SHARE_DIGITS, STAGE_POINTER, SAMPLE_MIN_FUNCTION, KAPPA_MIN_COUNT } from "../lib/anatomy-config.mjs";
-import { cohensKappa } from "../lib/catch-stats.mjs";
+import { FUNCTIONS, RULES, OVERSIZE_UNIT_CHARS, SHARE_DIGITS, STAGE_POINTER, SAMPLE_MIN_FUNCTION, SAMPLE_SIZE, KAPPA_MIN_COUNT } from "../lib/anatomy-config.mjs";
+import { cohensKappa, seededSample } from "../lib/catch-stats.mjs";
 import { collectBuildUsage } from "../../../packages/nana-pack/lib/build-records.mjs";
 import { totalTokens } from "../../../packages/nana-pack/lib/pi-usage.mjs";
 import { entriesIn } from "../../../packages/nana-pack/lib/claude-transcript.mjs";
@@ -170,6 +170,12 @@ await test("R-3274: assembly uses spans and preserves whole cut and staged text"
  const cut = assembleParts(c, { drop: "method" }); assert.equal(cut.removedUnits, 1); assert.equal(cut.removedChars, units[0].text.length); assert(!cut.parts[0].text.includes("# Method")); assert(cut.parts[0].text.includes("# Facts"));
  const staged = assembleParts(c, { stage: "method" }); assert.equal(staged.staged, units.map((s) => s.text).join("")); assert.equal(staged.parts[0].text, raw.replace(units[0].text, STAGE_POINTER));
  const two = context("two", 1, [part("brief", "# Method\n\nWrite the failing test first.\n\nWrite the failing test first.")]); const runs = assembleParts(two, { stage: "method" }); assert.equal(runs.parts[0].text.split(STAGE_POINTER).length - 1, 1);
+ const attempts = context("attempts", 1, [0, 1].map((attempt) => ({ ...part("brief", `${raw}\r\nAttempt ${attempt}. \t`, `attempt-${attempt}`), attempt })));
+ const input = folder("assembly-input"), out = path.join(folder("private"), "attempts"); jsonl(path.join(input, "contexts.jsonl"), [attempts]);
+ assert.equal((await cli(["assemble", "--in", input, "--out", out])).exit, 0);
+ const manifest = JSON.parse(fs.readFileSync(path.join(out, "parts.json"), "utf8"));
+ assert.deepEqual(manifest, attempts.parts.map((p, i) => ({ file: `part-${i + 1}.txt`, part: "brief", attempt: p.attempt, chars: p.raw.length })));
+ for (const [i, p] of manifest.entries()) assert.equal(fs.readFileSync(path.join(out, p.file), "utf8"), attempts.parts[i].raw);
 });
 
 // req: R-3275
@@ -185,6 +191,22 @@ await test("R-3275: wrapped and dedicated pulls count exact calls chars and func
 await test("R-3276: blinded seeded sample and three-pair agreement reject unequal ids", async () => {
  const c = context("a", 1, labelled.map(([t], i) => part("brief", t, `s${i}`))); const s = drawSample([c], { seed: "fixed", n: 100 }); assert.deepEqual(s, drawSample([c], { seed: "fixed", n: 100 })); assert(s.every((u) => Object.keys(u).sort().join() === "id,text"));
  for (const f of FUNCTIONS) assert(s.filter((u) => labelled.find(([t, l]) => t === u.text.trim() && l === f)).length >= Math.min(SAMPLE_MIN_FUNCTION, labelled.filter(([, l]) => l === f).length));
+ // One tier across many builds: the fill must sample the population, not the lowest build ids.
+ const builds = Array.from({ length: 60 }, (_, i) => context(`build-${String(i).padStart(2, "0")}`, 1, [part("brief", Array(20).fill("Synthetic neutral prose.").join("\n\n"), `build-${String(i).padStart(2, "0")}`)]));
+ const allIds = builds.flatMap((c) => c.parts.flatMap((p) => p.spans.filter((s) => s.kind === "unit").map((s) => s.id)));
+ const owner = new Map(builds.flatMap((c) => c.parts.flatMap((p) => p.spans.map((s) => [s.id, c.id]))));
+ const seeds = ["fixed", "different"], samples = seeds.map((seed) => drawSample(builds, { seed, n: SAMPLE_SIZE }));
+ const minima = new Set(seeds.flatMap((seed) => drawSample(builds, { seed, n: 1 }).map((s) => s.id)));
+ const beyond = samples.map((rows) => rows.filter((s) => !minima.has(s.id)).map((s) => s.id));
+ assert.notDeepEqual(beyond[0], beyond[1], "seeds must change units beyond their minimum picks");
+ // At least half the fixture's builds must appear, rather than the few that hold a sorted prefix.
+ const buildFloor = Math.ceil(builds.length / 2);
+ for (const [i, rows] of samples.entries()) {
+  const spread = new Set(rows.map((s) => owner.get(s.id))).size;
+  assert(spread >= buildFloor, `sample spans ${spread} builds; fixture floor ${buildFloor}`);
+  assert.deepEqual(rows.map((s) => s.id).sort(), seededSample(allIds, SAMPLE_SIZE, seeds[i]), "the entire tier fill follows seed order");
+  assert.deepEqual(rows, drawSample([...builds].reverse(), { seed: seeds[i], n: SAMPLE_SIZE }));
+ }
  const units = [part("brief", "Add a flag.", "u1"), part("brief", "Never " + "long ".repeat(50), "u2"), part("brief", "Run a command.", "u3")]; const contexts = [context("sample", 1, units)];
  const ids = units.flatMap((p) => p.spans).filter((u) => u.kind === "unit").map((u) => u.id); const a = ids.map((id, i) => ({ id, label: ["task", "constraints", "tools"][i] })), b = ids.map((id, i) => ({ id, label: ["task", "task", "tools"][i] }));
  const result = agreement(contexts, a, b); assert.equal(result.pairs.length, 3); const ab = result.pairs.find((p) => p.pair === "a:b"); assert.equal(ab.kappa.kappa, cohensKappa(a.map((x) => x.label), b.map((x) => x.label)).kappa); assert.notEqual(ab.charAgreement, ab.kappa.po); assert.equal(result.consensus, 2); assert.equal(ab.confusions[0].count, 1);

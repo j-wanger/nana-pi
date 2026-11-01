@@ -1,0 +1,79 @@
+PASS κ 2×2 by hand = 0.5 
+PASS κ textbook 20/5/10/15 = 0.4 
+PASS κ perfect agreement = 1 
+PASS κ one-category both raters = 1 (degenerate pe=1) 
+PASS κ rejects unequal vectors 
+PASS seeded sample is order-independent and deterministic 
+PASS corpus: 35 reviewer reports (35)
+PASS corpus: 28 fix briefs (28)
+PASS corpus: every report yields ≥1 row 
+PASS extraction is deterministic (two runs byte-identical) 
+PASS row ids unique 
+PASS l3-sol-r1: the 7 numbered severity findings, in order 
+PASS l3-sol-r1 #3 surface + role tag 
+PASS l1-sol-r1: heading items own their bullet lists (2 findings, not 7) 
+PASS l1-sol-r1 #1 carries both role tags 
+PASS t2b-sol-r2: 9 verification lines (#1–#9) + new findings #10–#13,#15 
+PASS l3-astra-land: exactly its 2 MUST items 
+PASS astra SCORE lines: 13 parsed (6,7×6,9×6) 6777777999999
+PASS fix brief → answered report (header 'Read …') 
+PASS seat-raised fix briefs answer no report 
+PASS answeredReport ignores names outside the Read clause 
+PASS no silent drop: every top-level item is a row or logged 
+PASS synthetic: heading item, MUST, inline CARRY split (3), verification, NEW inline finding:HIGH,finding:MUST,carry:-,carry:-,carry:-,verification:-,finding:-
+PASS synthetic: heading item absorbs its bullet 
+PASS synthetic: verdict parsed 
+PASS stage: same file, lines 10-12 vs 16-20 within ±5 → line 
+PASS stage: same file, far lines → file only 
+PASS stage: no refs → no hint (semantic stage only) 
+PASS same_as is symmetrised 
+PASS matchGraph: unknown id in same_as throws match: z/astra-r1#3 names unknown id not-in-pool
+PASS matchGraph: unknown id in covers throws match: z/astra-r1#3 names unknown id not-in-pool
+PASS matchGraph: an id in both same_as and covers throws match: z/astra-r1#3 lists z/astra-r1#2 in both same_as and covers
+PASS cross-rung match → not unique, matched_sol 
+PASS same-report restatement → later row is a duplicate, earlier stays unique 
+PASS duplicates are excluded from findings 
+PASS chain sol-r1 ~ astra-r2 ~ astra-r1: astra-r1 matched_sol via component 
+PASS chain: matched_other_rungs spans the whole component 
+PASS chain: claims() does not count astra-r1#1 as sol-unmatched 
+PASS component: later same-report row in the component is a duplicate 
+PASS components(): singleton for an isolated row 
+PASS bundle: #2 and #3 stay in different components 
+PASS bundle: #3 is NOT a within-report duplicate 
+PASS bundle: the bundle #5 is the within-report duplicate 
+PASS bundle: sol match on #2 does not leak to #3 through the bundle 
+PASS bundle first: bundle dropped, atoms kept 
+PASS covered by a sol bundle → matched_sol, not unique, via containment only 
+PASS covering an astra row → the sol bundle is matched too (either direction) 
+PASS cross-report covers never drops 
+PASS claims(): row covered by sol is not sol-unmatched 
+PASS mutual covers → same_as, counted {"same_as_pairs":2,"covers_pairs":0,"mutual_covers_as_same_as":1,"same_as_vs_covers_as_covers":0}
+PASS same_as one side, covers other side → covers (non-merging), counted {"same_as_pairs":0,"covers_pairs":1,"mutual_covers_as_same_as":0,"same_as_vs_covers_as_covers":1}
+PASS stage: src/one/config.ts vs src/two/config.ts → no hint []
+PASS stage: legacy basename rule still conflates them (kept only for cache keys) 
+PASS samePath: bare basename is compatible with a full path 
+PASS samePath: partial suffix compatible 
+PASS samePath: different parent dirs differ 
+PASS samePath: ~ ignored, .. resolved canonically 
+PASS samePath: a/b/../c → a/c 
+PASS samePath: .. is not deleted (x/b/../c ≠ b/c) 
+PASS confidence: quote names #N → explicit 
+PASS confidence: 6-word shared span → explicit 
+PASS confidence: verified quote without either → semantic 
+PASS confidence: MUST N only counts for a MUST row 
+PASS confidence: no verified disposition → null 
+PASS judge missing → throws 'unavailable' 
+PASS judge exit 1 → throws 
+PASS judge non-JSON → throws 
+PASS judge is_error → throws 
+PASS judge silently on another model → throws 
+PASS judge well-formed → returns structured output + cost 
+PASS R-1520: the judge child starts in the OS temp folder, not a fixed /tmp /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/catch-judge-NKbWuS/judge-tmp-r0sMAo vs /var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/catch-judge-NKbWuS/judge-tmp-r0sMAo
+PASS labels: missing id → throws 
+PASS labels: verbatim quote (whitespace-normalised) keeps 'accepted' 
+PASS labels: unverifiable quote forces 'unmatched' and keeps the raw claim 
+PASS the study reproduces its recorded results with no model call {"statuses":[["extract",0,""],["label a",0,""],["label b",0,""],["label c",0,""],["match a",0,""],["match b",0,""],["build",0,""]],"files":15,"changed":[],"digestChanges":[]}
+PASS seal: catch-ledger study digests {"results.json":"026fcd79be31a215afdc05391033a1282e7c42b6b3b06e6ca5af71a02b85c939","table.md":"1d77455da61c18d1521c3fb62eba1b37f7d93c9e2521616a8d03c4c52359f6da","kappa-pairs.json":"d3fb28269a34c97b276a2050117caed80c7e1a401e488a7865fde9ccd75eef36","reports.json":"d2dd7353c73415c53ed013229eb5ea9a112a1072194c7c3285318d5f8c15a43b"}
+PASS CLI: judge unavailable → exit non-zero, nothing labelled 
+PASS CLI: build without labels → exit non-zero 
+all PASS

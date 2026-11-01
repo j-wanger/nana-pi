@@ -470,12 +470,14 @@ Reworded repeats and interpreter-mediated reads remain residuals; interpreter co
 
 The blind `sheet.jsonl` has only `id` and `text`. Labellers add a `label` from the definitions in
 `lib/anatomy-config.mjs` (or `unsorted`). `sample` accepts `--n`; function/tier minima may exceed that request.
+After the minima, it fills round-robin across tiers in seeded unit-id order; the blind sheet is sorted by id.
 `agree` prints all three rater pairs, char-weighted agreement, per-function kappa above the configured count,
 confusions and the count of units where both labellers agree. It also compares rules against that consensus.
 Definitions and rules were written before corpus labelling; the seat measures reliability before interpreting shares.
 These results describe supply, not causal effects or slice-2 target choices.
 
-Assembly writes numbered part files plus a parts.json manifest. Omit `--context` only for a store with one build.
+Assembly writes numbered part files plus a parts.json manifest with each part's zero-based attempt.
+Omit `--context` only for a store with one build.
 Use `--drop <function>` to remove units and orphan headings, or `--stage <function>` to replace runs with a fixed pointer
 and put the ordered units in staged.txt. These options are mutually exclusive. Separators stay glue.
 Assembly uses spans, never the audit copy of the raw part. A later replay must pass these private files from outside its checkout.

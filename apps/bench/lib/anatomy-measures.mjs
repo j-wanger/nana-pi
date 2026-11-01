@@ -75,13 +75,13 @@ export function reportContexts(contexts) {
  };
 }
 
-/** Minima are selected first, then round-robin within rule tiers; seed order is imported. */
+/** Pick function/tier minima, then round-robin through seed-ordered tiers; return id-sorted blind rows. */
 export function drawSample(contexts, { seed, n = SAMPLE_SIZE } = {}) {
  if (typeof seed !== "string" || !seed || !Number.isSafeInteger(n) || n < 1) throw new Error("invalid sample options");
  const units = flat(contexts).map(({ s }) => s).filter((s) => s.kind === "unit"), selected = new Set();
  for (const label of FUNCTIONS) for (const id of seededSample(units.filter((s) => s.label === label).map((s) => s.id), SAMPLE_MIN_FUNCTION, seed)) selected.add(id);
  for (const tier of RULE_TIERS) for (const id of seededSample(units.filter((s) => s.tier === tier).map((s) => s.id), SAMPLE_MIN_TIER, seed)) selected.add(id);
- const strata = RULE_TIERS.map((tier) => seededSample(units.filter((s) => s.tier === tier && !selected.has(s.id)).map((s) => s.id), units.length, seed));
+ const strata = RULE_TIERS.map((tier) => seededSample(units.filter((s) => s.tier === tier && !selected.has(s.id)).map((s) => s.id), units.length, seed, { seedOrder: true }));
  let added = true;
  while (selected.size < n && added) {
   added = false;
@@ -140,7 +140,7 @@ export function assembleParts(context, { drop, stage } = {}) {
    if (s.kind === "unit" || s.heading) staging = false;
    text += s.text;
   }
-  return { index, name: safePart(part.name), text };
+  return { index, name: safePart(part.name), attempt: part.attempt, text };
  });
  return { parts, staged, removedUnits, removedChars };
 }
