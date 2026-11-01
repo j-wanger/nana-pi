@@ -6,8 +6,8 @@ Seat ruling: the Windows `claude.cmd` case stays a known bug. It was a plan resi
 
 ## Precedent
 
-- build 3's uncommitted diff in this worktree
 - `packages/nana-pack/lib/profile-sync.mjs` (`unpushedProfile`)
+- `scripts/memory-shape-runners.mjs` (as on main; build 3's uncommitted diff to it is reverted)
 
 Report each departure.
 
