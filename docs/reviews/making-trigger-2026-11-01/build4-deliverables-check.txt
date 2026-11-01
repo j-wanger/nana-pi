@@ -1,0 +1,7 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs requirements-deliverables
+
+PASS  packages/nana-pack/tests/requirements-deliverables.test.mjs  21 pass  0.7s
+
+1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 21 pass, 0 fail, 0 skip · 1.0s
