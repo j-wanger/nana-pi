@@ -5,7 +5,8 @@ The implementation and local suite pass. The required local install check still 
 ## Commits and scope
 
 - `57a5adac`: implementation, requirements, eight must-meets, five seals, fixtures, generated maps and initial evidence. Followed the green 245-check touched run in `touched-final.log`.
-- Evidence-only follow-up: fixes the lane mutation table's `self` URL and exit-code propagation, adds verification records, removes local machine paths from early logs and records the green locked suite. No runtime code changes after `57a5adac`.
+- `6889db9f`: evidence-only follow-up fixes the lane mutation table's `self` URL and exit-code propagation, adds verification records, removes local machine paths from early logs and records the green locked suite.
+- Cleanup follow-up: Windows CI passed all seven hook assertions but encountered `EBUSY` removing the detached fixture's home. Its cleanup now imports the existing sealed test-runner retry count and delay; no assertion, runtime code, new test, row or tunable changes. No runtime code changes after `57a5adac`.
 - Draft pull request: #295, opened at build 1. Branch: `feat/making-session-end`. No land performed.
 
 ## Items, files, rows and mutation pairs
@@ -47,7 +48,7 @@ Only expectations made false by this change were edited:
 - `packages/nana-pack/tests/memory-run-recovery.test.mjs`: status now ends in `unpushed 0`.
 - `packages/nana-pack/tests/templates-render.test.mjs`: the in-session runtime inventory excludes SessionEnd; the table has no memory-making column (plan A4).
 
-No existing test was deleted. New setup tests use their existing `tmpDir` helper after the full suite exposed the repository's direct-temp-allocation source rule.
+No existing test was deleted. New setup tests use their existing `tmpDir` helper after the full suite exposed the repository's direct-temp-allocation source rule. The new hook test's explicit cleanup also uses the test runner's existing sealed retry values, to tolerate the Windows fixture process briefly holding its cwd after writing its marker.
 
 ## Commands and exit codes
 
@@ -71,7 +72,7 @@ Environment for Node/toolchain-dependent runs: the existing global npm prefix wa
 The trace and known-bug records suppress Node's unrelated module-type warning, which otherwise exposes the local checkout's absolute path. Installation evidence replaces machine-specific executable paths with placeholders.
 
 ```
-255 files: 253 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8931 pass, 0 fail, 44 skip · 801.9s
+255 files: 253 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8931 pass, 0 fail, 44 skip · 728.3s
 requirements tree: 0 problems; rows 2363; features 43
 deliverables: 21 of 22 made and read by code, 21 more parked
 FAIL pi post-edit — write-error: write tool result is marked as an error
@@ -87,7 +88,7 @@ Earlier full runs exposed stale fixture expectations, raw machine paths in logs,
 - Followed lane-watcher/knowledge detached spawning; added the plan's hidden window and home cwd. Survival test follows the knowledge hook teardown test and adds the specified descendant kill.
 - Followed setup's desired hook, link, rebuild and install-check inventories. Existing health/stale-copy/uninstall producers pick up the new rows; no duplicate implementations.
 - Used a built-ins-only setup config module for the new seals (plan O1), `rev-list --count` for the local count (O3), and a per-row env-removal list for install-check (O4).
-- Test-harness departure from roster-notice: new tests import the existing profile `check` helper, wrap it with per-case deadlines, and use existing temp helpers. Reason: await every async case and enforce the brief's per-case limits without copying a harness.
+- Test-harness departure from roster-notice: new tests import the existing profile `check` helper, wrap it with per-case deadlines, and use existing temp helpers. Reason: await every async case and enforce the brief's per-case limits without copying a harness. Windows CI additionally required cleanup retries; these import the existing `TEMP_REMOVE_RETRIES` and `TEMP_REMOVE_RETRY_DELAY_MS` seals, not new tuning values.
 - Inventory-test adjustment described above is required by A4; neither AGENTS nor its canonical shared table changes. No other private helper moves or precedent departures.
 
 ## Known bugs touched and what remains
@@ -96,4 +97,4 @@ Read the whole FEAT-040 known-bug file. The detached-survival residual gains aut
 
 The plan's `refs/heads/main` limitation, listing-failure pending count, review-folder process cost, Windows startup-stall cancellation, default-refspec assumption and hidden downstream git-window caveat remain. No real owner-machine Windows check, land, model run, reviewer session, issue operation, HANDOFF edit or session-archive edit was performed.
 
-Initial CI run 41318232363 completed with identity-log failures on every suite leg and the documented Windows R-3104 timeout. All four install-check legs passed. The failed Windows job was rerun once as requested. The evidence-only follow-up removes the identity-log failures; the final response reports the finished new-tip CI run and any retry.
+Initial CI run 41318232363 completed with identity-log failures on every suite leg and the documented Windows R-3104 timeout. All four install-check legs passed. The failed Windows job was rerun once as requested. The evidence-only follow-up removed the identity-log failures. Its completed run 41321615578 passed both POSIX suites and all four install-check legs. The sole Windows failure was the new hook fixture cleanup (`EBUSY` after all seven assertions passed), fixed by the cleanup follow-up. The final response reports that follow-up tip's finished CI run and any retry.

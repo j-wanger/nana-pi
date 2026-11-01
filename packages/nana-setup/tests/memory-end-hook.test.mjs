@@ -8,6 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import { tmpDir } from "./tmp-dir.mjs";
+import { TEMP_REMOVE_RETRIES, TEMP_REMOVE_RETRY_DELAY_MS } from '../../nana-pack/lib/test-runner-config.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -81,4 +82,5 @@ try {
  await check('R-3359: seal stdin deadline',async()=>assert.equal((await config()).MEMORY_STDIN_DEADLINE_MS,300));
  // req: R-3360
  await check('R-3360: seal hook identity',async()=>assert.deepEqual((await config()).MEMORY_END_ENTRY,{event:'SessionEnd',file:'nana-memory-end.mjs',statusMessage:'nana: memory'}));
-} finally {fs.rmSync(td,{recursive:true,force:true});}
+// The detached fixture may still hold its cwd briefly after writing its marker on Windows.
+} finally {fs.rmSync(td,{recursive:true,force:true,maxRetries:TEMP_REMOVE_RETRIES,retryDelay:TEMP_REMOVE_RETRY_DELAY_MS});}

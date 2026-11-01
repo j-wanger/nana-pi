@@ -2845,7 +2845,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder removal retry count and delay, and checkoutSpellingSkipReason
 - **effects** — disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
 - **errors** — checkoutSpellingSkipReason propagates temporary-folder creation errors
-- **callers** — `packages/nana-pack/tests/lane-class.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
+- **callers** — `packages/nana-pack/tests/lane-class.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/tests/memory-end-hook.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/tree-kill-scan.mjs`
@@ -5360,8 +5360,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk, process
 - **errors** — Assertion failures set exit code one.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-start.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-setup/claude/hooks/nana-memory-end.mjs`, `packages/nana-setup/lib/memory-end-config.mjs`, `packages/nana-setup/lib/shared-memory-input.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
-- **unresolved launches** — line 27: spawn · line 70: spawn
+- **callees** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-start.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-setup/claude/hooks/nana-memory-end.mjs`, `packages/nana-setup/lib/memory-end-config.mjs`, `packages/nana-setup/lib/shared-memory-input.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **unresolved launches** — line 28: spawn · line 71: spawn
 
 ### `packages/nana-setup/tests/memory-end-wiring.test.mjs`
 
