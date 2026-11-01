@@ -1,0 +1,27 @@
+PASS counts interaction windows and pooled outcomes
+PASS repeats need earlier in-scope nonparallel sessions
+PASS decisions require prompting and same settlement
+PASS judge sees full lookback and rejects bad calls
+PASS spend cap and unknown usage remain visible
+PASS context loads split by window role launcher and part
+PASS commands stay private and Claude options stay isolated
+PASS scorer and comparison measure valid item agreement
+PASS seal: judge runner
+PASS seal: judge model
+PASS seal: judge effort
+PASS seal: dollar cap
+PASS seal: token cap
+PASS seal: batch size
+PASS seal: interaction sizes
+PASS seal: claim cap
+PASS seal: timeout
+PASS seal: buffer
+PASS seal: log cap
+PASS seal: minimum loads
+PASS seal: minimum repeats
+PASS seal: kind precision bar
+PASS seal: repeat precision bar
+PASS seal: repeat recall bar
+PASS seal: interval and power
+PASS seal: system prompt hash
+PASS seal: output words
