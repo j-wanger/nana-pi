@@ -20,6 +20,8 @@ export const LAND_OUTCOMES = Object.freeze(["landed", "refused", "no end"]);
 export const LAND_STAGES = Object.freeze(["preflight", "ci", "suite", "merge"]);
 // contract (R-2811, R-2812): end records use this CI-state vocabulary.
 export const LAND_CI_STATES = Object.freeze(["passed", "skipped", "refused", "not reached"]);
+// contract (R-3435): suite source is null until the suite decision is reached.
+export const LAND_SUITE_SOURCES = Object.freeze(["ci", "local"]);
 // contract (R-2812; GitHub REST workflow-run fields): CI wait starts at creation and ends at last update.
 export const LAND_CI_CREATED_FIELD = "created_at";
 export const LAND_CI_UPDATED_FIELD = "updated_at";

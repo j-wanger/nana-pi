@@ -361,6 +361,27 @@ function containsWholeWord(text, word) {
 	);
 }
 
+{
+	const ruling = "- 2026-11-01: In nana-pi, a tip's passing GitHub CI stands in for the local full suite for builders, seats and lands. Builders push and do not wait; the seat waits for CI. The local locked suite runs only when CI cannot stand in.";
+	const shared = fs.readFileSync(new URL("../../../templates/_shared/working-under-nana-pi.md", import.meta.url), "utf8");
+	const agents = fs.readFileSync(PROJECT_AGENTS_PATH, "utf8");
+	const begin = "<!-- nana:working-under-nana-pi begin -->\n", end = "<!-- nana:working-under-nana-pi end -->";
+	const rendered = agents.split(begin)[1].split(end)[0];
+	// req: R-3437
+	check("R-3437: the CI ruling and project-specific coverage govern the shared land checklist",
+		SHIPPED_TEXT.split("\n").filter((line) => line === ruling).length === 1
+			&& SHIPPED_TEXT.includes("- 2026-10-10: In nana-pi, Windows testing is required.")
+			&& SHIPPED_TEXT.includes("- 2026-10-12: In nana-pi, a setup or hook lane runs the install check locally on macOS before the land.")
+			&& shared.includes("where the project's `AGENTS.md` says CI covers its suite")
+			&& shared.includes("`nana-land` runs the suite only when the tip's CI cannot stand in")
+			&& shared.includes("run map and README checks and the suite check this project's AGENTS.md names")
+			&& !shared.includes("locked full-suite checks")
+			&& agents.split(end)[1].includes("CI covers this repository's suite")
+			&& agents.split(end)[1].includes("main's push run, read by the seat's main CI check, is the post-land suite check")
+			&& !shared.includes("CI covers this repository's suite") && rendered === shared,
+		"CI ruling, checklist or rendered shared source differs");
+}
+
 for (const td of tmps) {
 	try {
 		fs.rmSync(td, { recursive: true, force: true });

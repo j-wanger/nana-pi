@@ -152,6 +152,7 @@
 - City page (city-loop, seat check): in "The way back" at 1280 px the painted road names cross buildings and each other; at 390 px the chapter shows the whole city and the names cannot be read.
 - City page (city-loop, seat check): a visit draws the selection box from the place's full bounds, so its thin wire lines run far above the building and behind the card.
 - City page (city-loop build 2): the gesture checker run on its own can sample before the chapter is ready; the builder waited for each chapter in a wrapper instead of fixing the checker.
+- Land report (ci-suite, plan residual): a land that uses CI as the suite does not refresh the land report; fallback lands and hand runs do.
 - Component audit (audit-test-speed, build 1): three other cases audit the real repository and run 5 to 12 seconds locally (R-3101, R-3103, R-3106 at 12.3 s), so they grow with the repository toward the 20 s limit.
 - City page (city-loop, final review): two landing lines ("Each place reads records before it acts and leaves a record behind", "Records carry the next plan") claim more than the drawn roads, and the retired-claim check does not cover them.
 - City page (city-loop, final review): parts of the R-3173 ribbon test pin exact material colours and offset constants, restating the implementation.

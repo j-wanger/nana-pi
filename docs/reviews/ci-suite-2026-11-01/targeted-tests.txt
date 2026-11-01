@@ -1,0 +1,15 @@
+PASS  packages/nana-pack/tests/build-report.test.mjs          5 pass  3.0s
+PASS  packages/nana-pack/tests/ci-records.test.mjs            6 pass  4.7s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs       7 pass  22.1s
+PASS  packages/nana-pack/tests/rulings.test.mjs               22 pass  0.2s
+PASS  packages/nana-pack/tests/land-records.test.mjs          7 pass  28.6s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs          11 pass  22.4s
+PASS  packages/nana-pack/tests/land-ci-suite.test.mjs         6 pass  46.8s
+PASS  packages/nana-pack/tests/suite-records.test.mjs         9 pass  16.5s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  32.8s
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  31.7s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs           67 pass  33.2s
+PASS  packages/nana-pack/tests/land.test.mjs                  66 pass  123.0s
+PASS  packages/nana-pack/tests/templates-render.test.mjs      173 pass  103.1s
+
+13 files: 13 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 443 pass, 0 fail, 0 skip · 148.2s
