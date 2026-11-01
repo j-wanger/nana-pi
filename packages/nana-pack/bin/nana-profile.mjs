@@ -90,7 +90,7 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
    recoverProfile(dir,runGit,log,{now});
    if(p.command==='sync') {const result=syncProfile(pointer,{runGit,log});if(!result.ok) {error(`${W.notPushed}${result.reason}`);return 1;}log(W.synced);return 0;}
    const input=readProfileStore(dir);
-   const memory=readMemoryStore(dir); const targets=memory.filter(r=>r.id.startsWith(p.id));
+   const memory=readMemoryStore(dir); const targets=memory.filter(r=>r.id.startsWith(p.id.toLowerCase()));
    if(p.command!=='save'&&(!/^[a-f0-9]{12,}$/i.test(p.id)||targets.length!==1)) throw Error(W.unknown);
    const previous=p.command==='save'?undefined:targets[0]; const id=previous?.id;
    if(['confirm','retract'].includes(p.command)) {

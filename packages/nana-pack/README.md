@@ -123,7 +123,8 @@ Records and events are exclusive-created JSON files; git history keeps retracted
 Retract hides a record, not its history. Every save starts low. Three distinct sessions with
 new quotes earn medium; explicit confirmation with new owner words earns high.
 `confirm`, `retract` and `supersede` accept a unique prefix of at least 12 hexadecimal characters
-across profile and project records. The printed 12-hex id is the claim's SHA-256 prefix. Events
+across profile and project records. Profile ids hash the claim; project ids hash evidence plus claim.
+Events
 for project records stay in that project's own event area.
 `effectiveState` in `lib/profile-store.mjs` is the sole reader of effective trust and liveness;
 stored `trust` and `invalidAt` remain write-time values. Cycles keep the newest superseder;

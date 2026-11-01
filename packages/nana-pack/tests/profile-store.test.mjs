@@ -106,10 +106,11 @@ await check('record commands resolve unique 12-hex prefixes across profile and p
   const projectRecord={id:project,type:'project',kind:'lesson',claim:'Project prefix claim',quote:'Project words',context:'',evidence:'synthetic',date:'2026-11-01',trust:'low',source:'extracted',roles:['seat'],validFrom:'2026-11-01',invalidAt:null,supersedes:[],repository};
   writeMemoryFile(f.dir,repository,'records',project,projectRecord);
   const profilePrefix=profile.slice(0,12),projectPrefix=project.slice(0,12);
+  refused(f.run(['retract',project.slice(0,11),'--quote','Too short']),C.PROFILE_WORDS.unknown);
   ok(f.run(['confirm',profilePrefix,'--quote','Owner confirms profile words']));
   ok(f.run(['retract',profilePrefix,'--quote','Owner retracts profile']));
   ok(f.run(['supersede',projectPrefix,'--kind',fact,'--claim','Replacement project claim','--quote','Owner replaces project words']));
-  ok(f.run(['retract',projectPrefix,'--quote','Owner retracts project']));
+  ok(f.run(['retract',projectPrefix.toUpperCase(),'--quote','Owner retracts project']));
   const states=readMemoryStore(f.dir); assert.equal(states.find(r=>r.id===profile).live,false); assert.equal(states.find(r=>r.id===project).live,false);
   const projectEvents=files(f.dir,path.join('projects',repository.slice(0,16),'events'));
   assert.equal(projectEvents.length,2);
