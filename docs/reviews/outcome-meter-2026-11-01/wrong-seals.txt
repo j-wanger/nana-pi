@@ -1,0 +1,106 @@
+FAIL seal: judge runner Expected values to be strictly equal:
+
+'pi' !== 'claude'
+
+FAIL seal: judge model Expected values to be strictly equal:
++ actual - expected
+
++ 'wrong'
+- 'claude-sonnet-5'
+
+FAIL seal: judge effort Expected values to be strictly equal:
+
+'high' !== 'low'
+
+FAIL seal: dollar cap Expected values to be strictly equal:
+
+1 !== 0.5
+
+FAIL seal: token cap Expected values to be strictly equal:
++ actual - expected
+
++ 1000001
+- 1000000
+        ^
+
+FAIL seal: batch size Expected values to be strictly equal:
+
+21 !== 20
+
+FAIL seal: interaction sizes Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   81,
+-   80,
+    60
+  ]
+
+FAIL seal: claim cap Expected values to be strictly equal:
+
+601 !== 600
+
+FAIL seal: timeout Expected values to be strictly equal:
+
+300001 !== 300000
+
+FAIL seal: buffer Expected values to be strictly equal:
++ actual - expected
+
++ 67108865
+- 67108864
+         ^
+
+FAIL seal: log cap Expected values to be strictly equal:
++ actual - expected
+
++ 16777217
+- 16777216
+         ^
+
+FAIL seal: minimum loads Expected values to be strictly equal:
+
+11 !== 10
+
+FAIL seal: minimum repeats Expected values to be strictly equal:
+
+16 !== 15
+
+FAIL seal: kind precision bar Expected values to be strictly equal:
+
+0.81 !== 0.8
+
+FAIL seal: repeat precision bar Expected values to be strictly equal:
+
+0.81 !== 0.8
+
+FAIL seal: repeat recall bar Expected values to be strictly equal:
+
+0.71 !== 0.7
+
+FAIL seal: interval and power Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   0.96,
+-   0.95,
+    0.8
+  ]
+
+FAIL seal: system prompt hash Expected values to be strictly equal:
++ actual - expected
+
++ '634db3f5c02716e3eddd62a8386f4ca35bcf04040210dddc4276fb9f6111034b'
+- 'ad4e873c1dc35b1f43bf51b9e82a350d4a272034de0829dbfb6ecbc87e33b19f'
+
+FAIL seal: output words Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'wrong.jsonl',
+-   'outcome-meter.jsonl',
+    {
+      capReached: 'incomplete: spend cap reached',
+      changed: 're-decided',
+      fewLoads: 'too few loads',
+      fewRepeats: 'unscored: too few repeats',

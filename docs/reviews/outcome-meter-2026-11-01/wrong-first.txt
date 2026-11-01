@@ -1,0 +1,47 @@
+FAIL counts interaction windows and pooled outcomes interactions 241
+FAIL repeats need earlier in-scope nonparallel sessions Cannot read properties of undefined (reading 'repeatOf')
+FAIL decisions require prompting and same settlement Expected values to be strictly deep-equal:
++ actual - expected
+
++ []
+- [
+-   true,
+-   true,
+-   true,
+-   false,
+-   true
+- ]
+
+FAIL judge sees full lookback and rejects bad calls The expression evaluated to a falsy value:
+
+  assert.ok(calls.length >= 2)
+
+FAIL spend cap and unknown usage remain visible Expected values to be strictly equal:
+
+0 !== 2
+
+FAIL context loads split by window role launcher and part 1 context worker pi-worker loads 10 median 65 p90 100 max 110
+FAIL commands stay private and Claude options stay isolated Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL scorer and comparison measure valid item agreement correction kind precision 15/16 lower 0.7167
+PASS seal: judge runner
+PASS seal: judge model
+PASS seal: judge effort
+PASS seal: dollar cap
+PASS seal: token cap
+PASS seal: batch size
+PASS seal: interaction sizes
+PASS seal: claim cap
+PASS seal: timeout
+PASS seal: buffer
+PASS seal: log cap
+PASS seal: minimum loads
+PASS seal: minimum repeats
+PASS seal: kind precision bar
+PASS seal: repeat precision bar
+PASS seal: repeat recall bar
+PASS seal: interval and power
+PASS seal: system prompt hash
+PASS seal: output words

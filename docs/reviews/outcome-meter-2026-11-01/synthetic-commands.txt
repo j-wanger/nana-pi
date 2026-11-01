@@ -1,0 +1,39 @@
+interactions 161
+1 warm-up
+1 corrections 1 repeated 0 exact 0 parallel 0 unjudged 0
+1 decisions 0 asked again 0 re-decided 0 unprompted 0 exact 0 parallel 0 unjudged 0
+1 pasted 79
+2 corrections 1 repeated 0 exact 1 parallel 1 unjudged 0
+2 decisions 0 asked again 0 re-decided 0 unprompted 0 exact 0 parallel 0 unjudged 0
+2 pasted 80
+3 partial
+3 corrections 0 repeated 0 exact 0 parallel 0 unjudged 0
+3 decisions 0 asked again 0 re-decided 0 unprompted 0 exact 0 parallel 0 unjudged 0
+3 pasted 1
+pooled correction 0/1 Wilson 0.0000 0.7935 halving needs unavailable interactions each side
+pooled decision 0/0 Wilson 0.0000 1.0000 halving needs unavailable interactions each side
+Window rows are not a verdict.
+no load log
+test loads 0
+outside 0
+bad load lines 0
+skipped 0
+unresolved 0
+calls 0
+calls with unknown usage 0
+tokens 0
+cost 0
+correction kind precision 1/1 lower 0.2065
+correction repeat recall 0/1 lower 0.0000
+correction repeat precision 0/0 lower 0.0000
+correction pointer agreement 0/0 lower 0.0000
+correction unlabelled 0
+correction unscored: too few repeats
+decision kind precision 0/0 lower 0.0000
+decision repeat recall 0/0 lower 0.0000
+decision repeat precision 0/0 lower 0.0000
+decision pointer agreement 0/0 lower 0.0000
+decision unlabelled 0
+decision unscored: too few repeats
+correction repeats 0 0 agreement 0/0
+decision repeats 0 0 agreement 0/0
