@@ -19,6 +19,7 @@ import { profileGuard } from '../lib/profile-guards.mjs';
 import { resolveProfile } from './nana-profile.mjs';
 import { writePackConfigMember } from '../lib/pack-config-write.mjs';
 import { makeMemory, pendingUnits, lastMemoryRun, healthWords } from '../lib/memory-run.mjs';
+import { countUnparseableMemoryFiles } from '../lib/memory-store.mjs';
 import { WORDS as W, OPT_IN_MEMBER } from '../lib/memory-run-config.mjs';
 import { LANE_NAME_PATTERN } from '../lib/land-config.mjs';
 
@@ -43,7 +44,7 @@ export async function runMemory(argv,{agentDir=piAgentDir(),env=process.env,cwd=
   const pointer=resolved.pointer,dir=pointer.dir;
   if(profileGuard(dir,runGit)!==pointer.verifiedPushUrl)return say(W.pointer);
   const options={repoRoot,repository,dir,pointer,runGit,now,projectsRoot,session:args.session,lane:args.lane,runModel,caps};
-  if(command==='status') {const units=await pendingUnits(options),last=lastMemoryRun(dir,repository,{runGit});return say(`${W.status}; last ${healthWords(last,now)}; ${W.pending} ${units.length}`);}
+  if(command==='status') {const units=await pendingUnits(options),last=lastMemoryRun(dir,repository,{runGit});return say(`${W.status}; last ${healthWords(last,now)}; ${W.pending} ${units.length}; ${W.unparseable} ${countUnparseableMemoryFiles(dir)}`);}
   const result=await makeMemory(options);
   return say(`${result.outcome}; sent ${result.sent}; done ${result.done}; pending ${result.pending}; unsent ${result.unsent}; unknown ${result.unknownUsage}; tokens ${result.tokens}`);
  }catch(error) {stderr(`${Object.values(W).includes(error.message)?error.message:W.failed}\n`);return 1;}

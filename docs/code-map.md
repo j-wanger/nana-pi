@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 551 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 552 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1615,7 +1615,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk, process, network
 - **errors** — Fixed refusals never print raw exceptions, paths or claims.
 - **callers** — `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `scripts/memory-run.mjs`
-- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `scripts/memory-run.mjs`
+- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `scripts/memory-run.mjs`
 
 ### `packages/nana-pack/bin/nana-objective.mjs`
 
@@ -2341,7 +2341,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Named caps, layouts, fixed words and lane-folder pattern.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`
 - **callees** — `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`
 
 ### `packages/nana-pack/lib/memory-run.mjs`
@@ -2352,7 +2352,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk, process, network
 - **errors** — Run failures leave unfinished units pending and expose only fixed words.
 - **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`
-- **callees** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/suite-records.mjs`
+- **callees** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/suite-records.mjs`
 
 ### `packages/nana-pack/lib/memory-score.mjs`
 
@@ -2371,7 +2371,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Runner choices, caps, prompt, output filename and count words.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `scripts/memory-shape-runners.mjs`
+- **callers** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `scripts/memory-shape-runners.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/memory-shaping.mjs`
@@ -2391,7 +2391,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Live states, exclusive records/events/seen/evidence/run files and repository collision refusals.
 - **effects** — disk
 - **errors** — Filesystem failures and fixed collision refusal.
-- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`
 - **callees** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`
 
 ### `packages/nana-pack/lib/mutation-runner-config.mjs`
@@ -2524,7 +2524,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Named sealed values with chosen provenance.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`
 - **callees** — `packages/nana-pack/lib/memory-making-config.mjs`
 
 ### `packages/nana-pack/lib/profile-guards.mjs`
@@ -2544,7 +2544,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Exclusive-created JSON records/events, normalized IDs and effective state or show text.
 - **effects** — disk
 - **errors** — Sealed validation refusals and filesystem failures.
-- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`
 - **callees** — `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`
 
 ### `packages/nana-pack/lib/profile-sync.mjs`
@@ -3595,8 +3595,19 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Temporary homes, profile clones, transcript builders and command adapters.
 - **effects** — disk, process
 - **errors** — Fixture failures throw.
-- **callers** — `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`
+- **callers** — `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`
 - **callees** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-setup/lib/project-key.mjs`
+
+### `packages/nana-pack/tests/memory-run-recovery.test.mjs`
+
+- **purpose** — Pin torn-file recovery, timeout headroom and brief local merge-lock contention.
+- **inputs** — Synthetic temporary clones, injected clocks and models, and a lock-release worker.
+- **outputs** — Awaited bounded PASS or FAIL cases.
+- **effects** — disk, process
+- **errors** — Assertion failures set exit code one.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
+- **unresolved launches** — line 42: spawnSync
 
 ### `packages/nana-pack/tests/memory-run-seals.test.mjs`
 
@@ -3936,7 +3947,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Fixture paths, CLI and git runners, and record readers.
 - **effects** — disk, process
 - **errors** — Throws on failed fixture commands.
-- **callers** — `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`
+- **callers** — `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`
 - **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/profile-store.test.mjs`

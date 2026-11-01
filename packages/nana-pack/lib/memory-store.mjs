@@ -9,14 +9,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { claimId, readProfileStore, effectiveState, exclusiveJson, writeProfileRecord, profileStamp } from './profile-store.mjs';
+import { claimId, readProfileStore, readProfileJson, effectiveState, exclusiveJson, exclusiveJsonAt, writeProfileRecord, profileStamp } from './profile-store.mjs';
 import { STORE_LAYOUT as L, STORE_FIELDS, FOLDER_ID_LENGTH, WORDS as W } from './memory-run-config.mjs';
 export const unitKey=evidence=>evidence.split('+')[0];
 export const repositoryFolder=id=>id.slice(0,FOLDER_ID_LENGTH);
 export const projectStore=(dir,id)=>path.join(dir,L.projects,repositoryFolder(id));
 export function ensureRepository(dir,id) {
  const base=projectStore(dir,id),file=path.join(base,L.repository);fs.mkdirSync(base,{recursive:true,mode:0o700});
- try {fs.writeFileSync(file,JSON.stringify({repository:id})+'\n',{flag:'wx',mode:0o600});}
+ try {exclusiveJsonAt(file,{repository:id});}
  catch(e) {if(e.code!=='EEXIST') throw e;if(JSON.parse(fs.readFileSync(file,'utf8')).repository!==id) throw Error(W.collision);}
  return base;
 }
@@ -24,14 +24,24 @@ export function writeMemoryFile(dir,repository,folder,id,value,{now=()=>new Date
  return exclusiveJson(dir,`${L.projects}/${repositoryFolder(repository)}/${folder}`,id,value,profileStamp(now()),random);
 }
 /** The existing profile reader handles the identical records/events layout in each area. */
-export function readMemoryStore(dir) {
+export function readMemoryStore(dir,{onUnparseable=()=>{}}={}) {
  const areas=[readProfileStore(dir)],base=path.join(dir,L.projects);
- if(fs.existsSync(base)) for(const name of fs.readdirSync(base)) if(fs.statSync(path.join(base,name)).isDirectory()) areas.push(readProfileStore(path.join(base,name)));
+ if(fs.existsSync(base)) for(const name of fs.readdirSync(base)) if(fs.statSync(path.join(base,name)).isDirectory()) areas.push(readProfileStore(path.join(base,name),{onUnparseable}));
  return effectiveState(areas.flatMap(a=>a.recordFiles),areas.flatMap(a=>a.events));
 }
-export function readMemoryFiles(dir,repository,folder) {
+export function readMemoryFiles(dir,repository,folder,{onUnparseable=()=>{}}={}) {
  const base=path.join(projectStore(dir,repository),folder);if(!fs.existsSync(base)) return [];
- return fs.readdirSync(base).sort().flatMap(id=>fs.statSync(path.join(base,id)).isDirectory()?fs.readdirSync(path.join(base,id)).sort().filter(n=>n.endsWith('.json')).map(n=>JSON.parse(fs.readFileSync(path.join(base,id,n),'utf8'))):[]);
+ return fs.readdirSync(base).sort().flatMap(id=>fs.statSync(path.join(base,id)).isDirectory()?fs.readdirSync(path.join(base,id)).sort().filter(n=>n.endsWith('.json')).flatMap(n=>{
+  const value=readProfileJson(path.join(base,id,n),{onUnparseable});return value===undefined?[]:[value];
+ }):[]);
+}
+/** Count damaged project files across every area that a seat merge may encounter. */
+export function countUnparseableMemoryFiles(dir) {
+ let count=0;const onUnparseable=()=>count++;
+ readMemoryStore(dir,{onUnparseable});const base=path.join(dir,L.projects);
+ if(fs.existsSync(base))for(const repository of fs.readdirSync(base))if(fs.statSync(path.join(base,repository)).isDirectory())
+  for(const folder of [L.seen,L.units,L.runs])readMemoryFiles(dir,repository,folder,{onUnparseable});
+ return count;
 }
 /** Caller holds the clone lock. Saved words win; extracted repeats by claim or unit are NOOP. */
 export function mergeMemory(dir,input,{saved=false,repository,now=()=>new Date(),random=randomBytes,env=process.env}={}) {

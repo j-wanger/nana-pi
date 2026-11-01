@@ -16,6 +16,8 @@ import { repositoryFolder, ensureRepository, writeMemoryFile } from '../lib/memo
 import { TIMEOUT_MS } from '../lib/memory-shaping-config.mjs';
 import { PROFILE_GIT_TIMEOUT_MS, PROFILE_PATH_POLICY } from '../lib/profile-config.mjs';
 import { CLAIM_CAP } from '../lib/memory-making-config.mjs';
+// req: R-3294
+await check('R-3294: seal local merge lock wait',()=>assert.equal(C.MERGE_LOCK_WAIT_MS,1000));
 // req: R-3298
 await check('R-3298: seal start instant',()=>assert.equal(C.START_INSTANT,'2026-10-31T18:16:00Z'));
 // req: R-3299
@@ -52,7 +54,7 @@ await check('R-3309: seal project record fields',()=>assert.deepEqual(C.STORE_FI
 await check('R-3340: seal opt-in member',()=>assert.equal(C.OPT_IN_MEMBER,'memoryRepositories'));
 // req: R-3341
 await check('R-3341: seal fixed words',()=>assert.deepEqual(C.WORDS,{
- enabled:'memory: enabled',disabled:'memory: not enabled',shallow:'memory: shallow',unavailable:'memory: unavailable',ci:'memory: ci',role:'memory: role',busy:'memory: busy',failed:'memory: failed',cap:'memory: capped',complete:'memory: complete',malformed:'memory: unclassified',pointer:'memory: profile unavailable',collision:'memory: repository collision',invalid:'memory: invalid command',notStarted:'memory: not started',started:'memory: started',status:'memory: status',never:'never',unknown:'unknown',pending:'pending',done:'done',skipped:'skipped',unclassified:'unclassified',project:'project',scope:'local'
+ enabled:'memory: enabled',disabled:'memory: not enabled',shallow:'memory: shallow',unavailable:'memory: unavailable',ci:'memory: ci',role:'memory: role',busy:'memory: busy',mergeFailed:'memory: merge failed',failed:'memory: failed',cap:'memory: capped',complete:'memory: complete',malformed:'memory: unclassified',pointer:'memory: profile unavailable',collision:'memory: repository collision',invalid:'memory: invalid command',notStarted:'memory: not started',started:'memory: started',status:'memory: status',never:'never',unknown:'unknown',pending:'pending',unparseable:'unparseable',done:'done',skipped:'skipped',unclassified:'unclassified',project:'project',scope:'local'
 }));
 // req: R-3342
 await check('R-3342: seal anchored escaped lane folder pattern',()=>{assert.equal(C.LANE_FOLDER_SUFFIX,'-\\d{4}-\\d{2}-\\d{2}$');assert.equal(C.laneFolderPattern('memory.x').source,'^memory\\.x-\\d{4}-\\d{2}-\\d{2}$');});

@@ -22,7 +22,9 @@ import { pidAlive } from './process-tree.mjs';
 import { withProfileLock, gitText, recoverProfile, commitProfile, fetchProfile, rebaseProfile, pushProfile, profileGit } from './profile-sync.mjs';
 import { resolveProfile } from '../bin/nana-profile.mjs';
 import { piAgentDir } from './agent-dir.mjs';
-import { START_INSTANT, RUN_TOKEN_CAP, RUN_CALL_CAP, DAY_TOKEN_CAP, UNKNOWN_USAGE_CHARGE, MAX_RUN_MS, EVIDENCE_CAP, STORE_LAYOUT as L, RUN_LAYOUT as R, WORDS as W, OPT_IN_MEMBER, laneFolderPattern } from './memory-run-config.mjs';
+import { TIMEOUT_MS } from './memory-shaping-config.mjs';
+import { PROFILE_WORDS } from './profile-config.mjs';
+import { MERGE_LOCK_WAIT_MS, START_INSTANT, RUN_TOKEN_CAP, RUN_CALL_CAP, DAY_TOKEN_CAP, UNKNOWN_USAGE_CHARGE, MAX_RUN_MS, EVIDENCE_CAP, STORE_LAYOUT as L, RUN_LAYOUT as R, WORDS as W, OPT_IN_MEMBER, laneFolderPattern } from './memory-run-config.mjs';
 
 /** Creation time bounds pid reuse; release retains the precedent's pid-owned check. */
 export function acquireMemoryLock(file,{now=()=>new Date(),alive=pidAlive,host=os.hostname()}={}) {
@@ -101,7 +103,7 @@ export async function makeMemory(options) {
   const repoRoot=defaultMemoryRepo(options.repoRoot,{runGit:root=>runGit(root,['rev-parse','--git-common-dir'])}),units=await pendingUnits({...options,repoRoot});
   const reservation=dayReservation(gitdir,{now,dayCap:options.caps?.dayTokens??DAY_TOKEN_CAP});let settle=null;
   const result=await extractShaped({...options,unitSource:units,runModel:options.runModel,caps:{tokens:RUN_TOKEN_CAP,calls:RUN_CALL_CAP,...options.caps,unknownCharge:UNKNOWN_USAGE_CHARGE},beforeCall:()=>{
-   if(now().getTime()-started>=MAX_RUN_MS)return false;
+   if(now().getTime()-started+TIMEOUT_MS>MAX_RUN_MS)return false;
    settle=reservation.reserve();return Boolean(settle);
   },afterCall:tokens=>{if(settle)settle(tokens);settle=null;}});
   health.sent=result.counts.ownerTurns+result.counts.reviewTitles-result.counts.skipped-result.counts.unsent+result.counts.failed;
@@ -119,7 +121,7 @@ export async function makeMemory(options) {
    if(result.states.length)writeMemoryFile(dir,repository,L.seen,'run',result.states,{now});
    health.done=result.states.length;health.pending=units.length-result.states.length;
    writeMemoryFile(dir,repository,L.runs,'run',health,{now});commitProfile(dir,runGit,'Make project memory');sha=gitText(runGit,dir,['rev-parse','HEAD']);
-  },{waitMs:0});}catch(error) {health.outcome=error.message===W.collision?W.collision:W.busy;health.done=0;health.pending=units.length;}
+  },{waitMs:MERGE_LOCK_WAIT_MS});}catch(error) {health.outcome=error.message===W.collision?W.collision:error.message===PROFILE_WORDS.locked?W.busy:W.mergeFailed;health.done=0;health.pending=units.length;}
   if(sha)pushProfile(pointer,branch,sha,runGit);
   keepLocal();return health;
  }catch {health.outcome=W.failed;keepLocal();return health;}

@@ -289,7 +289,12 @@ Unknown usage keeps the full reservation. Run and day locks and mutable health l
 the profile clone's git directory, never in synchronized files. Clone-lock contention
 leaves units pending. Model calls, fetch and captured-SHA push do not hold the clone lock.
 Every synchronized project record, event, seen file, evidence copy and count-only run
-file is exclusive-create. Busy runs retain local health when the clone cannot be written.
+file publishes complete bytes atomically without replacing an existing name.
+Project readers skip unparseable JSON; status reports its count as `unparseable`.
+Root profile reads remain strict. Merge errors report `memory: merge failed`, not busy.
+The second, local-only clone-lock step waits up to 1,000 milliseconds for a brief seat save.
+Each model call requires elapsed time plus its full batch timeout to fit within the run limit.
+Busy runs retain local health when the clone cannot be written.
 
 The shared merge reader in `lib/memory-store.mjs` checks normalized claims across project
 and user areas and prefers seat saves. This catches exact normalized repeats, not rewording.
