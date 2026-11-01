@@ -1,0 +1,23 @@
+seat-mutate: lane making-trigger, tip 4570afe899f3db1f12fb1769447c33319f495748, table 92940f55f898ae2d7e39db2068acfd6396db5155850d6cb6642162c52487df71, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 5 pairs in 5 shards (1+1+1+1+1, round-robin, 4s apart), darwin, node v22.22.2, 2026-11-01T07:18:35.296Z
+[1/5] seat-mutate: lane making-trigger, shard 1/5, tip 4570afe899f3db1f12fb1769447c33319f495748, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 1 pairs, darwin, node v22.22.2, 2026-11-01T07:18:36.256Z
+[1/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[1/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane making-trigger, shard 2/5, tip 4570afe899f3db1f12fb1769447c33319f495748, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 1 pairs, darwin, node v22.22.2, 2026-11-01T07:18:40.347Z
+[2/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[2/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane making-trigger, shard 3/5, tip 4570afe899f3db1f12fb1769447c33319f495748, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 1 pairs, darwin, node v22.22.2, 2026-11-01T07:18:44.439Z
+[3/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[3/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane making-trigger, shard 4/5, tip 4570afe899f3db1f12fb1769447c33319f495748, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 1 pairs, darwin, node v22.22.2, 2026-11-01T07:18:48.629Z
+[4/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[4/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane making-trigger, shard 5/5, tip 4570afe899f3db1f12fb1769447c33319f495748, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 1 pairs, darwin, node v22.22.2, 2026-11-01T07:18:52.836Z
+[5/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[5/5] RESULT: 1/1 red (1 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 8-isolation a throwing starter changes the land verdict — 1/1 named: /^R-3297:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8-placement the starter runs before the merge — 1/1 named: /^R-3297:/; 1 FAIL total (1 file changed, 2 insertions(+), 1 deletion(-))
+RED 2-split failed calls are marked done like malformed replies — 1/1 named: /^R-3291:/; also (declared): /^R-3295:/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3-unknown unknown usage costs zero tokens — 1/1 named: /^R-3292:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4-start the start instant does not filter old owner units — 1/1 named: /^R-3293:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 5/5 red (5 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards
+seat-mutate: merged output docs/reviews/making-trigger-2026-11-01/build3-mutation-result.txt
