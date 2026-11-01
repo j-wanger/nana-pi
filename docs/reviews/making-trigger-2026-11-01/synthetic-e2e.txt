@@ -1,0 +1,4 @@
+memory: enabled
+memory: complete; sent 2; done 3; pending 0; unsent 0; unknown 0; tokens 100
+memory: status; last 0s memory: complete; pending 0
+records 3

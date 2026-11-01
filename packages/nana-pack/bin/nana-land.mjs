@@ -26,7 +26,9 @@ import { errorText } from "../lib/record-ledger.mjs";
 import { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
 export { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
 
-const LANE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+import { LANE_NAME_PATTERN } from '../lib/land-config.mjs';
+import { startMemory } from '../lib/memory-run.mjs';
+import { WORDS as MEMORY_WORDS } from '../lib/memory-run-config.mjs';
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const resultText = (r) => `${r.stdout ?? ""}${r.stderr ?? ""}`;
@@ -230,7 +232,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 const withLandRecordLine = (text, line) => `${text}${text && !text.endsWith("\n") ? "\n" : ""}${line}\n`;
 
 /** Run a merge with a best-effort start/end record lifecycle that never changes its verdict or earlier output. */
-export function runLand(options) {
+function runRecordedLand(options) {
 	const now = options.now ?? (() => new Date());
 	const lifecycle = { stage: "preflight", ci: "not reached", ciWaitMs: null, suiteMs: null };
 	let common = null;
@@ -306,6 +308,22 @@ export function runLand(options) {
 	return { ...result, text: withLandRecordLine(result.text, renderLandRecordLine(end, laneLine)) };
 }
 
+/** Post-merge making is independent of record retention and cannot change the land verdict. */
+export function runLand(options) {
+ let lane = null;
+ try {
+  const branch = git(options.runGit ?? gitDefault, path.resolve(options.tree), 'branch', '--show-current');
+  const match = /^feat\/(.+)$/.exec(branch);
+  if (match && LANE_NAME_PATTERN.test(match[1])) lane = match[1];
+ } catch {}
+ const result = runRecordedLand(options);
+ if (result.code !== 0 || !lane || typeof options.startMemory !== 'function') return result;
+ let line;
+ try { line = options.startMemory({repo:path.resolve(options.main),lane}); }
+ catch { line = MEMORY_WORDS.notStarted; }
+ return {...result,text:withLandRecordLine(result.text,line ?? MEMORY_WORDS.notStarted)};
+}
+
 /** Safely remove a landed lane worktree and its feat branch; refuses force and dirty trees. */
 export function runCleanup(lane, { main, worktree, runGit = gitDefault } = {}) {
 	try {
@@ -342,7 +360,7 @@ export function runCleanup(lane, { main, worktree, runGit = gitDefault } = {}) {
 export function main(args = process.argv.slice(2)) {
 	try {
 		const options = parseLandArgs(args);
-		return options.mode === "merge" ? runLand(options) : runCleanup(options.lane, options);
+		return options.mode === "merge" ? runLand({ ...options, startMemory }) : runCleanup(options.lane, options);
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {

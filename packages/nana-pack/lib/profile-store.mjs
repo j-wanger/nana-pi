@@ -33,7 +33,7 @@ export function validateProfileSave({kind,claim,quote}) {
  if(!claim?.trim()||claim.length>PROFILE_LIMITS.claim) throw Error(W.claimCap);
  if(quote.length>PROFILE_LIMITS.quote) throw Error(W.quoteCap);
 }
-function exclusiveJson(dir,folder,id,value,stamp,random) {
+export function exclusiveJson(dir,folder,id,value,stamp,random) {
  const relative=`${folder}/${id}/${stamp}-${random(PROFILE_PATH_POLICY.randomBytes).toString('hex')}.json`;
  if(!new RegExp(PROFILE_PATH_POLICY.pattern).test(relative)||relative.length>PROFILE_PATH_POLICY.max) throw Error(W.config);
  const target=path.join(dir,relative); fs.mkdirSync(path.dirname(target),{recursive:true,mode:0o700});

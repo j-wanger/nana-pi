@@ -7,6 +7,9 @@
  * @errors none
  */
 
+// Contract (R-3297, R-3312): shared land and memory lane validation.
+export const LANE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
 // contract (R-585, R-2590): origin is the land's remote of record.
 export const CI_REMOTE = "origin";
 
