@@ -1,7 +1,7 @@
 /**
  * @module docs/reviews/context-anatomy-2026-10-31/pairs.mjs
  * @purpose Run the plan's wrong-code pairs in an OS-temp copy, never through the suite.
- * @inputs This checkout's implementation and the ten context delivery tests.
+ * @inputs This checkout's implementation and the eleven context delivery tests.
  * @outputs Red/green pair log to stdout.
  * @effects disk (temporary code copy and mutations), process (bounded test children)
  * @errors Exits nonzero for a surviving mutation or failed green control.
@@ -52,6 +52,12 @@ pair('R-3219','omit ancestor exclusions',carry,'const settings = { claudeMdExclu
 pair('R-3219','exclude only immediate parent',carry,'if (ancestor === path.dirname(ancestor)) break;','break;');
 pair('R-3219','exclude tree instructions too',carry,'path.dirname(path.resolve(tree))','path.resolve(tree)');
 pair('R-3219','retune ancestor path seal','packages/nana-pack/bin/worker-config.mjs',"'.claude/rules/**'","'.claude/rules/*.md'");
+pair('R-3211: cloud','drop cloud credentials',carry,'if (allowed.has(name.toLowerCase()))','if (allowed.has(name.toLowerCase()) && !["AWS_BEARER_TOKEN_BEDROCK", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "GOOGLE_APPLICATION_CREDENTIALS"].includes(name))');
+pair('R-3211: cloud','drop cloud endpoints',carry,'if (allowed.has(name.toLowerCase()))','if (allowed.has(name.toLowerCase()) && !name.endsWith("_BASE_URL"))');
+pair('R-3211: cloud','drop cloud auth helpers',carry,'if (Object.hasOwn(parsed, key))','if (Object.hasOwn(parsed, key) && !["awsAuthRefresh", "awsCredentialExport", "gcpAuthRefresh"].includes(key))');
+pair('R-3211: cloud','print private settings',carry,'detail = names.length ? names.join', 'detail = JSON.stringify(settings) + (names.length ? names.join');
+// Close the expression added by the private-settings diagnostic mutation.
+pairs.at(-1).changes.push([carry, "names.join(', ') : 'none';", "names.join(', ') : 'none');"]);
 const run=row=>spawnSync(process.execPath,[path.join(temp,'packages/nana-pack/tests/context-anatomy.test.mjs')],{cwd:temp,env:{...process.env,HOME:path.join(temp,'home'),USERPROFILE:path.join(temp,'home'),PI_CODING_AGENT_DIR:path.join(temp,'agent'),CONTEXT_CASE:row},encoding:'utf8',timeout:120_000});
 const clean=s=>String(s).replaceAll(temp,'<temp-copy>').replaceAll(root,'<checkout>');
 let failures=0;
@@ -60,7 +66,7 @@ for(const p of pairs){
   for(const [file] of p.changes) if(!saved.has(file))saved.set(file,fs.readFileSync(path.join(temp,file),'utf8'));
   try{
     for(const [file,old,replacement]of p.changes){const name=path.join(temp,file),s=fs.readFileSync(name,'utf8');if(!s.includes(old))throw Error(`mutation target absent: ${p.label}`);fs.writeFileSync(name,s.replace(old,replacement));}
-    const red=run(p.row);console.log(`PAIR ${p.row} ${p.label}: RED exit ${red.status}`);console.log(clean(red.stdout+red.stderr));if(red.status!==1||!red.stdout.includes(`FAIL ${p.row}:`))failures++;
+    const red=run(p.row);console.log(`PAIR ${p.row} ${p.label}: RED exit ${red.status}`);console.log(clean(red.stdout+red.stderr));if(red.status!==1||!red.stdout.includes(`FAIL ${p.row}`))failures++;
   }finally{for(const[file,s]of saved)fs.writeFileSync(path.join(temp,file),s);}
   const green=run(p.row);console.log(`PAIR ${p.row} ${p.label}: GREEN exit ${green.status}`);console.log(clean(green.stdout+green.stderr));if(green.status!==0)failures++;
 }

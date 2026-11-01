@@ -66,7 +66,7 @@ else {
 	fs.chmodSync(pi, 0o755);
 }
 const { samplerShim } = writeSlowSampler(stubDir);
-const env = { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: agentDir, SAMPLER_MARKER: samplerMarker, SLOW_SAMPLER_MS: String(SLOW_SAMPLER_MS) };
+const env = { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, USERPROFILE: temp, PI_CODING_AGENT_DIR: agentDir, SAMPLER_MARKER: samplerMarker, SLOW_SAMPLER_MS: String(SLOW_SAMPLER_MS) };
 const resolvedSampler = resolveSampler(env, CHILD_LIMIT_MS);
 const writeBrief = (name, text) => {
 	const file = path.join(temp, name);

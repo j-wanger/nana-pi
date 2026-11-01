@@ -33,7 +33,7 @@ function runFixture(label, entries, eol = "\n", existingHome) {
 		encoding: "utf8",
 		input: "",
 		timeout: 5000,
-		env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home, CLAUDE_PROJECT_DIR: project },
+		env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, '.pi', 'agent'), CLAUDE_PROJECT_DIR: project },
 	});
 	if (result.error) throw result.error;
 	if (result.status !== 0) throw new Error(`${label}: hook exited ${result.status}: ${result.stderr}`);

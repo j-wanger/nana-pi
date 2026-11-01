@@ -83,7 +83,7 @@ const run = (cwd, args, more = {}, piArgs = []) => {
 	const started = Date.now();
 	const result = spawnSync(process.execPath, [worker, "--poll", String(WORKER_POLL_SECS), "--out", out, ...args, ...(piArgs.length ? ["--", ...piArgs] : [])], {
 		cwd, encoding: "utf8", timeout: CHILD_LIMIT_MS,
-		env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir, ...more },
+		env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, USERPROFILE: temp, PI_CODING_AGENT_DIR: defaultAgentDir, ...more },
 	});
 	return { ...result, elapsedMs: Date.now() - started };
 };
@@ -630,7 +630,7 @@ check("with a larger-lane builder set, a launch with no lane size, the --lane-si
 const laneSpawnCount = path.join(temp, "lane-spawns");
 writeStub(`#!/bin/sh\necho spawned >> "${laneSpawnCount}"\necho output\nsleep 3\n`,
 	`const fs = require("node:fs");\nfs.appendFileSync(${JSON.stringify(laneSpawnCount)}, "spawned\\n");\nconsole.log("output");\nsetTimeout(() => {}, 3000);\n`);
-const launchTogether = () => spawn(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], { cwd: lane, env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, PI_CODING_AGENT_DIR: defaultAgentDir }, stdio: "ignore" });
+const launchTogether = () => spawn(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], { cwd: lane, env: { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, USERPROFILE: temp, PI_CODING_AGENT_DIR: defaultAgentDir }, stdio: "ignore" });
 const lockChildren = [launchTogether(), launchTogether()];
 await Promise.all(lockChildren.map((child) => new Promise((resolve) => child.once("close", resolve))));
 // req: R-960

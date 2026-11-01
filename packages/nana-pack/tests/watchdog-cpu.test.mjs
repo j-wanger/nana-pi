@@ -140,6 +140,9 @@ if (process.platform === "win32") {
 function fixtureEnv(extra = {}) {
   return {
     ...process.env,
+    HOME: root,
+    USERPROFILE: root,
+    PI_CODING_AGENT_DIR: path.join(root, '.pi', 'agent'),
     PATH: `${fixtureB}${path.delimiter}${process.env.PATH ?? ""}`,
     FIXTURE_HANG_BOUND_MS: String(FIXTURE_HANG_BOUND_MS),
     FIXTURE_RELEASE_POLL_MS: String(FIXTURE_RELEASE_POLL_MS),

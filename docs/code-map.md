@@ -2985,12 +2985,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Pin role-shaped context delivery and its private load baseline.
 - **inputs** — Temporary homes, linked repositories, fake children and delivery modules.
-- **outputs** — Ten bounded, awaited requirement checks.
+- **outputs** — Eleven bounded, awaited requirement checks.
 - **effects** — disk (OS temporary fixtures), process (git, launchers and hooks)
 - **errors** — Failed assertions set a nonzero exit status.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/known-bug-digest-config.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`
-- **unresolved launches** — line 61: spawnSync; binding line 78; binding line 94; binding line 116; binding line 132; binding line 143; binding line 144; binding line 170; binding line 171; binding line 182; binding line 185; binding line 195; binding line 204; binding line 214; binding line 221; binding line 222; binding line 226 · line 242: spawnSync; binding line 232; binding line 234; binding line 245
+- **unresolved launches** — line 61: spawnSync; binding line 78; binding line 94; binding line 116; binding line 132; binding line 155; binding line 170; binding line 171; binding line 197; binding line 198; binding line 209; binding line 212; binding line 222; binding line 231; binding line 241; binding line 248; binding line 249; binding line 253 · line 269: spawnSync; binding line 259; binding line 261; binding line 272
 
 ### `packages/nana-pack/tests/display-surfaces.test.mjs`
 
@@ -5016,8 +5016,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; this file is SKIPped on every leg but the Windows one (scripts/test.mjs SKIPS)
 - **callers** — `scripts/test.mjs`
 - **callees** — `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/tests/stub-pi.mjs`
-- **unresolved launches** — line 105: spawnSync · line 276: spawnSync
-- **repo-code launches** — line 130: spawnSync; binding line 141; binding line 148; binding line 155; binding line 179; binding line 185; binding line 189; binding line 195; binding line 223; binding line 232; binding line 241; binding line 267; binding line 268 · line 221: spawnSync
+- **unresolved launches** — line 106: spawnSync · line 277: spawnSync
+- **repo-code launches** — line 131: spawnSync; binding line 142; binding line 149; binding line 156; binding line 180; binding line 186; binding line 190; binding line 196; binding line 224; binding line 233; binding line 242; binding line 268; binding line 269 · line 222: spawnSync
 
 ### `packages/nana-setup/tests/install-check.test.mjs`
 

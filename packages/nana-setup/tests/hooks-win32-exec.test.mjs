@@ -95,6 +95,7 @@ try {
 		...process.env,
 		HOME: home,
 		USERPROFILE: home,
+		PI_CODING_AGENT_DIR: path.join(home, '.pi', 'agent'),
 		CLAUDE_PROJECT_DIR: project,
 		[GH_COMMAND_ENV]: JSON.stringify([process.execPath, fakeGh]),
 		CLAUDE_CONFIG_DIR: claudeHome,

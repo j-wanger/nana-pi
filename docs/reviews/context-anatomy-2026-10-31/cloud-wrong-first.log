@@ -1,0 +1,3 @@
+FAIL R-3211: cloud carry preserves settings-only logins without exposing values AssertionError [ERR_ASSERTION]: AWS_BEARER_TOKEN_BEDROCK
+    at Object.fn (file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:143:81)
+    at async file://<checkout>/packages/nana-pack/tests/context-anatomy.test.mjs:283:9

@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/context-anatomy.test.mjs
  * @purpose Pin role-shaped context delivery and its private load baseline.
  * @inputs Temporary homes, linked repositories, fake children and delivery modules.
- * @outputs Ten bounded, awaited requirement checks.
+ * @outputs Eleven bounded, awaited requirement checks.
  * @effects disk (OS temporary fixtures), process (git, launchers and hooks)
  * @errors Failed assertions set a nonzero exit status.
  */
@@ -134,6 +134,33 @@ test('R-3211: reviewer carries only allowed settings and cleans normal failure a
   const denied=fixture(), deniedArgs=args(denied,'claude-review'); deniedArgs[deniedArgs.indexOf('--out')+1]=path.join(denied.lane,'seed');
   const refusal=spawnSync(process.execPath,[path.join(pack,'bin/claude-review.mjs'),...deniedArgs],{cwd:denied.lane,env:denied.env,encoding:'utf8',timeout:20_000});
   assert.equal(refusal.status,1);assert.ok(!refusal.stderr.includes('claude settings carry:'));assert.equal(rows(denied.record).length,0);
+});
+// req: R-3211
+test('R-3211: cloud carry preserves settings-only logins without exposing values', async () => {
+  const { CLAUDE_CARRY_KEYS, CLAUDE_CARRY_ENV_NAMES } = await import('../bin/worker-config.mjs');
+  const bedrock = ['CLAUDE_CODE_USE_BEDROCK', 'AWS_REGION', 'AWS_BEARER_TOKEN_BEDROCK', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'AWS_PROFILE', 'ANTHROPIC_BEDROCK_BASE_URL', 'CLAUDE_CODE_SKIP_BEDROCK_AUTH'];
+  const vertex = ['CLAUDE_CODE_USE_VERTEX', 'ANTHROPIC_VERTEX_BASE_URL', 'ANTHROPIC_VERTEX_PROJECT_ID', 'CLOUD_ML_REGION', 'CLAUDE_CODE_SKIP_VERTEX_AUTH', 'GOOGLE_APPLICATION_CREDENTIALS'];
+  for (const name of [...bedrock, ...vertex, 'CLAUDE_CODE_USE_FOUNDRY']) assert.ok(CLAUDE_CARRY_ENV_NAMES.includes(name), name);
+  for (const key of ['awsAuthRefresh', 'awsCredentialExport', 'gcpAuthRefresh']) assert.ok(CLAUDE_CARRY_KEYS.includes(key), key);
+  for (const launcher of ['claude-review', 'pi-worker']) {
+    for (const [names, helpers] of [[bedrock, ['awsAuthRefresh', 'awsCredentialExport']], [vertex, ['gcpAuthRefresh']]]) {
+      const f = fixture();
+      const env = Object.fromEntries(names.map(name => [name, `PRIVATE-${name}-value`]));
+      const keys = Object.fromEntries(helpers.map(key => [key, `PRIVATE-${key}-command`]));
+      env.CLAUDE_CODE_USE_FOUNDRY = 'PRIVATE-foundry-value';
+      write(path.join(f.home, '.claude/settings.json'), JSON.stringify({ ...keys, env, hooks: { private: 'never carry' }, permissions: { private: true } }));
+      // No login is inherited from the shell: the only source is the user's settings file.
+      const childEnv = { ...f.env };
+      for (const name of CLAUDE_CARRY_ENV_NAMES) delete childEnv[name];
+      const r = launch(f, launcher, launcher === 'pi-worker' ? ['--lane-size', 'larger'] : [], childEnv); good(r);
+      const carried = JSON.parse(r.call.settingsText);
+      for (const [name, value] of Object.entries(env)) assert.equal(carried.env[name], value, `${launcher}: ${name}`);
+      for (const [key, value] of Object.entries(keys)) assert.equal(carried[key], value, `${launcher}: ${key}`);
+      assert.ok(!Object.hasOwn(carried, 'hooks')); assert.ok(!Object.hasOwn(carried, 'permissions'));
+      const visible = r.stdout + r.stderr + fs.readFileSync(f.log, 'utf8');
+      for (const value of [...Object.values(env), ...Object.values(keys)]) assert.ok(!visible.includes(value), 'private carry value exposed');
+    }
+  }
 });
 // req: R-3212
 test('R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes', async () => {

@@ -1,0 +1,17 @@
+PASS  packages/nana-pack/tests/brief-check.test.mjs            4 pass  2.2s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs        11 pass  29.3s
+PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs    9 pass  1.2s
+PASS  packages/nana-pack/tests/pi-install.test.mjs             7 pass  0.3s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs          16 pass  0.3s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs          21 pass, 2 skip  28.8s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs            67 pass  27.5s
+SKIP  packages/nana-setup/tests/hooks-win32-exec.test.mjs      runs only on the Windows leg (process.platform !== "win32")
+PASS  packages/nana-setup/tests/install.test.mjs               110 pass  8.5s
+PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs    4 pass  0.6s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs       12 pass  3.2s
+PASS  packages/nana-setup/tests/shared-memory-budget.test.mjs  7 pass  0.4s
+PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs    43 pass  0.7s
+PASS  packages/nana-setup/tests/shared-memory-input.test.mjs   3 pass  0.1s
+PASS  packages/nana-setup/tests/uninstall.test.mjs             31 pass  2.2s
+
+15 files: 14 PASS, 0 FAIL, 1 SKIP, 0 WARN · checks: 345 pass, 0 fail, 2 skip · 105.7s
