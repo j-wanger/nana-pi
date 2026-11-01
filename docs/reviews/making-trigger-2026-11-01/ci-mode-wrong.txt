@@ -1,0 +1,12 @@
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs  15 pass  1.1s
+FAIL  packages/nana-pack/tests/memory-run.test.mjs        1 pass, 7 fail  15.7s  — exit 1
+      | FAIL R-3290: each owner and ask unit is made once AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3291: pending units survive busy caps failures and stale locks AssertionError [ERR_ASSERTION]: The input did not match the regular expression /busy/. Input:
+      | FAIL R-3292: known and unknown usage obey run and shared day caps AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3293: only enabled post-start main sources use a stable root key AssertionError [ERR_ASSERTION]: The input did not match the regular expression /not enabled/. Input:
+      | FAIL R-3294: two machines and seat saves converge without machine files AssertionError [ERR_ASSERTION]: The input did not match the regular expression /busy/. Input:
+      | FAIL R-3295: one live normalized claim prefers the seat in either order AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3296: narrow private evidence survives deletion without public text AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+2 files: 1 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 16 pass, 7 fail, 0 skip · 17.1s
+failed: packages/nana-pack/tests/memory-run.test.mjs

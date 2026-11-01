@@ -23,6 +23,8 @@ export function runner(calls=[], {usage={tokens:100,cost:0.01},kind='correction'
 }
 export function memoryFixture() {
  const f=fixture(); const a=f.clone('profile');
+ // Ordinary cases model a seat, even when the host is CI. R-3296 injects CI explicitly.
+ delete a.env.CI;
  const runGit=(cwd,args)=>spawnSync('git',args,{cwd,env:f.env,encoding:'utf8',timeout:20000});
  const projectsRoot=path.join(f.temp,'transcripts');fs.mkdirSync(projectsRoot);
  const deps={agentDir:a.agent,env:a.env,cwd:f.main,runGit,now,projectsRoot,runModel:runner(),spawn:()=>{throw Error('unexpected spawn');}};
