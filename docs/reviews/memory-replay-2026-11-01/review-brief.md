@@ -8,7 +8,7 @@ The change: `npm run memory:replay` (`plan`, `screen`, `run`, `decide`) with the
 
 The seat's record:
 - Locked full suite at 1887f37d: 253 files, 251 pass, 2 skip. CI passed on all three systems. Twenty wrong-code pairs and twelve seal mutations failed red and passed green.
-- The seat ran `plan` over private labels and the frozen snapshot (no spend): 43 cases, 16 in stratum R and 27 in F, in five sessions. No paid run has happened.
+- The seat ran `plan` over private labels and the frozen snapshot (no spend); the counts stay private. No paid run has happened.
 - Known bugs: seventeen new lines in `docs/known-bugs/FEAT-043.md`, nine carried from the outcome meter's final review and one from the seat-memory-push plan (the confirmatory run waits for that lane).
 
 Question: does the feature work for its user, the seat deciding whether a memory delivery helps, and does the change cause a harm the review standard lists? Check especially that no arm sees records from after the replay moment; that the judge is blind to the arm and sees one reply per call; that owner text reaches only the sealed Claude runner and never stdout, stderr, the repository or a non-Claude model; that output refuses a folder inside a checkout; that the spend cap stops at a case boundary and prints incomplete; and that `decide` refuses mixed case sets and marks only the first run per bundle maker confirmatory.
