@@ -99,10 +99,11 @@ export function pushProfile(pointer,branch,sha,runGit) {
 }
 /** Local count only: no fetch and no owner content. */
 export function unpushedProfile(dir,{runGit=profileGit()}={}) {
- const branch=gitText(runGit,dir,['symbolic-ref','--short','HEAD']);
- const count=Number(gitText(runGit,dir,['rev-list','--count',`refs/remotes/origin/${branch}..HEAD`]));
- if(!Number.isSafeInteger(count)||count<0)throw Error(W.git);
- return count;
+ try {
+  const branch=gitText(runGit,dir,['symbolic-ref','--short','HEAD']);
+  const count=Number(gitText(runGit,dir,['rev-list','--count',`refs/remotes/origin/${branch}..HEAD`]));
+  return Number.isSafeInteger(count)&&count>=0?count:null;
+ } catch { return null; }
 }
 /** Caller owns the clone lock; retry only a rejected push, never expose stderr. */
 export function syncProfile(pointer,{runGit=profileGit(),log=()=>{}}={}) {

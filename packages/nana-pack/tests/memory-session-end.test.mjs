@@ -45,6 +45,12 @@ await check('R-3356: doctor and status use only local count-only making health',
  const layout=resolveLayout({home:f.temp,piHome:f.a.agent});const opts={projectDir:f.main,releaseRepo:f.main,runGit:f.runGit,memory:{runGit:f.runGit,now},pi:{spawn:()=>({status:0,stdout:'1.0.2'})}};
  const note=()=>{const all=diagnose(layout,opts);assert.ok(!JSON.stringify(all).includes('CANARY'));const rows=all.filter(r=>r.label==='memory making');assert.equal(rows.length,1);assert.equal(rows[0].status,'note');assert.ok(!JSON.stringify(rows).includes('CANARY'));return rows[0].detail;};
  assert.equal(note(),'not enabled');await f.command(['enable']);assert.match(note(),/enabled 1; last never/);
+ const noTracking=(cwd,args)=>args[0]==='rev-list'&&args[1]==='--count'?{status:128,stdout:'',stderr:'synthetic'}:f.runGit(cwd,args);
+ const detached=(cwd,args)=>args[0]==='symbolic-ref'&&args[1]==='--short'?{status:1,stdout:'',stderr:'synthetic'}:f.runGit(cwd,args);
+ for(const unavailable of [noTracking,detached]) {
+  const status=await f.command(['status'],{runGit:unavailable});assert.equal(status.code,0,status.output);assert.match(status.output,/memory: status; last never unknown; pending 0; unparseable 0; unpushed unknown/);
+  const savedRunGit=opts.memory;opts.memory={runGit:unavailable,now};assert.match(note(),/enabled 1; last never; unpushed unknown/);opts.memory=savedRunGit;
+ }
  assert.equal(f.profile(['save','--kind','correction','--claim','SYNTHETIC_OWNER_CANARY','--quote','Synthetic quoted words']).code,0);
  const id=f.git(f.main,'rev-list','--max-parents=0','HEAD'),local=path.join(f.a.dir,'.git',C.RUN_LAYOUT.lastRun.replace('<id>',repositoryFolder(id)));
  fs.writeFileSync(local,JSON.stringify({time:new Date(now().getTime()-60000).toISOString(),outcome:C.WORDS.complete}));

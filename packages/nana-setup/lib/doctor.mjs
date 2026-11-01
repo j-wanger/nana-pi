@@ -48,7 +48,7 @@ import { piPackagesState } from "./pi-dependencies.mjs";
 import { localMemoryRun, healthWords } from '../../nana-pack/lib/memory-run.mjs';
 import { profileGit, unpushedProfile } from '../../nana-pack/lib/profile-sync.mjs';
 import { resolveProfile } from '../../nana-pack/bin/nana-profile.mjs';
-import { OPT_IN_MEMBER, PUSH_WORDS } from '../../nana-pack/lib/memory-run-config.mjs';
+import { OPT_IN_MEMBER, PUSH_WORDS, WORDS as MEMORY_WORDS } from '../../nana-pack/lib/memory-run-config.mjs';
 import { MEMORY_MAKING_NOTE } from './memory-end-config.mjs';
 
 const OK = "ok";
@@ -511,7 +511,7 @@ export function diagnose(layout, opts = {}) {
 			const dir = resolved.pointer.dir;
 			const runGit = opts.memory?.runGit ?? profileGit();
 			const runs = enabled.map(repository => localMemoryRun(dir, repository, {runGit})).filter(Boolean).sort((a,b)=>b.time.localeCompare(a.time));
-			making = `enabled ${enabled.length}; last ${runs.length ? healthWords(runs[0],opts.memory?.now) : MEMORY_MAKING_NOTE.never}; ${PUSH_WORDS.unpushed} ${unpushedProfile(dir,{runGit})}`;
+			making = `enabled ${enabled.length}; last ${runs.length ? healthWords(runs[0],opts.memory?.now) : MEMORY_MAKING_NOTE.never}; ${PUSH_WORDS.unpushed} ${unpushedProfile(dir,{runGit})??MEMORY_WORDS.unknown}`;
 		}
 	} catch { making = MEMORY_MAKING_NOTE.unreadable; }
 	add(NOTE, MEMORY_MAKING_NOTE.label, making);
