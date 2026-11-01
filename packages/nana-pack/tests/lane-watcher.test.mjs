@@ -59,6 +59,76 @@ if (cleanLane) {
 	}
 }
 
+const r2726Folder = path.join(ROOT, "r2726-repeated-hour");
+const r2726Lock = `${r2726Folder}.lock`;
+fs.mkdirSync(r2726Folder, { recursive: true });
+fs.writeFileSync(path.join(r2726Folder, "builder.pid"), JSON.stringify({ pid: 77, launch: "direct" }));
+fs.writeFileSync(r2726Lock, "66\n");
+const r2726Now = Date.parse("2026-11-01T06:30:00.000Z");
+const r2726RecordAt = Date.parse("2026-11-01T05:50:00.000Z");
+fs.utimesSync(path.join(r2726Folder, "builder.pid"), r2726RecordAt / 1000, r2726RecordAt / 1000);
+let r2726Kills = 0;
+let r2726PsArgs = null;
+const r2726ElapsedCases = [
+	{ output: "30:00\n", elapsedMs: 30 * 60_000 },
+	{ output: "00:30:00\n", elapsedMs: 30 * 60_000 },
+	{ output: "1-00:30:00\n", elapsedMs: 24 * 60 * 60_000 + 30 * 60_000 },
+];
+const r2726ElapsedResults = [];
+const priorTz = process.env.TZ;
+process.env.TZ = "America/New_York";
+try {
+	if (cleanLane) await bounded(cleanLane({ folder: r2726Folder, lock: r2726Lock, workerPid: 66, build: "missing", commonDir: ROOT }, {
+		platform: "darwin",
+		alive: (pid) => pid === 77,
+		now: () => r2726Now,
+		run: (_command, args) => {
+			r2726PsArgs = args;
+			return { status: 0, stdout: args.includes("etime=") ? "00:30:00\n" : "Sun Nov  1 01:00:00 2026\n" };
+		},
+		killTree: () => { r2726Kills++; return true; },
+		waitForExit: async () => false,
+	}));
+	for (const [index, item] of r2726ElapsedCases.entries()) {
+		const folder = path.join(ROOT, `r2726-etime-${index}`);
+		const lock = `${folder}.lock`;
+		fs.mkdirSync(folder, { recursive: true });
+		const pidFile = path.join(folder, "builder.pid");
+		fs.writeFileSync(pidFile, JSON.stringify({ pid: 77, launch: "direct" }));
+		fs.writeFileSync(lock, "66\n");
+		const recordedAt = r2726Now - item.elapsedMs - 10 * 60_000;
+		fs.utimesSync(pidFile, recordedAt / 1000, recordedAt / 1000);
+		let kills = 0;
+		await bounded(cleanLane({ folder, lock, workerPid: 66, build: "missing", commonDir: ROOT }, {
+			platform: "darwin", alive: (pid) => pid === 77, now: () => r2726Now,
+			run: (_command, args) => ({ status: 0, stdout: args.includes("etime=") ? item.output : "" }),
+			killTree: () => { kills++; return true; }, waitForExit: async () => false,
+		}));
+		const olderFolder = path.join(ROOT, `r2726-etime-older-${index}`);
+		const olderLock = `${olderFolder}.lock`;
+		fs.mkdirSync(olderFolder, { recursive: true });
+		const olderPidFile = path.join(olderFolder, "builder.pid");
+		fs.writeFileSync(olderPidFile, JSON.stringify({ pid: 77, launch: "direct" }));
+		fs.writeFileSync(olderLock, "66\n");
+		const olderRecordAt = r2726Now - item.elapsedMs + 10 * 60_000;
+		fs.utimesSync(olderPidFile, olderRecordAt / 1000, olderRecordAt / 1000);
+		let olderKills = 0;
+		await bounded(cleanLane({ folder: olderFolder, lock: olderLock, workerPid: 66, build: "missing", commonDir: ROOT }, {
+			platform: "darwin", alive: (pid) => pid === 77, now: () => r2726Now,
+			run: (_command, args) => ({ status: 0, stdout: args.includes("etime=") ? item.output : "" }),
+			killTree: () => { olderKills++; return true; }, waitForExit: async () => false,
+		}));
+		r2726ElapsedResults.push({ output: item.output.trim(), kills, lock: fs.existsSync(lock), olderKills, olderLock: fs.existsSync(olderLock) });
+	}
+} finally {
+	if (priorTz === undefined) delete process.env.TZ;
+	else process.env.TZ = priorTz;
+}
+// req: R-2726
+check("R-2726: in the repeated local hour, etime and the injected clock show a builder started after its record, so the watcher does not signal it",
+	!loadError && r2726Kills === 0 && r2726PsArgs?.includes("etime=") && fs.existsSync(r2726Lock) && r2726ElapsedResults.length === r2726ElapsedCases.length && r2726ElapsedResults.every((item) => item.kills === 0 && item.lock && item.olderKills === 1 && item.olderLock),
+	JSON.stringify({ loadError: loadError?.message, kills: r2726Kills, args: r2726PsArgs, lock: fs.existsSync(r2726Lock), elapsed: r2726ElapsedResults }));
+
 // req: R-2727
 check("R-2727: a watcher whose recorded builder still runs after the stop wait, or whose Windows builder ran through cmd.exe, keeps the lane lock and removes the temp files",
 	!loadError && observations.length === 3 && observations.every((item, index) => item.folderGone && (item.lock === "66\n") === [true, true, false][index]) && observations[0]?.kills === 1 && observations[1]?.kills === 0 && observations[2]?.kills === 0,
