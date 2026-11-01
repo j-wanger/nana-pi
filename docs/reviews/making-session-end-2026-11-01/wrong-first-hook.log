@@ -1,72 +1,19 @@
-FAIL R-3350: session and land share one quiet hidden starter Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/claude/hooks/nana-memory-end.mjs' imported from /Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-hook.test.mjs
-    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
-    at moduleResolve (node:internal/modules/esm/resolve:861:10)
-    at defaultResolve (node:internal/modules/esm/resolve:985:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
-    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
-    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
-    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
-    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
-FAIL R-3351: guards deadline errors and open stdin stay quiet Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/claude/hooks/nana-memory-end.mjs' imported from /Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-hook.test.mjs
-    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
-    at moduleResolve (node:internal/modules/esm/resolve:861:10)
-    at defaultResolve (node:internal/modules/esm/resolve:985:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
-    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
-    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
-    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
-    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
-FAIL R-3352: broken checkout exits silently Error: ENOENT: no such file or directory, copyfile '/Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/claude/hooks/nana-memory-end.mjs' -> '/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/memory-end-ZjPLEm/isolated.mjs'
-    at Object.copyFileSync (node:fs:3090:11)
-    at file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-hook.test.mjs:61:50
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/profile-fixture.mjs:61:8)
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-hook.test.mjs:18:115)
-    at async file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-hook.test.mjs:60:2
-FAIL R-3355: run survives hook exit and timeout descendant kill Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/lib/memory-end-config.mjs' imported from /Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-hook.test.mjs
-    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
-    at moduleResolve (node:internal/modules/esm/resolve:861:10)
-    at defaultResolve (node:internal/modules/esm/resolve:985:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
-    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
-    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
-    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
-    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
-FAIL R-3358: seal entry timeout Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/lib/memory-end-config.mjs' imported from /Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-hook.test.mjs
-    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
-    at moduleResolve (node:internal/modules/esm/resolve:861:10)
-    at defaultResolve (node:internal/modules/esm/resolve:985:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
-    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
-    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
-    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
-    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
-FAIL R-3359: seal stdin deadline Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/lib/memory-end-config.mjs' imported from /Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-hook.test.mjs
-    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
-    at moduleResolve (node:internal/modules/esm/resolve:861:10)
-    at defaultResolve (node:internal/modules/esm/resolve:985:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
-    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
-    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
-    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
-    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
-FAIL R-3360: seal hook identity Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/lib/memory-end-config.mjs' imported from /Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-hook.test.mjs
-    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
-    at moduleResolve (node:internal/modules/esm/resolve:861:10)
-    at defaultResolve (node:internal/modules/esm/resolve:985:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
-    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
-    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
-    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
-    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+Wrong-code-first record: hook/config absent. Exit 1.
+Identity-sanitized: absolute machine paths and repetitive Node stacks omitted.
+
+FAIL R-3350: session and land share one quiet hidden starter
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/claude/hooks/nana-memory-end.mjs
+FAIL R-3351: guards deadline errors and open stdin stay quiet
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/claude/hooks/nana-memory-end.mjs
+FAIL R-3352: broken checkout exits silently
+  ENOENT: copyfile packages/nana-setup/claude/hooks/nana-memory-end.mjs -> isolated.mjs
+FAIL R-3355: run survives hook exit and timeout descendant kill
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+FAIL R-3358: seal entry timeout
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+FAIL R-3359: seal stdin deadline
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+FAIL R-3360: seal hook identity
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+
+The later mutation record breaks each implemented behavior and requires these same named tests to fail.

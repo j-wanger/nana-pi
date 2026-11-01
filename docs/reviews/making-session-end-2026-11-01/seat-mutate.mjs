@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 // Lane-only mutation table. Never imported, run or copied by a suite test.
-import { fileURLToPath } from 'node:url';
 import { runMutations } from '../../../packages/nana-pack/lib/mutation-runner.mjs';
 const H='packages/nana-setup/claude/hooks/nana-memory-end.mjs';
 const S='packages/nana-pack/lib/memory-start.mjs';
@@ -40,4 +39,4 @@ const pairs=[
  pair('seal-push','change push word',[MT],['R-3361'],[edit('packages/nana-pack/lib/memory-run-config.mjs',"pushed:'pushed'","pushed:'sent'")],['R-3354']),
  pair('seal-note','change doctor label',[MT],['R-3362','R-3356'],[edit(C,"label:'memory making'","label:'making'")]),
 ];
-await runMutations({lane:'making-session-end',branch:'feat/making-session-end',self:fileURLToPath(import.meta.url),tip:process.env.SEAT_MUTATE_TIP||'HEAD',pairs});
+process.exitCode = await runMutations({lane:'making-session-end',branch:'feat/making-session-end',self:import.meta.url,tip:process.env.SEAT_MUTATE_TIP||'HEAD',pairs});

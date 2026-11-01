@@ -1,53 +1,17 @@
-FAIL R-3354: push words and compare-and-swap tracking stay honest AssertionError [ERR_ASSERTION]: The input did not match the regular expression /; pushed\n$/. Input:
+Wrong-code-first record: existing making implementation. Exit 1.
+Identity-sanitized: absolute machine paths and repetitive Node stacks omitted.
 
-'memory: complete; sent 1; done 1; pending 0; unsent 0; unknown 0; tokens 100\n'
+FAIL R-3354: push words and compare-and-swap tracking stay honest
+  AssertionError: expected /; pushed\n$/; actual:
+  memory: complete; sent 1; done 1; pending 0; unsent 0; unknown 0; tokens 100
+FAIL R-3356: doctor and status use only local count-only making health
+  AssertionError: Expected values to be strictly equal: 0 !== 1
+FAIL R-3357: empty runs leave HEAD store and remote unchanged
+  AssertionError: actual HEAD 0b2ba1a07af14b1265a8000c0dac2abbf205a38e
+                  expected b21edd4d6c6537b41f44de5954d5418da89793f8
+FAIL R-3361: seal push vocabulary
+  TypeError: Cannot read properties of undefined (reading 'pushed')
+FAIL R-3362: seal doctor vocabulary
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
 
-    at file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:25:84
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async using (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-run-fixture.mjs:39:69)
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/profile-fixture.mjs:61:8)
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:20:104)
-    at async file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:23:1
-FAIL R-3356: doctor and status use only local count-only making health AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-
-0 !== 1
-
-    at note (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:47:95)
-    at file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:48:15
-    at using (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-run-fixture.mjs:39:75)
-    at file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:45:85
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/profile-fixture.mjs:61:8)
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:20:104)
-    at async file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:45:1
-FAIL R-3357: empty runs leave HEAD store and remote unchanged AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-+ actual - expected
-
-+ '0b2ba1a07af14b1265a8000c0dac2abbf205a38e'
-- 'b21edd4d6c6537b41f44de5954d5418da89793f8'
-
-    at file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:63:99
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async using (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-run-fixture.mjs:39:69)
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/profile-fixture.mjs:61:8)
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:20:104)
-    at async file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:60:1
-FAIL R-3361: seal push vocabulary TypeError: Cannot read properties of undefined (reading 'pushed')
-    at file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:69:92
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/profile-fixture.mjs:61:8)
-    at async check (file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:20:104)
-    at async file:///Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs:68:1
-FAIL R-3362: seal doctor vocabulary Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/lib/memory-end-config.mjs' imported from /Users/jwang/nana-pi-wt/making-session-end/packages/nana-pack/tests/memory-session-end.test.mjs
-    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
-    at moduleResolve (node:internal/modules/esm/resolve:861:10)
-    at defaultResolve (node:internal/modules/esm/resolve:985:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
-    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
-    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
-    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
-    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
-(node:27075) ExperimentalWarning: SQLite is an experimental feature and might change at any time
-(Use `node --trace-warnings ...` to show where the warning was created)
+The later mutation record breaks each implemented behavior and requires these same named tests to fail.

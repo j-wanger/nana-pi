@@ -1,11 +1,7 @@
-FAIL R-3353: SessionEnd install repair remove and check preserve foreign hooks Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/lib/memory-end-config.mjs' imported from /Users/jwang/nana-pi-wt/making-session-end/packages/nana-setup/tests/memory-end-wiring.test.mjs
-    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
-    at moduleResolve (node:internal/modules/esm/resolve:861:10)
-    at defaultResolve (node:internal/modules/esm/resolve:985:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
-    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
-    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
-    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
-    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+Wrong-code-first record: SessionEnd wiring/config absent. Exit 1.
+Identity-sanitized: absolute machine paths and repetitive Node stacks omitted.
+
+FAIL R-3353: SessionEnd install repair remove and check preserve foreign hooks
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+
+The later mutation record restores timeout-five-only recognition and inherited CI; this same named test fails both changes.
