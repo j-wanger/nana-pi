@@ -38,27 +38,31 @@ const pairedSeat = (unit, kind) => kind === "decision" ? unit.question ?? unit.s
 export async function extractShaped(options) {
  const { runModel } = options;
  if (typeof runModel !== "function") throw new Error("runner required");
- const records = [], owners = [], reviews = [], seen = new Set();
- const counts = { ownerTurns: 0, skipped: 0, asks: 0, reviewTitles: 0, cutOwner: 0, cutContext: 0, cappedClaims: 0, calls: 0, unknownUsage: 0, unsent: 0, unclassified: 0 };
+ const records = [], queue = [], seen = new Set(), states = [];
+ const tokenCap = options.caps?.tokens ?? TOKEN_CAP, callCap = options.caps?.calls ?? Infinity, unknownCharge = options.caps?.unknownCharge ?? 0;
+ const done = (unit, state) => states.push({key: unit.evidence.split('+')[0], state});
+ const counts = { ownerTurns: 0, skipped: 0, asks: 0, reviewTitles: 0, cutOwner: 0, cutContext: 0, cappedClaims: 0, calls: 0, unknownUsage: 0, unsent: 0, unclassified: 0, failed: 0 };
  const emit = (value) => { records.push(value.record); counts.cappedClaims += value.capped; };
- for await (const unit of transcriptUnits(options)) {
+ const source = options.unitSource ?? (async function* () { yield* transcriptUnits(options); yield* reviewUnits(options); })();
+ for await (const unit of source) {
   if (seen.has(unit.evidence)) continue;
   seen.add(unit.evidence);
   if (unit.source === "ask") {
    counts.asks++;
-   emit(shape("user", "decision", unit.quote, unit.context, unit.evidence, unit.date));
-  } else {
+   emit(shape("user", "decision", unit.quote, unit.context, unit.evidence, unit.date)); done(unit, 'done');
+  } else if (unit.source === 'review') { counts.reviewTitles++; queue.push(unit); }
+  else {
    counts.ownerTurns++;
-   if (!unit.lastSeat) { counts.skipped++; continue; }
-   owners.push(unit);
+   if (!unit.lastSeat) { counts.skipped++; done(unit, 'skipped'); continue; }
+   queue.push(unit);
   }
  }
- for (const unit of reviewUnits(options)) { counts.reviewTitles++; reviews.push(unit); }
  const spend = emptyUsage(); let unknownCost = false;
- for (const units of [owners, reviews]) {
-  for (let start = 0; start < units.length; start += BATCH_SIZE) {
-   const batch = units.slice(start, start + BATCH_SIZE);
-   if (totalTokens(spend) >= TOKEN_CAP) { counts.unsent += batch.length; continue; }
+ for (let start = 0; start < queue.length;) {
+   let end = start + 1;
+   while (end < queue.length && end - start < BATCH_SIZE && queue[end].source === queue[start].source) end++;
+   const batch = queue.slice(start, end); start = end;
+   if (totalTokens(spend) >= tokenCap || totalTokens(spend) + unknownCharge > tokenCap || counts.calls >= callCap || (options.beforeCall && !await options.beforeCall())) { counts.unsent += batch.length; continue; }
    const source = batch[0].source;
    const input = batch.map((unit, i) => {
     const id = `u${i + 1}`;
@@ -71,14 +75,21 @@ export async function extractShaped(options) {
    let result;
    try { result = await runModel({ system: SYSTEM_PROMPT, prompt: PROMPT_LEAD + JSON.stringify(input), schema: replySchema(source) }); } catch { result = null; }
    const usage = result?.usage;
-   if (!usage || !Number.isFinite(usage.tokens) || usage.tokens < 0) { counts.unknownUsage++; unknownCost = true; }
+   const charged = usage && Number.isFinite(usage.tokens) && usage.tokens >= 0 ? usage.tokens : unknownCharge;
+   if (options.afterCall) await options.afterCall(charged);
+   if (!usage || !Number.isFinite(usage.tokens) || usage.tokens < 0) { counts.unknownUsage++; unknownCost = true; addUsage(spend, { totalTokens: unknownCharge, cost: { total: 0 } }); }
    else {
     const priced = Number.isFinite(usage.cost) && usage.cost >= 0;
     addUsage(spend, { totalTokens: usage.tokens, cost: { total: priced ? usage.cost : 0 } });
     if (!priced || (usage.tokens > 0 && usage.cost === 0)) unknownCost = true;
    }
    const rows = result?.ok ? validated(result.text, source, batch.length) : null;
-   if (!rows) { counts.unclassified += batch.length; continue; }
+   if (!rows) {
+    if (result?.ok) { counts.unclassified += batch.length; for (const unit of batch) done(unit, 'unclassified'); }
+    else { counts.failed += batch.length; counts.unsent += options.unitSource ? batch.length : 0; counts.unclassified += options.unitSource ? 0 : batch.length; }
+    continue;
+   }
+   for (const unit of batch) done(unit, 'done');
    for (const [i, row] of rows.entries()) {
     if (row.kind === "none") continue;
     const unit = batch[i], seat = source === "owner" ? pairedSeat(unit, row.kind) : null;
@@ -86,9 +97,8 @@ export async function extractShaped(options) {
     const context = seat ? seat.context.slice(-CONTEXT_CAP).slice(-CLAIM_CAP) : "";
     emit(shape(source === "owner" ? "user" : "worker", row.kind, unit.quote, context, seat ? `${unit.evidence}+${seat.uuid}` : unit.evidence, unit.date, { claim: row.claim, context }));
    }
-  }
  }
- return { records, counts, tokens: totalTokens(spend), cost: unknownCost ? null : costTotal(spend) };
+ return { records, states, counts, tokens: totalTokens(spend), cost: unknownCost ? null : costTotal(spend) };
 }
 /** Shared strict argv reader and private folder policy; no runner exception text escapes. */
 export async function runShape(argv, { runModel, stdout = (s) => process.stdout.write(s), stderr = (s) => process.stderr.write(s), repoRoot = process.cwd(), projectsRoot = path.join(process.env.HOME ?? process.env.USERPROFILE ?? "~", ".claude", "projects") } = {}) {

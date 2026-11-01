@@ -475,6 +475,8 @@ Artifact: A-090 · owner profile records · other project: <project>/records/ an
 Read by: A-090 · code: packages/nana-pack/lib/profile-store.mjs
 Artifact: A-091 · shaped memory candidates · user-home store: ~/<private --out folder>/shaped-candidates.jsonl · manual: the seat runs npm run memory:shape by hand
 Read by: A-091 · code: packages/nana-pack/lib/memory-score.mjs
+Artifact: A-093 · project memory store · other project: <project>/projects/<repository-folder>/ · land: packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/bin/nana-memory.mjs
+Read by: A-093 · code: packages/nana-pack/lib/memory-store.mjs, packages/nana-pack/bin/nana-memory.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -552,6 +554,35 @@ Purpose: Classify owner turns and review findings with a capped, isolated model 
 | R-3267 | The capture buffer cap shall be 67108864 bytes. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: capture buffer` |
 | R-3268 | The system prompt shall have SHA-256 ef726abb8a0d48e17c1b4a214af86c6dff52978b69e86e628b8e4d810b084c98. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: system prompt hash` |
 | R-3269 | The output name and fixed count words shall be shaped-candidates.jsonl, unsent, unclassified, skipped and unscored: spend cap reached. | implemented | `packages/nana-pack/tests/memory-shaping.test.mjs::seal: output file and count words` |
+
+### SUB-024 · Make memory when sessions and lands end
+Purpose: Make new enabled repository units once into a private, synchronized project store through one merge step.
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3290 | The automatic maker shall process each owner and ask unit once across appended and copied transcripts. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3290: each owner and ask unit is made once` |
+| R-3291 | The maker shall sweep pending units after busy, capped or failed runs, finish malformed replies once, recover dead or expired locks, skip and count unparseable project files without blocking seat saves or resending done units, and distinguish local preparation and merge errors from busy outcomes. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3291: pending units survive busy caps failures and stale locks`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3291: torn records do not block saves or repeat done units`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3291: empty seen files do not block saves or repeat done units`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3291: preparation failures are not busy` |
+| R-3292 | The maker shall bound run calls and tokens and reserve then settle a shared UTC day budget, charging unknown usage pessimistically across concurrent repositories. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3292: known and unknown usage obey run and shared day caps` |
+| R-3293 | The maker shall read only enabled nonshallow repositories and post-start units from the main checkout's landed reviews and matching lane folders, retaining the enabled root identity across clones, worktrees and merged histories, listing review files by needed folder and refusing failed or over-cap listings rather than reporting zero pending. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3293: only enabled post-start main sources use a stable root key`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3293: over-cap review listings fail loudly and lane discovery stays scoped` |
+| R-3294 | The maker and seat saves shall converge across two clones with atomically published never-overwritten store files, git-local controls, short clone-lock holds, a 1000 millisecond local merge-lock wait and recovery of stale index locks and paused rebases before branch-dependent operations, keeping network steps outside the clone lock. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3294: two machines and seat saves converge without machine files`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3291: torn records do not block saves or repeat done units`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3294: local merge waits for a brief seat lock`; `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3294: seal local merge lock wait`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3294: paused rebase recovers before fetch and pending work completes` |
+| R-3295 | The shared merge step shall keep one live normalized claim or unit and prefer the seat's saved record over extracted records. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3295: one live normalized claim prefers the seat in either order` |
+| R-3296 | The maker shall retain capped evidence only for stored records, resolve it after source deletion, print counts only and skip CI before reading sources. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3296: narrow private evidence survives deletion without public text` |
+| R-3297 | A successful known-lane land shall start making after containment and review-lock release independently of record retention, without changing its verdict or earlier lines; only the CLI supplies the real guarded detached starter. | implemented | `packages/nana-pack/tests/memory-run.test.mjs::R-3297: land starts making only after the final merge and cannot alter its verdict` |
+| R-3298 | The automatic start instant shall be 2026-10-31T18:16:00Z. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3298: seal start instant` |
+| R-3299 | The per-run token cap shall be 200000. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3299: seal run tokens` |
+| R-3300 | The per-run call cap shall be 20. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3300: seal run calls` |
+| R-3301 | The per-machine UTC day token cap shall be 1000000. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3301: seal day tokens` |
+| R-3302 | Unknown usage shall charge 100000 tokens per call. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3302: seal unknown charge` |
+| R-3303 | Maximum run time shall derive from the call cap plus one, multiplied by the shared batch timeout, with each model call starting only when elapsed time plus the batch timeout fits within it. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3303: seal derived run time`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3303: calls reserve their full timeout before starting` |
+| R-3304 | Stale index-lock age shall be twice the profile git timeout. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3304: seal derived index age` |
+| R-3305 | Evidence copies shall cap each text at the shared 1200 characters. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3305: seal evidence cap` |
+| R-3306 | The making day boundary shall be UTC. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3306: seal UTC boundary` |
+| R-3307 | Repository folder ids shall contain the first 16 hex characters with a full-root collision check. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3307: seal root folder length and collision refusal` |
+| R-3308 | The project store shall use the sealed projects, repository.json, records, events, seen, units and runs layout, including safe paths for 64-hex roots. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3308: seal safe immutable store layout for a 64 hex root` |
+| R-3309 | Project records shall contain the candidate fields followed by subject, scope and repository. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3309: seal project record fields` |
+| R-3340 | Machine opt-in shall use the memoryRepositories configuration member. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3340: seal opt-in member` |
+| R-3341 | The maker shall use the sealed fixed run, status, land and refusal vocabulary. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3341: seal fixed words` |
+| R-3342 | Trigger lane folders shall match the escaped anchored lane followed by an ISO day. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3342: seal anchored escaped lane folder pattern` |
 
 ## FEAT-043 · Measure memory outcomes
 Purpose: Count, per window of owner interactions and pooled, owner corrections and decisions given again, review findings that recur and each role's logged context size, so memory changes are judged against a measured baseline.

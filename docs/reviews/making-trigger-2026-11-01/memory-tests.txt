@@ -1,0 +1,4 @@
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs  15 pass  1.2s
+PASS  packages/nana-pack/tests/memory-run.test.mjs        8 pass  41.5s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 23 pass, 0 fail, 0 skip · 43.1s

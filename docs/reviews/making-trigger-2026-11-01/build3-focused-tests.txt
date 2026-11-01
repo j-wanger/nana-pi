@@ -1,0 +1,12 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs memory-run memory-making memory-shaping outcome-meter requirements-tree
+
+PASS  packages/nana-pack/tests/memory-making.test.mjs      24 pass  0.2s
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs   15 pass  1.1s
+PASS  packages/nana-pack/tests/memory-run.test.mjs         8 pass  38.1s
+PASS  packages/nana-pack/tests/memory-shaping.test.mjs     20 pass  0.4s
+PASS  packages/nana-pack/tests/outcome-meter.test.mjs      27 pass  0.6s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs  98 pass  2.6s
+
+6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 192 pass, 0 fail, 0 skip · 43.3s

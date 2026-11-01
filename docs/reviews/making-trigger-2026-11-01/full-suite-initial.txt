@@ -1,0 +1,269 @@
+
+> nana-pi@0.5.0 test:locked
+> node scripts/test-locked.mjs
+
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs --jobs=4
+
+PASS  packages/nana-knowledge/tests/ledger-parse.test.mjs             21 pass, 1 skip  0.1s
+PASS  packages/nana-knowledge/tests/incremental-build.test.mjs        30 pass  0.1s
+PASS  packages/nana-knowledge/tests/render.test.mjs                   69 pass  0.1s
+PASS  packages/nana-knowledge/tests/tokenize.test.mjs                 18 pass  0.1s
+PASS  packages/nana-knowledge/tests/discovery.test.mjs                37 pass  0.3s
+PASS  packages/nana-knowledge/tests/unreadable-root.test.mjs          7 pass  0.3s
+PASS  packages/nana-pack/tests/adoption-producer.test.mjs             62 pass  0.3s
+PASS  packages/nana-pack/tests/agent-dir-config.test.mjs              100 pass  0.3s
+PASS  packages/nana-knowledge/tests/recover.test.mjs                  11 pass  1.8s
+PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs       60 pass  0.2s
+PASS  packages/nana-pack/tests/ask-shape.test.mjs                     4 pass  0.0s
+PASS  packages/nana-pack/tests/blast-radius.test.mjs                  8 pass  0.9s
+PASS  packages/nana-knowledge/tests/sources-file.test.mjs             10 pass  3.3s
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs              56 pass  3.4s
+PASS  packages/nana-pack/tests/brief-check.test.mjs                   4 pass  2.2s
+PASS  packages/nana-pack/tests/build-report.test.mjs                  5 pass  2.4s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs                   25 pass  0.0s
+PASS  packages/nana-pack/tests/ci-records.test.mjs                    6 pass  3.8s
+PASS  packages/nana-pack/tests/agent-dir-hostile.test.mjs             28 pass  9.8s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs               12 pass  1.9s
+PASS  packages/nana-pack/tests/code-search.test.mjs                   9 pass  0.6s
+PASS  packages/nana-pack/tests/code-map.test.mjs                      48 pass  3.3s
+PASS  packages/nana-pack/tests/config-display-text.test.mjs           38 pass  0.1s
+PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs          42 pass  1.0s
+PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs     99 pass  0.5s
+PASS  packages/nana-pack/tests/config-normalize.test.mjs              23 pass  0.8s
+PASS  packages/nana-pack/tests/build-records.test.mjs                 7 pass  13.0s
+PASS  packages/nana-pack/tests/config-trust.test.mjs                  27 pass  0.6s
+PASS  packages/nana-pack/tests/claude-review.test.mjs                 10 pass, 1 skip  13.9s
+PASS  packages/nana-pack/tests/display-surfaces.test.mjs              181 pass  0.3s
+PASS  packages/nana-pack/tests/first-look.test.mjs                    8 pass  0.1s
+PASS  packages/nana-pack/tests/frontier-golden.test.mjs               1 pass  0.6s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs              8 pass  0.9s
+PASS  packages/nana-pack/tests/frontier.test.mjs                      53 pass  1.9s
+PASS  packages/nana-pack/tests/gate-config-robustness.test.mjs        4 pass  0.1s
+PASS  packages/nana-pack/tests/config-project-gate-fallback.test.mjs  28 pass  8.9s
+PASS  packages/nana-pack/tests/gate-policy-paths.test.mjs             93 pass  0.9s
+PASS  packages/nana-pack/tests/gate-rm-inside.test.mjs                11 pass  2.4s
+PASS  packages/nana-pack/tests/gate-rm-outside.test.mjs               14 pass, 3 skip  0.5s
+PASS  packages/nana-pack/tests/gate-self-protection.test.mjs          101 pass  0.2s
+PASS  packages/nana-pack/tests/gate-status.test.mjs                   23 pass  0.2s
+PASS  packages/nana-pack/tests/gate-survives-mutation.test.mjs        38 pass  0.4s
+PASS  packages/nana-pack/tests/handoff-artifact.test.mjs              9 pass  0.1s
+PASS  packages/nana-pack/tests/handoff-asks.test.mjs                  5 pass  0.0s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs                12 pass  3.2s
+PASS  packages/nana-pack/tests/gate-corpus.test.mjs                   227 pass  8.7s
+PASS  packages/nana-pack/tests/handoff-staleness.test.mjs             78 pass  0.2s
+PASS  packages/nana-pack/tests/handoff-symlink.test.mjs               15 pass  0.1s
+PASS  packages/nana-pack/tests/handoff-trust.test.mjs                 53 pass  0.1s
+PASS  packages/nana-pack/tests/handoff-store.test.mjs                 54 pass  0.2s
+PASS  packages/nana-pack/tests/hive-assets.test.mjs                   5 pass  0.1s
+PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs           9 pass  1.4s
+PASS  packages/nana-pack/tests/hive-page.test.mjs                     10 pass  5.4s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs               11 pass  33.2s
+PASS  packages/nana-pack/tests/component-audit.test.mjs               11 pass  44.1s
+PASS  packages/nana-pack/tests/identity-scan.test.mjs                 8 pass  16.1s
+PASS  packages/nana-pack/tests/issue-watch.test.mjs                   26 pass  3.7s
+PASS  packages/nana-pack/tests/known-bugs.test.mjs                    4 pass  0.1s
+PASS  packages/nana-pack/tests/keep-movement.test.mjs                 8 pass  6.7s
+PASS  packages/nana-pack/tests/immutable-review.test.mjs              22 pass  19.0s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs               7 pass  15.4s
+PASS  packages/nana-pack/tests/lane-class.test.mjs                    12 pass  2.6s
+PASS  packages/nana-pack/tests/lane-watcher.test.mjs                  1 pass  0.0s
+PASS  packages/nana-pack/tests/lane-write-guard.test.mjs              16 pass, 2 skip  0.2s
+PASS  packages/nana-pack/tests/lifecycle-journal.test.mjs             6 pass  0.1s
+PASS  packages/nana-pack/tests/lifecycle-reload.test.mjs              12 pass  0.1s
+PASS  packages/nana-pack/tests/line-endings.test.mjs                  1 pass  3.3s
+PASS  packages/nana-pack/tests/linked-launch.test.mjs                 5 pass  1.1s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                       1 pass  0.1s
+PASS  packages/nana-pack/tests/memory-making.test.mjs                 24 pass  0.2s
+PASS  packages/nana-pack/tests/land-records.test.mjs                  7 pass  20.8s
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs              15 pass  1.3s
+PASS  packages/nana-pack/tests/memory-shaping.test.mjs                20 pass  0.4s
+PASS  packages/nana-pack/tests/mutation-runner-takeover.test.mjs      3 pass  1.0s
+PASS  packages/nana-pack/tests/hive-city.test.mjs                     19 pass  68.2s
+PASS  packages/nana-pack/tests/nana-roster-set.test.mjs               8 pass  1.5s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs                   19 pass  0.5s
+PASS  packages/nana-pack/tests/notify-dispatch.test.mjs               5 pass  0.1s
+PASS  packages/nana-pack/tests/notify-fallback.test.mjs               28 pass  9.4s
+PASS  packages/nana-pack/tests/memory-run.test.mjs                    8 pass  41.3s
+PASS  packages/nana-pack/tests/objective-injection.test.mjs           69 pass  0.1s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs                7 pass  0.1s
+PASS  packages/nana-pack/tests/pack-config-utf16.test.mjs             5 pass, 1 skip  1.2s
+PASS  packages/nana-pack/tests/pages-workflow.test.mjs                4 pass  0.0s
+PASS  packages/nana-pack/tests/mutation-runner.test.mjs               42 pass  60.0s
+PASS  packages/nana-pack/tests/pi-install.test.mjs                    7 pass  0.2s
+PASS  packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs        38 pass, 2 skip  0.1s
+PASS  packages/nana-pack/tests/pipe-guard.test.mjs                    230 pass  0.3s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs                11 pass  0.0s
+PASS  packages/nana-pack/tests/post-edit-default-timeout.test.mjs     2 pass  0.1s
+PASS  packages/nana-pack/tests/objective-golden.test.mjs              1280 pass  34.6s
+PASS  packages/nana-pack/tests/post-edit-file-queue.test.mjs          5 pass  2.5s
+PASS  packages/nana-pack/tests/post-edit-status.test.mjs              32 pass, 1 skip  1.8s
+PASS  packages/nana-pack/tests/post-edit-values-named.test.mjs        6 pass  0.5s
+PASS  packages/nana-pack/tests/process-tree.test.mjs                  5 pass, 1 skip  0.2s
+PASS  packages/nana-pack/tests/product-detail.test.mjs                4 pass  1.6s
+PASS  packages/nana-pack/tests/product-overview.test.mjs              15 pass  5.0s
+PASS  packages/nana-pack/tests/path-spelling.test.mjs                 11 pass  32.3s
+PASS  packages/nana-pack/tests/post-edit-hardening.test.mjs           23 pass, 2 skip  12.1s
+PASS  packages/nana-pack/tests/land.test.mjs                          66 pass  98.3s
+PASS  packages/nana-pack/tests/readme-check.test.mjs                  11 pass  0.3s
+PASS  packages/nana-pack/tests/real-path.test.mjs                     2 pass  0.0s
+PASS  packages/nana-pack/tests/release-status.test.mjs                7 pass  2.6s
+PASS  packages/nana-pack/tests/rename-retry.test.mjs                  2 pass  0.1s
+PASS  packages/nana-pack/tests/requirement-rows.test.mjs              5 pass  0.6s
+PASS  packages/nana-pack/tests/requirements-cap-kinds.test.mjs        9 pass  0.6s
+PASS  packages/nana-pack/tests/requirements-deliverables.test.mjs     21 pass  0.7s
+PASS  packages/nana-pack/tests/profile-sync.test.mjs                  2 pass  31.3s
+PASS  packages/nana-pack/tests/requirements-moved.test.mjs            10 pass  0.5s
+PASS  packages/nana-pack/tests/requirements-lift.test.mjs             65 pass  41.5s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs            61 pass  5.3s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs          63 pass  28.8s
+FAIL  packages/nana-pack/tests/requirements-tree.test.mjs             91 pass, 7 fail  2.7s  — exit 1
+      | FAIL R-288: all real headings have non-empty purposes 73 headings
+      | FAIL R-291: committed outline equals a fresh render committed outline differs from renderOutline
+      | FAIL R-291: committed outline fields and row IDs match the real ledger CAP-01: outline field row count is missing or altered; CAP-01: outline field row IDs are missing or altered; FEAT-040: outline field row count is missing or altered; FEAT-040: outline field row IDs are missing or altered; FEAT-040: outline Artifacts: is missing or altered; SUB-024: outline field ID is missing
+      | FAIL R-291: every real heading's committed IDs survive expansion and the tree reads every row line once CAP-01: committed IDs differ from its rows; FEAT-040: committed IDs differ from its rows; SUB-024: committed IDs differ from its rows
+      | FAIL R-291: parent row counts aggregate descendants parent count differs from its descendants
+      | FAIL R-291: feature outline carries status and shared IDs CAP-01: outline field row count is missing or altered; CAP-01: outline field row IDs are missing or altered; FEAT-040: outline field row count is missing or altered; FEAT-040: outline field row IDs are missing or altered; FEAT-040: outline Artifacts: is missing or altered; SUB-024: outline field ID is missing
+      | FAIL R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy ["line 15: R-002 is not in a feature or subgroup table","line 12: FEAT-002 has no non-empty Purpose: line before its table or next heading"] vs ["line 15: R-002 is not in a feature or subgroup table","line 12: FEAT-002 has no non-empty Purpose: line before its table or next heading"]
+PASS  packages/nana-pack/tests/requirements-unclaimed.test.mjs        6 pass  2.9s
+PASS  packages/nana-pack/tests/review-movement.test.mjs               2 pass  0.0s
+PASS  packages/nana-pack/tests/review-round.test.mjs                  33 pass  0.0s
+PASS  packages/nana-pack/tests/review-launch.test.mjs                 7 pass, 2 skip  1.2s
+PASS  packages/nana-pack/tests/product-report.test.mjs                97 pass  66.0s
+PASS  packages/nana-pack/tests/review-standard.test.mjs               7 pass  1.4s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs                 16 pass  0.3s
+PASS  packages/nana-pack/tests/rulings.test.mjs                       21 pass  0.1s
+PASS  packages/nana-pack/tests/review-timeline.test.mjs               12 pass  7.8s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs                  11 pass  17.8s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs                  30 pass  0.1s
+PASS  packages/nana-pack/tests/runtime-map.test.mjs                   15 pass  22.8s
+PASS  packages/nana-pack/tests/suite-records.test.mjs                 9 pass  13.4s
+PASS  packages/nana-pack/tests/template-release.test.mjs              5 pass  3.6s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs           12 pass  14.2s
+PASS  packages/nana-pack/tests/review-test-waits.test.mjs             5 pass  53.2s
+PASS  packages/nana-pack/tests/profile-store.test.mjs                 18 pass  133.5s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs          11 pass  32.7s
+PASS  packages/nana-pack/tests/ts-syntax-check.test.mjs               6 pass  1.8s
+PASS  packages/nana-pack/tests/visual-reader.test.mjs                 5 pass  0.1s
+PASS  packages/nana-pack/tests/test-runner.test.mjs                   52 pass  30.3s
+PASS  packages/nana-pack/tests/watchdog-cpu.test.mjs                  4 pass, 1 skip  15.8s
+PASS  packages/nana-pack/tests/win-command.test.mjs                   47 pass, 1 skip  0.0s
+PASS  packages/nana-pack/tests/win32-launch.test.mjs                  5 pass, 8 skip  0.1s
+PASS  packages/nana-pack/tests/windows-skip-lines.test.mjs            8 pass  0.0s
+PASS  packages/nana-pack/tests/watchdog-exit.test.mjs                 6 pass  16.5s
+PASS  packages/nana-pack/tests/templates-render.test.mjs              173 pass  88.0s
+PASS  packages/nana-pack/tests/writing-check.test.mjs                 47 pass  0.5s
+PASS  packages/nana-pack/tests/writing-injection.test.mjs             30 pass  1.5s
+PASS  packages/nana-pack/tests/writing-trial-extractor.test.mjs       15 pass  0.1s
+PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs          13 pass  0.8s
+PASS  packages/nana-setup/tests/checkout-converge.test.mjs            6 pass  3.2s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs                 21 pass, 2 skip  30.5s
+PASS  packages/nana-setup/tests/checkout-spelling.test.mjs            6 pass  5.7s
+PASS  packages/nana-setup/tests/claude-config-dir.test.mjs            7 pass  2.2s
+PASS  packages/nana-setup/tests/copy-record.test.mjs                  8 pass  2.2s
+PASS  packages/nana-setup/tests/desk-service.test.mjs                 46 pass  8.9s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs                   67 pass  30.8s
+PASS  packages/nana-setup/tests/doctor-knowledge.test.mjs             5 pass  1.1s
+PASS  packages/nana-setup/tests/doctor-memory-links.test.mjs          12 pass  1.8s
+PASS  packages/nana-setup/tests/doctor-fix-line.test.mjs              15 pass  4.2s
+PASS  packages/nana-setup/tests/doctor-package-source.test.mjs        10 pass  1.8s
+PASS  packages/nana-setup/tests/doctor-pi-dependencies.test.mjs       3 pass  1.8s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs                72 pass  13.6s
+PASS  packages/nana-setup/tests/doctor-release.test.mjs               2 pass  1.1s
+PASS  packages/nana-setup/tests/doctor-quiet.test.mjs                 7 pass  1.4s
+PASS  packages/nana-setup/tests/entry-guidance.test.mjs               17 pass  0.3s
+PASS  packages/nana-setup/tests/fresh-machine.test.mjs                9 pass  0.1s
+PASS  packages/nana-setup/tests/doctor-trust.test.mjs                 1 pass  0.6s
+PASS  packages/nana-setup/tests/fsops.test.mjs                        17 pass  0.0s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs               13 pass  0.1s
+PASS  packages/nana-setup/tests/hooks-closed-output.test.mjs          7 pass  1.1s
+SKIP  packages/nana-setup/tests/hooks-win32-exec.test.mjs             runs only on the Windows leg (process.platform !== "win32")
+PASS  packages/nana-setup/tests/frontier-hook.test.mjs                1 pass  1.7s
+PASS  packages/nana-setup/tests/install-overlap.test.mjs              4 pass  0.2s
+PASS  packages/nana-setup/tests/doctor-runtime.test.mjs               21 pass  3.7s
+PASS  packages/nana-setup/tests/install-check.test.mjs                142 pass  1.8s
+PASS  packages/nana-setup/tests/objective-path-shapes.test.mjs        5 pass, 1 skip  5.4s
+PASS  packages/nana-setup/tests/paths.test.mjs                        5 pass  0.0s
+PASS  packages/nana-setup/tests/pi-install-pin.test.mjs               10 pass  0.1s
+PASS  packages/nana-setup/tests/install.test.mjs                      110 pass  10.1s
+PASS  packages/nana-setup/tests/linked-claude-folder.test.mjs         10 pass  10.2s
+PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  0.5s
+PASS  packages/nana-setup/tests/project-key.test.mjs                  13 pass, 1 skip  0.0s
+PASS  packages/nana-setup/tests/pi-registration.test.mjs              72 pass, 3 skip  5.0s
+PASS  packages/nana-setup/tests/project-odd-seeds.test.mjs            8 pass  3.8s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs       28 pass  0.3s
+PASS  packages/nana-setup/tests/project-stale.test.mjs                11 pass  4.5s
+PASS  packages/nana-setup/tests/readme-rehearsal.test.mjs             8 pass  0.1s
+PASS  packages/nana-setup/tests/realpath-fallback.test.mjs            3 pass  3.7s
+PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs           31 pass  2.0s
+PASS  packages/nana-setup/tests/restore.test.mjs                      15 pass  1.7s
+PASS  packages/nana-pack/tests/templates-update.test.mjs              34 pass  139.1s
+PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs           4 pass  0.6s
+PASS  packages/nana-setup/tests/retired-artifacts.test.mjs            47 pass  3.9s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs                    17 pass  0.0s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs              12 pass  3.6s
+PASS  packages/nana-setup/tests/settings-lock.test.mjs                6 pass, 2 skip  3.6s
+PASS  packages/nana-setup/tests/shared-link-state.test.mjs            7 pass  0.0s
+PASS  packages/nana-setup/tests/shared-memory-budget.test.mjs         7 pass  0.4s
+PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs           43 pass  0.8s
+PASS  packages/nana-setup/tests/shared-memory-input.test.mjs          3 pass  0.1s
+PASS  packages/nana-setup/tests/settings-merge.test.mjs               221 pass  5.0s
+PASS  packages/nana-setup/tests/skills-and-standards.test.mjs         88 pass  7.2s
+PASS  packages/nana-setup/tests/project.test.mjs                      124 pass  34.1s
+PASS  packages/nana-setup/tests/stale-copies.test.mjs                 14 pass  7.6s
+PASS  packages/nana-setup/tests/state-manifest.test.mjs               21 pass  1.0s
+PASS  packages/nana-setup/tests/trust.test.mjs                        13 pass  1.2s
+PASS  packages/nana-setup/tests/uninstall.test.mjs                    31 pass  2.2s
+PASS  packages/nana-setup/tests/win-shims.test.mjs                    2 pass, 6 skip  0.4s
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs                31 pass  2.7s
+PASS  packages/nana-setup/tests/win32-hook-repair.test.mjs            14 pass  2.8s
+PASS  packages/nana-setup/tests/writing-rule.test.mjs                 4 pass  0.0s
+PASS  packages/nana-stage/tests/blocks.test.mjs                       116 pass  0.1s
+PASS  packages/nana-setup/tests/win32-degrade.test.mjs                88 pass  6.8s
+PASS  apps/desk/test/app-listener.test.mjs                            76 pass  6.5s
+PASS  apps/desk/test/changes-endpoint.test.mjs                        88 pass  2.8s
+PASS  apps/desk/test/buffer-caps.test.mjs                             30 pass  8.7s
+PASS  apps/desk/test/host-rule.test.mjs                               30 pass  1.3s
+PASS  apps/desk/test/knowledge-home-isolation.test.mjs                1 pass  0.1s
+PASS  apps/desk/test/live-feel.test.mjs                               64 pass  0.0s
+PASS  apps/desk/test/crash-paths.test.mjs                             42 pass  3.6s
+PASS  apps/desk/test/origin-rule.test.mjs                             11 pass  0.6s
+PASS  apps/desk/test/pi-087-entries.test.mjs                          11 pass  1.0s
+PASS  apps/desk/test/pi-rpc-contract.test.mjs                         10 pass  0.4s
+PASS  apps/desk/test/pi-resolution.test.mjs                           43 pass  1.2s
+PASS  apps/desk/test/pi-session-parity.test.mjs                       42 pass  1.0s
+PASS  packages/nana-setup/tests/pi-launch-limits.test.mjs             22 pass, 2 skip  66.5s
+PASS  apps/desk/test/spawn-and-persist.test.mjs                       122 pass  2.6s
+PASS  packages/nana-setup/tests/stale-copies-slow.test.mjs            2 pass  38.3s
+PASS  apps/desk/test/usage-line.test.mjs                              6 pass  3.2s
+PASS  apps/bench/test/agentdir.test.mjs                               26 pass  0.0s
+PASS  apps/bench/test/aggregate.test.mjs                              62 pass  0.0s
+PASS  apps/bench/test/argv.test.mjs                                   32 pass, 1 skip  0.0s
+PASS  apps/desk/test/teardown-invariants.test.mjs                     18 pass  6.2s
+PASS  apps/bench/test/catch-ledger.test.mjs                           78 pass  1.4s
+PASS  apps/bench/test/evaluator-hardening.test.mjs                    68 pass  2.4s
+PASS  apps/bench/test/checkers.test.mjs                               92 pass  3.6s
+PASS  apps/bench/test/nested.test.mjs                                 59 pass  0.0s
+PASS  apps/bench/test/ops.test.mjs                                    48 pass  0.3s
+PASS  apps/bench/test/integration.test.mjs                            48 pass  2.1s
+PASS  apps/bench/test/plan.test.mjs                                   57 pass  0.1s
+SKIP  apps/bench/test/study-tasks.test.mjs                            needs apps/bench/.ext/pi-web-access (not present)
+PASS  apps/desk/test/stage-key-persistence.test.mjs                   82 pass  14.4s
+PASS  apps/bench/test/usage.test.mjs                                  90 pass  0.0s
+PASS  apps/bench/test/timeout.test.mjs                                12 pass  1.6s
+PASS  apps/desk/test/prompt-detach.test.mjs                           24 pass  19.9s
+PASS  apps/bench/test/orchestration-paths.test.mjs                    94 pass  7.4s
+PASS  packages/nana-knowledge/tests/extension.test.mjs                38 pass  3.6s
+PASS  packages/nana-knowledge/tests/hook.test.mjs                     98 pass  4.9s
+PASS  packages/nana-pack/tests/adoption-reader.test.mjs               56 pass  2.1s
+PASS  packages/nana-pack/tests/bounded-read.test.mjs                  4 pass  0.1s
+PASS  packages/nana-pack/tests/post-edit-utf8.test.mjs                4 pass  0.3s
+PASS  packages/nana-pack/tests/review-ledger.test.mjs                 171 pass  145.9s
+PASS  packages/nana-pack/tests/test-locked.test.mjs                   17 pass  5.1s
+PASS  packages/nana-setup/tests/hook-deadlines.test.mjs               7 pass  34.2s
+
+249 files: 246 PASS, 1 FAIL, 2 SKIP, 0 WARN · checks: 8856 pass, 7 fail, 44 skip · 668.2s
+failed: packages/nana-pack/tests/requirements-tree.test.mjs
+suite record: baseline 8c665dcd age 0h coverage yes wall 653.2s -> 668.2s; slower: none
+suite record: 246 PASS, 1 FAIL; failed: packages/nana-pack/tests/requirements-tree.test.mjs [new; exit 1]; passed only without coverage: none; this lane: 1 full runs, 11.1 min

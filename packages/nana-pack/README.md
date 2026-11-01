@@ -250,6 +250,62 @@ changed title at the same index. Transcript expiry can make pointers missing;
 private quote and context snapshots preserve readability. No trust promotion,
 cross-run deduplication, automatic trigger, delivery or real-data scoring happens here.
 
+## Automatic project memory
+
+`node packages/nana-pack/bin/nana-memory.mjs` provides `enable`, `make` and `status`.
+The command delegates to `scripts/memory-run.mjs` for the existing model adapter.
+Runtime dependencies: Node, git, the initialized private profile clone, and the authenticated
+Claude CLI used by the model shaper. There is no new hook, install wiring or PATH shim.
+
+```bash
+node packages/nana-pack/bin/nana-memory.mjs enable --repo <checkout>
+node packages/nana-pack/bin/nana-memory.mjs make --repo <checkout> --lane <lane>
+node packages/nana-pack/bin/nana-memory.mjs status --repo <checkout>
+```
+
+`enable` records a root-commit id in the active agent directory's `memoryRepositories`
+configuration member. Only enabled, nonshallow repositories are read. A linked worktree
+and another clone with that root share `projects/<first-16-root-hex>/` inside the profile
+clone. A full-root collision check refuses a different root with the same prefix.
+The profile pointer and opt-in use `PI_CODING_AGENT_DIR`, otherwise the default pi agent
+directory. A Claude process without pi's override reads a different configuration file.
+
+A successful CLI land of a known lane starts making after containment and review-lock
+release, even if its land record could not be kept. Its extra fixed line reports the
+last run's age and outcome. The detached child has ignored stdio, a hidden Windows window
+and home-directory cwd. CI and every launcher role skip making. Library `runLand` calls
+start nothing unless their caller injects a starter.
+
+Making uses the unchanged model shaper, starting at `2026-10-31T18:16:00Z`, never a nightly
+backfill. It sweeps new transcript units for the main checkout and its standard worktree
+folder keys. The `--session <file>` flag prioritizes one transcript.
+A land makes its own lane and drains remembered earlier lands; only commands without a lane sweep all landed review folders.
+Those requests are immutable machine-local files recorded even when a run is busy or capped. Only committed main review paths are eligible.
+Git lists each needed review folder separately; a failed or over-cap listing makes status fail, never report zero pending.
+Per-unit immutable seen files cover asks,
+skipped turns, valid replies and completed malformed replies. Failed calls remain pending.
+
+The run caps calls at 20 and tokens at 200,000. A machine-wide UTC day ledger reserves
+100,000 tokens before each call, then settles known usage, with a 1,000,000-token day cap.
+Unknown usage keeps the full reservation. Run and day locks and mutable health live in
+the profile clone's git directory, never in synchronized files. Clone-lock contention
+leaves units pending. Model calls, fetch and captured-SHA push do not hold the clone lock.
+Every synchronized project record, event, seen file, evidence copy and count-only run
+file publishes complete bytes atomically without replacing an existing name.
+Project readers skip unparseable JSON; status reports its count as `unparseable`.
+Root profile reads remain strict. Preparation errors report `memory: failed`; merge errors report `memory: merge failed`, not busy.
+Before fetch reads the branch, the maker recovers paused rebases under the clone lock.
+The final, local-only clone-lock step waits up to 1,000 milliseconds for a brief seat save.
+Each model call requires elapsed time plus its full batch timeout to fit within the run limit.
+Busy runs retain local health when the clone cannot be written.
+
+The shared merge reader in `lib/memory-store.mjs` checks normalized claims across project
+and user areas and prefers seat saves. This catches exact normalized repeats, not rewording.
+Extracted records start as low-trust project/local records; this slice adds no delivery.
+Only evidence for newly stored records is copied, with each source text capped at 1,200
+characters. `resolveEvidence` accepts `storeDir` for that private fallback after expiry.
+All automatic command, run and land output contains fixed words and counts, never claims.
+
 ## Model-shaped memory candidates
 
 From the repository root, `npm run memory:shape -- --out <private-folder>` runs

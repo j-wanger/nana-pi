@@ -22,3 +22,26 @@
 - Memory shaper (memory-shaper, seat scored runs): two runs on the frozen labels miss the bar, with correction recall 28/46 and 26/46 and precision 217/318 and 227/329; the rules stay the maker until the owner decides.
 - Memory shaper (memory-shaper, seat scored runs): the shaper finds 54 of 56 review lessons, two fewer than the rules.
 - Memory shaper (memory-shaper build 1): the reply schema was array-rooted and every Claude call failed; only the seat's synthetic canary caught it, since tests inject the runner.
+- Memory shaper (memory-shaper, final review): the sealed prompt asks for a bare JSON array while the validator expects an object with a units key; the Claude runner works because its schema forces the object, but the pi runner gets no schema and would leave every batch unclassified.
+- Memory shaper (memory-shaper, final review): the model check accepts any reply model whose name starts with the requested one, and passes when one of several named models matches (inherited from callJudge).
+- Memory shaper (memory-shaper, final review): the token cap is checked before each batch, so one batch can push the total past the cap.
+- Owner profile (owner-profile, confirmation review): the lock poll interval is the total wait over 100, now 4,200 ms, so a waiting save can notice a released lock about four seconds late.
+- Owner profile (owner-profile, confirmation review): the 28 locked git steps behind the lock wait are not counted from the code; the risk runs only toward waiting too long.
+- Requirements (owner-profile, round-3 review): SUB-023 sits above SUB-022 in REQUIREMENTS.md; the tree keeps the same order.
+- Requirements (owner-profile, round-3 review): the SUB-022 heading follows the R-3249 table row with no blank line, so a strict Markdown renderer may read it as part of the table.
+- Memory making (making-trigger, plan residual): the merge step catches exact normalized repeats only; a reworded duplicate of a saved claim is stored again until upkeep lands.
+- Memory making (making-trigger, plan residual): whether a detached making run survives Claude Code's exit, especially on Windows, stays unchecked until the session-end lane.
+- Memory making (making-trigger, plan residual): background making draws on the seat's Claude account when a land ends; the day cap bounds tokens, not rate limits.
+- Memory making (making-trigger, plan residual): a repository started from another's history (a fork) shares its memory key.
+- Memory making (making-trigger, independent recheck): a write killed partway leaves a temp file that readers ignore but the next commit adds to the private store, and nothing counts or removes it.
+- Memory making (making-trigger, independent recheck): a damaged, skipped supersede event in the project store shows the old extracted record live beside the saved one, a duplicate rather than a loss.
+- Owner profile (making-trigger, independent recheck): a damaged file already in the profile's own records or events folders still blocks saves; only new writes are safe.
+- Memory making (making-trigger, independent recheck): the temp name adds 41 characters to store paths, so a long clone folder on Windows can pass the 260-character limit without long paths enabled.
+- Memory making (making-trigger, independent recheck): store writes need hard links, so on FAT, exFAT or some network drives every write fails with an error.
+- Memory making (making-trigger, final review): review units come only from `refs/heads/main`, so a repository whose main branch has another name never gets review lessons.
+- Memory making (making-trigger, final review): if a lock holder releases between the create failure and the read, `acquireMemoryLock` throws past its catch; on the day lock this aborts a run after spend, and its units are re-sent next run.
+- Memory making (making-trigger, final review): unit keys include the session id, so if a real Claude Code fork rewrites it on copied entries, those turns are sent again.
+- Memory making (making-trigger, plan residual A6): on Windows an npm-installed `claude.cmd` does not start from `spawnSync("claude")`, so every call fails and units stay pending.
+- Memory making (making-trigger, final review): a run's fetch outside the clone lock can collide with a seat save's fetch, so the save briefly reports not pushed and is pushed at the next sync.
+- Memory making (making-trigger, final review): the merge step re-reads the whole store for each candidate while holding the clone lock, so the hold grows with candidates times store files.
+- Memory making (making-trigger, final review): the land line prints `memory: started` even for a repository that is not enabled, and repeats its prefix.

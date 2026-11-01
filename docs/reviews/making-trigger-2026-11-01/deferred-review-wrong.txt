@@ -1,0 +1,6 @@
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs  15 pass  1.5s
+FAIL  packages/nana-pack/tests/memory-run.test.mjs        7 pass, 1 fail  49.5s  — exit 1
+      | FAIL R-3291: pending units survive busy caps failures and stale locks AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+
+2 files: 1 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 22 pass, 1 fail, 0 skip · 51.3s
+failed: packages/nana-pack/tests/memory-run.test.mjs

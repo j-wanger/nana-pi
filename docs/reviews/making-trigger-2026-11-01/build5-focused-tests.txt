@@ -1,0 +1,18 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs memory-run profile-sync profile-store memory-making memory-shaping outcome-meter land
+
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs      7 pass  14.5s
+PASS  packages/nana-pack/tests/land-records.test.mjs         7 pass  21.2s
+PASS  packages/nana-pack/tests/land.test.mjs                 66 pass  108.6s
+PASS  packages/nana-pack/tests/memory-making.test.mjs        24 pass  0.2s
+PASS  packages/nana-pack/tests/memory-run-recovery.test.mjs  7 pass  29.0s
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs     16 pass  1.5s
+PASS  packages/nana-pack/tests/memory-run.test.mjs           8 pass  46.1s
+PASS  packages/nana-pack/tests/memory-shaping.test.mjs       20 pass  0.4s
+PASS  packages/nana-pack/tests/outcome-meter.test.mjs        27 pass  0.7s
+PASS  packages/nana-pack/tests/profile-store.test.mjs        18 pass  129.4s
+PASS  packages/nana-pack/tests/profile-sync.test.mjs         2 pass  30.7s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs         11 pass  17.5s
+
+12 files: 12 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 213 pass, 0 fail, 0 skip · 400.2s

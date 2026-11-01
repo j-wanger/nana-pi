@@ -1,0 +1,28 @@
+FAIL  packages/nana-pack/tests/memory-run-seals.test.mjs  0 pass, 15 fail  1.2s  — exit 1
+      | FAIL R-3298: seal start instant AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3299: seal run tokens AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3300: seal run calls AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3301: seal day tokens AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3302: seal unknown charge AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3303: seal derived run time AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3304: seal derived index age AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3305: seal evidence cap AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3306: seal UTC boundary AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3307: seal root folder length and collision refusal AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3308: seal safe immutable store layout for a 64 hex root AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL R-3309: seal project record fields AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL R-3340: seal opt-in member AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3341: seal fixed words AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL R-3342: seal anchored escaped lane folder pattern AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+FAIL  packages/nana-pack/tests/memory-run.test.mjs        0 pass, 8 fail  8.3s  — exit 1
+      | FAIL R-3290: each owner and ask unit is made once AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3291: pending units survive busy caps failures and stale locks TypeError: Cannot read properties of undefined (reading 'runLock')
+      | FAIL R-3292: known and unknown usage obey run and shared day caps AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3293: only enabled post-start main sources use a stable root key AssertionError [ERR_ASSERTION]: The input did not match the regular expression /not enabled/. Input:
+      | FAIL R-3294: two machines and seat saves converge without machine files AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3295: one live normalized claim prefers the seat in either order AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3296: narrow private evidence survives deletion without public text AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3297: land starts making only after the final merge and cannot alter its verdict AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+2 files: 0 PASS, 2 FAIL, 0 SKIP, 0 WARN · checks: 0 pass, 23 fail, 0 skip · 9.9s
+failed: packages/nana-pack/tests/memory-run-seals.test.mjs, packages/nana-pack/tests/memory-run.test.mjs

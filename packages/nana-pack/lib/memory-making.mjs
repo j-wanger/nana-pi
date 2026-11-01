@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { copiedEvidence } from './memory-store.mjs';
 import { projectKey } from "../../nana-setup/lib/project-key.mjs";
 import { assistantText, edtDay, privateFolder, streamEntriesIn, transcriptFiles } from "./claude-transcript.mjs";
 import { readBounded } from "./bounded-read.mjs";
@@ -35,7 +36,7 @@ const inWindow = (date, { from, to }) => date && (!from || date >= from) && (!to
 function lastSentence(text) {
  return text.trim().match(/[^.!?]+[.!?]*(?:["'”’])?/gu)?.at(-1)?.trim() ?? text.trim();
 }
-function sourceFiles({ projectsRoot, repoRoot, project }) {
+export function sourceFiles({ projectsRoot, repoRoot, project }) {
  if (!fs.existsSync(projectsRoot)) return [];
  const key = projectKey(repoRoot), wt = `${projectKey(`${repoRoot}-wt`)}-`;
  return transcriptFiles(projectsRoot, (name) => project ? name === project : name === key || name.startsWith(wt));
@@ -70,7 +71,7 @@ function askAnswer(entry, result, call) {
  return { quote: questions.map((q) => answers[q]).join("; "), context: questions.join("; ") };
 }
 /** Shared unit walk; rule text stays sentence-sized while model context keeps the whole entry. */
-async function* unitsIn(file, options, onEntry = options.onEntry) {
+export async function* unitsIn(file, options, onEntry = options.onEntry) {
  let question = null, substantial = null, lastSeat = null;
  const calls = new Map();
  for await (const entry of streamEntriesIn(file)) {
@@ -80,6 +81,7 @@ async function* unitsIn(file, options, onEntry = options.onEntry) {
   if (options.until && Date.parse(timestamp) > Date.parse(options.until)) continue;
   const sessionId = entry.sessionId ?? path.basename(file, ".jsonl");
   const day = edtDay(timestamp);
+  const afterStart = !options.since || Date.parse(timestamp) >= Date.parse(options.since);
   for (const call of askCalls(entry)) calls.set(call.id, { call, uuid: entry.uuid });
   const seat = assistantText(entry).trim();
   if (seat) {
@@ -95,12 +97,12 @@ async function* unitsIn(file, options, onEntry = options.onEntry) {
     if (!pending) continue;
     calls.delete(result.tool_use_id);
     const answer = askAnswer(entry, result, pending.call);
-    if (answer && entry.uuid && pending.uuid && inWindow(day, options)) yield { source: "ask", ...answer, evidence: `claude-code:${sessionId}#${entry.uuid}+${pending.uuid}`, date: day };
+    if (answer && entry.uuid && pending.uuid && afterStart && inWindow(day, options)) yield { source: "ask", ...answer, evidence: `claude-code:${sessionId}#${entry.uuid}+${pending.uuid}`, date: day };
    }
   }
   if (!ownerTurn(entry)) continue;
   const quote = textOnly(entry).trim();
-  if (quote && entry.uuid && inWindow(day, options)) yield { source: "owner", quote, substantial, question, lastSeat, evidence: `claude-code:${sessionId}#${entry.uuid}`, date: day };
+  if (quote && entry.uuid && afterStart && inWindow(day, options)) yield { source: "owner", quote, substantial, question, lastSeat, evidence: `claude-code:${sessionId}#${entry.uuid}`, date: day };
   question = null; substantial = null;
  }
 }
@@ -111,12 +113,13 @@ export function* reviewUnits(options) {
  const { reviewsRoot } = options;
  if (!fs.existsSync(reviewsRoot)) return;
  for (const lane of fs.readdirSync(reviewsRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-  if (!lane.isDirectory()) continue;
+  if (!lane.isDirectory() || (options.lanePattern && !options.lanePattern.test(lane.name))) continue;
   const seen = new Set(), date = /\d{4}-\d{2}-\d{2}/u.exec(lane.name)?.[0] ?? null;
   if ((options.from || options.to) && !inWindow(date, options)) continue;
   const dir = path.join(reviewsRoot, lane.name);
   for (const file of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
    if (!file.isFile() || !file.name.endsWith(".md") || REVIEW_EXCLUDE.test(file.name)) continue;
+   if (options.allowedFiles && !options.allowedFiles.has(path.relative(options.repoRoot, path.join(dir, file.name)).split(path.sep).join('/'))) continue;
    const text = readBounded(path.join(dir, file.name)).toString("utf8");
    // Existing review reader defines the verdict spelling; no verdict means not reviewer output.
    if (!verdictWordOf(text)) continue;
@@ -143,6 +146,7 @@ export async function extractMemory(options) {
 /** Review indices resolve by the existing parser; removed indices are stale, absent files missing.
  * Pass expectedTitle when checking a retained record to detect replacement at the same index. */
 export async function resolveEvidence(pointer, roots, record) {
+ if (roots.storeDir) { const copy = copiedEvidence(roots.storeDir, pointer); if (copy) return copy; }
  const seat = /^seat:[^:]+:[^:]+:\d{4}-\d{2}-\d{2}$/u.test(pointer);
  if (seat) return typeof record?.quote === "string" ? { status: "resolved", texts: [record.quote] } : { status: "missing" };
  const review = /^review:(.+)#(\d+)$/u.exec(pointer);

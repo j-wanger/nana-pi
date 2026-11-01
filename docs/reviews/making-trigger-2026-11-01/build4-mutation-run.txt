@@ -1,0 +1,33 @@
+seat-mutate: lane making-trigger, tip 55b9a499e53d01c99fd706f708da7c1e41109f5b, table 3b424bba39731712a56a7f91eadc5ef9c5b8de795945ca47805709b2e6ae8f0d, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 10 pairs in 5 shards (2+2+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-11-01T09:08:07.019Z
+[1/5] seat-mutate: lane making-trigger, shard 1/5, tip 55b9a499e53d01c99fd706f708da7c1e41109f5b, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 2 pairs, darwin, node v22.22.2, 2026-11-01T09:08:08.087Z
+[1/5] BASELINE ok   packages/nana-pack/tests/memory-run-recovery.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[1/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane making-trigger, shard 2/5, tip 55b9a499e53d01c99fd706f708da7c1e41109f5b, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 2 pairs, darwin, node v22.22.2, 2026-11-01T09:08:12.122Z
+[2/5] BASELINE ok   packages/nana-pack/tests/memory-run-recovery.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[2/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane making-trigger, shard 3/5, tip 55b9a499e53d01c99fd706f708da7c1e41109f5b, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 2 pairs, darwin, node v22.22.2, 2026-11-01T09:08:16.227Z
+[3/5] BASELINE ok   packages/nana-pack/tests/memory-run-recovery.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[3/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane making-trigger, shard 4/5, tip 55b9a499e53d01c99fd706f708da7c1e41109f5b, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 2 pairs, darwin, node v22.22.2, 2026-11-01T09:08:20.392Z
+[4/5] BASELINE ok   packages/nana-pack/tests/memory-run-recovery.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[4/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane making-trigger, shard 5/5, tip 55b9a499e53d01c99fd706f708da7c1e41109f5b, merge-base b10761b14c81d9cbe077769ec57d5044b46f572f, 2 pairs, darwin, node v22.22.2, 2026-11-01T09:08:24.536Z
+[5/5] BASELINE ok   packages/nana-pack/tests/memory-run-recovery.test.mjs (exit 0, 4 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/memory-run.test.mjs (exit 0, 8 PASS, 0 FAIL, )
+[5/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED torn-file unparseable project JSON aborts reads — 2/2 named: /^R-3291: torn records/ | /^R-3291: empty seen/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED timeout-headroom a call starts without its full timeout remaining — 1/1 named: /^R-3303:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED merge-wait the second local clone lock never waits — 1/1 named: /^R-3294:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED merge-outcome a merge error is mislabeled busy — 1/1 named: /^R-3291: torn records/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED never-overwrite publication replaces an existing file — 1/1 named: /^R-3291: torn records/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8-isolation a throwing starter changes the land verdict — 1/1 named: /^R-3297:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8-placement the starter runs before the merge — 1/1 named: /^R-3297:/; 1 FAIL total (1 file changed, 2 insertions(+), 1 deletion(-))
+RED 2-split failed calls are marked done like malformed replies — 1/1 named: /^R-3291:/; also (declared): /^R-3295:/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3-unknown unknown usage costs zero tokens — 1/1 named: /^R-3292:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4-start the start instant does not filter old owner units — 1/1 named: /^R-3293:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 10/10 red (10 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards
+seat-mutate: merged output docs/reviews/making-trigger-2026-11-01/build4-mutation-result.txt

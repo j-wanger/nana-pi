@@ -1,0 +1,74 @@
+-:1: verdict: first sentence "VERDICT: DONE" carries no verdict word
+-:7: identifier: `807c4caa`
+-:16: identifier: `packages/nana-pack/lib/memory-run.mjs`
+-:16: identifier: `packages/nana-pack/tests/memory-run-recovery.test.mjs`
+-:16: identifier: `REQUIREMENTS.md`
+-:16: identifier: `packages/nana-pack/README.md`
+-:18: identifier: `withProfileLock`
+-:18: identifier: `recoverProfile`
+-:18: identifier: `fetchProfile`
+-:20: length: 26 words (cap 25)
+-:20: passive: passive candidate: "detached" in "The new case first completes a synthetic unit, starts a real `git rebase --exec false HEAD~1` in the temporary profile clone, and proves HEAD is detached."
+-:20: identifier: `git rebase --exec false HEAD~1`
+-:22: identifier: `node packages/nana-pack/tests/memory-run-recovery.test.mjs`
+-:22: identifier: `bb55e311`
+-:22: identifier: `memory: failed`
+-:22: identifier: `build5-red-recovery.txt`
+-:22: identifier: `build5-green-recovery.txt`
+-:24: identifier: `paused-rebase`
+-:30: identifier: `gitText`
+-:30: identifier: `memory: failed`
+-:32: identifier: `profileGit`
+-:34: passive: passive candidate: "enlarged" in "No output cap was enlarged and no new tunable was introduced."
+-:34: identifier: `bb55e311`
+-:34: identifier: `pending 0`
+-:36: identifier: `listing-failure`
+-:36: identifier: `listing-scope`
+-:42: passive: passive candidate: "printed" in "No exception text is printed."
+-:42: identifier: `PROFILE_WORDS.locked`
+-:42: identifier: `memory: busy`
+-:42: identifier: `memory: failed`
+-:46: identifier: `bb55e311`
+-:46: identifier: `prepare-outcome`
+-:50: passive: passive candidate: "added" in "Only three new behavioral cases were added, one per requested finding, all in the precedent recovery module."
+-:50: passive: passive candidate: "awaited" in "Every case is awaited under the existing per-case timeout."
+-:50: passive: passive candidate: "deleted" in "No existing test assertion or title changed; no test was deleted."
+-:52: passive: passive candidate: "changed" in "Existing rows R-3291, R-3293 and R-3294 were changed before tests and code."
+-:52: passive: passive candidate: "allocated" in "No new row ID, sealed tunable, tree placement or artifact registry entry was allocated."
+-:52: passive: passive candidate: "unchanged" in "The generated code map records the two new test imports; the generated requirements tree is unchanged."
+-:56: identifier: `SEAT_MUTATE_OUT=docs/reviews/making-trigger-2026-11-01/build5-mutation-result.txt node docs/reviews/making-trigger-2026-11-01/seat-mutate.mjs`
+-:56: identifier: `807c4caa`
+-:58: passive: passive candidate: "repeated" in "The runner was repeated after the log-redaction amendment so its retained result names the amended code commit."
+-:60: identifier: `RESULT: 14/14 red (14 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards`
+-:64: passive: passive candidate: "retained" in "Long output is retained in the adjacent `build5-*.txt` files and `build5-tree-movement.md`."
+-:64: identifier: `build5-*.txt`
+-:64: identifier: `build5-tree-movement.md`
+-:66: identifier: `npm test -- memory-run profile-sync profile-store memory-making memory-shaping outcome-meter land`
+-:67: identifier: `npm run test:locked`
+-:68: identifier: `npm run map`
+-:68: identifier: `npm run map:check`
+-:69: identifier: `npm run readme:check`
+-:70: identifier: `node --experimental-strip-types scripts/requirements-trace.mjs`
+-:71: identifier: `npm run req:tree`
+-:71: identifier: `node scripts/requirements-tree.mjs --root .`
+-:72: identifier: `node scripts/known-bugs.mjs --root .`
+-:73: identifier: `npm test -- requirements-deliverables`
+-:74: identifier: `node scripts/requirements-moved.mjs --root . --base origin/main`
+-:75: identifier: `node scripts/lane-class.mjs --root . --base origin/main`
+-:76: passive: passive candidate: "redacted" in "Generated local-home prefixes were redacted before push."
+-:76: identifier: `node scripts/identity-scan.mjs --root .`
+-:77: passive: passive candidate: "marked" in "`node packages/nana-setup/bin/install-check.mjs`: exit 1, solely `FAIL pi post-edit — write-error: write tool result is marked as an error`."
+-:77: identifier: `node packages/nana-setup/bin/install-check.mjs`
+-:77: identifier: `FAIL pi post-edit — write-error: write tool result is marked as an error`
+-:79: identifier: `251 files: 249 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 8898 pass, 0 fail, 44 skip · 675.1s`
+-:83: passive: passive candidate: "copied" in "The implementation reuses exported recovery, lock, Git and classification helpers from `profile-sync.mjs`; none was copied or moved."
+-:83: identifier: `profile-sync.mjs`
+-:85: length: 49 words (cap 25)
+-:85: passive: passive candidate: "collected" in "Departures: one additional short clone-lock hold precedes fetch because the original ordering cannot repair detached HEAD; review-path eligibility is collected per needed folder because a corpus-wide response grows beyond the Git cap; preparation non-lock errors use the existing failed word rather than busy because contention is not their cause."
+-:85: passive: passive candidate: "moved" in "No private helper was moved or copied."
+-:87: passive: passive candidate: "fixed" in "No listed known bug is fixed or changed."
+-:87: passive: passive candidate: "edited" in "No known-bug file was edited."
+-:87: identifier: `docs/known-bugs/FEAT-040.md`
+-:91: passive: passive candidate: "created" in "No GitHub issue was created, edited, commented on or closed."
+-:93: passive: passive candidate: "reported" in "Push and the finished CI run for the final evidence tip, including the Windows suite leg, are reported in the final worker response."
+summary sentences=99 words=1213 over=2 passive=20 banned=0 verdict=0/1 identifiers=50

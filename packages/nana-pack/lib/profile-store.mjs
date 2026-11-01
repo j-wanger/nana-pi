@@ -8,7 +8,7 @@
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { parseJsonBytes } from './json-text.mjs';
 import { readBounded } from './bounded-read.mjs';
 import { CANDIDATE_FIELDS, USER_KIND_WORDS } from './memory-making-config.mjs';
@@ -33,13 +33,26 @@ export function validateProfileSave({kind,claim,quote}) {
  if(!claim?.trim()||claim.length>PROFILE_LIMITS.claim) throw Error(W.claimCap);
  if(quote.length>PROFILE_LIMITS.quote) throw Error(W.quoteCap);
 }
-function exclusiveJson(dir,folder,id,value,stamp,random) {
+export function exclusiveJson(dir,folder,id,value,stamp,random) {
  const relative=`${folder}/${id}/${stamp}-${random(PROFILE_PATH_POLICY.randomBytes).toString('hex')}.json`;
  if(!new RegExp(PROFILE_PATH_POLICY.pattern).test(relative)||relative.length>PROFILE_PATH_POLICY.max) throw Error(W.config);
- const target=path.join(dir,relative); fs.mkdirSync(path.dirname(target),{recursive:true,mode:0o700});
- const fd=fs.openSync(target,'wx',0o600);
- try {fs.writeFileSync(fd,`${JSON.stringify(value)}\n`);fs.fsyncSync(fd);} finally {fs.closeSync(fd);}
+ return exclusiveJsonAt(path.join(dir,relative),value);
+}
+/** Publish complete bytes without replacing an existing name, even after an interrupted write. */
+export function exclusiveJsonAt(target,value) {
+ fs.mkdirSync(path.dirname(target),{recursive:true,mode:0o700});
+ const scratch=`${target}.${randomUUID()}.tmp`;
+ try {
+  const fd=fs.openSync(scratch,'wx',0o600);
+  try {fs.writeFileSync(fd,`${JSON.stringify(value)}\n`);fs.fsyncSync(fd);} finally {fs.closeSync(fd);}
+  fs.linkSync(scratch,target);
+ } finally {fs.rmSync(scratch,{force:true});}
  return target;
+}
+/** Only project readers opt into skipping syntax errors; I/O errors remain failures. */
+export function readProfileJson(file,{onUnparseable}={}) {
+ try {return parseJsonBytes(readBounded(file));}
+ catch(error) {if(!(error instanceof SyntaxError)||!onUnparseable)throw error;onUnparseable();return undefined;}
 }
 export function writeProfileRecord(dir,args,{env=process.env,now=()=>new Date(),random=randomBytes}={}) {
  validateProfileSave(args); const date=now(); const day=date.toISOString().slice(0,10); const session=profileSession(env,date);
@@ -52,12 +65,15 @@ export function writeProfileEvent(dir,id,action,{quote,target},{now=()=>new Date
  const stamp=profileStamp(now()); const event={id,action,quote,stamp,...(target?{target}:{})};
  exclusiveJson(dir,L.events,id,event,stamp,random); return event;
 }
-export function readProfileStore(dir) {
+export function readProfileStore(dir,options={}) {
  const read=folder=>{
   const base=path.join(dir,folder); if(!fs.existsSync(base)) return [];
   return fs.readdirSync(base).sort().flatMap(id=>{
    if(!fs.statSync(path.join(base,id)).isDirectory()) return [];
-   return fs.readdirSync(path.join(base,id)).sort().filter(n=>n.endsWith('.json')).map(name=>({record:parseJsonBytes(readBounded(path.join(base,id,name))),stamp:name.split('-')[0]}));
+   return fs.readdirSync(path.join(base,id)).sort().filter(n=>n.endsWith('.json')).flatMap(name=>{
+    const record=readProfileJson(path.join(base,id,name),options);
+    return record===undefined?[]:[{record,stamp:name.split('-')[0]}];
+   });
   });
  };
  return {recordFiles:read(L.records),events:read(L.events).map(x=>x.record)};

@@ -11,16 +11,15 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { piAgentDir } from '../lib/agent-dir.mjs';
-import { canonicalCwd } from '../lib/adoption.mjs';
+import { profileGuard, seatGuard, dailyCounter } from '../lib/profile-guards.mjs';
+import { mergeMemory } from '../lib/memory-store.mjs';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
 import { ghFromEnvironment, ghResult } from '../lib/gh-runner.mjs';
-import { gitCommonDir } from '../lib/suite-records.mjs';
 import { writePackConfigMember } from '../lib/pack-config-write.mjs';
 import { profileGit, gitText, withProfileLock, recoverProfile, commitProfile, syncProfile } from '../lib/profile-sync.mjs';
-import { claimId, readProfileStore, effectiveState, show, validateProfileSave, writeProfileRecord, writeProfileEvent, normalizeProfileText } from '../lib/profile-store.mjs';
+import { claimId, readProfileStore, effectiveState, show, validateProfileSave, writeProfileEvent, normalizeProfileText } from '../lib/profile-store.mjs';
 import { PROFILE_GIT_TIMEOUT_MS, PROFILE_LIMITS, PROFILE_REMOTE_FORMS, PROFILE_LAYOUT as L, PROFILE_WORDS as W } from '../lib/profile-config.mjs';
-const checkout=fileURLToPath(new URL('../../..',import.meta.url));
 
 /** Like resolveRoster, read only this member and refuse dangling links and malformed bytes. */
 export function resolveProfile(agentDir) {
@@ -49,25 +48,6 @@ function parse(args) {
  if(!allowed[command]||Object.keys(flags).some(k=>!allowed[command].includes(k))||positional.length!==(['confirm','retract','supersede'].includes(command)?1:0)) throw Error(W.usage);
  return {command,id:positional[0],dir:flags['--dir'],save:!!flags['--save'],unverifiedRemote:!!flags['--unverified-remote'],kind:flags['--kind'],claim:flags['--claim'],quote:flags['--quote']};
 }
-function seatGuard(pointer,cwd,env,runGit) {
- if(env.NANA_ROLE!==undefined) throw Error(W.role);
- const a=runGit(cwd,['rev-parse','--absolute-git-dir']); const b=runGit(cwd,['rev-parse','--git-common-dir']);
- if(a.status===0&&b.status===0) {
-  const gitDir=canonicalCwd(path.resolve(cwd,a.stdout.trim())); const commonDir=canonicalCwd(path.resolve(cwd,b.stdout.trim()));
-  // Native relative compares drive-letter/case variants on Windows; realpath resolves aliases.
-  if(path.relative(gitDir,commonDir)!=='') throw Error(W.worktree);
- }
- if(pointer.save!==true) throw Error(W.disabled);
-}
-function profileGuard(dir,runGit) {
- let common,own;
- try {common=fs.realpathSync(gitCommonDir(dir,{runGit}));own=fs.realpathSync(gitCommonDir(checkout,{runGit}));} catch {throw Error(W.git);}
- const inside=(base,target)=>{const relative=path.relative(base,target);return !relative||(!relative.startsWith(`..${path.sep}`)&&relative!=='..'&&!path.isAbsolute(relative));};
- if(inside(own,common)||inside(checkout,common)||inside(path.dirname(own),common)) throw Error(W.checkout);
- const remote=gitText(runGit,dir,['remote','get-url','--push','origin']); const ownUrl=runGit(checkout,['remote','get-url','--push','origin']);
- if(ownUrl.status===0&&remote===ownUrl.stdout.trim()) throw Error(W.checkout);
- return remote;
-}
 function layout(dir,runGit) {
  const initialized=fs.existsSync(path.join(dir,L.marker));
  if(initialized) return;
@@ -78,12 +58,6 @@ function layout(dir,runGit) {
  }
  gitText(runGit,dir,['add','--',L.marker,'.gitattributes','readme.md',L.records,L.events]);
  gitText(runGit,dir,['commit','-m','Initialize private profile']);
-}
-function dailyCounter(gitdir,now) {
- const file=path.join(gitdir,L.counter); const date=now().toISOString().slice(0,10); let counter={date,count:0};
- try {const previous=parseJsonBytes(readBounded(file));if(previous.date===date) counter=previous;} catch(e) {if(e.code!=='ENOENT') throw Error(W.config);}
- if(!Number.isInteger(counter.count)||counter.count<0) throw Error(W.config);
- return {file,counter};
 }
 export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=process.cwd(),runGit=profileGit(env),runGh=ghFromEnvironment(env,{timeoutMs:PROFILE_GIT_TIMEOUT_MS}),now=()=>new Date(),log=console.log,error=console.error}={}) {
  try {
@@ -101,7 +75,7 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
    }
    const pointer={dir,verifiedPushUrl:url,unverifiedRemote:p.unverifiedRemote,save:p.save};
    withProfileLock(dir,runGit,()=>{
-    recoverProfile(dir,runGit,log);layout(dir,runGit);
+    recoverProfile(dir,runGit,log,{now});layout(dir,runGit);
     const result=syncProfile(pointer,{runGit,log});if(!result.ok) throw Error(`${W.notPushed}${result.reason}`);
     fs.mkdirSync(agentDir,{recursive:true,mode:0o700}); const written=writePackConfigMember(agentDir,'ownerProfile',pointer);if(!written.ok) throw Error(W.config);
    });
@@ -114,7 +88,7 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
   if(p.command==='show') {const input=readProfileStore(dir);const text=show(effectiveState(input.recordFiles,input.events));if(text) log(text.replace(/\n$/,''));return 0;}
   if(p.command!=='sync') seatGuard(pointer,cwd,env,runGit);
   return withProfileLock(dir,runGit,gitdir=>{
-   recoverProfile(dir,runGit,log);
+   recoverProfile(dir,runGit,log,{now});
    if(p.command==='sync') {const result=syncProfile(pointer,{runGit,log});if(!result.ok) {error(`${W.notPushed}${result.reason}`);return 1;}log(W.synced);return 0;}
    const input=readProfileStore(dir); const states=effectiveState(input.recordFiles,input.events); const previous=states.find(r=>r.id===p.id);
    if(p.command!=='save'&&!previous) throw Error(W.unknown);
@@ -130,7 +104,7 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
     const {file,counter}=dailyCounter(gitdir,now);if(counter.count>=PROFILE_LIMITS.daily) throw Error(W.dailyCap);
     if(p.command==='supersede'&&claimId(p.claim)===p.id) throw Error(W.usage);
     commitProfile(dir,runGit,'Keep profile records');
-    const record=writeProfileRecord(dir,p,{env,now});
+    const record=mergeMemory(dir,p,{env,now,saved:true});
     if(p.command==='supersede') writeProfileEvent(dir,p.id,'supersede',{quote:p.quote,target:record.id},{now});
     commitProfile(dir,runGit,'Save owner profile');
     fs.writeFileSync(file,JSON.stringify({...counter,count:counter.count+1}),{mode:0o600});
