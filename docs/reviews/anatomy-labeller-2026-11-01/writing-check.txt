@@ -1,0 +1,45 @@
+-:1: verdict: first sentence "Part 1 implemented: R-3390–R-3398, FEAT-042, artifact A-098." carries no verdict word
+-:8: identifier: `REQUIREMENTS.md`
+-:9: identifier: `apps/bench/test/anatomy-labels.test.mjs`
+-:10: identifier: `apps/bench/lib/anatomy-labels.mjs`
+-:11: identifier: `apps/bench/lib/anatomy-config.mjs`
+-:12: identifier: `apps/bench/lib/anatomy-measures.mjs`
+-:12: identifier: `normalize`
+-:13: identifier: `apps/bench/lib/anatomy.mjs`
+-:14: identifier: `apps/bench/anatomy.mjs`
+-:15: identifier: `apps/bench/README.md`
+-:16: identifier: `docs/code-map.md`
+-:16: identifier: `docs/requirements-tree.md`
+-:23: identifier: `node apps/bench/test/anatomy-labels.test.mjs`
+-:23: identifier: `wrong-first.txt`
+-:24: identifier: `labels-tests.txt`
+-:31: identifier: `npm run map:impact -- apps/bench/anatomy.mjs apps/bench/lib/anatomy-config.mjs apps/bench/lib/anatomy-measures.mjs apps/bench/lib/anatomy.mjs`
+-:32: identifier: `node scripts/test.mjs apps/bench/test/anatomy`
+-:32: identifier: `touched-tests.txt`
+-:33: identifier: `npm run test:locked`
+-:33: identifier: `full-suite.txt`
+-:35: identifier: `npm run map`
+-:35: identifier: `npm run req:tree`
+-:36: identifier: `npm run map:check`
+-:36: identifier: `npm run readme:check`
+-:36: identifier: `node scripts/requirements-trace.mjs`
+-:37: identifier: `node scripts/requirements-tree.mjs --root .`
+-:38: identifier: `node scripts/known-bugs.mjs --root .`
+-:39: identifier: `node scripts/identity-scan.mjs --root .`
+-:40: identifier: `node scripts/lane-class.mjs --root . --files <plan's Part 1 paths>`
+-:40: identifier: `ordinary`
+-:41: identifier: `synthetic-counts.txt`
+-:49: identifier: `createRunner`
+-:49: identifier: `DOLLAR_CAP`
+-:49: identifier: `normalize`
+-:49: identifier: `seededSample`
+-:49: identifier: `readJsonl`
+-:50: passive: passive candidate: "printed" in "Unlike memory shaping, the printed unknown-usage lower bound contains only measured tokens; the conservative unknown-call charge is printed separately."
+-:51: passive: passive candidate: "created" in "Unlike the bench's default quarantine behavior, no quarantine sidecar is created."
+-:51: identifier: `readJsonl`
+-:53: identifier: `DEFINITIONS`
+-:53: identifier: `422f2aa3ad294594735a46cb05cbaee66450cef501ee7407c2b11e327fcaad52`
+-:58: passive: passive candidate: "edited" in "No known-bug file, HANDOFF or session archive was edited."
+-:62: passive: passive candidate: "excluded" in "Part 2 and all model-label readers are excluded."
+-:62: passive: passive candidate: "reported" in "Push, draft PR and finished-tip CI (including Windows) are reported with the commit in the final response."
+summary sentences=66 words=765 over=0 passive=5 banned=0 verdict=0/1 identifiers=38

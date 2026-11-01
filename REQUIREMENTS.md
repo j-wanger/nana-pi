@@ -3209,9 +3209,11 @@ Read by: A-086 · code: scripts/component-audit.mjs, scripts/hive-page.mjs
 Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
 Outcome: A developer can judge whether an agent, prompt or workflow change improves relevant outcomes at an understood cost.
 Kind: product
-Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270
+Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270, R-3390
 Made by: R-3270 · manual: the seat runs node apps/bench/anatomy.mjs segment with a private output folder outside git · A-092
 Read by: R-3270 · code: apps/bench/anatomy.mjs
+Made by: R-3390 · manual: the seat runs node apps/bench/anatomy.mjs label with a private output folder outside git · A-098
+Read by: R-3390 · code: apps/bench/lib/anatomy-labels.mjs
 Made by: R-509 · manual: someone starts a paid study, or a free dry run, with node apps/bench/run.mjs by hand · A-039
 Read by: R-509 · code: apps/bench/lib/plan.mjs, apps/bench/aggregate.mjs
 Parked: R-509 · since 2026-10-23: no study is open; a person starts each paid study by hand on the owner's decision, and the bench spends nothing without a run flag; the next study the owner opens deletes this line
@@ -3388,6 +3390,8 @@ Purpose: Split real builder contexts into units labelled by function, report the
 Status: active
 Artifact: A-092 · segmented builder contexts · user-home store: ~/<private --out folder>/contexts.jsonl · manual: the seat runs node apps/bench/anatomy.mjs segment outside any git checkout; synthetic runs use OS temp
 Read by: A-092 · code: apps/bench/anatomy.mjs
+Artifact: A-098 · model function labels · user-home store: ~/<private --out folder>/labels.jsonl · manual: the seat runs node apps/bench/anatomy.mjs label outside any git checkout; synthetic runs use OS temp
+Read by: A-098 · code: apps/bench/lib/anatomy-labels.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -3400,6 +3404,15 @@ Read by: A-092 · code: apps/bench/anatomy.mjs
 | R-3276 | WHEN sample or agree runs, it shall draw deterministic blinded stratified sheets with seed-ordered tier fills beyond the minimum picks and measure three-pair kappa, char agreement, per-function kappa, consensus and confusion counts or refuse differing ids. | implemented | `apps/bench/test/anatomy.test.mjs::R-3276: blinded seeded sample and three-pair agreement reject unequal ids` |
 | R-3277 | WHEN report runs, it shall emit one row per build with lane, brief build number, model, final verdict, function counts, pulls, canonical usage tokens, wall minutes and land status. | implemented | `apps/bench/test/anatomy.test.mjs::R-3277: one complete count row per build sums attempt usage` |
 | R-3278 | The oversize-unit threshold shall be 3000 UTF-16 code units. | implemented | `apps/bench/test/anatomy.test.mjs::R-3278: seal oversize threshold is 3000 UTF-16 chars` |
+| R-3390 | WHEN label runs, it shall send each distinct normalized non-oversize unit once with cwd and branch replaced in seed anatomy-labeller-2026-11-01 order and persist one label per key. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3390: distinct blind texts are labelled once`, `apps/bench/test/anatomy-labels.test.mjs::R-3390: seal order seed` |
+| R-3391 | WHEN label batches units, it shall bound calls to 40 units and 24000 chars, charge unknown usage 20000 tokens toward a 2500000-token run cap, leave remaining units unsent and print counts-only progress every 10 calls. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3391: bounded batches charge unknown usage and print progress`, `apps/bench/test/anatomy-labels.test.mjs::R-3391: seal batch unit limit`, `apps/bench/test/anatomy-labels.test.mjs::R-3391: seal batch char limit`, `apps/bench/test/anatomy-labels.test.mjs::R-3391: seal run token cap`, `apps/bench/test/anatomy-labels.test.mjs::R-3391: seal unknown usage charge`, `apps/bench/test/anatomy-labels.test.mjs::R-3391: seal progress interval` |
+| R-3392 | WHEN a reply is not JSON or has missing, extra or duplicate ids or an off-vocabulary label, label shall reject the whole batch as unclassified without persisting its rows. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3392: malformed batches are rejected whole` |
+| R-3393 | WHEN label writes private output, it shall refuse checkout, final-symlink and occupied destinations before calling the runner and keep unit text and keys out of diagnostics and text out of stored labels and manifest. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3393: unsafe destinations and echoed text stay private` |
+| R-3394 | WHEN label resumes matching output, it shall preserve completed rows in labels.jsonl and append labels only for missing keys after a capped or killed run. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3394: capped and killed runs resume only missing keys`, `apps/bench/test/anatomy-labels.test.mjs::R-3394: seal label file` |
+| R-3395 | WHEN resume reads manifest.json with a different model or prompt hash, label shall refuse with a fixed diagnostic before any call. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3395: changed model or prompt refuses resume`, `apps/bench/test/anatomy-labels.test.mjs::R-3395: seal manifest file` |
+| R-3396 | WHEN 3 consecutive calls fail, label shall stop with remaining units unsent and reset the streak on success. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3396: consecutive failure stop resets after success`, `apps/bench/test/anatomy-labels.test.mjs::R-3396: seal failure streak` |
+| R-3397 | The label model and effort shall be claude-sonnet-5 and low. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3397: seal label model`, `apps/bench/test/anatomy-labels.test.mjs::R-3397: seal label effort` |
+| R-3398 | The definitions-derived label system prompt shall have SHA-256 422f2aa3ad294594735a46cb05cbaee66450cef501ee7407c2b11e327fcaad52. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3398: seal system prompt hash` |
 
 # Open questions and deliberate omissions
 

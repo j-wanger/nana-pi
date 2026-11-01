@@ -1,0 +1,25 @@
+synthetic capped run
+distinct units 43
+labelled 40
+calls 1
+tokens 100
+charged tokens 100
+cost 0.01
+unclassified 0
+unsent 3
+model claude-sonnet-5
+prompt sha256 422f2aa3ad294594735a46cb05cbaee66450cef501ee7407c2b11e327fcaad52
+exit 0
+synthetic resume
+distinct units 43
+labelled 43
+calls 1
+tokens 100
+charged tokens 100
+cost 0.01
+unclassified 0
+unsent 0
+model claude-sonnet-5
+prompt sha256 422f2aa3ad294594735a46cb05cbaee66450cef501ee7407c2b11e327fcaad52
+exit 0
+stored rows 43

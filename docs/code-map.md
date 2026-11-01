@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 560 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 562 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -39,13 +39,13 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/bench/anatomy.mjs`
 
-- **purpose** — Expose the zero-spend builder anatomy CLI.
-- **inputs** — argv: segment --repo --sessions --out; report --in; sample --in --seed --n --out; agree --in --a --b; assemble --in --context --drop --stage --out.
-- **outputs** — Counts-only JSON and private files through runAnatomy.
-- **effects** — disk, process (read-only git)
+- **purpose** — Expose the builder anatomy CLI with an isolated model runner for labelling.
+- **inputs** — argv: segment --repo --sessions --out; report --in; sample --in --seed --n --out; agree --in --a --b; assemble --in --context --drop --stage --out; label --in --out or --resume.
+- **outputs** — Counts-only stdout and private files through runAnatomy.
+- **effects** — disk, process (read-only git and isolated Claude), network (label only)
 - **errors** — Exit 1 on unsafe output, invalid arguments or failed reads/writes.
 - **callers** — —
-- **callees** — `apps/bench/lib/anatomy.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `scripts/memory-shape-runners.mjs`
 
 ### `apps/bench/catch-ledger.mjs`
 
@@ -80,8 +80,18 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Named segmentation, labelling, normalization, sampling and reporting choices.
 - **effects** — none
 - **errors** — none
-- **callers** — `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`
 - **callees** — —
+
+### `apps/bench/lib/anatomy-labels.mjs`
+
+- **purpose** — Label distinct blind builder texts through an injected capped runner with durable private resume.
+- **inputs** — Segmented contexts, guarded private output folder, injected runner, optional caps and counts-only stdout.
+- **outputs** — Private manifest and appended key/id/label rows; counts-only progress and spend lines.
+- **effects** — disk (private label store); network (only through injected runner)
+- **errors** — Fixed fingerprint diagnostics or filesystem errors propagate to the CLI's sanitized boundary; bad calls reject batches.
+- **callers** — `apps/bench/lib/anatomy.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/lib/plan.mjs`
 
 ### `apps/bench/lib/anatomy-measures.mjs`
 
@@ -90,7 +100,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Counts-only reports and agreement, blind samples, or assembled private text.
 - **effects** — none
 - **errors** — Invalid labels, duplicate ids, unknown ids and differing sheet id sets throw fixed diagnostics.
-- **callers** — `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/catch-stats.mjs`
 
 ### `apps/bench/lib/anatomy-pulls.mjs`
@@ -125,13 +135,13 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/bench/lib/anatomy.mjs`
 
-- **purpose** — Run the five hand-operated builder anatomy subcommands with private writers and counts-only printers.
-- **inputs** — Explicit argv roots and injected stdout/stderr callbacks.
-- **outputs** — Private contexts, blind sheets or replay parts; counts-only JSON on stdout.
-- **effects** — disk (explicit private folders), process (extractor's read-only git queries)
+- **purpose** — Run hand-operated builder anatomy subcommands with private writers and counts-only printers.
+- **inputs** — Explicit argv roots, injected runner, optional token cap and stdout/stderr callbacks.
+- **outputs** — Private contexts, labels, blind sheets or replay parts; counts-only stdout.
+- **effects** — disk (explicit private folders), process (extractor's read-only git), network (injected label runner only)
 - **errors** — Returns 1 with fixed diagnostics on invalid inputs, unsafe output or malformed data.
-- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
+- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
 
 ### `apps/bench/lib/catch-extract.mjs`
 
@@ -161,7 +171,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports cohensKappa/seededSample/canonSegments/samePath/sameBase/stageHints/matchGraph/components/buildLedger/componentSizes/table/claims/matchConfidence; returns plain objects and markdown strings
 - **effects** — none
 - **errors** — throws Error when kappa is given empty or unequal-length label vectors
-- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`
+- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`
 - **callees** — —
 
 ### `apps/bench/lib/checkers.mjs`
@@ -214,7 +224,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports tupleKey/rng/shuffle/profilesFor/buildSchedule/filterPlan/loadOrCreateSchedule/OPERATIONAL_KEYS/studyFingerprint/fileSha/readJsonl/readResults/assertFingerprint; persists schedule.json and quarantines a torn results tail
 - **effects** — disk (reads the study dir and results.jsonl, writes schedule.json and the quarantined tail)
 - **errors** — assertFingerprint throws when a results file was written under a different fingerprint; readJsonl reports a torn tail rather than parsing it
-- **callers** — `apps/bench/run.mjs`, `apps/bench/test/plan.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/run.mjs`, `apps/bench/test/plan.test.mjs`
 - **callees** — `apps/bench/lib/agentdir.mjs`
 
 ### `apps/bench/lib/profiles.mjs`
@@ -267,6 +277,17 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `apps/bench/aggregate.mjs`, `apps/bench/lib/usage.mjs`
+
+### `apps/bench/test/anatomy-labels.test.mjs`
+
+- **purpose** — Pin private capped anatomy labelling and resume with synthetic stores and fake runners.
+- **inputs** — Synthetic OS-temp contexts, injected runners and sealed configuration.
+- **outputs** — Awaited bounded PASS/FAIL cases and a check total; never fixture text or keys.
+- **effects** — disk (OS-temp fixtures), process (synthetic killed-run child)
+- **errors** — Assertion failures set exit code 1 without printing private values.
+- **callers** — —
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/tmp-dir.mjs`
+- **unresolved launches** — line 114: spawnSync
 
 ### `apps/bench/test/anatomy.test.mjs`
 
@@ -396,7 +417,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`, `apps/bench/test/usage.test.mjs`
+- **callers** — `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`, `apps/bench/test/usage.test.mjs`
 - **callees** — —
 
 ### `apps/bench/test/usage.test.mjs`
@@ -1112,7 +1133,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Safe ok/text/usage results without printing subprocess data.
 - **effects** — process (bounded piped children in OS temp); network (the chosen model through its CLI)
 - **errors** — Spawn, parse and incomplete-stream failures return ok false, never raw errors.
-- **callers** — `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `scripts/memory-run.mjs`, `scripts/memory-shape.mjs`, `scripts/outcome-meter.mjs`
+- **callers** — `apps/bench/anatomy.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `scripts/memory-run.mjs`, `scripts/memory-shape.mjs`, `scripts/outcome-meter.mjs`
 - **callees** — `apps/bench/lib/catch-judge.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`
 - **repo-code launches** — line 46: spawn
 
@@ -2451,7 +2472,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Runner choices, caps, prompt, output filename and count words.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `scripts/memory-shape-runners.mjs`
+- **callers** — `apps/bench/anatomy.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `scripts/memory-shape-runners.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/memory-shaping.mjs`
