@@ -33,3 +33,8 @@
 - Memory making (making-trigger, plan residual): whether a detached making run survives Claude Code's exit, especially on Windows, stays unchecked until the session-end lane.
 - Memory making (making-trigger, plan residual): background making draws on the seat's Claude account when a land ends; the day cap bounds tokens, not rate limits.
 - Memory making (making-trigger, plan residual): a repository started from another's history (a fork) shares its memory key.
+- Memory making (making-trigger, independent recheck): a write killed partway leaves a temp file that readers ignore but the next commit adds to the private store, and nothing counts or removes it.
+- Memory making (making-trigger, independent recheck): a damaged, skipped supersede event in the project store shows the old extracted record live beside the saved one, a duplicate rather than a loss.
+- Owner profile (making-trigger, independent recheck): a damaged file already in the profile's own records or events folders still blocks saves; only new writes are safe.
+- Memory making (making-trigger, independent recheck): the temp name adds 41 characters to store paths, so a long clone folder on Windows can pass the 260-character limit without long paths enabled.
+- Memory making (making-trigger, independent recheck): store writes need hard links, so on FAT, exFAT or some network drives every write fails with an error.
