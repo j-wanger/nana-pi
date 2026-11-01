@@ -97,10 +97,10 @@ export const RULE_TIERS = Object.freeze(["part", "heading", "lead", "keyword", "
 // Chosen O3: only named known parts leave the private store; unknown sections aggregate here.
 export const REPORT_PARTS = Object.freeze(["preamble", "tools", "rules", "docs", "addendum", "brief", "known-bugs", "project_context", "skills", "cwd", "nana-objective", "nana-writing", "nana-rulings", "toolsAdded", "instruction", "knowledge-pull"]);
 
-// Chosen 2026-11-01, anatomy-labeller question 1 / R-3397: cheapest Claude,
-// the family that met the agreement bar as labeller A; low effort bounds overhead.
-export const LABEL_MODEL = "claude-sonnet-5";
-export const LABEL_EFFORT = "low";
+// Chosen by the owner on 2026-11-01 after Sonnet low-effort labels missed both
+// agreement bars on the fixed check set (R-3397).
+export const LABEL_MODEL = "claude-opus-5-5";
+export const LABEL_EFFORT = "medium";
 // Chosen 2026-11-01, plan O1 / R-3391: small blind calls, bounded by both limits.
 export const LABEL_BATCH_UNITS = 40;
 export const LABEL_BATCH_CHARS = 24000;

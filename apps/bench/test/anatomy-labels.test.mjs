@@ -125,7 +125,7 @@ await test("R-3394: capped and killed runs resume only missing keys", async () =
 await test("R-3395: changed model or prompt refuses resume", async () => {
  const input = store([context(["Task"])]), first = await cli(input); assert.equal(first.exit, 0);
  for (const field of ["model", "promptSha256"]) {
-  const manifest = manifestIn(first.out); manifest[field] = "different"; fs.writeFileSync(path.join(first.out, "manifest.json"), JSON.stringify(manifest));
+  const manifest = manifestIn(first.out); manifest[field] = field === "model" ? "claude-sonnet-5" : "different"; fs.writeFileSync(path.join(first.out, "manifest.json"), JSON.stringify(manifest));
   let calls = 0; const r = await cli(input, first.out, () => { calls++; }, { resume: true }); assert.equal(r.exit, 1); assert.equal(calls, 0); assert.equal(r.stderr, "anatomy: label fingerprint mismatch\n");
   manifest[field] = field === "model" ? C.LABEL_MODEL : crypto.createHash("sha256").update(C.LABEL_SYSTEM_PROMPT).digest("hex"); fs.writeFileSync(path.join(first.out, "manifest.json"), JSON.stringify(manifest));
  }
@@ -139,9 +139,9 @@ await test("R-3396: consecutive failure stop resets after success", async () => 
  assert.equal(reset.exit, 0); assert.equal(resetCalls, C.LABEL_FAIL_STREAK * 2); assert.equal(rowsIn(reset.out).length, C.LABEL_BATCH_UNITS);
 });
 // req: R-3397
-await test("R-3397: seal label model", () => assert.equal(C.LABEL_MODEL, "claude-sonnet-5"));
+await test("R-3397: seal label model", () => assert.equal(C.LABEL_MODEL, "claude-opus-5-5"));
 // req: R-3397
-await test("R-3397: seal label effort", () => assert.equal(C.LABEL_EFFORT, "low"));
+await test("R-3397: seal label effort", () => assert.equal(C.LABEL_EFFORT, "medium"));
 // req: R-3398
 await test("R-3398: seal system prompt hash", () => assert.equal(crypto.createHash("sha256").update(C.LABEL_SYSTEM_PROMPT ?? "").digest("hex"), "422f2aa3ad294594735a46cb05cbaee66450cef501ee7407c2b11e327fcaad52"));
 // req: R-3391

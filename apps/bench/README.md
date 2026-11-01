@@ -488,7 +488,8 @@ confusions and the count of units where both labellers agree. It also compares r
 Definitions and rules were written before corpus labelling; the seat measures reliability before interpreting shares.
 These results describe supply, not causal effects or slice-2 target choices.
 
-`label` hashes the report's existing duplicate normalization and sends one representative per non-oversize key.
+`label` uses claude-opus-5-5 at medium effort, as chosen by the owner after Sonnet low-effort labels missed both agreement bars on the fixed check set.
+It hashes the report's existing duplicate normalization and sends one representative per non-oversize key.
 The representative keeps its Markdown; only its cwd and branch become `<WORKTREE>` and `<BRANCH>`.
 Seed-shuffled batches are blind to headings, parts and rule labels, with at most 40 units and 24,000 text chars per call.
 Replies must cover each call's `u1..un` ids exactly once using the definitions or `unsorted`; a bad reply rejects its whole batch.
