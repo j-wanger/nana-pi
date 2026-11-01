@@ -1,0 +1,4 @@
+requirements tree: 0 problems; rows 2262; features 40
+deliverables: 21 of 21 made and read by code, 21 more parked
+deliverable note: line 453: Read by: A-088 reader path "packages/nana-pack/lib/memory-score.mjs" is not a tracked file at HEAD
+deliverable note: A-088 has no declared reader

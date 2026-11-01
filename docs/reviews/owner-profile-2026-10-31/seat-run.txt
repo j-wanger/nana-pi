@@ -1,0 +1,17 @@
+PASS seat guide scopes itself to the seat in one sentence before its first bullet
+PASS seat guide holds no bullet beyond its sixteen rules
+PASS seat guide carries: launch in the background and end the turn
+PASS seat guide carries: no reading or judging partial work mid-run
+PASS seat guide carries: act on completion or a monitor's failure or stall
+PASS seat guide carries: verify once at the end
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane
+PASS R-3140: first-look covers any page the owner sees with usable mode commands
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule
+PASS seat guide carries: findings back in the next brief
+PASS seat guide carries: at most four lanes building and two in planning, each slot defined
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone
+PASS seat guide carries: preamble and review standard named, not restated
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders

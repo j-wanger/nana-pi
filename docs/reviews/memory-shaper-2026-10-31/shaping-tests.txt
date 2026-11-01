@@ -1,0 +1,19 @@
+PASS model claims retain the shared candidate shape
+PASS kind pairing scores against independent primary and alternate labels
+PASS frozen inputs skip unpairable turns and count cuts
+PASS batch validation is source-specific exact and fail-closed
+PASS spend cap stops calls and unknown spend stays unknown
+PASS Claude isolation and private output survive failures
+PASS pi isolation parses the complete large stream and runner switch
+PASS seal: runner
+PASS seal: Claude model and effort
+PASS seal: pi model and thinking
+PASS seal: batch size
+PASS seal: run token cap
+PASS seal: Claude dollar cap
+PASS seal: owner cap
+PASS seal: seat cap
+PASS seal: timeout
+PASS seal: capture buffer
+PASS seal: system prompt hash
+PASS seal: output file and count words

@@ -6,17 +6,9 @@
  * @effects disk (reads the user-scope nana-pack.json, writes a temporary file in the real target's folder, may write nana-pack.json.bak in the agent dir, and replaces the user-scope nana-pack.json)
  * @errors never throws; every failure, including a mid-write throw, is caught and returned as {ok:false, problem} naming the guard, the slot or field, or the file
  */
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { readBounded, BOUNDED_READ_CAP } from './bounded-read.mjs';
-import { parseJsonBytes } from './json-text.mjs';
+import { writePackConfigMember } from './pack-config-write.mjs';
 import { resolveRoster, validateRosterShape, orderedRoster, formatRosterLines } from '../bin/nana-roster.mjs';
 import { PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN, CLAUDE_CODE_RUNTIME, SLOT_PRINT_ORDER } from '../bin/worker-config.mjs';
-
-// chosen: the mode a brand-new nana-pack.json gets when none exists yet, matching this repo's
-// "what Claude Code itself writes" default (packages/nana-setup/lib/steps.mjs:357). An existing
-// file's own mode is read and kept instead (known limit 9: kept, not pinned).
-const NEW_FILE_MODE = 0o600;
 
 /** The value `set`'s tokens describe for one already-known slot, or a problem naming it. */
 function parseEntry(slot, tokens) {
@@ -51,14 +43,13 @@ function slotTokens(roster, slot) {
  */
 export function setRosterSlot(agentDir, args, {
   env = process.env,
-  writeTemp = (fd, text) => fs.writeFileSync(fd, text, 'utf8'),
-  rename = (from, to) => fs.renameSync(from, to),
+  writeTemp,
+  rename,
 } = {}) {
   if (env[PI_MODEL_SHELL_ENV]) {
     return { ok: false, problem: `refused inside a pi model shell: ${PI_MODEL_SHELL_ENV} is set` };
   }
 
-  const file = path.join(agentDir, 'nana-pack.json');
   const base = resolveRoster(agentDir);
   if (!base.ok) return { ok: false, problem: `${base.file}: ${base.problem}` };
 
@@ -74,43 +65,7 @@ export function setRosterSlot(agentDir, args, {
   const { roster: validated, problem } = validateRosterShape(nextRoster);
   if (problem) return { ok: false, problem };
 
-  let raw = {};
-  let existed = false;
-  let targetPath = file;
-  let mode = NEW_FILE_MODE;
-  try {
-    targetPath = fs.realpathSync(file);
-    existed = true;
-    mode = fs.statSync(targetPath).mode & 0o777;
-    const buf = readBounded(targetPath, BOUNDED_READ_CAP);
-    raw = parseJsonBytes(buf);
-  } catch (err) {
-    if (err?.code !== 'ENOENT') return { ok: false, problem: `${file}: ${String(err?.message ?? err)}` };
-    raw = {};
-    existed = false;
-    targetPath = file;
-  }
-  raw.roster = validated;
-  const text = `${JSON.stringify(raw, null, 2)}\n`;
-
-  const targetDir = path.dirname(targetPath);
-  const temp = path.join(targetDir, `.nana-pack.json.${process.pid}.tmp`);
-  let tempCreated = false;
-  try {
-    const fd = fs.openSync(temp, 'wx', mode);
-    tempCreated = true;
-    try {
-      writeTemp(fd, text);
-      fs.fsyncSync(fd);
-    } finally {
-      fs.closeSync(fd);
-    }
-    if (existed) fs.copyFileSync(targetPath, path.join(agentDir, 'nana-pack.json.bak'));
-    rename(temp, targetPath);
-  } catch (err) {
-    if (tempCreated) { try { fs.unlinkSync(temp); } catch { /* best effort */ } }
-    return { ok: false, problem: `${file}: ${String(err?.message ?? err)}` };
-  }
-
-  return { ok: true, file, roster: validated, previousTokens: slotTokens(base.roster, slot) };
+  const result = writePackConfigMember(agentDir, 'roster', validated, { writeTemp, rename });
+  if (!result.ok) return result;
+  return { ...result, roster: validated, previousTokens: slotTokens(base.roster, slot) };
 }

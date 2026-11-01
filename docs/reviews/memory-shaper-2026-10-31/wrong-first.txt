@@ -1,0 +1,102 @@
+FAIL model claims retain the shared candidate shape ENOENT: no such file or directory, open '/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/memory-shaping-xGbq6R/output/wrong'
+FAIL kind pairing scores against independent primary and alternate labels The expression evaluated to a falsy value:
+
+  assert.ok(lines.includes("correction: recall 1/1"))
+
+FAIL frozen inputs skip unpairable turns and count cuts Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL batch validation is source-specific exact and fail-closed Expected values to be strictly equal:
+
+0 !== 2
+
+FAIL spend cap stops calls and unknown spend stays unknown Expected values to be strictly equal:
+
+0 !== 2
+
+FAIL Claude isolation and private output survive failures Cannot read properties of null (reading 'tokens')
+FAIL pi isolation parses the complete large stream and runner switch Expected values to be strictly deep-equal:
++ actual - expected
+
++ null
+- {
+-   cost: 0.03,
+-   tokens: 100
+- }
+
+FAIL seal: runner Expected values to be strictly equal:
+
+'wrong' !== 'claude'
+
+FAIL seal: Claude model and effort Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'wrong',
++   'wrong'
+-   'claude-sonnet-5',
+-   'low'
+  ]
+
+FAIL seal: pi model and thinking Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'wrong',
++   'wrong'
+-   'openai-codex/gpt-6-luna',
+-   'low'
+  ]
+
+FAIL seal: batch size Expected values to be strictly equal:
+
+2 !== 10
+
+FAIL seal: run token cap Expected values to be strictly equal:
+
+2 !== 1000000
+
+FAIL seal: Claude dollar cap Expected values to be strictly equal:
+
+2 !== 0.5
+
+FAIL seal: owner cap Expected values to be strictly equal:
+
+2 !== 4000
+
+FAIL seal: seat cap Expected values to be strictly equal:
+
+2 !== 2000
+
+FAIL seal: timeout Expected values to be strictly equal:
+
+2 !== 300000
+
+FAIL seal: capture buffer Expected values to be strictly equal:
+
+2 !== 67108864
+
+FAIL seal: system prompt hash Expected values to be strictly equal:
++ actual - expected
+
++ '8810ad581e59f2bc3928b261707a71308f7e139eb04820366dc4d5c18d980225'
+- 'ef726abb8a0d48e17c1b4a214af86c6dff52978b69e86e628b8e4d810b084c98'
+
+FAIL seal: output file and count words Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   'wrong',
+-   'shaped-candidates.jsonl',
+    {
++     capReached: 'wrong',
++     skipped: 'wrong',
++     unclassified: 'wrong',
++     unsent: 'wrong'
+-     capReached: 'unscored: spend cap reached',
+-     skipped: 'skipped',
+-     unclassified: 'unclassified',
+-     unsent: 'unsent'
+    }
+  ]

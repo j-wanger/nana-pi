@@ -1,0 +1,18 @@
+$ clone-a: init --dir <clone-a> --save
+profile: initialized
+$ clone-b: init --dir <clone-b> --save
+profile: initialized
+$ clone-a: save --kind preference --claim "Prefer quiet colours" --quote "Please keep the palette calm"
+Saved: Prefer quiet colours (8ed58b115bcca39d266b15b9b648111ef140fb7d55ccd155af5287b939fc8d8d)
+$ clone-b: sync
+profile: synced
+$ clone-b: show
+[low 2026-10-31] Prefer quiet colours (8ed58b115bcca39d266b15b9b648111ef140fb7d55ccd155af5287b939fc8d8d)
+$ clone-b: save --kind fact --claim "Uses metric units" --quote "Use metres in examples"
+Saved: Uses metric units (c8e8efbbcf5800f4ddd3aaea79e26091b9e6d3c8339dd2d163f1b6c6e5012350)
+$ clone-a: sync
+profile: synced
+$ clone-a: show
+[low 2026-10-31] Uses metric units (c8e8efbbcf5800f4ddd3aaea79e26091b9e6d3c8339dd2d163f1b6c6e5012350)
+[low 2026-10-31] Prefer quiet colours (8ed58b115bcca39d266b15b9b648111ef140fb7d55ccd155af5287b939fc8d8d)
+Both clone statuses: "" ""

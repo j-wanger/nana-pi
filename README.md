@@ -48,7 +48,10 @@ Sibling repo to `~/nana-agent-loop`.
 from this repository's Claude transcripts and review MUST titles. Node and git are
 required; no model runs. `npm run memory:score` (`scripts/memory-score.mjs`) compares
 private candidates with independent JSONL labels and prints counts only. Both run
-by hand. See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
+by hand. `npm run memory:shape` (`scripts/memory-shape.mjs`) classifies the same
+units with an isolated Claude CLI by default, or pi through a sealed runner choice.
+`scripts/memory-shape-runners.mjs` holds both adapters; tests inject all calls.
+See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
 
 ## Requirements-first
 

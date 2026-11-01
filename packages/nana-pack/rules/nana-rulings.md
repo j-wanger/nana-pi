@@ -18,7 +18,7 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-14: Turning a repo into a feature tree is core: lift, an approved regroup, then feature-oriented work.
 - 2026-10-15: Every builder and long background run gets a failure watcher and a heartbeat at launch.
 - 2026-10-16: The public repo carries no owner name and nothing about the owner's work.
-- 2026-10-16: At most two lanes build and one more is planned. Each install, hook or gate lane gets one independent check. A blocking question carries a one-word default.
+- 2026-10-16: Each install, hook or gate lane gets one independent check. A blocking question carries a one-word default.
 - 2026-10-16: Rulings live in this file. A new ruling lands in the reviewed change of the lane that records it, and removes any ruling it replaces.
 - 2026-10-17: Development is feature-first. Plans get no review round; the seat and one adversary write each lane's must-meet tests.
 - 2026-10-20: In nana-pi, the seat lands a lane once every reviewer says LAND. The owner gives no separate Land.
@@ -28,4 +28,5 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-22: A produced artifact is a feature to maintain. Each deliverable names the run that makes it and the code that reads it. Closing a hand-made maker or a rule-only reader comes first.
 - 2026-10-22: Every plan and brief names its precedent, the nearest existing code for each part. Builders follow it and report each departure. pi-worker refuses a brief without it.
 - 2026-10-22: A helper's second caller imports it rather than copying it. A plan's Precedent section names any move of a private helper to a shared module.
+- 2026-10-31: At most four lanes build and two more are planned.
 - 2026-10-28: Before the seat plans new capability, it brings the owner two or three readings of the intent, once per request; a fix that restores agreed behaviour plans straight away.

@@ -85,6 +85,59 @@ neither does an **untrusted** project — reload preserves the session's trust d
 added to a trusted project's `.pi/skills` after startup goes from absent to present across one
 `/reload-runtime`.
 
+## Owner profile
+
+`node packages/nana-pack/bin/nana-profile.mjs` keeps quoted owner learning in a private,
+append-only git clone. It needs Node, git and signed-in `gh` for private-target verification.
+No model, network search, hook, PATH shim or startup delivery is added here.
+The seat creates the private `nana-profile` repo with the owner after the land and clones it
+into `nana-profile` in the home folder. This public repository holds no owner records.
+
+```bash
+node packages/nana-pack/bin/nana-profile.mjs init --dir <clone>
+node packages/nana-pack/bin/nana-profile.mjs init --dir <clone> --save
+node packages/nana-pack/bin/nana-profile.mjs save --kind preference --claim "Prefer quiet colours" --quote "Please keep the palette calm"
+node packages/nana-pack/bin/nana-profile.mjs confirm <id> --quote "Yes, keep that preference"
+node packages/nana-pack/bin/nana-profile.mjs retract <id> --quote "Drop that preference"
+node packages/nana-pack/bin/nana-profile.mjs supersede <id> --kind preference --claim "Prefer green" --quote "Use green now"
+node packages/nana-pack/bin/nana-profile.mjs show
+node packages/nana-pack/bin/nana-profile.mjs sync
+```
+
+Saving stays off on each machine until that machine's `init --save`. Writers refuse under
+`NANA_ROLE` or from linked worktrees. The seat saves automatically without approval, shows the
+`Saved:` line for veto, and writes to both this profile and today's shared memory until delivery.
+Confirm only an explicit owner yes, using new owner words. Decisions go to rulings; open threads
+belong in GitHub issues. Supported kinds are preference, correction, fact and thinking.
+
+`init` reads the origin push URL and verifies the parsed GitHub repository is private.
+Unrecognised hosts, public targets and unavailable `gh` fail closed. The explicit
+`--unverified-remote` override is stored per machine and printed by each sync.
+A changed push URL blocks pushing until `init` verifies it again. The CLI refuses nana-pi
+checkouts, linked checkouts sharing nana-pi's git directory, and nana-pi's push URL.
+The user-scope `ownerProfile` pointer lives in pi's active agent directory's `nana-pack.json`.
+Like `roster set`, `init` follows a symlinked configuration file and writes its real target,
+keeping other members and a backup. A dotfiles-linked target therefore receives the clone path.
+
+Records and events are exclusive-created JSON files; git history keeps retracted quotes.
+Retract hides a record, not its history. Every save starts low. Three distinct sessions with
+new quotes earn medium; explicit confirmation with new owner words earns high.
+`effectiveState` in `lib/profile-store.mjs` is the sole reader of effective trust and liveness;
+stored `trust` and `invalidAt` remain write-time values. Cycles keep the newest superseder;
+competing live replacements print a marked line. Show orders high, medium, low within 4000
+characters and folds omitted lines. No search cache exists.
+
+One clone lock covers writes and sync, with dead-writer stale recovery. Offline saves stay
+committed and exit successfully with a fixed `not pushed:` reason; explicit sync fails.
+A stopped rebase is aborted and reported before writing. Sync rebases unique append-only
+paths and retries a rejected push once. Attributes disable line-ending conversion on Windows.
+Caps bound daily saves, claim and quote length. Session identifiers use runtime shell variables
+when available, else the local day, which deliberately errs toward low trust.
+
+Known limits: the CLI cannot prove that quoted words came from the owner, prevent deliberate
+poisoning, or protect against a hostile process changing the pointer. Saved lines can contain
+private text: never paste real records or show output into the public repository.
+
 ## Offline memory candidates
 
 From the repository root, `npm run memory:make -- --out <private-folder>` runs
@@ -129,6 +182,47 @@ a removed title index returns stale. Supply `expectedTitle` in roots to detect a
 changed title at the same index. Transcript expiry can make pointers missing;
 private quote and context snapshots preserve readability. No trust promotion,
 cross-run deduplication, automatic trigger, delivery or real-data scoring happens here.
+
+## Model-shaped memory candidates
+
+From the repository root, `npm run memory:shape -- --out <private-folder>` runs
+`scripts/memory-shape.mjs`. Runtime dependencies: Node, git and an authenticated
+Claude CLI by default; the alternate sealed runner needs an authenticated pi CLI.
+The shaper accepts the maker's root, project and day-window flags, plus
+`--until <ISO-instant>` to freeze owner turns and ask results at an instant.
+It takes no labels argument. The scorer and its label format remain unchanged.
+
+The shared unit walk supplies owner turns, answered asks and distinct review MUST
+titles. Owner turns with no preceding non-meta, non-sidechain assistant entry with
+a UUID and nonempty text are skipped. Tool-only entries do not count as seat text.
+Owner batches allow correction, decision or none; review batches allow lesson or
+none. Answered asks remain rule-path decisions without a model call.
+Correction pointers prefer substantial seat text, then the question; decisions
+prefer the question, then substantial text. Both fall back to the last seat text.
+Duplicate owner pointers keep the first file in transcript order.
+
+`lib/memory-shaping-config.mjs` seals the default runner, model, effort, prompt and
+caps. `scripts/memory-shape-runners.mjs` isolates Claude and pi in OS temp, with
+stdin prompts, no tools, no sessions, no discovered resources, bounded piped
+capture and a timeout. Claude uses catch-judge's structured-output and model check;
+pi uses the bench's whole-stream completeness and usage parser. Tests inject every
+runner or spawn; they never call a model.
+
+The shaper writes only `shaped-candidates.jsonl`, exclusive-create, with the same
+private-folder policy and record fields as the maker. Model claims use the shared
+claim cap; quotes use the shared display cap; stored context retains the paired
+seat entry's tail. Model input head-cuts owner text and tail-cuts seat context.
+A malformed reply rejects its entire batch without retry. No stream dump is saved.
+Stdout reports owner turns (including skipped), skipped, asks, review titles,
+cut counts, capped claims, calls, unknown usage, unsent, unclassified, tokens and
+cost. Errors never print private text. At the token cap no new call starts;
+remaining units are unsent and the run prints `unscored: spend cap reached`.
+Unknown usage marks tokens as a lower bound and cost unknown; unpriced tokens also
+make cost unknown. Pi's reported cost is list price, not subscription cost.
+
+The tool is the experiment, not a claim that the model beats the rules. The seat
+freezes the prompt and values before two real scored runs. Deliberate prompt
+injection remains outside this lane's threat model; downstream checking owns it.
 
 ## Product report
 

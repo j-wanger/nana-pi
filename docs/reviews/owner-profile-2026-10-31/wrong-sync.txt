@@ -1,0 +1,18 @@
+FAIL two machines converge without a merge AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 8
+
+    at file://<lane>/packages/nana-pack/tests/profile-sync.test.mjs:23:11
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-sync.test.mjs:14:1
+FAIL offline contention and a stopped rebase lose nothing AssertionError [ERR_ASSERTION]: rev-parse,HEAD: fatal: ambiguous argument 'HEAD': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+
+
+128 !== 0
+
+    at Object.git (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:26:121)
+    at file://<lane>/packages/nana-pack/tests/profile-sync.test.mjs:37:56
+    at async check (file://<lane>/packages/nana-pack/tests/profile-fixture.mjs:59:8)
+    at async file://<lane>/packages/nana-pack/tests/profile-sync.test.mjs:33:1

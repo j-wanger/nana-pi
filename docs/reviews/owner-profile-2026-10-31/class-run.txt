@@ -1,0 +1,7 @@
+ordinary
+also reaches: packages/nana-pack/lib/pack-config-write.mjs — also reaches packages/nana-pack/bin/claude-review.mjs
+also reaches: packages/nana-pack/lib/pack-config-write.mjs — also reaches packages/nana-pack/extensions/nana-roster-notice.ts
+also reaches: packages/nana-pack/lib/pack-config-write.mjs — also reaches packages/nana-setup/claude/hooks/nana-roster-notice.mjs
+also reaches: packages/nana-pack/lib/roster-set.mjs — also reaches packages/nana-pack/bin/claude-review.mjs
+also reaches: packages/nana-pack/lib/roster-set.mjs — also reaches packages/nana-pack/extensions/nana-roster-notice.ts
+also reaches: packages/nana-pack/lib/roster-set.mjs — also reaches packages/nana-setup/claude/hooks/nana-roster-notice.mjs

@@ -1,0 +1,13 @@
+CI run 41231916784, tip 516867920f83db86ce2f70b4b6559d1d24eb849e: failure
+macOS/Linux suites and all four install-check jobs: success
+Windows suite: the seven profile must-meets rejected the ordinary temp checkout as linked.
+This is not the known R-3104 timeout; no unchanged-job rerun was attempted.
+
+suite (windows-latest)	Run npm test -- --verbose --jobs=4	2026-10-31T19:08:06.1432475Z FAIL two machines converge without a merge AssertionError [ERR_ASSERTION]: profile refused: linked worktree
+suite (windows-latest)	Run npm test -- --verbose --jobs=4	2026-10-31T19:08:06.1498705Z FAIL offline contention and a stopped rebase lose nothing AssertionError [ERR_ASSERTION]: profile refused: linked worktree
+suite (windows-latest)	Run npm test -- --verbose --jobs=4	2026-10-31T19:08:09.6716079Z FAIL a save writes one shape record into the private clone and nowhere else AssertionError [ERR_ASSERTION]: profile refused: linked worktree
+suite (windows-latest)	Run npm test -- --verbose --jobs=4	2026-10-31T19:08:09.6948738Z FAIL only a seat on an enabled machine may write AssertionError [ERR_ASSERTION]: profile refused: linked worktree
+suite (windows-latest)	Run npm test -- --verbose --jobs=4	2026-10-31T19:08:09.7030791Z FAIL trust rises only on the owner words across sessions AssertionError [ERR_ASSERTION]: profile refused: linked worktree
+suite (windows-latest)	Run npm test -- --verbose --jobs=4	2026-10-31T19:08:09.7039274Z FAIL retract and supersede hide the right records AssertionError [ERR_ASSERTION]: profile refused: linked worktree
+suite (windows-latest)	Run npm test -- --verbose --jobs=4	2026-10-31T19:08:09.7410770Z FAIL the pointer is configuration and the push target stays verified private AssertionError [ERR_ASSERTION]: profile refused: linked worktree
+suite (windows-latest)	Run npm test -- --verbose --jobs=4	2026-10-31T19:23:18.8987544Z 244 files: 224 PASS, 2 FAIL, 18 SKIP, 0 WARN · checks: 7703 pass, 7 fail, 137 skip · 1370.9s

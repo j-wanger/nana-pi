@@ -13,6 +13,7 @@
 		"map:search": "node scripts/code-map.mjs --search",
 		"memory:make": "node scripts/memory-make.mjs",
 		"memory:score": "node scripts/memory-score.mjs",
+		"memory:shape": "node scripts/memory-shape.mjs",
 		"map:impact": "node scripts/code-map.mjs --impact",
 		"map:measure": "node scripts/runtime-measure.mjs",
 		"req:rows": "node scripts/requirement-rows.mjs",
