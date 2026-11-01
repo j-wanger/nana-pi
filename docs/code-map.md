@@ -2646,7 +2646,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Throws sealed refusal lines for local failures; sync returns classified transport failure.
 - **callers** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-setup/lib/doctor.mjs`
 - **callees** — `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`
-- **repo-code launches** — line 20: spawnSync; binding line 101; binding line 108
+- **repo-code launches** — line 20: spawnSync; binding line 101; binding line 109
 
 ### `packages/nana-pack/lib/prompt-sections.mjs`
 
