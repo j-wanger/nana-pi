@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { writeFakePi } from './fake-pi.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
 import { realPath } from '../lib/real-path.mjs';
+import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { SHARED_MEMORY_OUTPUT_BUDGET } from '../../nana-setup/lib/shared-memory-config.mjs';
 const pack = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = path.resolve(pack, '../..');
@@ -115,7 +116,7 @@ test('R-3211: reviewer carries only allowed settings and cleans normal failure a
     const f = fixture(); write(path.join(f.home, '.claude/settings.json'), JSON.stringify({ apiKeyHelper: 'helper', hooks: {}, mcpServers: {}, permissions: {}, env: { HTTPS_PROXY: 'proxy', CLAUDE_CODE_GIT_BASH_PATH: 'bash', CLAUDE_CODE_USE_BEDROCK: '1', FOO: 'no' } }));
     const r = launch(f, 'claude-review', [], { ...f.env, CHILD_EXIT: failure ? '1' : '0' });
     assert.equal(r.status, failure ? 1 : 0, r.stderr);
-    assert.deepEqual(JSON.parse(r.call.settingsText), { claudeMdExcludes: JSON.parse(r.call.settingsText).claudeMdExcludes, apiKeyHelper: 'helper', env: { HTTPS_PROXY: 'proxy', CLAUDE_CODE_GIT_BASH_PATH: 'bash', CLAUDE_CODE_USE_BEDROCK: '1', CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1', NANA_ROLE: 'reviewer', NANA_HANDOFF: 'off' } });
+    assert.deepEqual(JSON.parse(r.call.settingsText), { claudeMdExcludes: JSON.parse(r.call.settingsText).claudeMdExcludes, apiKeyHelper: 'helper', env: { HTTPS_PROXY: 'proxy', CLAUDE_CODE_GIT_BASH_PATH: 'bash', CLAUDE_CODE_USE_BEDROCK: '1', CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1', NANA_ROLE: 'reviewer', NANA_HANDOFF: 'off', ...credentialStripEnv(f.env) } });
     assert.match(r.stderr, /^claude-review: claude settings carry:/m); assert.ok(!fs.existsSync(r.call.settings));
   }
   const f = fixture();

@@ -720,6 +720,28 @@ scratch=$(mktemp -d)
 pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider openai-codex --model gpt-5.6-sol -t read,grep,find,bash,edit,write …
 ```
 
+#### Builder and reviewer credentials
+
+Builders do not push. The seat checks the reported branch and full tip, then pushes and waits for CI.
+The launchers stop git's normal credential dispatch in pi and Claude Code children.
+They reset inherited helpers in both git environment forms and disable askpass and terminal prompts.
+Claude flag settings carry the same controls into tool shells, including inherited counted entries.
+Unrelated git settings keep their effect.
+
+Children lose helper authentication for HTTPS fetches, private submodules and git-backed package dependencies.
+They keep pi provider logins and npm registry configuration.
+The seat fetches or installs authenticated sources before the build.
+
+The pi gate adds a credential-rule floor for worker and reviewer roles, before configured command exceptions.
+It catches direct credential commands and common HTTP clients calling the GitHub API.
+It still allows credential-cache shutdown, quoted documentation mentions and ordinary pushes under existing policy.
+The rule does not run in Claude Code builders or reviewers.
+
+Limits remain: scripts can call helpers or credential stores directly, and children can remove the controls for their own subprocesses.
+Managed Claude policy can supply environment above flag settings.
+The gate remains advisory by load path; unattended enforcement belongs to the container layer.
+The controls stop git's dispatch, not access to a credential store by other means.
+
 #### Lane builder
 
 Use `pi-worker --lane <name> --brief <file> --out <file> [--max-secs N] [--stall-secs N] [--poll N] [--lane-size <small|larger>]` with no `--` or pi arguments. Lane mode requires cwd to be the real repository root of a linked worktree on exactly `feat/<name>`; the brief must be a readable regular file. Its first Precedent section starts at a Precedent heading with no word after the name, or a line holding only `Precedent:`, plain or bold; a plain label's list ends at a blank line, heading, non-list line, or other marker kind at the first entry's indentation. The section must list at least one worktree-root-relative path tracked at that worktree's HEAD, or `none:` with a reason; invalid or unlisted paths refuse the launch before the lock. It refuses the main checkout, a nested cwd, detached or switched branches, invalid inputs, a roster the roster resolver refuses, a launch with no `--lane-size` once the roster sets `largerBuilder`, and every caller pi argument before acquiring the lock or starting a builder. It resolves this machine's roster (see Machine roster below): `--lane-size larger` starts the roster's larger-lane builder, pi or Claude Code, falling back to the builder when that slot is null; `--lane-size small`, or no size while `largerBuilder` is null, starts the pi builder.
