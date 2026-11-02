@@ -1,0 +1,26 @@
+Environment: NODE_NO_WARNINGS=1 (omit local absolute paths in Node warnings).
+
+COMMAND npm run map:check
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 600 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+EXIT 0 npm run map:check
+
+COMMAND node scripts/requirements-trace.mjs
+requirements: 2483 total (2226 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2226 traced by tests
+ears: 0 rows off form (allowance 0)
+EXIT 0 node scripts/requirements-trace.mjs
+
+COMMAND node scripts/known-bugs.mjs --root .
+FEAT-013.md: size: bytes=53008 lines=214
+summary names=0 sizes=1
+EXIT 0 node scripts/known-bugs.mjs --root .
+
+COMMAND node scripts/lane-class.mjs --root . --files packages/nana-knowledge/lib/hook.ts
+hook: packages/nana-knowledge/lib/hook.ts — directly imported by packages/nana-knowledge/bin/nana-knowledge.ts
+EXIT 0 node scripts/lane-class.mjs --root . --files packages/nana-knowledge/lib/hook.ts
+
+COMMAND git diff --check
+EXIT 0 git diff --check
