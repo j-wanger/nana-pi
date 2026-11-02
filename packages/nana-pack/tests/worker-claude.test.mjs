@@ -17,6 +17,7 @@ import { killTree } from "../../../scripts/runtime-measure.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import { hardKillTempNames, killWorkerTree, watcherWorkerPid, windowsLaneWatchers } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+import { credentialStripEnv } from "../lib/credential-strip.mjs";
 
 const config = await import("../bin/worker-config.mjs");
 const {
@@ -127,7 +128,7 @@ if (process.env.WC_GRANDCHILD) {
 	if (process.env.WC_PID_FILE) fs.writeFileSync(process.env.WC_PID_FILE + ".grand", String(grand.pid));
 	process.on("SIGTERM", () => {});
 }
-const record = { argv: args, cwd: process.cwd(), prompt, settings, settingsMode: settings ? fs.statSync(settings).mode : null, lock: process.env.WC_LOCK ? fs.existsSync(process.env.WC_LOCK) : false, env: Object.fromEntries(["NANA_ROLE","NANA_WORKTREE_ROOT","NANA_HANDOFF","CLAUDE_CODE_DISABLE_AUTO_MEMORY","BASH_DEFAULT_TIMEOUT_MS","BASH_MAX_TIMEOUT_MS","CLAUDE_CONFIG_DIR"].map((name) => [name, process.env[name] ?? null])) };
+const record = { argv: args, cwd: process.cwd(), prompt, settings, settingsMode: settings ? fs.statSync(settings).mode : null, lock: process.env.WC_LOCK ? fs.existsSync(process.env.WC_LOCK) : false, env: Object.fromEntries(["NANA_ROLE","NANA_WORKTREE_ROOT","NANA_HANDOFF","CLAUDE_CODE_DISABLE_AUTO_MEMORY","BASH_DEFAULT_TIMEOUT_MS","BASH_MAX_TIMEOUT_MS","CLAUDE_CONFIG_DIR", ...${JSON.stringify(Object.keys(credentialStripEnv(process.env)))}].map((name) => [name, process.env[name] ?? null])) };
 if (process.env.WC_RECORD) fs.appendFileSync(process.env.WC_RECORD, JSON.stringify(record) + "\\n");
 setTimeout(() => { process.stdout.write("fake Claude builder report\\n"); }, Number(process.env.WC_SLEEP_MS ?? "0"));
 `;
@@ -276,6 +277,7 @@ const sealedEnv = () => ({
 	NANA_WORKTREE_ROOT: real(LANE),
 	NANA_HANDOFF: "off",
 	CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1",
+	...credentialStripEnv(process.env),
 	BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
 	BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
 });

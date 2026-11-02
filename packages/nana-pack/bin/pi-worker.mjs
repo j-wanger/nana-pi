@@ -24,6 +24,7 @@ import {
 } from './worker-config.mjs';
 import { resolveRoster } from './nana-roster.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
+import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
 import { digestKnownBugs } from '../lib/known-bug-digest.mjs';
@@ -89,7 +90,7 @@ function trusted(worktree) {
 	return shared.status === 0 && shared.stdout.trim() === 'true';
 }
 
-let childEnv = { NANA_ROLE: 'worker' };
+let childEnv = { NANA_ROLE: 'worker', ...credentialStripEnv(process.env) };
 let maxArg;
 let laneRoot, laneGitDir, laneCommonDir, briefPath, preambleFile, laneLock, knownBugPath;
 let selectedBuilder, selectedLaneSize, selectedSlot, selectedFeature, claudeLaunch;
@@ -164,6 +165,7 @@ if (laneMode) {
 	const worktreeTrusted = trusted(cwd);
 	const sealed = isClaudeBuilder ? {
 		NANA_ROLE: 'worker', NANA_WORKTREE_ROOT: cwd, NANA_HANDOFF: 'off', ...CLAUDE_BUILDER_CHILD_ENV,
+		...credentialStripEnv(process.env),
 		BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
 		BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
 	} : null;
@@ -223,7 +225,7 @@ if (laneMode) {
 		};
 	} else {
 		builderArgs = ['--provider', builder.provider, '--model', builder.model, ...(builder.thinking === null ? [] : ['--thinking', builder.thinking]), '-t', LANE_DEFAULTS.tools, '--append-system-prompt', preambleFile, '--append-system-prompt', briefPath, ...(deliveredBugPath ? ['--append-system-prompt', deliveredBugPath] : []), '-p', instruction];
-		childEnv = { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
+		childEnv = { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker', ...credentialStripEnv(process.env) };
 	}
 	contextLoad = { launcher: 'pi-worker', role: 'worker', runtime: isClaudeBuilder ? CLAUDE_CODE_RUNTIME : 'pi', model: builder.model, cwd, lane, parts };
 	const argvSeparator = argv.indexOf('--');

@@ -415,8 +415,8 @@ const RULE_LINE = {
 	fullSuiteFallback: "Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.",
 	seatChecksBeforeDone: "Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.",
 	longOutputToFile: "Send long script output to a committed file and paste only the lines your brief asks for.",
-	readCiOnce: "Where `AGENTS.md` says CI covers the suite, push your last commit and stop: do not wait for or read its CI run, and commit nothing after the push.",
-	suiteCheckCountInReport: "Then commits; per item, files, rows, mutation pairs, commands and exit codes; the pushed branch, the pushed tip's full SHA and the push's exit code, or the full-suite summary line with its check count where you ran it; and what was not done.",
+	readCiOnce: "Do not push; the seat pushes after verifying; report the tip. Do not wait for or read CI.",
+	suiteCheckCountInReport: "Then commits; per item, files, rows, mutation pairs, commands and exit codes; the branch, the tip's full SHA and the seat checks run on it, or the full-suite summary line with its check count where you ran it; and what was not done.",
 };
 const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
 // req: R-2510
@@ -448,9 +448,9 @@ check("lane preamble carries: seat checks before DONE", preambleOnce(RULE_LINE.s
 // req: R-3436
 check("lane preamble carries: long output to a committed file", preambleOnce(RULE_LINE.longOutputToFile), RULE_LINE.longOutputToFile);
 // req: R-3436
-check("lane preamble carries: push and stop without reading CI", preambleOnce(RULE_LINE.readCiOnce), RULE_LINE.readCiOnce);
+check("lane preamble carries: no builder push", preambleOnce(RULE_LINE.readCiOnce), RULE_LINE.readCiOnce);
 // req: R-3436
-check("lane preamble carries: pushed tip or local suite evidence in the report", preambleOnce(RULE_LINE.suiteCheckCountInReport), RULE_LINE.suiteCheckCountInReport);
+check("lane preamble carries: branch tip and seat checks in the report", preambleOnce(RULE_LINE.suiteCheckCountInReport), RULE_LINE.suiteCheckCountInReport);
 // req: R-3436
 check("R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the replaced lines",
 	preambleOnce(RULE_LINE.fullSuiteFallback) && preambleOnce(RULE_LINE.mustMeetTests)

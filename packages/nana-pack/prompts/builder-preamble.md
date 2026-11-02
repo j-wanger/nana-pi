@@ -31,8 +31,8 @@ Before you report
 - Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.
 - Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.
 - Send long script output to a committed file and paste only the lines your brief asks for.
-- Where `AGENTS.md` says CI covers the suite, push your last commit and stop: do not wait for or read its CI run, and commit nothing after the push.
+- Do not push; the seat pushes after verifying; report the tip. Do not wait for or read CI.
 
 Report shape:
 First line: `VERDICT: DONE`, `VERDICT: PARTIAL` or `VERDICT: BLOCKED`.
-Then commits; per item, files, rows, mutation pairs, commands and exit codes; the pushed branch, the pushed tip's full SHA and the push's exit code, or the full-suite summary line with its check count where you ran it; and what was not done.
+Then commits; per item, files, rows, mutation pairs, commands and exit codes; the branch, the tip's full SHA and the seat checks run on it, or the full-suite summary line with its check count where you ran it; and what was not done.

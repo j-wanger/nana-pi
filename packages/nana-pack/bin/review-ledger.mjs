@@ -41,6 +41,7 @@ import { reviewMovementSection, notComputedReason } from '../lib/review-movement
 import { reviewShaped } from './review-shape.mjs';
 import { reviewLaunch } from './review-launch.mjs';
 import { REVIEWER_CHILD_ENV } from './worker-config.mjs';
+import { credentialStripEnv } from '../lib/credential-strip.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const sep = rest.indexOf('--');
@@ -165,7 +166,7 @@ const stopHeartbeat = startHeartbeat(adm.res);
 const chunks = [];
 let k;
 try {
-  k = spawn(launch.command, launch.args, { ...launch.options, cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env, ...REVIEWER_CHILD_ENV } });
+  k = spawn(launch.command, launch.args, { ...launch.options, cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env, ...REVIEWER_CHILD_ENV, ...credentialStripEnv(process.env) } });
 } catch (e) {
   stopHeartbeat();
   cannotStart(e.code ?? e.message);

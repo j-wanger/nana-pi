@@ -55,7 +55,8 @@ import { NANA_PACK_POLICY_RE, commandPolicyHit, pathCandidates, policyFileHit, r
 import { rmInsideCwd } from "../lib/gate-rm-inside.ts";
 import { rmOutsideTargets } from "../lib/gate-rm-outside.ts";
 import { acceptedTempRoots } from "../lib/gate-temp-roots.ts";
-import { type Danger, detectionSegments, dequote, segmentDanger, splitCommand } from "../lib/gate-shell.ts";
+import { type Danger, base, commandIndex, detectionSegments, dequote, segmentDanger, splitCommand, tokens } from "../lib/gate-shell.ts";
+import { CREDENTIAL_PATTERNS } from "../lib/credential-gate-config.mjs";
 
 const PROTECTED_PATHS: RegExp[] = [
 	/\.pi[/\\]agent[/\\]auth\.json/i,
@@ -72,6 +73,7 @@ const PROTECTED_PATHS: RegExp[] = [
 // command over MAX_SUBJECT. A catastrophic regex the OWNER configured is not detected: it can
 // make the owner's own gate slow or hang (README "Bounded regex work").
 const MAX_SUBJECT = 64 * 1024;
+const credentialPatterns = CREDENTIAL_PATTERNS.map((source: string) => new RegExp(source, "i"));
 
 type Policy = Omit<GateConfig, "stopReason"> & { stopReason: string | null };
 type Hit = { label: string; reason: string } | null;
@@ -142,6 +144,16 @@ function commandHit(command: string, gate: Policy, cwd: string, tool: string): H
 	const segmentable = split.segmentable && command.length <= MAX_SUBJECT;
 	const detection = segmentable ? [] : detectionSegments(command);
 	const det = [...segments, ...detection];
+	// Credential refusals precede allowPatterns, like the existing destructive floor.
+	if (process.env.NANA_ROLE === "worker" || process.env.NANA_ROLE === "reviewer") {
+		for (const segment of det) {
+			const words = tokens(segment.text, true);
+			const index = commandIndex(words, true);
+			const commandWords = [base(words[index] ?? ""), ...words.slice(index + 1)].join(" ");
+			if (credentialPatterns.some((pattern: RegExp) => pattern.test(commandWords)))
+				return { label: "credential rule", reason: "credential rule (floor): builder and reviewer credential access" };
+		}
+	}
 	const dangers = new Map(det.map((s) => [s, segmentDanger(s)] as [typeof s, Danger | null]));
 	for (const d of dangers.values()) if (d?.floor) return { label: "dangerous command", reason: d.reason };
 	if (tool === "bash" && segmentable && det.length === 1 && rmInsideCwd(command, cwd)) dangers.set(det[0], null);
