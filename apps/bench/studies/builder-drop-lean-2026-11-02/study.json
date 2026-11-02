@@ -1,0 +1,55 @@
+{
+  "id": "builder-drop-lean-2026-11-02",
+  "model": {
+    "provider": "openai-codex",
+    "id": "gpt-6.1-sol",
+    "thinking": "medium"
+  },
+  "piVersion": "1.4.0",
+  "seed": 20261102,
+  "repeats": 2,
+  "allowance": 6,
+  "killLimit": 6,
+  "cap": 45,
+  "preregistration": "PREREG.md",
+  "lanes": [
+    {
+      "build": "868345e8-c026-4a11-a5a3-18c7531a9272",
+      "lane": "component-audit",
+      "grading": "../../../../../../nana-memory-runs/builder-drop-lean-2026-11-02/manifests/component-audit/grading.json"
+    },
+    {
+      "build": "9f5e42a7-a3a4-49f5-908b-4da95085ab00",
+      "lane": "visual-check",
+      "grading": "../../../../../../nana-memory-runs/builder-drop-lean-2026-11-02/manifests/visual-check/grading.json"
+    },
+    {
+      "build": "27c4bbce-290a-402c-aa13-3385ff67e7b0",
+      "lane": "page-needs-you",
+      "grading": "../../../../../../nana-memory-runs/builder-drop-lean-2026-11-02/manifests/page-needs-you/grading.json"
+    },
+    {
+      "build": "e8cee419-3d1b-42cd-b052-c42be685fda8",
+      "lane": "keep-movement",
+      "grading": "../../../../../../nana-memory-runs/builder-drop-lean-2026-11-02/manifests/keep-movement/grading.json"
+    },
+    {
+      "build": "35194490-b84d-4098-a536-b1d9b3ae60b1",
+      "lane": "memory-shaper",
+      "grading": "../../../../../../nana-memory-runs/builder-drop-lean-2026-11-02/manifests/memory-shaper/grading.json"
+    }
+  ],
+  "arms": [
+    {
+      "name": "control"
+    },
+    {
+      "name": "no-tool-list",
+      "dropSections": [
+        "tools",
+        "skills",
+        "docs"
+      ]
+    }
+  ]
+}
