@@ -12,6 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { tmpDir } from "./tmp-dir.mjs";
 import * as dbLib from "../lib/db.ts";
 import { BUDGET_MS, STALE_MS } from "../lib/hook.ts";
 
@@ -77,7 +78,7 @@ async function held(s, releaseMode) {
 }
 async function check(title, run) {
  if (process.env.NK_BUSY_ONLY && !title.startsWith(process.env.NK_BUSY_ONLY)) return;
- const home = fs.mkdtempSync(path.join(os.tmpdir(), "nk-busy-"));
+ const home = tmpDir(path.join(os.tmpdir(), "nk-busy-"));
  const s = { home, db: path.join(home, "index.db"), children: [], env: {
   ...process.env, NANA_KNOWLEDGE_HOME: home, NANA_ROLE: "", NODE_NO_WARNINGS: "1",
   NK_DB: path.join(home, "index.db"), NK_LOCK: path.join(home, "build.lock"),
