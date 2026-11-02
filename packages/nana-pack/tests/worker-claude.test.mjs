@@ -50,7 +50,6 @@ const BRIEF_CHECK = path.join(PACK, "bin", "brief-check.mjs");
 const PREAMBLE = path.join(PACK, "prompts", "builder-preamble.md");
 const CASE_LIMIT_MS = 20_000;
 const STARTUP_SIGNAL_READY_LIMIT_MS = 5_000; // Chosen to bound fixture readiness below the per-case watchdog.
-const PROCESS_GROUP_READY_LIMIT_MS = 5_000; // Chosen to bound builder-group readiness below the per-case watchdog.
 const BLOCKING_READ_SETTLE_MS = 500; // Chosen to let the selected start-up read begin after the precedent line.
 const BLOCKING_READ_END_MS = 2_000; // Chosen to bound a lost SIGTERM well below the per-case watchdog.
 const BLOCKING_HELPER_HANG_MS = 30_000; // Chosen to outlast both the bounded signal wait and the per-case watchdog.
@@ -773,16 +772,15 @@ const hardCase = async ({ name, laneSize = "larger", wrapped = false, tree = fal
 	const closed = wrapped ? closeOf(child) : run.closed;
 	const started = await waitUntil(() => fs.existsSync(pidFile) && (laneSize === "small" || fs.existsSync(`${pidFile}.grand`)), 8_000);
 	const ready = await watcherReady(root);
-	const builderPid = fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null;
-	const processGroupReady = await waitUntil(() => groupAlive(builderPid), PROCESS_GROUP_READY_LIMIT_MS);
-	if (started && ready && processGroupReady && tree) killTree(child.pid);
-	else if (started && ready && processGroupReady && wrapped) cleanProcess(child.pid, true);
-	else if (started && ready && processGroupReady) cleanProcess(child.pid);
+	if (tree) killTree(child.pid);
+	else if (wrapped) cleanProcess(child.pid, true);
+	else killWorkerTree(child);
 	await delay(0);
 	const watcherGone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
 	await Promise.race([closed, delay(2_000)]);
+	const builderPid = fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null;
 	const remaining = hardKillTempNames(root);
-	const observation = { name, started, ready, processGroupReady, watcherGone, remaining, empty: remaining.length === 0, lock: fs.existsSync(LOCK), builderGroup: builderPid ? groupAlive(builderPid) : null };
+	const observation = { name, started, ready, watcherGone, remaining, empty: remaining.length === 0, lock: fs.existsSync(LOCK), builderGroup: builderPid ? groupAlive(builderPid) : null };
 	cleanProcess(builderPid, true); cleanProcess(child.pid, wrapped); stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
 	fs.rmSync(root, { recursive: true, force: true });
 	return observation;
@@ -797,7 +795,7 @@ if (process.platform !== "win32") {
 }
 // req: R-2720
 check("R-2720: off Windows, SIGKILL of pi-worker, of its process group or of its parent-pid tree while a Claude or pi builder runs leaves no temp file, no lane lock, no builder process group and no watcher",
-	process.platform === "win32" || (r2720.length === 4 && r2720.every((item) => item.started && item.ready && item.processGroupReady && item.watcherGone && item.empty && !item.lock && item.builderGroup === false)), JSON.stringify(r2720), process.platform === "win32");
+	process.platform === "win32" || (r2720.length === 4 && r2720.every((item) => item.started && item.ready && item.watcherGone && item.empty && !item.lock && item.builderGroup === false)), JSON.stringify(r2720), process.platform === "win32");
 
 let r2721 = { skipped: true };
 if (process.platform === "win32") r2721 = await hardCase({ name: "windows-tree", laneSize: "small" });

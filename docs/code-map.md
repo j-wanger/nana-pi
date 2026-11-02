@@ -4704,8 +4704,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed checks or per-case time limits exit nonzero; unexpected fixture failures throw.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/lane-watcher-child.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/process-tree-helper.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/runtime-measure.mjs`
-- **unresolved launches** — line 171: spawnSync · line 211: spawn · line 403: spawn · line 878: spawn · line 907: spawn · line 910: spawn
-- **repo-code launches** — line 760: spawn
+- **unresolved launches** — line 170: spawnSync · line 210: spawn · line 402: spawn · line 876: spawn · line 905: spawn · line 908: spawn
+- **repo-code launches** — line 759: spawn
 
 ### `packages/nana-pack/tests/worker-lane.test.mjs`
 
