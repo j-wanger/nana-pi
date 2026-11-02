@@ -1,0 +1,8 @@
+M4 · Reference Windows 11 laptop · each command: node scripts/test.mjs <file>
+
+packages/nana-pack/tests/land.test.mjs: 31 PASS, 0 FAIL, 0 SKIP · 66.7 s
+packages/nana-pack/tests/land-merge.test.mjs: 26 PASS, 0 FAIL, 1 SKIP · 60.9 s
+packages/nana-pack/tests/land-ci-read.test.mjs: 6 PASS, 0 FAIL, 0 SKIP · 43.1 s
+packages/nana-pack/tests/land-ci-edge.test.mjs: 2 PASS, 0 FAIL, 0 SKIP · 55.8 s
+
+Total: 65 PASS, 0 FAIL, 1 SKIP.
