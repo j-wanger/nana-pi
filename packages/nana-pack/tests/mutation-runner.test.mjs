@@ -305,6 +305,8 @@ const CONTENTION_STOP_GRACE_MS = 5_000;
 const CHILD_LIMIT_MS = 30_000;
 // chosen 2026-10-25 (R-2882): the 4-second held wait missed once in run 39887104509; this matches the rendezvous limit.
 const CONTEND_WAIT_MS = 30_000;
+// chosen from the measured shard setup and serialized worktree-add span; leaves the rendezvous bound unchanged.
+const STAGGER_CHECK_MS = 2_000;
 const CHILD_LATE_START_MS = 3_000; // chosen (R-2881): twice the old 1.5-second child guard.
 const PROBE_LATE_MARK_MS = 5_000; // chosen (R-2882): above the old 4-second held wait.
 const LATE_RELEASE_MS = 5_000; // chosen (R-2882): above the old 4-second probe wait.
@@ -1202,21 +1204,23 @@ if (!posix) {
 		{ n: "2", name: "rendezvous with 1", edits: [...probeKeyEdit("p2", "p1"), probeModeEdit("rendezvous")], tests: [T2], expectRed: [] },
 		{ n: "3", name: "shares shard 1's worktree", edits: [...probeKeyEdit("p3", "")], tests: [T2], expectRed: [] },
 	];
-	const t0 = Date.now();
-	const staggerMs = 300;
-	const r = await run(fx, "t.mjs", table(fx, pairs), { [CFG.ENV_NAMES.OUT]: outFile(fx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "2", [CFG.ENV_NAMES.STAGGER_SECS]: String(staggerMs / 1000) });
+	const staggerMs = process.env[CFG.ENV_NAMES.STAGGER_SECS] === undefined ? STAGGER_CHECK_MS : Number(process.env[CFG.ENV_NAMES.STAGGER_SECS]) * 1000;
+	const r = await run(fx, "t.mjs", table(fx, pairs), { [CFG.ENV_NAMES.OUT]: outFile(fx, "r.txt"), [CFG.ENV_NAMES.SHARDS]: "2", [CFG.ENV_NAMES.STAGGER_SECS]: String(staggerMs / 1000), NANA_TEST_WAIT_MS: String(CONTEND_WAIT_MS) });
 	const wt1 = readMark(fx, "wt-p1");
 	const wt2 = readMark(fx, "wt-p2");
 	const wt3 = readMark(fx, "wt-p3");
+	const parentHeader = /seat-mutate: lane [^\n]*, (\d{4}-\d{2}-\d{2}T[\d:.]+Z)/.exec(r.text);
+	const parentTime = parentHeader ? new Date(parentHeader[1]).getTime() : -1;
 	const headerTimes = [...r.text.matchAll(/shard (\d+)\/(\d+)[^\n]*?, (\d{4}-\d{2}-\d{2}T[\d:.]+Z)/g)].reduce((m, x) => (m.set(x[1], new Date(x[3]).getTime()), m), new Map());
 	const gap = headerTimes.has("2") && headerTimes.has("1") ? headerTimes.get("2") - headerTimes.get("1") : -1;
+	const shardHeaderOffsets = Object.fromEntries([...headerTimes].map(([shard, time]) => [shard, time - parentTime]));
 	const ok = r.result === 0
 		&& wt1 && wt3 && wt1 === wt3
 		&& wt2 && wt2 !== wt1
 		&& /^GREEN 1 /m.test(readOut(fx, "r.txt")) && /^GREEN 2 /m.test(readOut(fx, "r.txt"))
-		&& gap >= staggerMs / 2;
-	// req: R-1238
-	check("mutation runner: at two shards started a stagger apart, pairs dealt round-robin run at the same time in different scratch worktrees", ok, JSON.stringify({ wt1, wt2, wt3, gap, t0: t0 - t0 }));
+		&& gap >= STAGGER_CHECK_MS / 2;
+	// req: R-1238 R-3530
+	check("mutation runner: at two shards started a stagger apart, pairs dealt round-robin run at the same time in different scratch worktrees", ok, JSON.stringify({ wt1, wt2, wt3, gap, parentTime, shardHeaderOffsets }));
 }
 
 // ── R-1239: the record ───────────────────────────────────────────────────────────────────────────
