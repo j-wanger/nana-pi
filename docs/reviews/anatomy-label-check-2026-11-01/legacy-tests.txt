@@ -1,0 +1,11 @@
+PASS R-3270: pushed parts and recorded attempts preserve committed context
+PASS R-3271: configured labels and fence-aware spans tile exact input
+PASS R-3272: counts shares oversize duplicates sizes and zero supply
+synthetic subcommands 5; unsafe writers 3; private-text leaks 0
+PASS R-3273: all writers refuse unsafe output and all printers keep text private
+PASS R-3274: assembly uses spans and preserves whole cut and staged text
+PASS R-3275: wrapped and dedicated pulls count exact calls chars and functions
+PASS R-3276: blinded seeded sample and three-pair agreement reject unequal ids
+PASS R-3277: one complete count row per build sums attempt usage
+PASS R-3278: seal oversize threshold is 3000 UTF-16 chars
+anatomy: 9/9 checks passed
