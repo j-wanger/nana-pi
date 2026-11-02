@@ -159,3 +159,5 @@
 - Builder credential strip (builder-credential-strip, review round 2): M5's banned phrase lacks backticks.
 - Builder credential strip (credential-gate-variants, plan attack): a whole-gate probe on a very long command took over 30 s; the cause is unmeasured, and the new helper patterns alone match 80,025 chars in about 1 ms.
 - Builder preamble (ci-wait-ready, build 1): the preamble's rule to stop when `gh` is missing fires on lanes whose subject is gh, though they need no real gh; the workaround is a brief line saying gh is not needed.
+- Precedent check (precedent-line-parse, plan attack): a bullet whose first word is a tracked folder name and that holds no backticked path passes the Precedent check.
+- Precedent check (precedent-line-parse, final review): a bullet whose first word is a tracked extensionless file or folder and that holds a later non-path code span is now refused, and the rule sentence 'or as its first word' does not explain why; backtick the subject to pass.

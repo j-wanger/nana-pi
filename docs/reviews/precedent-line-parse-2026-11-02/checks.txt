@@ -1,0 +1,38 @@
+Pre-commit command output summary (absolute machine paths in Node warnings removed).
+
+npm run map: exit 0
+docs/code-map.md: 605 modules
+node scripts/requirements-tree.mjs --write: exit 0
+requirements tree: 0 problems; rows 2498; features 43
+deliverables: 21 of 23 made and read by code, 21 more parked
+
+npm run map:check: exit 0
+code map: 605 modules; 0 without a usable contract header; 3 exempt; 0 problem(s)
+npm run readme:check: exit 0
+readme: 1086 claims checked; 0 problem(s)
+node scripts/requirements-trace.mjs: exit 0
+requirements: 2498 total (2241 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2241 traced by tests
+ears: 0 rows off form (allowance 0)
+node scripts/requirements-tree.mjs --check: exit 0
+requirements tree: 0 problems; rows 2498; features 43
+deliverables: 21 of 23 made and read by code, 21 more parked
+node scripts/known-bugs.mjs --root .: exit 0
+FEAT-013.md: size: bytes=51503 lines=205
+summary names=0 sizes=1
+
+brief-check on build-brief-1.md: exit 0
+pi-worker: precedent: 5 checked at HEAD 9f398b20; known bugs: docs/known-bugs/FEAT-006.md
+brief-check on OS-temp seat failing bullet: exit 0
+pi-worker: precedent: 1 checked at HEAD 9f398b20; known bugs: none
+node scripts/lane-class.mjs --root . --base origin/main: exit 0
+ordinary
+also reaches: packages/nana-pack/lib/brief-config.mjs — also reaches packages/nana-pack/bin/claude-review.mjs
+also reaches: packages/nana-pack/lib/brief-config.mjs — also reaches packages/nana-pack/bin/pi-review.mjs
+also reaches: packages/nana-pack/lib/brief-precedent.mjs — also reaches packages/nana-pack/bin/claude-review.mjs
+also reaches: packages/nana-pack/lib/brief-precedent.mjs — also reaches packages/nana-pack/bin/pi-review.mjs
+
+node scripts/identity-scan.mjs --root . after staging: exit 0
+nana-writing --report on build-2-report.md: exit 0
+
+Node emitted MODULE_TYPELESS_PACKAGE_JSON warnings for templates/typescript/template/tests/requirements-trace.ts.
+Those warnings did not fail the checks. The known-bugs size note is pre-existing and report-only.
