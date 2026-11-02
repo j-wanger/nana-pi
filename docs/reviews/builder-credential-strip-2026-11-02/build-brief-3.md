@@ -6,7 +6,7 @@ Lane builder-credential-strip. Class: gate. Builder: pi-worker (small lane). Bui
 
 - `packages/nana-pack/tests/test-runner.test.mjs` (R-917's source check, around line 669: the exact double-quoted `tmpDir` import line)
 - `packages/nana-pack/tests/context-anatomy.test.mjs` (R-3211's expected claude-review settings env, around line 118)
-- `packages/nana-pack/lib/nana-gate-policy.ts` or wherever build 2 put `CREDENTIAL_PATTERNS`
+- `packages/nana-pack/lib/credential-gate-config.mjs` (where build 2 put `CREDENTIAL_PATTERNS`)
 
 Report each departure.
 
