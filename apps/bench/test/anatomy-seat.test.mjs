@@ -6,6 +6,7 @@
  * @effects disk (OS-temp fixtures), process (bounded synthetic git)
  * @errors Assertions set exit 1 and print only source locations.
  */
+import { tmpDir } from "./tmp-dir.mjs";
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -18,7 +19,7 @@ import { segmentPart } from '../lib/anatomy-spans.mjs';
 import { distinctUnits, assembleParts } from '../lib/anatomy-measures.mjs';
 import * as C from '../lib/anatomy-config.mjs';
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'seat-anatomy-'));
+const root = tmpDir(path.join(os.tmpdir(), 'seat-anatomy-'));
 let serial = 0, failures = 0, cases = 0;
 const folder = () => { const dir = path.join(root, String(++serial)); fs.mkdirSync(dir); return dir; };
 const put = (file, text) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); return file; };

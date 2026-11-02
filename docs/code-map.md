@@ -317,7 +317,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (OS-temp fixtures), process (bounded synthetic git)
 - **errors** — Assertions set exit 1 and print only source locations.
 - **callers** — —
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-setup/lib/project-key.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-setup/lib/project-key.mjs`
 
 ### `apps/bench/test/anatomy.test.mjs`
 
@@ -447,7 +447,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`, `apps/bench/test/usage.test.mjs`
+- **callers** — `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`, `apps/bench/test/usage.test.mjs`
 - **callees** — —
 
 ### `apps/bench/test/usage.test.mjs`
