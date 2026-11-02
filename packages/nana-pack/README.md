@@ -193,9 +193,11 @@ write one commit and sync. Accept also refuses overlapping selections before wri
 Review commands refuse under CI, any NANA_ROLE (even empty), or from linked worktrees.
 
 Accepting a merge writes existing supersede events in each dropped record's own area.
-Accepting a retirement writes retract events for the target and its absorbed records, so its
-merged duplicates do not return. No record bytes change. A curation retract means **no longer
-useful**, not necessarily wrong; existing liveness semantics hide it even at past replay cuts.
+Earlier drops stay hidden through later merges of the survivor. Accepting a retirement writes
+retract events for the target and its entire absorbed chain, so merged duplicates do not return.
+An explicit retract cuts a chain and restores its direct predecessor; restored records remain
+independent and are not absorbed by a later survivor. No record bytes change. A curation retract
+means **no longer useful**, not necessarily wrong; existing liveness semantics hide it even at past replay cuts.
 Review does not confirm the survivor or raise its trust. Rejected merge subsets remain rejected;
 a rejected retirement cannot return under a different class without a new group member.
 The model can see already-queued records again, but duplicate keys and proposals touching
