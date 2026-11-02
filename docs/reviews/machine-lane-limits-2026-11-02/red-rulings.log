@@ -1,0 +1,23 @@
+PASS pi seat receives the complete installed guide under its fixed heading 
+PASS stale guide installation notice names the pi seat guide and nana-setup install 
+PASS pi builder and reviewer omit the guide while retaining the rulings section 
+PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+PASS seat guide unavailable prefix is distinct from the rulings prefix 
+PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+PASS seal: RULINGS_READ_CAP is 8192 
+PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+PASS no fixture text leaks into the unavailable marker 
+PASS planner prompt names no owner or work project 
+PASS the rulings file names no owner and no work project 
+PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+PASS every ruling is one bullet that opens with its date 
+PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+PASS planner prompt names no model id 
+PASS the rulings file names no model, leaving the lineup to the roster 
+PASS the rulings file opens with the scope sentence for builders and reviewers 
+PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+FAIL R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap [false,false,false,false]
