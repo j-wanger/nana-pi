@@ -1,0 +1,13 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs --jobs=1 agent-dir-config.test agent-dir-parity.test build-records.test pack-config-utf16.test win32-launch.test rulings-install.test project-working-region.test
+
+PASS  packages/nana-pack/tests/agent-dir-config.test.mjs         100 pass  0.8s
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs         32 pass, 4 skip  1.3s
+PASS  packages/nana-pack/tests/build-records.test.mjs            7 pass  35.5s
+PASS  packages/nana-pack/tests/pack-config-utf16.test.mjs        6 pass  3.6s
+PASS  packages/nana-pack/tests/win32-launch.test.mjs             15 pass  22.7s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs  28 pass  0.4s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs         9 pass, 3 skip  7.9s
+
+7 files: 7 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 197 pass, 0 fail, 7 skip · 73.3s
