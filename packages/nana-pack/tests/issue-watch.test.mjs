@@ -181,11 +181,27 @@ async function runCli({ startDelayMs = 0, hangAfterRestart = false } = {}) {
 		detached: process.platform !== "win32",
 		env: { ...process.env, NANA_ROLE: "", [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) },
 	});
-	let stdout = "", stderr = "", deadline, cleanup;
+	let stdout = "", stderr = "", deadline, cleanup, restartAt;
 	try {
 		return await new Promise((resolve, reject) => {
 			let expired;
-			child.stdout.on("data", (data) => { stdout += data; });
+			const expiresAt = performance.now() + timing.CLI_DEADLINE_MS;
+			const expire = () => {
+				const missing = polls() < 3 ? "no third poll" : !/comment by example: .*command answer/.test(stdout) ? "no owner answer line" : restartAt === undefined ? "no restart line" : "no exit after restart";
+				expired = Object.assign(new Error(`CLI deadline: ${missing}`), { pid: child.pid, restartAt });
+				cleanup = setTimeout(() => reject(Object.assign(new Error(`${expired.message}; cleanup did not close child`), { pid: child.pid, restartAt })), timing.CLI_CLEANUP_MS);
+				killProcessTreeNoWait(child.pid, { fallback: (signal) => child.kill(signal) });
+			};
+			child.stdout.on("data", (data) => {
+				stdout += data;
+				if (restartAt === undefined && /^Issue watch restart: .* --since .*\n/m.test(stdout)) {
+					restartAt = performance.now();
+					if (polls() >= 3 && /comment by example: .*command answer/.test(stdout)) {
+						clearTimeout(deadline);
+						deadline = setTimeout(expire, Math.min(timing.CLI_EXIT_GRACE_MS, Math.max(0, expiresAt - restartAt)));
+					}
+				}
+			});
 			child.stderr.on("data", (data) => { stderr += data; });
 			child.once("error", reject);
 			child.once("close", (status) => {
@@ -196,12 +212,7 @@ async function runCli({ startDelayMs = 0, hangAfterRestart = false } = {}) {
 					else resolve({ status, stdout, stderr, polls: polls(), pid: child.pid });
 				} catch (error) { reject(error); }
 			});
-			deadline = setTimeout(() => {
-				const missing = polls() < 3 ? "no third poll" : !/comment by example: .*command answer/.test(stdout) ? "no owner answer line" : !/^Issue watch restart: .* --since /m.test(stdout) ? "no restart line" : "no exit after restart";
-				expired = Object.assign(new Error(`CLI deadline: ${missing}`), { pid: child.pid });
-				cleanup = setTimeout(() => reject(Object.assign(new Error(`${expired.message}; cleanup did not close child`), { pid: child.pid })), timing.CLI_CLEANUP_MS);
-				killProcessTreeNoWait(child.pid, { fallback: (signal) => child.kill(signal) });
-			}, timing.CLI_DEADLINE_MS);
+			deadline = setTimeout(expire, timing.CLI_DEADLINE_MS);
 		});
 	} finally { clearTimeout(deadline); clearTimeout(cleanup); }
 }
@@ -225,7 +236,9 @@ await check("R-3704: non-exiting CLI reports no exit after restart and leaves no
 	await assert.rejects(runCli({ hangAfterRestart: true }), (error) => {
 		assert.match(error.message, /no exit after restart/);
 		assert(!error.message.includes("case limit"));
-		assert(performance.now() - started <= timing.CLI_DEADLINE_MS + timing.CLI_CLEANUP_MS);
+		assert(Number.isFinite(error.restartAt), "restart line must have appeared");
+		assert(performance.now() - error.restartAt <= timing.CLI_EXIT_GRACE_MS + timing.CLI_CLEANUP_MS,
+			`exit grace exceeded: ${Math.round(performance.now() - error.restartAt)} ms after restart (${Math.round(performance.now() - started)} ms total)`);
 		assert(Number.isInteger(error.pid));
 		assert.equal(pidAlive(error.pid), false);
 		return true;
@@ -234,7 +247,7 @@ await check("R-3704: non-exiting CLI reports no exit after restart and leaves no
 // req: R-3705
 await check("R-3705: seal the issue-watch harness timing names and values", () => {
 	assert.deepEqual({ ...timing }, {
-		CASE_LIMIT_MS: 8000, CLI_DEADLINE_MS: 20000, CLI_CLEANUP_MS: 2000,
+		CASE_LIMIT_MS: 8000, CLI_DEADLINE_MS: 20000, CLI_EXIT_GRACE_MS: 3000, CLI_CLEANUP_MS: 2000,
 		CLI_CASE_MARGIN_MS: 3000, CLI_START_DELAY_MS: 4000, SIGNAL_POLL_MS: 25,
 		WATCH_POLL_MS: 50, DEFAULT_RUNNER_MS: 3000, ROLE_EXIT_MS: 2000, ABSENT_POINTER_EXIT_MS: 5000,
 	});
