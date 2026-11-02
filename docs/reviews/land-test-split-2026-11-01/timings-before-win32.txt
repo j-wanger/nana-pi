@@ -1,0 +1,69 @@
+# land.test.mjs alone at ac20e30a on the reference Windows 11 laptop, 2026-11-01, Node 22.22.2, nothing else running.
+# Each time is the gap between a check's PASS/FAIL/SKIP line and the previous output line (node land.test.mjs, stdout timestamped as it arrives).
+   2.3s  PASS merge preflight refuses a non-main checkout
+   2.1s  PASS tracked main changes refuse before running the suite
+   2.1s  PASS tracked source changes refuse before running the suite
+   2.9s  PASS suite-time main branch switch refuses before merge
+   2.7s  PASS suite-time main tracked changes refuse before merge
+   2.8s  PASS suite-time source tracked changes refuse before merge
+   3.3s  PASS final review reading, rechecks and ff-only merge run inside one ledger lock
+   3.7s  PASS a verified SEND-BACK written by the suite refuses before merge
+   3.0s  PASS suite-time source revision change refuses before merge
+   3.1s  PASS suite-time main divergence refuses before merge
+   2.5s  PASS non-fast-forward source tip refuses before running the suite
+   1.4s  PASS a reviewed SHA must be ancestor of the source tip and match a LAND record
+   1.7s  PASS a matching-item LAND round for a different revision cannot authorize a merge
+   1.5s  PASS drifted LAND round cannot authorize a merge
+   3.4s  PASS uncovered integration commits are refused and named
+   4.2s  PASS main commits outside the reviewed ancestry are not reported as unreviewed
+   1.4s  PASS a LAND round for another item does not authorize this item
+   1.7s  PASS a LAND commit outside the source tip ancestry is refused
+   2.5s  PASS annotated tag object IDs are not accepted as reviewed commits (R-976)
+   1.2s  PASS snapshot review revisions are never accepted as plain reviewed commits
+   2.8s  PASS runLand requires verified reviews
+   3.0s  PASS an in-flight review of the reviewed tip refuses without merging
+   3.3s  PASS an in-flight snapshot review of the reviewed tip refuses without merging
+   4.2s  PASS an in-flight review of a different commit does not block land
+   3.4s  PASS a verified SEND-BACK for another item at the commit refuses land
+   3.4s  PASS a verified SEND-BACK at a working-state snapshot refuses land
+   3.5s  PASS an explicit empty verdict beside LAND refuses land
+   3.5s  PASS a legacy round without verdict does not block a version-2 LAND
+   4.5s  PASS an unverified SEND-BACK beside LAND does not block land
+   1.4s  PASS a version-1 LAND alone refuses on the first tally reading
+   2.7s  PASS a version-1-only second tally reading refuses after the suite
+  16.1s  PASS R-2571: the land refuses a revision whose matching LAND records all have missing or altered kept texts
+   3.4s  PASS R-2572: a land's success report names the kept review texts
+   9.3s  PASS R-2576: a land notes each earlier kept review text missing from the tip
+   3.7s  PASS successful land updates main checkout files and leaves tracked state clean
+   3.2s  PASS untracked collision refuses land without changing main
+   3.2s  PASS branch switch at merge invocation refuses without a success report
+   3.0s  PASS main advancing during suite refuses before merge
+   3.5s  PASS the land runs its suite with the source tip's full SHA in NANA_LAND_TIP
+   3.3s  PASS a passing land shows its suite's land notes
+  13.5s  PASS R-2586: a tip whose newest CI run of a workflow concluded other than success is refused before the suite
+   8.8s  PASS R-2587: a tip with no CI run, or with a newest run still queued or running, is refused before the suite
+  14.3s  PASS R-2588: the newest run of each workflow at its latest attempt decides, and the land names it
+  30.8s  PASS R-2589: a CI read that cannot complete refuses before the suite and names the cause
+  37.4s  PASS R-2590: a repository or tip without GitHub CI skips the CI read and notes why
+  14.4s  PASS R-2591: the CI read asks github.com for the full tip SHA in origin's repository
+   0.0s  PASS R-2592: the pack README and the shared Land checklist say a land waits for the tip's CI
+   0.0s  PASS seal: the land reads CI from origin on github.com, workflows in .github/workflows, 100 runs a page, within 30 seconds, and passes only completed success
+   0.0s  SKIP after a land the runtime data names main's tip and is not stale — R-2526: Windows lands do not measure
+   3.3s  PASS suite command runs in the source tree
+   2.7s  PASS suite failure leaves main unchanged and prints no success report
+   2.6s  PASS a suite killed by signal refuses and names a nonzero exit
+   0.9s  PASS cleanup refuses a contained branch when checkout is not on main
+   1.0s  PASS cleanup refuses a branch not contained by main
+   1.0s  PASS cleanup refuses untracked dirt in a contained worktree
+   1.0s  PASS cleanup refuses a branch checked out in multiple worktrees
+   0.8s  PASS cleanup reports a lane branch deleted before cleanup
+   1.3s  PASS cleanup removes a contained feat branch without force
+   0.0s  PASS README and AGENTS describe the land helper
+   4.1s  PASS successful merge prints post-merge release status and divergence
+   6.7s  PASS release status failure after merge keeps success code and output
+   3.8s  PASS successful merge without copier reports only the origin release clause
+   0.0s  PASS unknown land options, including either exemption placement, are named before git runs
+   3.4s  PASS successful land output keeps push and release status but has no archive stubs
+   0.7s  PASS a separate clone is refused before reviewed-SHA resolution or ledger reading
+   6.0s  PASS normalized checkout review lands its exact tip
+TOTAL 293.6s exit 0

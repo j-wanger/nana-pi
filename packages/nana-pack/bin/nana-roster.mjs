@@ -3,9 +3,9 @@
  * @module packages/nana-pack/bin/nana-roster.mjs
  * @purpose Resolve and print this machine's roster from the user-scope nana-pack.json.
  * @inputs an agent dir (the CLI reads pi's active one) and its nana-pack.json, when present
- * @outputs resolveRoster(agentDir) -> {ok:true, roster, source} | {ok:false, file, problem};
+ * @outputs resolveRoster(agentDir) -> {ok:true, roster, source, lanes:{limit, warning}} | {ok:false, file, problem};
  *  orderedRoster(roster) -> the roster with every slot in SLOT_PRINT_ORDER; the CLI prints one
- *  line per slot and a source line on stdout, or with --json one JSON object {roster: ...}, or
+ *  line per slot, a lanes line and a source line on stdout, or with --json one JSON object {roster: ...}, or
  *  the refusal on stderr
  * @effects disk (reads the user-scope nana-pack.json; the CLI's `set` subcommand, dynamically
  *  loaded, replaces it and may write nana-pack.json.bak)
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
-import { ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN } from './worker-config.mjs';
+import { LANE_LIMIT_DEFAULT, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN } from './worker-config.mjs';
 
 const ENTRY_FIELDS = Object.freeze(['provider', 'model', 'thinking']);
 
@@ -125,6 +125,13 @@ export function validateRosterShape(value) {
   return { roster: normalised };
 }
 
+/** Resolve the advisory top-level member from the roster's single parse (R-3520 to R-3522). */
+function resolveLaneLimit(value) {
+  if (value === undefined || value === null) return { limit: LANE_LIMIT_DEFAULT, warning: null };
+  if (Number.isSafeInteger(value) && value >= 1) return { limit: value, warning: null };
+  return { limit: LANE_LIMIT_DEFAULT, warning: 'lanes ignored: must be a positive safe integer' };
+}
+
 /**
  * Resolve the roster for one agent dir. Never throws. Absent file or a file with no `roster` key
  * yields the default roster (R-1120); a valid roster replaces every slot exactly as written
@@ -133,7 +140,7 @@ export function validateRosterShape(value) {
 export function resolveRoster(agentDir) {
   const file = path.join(agentDir, 'nana-pack.json');
   const state = readRosterFile(file);
-  if (state.kind === 'absent') return { ok: true, roster: ROSTER_DEFAULTS, source: 'default' };
+  if (state.kind === 'absent') return { ok: true, roster: ROSTER_DEFAULTS, source: 'default', lanes: resolveLaneLimit() };
   if (state.kind === 'refused') return { ok: false, file, problem: state.problem };
   let raw;
   try {
@@ -144,20 +151,22 @@ export function resolveRoster(agentDir) {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
     return { ok: false, file, problem: `top level is not an object (got ${kindOf(raw)})` };
   }
-  if (raw.roster === undefined) return { ok: true, roster: ROSTER_DEFAULTS, source: 'default' };
+  const lanes = resolveLaneLimit(raw.lanes);
+  if (raw.roster === undefined) return { ok: true, roster: ROSTER_DEFAULTS, source: 'default', lanes };
   const { roster, problem } = validateRosterShape(raw.roster);
   if (problem) return { ok: false, file, problem };
-  return { ok: true, roster, source: file };
+  return { ok: true, roster, source: file, lanes };
 }
 
-/** Format the resolved roster as R-1123's lines: one per slot, in print order, then the source. */
-export function formatRosterLines(roster, source) {
+/** Format R-1123's lines: slots in print order, then the lane limit and source. */
+export function formatRosterLines(roster, source, lanes = resolveLaneLimit()) {
   const lines = SLOT_PRINT_ORDER.map((slot) => {
     const value = roster[slot];
     if (value == null) return `${slot}: ${SLOT_NULL_TOKENS[slot]}`;
     if (value.runtime === CLAUDE_CODE_RUNTIME) return `${slot}: ${CLAUDE_CODE_RUNTIME} ${value.model}`;
     return `${slot}: ${value.provider} ${value.model} ${value.thinking ?? DEFAULT_THINKING_TOKEN}`;
   });
+  lines.push(`lanes: ${lanes.limit}`);
   lines.push(`source: ${source}`);
   return lines;
 }
@@ -176,7 +185,8 @@ async function main() {
       process.stderr.write(`nana-roster: set refused: ${result.problem}\n`);
       process.exit(1);
     }
-    for (const line of formatRosterLines(result.roster, result.file)) process.stdout.write(`${line}\n`);
+    for (const line of formatRosterLines(result.roster, result.file, result.lanes)) process.stdout.write(`${line}\n`);
+    if (result.lanes.warning) process.stderr.write(`nana-roster: ${result.lanes.warning}\n`);
     const slot = (setArgs[0] ?? '').replace(/:$/, '');
     process.stderr.write(`nana-roster: ${slot} was: ${result.previousTokens}\n`);
     process.exit(0);
@@ -191,7 +201,8 @@ async function main() {
     process.stdout.write(`${JSON.stringify({ roster: orderedRoster(result.roster) })}\n`);
     process.exit(0);
   }
-  for (const line of formatRosterLines(result.roster, result.source)) process.stdout.write(`${line}\n`);
+  if (result.lanes.warning) process.stderr.write(`nana-roster: ${result.lanes.warning}\n`);
+  for (const line of formatRosterLines(result.roster, result.source, result.lanes)) process.stdout.write(`${line}\n`);
   process.exit(0);
 }
 

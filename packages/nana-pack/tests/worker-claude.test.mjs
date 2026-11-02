@@ -973,7 +973,7 @@ for(const [slot,slots,expected,tools] of [
 for(const [slot,extra,word] of [['planner',[],'seat'],['scout',[],'none'],['builder',[],'--lane'],['largerBuilder',[],'--lane'],['reviewer',[],'pi-review'],['land',[],'nana-land'],['adversary',['--lane','alpha'],'--lane'],['adversary',['--lane-size','small'],'--lane-size'],['adversary',['--','-p','override'],'caller'],['adversary',['--retries','1'],'--retries']]) {
 	resetRole();const r=runRole(slot,extra);roleObservations.push({slot,extra,ok:r.status===1&&r.stderr.trim().split(/\r?\n/).length===1&&r.stderr.includes(word)&&readRows(RECORD).length===0&&tempEmpty(roleTmp)&&readRows(roleLog).length===0,stderr:r.stderr});
 }
-// req: R-3525
+// req: R-3535
 check('MM4: role slots launch exact models tools brief and worker env or refuse before side effects',roleObservations.every(o=>o.ok),JSON.stringify(roleObservations));
 const loadObservations=[];
 for(const [slot,slots,fail] of [['adversary',{},false],['adversary',{},true],['checker',{checker:{runtime:'claude-code',model:'opus'}},false]]) {

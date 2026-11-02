@@ -290,7 +290,7 @@ check('MM2: role slots and scout accept pi Claude and null tokens and name malfo
 	}
 	return observations.every(Boolean);
 })());
-// req: R-3524
+// req: R-3534
 check('MM3: set preserves four old shapes without adding unnamed role slots', (() => {
 	const old = sampleRoster(); const four = {...old}; delete four.largerBuilder;
 	const acceptsMain = r => Object.keys(r).every(s => ['scout','builder','largerBuilder','reviewer','land'].includes(s)) && !r.scout?.runtime;
@@ -308,6 +308,22 @@ check('MM3: set preserves four old shapes without adding unnamed role slots', ((
 		return r.status === 0 && Object.hasOwn(after,'planner') && !Object.hasOwn(after,'adversary') && !Object.hasOwn(after,'checker');
 	})();
 })());
+
+{
+	const cases = [{ roster: sampleRoster(), lanes: 2 }, undefined, {}, { roster: sampleRoster() }];
+	const results = cases.map((raw, i) => {
+		const dir = freshAgentDir(`lanes-preserved-${i}`);
+		if (raw !== undefined) writeRosterRaw(dir, JSON.stringify(raw));
+		const before = resolveRoster(dir);
+		const changed = runSet(dir, ["builder", "example-gateway", "changed-model", "high"]);
+		const after = JSON.parse(fs.readFileSync(path.join(dir, "nana-pack.json"), "utf8"));
+		return [i, before.ok && before.lanes?.limit !== undefined && !Object.hasOwn(before.roster, "lanes") &&
+			(i !== 0 || JSON.stringify(orderedRoster(before.roster)) === JSON.stringify(orderedRoster(raw.roster))) &&
+			changed.status === 0 && (i === 0 ? after.lanes === 2 : !Object.hasOwn(after, "lanes")) && !Object.hasOwn(after.roster, "lanes")];
+	});
+	// req: R-3524
+	check("R-3524: lanes stays outside roster, set keeps a written limit and never adds an absent one", results.every(([, ok]) => ok), JSON.stringify(results));
+}
 
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

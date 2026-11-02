@@ -1,0 +1,878 @@
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:1: trailing whitespace.
++PASS R-2780: an artifact line is read by its ID, and a reused ID, a malformed or misplaced line, or a live entry in a proposed or retired feature gets one note 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:2: trailing whitespace.
++PASS R-2781: an unknown class or a location of the wrong shape for its class gets one note 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:3: trailing whitespace.
++PASS R-2782: a tracked entry matching nothing, an untracked or non-file writer, a reasonless manual entry, or a second entry at the same location gets one note 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:4: trailing whitespace.
++PASS R-2783: a registry reference binds the claim's run and every writer, a built-from list needs only live entries, and a valid home reference gets no not-tracked note 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:5: trailing whitespace.
++PASS R-2795: a reads line names a live entry read by tracked files, and a malformed, unknown, own, repeated or misplaced line or an untracked reader gets one note 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:6: trailing whitespace.
++PASS R-2798: each built-from entry is registered or read in the deliverable's home feature 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:7: trailing whitespace.
++PASS R-2830: an artifact Read by line reads its own feature's entry, and a malformed, foreign, unknown, untracked, reasonless, repeated or misplaced line gets one note 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:8: trailing whitespace.
++PASS R-2831: a runtime reader needs a reason on both Read by forms and never counts as code 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:9: trailing whitespace.
++PASS R-2832: an artifact park needs its own unread entry, a since date and a reason, and a park of a read entry parks nothing 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:10: trailing whitespace.
++PASS R-2833: a reader path whose file name is a test file gets one note on every reader form, and a harness file in a tests folder gets none 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:11: trailing whitespace.
++PASS R-2834: the shared consumer predicate gives each entry its reader kinds, and an entry with none and no park gets one note 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:12: trailing whitespace.
++PASS seal: the test-reader glob and the no-declared-reader note read as sealed 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:13: trailing whitespace.
++PASS a manual maker or a rule or person reader with no reason gets one note naming the row 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:14: trailing whitespace.
++PASS a maker or reader path not tracked at HEAD gets one note naming the row and the path 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:15: trailing whitespace.
++PASS a missing or unreadable line, or an automatic claim with no code path, gets one note naming it 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:16: trailing whitespace.
++PASS R-2640: an unreadable or misplaced Parked line gets one note and parks nothing 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:17: trailing whitespace.
++PASS R-2641: a parked deliverable that code makes and reads counts as live with one note naming its Parked line 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:18: trailing whitespace.
++PASS R-2793: a clone-store entry is bound to the age table's run and writer, and the table keys come from the store constants 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:19: trailing whitespace.
++PASS R-2784: this repository's ledger names every unparked deliverable's artifact or what it is built from, and keeps no plain-path artifact 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:20: trailing whitespace.
++PASS every deliverable in this repository's ledger has a Made by and a Read by line 
+docs/reviews/anatomy-label-check-2026-11-01/deliverables-check.txt:21: trailing whitespace.
++PASS R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster-set.log:1: trailing whitespace.
++PASS R-1400: set given a printed line's tokens replaces only that slot and prints the new roster and the old line, from an absent file and from a file roster 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster-set.log:2: trailing whitespace.
++PASS R-1401: set keeps objective, gate and every other top-level member, from a file saved with a byte-order mark and CRLF 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster-set.log:3: trailing whitespace.
++PASS R-1402: set refuses no slot, an unknown slot and each malformed entry, naming the slot or field, and changes no byte 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster-set.log:4: trailing whitespace.
++PASS R-1403: set refuses a path the resolver refuses and leaves it unchanged 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster-set.log:5: trailing whitespace.
++PASS R-1404: set inside a pi model shell refuses naming PI_SESSION_ID before reading the file and writes nothing 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster-set.log:6: trailing whitespace.
++PASS R-1405: set renames a temporary file from the target's folder, and a failed temporary write or rename leaves the file byte-identical with no temporary file behind 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster-set.log:7: trailing whitespace.
++PASS R-1406: set through a symlinked nana-pack.json writes the target and keeps the link 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster-set.log:8: trailing whitespace.
++PASS R-1407: set leaves the replaced bytes in nana-pack.json.bak 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster-set.log:9: trailing whitespace.
++PASS R-3524: lanes stays outside roster, set keeps a written limit and never adds an absent one 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:1: trailing whitespace.
++PASS sealed default roster is luna high builder, sol reviewer, astra land and no scout 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:2: trailing whitespace.
++PASS absent user nana-pack.json yields the default roster 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:3: trailing whitespace.
++PASS user nana-pack.json without a roster yields the default roster 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:4: trailing whitespace.
++PASS a valid machine roster replaces every slot, keeping a null scout and a null land 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:5: trailing whitespace.
++PASS a machine roster saved with a byte-order mark and CRLF line endings is read 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:6: trailing whitespace.
++PASS the roster is read from PI_CODING_AGENT_DIR, not the home agent dir 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:7: trailing whitespace.
++PASS a project .pi/nana-pack.json roster is never read 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:8: trailing whitespace.
++PASS each invalid roster shape is refused naming the slot or field 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:9: trailing whitespace.
++PASS a provider or model holding a C1 control character is refused naming the slot and field 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:10: trailing whitespace.
++PASS an unreadable or malformed user nana-pack.json is refused naming the file 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:11: trailing whitespace.
++PASS roster command prints one line per slot and the source 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:12: trailing whitespace.
++PASS roster command prints a refused roster on stderr and exits 1 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:13: trailing whitespace.
++PASS a machine roster without largerBuilder reads it as null, and one with a pi or a Claude Code entry keeps it as written 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:14: trailing whitespace.
++PASS each invalid largerBuilder, and a runtime field in any other slot, is refused naming the slot or field 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:15: trailing whitespace.
++PASS R-2563: set reviewer claude-code opus is stored and printed 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:16: trailing whitespace.
++PASS roster command prints largerBuilder after the builder: claude-code and the model, a pi entry's three fields, or none 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:17: trailing whitespace.
++PASS roster command --json prints one roster object whose roster value, set as the roster member of a file holding the installer's seed, the resolver reads back as the same roster, for the default and a file roster 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:18: trailing whitespace.
++PASS roster command --json prints a refused roster on stderr with empty stdout and exits 1 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:19: trailing whitespace.
++PASS R-1636: importing nana-roster with argv[1] naming another file or no file completes and prints nothing 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:20: trailing whitespace.
++PASS seal: LANE_LIMIT_DEFAULT is 4 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:21: trailing whitespace.
++PASS R-3520: absent and null lane limits default, and lanes without a roster retain default source 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:22: trailing whitespace.
++PASS R-3521: a written lane limit prints exactly, set agrees, and JSON stays slots only 
+docs/reviews/machine-lane-limits-2026-11-02/green-nana-roster.log:23: trailing whitespace.
++PASS R-3522: malformed lane values keep the roster and default limit with one warning 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:3: trailing whitespace.
++PASS ears: the CLI prints the report line right after the summary line, naming the count and the allowance 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:4: trailing whitespace.
++PASS REQUIREMENTS.md and the markers the suite carries agree 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:5: trailing whitespace.
++PASS rail roots equal the package test roots and two app roots collected by npm test 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:6: trailing whitespace.
++PASS no collected test root has nested test files outside fixture directories 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:7: trailing whitespace.
++PASS the rail read the whole file and traced something 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:8: trailing whitespace.
++PASS ears: a two-shall row and a no-shall row are counted, a retired one is not 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:9: trailing whitespace.
++PASS ears: over the allowance each off-form row is a problem, at the allowance none 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:10: trailing whitespace.
++PASS seal: EARS_ALLOWANCE is 0 (G-015) 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:11: trailing whitespace.
++PASS this repo: zero rows off form 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:12: trailing whitespace.
++PASS seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom) 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:13: trailing whitespace.
++PASS R-1000: CRLF ledger and general rows are read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:14: trailing whitespace.
++PASS R-1000: spaces and tab after closing pipes are read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:15: trailing whitespace.
++PASS R-1001: CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:16: trailing whitespace.
++PASS R-1000: CRLF test-file marker traces its four-digit row 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:17: trailing whitespace.
++PASS R-1000: both four-digit row prefixes load 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:18: trailing whitespace.
++PASS R-1000: TS markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:19: trailing whitespace.
++PASS R-1000: invalid row ID R-0123 is rejected 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:20: trailing whitespace.
++PASS R-1000: invalid row ID R-10000 is rejected 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:21: trailing whitespace.
++PASS R-1000: invalid row ID R-１２３ is rejected 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:22: trailing whitespace.
++PASS R-1001: missing closing pipe names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:23: trailing whitespace.
++PASS R-1001: missing closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:24: trailing whitespace.
++PASS R-1001: zero-width space after closing pipe names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:25: trailing whitespace.
++PASS R-1001: zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:26: trailing whitespace.
++PASS R-1001: fenced example names REQUIREMENTS.md:6 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:27: trailing whitespace.
++PASS R-1001: fenced example names REQUIREMENTS-general.md:6 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:28: trailing whitespace.
++PASS R-1001: R candidate names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:29: trailing whitespace.
++PASS R-1001: R candidate names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:30: trailing whitespace.
++PASS R-1001: G candidate names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:31: trailing whitespace.
++PASS R-1001: G candidate names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:32: trailing whitespace.
++PASS R-1001: U+2028 inside a cell is read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:33: trailing whitespace.
++PASS R-1001: U+0085 inside a cell is read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:34: trailing whitespace.
++PASS R-1001: U+200B after closing pipe names REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:35: trailing whitespace.
++PASS R-1000: both rails remove exactly one BOM from a double-BOM first-line row 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:36: trailing whitespace.
++PASS R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe read 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:37: trailing whitespace.
++PASS R-1001: a leading BOM before the first row is ignored 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:38: trailing whitespace.
++PASS R-1000: a BOM and comma or U+2028 separated first-line marker list traces 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:39: trailing whitespace.
++PASS R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:40: trailing whitespace.
++PASS R-1000: Python rail reads four-digit R/G rows 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:41: trailing whitespace.
++PASS R-1000: Python row grammar rejects leading-zero, five-digit and non-ASCII IDs 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:42: trailing whitespace.
++PASS R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:43: trailing whitespace.
++PASS R-1001: Python reads U+0085, U+FEFF and U+00A0 around row cells and after the pipe 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:44: trailing whitespace.
++PASS R-1001: Python ignores a leading BOM before the first row 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:45: trailing whitespace.
++PASS R-1000: Python leaves the second BOM before a double-BOM first-line row 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:46: trailing whitespace.
++PASS R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:47: trailing whitespace.
++PASS R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:48: trailing whitespace.
++PASS R-1001: Python U+2028 inside a cell is read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:49: trailing whitespace.
++PASS R-1001: Python U+0085 inside a cell is read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:50: trailing whitespace.
++PASS R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:51: trailing whitespace.
++PASS R-1001: Python CRLF ledger and general rows are read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:52: trailing whitespace.
++PASS R-1001: Python spaces and tab after closing pipes are read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:53: trailing whitespace.
++PASS R-1001: Python CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:54: trailing whitespace.
++PASS R-1001: Python missing closing pipe names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:55: trailing whitespace.
++PASS R-1001: Python missing closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:56: trailing whitespace.
++PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:57: trailing whitespace.
++PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:58: trailing whitespace.
++PASS R-1001: Python fenced example names REQUIREMENTS.md:6 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:59: trailing whitespace.
++PASS R-1001: Python fenced example names REQUIREMENTS-general.md:6 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:60: trailing whitespace.
++PASS R-1001: Python R candidate names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:61: trailing whitespace.
++PASS R-1001: Python R candidate names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:62: trailing whitespace.
++PASS R-1001: Python G candidate names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-requirements-trace.log:63: trailing whitespace.
++PASS R-1001: Python G candidate names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice-hook.log:1: trailing whitespace.
++PASS roster notice hook: one JSON object with the notice as SessionStart context on every source and with no source, and exit 0 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice-hook.log:2: trailing whitespace.
++PASS roster notice hook: the notice is a user message for startup, resume, clear and fork, for a missing or unreadable source and for an input that fails on read, and not for compact 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice-hook.log:3: trailing whitespace.
++PASS roster notice hook: a copy that cannot load its modules prints the unavailable notice in both fields with no path, and exits 0 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice-hook.log:4: trailing whitespace.
++PASS roster notice hook: a throw after its modules have loaded also fails open with the unavailable notice 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:1: trailing whitespace.
++PASS roster notice: one line that starts with the prefix and names the builders, reviewer and land by model and thinking 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:2: trailing whitespace.
++PASS roster notice: each entry shows its model and thinking and never its provider field, for a default, a file and a Claude Code roster and a model id that contains its provider 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:3: trailing whitespace.
++PASS roster notice: sealed values — prefix, size labels, Claude Code mark, default mark, refusal head and cut, change pointer, relative-dir text, shown start sources and widget key 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:4: trailing whitespace.
++PASS roster notice: a larger-lane builder is named for larger lanes before the builder for small lanes 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:5: trailing whitespace.
++PASS roster notice: a Claude Code entry's model is followed by the Claude Code mark, and a pi entry's is not 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:6: trailing whitespace.
++PASS roster notice: a null land reads land seat 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:7: trailing whitespace.
++PASS roster notice: a scout is never named, set or null 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:8: trailing whitespace.
++PASS roster notice: a lone builder carries no size label 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:9: trailing whitespace.
++PASS roster notice: only the default roster is marked default, and a file roster equal to the default is not 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:10: trailing whitespace.
++PASS roster notice: every refusal kind shows the problem cut before its first ' (' with no echoed value or line break, and a roster path holding ' (' stays whole 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:11: trailing whitespace.
++PASS roster notice: every notice, refused ones included, ends with the change pointer and the roster file 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:12: trailing whitespace.
++PASS roster notice: the roster file shows the home folder as ~ wherever it appears 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:13: trailing whitespace.
++PASS extension: with a UI, startup, new, resume and fork each set exactly one widget above the editor holding only the notice, a refused roster included, and raise no notify 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:14: trailing whitespace.
++PASS extension: no UI, and the reload reason, each set no widget and raise nothing 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:15: trailing whitespace.
++PASS parity: the hook and the extension show the same notice for a default, a file and a refused roster 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:16: trailing whitespace.
++PASS relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused roster 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:17: trailing whitespace.
++PASS seal: lane notice label is lanes 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:18: trailing whitespace.
++PASS seal: ignored lane notice mark is (file value ignored) 
+docs/reviews/machine-lane-limits-2026-11-02/green-roster-notice.log:19: trailing whitespace.
++PASS R-3523: notice shows lane limit after land, marks fallback, and omits it when unknown 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:1: trailing whitespace.
++PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:2: trailing whitespace.
++PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:3: trailing whitespace.
++PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:4: trailing whitespace.
++PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:5: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:6: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:7: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:8: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:9: trailing whitespace.
++PASS install installs the pi seat guide and uninstall removes its manifest-owned link 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:10: trailing whitespace.
++PASS install-check seat-guide heading matches the injected guide heading 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:11: trailing whitespace.
++PASS doctor recognizes the installed guide and rejects missing, POSIX-copy and stale Windows forms 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings-install.log:12: trailing whitespace.
++PASS doctor rejects a stale Windows guide copy on every host 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:1: trailing whitespace.
++PASS pi seat receives the complete installed guide under its fixed heading 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:2: trailing whitespace.
++PASS stale guide installation notice names the pi seat guide and nana-setup install 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:3: trailing whitespace.
++PASS pi builder and reviewer omit the guide while retaining the rulings section 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:4: trailing whitespace.
++PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:5: trailing whitespace.
++PASS seat guide unavailable prefix is distinct from the rulings prefix 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:6: trailing whitespace.
++PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:7: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:8: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:9: trailing whitespace.
++PASS seal: RULINGS_READ_CAP is 8192 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:10: trailing whitespace.
++PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:11: trailing whitespace.
++PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:12: trailing whitespace.
++PASS no fixture text leaks into the unavailable marker 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:13: trailing whitespace.
++PASS planner prompt names no owner or work project 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:14: trailing whitespace.
++PASS the rulings file names no owner and no work project 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:15: trailing whitespace.
++PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:16: trailing whitespace.
++PASS every ruling is one bullet that opens with its date 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:17: trailing whitespace.
++PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:18: trailing whitespace.
++PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:19: trailing whitespace.
++PASS planner prompt names no model id 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:20: trailing whitespace.
++PASS the rulings file names no model, leaving the lineup to the roster 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:21: trailing whitespace.
++PASS the rulings file opens with the scope sentence for builders and reviewers 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:22: trailing whitespace.
++PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+docs/reviews/machine-lane-limits-2026-11-02/green-rulings.log:23: trailing whitespace.
++PASS R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:1: trailing whitespace.
++PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:2: trailing whitespace.
++PASS seat guide holds no bullet beyond its sixteen rules 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:3: trailing whitespace.
++PASS seat guide carries: launch in the background and end the turn 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:4: trailing whitespace.
++PASS seat guide carries: no reading or judging partial work mid-run 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:5: trailing whitespace.
++PASS seat guide carries: act on completion or a monitor's failure or stall 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:6: trailing whitespace.
++PASS seat guide carries: verify once at the end 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:7: trailing whitespace.
++PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:8: trailing whitespace.
++PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:9: trailing whitespace.
++PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:10: trailing whitespace.
++PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:11: trailing whitespace.
++PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:12: trailing whitespace.
++PASS seat guide carries: findings back in the next brief 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:13: trailing whitespace.
++PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:14: trailing whitespace.
++PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:15: trailing whitespace.
++PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:16: trailing whitespace.
++PASS seat guide carries: preamble and review standard named, not restated 
+docs/reviews/machine-lane-limits-2026-11-02/green-seat-rule.log:17: trailing whitespace.
++PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster-set.test.log:1: trailing whitespace.
++PASS R-1400: set given a printed line's tokens replaces only that slot and prints the new roster and the old line, from an absent file and from a file roster 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster-set.test.log:2: trailing whitespace.
++PASS R-1401: set keeps objective, gate and every other top-level member, from a file saved with a byte-order mark and CRLF 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster-set.test.log:3: trailing whitespace.
++PASS R-1402: set refuses no slot, an unknown slot and each malformed entry, naming the slot or field, and changes no byte 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster-set.test.log:4: trailing whitespace.
++PASS R-1403: set refuses a path the resolver refuses and leaves it unchanged 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster-set.test.log:5: trailing whitespace.
++PASS R-1404: set inside a pi model shell refuses naming PI_SESSION_ID before reading the file and writes nothing 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster-set.test.log:6: trailing whitespace.
++PASS R-1405: set renames a temporary file from the target's folder, and a failed temporary write or rename leaves the file byte-identical with no temporary file behind 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster-set.test.log:7: trailing whitespace.
++PASS R-1406: set through a symlinked nana-pack.json writes the target and keeps the link 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster-set.test.log:8: trailing whitespace.
++PASS R-1407: set leaves the replaced bytes in nana-pack.json.bak 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster-set.test.log:9: trailing whitespace.
++PASS R-3524: lanes stays outside roster, set keeps a written limit and never adds an absent one 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:1: trailing whitespace.
++PASS sealed default roster is luna high builder, sol reviewer, astra land and no scout 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:2: trailing whitespace.
++PASS absent user nana-pack.json yields the default roster 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:3: trailing whitespace.
++PASS user nana-pack.json without a roster yields the default roster 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:4: trailing whitespace.
++PASS a valid machine roster replaces every slot, keeping a null scout and a null land 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:5: trailing whitespace.
++PASS a machine roster saved with a byte-order mark and CRLF line endings is read 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:6: trailing whitespace.
++PASS the roster is read from PI_CODING_AGENT_DIR, not the home agent dir 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:7: trailing whitespace.
++PASS a project .pi/nana-pack.json roster is never read 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:8: trailing whitespace.
++PASS each invalid roster shape is refused naming the slot or field 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:9: trailing whitespace.
++PASS a provider or model holding a C1 control character is refused naming the slot and field 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:10: trailing whitespace.
++PASS an unreadable or malformed user nana-pack.json is refused naming the file 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:11: trailing whitespace.
++PASS roster command prints one line per slot and the source 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:12: trailing whitespace.
++PASS roster command prints a refused roster on stderr and exits 1 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:13: trailing whitespace.
++PASS a machine roster without largerBuilder reads it as null, and one with a pi or a Claude Code entry keeps it as written 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:14: trailing whitespace.
++PASS each invalid largerBuilder, and a runtime field in any other slot, is refused naming the slot or field 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:15: trailing whitespace.
++PASS R-2563: set reviewer claude-code opus is stored and printed 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:16: trailing whitespace.
++PASS roster command prints largerBuilder after the builder: claude-code and the model, a pi entry's three fields, or none 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:17: trailing whitespace.
++PASS roster command --json prints one roster object whose roster value, set as the roster member of a file holding the installer's seed, the resolver reads back as the same roster, for the default and a file roster 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:18: trailing whitespace.
++PASS roster command --json prints a refused roster on stderr with empty stdout and exits 1 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:19: trailing whitespace.
++PASS R-1636: importing nana-roster with argv[1] naming another file or no file completes and prints nothing 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:20: trailing whitespace.
++PASS seal: LANE_LIMIT_DEFAULT is 4 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:21: trailing whitespace.
++PASS R-3520: absent and null lane limits default, and lanes without a roster retain default source 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:22: trailing whitespace.
++PASS R-3521: a written lane limit prints exactly, set agrees, and JSON stays slots only 
+docs/reviews/machine-lane-limits-2026-11-02/merge-nana-roster.test.log:23: trailing whitespace.
++PASS R-3522: malformed lane values keep the roster and default limit with one warning 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:3: trailing whitespace.
++PASS ears: the CLI prints the report line right after the summary line, naming the count and the allowance 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:4: trailing whitespace.
++PASS REQUIREMENTS.md and the markers the suite carries agree 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:5: trailing whitespace.
++PASS rail roots equal the package test roots and two app roots collected by npm test 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:6: trailing whitespace.
++PASS no collected test root has nested test files outside fixture directories 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:7: trailing whitespace.
++PASS the rail read the whole file and traced something 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:8: trailing whitespace.
++PASS ears: a two-shall row and a no-shall row are counted, a retired one is not 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:9: trailing whitespace.
++PASS ears: over the allowance each off-form row is a problem, at the allowance none 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:10: trailing whitespace.
++PASS seal: EARS_ALLOWANCE is 0 (G-015) 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:11: trailing whitespace.
++PASS this repo: zero rows off form 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:12: trailing whitespace.
++PASS seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom) 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:13: trailing whitespace.
++PASS R-1000: CRLF ledger and general rows are read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:14: trailing whitespace.
++PASS R-1000: spaces and tab after closing pipes are read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:15: trailing whitespace.
++PASS R-1001: CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:16: trailing whitespace.
++PASS R-1000: CRLF test-file marker traces its four-digit row 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:17: trailing whitespace.
++PASS R-1000: both four-digit row prefixes load 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:18: trailing whitespace.
++PASS R-1000: TS markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:19: trailing whitespace.
++PASS R-1000: invalid row ID R-0123 is rejected 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:20: trailing whitespace.
++PASS R-1000: invalid row ID R-10000 is rejected 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:21: trailing whitespace.
++PASS R-1000: invalid row ID R-１２３ is rejected 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:22: trailing whitespace.
++PASS R-1001: missing closing pipe names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:23: trailing whitespace.
++PASS R-1001: missing closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:24: trailing whitespace.
++PASS R-1001: zero-width space after closing pipe names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:25: trailing whitespace.
++PASS R-1001: zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:26: trailing whitespace.
++PASS R-1001: fenced example names REQUIREMENTS.md:6 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:27: trailing whitespace.
++PASS R-1001: fenced example names REQUIREMENTS-general.md:6 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:28: trailing whitespace.
++PASS R-1001: R candidate names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:29: trailing whitespace.
++PASS R-1001: R candidate names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:30: trailing whitespace.
++PASS R-1001: G candidate names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:31: trailing whitespace.
++PASS R-1001: G candidate names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:32: trailing whitespace.
++PASS R-1001: U+2028 inside a cell is read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:33: trailing whitespace.
++PASS R-1001: U+0085 inside a cell is read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:34: trailing whitespace.
++PASS R-1001: U+200B after closing pipe names REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:35: trailing whitespace.
++PASS R-1000: both rails remove exactly one BOM from a double-BOM first-line row 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:36: trailing whitespace.
++PASS R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe read 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:37: trailing whitespace.
++PASS R-1001: a leading BOM before the first row is ignored 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:38: trailing whitespace.
++PASS R-1000: a BOM and comma or U+2028 separated first-line marker list traces 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:39: trailing whitespace.
++PASS R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:40: trailing whitespace.
++PASS R-1000: Python rail reads four-digit R/G rows 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:41: trailing whitespace.
++PASS R-1000: Python row grammar rejects leading-zero, five-digit and non-ASCII IDs 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:42: trailing whitespace.
++PASS R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:43: trailing whitespace.
++PASS R-1001: Python reads U+0085, U+FEFF and U+00A0 around row cells and after the pipe 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:44: trailing whitespace.
++PASS R-1001: Python ignores a leading BOM before the first row 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:45: trailing whitespace.
++PASS R-1000: Python leaves the second BOM before a double-BOM first-line row 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:46: trailing whitespace.
++PASS R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:47: trailing whitespace.
++PASS R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:48: trailing whitespace.
++PASS R-1001: Python U+2028 inside a cell is read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:49: trailing whitespace.
++PASS R-1001: Python U+0085 inside a cell is read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:50: trailing whitespace.
++PASS R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:51: trailing whitespace.
++PASS R-1001: Python CRLF ledger and general rows are read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:52: trailing whitespace.
++PASS R-1001: Python spaces and tab after closing pipes are read and clean 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:53: trailing whitespace.
++PASS R-1001: Python CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:54: trailing whitespace.
++PASS R-1001: Python missing closing pipe names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:55: trailing whitespace.
++PASS R-1001: Python missing closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:56: trailing whitespace.
++PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:57: trailing whitespace.
++PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:58: trailing whitespace.
++PASS R-1001: Python fenced example names REQUIREMENTS.md:6 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:59: trailing whitespace.
++PASS R-1001: Python fenced example names REQUIREMENTS-general.md:6 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:60: trailing whitespace.
++PASS R-1001: Python R candidate names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:61: trailing whitespace.
++PASS R-1001: Python R candidate names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:62: trailing whitespace.
++PASS R-1001: Python G candidate names REQUIREMENTS.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-requirements-trace.test.log:63: trailing whitespace.
++PASS R-1001: Python G candidate names REQUIREMENTS-general.md:5 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice-hook.log:1: trailing whitespace.
++PASS roster notice hook: one JSON object with the notice as SessionStart context on every source and with no source, and exit 0 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice-hook.log:2: trailing whitespace.
++PASS roster notice hook: the notice is a user message for startup, resume, clear and fork, for a missing or unreadable source and for an input that fails on read, and not for compact 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice-hook.log:3: trailing whitespace.
++PASS roster notice hook: a copy that cannot load its modules prints the unavailable notice in both fields with no path, and exits 0 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice-hook.log:4: trailing whitespace.
++PASS roster notice hook: a throw after its modules have loaded also fails open with the unavailable notice 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:1: trailing whitespace.
++PASS roster notice: one line that starts with the prefix and names the builders, reviewer and land by model and thinking 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:2: trailing whitespace.
++PASS roster notice: each entry shows its model and thinking and never its provider field, for a default, a file and a Claude Code roster and a model id that contains its provider 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:3: trailing whitespace.
++PASS roster notice: sealed values — prefix, size labels, Claude Code mark, default mark, refusal head and cut, change pointer, relative-dir text, shown start sources and widget key 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:4: trailing whitespace.
++PASS roster notice: a larger-lane builder is named for larger lanes before the builder for small lanes 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:5: trailing whitespace.
++PASS roster notice: a Claude Code entry's model is followed by the Claude Code mark, and a pi entry's is not 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:6: trailing whitespace.
++PASS roster notice: a null land reads land seat 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:7: trailing whitespace.
++PASS roster notice: a scout is never named, set or null 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:8: trailing whitespace.
++PASS roster notice: a lone builder carries no size label 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:9: trailing whitespace.
++PASS roster notice: only the default roster is marked default, and a file roster equal to the default is not 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:10: trailing whitespace.
++PASS roster notice: every refusal kind shows the problem cut before its first ' (' with no echoed value or line break, and a roster path holding ' (' stays whole 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:11: trailing whitespace.
++PASS roster notice: every notice, refused ones included, ends with the change pointer and the roster file 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:12: trailing whitespace.
++PASS roster notice: the roster file shows the home folder as ~ wherever it appears 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:13: trailing whitespace.
++PASS extension: with a UI, startup, new, resume and fork each set exactly one widget above the editor holding only the notice, a refused roster included, and raise no notify 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:14: trailing whitespace.
++PASS extension: no UI, and the reload reason, each set no widget and raise nothing 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:15: trailing whitespace.
++PASS parity: the hook and the extension show the same notice for a default, a file and a refused roster 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:16: trailing whitespace.
++PASS relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused roster 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:17: trailing whitespace.
++PASS seal: lane notice label is lanes 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:18: trailing whitespace.
++PASS seal: ignored lane notice mark is (file value ignored) 
+docs/reviews/machine-lane-limits-2026-11-02/merge-roster-notice.test.log:19: trailing whitespace.
++PASS R-3523: notice shows lane limit after land, marks fallback, and omits it when unknown 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:1: trailing whitespace.
++PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:2: trailing whitespace.
++PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:3: trailing whitespace.
++PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:4: trailing whitespace.
++PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:5: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:6: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:7: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:8: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:9: trailing whitespace.
++PASS install installs the pi seat guide and uninstall removes its manifest-owned link 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:10: trailing whitespace.
++PASS install-check seat-guide heading matches the injected guide heading 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:11: trailing whitespace.
++PASS doctor recognizes the installed guide and rejects missing, POSIX-copy and stale Windows forms 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings-install.test.log:12: trailing whitespace.
++PASS doctor rejects a stale Windows guide copy on every host 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:1: trailing whitespace.
++PASS pi seat receives the complete installed guide under its fixed heading 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:2: trailing whitespace.
++PASS stale guide installation notice names the pi seat guide and nana-setup install 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:3: trailing whitespace.
++PASS pi builder and reviewer omit the guide while retaining the rulings section 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:4: trailing whitespace.
++PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:5: trailing whitespace.
++PASS seat guide unavailable prefix is distinct from the rulings prefix 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:6: trailing whitespace.
++PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:7: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:8: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:9: trailing whitespace.
++PASS seal: RULINGS_READ_CAP is 8192 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:10: trailing whitespace.
++PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:11: trailing whitespace.
++PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:12: trailing whitespace.
++PASS no fixture text leaks into the unavailable marker 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:13: trailing whitespace.
++PASS planner prompt names no owner or work project 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:14: trailing whitespace.
++PASS the rulings file names no owner and no work project 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:15: trailing whitespace.
++PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:16: trailing whitespace.
++PASS every ruling is one bullet that opens with its date 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:17: trailing whitespace.
++PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:18: trailing whitespace.
++PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:19: trailing whitespace.
++PASS planner prompt names no model id 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:20: trailing whitespace.
++PASS the rulings file names no model, leaving the lineup to the roster 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:21: trailing whitespace.
++PASS the rulings file opens with the scope sentence for builders and reviewers 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:22: trailing whitespace.
++PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+docs/reviews/machine-lane-limits-2026-11-02/merge-rulings.test.log:23: trailing whitespace.
++PASS R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:1: trailing whitespace.
++PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:2: trailing whitespace.
++PASS seat guide holds no bullet beyond its sixteen rules 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:3: trailing whitespace.
++PASS seat guide carries: launch in the background and end the turn 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:4: trailing whitespace.
++PASS seat guide carries: no reading or judging partial work mid-run 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:5: trailing whitespace.
++PASS seat guide carries: act on completion or a monitor's failure or stall 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:6: trailing whitespace.
++PASS seat guide carries: verify once at the end 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:7: trailing whitespace.
++PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:8: trailing whitespace.
++PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:9: trailing whitespace.
++PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:10: trailing whitespace.
++PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:11: trailing whitespace.
++PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:12: trailing whitespace.
++PASS seat guide carries: findings back in the next brief 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:13: trailing whitespace.
++PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:14: trailing whitespace.
++PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:15: trailing whitespace.
++PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:16: trailing whitespace.
++PASS seat guide carries: preamble and review standard named, not restated 
+docs/reviews/machine-lane-limits-2026-11-02/merge-seat-rule.test.log:17: trailing whitespace.
++PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster-set.log:1: trailing whitespace.
++PASS R-1400: set given a printed line's tokens replaces only that slot and prints the new roster and the old line, from an absent file and from a file roster 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster-set.log:2: trailing whitespace.
++PASS R-1401: set keeps objective, gate and every other top-level member, from a file saved with a byte-order mark and CRLF 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster-set.log:3: trailing whitespace.
++PASS R-1402: set refuses no slot, an unknown slot and each malformed entry, naming the slot or field, and changes no byte 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster-set.log:4: trailing whitespace.
++PASS R-1403: set refuses a path the resolver refuses and leaves it unchanged 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster-set.log:5: trailing whitespace.
++PASS R-1404: set inside a pi model shell refuses naming PI_SESSION_ID before reading the file and writes nothing 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster-set.log:6: trailing whitespace.
++PASS R-1405: set renames a temporary file from the target's folder, and a failed temporary write or rename leaves the file byte-identical with no temporary file behind 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster-set.log:7: trailing whitespace.
++PASS R-1406: set through a symlinked nana-pack.json writes the target and keeps the link 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster-set.log:8: trailing whitespace.
++PASS R-1407: set leaves the replaced bytes in nana-pack.json.bak 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:1: trailing whitespace.
++PASS sealed default roster is luna high builder, sol reviewer, astra land and no scout 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:2: trailing whitespace.
++PASS absent user nana-pack.json yields the default roster 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:3: trailing whitespace.
++PASS user nana-pack.json without a roster yields the default roster 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:4: trailing whitespace.
++PASS a valid machine roster replaces every slot, keeping a null scout and a null land 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:5: trailing whitespace.
++PASS a machine roster saved with a byte-order mark and CRLF line endings is read 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:6: trailing whitespace.
++PASS the roster is read from PI_CODING_AGENT_DIR, not the home agent dir 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:7: trailing whitespace.
++PASS a project .pi/nana-pack.json roster is never read 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:8: trailing whitespace.
++PASS each invalid roster shape is refused naming the slot or field 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:9: trailing whitespace.
++PASS a provider or model holding a C1 control character is refused naming the slot and field 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:10: trailing whitespace.
++PASS an unreadable or malformed user nana-pack.json is refused naming the file 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:12: trailing whitespace.
++PASS roster command prints a refused roster on stderr and exits 1 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:13: trailing whitespace.
++PASS a machine roster without largerBuilder reads it as null, and one with a pi or a Claude Code entry keeps it as written 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:14: trailing whitespace.
++PASS each invalid largerBuilder, and a runtime field in any other slot, is refused naming the slot or field 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:15: trailing whitespace.
++PASS R-2563: set reviewer claude-code opus is stored and printed 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:16: trailing whitespace.
++PASS roster command prints largerBuilder after the builder: claude-code and the model, a pi entry's three fields, or none 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:17: trailing whitespace.
++PASS roster command --json prints one roster object whose roster value, set as the roster member of a file holding the installer's seed, the resolver reads back as the same roster, for the default and a file roster 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:18: trailing whitespace.
++PASS roster command --json prints a refused roster on stderr with empty stdout and exits 1 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:19: trailing whitespace.
++PASS R-1636: importing nana-roster with argv[1] naming another file or no file completes and prints nothing 
+docs/reviews/machine-lane-limits-2026-11-02/red-nana-roster.log:20: trailing whitespace.
++FAIL seal: LANE_LIMIT_DEFAULT is 4 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:1: trailing whitespace.
++PASS roster notice: one line that starts with the prefix and names the builders, reviewer and land by model and thinking 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:2: trailing whitespace.
++PASS roster notice: each entry shows its model and thinking and never its provider field, for a default, a file and a Claude Code roster and a model id that contains its provider 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:3: trailing whitespace.
++PASS roster notice: sealed values — prefix, size labels, Claude Code mark, default mark, refusal head and cut, change pointer, relative-dir text, shown start sources and widget key 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:4: trailing whitespace.
++PASS roster notice: a larger-lane builder is named for larger lanes before the builder for small lanes 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:5: trailing whitespace.
++PASS roster notice: a Claude Code entry's model is followed by the Claude Code mark, and a pi entry's is not 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:6: trailing whitespace.
++PASS roster notice: a null land reads land seat 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:7: trailing whitespace.
++PASS roster notice: a scout is never named, set or null 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:8: trailing whitespace.
++PASS roster notice: a lone builder carries no size label 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:9: trailing whitespace.
++PASS roster notice: only the default roster is marked default, and a file roster equal to the default is not 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:10: trailing whitespace.
++PASS roster notice: every refusal kind shows the problem cut before its first ' (' with no echoed value or line break, and a roster path holding ' (' stays whole 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:11: trailing whitespace.
++PASS roster notice: every notice, refused ones included, ends with the change pointer and the roster file 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:12: trailing whitespace.
++PASS roster notice: the roster file shows the home folder as ~ wherever it appears 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:13: trailing whitespace.
++PASS extension: with a UI, startup, new, resume and fork each set exactly one widget above the editor holding only the notice, a refused roster included, and raise no notify 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:14: trailing whitespace.
++PASS extension: no UI, and the reload reason, each set no widget and raise nothing 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:15: trailing whitespace.
++PASS parity: the hook and the extension show the same notice for a default, a file and a refused roster 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:16: trailing whitespace.
++PASS relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused roster 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:17: trailing whitespace.
++FAIL seal: lane notice label is lanes 
+docs/reviews/machine-lane-limits-2026-11-02/red-roster-notice.log:18: trailing whitespace.
++FAIL seal: ignored lane notice mark is (file value ignored) 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:1: trailing whitespace.
++PASS pi seat receives the complete installed guide under its fixed heading 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:2: trailing whitespace.
++PASS stale guide installation notice names the pi seat guide and nana-setup install 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:3: trailing whitespace.
++PASS pi builder and reviewer omit the guide while retaining the rulings section 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:4: trailing whitespace.
++PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:5: trailing whitespace.
++PASS seat guide unavailable prefix is distinct from the rulings prefix 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:6: trailing whitespace.
++PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:7: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:8: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:9: trailing whitespace.
++PASS seal: RULINGS_READ_CAP is 8192 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:10: trailing whitespace.
++PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:11: trailing whitespace.
++PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:12: trailing whitespace.
++PASS no fixture text leaks into the unavailable marker 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:13: trailing whitespace.
++PASS planner prompt names no owner or work project 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:14: trailing whitespace.
++PASS the rulings file names no owner and no work project 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:15: trailing whitespace.
++PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:16: trailing whitespace.
++PASS every ruling is one bullet that opens with its date 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:17: trailing whitespace.
++PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:18: trailing whitespace.
++PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:19: trailing whitespace.
++PASS planner prompt names no model id 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:20: trailing whitespace.
++PASS the rulings file names no model, leaving the lineup to the roster 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:21: trailing whitespace.
++PASS the rulings file opens with the scope sentence for builders and reviewers 
+docs/reviews/machine-lane-limits-2026-11-02/red-rulings.log:22: trailing whitespace.
++PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:1: trailing whitespace.
++PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:3: trailing whitespace.
++PASS seat guide carries: launch in the background and end the turn 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:4: trailing whitespace.
++PASS seat guide carries: no reading or judging partial work mid-run 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:5: trailing whitespace.
++PASS seat guide carries: act on completion or a monitor's failure or stall 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:6: trailing whitespace.
++PASS seat guide carries: verify once at the end 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:7: trailing whitespace.
++PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:8: trailing whitespace.
++PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:9: trailing whitespace.
++PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:10: trailing whitespace.
++PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:11: trailing whitespace.
++PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:12: trailing whitespace.
++PASS seat guide carries: findings back in the next brief 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:14: trailing whitespace.
++PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:15: trailing whitespace.
++PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:16: trailing whitespace.
++PASS seat guide carries: preamble and review standard named, not restated 
+docs/reviews/machine-lane-limits-2026-11-02/red-seat-rule.log:17: trailing whitespace.
++PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 

@@ -29,6 +29,8 @@ import {
 	SHOW_SOURCES,
 } from "../lib/roster-notice-config.mjs";
 import { ROSTER_DEFAULTS } from "../bin/worker-config.mjs";
+import * as workerConfig from "../bin/worker-config.mjs";
+import * as noticeConfig from "../lib/roster-notice-config.mjs";
 import { resolveRoster } from "../bin/nana-roster.mjs";
 import { tildeify } from "../../nana-setup/lib/paths.mjs";
 
@@ -422,7 +424,7 @@ async function runExtensionOnce(agentDir, { cwd } = {}) {
 	const l15 = await (async () => {
 		const results = [];
 		const dirDefault = freshAgentDir("l15-default");
-		const withoutLineage = text => text.replace(/, lineage: [^·]+(?= ·)/, '');
+		const withoutLineage = text => text.replace(/(?:, lineage: [^,·]+)+/g, '');
 		results.push(["default", withoutLineage(runHookOnce(dirDefault)) === withoutLineage(await runExtensionOnce(dirDefault))]);
 		const dirFile = freshAgentDir("l15-file");
 		writeRoster(dirFile, sampleRoster());
@@ -469,7 +471,7 @@ check('MM7: both seats show resolved roles after land', await roleNoticeCase(asy
 	writeRoster(dir,roster);
 	const hook = runHookOnce(dir), extension = await runExtensionOnce(dir);
 	for (const text of [hook,extension]) {
-		const at = ['land zz-land-model','planner seat','adversary gpt-6.1-sol medium','checker gpt-6.1-sol medium'].map(s => text.indexOf(s));
+		const at = ['land zz-land-model','planner seat','adversary gpt-6.1-sol medium','checker gpt-6.1-sol medium', `lanes ${workerConfig.LANE_LIMIT_DEFAULT}`].map(s => text.indexOf(s));
 		if (!at.every((n,i) => n >= 0 && (i === 0 || n > at[i-1]))) return false;
 	}
 	return true;
@@ -484,6 +486,33 @@ check('MM8: resolved lineage pairs warn on shared and unknown sides in both seat
 	const set=spawnSync(process.execPath,[path.resolve(path.dirname(hookPath),'../../../nana-pack/bin/nana-roster.mjs'),'set','builder','openai-codex','gpt-6-luna','high'],{env,encoding:'utf8',timeout:5000});
 	return !cc.includes('lineage') && /lineage.*adversary.*planner.*unverified/.test(pi) && /lineage.*checker.*openai.*reviewer/.test(def) && /adversary.*anthropic.*planner/.test(joined) && /checker.*openai.*reviewer/.test(joined) && set.status===0 && /checker.*openai.*reviewer/.test(notice(resolveRoster(dir).roster,'claude-code'));
 })());
+
+// req: R-3523
+check("seal: lane notice label is lanes", noticeConfig.LANES_LABEL === "lanes");
+// req: R-3523
+check("seal: ignored lane notice mark is (file value ignored)", noticeConfig.LANES_IGNORED_MARK === "(file value ignored)");
+{
+	const results = [];
+	for (const [label, raw, limit, ignored] of [
+		["default", undefined, workerConfig.LANE_LIMIT_DEFAULT, false],
+		["written", { roster: sampleRoster(), lanes: 2 }, 2, false],
+		["malformed", { roster: sampleRoster(), lanes: "2" }, workerConfig.LANE_LIMIT_DEFAULT, true],
+	]) {
+		const dir = freshAgentDir(`lane-notice-${label}`), file = fileAt(dir);
+		if (raw !== undefined) fs.writeFileSync(file, JSON.stringify(raw));
+		const resolved = resolveRoster(dir), line = rosterNotice(resolved, file, false);
+		const expected = `, ${noticeConfig.LANES_LABEL} ${limit}${ignored ? ` ${noticeConfig.LANES_IGNORED_MARK}` : ""} · `;
+		results.push([label, !/[\r\n]/.test(line) && line.includes(expected) &&
+			line.indexOf(expected) > line.indexOf(", land ") && (ignored || !line.includes(noticeConfig.LANES_IGNORED_MARK))]);
+		results.push([`${label}-relative`, !rosterNotice(resolved, file, true).includes("lanes ")]);
+	}
+	const file = fileAt(freshAgentDir("lane-notice-old"));
+	const old = rosterNotice({ ok: true, roster: sampleRoster(), source: file }, file, false);
+	results.push(["older result", old.includes(`, ${noticeConfig.LANES_LABEL} ${workerConfig.LANE_LIMIT_DEFAULT} · `) && !old.includes(noticeConfig.LANES_IGNORED_MARK)]);
+	results.push(["refused", !rosterNotice({ ok: false, problem: "invalid JSON", file }, file, false).includes("lanes ")]);
+	// req: R-3523
+	check("R-3523: notice shows lane limit after land, marks fallback, and omits it when unknown", results.every(([, ok]) => ok), JSON.stringify(results));
+}
 
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

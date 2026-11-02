@@ -9,6 +9,8 @@
  */
 // chosen 28,800 seconds: eight hours covers the measured 20,495-second longest builder round (hardening program, 2026-10-07).
 export const LANE_MAX_SECS = 28_800;
+// contract: R-3520 — the owner's 2026-10-31 answer, carried as the default by the owner's 2026-11-02 pick.
+export const LANE_LIMIT_DEFAULT = 4;
 // chosen 2026-10-23: matches the detached install relay's poll; measured hard-kill cleanup ended within 305 ms.
 export const LANE_WATCHER_POLL_MS = 200;
 // chosen 2026-10-23: real builder stop time was not measured; two seconds is conservative over the fake builder's measured 30 ms.
