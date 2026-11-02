@@ -24,7 +24,8 @@ const PID_FAILURE_PRELOAD = path.join(ROOT, "pid-failure.cjs");
 fs.writeFileSync(PID_FAILURE_PRELOAD, `const fs = require('node:fs');\nconst path = require('node:path');\nconst write = fs.writeFileSync;\nfs.writeFileSync = function (file, ...args) { if (path.resolve(String(file)) === path.join(process.env.NANA_SUITE_LOCK_DIR, 'pid')) { const error = new Error('injected pid initialization failure'); error.code = 'EACCES'; throw error; } return write.call(this, file, ...args); };\n`);
 fs.writeFileSync(NPM_CLI, `import fs from 'node:fs';\nfs.writeFileSync(process.env.CAPTURE_NPM_ARGS, JSON.stringify(process.argv.slice(2)));\n`);
 const events = path.join(ROOT, "events.log");
-fs.writeFileSync(FIXTURE, `import fs from 'node:fs';\nconst event = (s) => fs.appendFileSync(process.env.EVENTS, s + '\\n');\nevent('start');\nevent(fs.existsSync(process.env.NANA_SUITE_LOCK_DIR) ? 'lock-start' : 'no-lock-start');\nevent(fs.existsSync(process.env.HOME + '/.nana/suite.lock') ? 'default-lock-start' : 'no-default-lock-start');\nif (process.env.IGNORE_TERM === '1') process.on('SIGTERM', () => event('term-ignored'));\nawait new Promise(r => setTimeout(r, Number(process.env.DELAY || 250)));\nevent(fs.existsSync(process.env.NANA_SUITE_LOCK_DIR) ? 'lock-end' : 'no-lock-end');\nevent(fs.existsSync(process.env.HOME + '/.nana/suite.lock') ? 'default-lock-end' : 'no-default-lock-end');\nevent('end');\nprocess.exitCode = Number(process.env.EXIT_CODE || 0);\n`);
+const SIGNAL_HANDLER_READY_LIMIT_MS = 5_000; // Chosen to bound a missing fixture-ready marker below the test file limit.
+fs.writeFileSync(FIXTURE, `import fs from 'node:fs';\nconst event = (s) => fs.appendFileSync(process.env.EVENTS, s + '\\n');\nevent('start');\nevent(fs.existsSync(process.env.NANA_SUITE_LOCK_DIR) ? 'lock-start' : 'no-lock-start');\nevent(fs.existsSync(process.env.HOME + '/.nana/suite.lock') ? 'default-lock-start' : 'no-default-lock-start');\nif (process.env.IGNORE_TERM === '1') { process.on('SIGTERM', () => event('term-ignored')); fs.writeFileSync(process.env.SIGNAL_READY, 'ready\\n'); }\nawait new Promise(r => setTimeout(r, Number(process.env.DELAY || 250)));\nevent(fs.existsSync(process.env.NANA_SUITE_LOCK_DIR) ? 'lock-end' : 'no-lock-end');\nevent(fs.existsSync(process.env.HOME + '/.nana/suite.lock') ? 'default-lock-end' : 'no-default-lock-end');\nevent('end');\nprocess.exitCode = Number(process.env.EXIT_CODE || 0);\n`);
 
 let failures = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, !ok ? detail : ""); if (!ok) failures++; };
@@ -49,6 +50,11 @@ const finished = (child) => new Promise((resolve) => {
 });
 const exists = () => fs.existsSync(LOCK);
 const readEvents = () => fs.existsSync(events) ? fs.readFileSync(events, "utf8").trim().split(/\r?\n/).filter(Boolean) : [];
+const waitForFile = async (file, child, limit = SIGNAL_HANDLER_READY_LIMIT_MS) => {
+  const deadline = Date.now() + limit;
+  while (!fs.existsSync(file) && child.exitCode === null && child.signalCode === null && Date.now() < deadline) await wait(10);
+  return fs.existsSync(file);
+};
 
 {
   fs.rmSync(LOCK, { recursive: true, force: true });
@@ -203,10 +209,12 @@ if (process.platform !== "win32") {
 if (process.platform !== "win32") {
   fs.rmSync(LOCK, { recursive: true, force: true });
   fs.rmSync(events, { force: true });
-  const first = launch([], { IGNORE_TERM: "1", DELAY: "5000" });
+  const signalReady = path.join(ROOT, "term-handler-ready");
+  fs.rmSync(signalReady, { force: true });
+  const first = launch([], { IGNORE_TERM: "1", SIGNAL_READY: signalReady, DELAY: "5000" });
   const firstDone = finished(first);
-  await wait(150);
-  first.kill("SIGTERM");
+  const handlerReady = await waitForFile(signalReady, first);
+  if (handlerReady) first.kill("SIGTERM");
   await wait(250);
   const second = launch([], { DELAY: "0" });
   const secondDone = finished(second);
@@ -216,7 +224,7 @@ if (process.platform !== "win32") {
   const secondResult = await secondDone;
   const log = readEvents();
   // req: R-626
-  check("handled signals wait for suite termination before releasing the lock", blocked && firstResult.code === 143 && secondResult.code === 0 && log.filter((event) => event === "start").length === 2 && log.indexOf("term-ignored") >= 0 && log.lastIndexOf("start") > log.indexOf("term-ignored"), JSON.stringify({ blocked, firstResult, secondResult, log }));
+  check("handled signals wait for suite termination before releasing the lock", handlerReady && blocked && firstResult.code === 143 && secondResult.code === 0 && log.filter((event) => event === "start").length === 2 && log.indexOf("term-ignored") >= 0 && log.lastIndexOf("start") > log.indexOf("term-ignored"), JSON.stringify({ blocked, firstResult, secondResult, log }));
 } else {
   console.log("SKIP handled signals wait for suite termination before releasing the lock — Windows kills a child outright, so its signal handler never runs");
 }

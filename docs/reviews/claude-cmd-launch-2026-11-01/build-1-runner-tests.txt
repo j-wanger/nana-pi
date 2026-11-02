@@ -1,0 +1,3 @@
+memory-shaping: 20 PASS, 0 FAIL
+outcome-meter: 27 PASS, 0 FAIL
+memory-replay: 20 PASS, 0 FAIL

@@ -77,6 +77,7 @@
     { "path": "packages/nana-pack/tests/templates-render.test.mjs", "reason": "Shell and dynamically selected template toolchain programs." },
     { "path": "packages/nana-pack/tests/win-command.test.mjs", "reason": "Command builder supplies native executable spellings." },
     { "path": "packages/nana-pack/tests/win32-launch.test.mjs", "reason": "Shell starts the Windows launch fixture." },
+    { "path": "packages/nana-pack/tests/claude-launch.test.mjs", "reason": "Fixture and native executable launches are selected dynamically." },
     { "path": "packages/nana-pack/tests/worker-claude.test.mjs", "reason": "Shell sources the seat guide fixture." },
     { "path": "packages/nana-setup/claude/hooks/nana-adoption.mjs", "reason": "Producer wrapper takes an object whose CLI does not trace." },
     { "path": "packages/nana-setup/claude/hooks/nana-objective.mjs", "reason": "Producer wrapper takes an object whose CLI does not trace." },
@@ -98,7 +99,7 @@
     { "path": "packages/nana-setup/tests/stale-copies.test.mjs", "reason": "Producer fixture passes an object-shaped CLI configuration." },
     { "path": "packages/nana-setup/tests/win-shims.test.mjs", "reason": "Shell resolver and native command paths do not trace." },
     { "path": "packages/nana-setup/tests/win32-degrade.test.mjs", "reason": "Native shell executable comes from an environment-derived path." },
-    { "path": "scripts/memory-shape-runners.mjs", "reason": "Injected model spawn and piLaunch select external CLI programs." },
+    { "path": "scripts/memory-shape-runners.mjs", "reason": "Injected model spawn plus Claude and pi launch resolvers select external CLI programs." },
     { "path": "scripts/runtime-measure.mjs", "reason": "Measurement starts a caller-provided suite program." },
     { "path": "scripts/template-acceptance.mjs", "reason": "Shell evaluates the rendered template toolchain." },
     { "path": "scripts/test-locked.mjs", "reason": "Locked suite program comes from the command boundary." }

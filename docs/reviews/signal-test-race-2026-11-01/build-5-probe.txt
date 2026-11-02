@@ -1,0 +1,3 @@
+Probe: empty pid file, each caller is detached into its own process group.
+old: exit=null signal=SIGKILL; stdout=""; stderr=""
+new: exit=0 signal=none; stdout="guard returned without signaling"; stderr=""
