@@ -19,7 +19,7 @@ import { pidAlive } from "../../../packages/nana-pack/lib/process-tree.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const root = tmpDir(path.join(os.tmpdir(), "builder-replay-test-"));
-let serial = 0, partSerial = 0, passed = 0, failed = 0;
+let serial = 0, partSerial = 0, passed = 0, failed = 0, skipped = 0;
 const folder = () => { const p = path.join(root, String(++serial)); fs.mkdirSync(p); return p; };
 const put = (p, s) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, s); return p; };
 const json = (p, v) => put(p, JSON.stringify(v));
@@ -28,7 +28,8 @@ const lines = (xs, eol = "\n", final = true) => xs.map(x => JSON.stringify(x) + 
 const git = (cwd, args) => { const r = spawnSync("git", args, { cwd, encoding: "utf8", timeout: 10000 }); assert.equal(r.status, 0); return r.stdout.trim(); };
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(fn, ms = 5000) { const end = Date.now() + ms; while (!fn()) { assert.ok(Date.now() < end); await pause(20); } }
-async function test(title, fn) {
+async function test(title, fn, skipReason) {
+ if (skipReason) { skipped++; console.log(`SKIP ${title} — ${skipReason}`); return; }
  let timer;
  try { await Promise.race([Promise.resolve().then(fn), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("case deadline")), 45000); })]); passed++; console.log(`PASS ${title}`); }
  catch (e) { failed++; console.log(`FAIL ${title}`); if (process.env.REPLAY_TEST_DEBUG) console.error(e.stack); }
@@ -105,7 +106,7 @@ await test("R-3600: sandbox start tree excludes future and outside data", async 
  const l = launcher(f.base, stubBody(stream(0.1, [{ type: "tool_execution_start", toolName: "bash", toolCallId: "remote", args: { command: "git clone https://github.com/example/repo" } }])));
  const rows = await R.runStudy({ ...f, go: true, launcher: l, sandboxReadPaths: [l.pre[0]], busy: () => false, suiteLock: path.join(f.base, "suite") });
  assert.equal(rows[0].outcome, "leak-suspect");
-});
+}, process.platform !== "darwin" ? "needs the macOS sandbox and POSIX start-tree clone" : null);
 // req: R-3601
 await test("R-3601: first context is exact and cuts only model-labelled kind", async () => {
  const C = await import("../lib/replay-context.mjs"), R = await import("../lib/replay.mjs");
@@ -170,7 +171,7 @@ await test("R-3602: frozen checks retain failures and grader bounds", async () =
  const broken = await G.grade({ manifest: { ...manifest, timeoutMs: 30, overlay: [{ source: hanging, path: "0.mjs", sha256: sha(fs.readFileSync(hanging)) }, manifest.overlay[1]] }, tree, out: folder(), busy: () => false });
  assert.equal(broken.status, "grader-broken"); assert.equal(broken.checks[0].outcome, "grader-broken"); assert.deepEqual(broken.bounds, { worst: 0, best: 1 });
  manifest.overlay[0].sha256 = "wrong"; await assert.rejects(G.grade({ manifest, tree, out: folder(), busy: () => false }), /replay: overlay mismatch/u);
-});
+}, process.platform !== "darwin" ? "needs the macOS replay grader's process and module diagnostics" : null);
 // req: R-3603
 await test("R-3603: durable reservations cap spend and never repay interruptions", async () => {
  const J = await import("../lib/replay-journal.mjs"), R = await import("../lib/replay.mjs");
@@ -311,5 +312,5 @@ await test("R-3607: three error layers deduplicate and never print private text"
 });
 
 fs.rmSync(root, { recursive: true, force: true });
-console.log(`builder replay: ${passed}/${passed + failed} checks passed`);
+console.log(`builder replay: ${passed}/${passed + failed} checks passed, ${skipped} skipped`);
 process.exitCode = failed ? 1 : 0;

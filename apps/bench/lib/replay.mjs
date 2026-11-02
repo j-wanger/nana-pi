@@ -135,7 +135,7 @@ async function supervise({ launcher, args, env, work, runDir, profile, study, bu
  }
  // Do not overlay tests until every remembered descendant, even one in its own group, is dead.
  const deadline = Date.now() + GIT_MS;
- const alive = () => (pid && treeAlive(pid)) || seen.pids.some(pidAlive) || seen.groups.some(group => { try { process.kill(-group, 0); return true; } catch (e) { return e.code === "EPERM"; } });
+ const alive = () => (pid && treeAlive(pid)) || seen.pids.some(pidAlive) || seen.groups.some(group => pidAlive(group, { group: true }));
  while (alive() && Date.now() < deadline) await new Promise(r => setTimeout(r, 20));
  if (alive()) throw new Error("replay: builder tree survived");
  fs.rmSync(path.join(runDir, "builder.pid"), { force: true });
