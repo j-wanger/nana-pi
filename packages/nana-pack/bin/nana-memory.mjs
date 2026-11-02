@@ -19,7 +19,7 @@ import { profileGuard } from '../lib/profile-guards.mjs';
 import { resolveProfile } from './nana-profile.mjs';
 import { writePackConfigMember } from '../lib/pack-config-write.mjs';
 import { makeMemory, pendingUnits, localMemoryRun, healthWords } from '../lib/memory-run.mjs';
-import { countUnparseableMemoryFiles } from '../lib/memory-store.mjs';
+import { countUnparseableMemoryFiles, resolveMemoryRepository } from '../lib/memory-store.mjs';
 import { PROFILE_WORDS } from '../lib/profile-config.mjs';
 import { WORDS as W, PUSH_WORDS, OPT_IN_MEMBER } from '../lib/memory-run-config.mjs';
 import { LANE_NAME_PATTERN } from '../lib/land-config.mjs';
@@ -34,11 +34,9 @@ export async function runMemory(argv,{agentDir=piAgentDir(),env=process.env,cwd=
   if(args.lane&&!LANE_NAME_PATTERN.test(args.lane))throw Error(W.invalid);
   const repoRoot=defaultMemoryRepo(args.repo?path.resolve(args.repo):cwd,{runGit:root=>runGit(root,['rev-parse','--git-common-dir'])});
   if(gitText(runGit,repoRoot,['rev-parse','--is-shallow-repository'])==='true')return say(W.shallow);
-  const roots=gitText(runGit,repoRoot,['rev-list','--max-parents=0','HEAD']).split(/\r?\n/u).sort();
-  if(!roots.length||roots.some(id=>! /^[0-9a-f]{40,64}$/u.test(id)))return say(W.unavailable);
   let config={};try{config=JSON.parse(fs.readFileSync(path.join(agentDir,'nana-pack.json'),'utf8'));}catch(e){if(e.code!=='ENOENT')throw Error(W.invalid);}
   const enabled=config[OPT_IN_MEMBER]??[];if(!Array.isArray(enabled)||enabled.some(id=>typeof id!=='string'))throw Error(W.invalid);
-  const repository=roots.find(id=>enabled.includes(id))??roots[0];
+  let repository;try {repository=resolveMemoryRepository(repoRoot,{runGit,enabled});}catch(e){if(e.message===W.unavailable)return say(W.unavailable);throw e;}
   if(command==='enable') {const written=writePackConfigMember(agentDir,OPT_IN_MEMBER,[...new Set([...enabled,repository])]);if(!written.ok)throw Error(W.invalid);return say(W.enabled);}
   if(!enabled.includes(repository))return say(W.disabled);
   const resolved=resolveProfile(agentDir);if(!resolved.ok)return say(W.pointer);

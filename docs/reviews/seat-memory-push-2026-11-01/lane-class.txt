@@ -1,0 +1,1 @@
+hook: packages/nana-setup/claude/hooks/nana-shared-memory.mjs — Claude Code hook

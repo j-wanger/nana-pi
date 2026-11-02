@@ -71,7 +71,7 @@ It skips CI and every defined launcher role, bounds stdin at 300 ms, and exits i
 Its matcher-free entry uses a 1.5-second timeout and `nana: memory` status message.
 Doctor's informational `memory making` note reports enabled counts, the newest machine-local run and local unpushed commits without repository ids.
 
-The shared-memory SessionStart hook writes its unchanged index before dynamically loading the pack's context logger. It appends one versioned line to `nana-context-loads.jsonl` in pi's active agent dir, recording session, working folder, full/printed chars and entry filenames printed whole, shortened or omitted. It logs no memory contents. An unavailable module, append failure, cwd-relative agent dir or log inside a git worktree prints one stderr reason and cannot cost the index. Shell and hook environments with different `PI_CODING_AGENT_DIR` values split the log. There is no rotation or reader yet.
+The shared-memory SessionStart hook prepares its index before attempting a private memory push. It appends one versioned line to `nana-context-loads.jsonl` in pi's active agent dir, recording session, working folder, full/printed chars and entry filenames printed whole, shortened or omitted. Push metadata adds delivered and omitted 12-hex ids, record-line characters, skipped damaged-project files and a fixed reason. It logs no memory contents. An unavailable module, append failure, cwd-relative agent dir or log inside a git worktree prints one stderr reason and cannot cost the index. Shell and hook environments with different `PI_CODING_AGENT_DIR` values split the log. There is no rotation or reader yet.
 
 ## Updating and removing
 
@@ -422,9 +422,26 @@ Linking that per project would mean an installer step per repo, forever. Instead
   reports self-heal skipped and still prints the index;
 - then it creates the memory dir and the `shared` symlink if they are missing, and prints the
   index;
-- the budget in `lib/shared-memory-config.mjs` sits below Claude Code's 10,000-character hook
-  output cap. The longest descriptions are cut first, trailing entries drop only when titles
-  overflow, and a fold line follows.
+- the 9,000-character budget in `lib/shared-memory-config.mjs` sits below Claude Code's
+  10,000-character hook output cap. The private push uses at most 4,000 record-line characters,
+  profile first, then this enabled repository's live records, ordered by trust, saved source,
+  kind and evidence day. Its header and omitted-count line also count in the hook total;
+- the index remains beside the push. Longest descriptions are cut first. In push mode only,
+  a title-only tier keeps discovery when link heads cannot all fit; trailing titles drop only
+  when those overflow. A fold line names the full index;
+- `"memoryPush": false` in pi's active agent dir's `nana-pack.json` restores the old index bytes.
+  Any defined `NANA_ROLE`, CI, linked worktree, missing pointer or marker also skips the push.
+  Each git call gets at most 1,000 ms and the remaining 4,000 ms process-clock deadline.
+  Slow git retains the prepared index. A damaged profile adds a fixed note, reserving its space
+  inside the total cap; damaged project JSON files are skipped and counted;
+- push text is private: never quote it in issues, commits, PRs or HANDOFF. Retract only on the
+  owner's word using the printed id and quote. Ids are 12-hex SHA-256 prefixes (claim hashes
+  for profile records, evidence-plus-claim hashes for extracted project records).
+
+The hook's matcher remains `startup`: `/clear` and compaction do not refresh the push or index.
+Claude's project auto-memory loads separately, outside this hook's budget. The push reads the
+same active pi agent dir as the profile CLI; differing `PI_CODING_AGENT_DIR` environments split
+both pointer resolution and logging. Node and local git suffice; no model or network is called.
 
 So a brand-new repo links itself on its first session. `/Users/example/a-work-project` →
 `-Users-example-a-work-project`; `/Users/example/.nana-worktrees/x` → `-Users-example--nana-worktrees-x`.
@@ -504,6 +521,7 @@ loudly and counted, never silent.
 | `tests/shared-memory-hook.test.mjs` | the real Node hook, run with `HOME`/`CLAUDE_PROJECT_DIR` overridden: fail-open, self-heal, both resolution branches, the >200-char hash against the JS reference, a shared-prefix sibling left alone, and non-ASCII key derivation |
 | `tests/shared-memory-input.test.mjs` | the shared-memory hook's TTY guard and 65536-byte stdin cap |
 | `tests/shared-memory-budget.test.mjs` | the shared-memory hook's output budget, longest-description cuts, whole trailing-entry drops, surrogate-safe trim mark and fold counts |
+| `tests/shared-memory-push.test.mjs` | synthetic seat delivery beside the index, skip byte parity, damaged stores, slow git, shared replay attach points and text-free load metadata |
 | `tests/pi-registration.test.mjs` | "already registered?" across relative, `~`, absolute, worktree-of-the-same-repo and every accepted remote spelling — plus the look-alike remotes that must NOT count. A false negative double-loads every extension; a false positive suppresses a real `pi install` |
 | `tests/pi-launch-limits.test.mjs` | bounded `pi --version` and `pi install` launches for install, its dry run and doctor; timeout rows, full process-tree cleanup after limits, signals or parent death, default limits, agent-folder environment, POSIX termination grace and near-1 MiB output on each stream |
 | `tests/doctor-package-source.test.mjs` | pi package source diagnosis for remote entries, object-form sources, in-checkout relative entries, external worktree identity, clone-first remedy and unrelated packages |

@@ -10,7 +10,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { claimId, readProfileStore, readProfileJson, effectiveState, exclusiveJson, exclusiveJsonAt, writeProfileRecord, profileStamp } from './profile-store.mjs';
+import { gitText } from './profile-sync.mjs';
 import { STORE_LAYOUT as L, STORE_FIELDS, FOLDER_ID_LENGTH, WORDS as W } from './memory-run-config.mjs';
+/** Shared root-commit selection, moved from nana-memory; making opt-in wins among roots. */
+export function resolveMemoryRepository(repoRoot,{runGit,enabled=[]}) {
+ const roots=gitText(runGit,repoRoot,['rev-list','--max-parents=0','HEAD']).split(/\r?\n/u).sort();
+ if(!roots.length||roots.some(id=>! /^[0-9a-f]{40,64}$/u.test(id)))throw Error(W.unavailable);
+ return roots.find(id=>enabled.includes(id))??roots[0];
+}
 export const unitKey=evidence=>evidence.split('+')[0];
 export const repositoryFolder=id=>id.slice(0,FOLDER_ID_LENGTH);
 export const projectStore=(dir,id)=>path.join(dir,L.projects,repositoryFolder(id));

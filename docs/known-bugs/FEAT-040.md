@@ -29,6 +29,7 @@
 - Requirements (owner-profile, round-3 review): SUB-023 sits above SUB-022 in REQUIREMENTS.md; the tree keeps the same order.
 - Requirements (owner-profile, round-3 review): the SUB-022 heading follows the R-3249 table row with no blank line, so a strict Markdown renderer may read it as part of the table.
 - Memory push (seat-memory-push plan, attack N2): a reworded re-extraction of a retracted claim gets a new id and returns on the next push.
+- Owner profile (seat-memory-push-a, review): project-record retract, confirm and supersede events skip the `PROFILE_LIMITS.quote` cap enforced by `writeProfileEvent`.
 - Memory making (making-trigger, plan residual): the merge step catches exact normalized repeats only; a reworded duplicate of a saved claim is stored again until upkeep lands.
 - Memory making (making-trigger, plan residual): whether a detached making run survives Claude Code's exit, especially on Windows, stays unchecked until the session-end lane.
 - Memory making (making-trigger, plan residual): an npm Claude Code install made with scripts disabled keeps a text placeholder at `bin/claude.exe`; direct start fails safely, so memory units remain pending.

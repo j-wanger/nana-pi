@@ -17,7 +17,7 @@ import { PROFILE_GIT_TIMEOUT_MS, PROFILE_PATH_POLICY, PROFILE_LOCK_WAIT_MS, PROF
 export function profileGit(env = process.env) {
  let command=['git'];
  if(env[W.gitCommandEnv]) { command=JSON.parse(env[W.gitCommandEnv]); if(!Array.isArray(command)||!command.length||command.some(x=>typeof x!=='string')) throw Error(W.git); }
- return (cwd,args)=>spawnSync(command[0],[...command.slice(1),...args],{cwd,env,encoding:'utf8',timeout:PROFILE_GIT_TIMEOUT_MS,maxBuffer:PROFILE_PATH_POLICY.outputBytes,stdio:['ignore','pipe','pipe']});
+ return (cwd,args,{timeout=PROFILE_GIT_TIMEOUT_MS,windowsHide}={})=>spawnSync(command[0],[...command.slice(1),...args],{cwd,env,encoding:'utf8',timeout:Math.min(timeout,PROFILE_GIT_TIMEOUT_MS),windowsHide,maxBuffer:PROFILE_PATH_POLICY.outputBytes,stdio:['ignore','pipe','pipe']});
 }
 export function gitText(runGit,dir,args) {
  const r=runGit(dir,args); if(r.error||r.status!==0) throw Error(W.git); return String(r.stdout??'').trim();
