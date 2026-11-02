@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { tmpDir } from './tmp-dir.mjs';
+import { tmpDir } from "./tmp-dir.mjs";
 const home = tmpDir(path.join(os.tmpdir(), 'credential-gate-'));
 process.env.HOME = home; process.env.USERPROFILE = home;
 process.env.PI_CODING_AGENT_DIR = path.join(home, 'agent');
@@ -41,6 +41,7 @@ const blocked = [
   '"C:\\tools\\git.exe" --no-pager credential fill',
   'git credential-manager get', 'git -c x=y credential-manager get',
   'git credential-osxkeychain get', 'git credential-manager-core get',
+  'git credential-cache get', 'git credential-store --file x get', 'gh auth status -t',
   'git credential-store get', 'git credential-wincred get',
   'git-credential-manager get', '/usr/bin/git-credential-osxkeychain get',
   '"C:\\tools\\git-credential-manager.exe" get',
@@ -80,6 +81,9 @@ await check('M7: credential gate pattern seal', async () => {
     String.raw`^git-credential-(?:manager(?:-core)?|osxkeychain|store|wincred)\s+get(?:\s|$)`,
     String.raw`^gh\s+auth\s+token(?:\s|$)`,
     String.raw`^gh\s+auth\s+status\s+(?:\S+\s+)*--show-token(?:\s|$)`,
+    String.raw`^git\s+credential-store\s+--file\s+\S+\s+get(?:\s|$)`,
+    String.raw`^git\s+credential-cache\s+get(?:\s|$)`,
+    String.raw`^gh\s+auth\s+status\s+(?:\S+\s+)*-t(?:\s|$)`,
     String.raw`^security\s+find-(?:generic|internet)-password(?:\s|$)`,
     String.raw`^(?:cmdkey\s+/list(?:\s|$)|vaultcmd(?:\s|$)|get-storedcredential(?:\s|$))`,
     String.raw`^(?:curl|wget|invoke-restmethod|invoke-webrequest|irm|iwr)\s+.*(?:https?://)api\.github\.com(?=[:/?#\s]|$)`,

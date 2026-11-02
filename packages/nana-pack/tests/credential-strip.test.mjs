@@ -12,7 +12,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { tmpDir } from './tmp-dir.mjs';
+import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
 import { CLAUDE_CODE_SUBAGENT_MODELS } from '../bin/worker-config.mjs';
 import { reviewLaunch } from '../bin/review-launch.mjs';
