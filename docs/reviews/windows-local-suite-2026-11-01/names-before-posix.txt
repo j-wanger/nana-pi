@@ -1,0 +1,189 @@
+PASS 'caseitem' after 3 rounds of 'CaseItem' refused (one item)
+PASS 'scope  one' after 3 rounds of 'scope one' refused
+PASS --item ".." refused, no stack
+PASS --item "../item" refused, no stack
+PASS --item "a/b" refused, no stack
+PASS --item "xxxxxxxxxx"… refused, no stack
+PASS --over-cap '  ' is refused
+PASS --over-cap 'instrumented X' runs
+PASS --over-cap --retries is refused (a flag is not a reason)
+PASS --retries 1 opts in explicitly, with a mutation warning (2 attempts)
+PASS --revision <short> and --revision HEAD resolve to the same full sha (no new round)
+PASS --revision naming a different commit than HEAD is refused (revision derives from HEAD)
+PASS CRLF checkout retains plain HEAD
+PASS R-2568: a recorded round keeps its review text by hash beside the tally
+PASS R-2569: a missing or different output file at record time still records and keeps the captured verdict
+PASS R-2573: keep writes each kept review text of the item into the lane folder
+PASS R-2574: keep refuses a differing file and writes nothing
+PASS R-2575: a failed store write records no round
+PASS R-2660: a kept review text whose first rename fails with EPERM, EBUSY or EACCES is still kept and its round recorded, on every platform
+PASS Trust model declares wrapper-only formal rounds, supplemental reviews and revision-based counting
+PASS a TRACKED --out is refused before the review runs (file untouched, nothing reserved)
+PASS a TRACKED file named ..notes.md is in-tree and refused (file untouched)
+PASS a clean submodule at its recorded commit → the bare HEAD sha
+PASS a corrupted round line refuses admission with file:line
+PASS a dangling --out link is resolved to where the write would land (in-tree → warns)
+PASS a failing worker is NOT retried by default (1 attempt, exit 1)
+PASS a forged reservation id records nothing
+PASS a future-dated reservation is stale (does not hold a round)
+PASS a live but NON-renewing owner is reclaimed after the window (0 in flight)
+PASS a record missing repo/revision is malformed too
+PASS a review whose --out lands inside the reviewed tree is stable (its own output is excluded)
+PASS a save writes one shape record into the private clone and nowhere else
+PASS a symlinked --out aimed at a tracked file is refused BEFORE the review (target byte-identical, nothing reserved or counted)
+PASS a worker reply with NO review token succeeds (exit 0, output written)
+PASS after SIGKILL + a dead-pid lock, the next review is admitted
+PASS after two rotations, item rot's 4th revision is still refused
+PASS an --out outside the tree is silent
+PASS an empty verdict prints one stderr line naming the selected line, its condition and the conflicting line
+PASS an ignored in-tree --out is silent
+PASS an incomplete round line refuses admission naming file:line
+PASS an untracked ..draft.md is in-tree: warns, and is excluded from the snapshot (verdict verified)
+PASS an untracked in-tree --out warns, the review still runs, and the output stays out of its snapshot
+PASS an unwritable ledger directory is refused at once before the review, saying it must be writable, no stack
+PASS cached removal of normalized content retains plain HEAD
+PASS check changed neither the tally, the audit nor the reservations (captured before check)
+PASS check on a machine with no ledger creates nothing
+PASS check refuses too
+PASS check with a read-only reservations dir succeeds (it writes nothing)
+PASS clean checkout under core.autocrlf and core.safecrlf retains plain HEAD
+PASS clean tree → the bare HEAD sha
+PASS collapse: an untracked file is part of the state (≠ clean)
+PASS collapse: two different dirty submodule contents (both render '-dirty') → distinct
+PASS commit the change → a new revision (clean sha, snapshot null), a new round
+PASS complete appends every verdict at v2 and returns the revision ordinal
+PASS complete extracts plain first-line verdicts, supported scores, BOM and line endings
+PASS complete records an empty verdict for malformed verdict suffixes
+PASS complete records the LAND corpus forms and final SEND-BACK
+PASS complete refuses marks, corrections, conflicting verdicts, invisible characters and bounded-token lookalikes
+PASS complete(B) recorded; the item has 3 rounds, never 4
+PASS complete(expired A) refused, NOT recorded
+PASS completed round records verdict and readRounds filters without mutation
+PASS completing B twice is refused (its reservation was consumed)
+PASS corrupt index → refused, the message names git's error, no stack, no round
+PASS dirty tree review → round 1, ledger line {revision:<sha>+snap:<64hex>, head:<sha>, snapshot:<64hex>}
+PASS edit a tracked file (uncommitted) → round 2
+PASS edit during the review → exit 1, 'changed during the review', verdict NOT recorded as valid
+PASS every configured verdict look-alike canonicalizes to its target
+PASS every ledger data file that is a directory is refused before the review, naming the path, no stack
+PASS every ledger file as a symlink is refused at once before the review, target untouched, no stack
+PASS explicit --revision HEAD on a dirty tree still carries the snapshot (4th state → refused)
+PASS fourth revision refused
+PASS infra failure → exit 1
+PASS legacy path-keyed tally rows remain readable
+PASS legacy rounds print - for every unavailable report field
+PASS lock path is a directory: refused at once with a message, no stack
+PASS lost committed exec bit retains plain HEAD
+PASS new revision earns a round regardless of role
+PASS no --item → refused with the required-item message
+PASS no override was recorded by the spoofs
+PASS no reservation left behind, no round counted
+PASS normalized dirty copies share one snapshot
+PASS notes.md on a 4th revision refused
+PASS only a seat on an enabled machine may write
+PASS outside git refuses admission unless --tree names a reviewed repository
+PASS outside git without --tree → refused
+PASS pi-review --tree succeeds from a non-git scratch cwd
+PASS pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs
+PASS pi-review enforces the case-sensitive verdict line boundary
+PASS pi-review exits 1 without its success line when the recorded verdict is empty
+PASS pi-review still requires review shape (the same plain reply is no verdict)
+PASS pi-review: explicit --retries → one-line notice
+PASS pi-review: no --retries → no notice
+PASS pi-watchdog imports no ledger or review module
+PASS pi-watchdog removes capture directories after success, child failure and stall
+PASS pi-worker refuses review options (--item)
+PASS pi-worker runs a worker under the watchdog (exit 0, output written)
+PASS pi-worker source never imports the ledger API
+PASS pi-worker touched no ledger file
+PASS pi-worker: explicit --retries → notice; default → none
+PASS prefixed verdict accepted by shape predicate is extracted into the recorded round
+PASS race1: exactly one of two concurrent launchers wins the last round
+PASS race2: exactly one of two concurrent launchers wins the last round
+PASS race3: exactly one of two concurrent launchers wins the last round
+PASS re-reviewing an already-counted revision is admitted and earns nothing
+PASS relUnder: by segment
+PASS renew() of a consumed reservation returns false
+PASS renew() refreshes a reservation older than the old 12 h lease
+PASS repeated FAILED over-cap launches: the audit rotates (never above the cap), overrides still recorded
+PASS report prints one line per verdict on a revision
+PASS report records metadata, omits unused override reasons, and reports real over-cap reason read-only
+PASS retract and supersede hide the right records
+PASS revert the edit → original revision recognised, no new round
+PASS review-ledger check refuses a tracked --out too
+PASS review-ledger child executes from selected directory, not repository root
+PASS review-ledger enforces the case-sensitive verdict line boundary
+PASS review-ledger run -- pi starts pi and records its round
+PASS review-ledger run earns a counted round
+PASS review-ledger run exits 1 when the recorded verdict is empty and 0 when it is a word
+PASS review-ledger run starts its command with NANA_ROLE=reviewer and NANA_HANDOFF=off over a caller's worker role
+PASS same slug, unrelated repo B: its own item (admitted)
+PASS scratch launcher cwd with --tree uses the reviewed repository scope
+PASS scratch objects resolve a linked repository with special path characters
+PASS seal: PROFILE_GIT_TIMEOUT_MS is 15000
+PASS seal: PROFILE_LAYOUT
+PASS seal: PROFILE_LIMITS
+PASS seal: PROFILE_LOCK_STALE_MS is 120000
+PASS seal: PROFILE_LOCK_WAIT_MS covers 28 Git steps
+PASS seal: PROFILE_MEDIUM_SESSIONS is 3
+PASS seal: PROFILE_PATH_POLICY
+PASS seal: PROFILE_PUSH_RETRIES is 1
+PASS seal: PROFILE_REMOTE_FORMS
+PASS seal: PROFILE_SESSION_VARIABLES
+PASS seal: PROFILE_SHOW_BUDGET is 4000
+PASS seal: PROFILE_STAMP_FORMAT
+PASS seal: PROFILE_WORDS
+PASS snapshot derivation leaves git metadata unchanged
+PASS sol-final.md / r3b.md / anything.md on revisions 1-3 admitted
+PASS split: `git rm --cached` (index only; the file is unchanged on disk) → still the clean sha
+PASS split: diff.noprefix / mnemonicPrefix / color.ui / quotePath / renames set → same revision
+PASS split: ignored files (*.log, build/) do not change the revision
+PASS split: modified + new file — unstaged, intent-to-add, fully staged → ONE revision
+PASS split: touching a file (mtime only) does not change the revision
+PASS stage the same content → the same revision (index state is not work state), no new round
+PASS stalled attempt → exit 1 (watchdog killed it)
+PASS switching launcher (review-ledger run) does not reset the count
+PASS tally holds exactly 3 rounds, audit exactly 3 verdicts
+PASS tally record {v,ts,kind:round,repo,item,revision(full sha),role,launcher}
+PASS ten verdicts under ten roles on one revision all admitted
+PASS the audit log rotated twice (.1 holds only the 2nd generation; rot's verdicts are gone from it)
+PASS the crashed attempt consumed no round (3 rounds)
+PASS the crashed reservation was pruned, and the lock released
+PASS the empty-verdict line says nana-land refuses the revision and counts the rounds left
+PASS the expired reservation is pruned; a replacement is admitted as round 3
+PASS the full sha-256 is retained (64 hex)
+PASS the in-flight review holds the last round (check says no)
+PASS the over-cap round carries the override in the tally
+PASS the override is recorded with reason, round and timestamp
+PASS the pointer is configuration and the push target stays verified private
+PASS the review's own --out file inside the tree is excluded from its snapshot
+PASS the tally never rotates
+PASS toctou: admitted at the clean HEAD
+PASS toctou: an edit made while completion waits on the lock → verdict recorded UNVERIFIED, not valid
+PASS toctou: the completion was blocked on the lock when the tree was edited
+PASS tracked stdout and untracked stderr redirects into the reviewed tree are refused through both launchers
+PASS trust rises only on the owner words across sessions
+PASS two sol reviews of one revision (sol r1: consumed 2) = one round
+PASS two worktrees: one repo identity in the tally
+PASS unresolvable --revision inside git refused
+PASS watchdog signals reap children, release review reservations and preserve signal exit codes
+PASS while a renewing review runs past its stale window, another admission sees it in flight
+PASS worktree W2 at A's already-counted revision: admitted, no new round
+PASS worktree W2 at a 4th revision: refused (the item is shared)
+PASS …a pi arg named --retries (after --) is not the flag
+PASS …also when spelled through ../ (resolved)
+PASS …and a path tracked in HEAD but removed from the index
+PASS …and completes
+PASS …and its late completion records nothing
+PASS …and no reservation is left behind
+PASS …and ran exactly once (zero retries)
+PASS …and removing it returns to the clean sha
+PASS …and the renewing review completes and is recorded (exit 0, round 1)
+PASS …and they are ONE round (10 v2 verdict records, 10 audit verdicts)
+PASS …chmod back → the clean sha
+PASS …deleting the line is the documented repair (2 rounds left → admitted)
+PASS …nor does editing an ignored file
+PASS …so the item still has all 3 rounds, and the 4th is refused
+PASS …submodule restored → the clean sha
+PASS …the round IS consumed for the admitted revision (tally: unverified, completedAs = the new state)
+PASS …through a chain of two links is refused BEFORE the review (target byte-identical, nothing reserved or counted)

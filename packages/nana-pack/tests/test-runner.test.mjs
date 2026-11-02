@@ -624,6 +624,16 @@ check("R-2546: with the record knob set, the runner writes one run record with e
 check("R-2753: the run record names the default per-file time limit the runner applied",
 	recordedSerial.record?.fileTimeoutMs === RECORD_LIMIT_MS && recordedParallel.record?.fileTimeoutMs === RECORD_LIMIT_MS);
 
+const filterRecordFile = path.join(TD, "filtered-record.json");
+const filterArgs = ["a-pass", "c-silent"];
+const filteredRecordRun = run(rootRecord, filterArgs, { [RECORD_FILE_ENV]: filterRecordFile });
+const filteredRecord = JSON.parse(fs.readFileSync(filterRecordFile, "utf8"));
+// req: R-3433
+check("R-3433: whole-run records carry the actual path filters, empty for an unfiltered run",
+	JSON.stringify(recordedSerial.record?.filters) === "[]"
+		&& JSON.stringify(recordedParallel.record?.filters) === "[]"
+		&& JSON.stringify(filteredRecord.filters) === JSON.stringify(filterArgs), filteredRecordRun.out);
+
 const recordRuns2880 = [
 	{ label: "serial", run: recordedSerial, files: serialFiles },
 	{ label: "parallel", run: recordedParallel, files: parallelFiles },

@@ -16,9 +16,10 @@ import { fileURLToPath } from "node:url";
 import { canonicalItem, reviewTextEvidence, withReviewLedgerLock, repoKeyOf } from "./review-round.mjs";
 import { releaseStatus } from "../lib/release-status.mjs";
 import { realPath } from "../lib/real-path.mjs";
-import { ciScope, githubRepoOf, judgeRuns } from "../lib/land-ci.mjs";
-import { keepLandCiRecords } from "../lib/land-ci-records.mjs";
-import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
+import { changedSuitePaths, ciScope, githubRepoOf, judgeRuns, proveCiSuite } from "../lib/land-ci.mjs";
+import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
+import { readCiRecords } from "../lib/ci-records.mjs";
+import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
 import { LAND_LEDGER_READ_MAX_BYTES, LAND_REASON_MAX_CHARS, LAND_RECORD_LINE_PREFIX, LAND_RECORD_SCHEMA } from "../lib/land-records-config.mjs";
@@ -80,7 +81,7 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; process and state readers are injectable for controlled callers and tests. */
-function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, now = () => new Date(), lifecycle }) {
+function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, platform = process.platform, recordsNow = () => performance.now(), now = () => new Date(), lifecycle }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
 		const repo = repoKeyOf(tree);
@@ -146,6 +147,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		let ciLines = [];
 		let ciNote = null;
 		let ciReadPassed = false;
+		let suiteProof = { ok: false, reason: scope.note };
 		if (!scope.applies) {
 			lifecycle.ci = "skipped";
 			ciNote = `${LAND_NOTE_PREFIX} note: CI not read: ${scope.note}`;
@@ -154,7 +156,11 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			const apiPath = CI_RUNS_PATH.replace("<owner>", scope.repository.owner).replace("<repo>", scope.repository.repo);
 			const args = ["api", "--hostname", CI_HOST, `${apiPath}?head_sha=${tip}&per_page=${CI_RUNS_PAGE_SIZE}`];
 			const env = ghEnvironment(process.env);
-			const response = runGh(main, args, { env });
+			let response;
+			for (let attempt = 0; attempt <= CI_RUN_LIST_RETRIES; attempt++) {
+				response = runGh(main, args, { env });
+				if (response?.error || response?.status === 0 || response?.signal || !Number.isInteger(response?.status)) break;
+			}
 			const firstErrorLine = String(response?.stderr ?? "").split(/\r?\n/)[0].trim();
 			if (response?.error?.code === "ETIMEDOUT" || response?.signal && response?.status === null) throw new Error(`CI read timed out after ${response?.nanaTimeoutMs ?? CI_READ_TIMEOUT_MS} ms${firstErrorLine ? `: ${firstErrorLine}` : ""}`);
 			if (response?.error) {
@@ -168,14 +174,30 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			ciReadPassed = true;
 			lifecycle.ci = "passed";
 			lifecycle.ciWaitMs = landCiWaitMs(verdict.runs);
+			suiteProof = changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", capturedMain, tip));
+			if (suiteProof.ok) {
+				try {
+					const budget = budgetedGh({ runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env }), now: recordsNow });
+					const records = readCiRecords([tip], { cwd: tree, runGit, runGh: budget.runGh, writeLine: () => {} });
+					suiteProof = proveCiSuite({ ...records, budgetStopped: budget.budgetStopped }, verdict.runs, platform);
+				} catch { suiteProof = { ok: false, reason: "CI suite records could not be read" }; }
+			}
 		}
 		lifecycle.stage = "suite";
-		const suiteStarted = now();
-		const suiteResult = runCommand(suite, tree, { env: { ...process.env, [LAND_TIP_ENV]: tip } });
-		const suiteEnded = now();
-		lifecycle.suiteMs = suiteEnded.getTime() - suiteStarted.getTime();
-		const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
-		if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
+		lifecycle.suite = suiteProof.ok ? "ci" : "local";
+		lifecycle.suiteWhy = suiteProof.ok ? null : suiteProof.reason;
+		const suiteLine = suiteProof.ok
+			? `${SUITE_LINE_PREFIX} ci ${suiteProof.records.map((item) => `run ${item.run.id} attempt ${item.attempt} platform ${platform}`).join("; ")}`
+			: `${SUITE_LINE_PREFIX} local ${suiteProof.reason}`;
+		let suiteResult = {};
+		if (!suiteProof.ok) {
+			const suiteStarted = now();
+			suiteResult = runCommand(suite, tree, { env: { ...process.env, [LAND_TIP_ENV]: tip } });
+			const suiteEnded = now();
+			lifecycle.suiteMs = suiteEnded.getTime() - suiteStarted.getTime();
+			const suiteCode = suiteResult.status ?? (suiteResult.signal ? 128 : 1);
+			if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
+		}
 		lifecycle.stage = "merge";
 		let reviewEvidence;
 		lockReviews(home, ({ rounds, reservations }) => {
@@ -225,7 +247,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		}
 		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...(reviewEvidence?.notes ?? []), ...recordNotes];
 		const relied = [...new Set(reviewEvidence?.relied ?? [])].map((name) => `review text relied on: ${name}`);
-		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}push command: git push\nrelease status: ${releaseLine}\n` };
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 
@@ -234,7 +256,7 @@ const withLandRecordLine = (text, line) => `${text}${text && !text.endsWith("\n"
 /** Run a merge with a best-effort start/end record lifecycle that never changes its verdict or earlier output. */
 function runRecordedLand(options) {
 	const now = options.now ?? (() => new Date());
-	const lifecycle = { stage: "preflight", ci: "not reached", ciWaitMs: null, suiteMs: null };
+	const lifecycle = { stage: "preflight", ci: "not reached", ciWaitMs: null, suiteMs: null, suite: null, suiteWhy: null };
 	let common = null;
 	let start = null;
 	let startKept = false;
@@ -286,6 +308,8 @@ function runRecordedLand(options) {
 			ci: lifecycle.ci,
 			ciWaitMs: lifecycle.ci === "passed" ? lifecycle.ciWaitMs : null,
 			suiteMs: lifecycle.suiteMs,
+			suite: lifecycle.suite,
+			suiteWhy: lifecycle.suiteWhy,
 		};
 		const kept = appendLandRecord(common, end);
 		if (!kept.ok) {

@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import { parseJsonBytes } from '../lib/json-text.mjs';
 import { USER_KIND_WORDS } from '../lib/memory-making-config.mjs';
 import { GH_COMMAND_ENV } from '../lib/suite-records-config.mjs';
+import { TEMP_REMOVE_RETRIES, TEMP_REMOVE_RETRY_DELAY_MS } from '../lib/test-runner-config.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
 export const root = fileURLToPath(new URL('../../..', import.meta.url));
 export const cli = path.join(root, 'packages/nana-pack/bin/nana-profile.mjs');
@@ -46,7 +47,7 @@ export function fixture() {
   });
   const f={dir,agent,env:e,remote,run,asyncRun}; clones.push(f); return f;
  };
- return { temp,env,main,bare,git,clone,clones,close:()=>fs.rmSync(temp,{recursive:true,force:true}) };
+ return { temp,env,main,bare,git,clone,clones,close:()=>fs.rmSync(temp,{recursive:true,force:true,maxRetries:TEMP_REMOVE_RETRIES,retryDelay:TEMP_REMOVE_RETRY_DELAY_MS}) };
 }
 export function ok(r) { assert.equal(r.status,0,r.stderr||r.stdout); return r.stdout; }
 export function refused(r,line) { assert.notEqual(r.status,0); assert.equal(r.stderr.trim(),line); }

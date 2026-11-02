@@ -27,6 +27,23 @@ const timeoutResult = (budgetMs) => ({
 	nanaTimeoutMs: budgetMs,
 });
 
+/** Share the CI read's total budget, including a last call that returns after it expires. */
+export function budgetedGh({ runGh, now = () => performance.now(), budgetMs = CI_RECORDS_BUDGET_MS }) {
+	let startedAt = null;
+	let stopped = false;
+	return {
+		runGh: (cwd, args, options = {}) => {
+			const moment = Number(now());
+			if (startedAt === null) startedAt = moment;
+			const remaining = budgetMs - (moment - startedAt);
+			if (!(remaining >= 1)) { stopped = true; return timeoutResult(budgetMs); }
+			const timeoutMs = Math.min(CI_READ_TIMEOUT_MS, Math.floor(remaining));
+			return runGh(cwd, args, { ...options, timeoutMs });
+		},
+		get budgetStopped() { return stopped || (startedAt !== null && !(Number(now()) - startedAt < budgetMs)); },
+	};
+}
+
 /** Read, store, and judge CI records under one total gh-call budget. */
 export function keepLandCiRecords({
 	main,
@@ -41,18 +58,9 @@ export function keepLandCiRecords({
 } = {}) {
 	const lines = [];
 	const notes = [];
-	let startedAt = null;
-	let budgetStopped = false;
+	const budget = budgetedGh({ runGh, now, budgetMs });
 	try {
-		const budgetedGh = (cwd, args, options = {}) => {
-			const moment = Number(now());
-			if (startedAt === null) startedAt = moment;
-			const remaining = budgetMs - (moment - startedAt);
-			if (!(remaining >= 1)) { budgetStopped = true; return timeoutResult(budgetMs); }
-			const timeoutMs = Math.min(CI_READ_TIMEOUT_MS, Math.floor(remaining));
-			return runGh(cwd, args, { ...options, timeoutMs });
-		};
-		const result = readRecords([tip], { cwd: main, runGh: budgetedGh, writeLine: (line) => lines.push(line) });
+		const result = readRecords([tip], { cwd: main, runGh: budget.runGh, writeLine: (line) => lines.push(line) });
 		if (!result || !Number.isInteger(result.code) || !Number.isInteger(result.records) || !Array.isArray(result.parsed)) throw new Error("CI-record reader returned a malformed result");
 
 		let kept = 0;
@@ -80,12 +88,13 @@ export function keepLandCiRecords({
 		if (result.parsed.length) lines.push(`${CI_RECORD_LINE_PREFIX} kept ${kept} of ${result.parsed.length} records`);
 
 		const failures = [];
+		const budgetStopped = budget.budgetStopped;
 		if (budgetStopped) failures.push(`not read: stopped at the ${numberText(budgetMs / 1000)} s budget`);
 		else if (result.code !== 0 || result.records === 0) failures.push(`not read: ${withoutRecordPrefix(lines.at(-1)) || "no readable record"}`);
 		if (storeProblems.length) failures.push(`not kept: ${storeProblems.length} of ${result.parsed.length}: ${storeProblems[0]}`);
 		if (failures.length) notes.push(`${LAND_NOTE_PREFIX} note: CI records ${failures.join("; ")}`);
 		return { lines, notes, records: result.parsed.length, kept, budgetStopped };
 	} catch (error) {
-		return { lines, notes: [`${LAND_NOTE_PREFIX} note: CI records failed: ${reasonOf(error)}`], records: 0, kept: 0, budgetStopped };
+		return { lines, notes: [`${LAND_NOTE_PREFIX} note: CI records failed: ${reasonOf(error)}`], records: 0, kept: 0, budgetStopped: budget.budgetStopped };
 	}
 }

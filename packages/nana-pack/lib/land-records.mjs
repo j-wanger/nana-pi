@@ -21,6 +21,7 @@ import {
 	LAND_RECORD_SCHEMA,
 	LAND_RECORDS_SUBPATH,
 	LAND_STAGES,
+	LAND_SUITE_SOURCES,
 } from "./land-records-config.mjs";
 import { appendLedgerRecord, minutes, pairRecordViews, plural, readRecordLedger } from "./record-ledger.mjs";
 
@@ -77,6 +78,7 @@ function landViews(records, ledgerBadLines = 0) {
 		view.suiteMs = view.end.suiteMs === null || view.end.suiteMs === undefined ? null : Math.max(0, Number(view.end.suiteMs) || 0);
 		view.ciWaitMs = view.end.ciWaitMs === null || view.end.ciWaitMs === undefined ? null : Math.max(0, Number(view.end.ciWaitMs) || 0);
 		view.ci = CI_STATES.has(view.end.ci) ? view.end.ci : null;
+		view.suite = LAND_SUITE_SOURCES.includes(view.end.suite) ? view.end.suite : null;
 	}
 	return { attempts: paired.views, badLines: paired.badLines };
 }
@@ -87,7 +89,7 @@ const minuteText = (value, noun) => value === null ? `${noun} -` : `${noun} ${mi
 export function renderLandAttemptLine(view) {
 	const duration = view.durationMs === null ? "total -" : `${minutes(view.durationMs)} min total`;
 	const tip = typeof view.start.tip === "string" && view.start.tip ? view.start.tip.slice(0, TIP_DIGITS) : "-";
-	return `land ${view.start.startedAt} | lane ${view.start.lane ?? "-"} | ${view.outcome} | stage ${view.stage ?? "-"} | reason ${view.reason ?? "-"} | ${duration} | ${minuteText(view.suiteMs, "suite")} | ${minuteText(view.ciWaitMs, "CI wait")} | tip ${tip}`;
+	return `land ${view.start.startedAt} | lane ${view.start.lane ?? "-"} | ${view.outcome} | stage ${view.stage ?? "-"} | reason ${view.reason ?? "-"} | ${duration} | ${view.suite === "ci" ? "suite ci" : minuteText(view.suiteMs, "suite")} | ${minuteText(view.ciWaitMs, "CI wait")} | tip ${tip}`;
 }
 
 function landLaneSummary(attempts, lane) {
@@ -131,7 +133,7 @@ export function landReportLines(records, { badLines = 0, lane = null } = {}) {
 /** Render nana-land's one closing record line after an end append. */
 export function renderLandRecordLine(end, laneLine) {
 	const stage = end.stage ?? "-";
-	const suite = end.suiteMs === null ? "-" : `${minutes(end.suiteMs)} min`;
+	const suite = end.suite === "ci" ? "suite ci" : `${end.suiteMs === null ? "-" : `${minutes(end.suiteMs)} min`} suite`;
 	const wait = end.ciWaitMs === null ? "-" : `${minutes(end.ciWaitMs)} min`;
-	return `${LAND_RECORD_LINE_PREFIX} ${end.outcome}, stage ${stage}, ${minutes(end.durationMs)} min total, ${suite} suite, ${wait} CI wait; ${laneLine}`;
+	return `${LAND_RECORD_LINE_PREFIX} ${end.outcome}, stage ${stage}, ${minutes(end.durationMs)} min total, ${suite}, ${wait} CI wait; ${laneLine}`;
 }

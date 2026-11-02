@@ -15,6 +15,7 @@ import path from "node:path";
 import { runLand } from "../bin/nana-land.mjs";
 import { admit, complete } from "../bin/review-round.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+import { CI_ARTIFACT_PREFIX } from "../lib/suite-records-config.mjs";
 
 export const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 
@@ -53,6 +54,26 @@ export const gitRunner = (cwd, args) => {
 
 export const workflowRun = (overrides = {}) => ({ workflow_id: 1, name: "ci", id: 101, run_number: 1, run_attempt: 1, event: "pull_request", status: "completed", conclusion: "success", ...overrides });
 export const runList = (runs) => JSON.stringify({ total_count: runs.length, workflow_runs: runs });
+
+/** Answer the record reader's external calls, writing downloads only inside its OS-temp folder. */
+export function artifactGh(runs, items, { failure = false, afterCall = () => {} } = {}) {
+	return (_cwd, args, options) => {
+		let result;
+		const endpoint = args.at(-1);
+		if (args[0] === "api" && endpoint.includes("/actions/runs?")) result = { status: 0, stdout: runList(runs) };
+		else if (args[0] === "api" && endpoint.includes("/artifacts?")) {
+			const id = /\/runs\/(\d+)\//.exec(endpoint)[1];
+			result = failure ? { status: 1, stderr: "artifacts unavailable" } : { status: 0, stdout: JSON.stringify({ artifacts: items.filter((entry) => String(entry.run) === id).map((entry, index) => ({ id: index + 1, name: `${CI_ARTIFACT_PREFIX}${entry.leg}-${entry.attempt}`, created_at: "2026-11-01T00:00:00Z" })) }) };
+		} else if (args[0] === "api" && endpoint.includes("/jobs?")) result = { status: 0, stdout: JSON.stringify({ jobs: [] }) };
+		else if (args[0] === "run" && args[1] === "download") {
+			const name = args[args.indexOf("--name") + 1], dir = args[args.indexOf("--dir") + 1];
+			const entry = items.find((value) => String(value.run) === args[2] && name === `${CI_ARTIFACT_PREFIX}${value.leg}-${value.attempt}`);
+			assert(entry); mkdirSync(dir, { recursive: true }); writeFileSync(path.join(dir, "record.json"), JSON.stringify(entry.record));
+			result = { status: 0, stdout: "" };
+		} else result = { status: 9, stderr: "unexpected gh call" };
+		afterCall(args, options); return result;
+	};
+}
 
 export const ciFixture = (name, { origin = "https://github.com/example/fixture.git", workflowOnMain = false, workflowOnTip = true, workflowPath = ".github/workflows/ci.yml" } = {}) => {
 	const root = tmpDir(path.join(os.tmpdir(), `land-ci-${name}-`)); const main = repo(root, "main");

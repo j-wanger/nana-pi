@@ -18,6 +18,7 @@ import { installExitCode, PI_LAUNCH_LIMITS_MS, stepPiRegister } from "../lib/ste
 import * as boundedSpawn from "../lib/bounded-spawn.mjs";
 import { PI_BIN_NAME, PI_PACKAGE } from "../../nana-pack/bin/worker-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+import { withPathPrepended } from "../../nana-pack/tests/env-path.mjs";
 
 const { RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SETTLE_MS, RELAY_SIGNAL_GRACE_MS } = boundedSpawn;
 const LIMIT_MS = 3_000;
@@ -156,7 +157,7 @@ function makeFixture(target, { registerKnowledge = false, npm = false } = {}) {
 		bin,
 		pids,
 		layout,
-		env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`, PIDS_FILE: pids, HANG_TARGET: target, HANG_MS: String(HANG_MS) },
+		env: { ...withPathPrepended(process.env, bin), PIDS_FILE: pids, HANG_TARGET: target, HANG_MS: String(HANG_MS) },
 	};
 }
 
@@ -296,7 +297,7 @@ check("R-2020: a pi that hangs on --version makes install and install --dry-run 
 	};
 });
 
-// req: R-2021
+// req: R-2021 R-3453
 check("R-2021: a pi that hangs on --version makes doctor stop at the limit and report pi executable ✗ naming pi --version and the limit", () => {
 	const run = timedDoctor();
 	return { ok: run.elapsed >= LIMIT_MS && run.elapsed < RELAY_ELAPSED_BOUND_MS && run.row?.status === "fail" && stoppedVersion(run.row), detail: JSON.stringify({ elapsed: run.elapsed, row: run.row }) };

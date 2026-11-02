@@ -237,7 +237,7 @@ function baselineText(current, baseline, { mainTip, now }) {
 	if (!baseline) {
 		if (!mainTip) return "no baseline exists (no main branch)";
 		if (current.mergeBase !== mainTip) return "no baseline exists (merge main to record one)";
-		return "no baseline exists (the next land records one)";
+		return "no baseline exists (the next local land or hand run records one)";
 	}
 	const age = Math.max(0, Math.floor((Date.parse(now) - timeValue(baseline)) / 3_600_000));
 	return `baseline ${baseline.tip.slice(0, TIP_DIGITS)} age ${age}h coverage ${baseline.coverage ? "yes" : "no"} wall ${numberText(baseline.wallSeconds)}s -> ${numberText(current.wallSeconds)}s`;

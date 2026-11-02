@@ -7,6 +7,7 @@
  * @errors Malformed workflow-run data is returned as a named refusal reason.
  */
 import path from "node:path";
+import { finalFiles } from "./suite-records.mjs";
 import {
 	CI_DONE_STATUS,
 	CI_HOST,
@@ -15,6 +16,8 @@ import {
 	CI_WORKFLOW_DIR,
 	CI_WORKFLOW_EXTENSIONS,
 	TIP_DIGITS,
+	SUITE_FALLBACK_PATHS,
+	SUITE_CHANGED_REASON,
 } from "./land-config.mjs";
 
 // contract (R-1511): strict GitHub origin spellings, with no credentials and an optional .git suffix.
@@ -40,6 +43,32 @@ export function ciScope({ remoteNames = "", originUrl = "", workflowPaths = "" }
 	const workflow = pathsOf(workflowPaths).some((file) => path.posix.dirname(file) === CI_WORKFLOW_DIR && CI_WORKFLOW_EXTENSIONS.includes(path.posix.extname(file)));
 	if (!workflow) return { applies: false, note: "the tip tracks no workflow" };
 	return { applies: true, repository };
+}
+
+/** Judge the captured-main-to-tip path list without treating other scripts as proof changes. */
+export function changedSuitePaths(changedPaths) {
+	const changed = linesOf(changedPaths).some((file) => SUITE_FALLBACK_PATHS.some((entry) => entry.endsWith("/") ? file.startsWith(entry) : file === entry));
+	return changed ? { ok: false, reason: SUITE_CHANGED_REASON } : { ok: true };
+}
+
+/** Require every highest-attempt same-platform leg from a judged run to prove an unfiltered successful suite. */
+export function proveCiSuite(result, runs, platform) {
+	if (result?.code !== 0 || !Array.isArray(result?.parsed) || result?.problems?.length || result?.budgetStopped) return { ok: false, reason: result?.budgetStopped ? "CI suite records exceeded their budget" : "CI suite records could not be read" };
+	const judged = new Set(runs.map((run) => String(run.id)));
+	const legs = new Map();
+	for (const item of result.parsed) {
+		if (!judged.has(String(item.run?.id)) || item.record?.platform !== platform) continue;
+		const key = `${item.run.id}/${item.leg}`;
+		const prior = legs.get(key);
+		if (!prior || item.attempt > prior.attempt) legs.set(key, item);
+	}
+	if (!legs.size) return { ok: false, reason: `no CI suite record for platform ${platform}` };
+	for (const { record } of legs.values()) {
+		if (!Array.isArray(record.filters) || record.filters.length !== 0) return { ok: false, reason: "CI suite record does not prove an unfiltered run" };
+		if (finalFiles(record).length === 0) return { ok: false, reason: "CI suite record has no final files" };
+		if (record.exitCode !== 0) return { ok: false, reason: "CI suite record did not exit 0" };
+	}
+	return { ok: true, records: [...legs.values()] };
 }
 
 const isId = (value) => (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) || (typeof value === "string" && value.length > 0);
