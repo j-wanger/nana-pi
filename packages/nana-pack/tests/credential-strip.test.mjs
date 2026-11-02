@@ -72,7 +72,7 @@ function sample(env){
  const cfg=spawnSync('git',['config','--get','core.autocrlf'],{env,encoding:'utf8',timeout:${PROBE_MS}});
  return {password:/^password=/m.test(r.stdout||''),fixture:/password=fixture-only/m.test(r.stdout||''),invoked:fs.existsSync(process.env.FIXTURE_MARKER),bounded:!r.error,config:(cfg.stdout||'').trim()};
 }
-const raw=sample(process.env), effective=flag?sample({...process.env,...project,...flag}):raw;
+const raw=sample(process.env), effective=process.env.FIXTURE_CLAUDE?sample({...process.env,...project,...(flag??{})}):raw;
 fs.writeFileSync(process.env.FIXTURE_RECORD,JSON.stringify({raw,effective,flag:!!flag}));
 process.stdout.write('Fixture complete.\\nVERDICT: LAND\\n');
 `);
@@ -85,7 +85,7 @@ if (process.platform === 'win32') {
 }
 const roster = { scout: null, builder: { provider: 'fixture', model: 'fixture', thinking: null }, largerBuilder: { runtime: 'claude-code', model: CLAUDE_CODE_SUBAGENT_MODELS[0] }, reviewer: { runtime: 'claude-code', model: CLAUDE_CODE_SUBAGENT_MODELS[0] }, land: null };
 fs.writeFileSync(path.join(agent, 'nana-pack.json'), JSON.stringify({ roster }));
-const project = path.join(temp, 'project.json');
+const project = path.join(claude, 'settings.json');
 let serial = 0;
 const records = [];
 function fixture(route) {
@@ -119,6 +119,7 @@ function matrix(entries) {
     assert.equal(parent.raw.fixture, true, `${entry}/${route}: parent fixture password`);
     assert.equal(parent.raw.invoked, true, `${entry}/${route}: parent fixture invoked`);
     fs.rmSync(record);
+    if (entry.includes('claude')) env.FIXTURE_CLAUDE = '1';
     const out = path.join(temp, `out-${++serial}.md`);
     let args, cwd = lane;
     if (entry === 'plain-worker') args = ['pi-worker.mjs', '--poll', '60', '--out', out, '--', '-p', 'fixture'];
@@ -126,6 +127,7 @@ function matrix(entries) {
     if (entry === 'pi-review') { cwd = repo; args = ['pi-review.mjs', '--poll', '60', '--retries', '0', '--out', out, '--tree', repo, '--item', `fixture-${serial}`, '--', '-p', 'fixture']; }
     if (entry === 'claude-review') args = ['claude-review.mjs', '--out', out, '--tree', lane, '--brief', path.join(repo, 'brief.md'), '--item', `fixture-${serial}`];
     if (entry === 'ledger') args = ['review-ledger.mjs', 'run', '--out', out, '--tree', lane, '--item', `fixture-${serial}`, '--', process.execPath, probe];
+    if (entry === 'ledger-claude') args = ['review-ledger.mjs', 'run', '--out', out, '--tree', lane, '--item', `fixture-${serial}`, '--', 'claude', '-p'];
     const installed = args[0] === 'pi-worker.mjs' || args[0] === 'pi-review.mjs';
     const target = installed ? path.join(layout.binDir, args[0].replace('.mjs', process.platform === 'win32' ? '.cmd' : '')) : null;
     const launch = installed ? reviewLaunch([target, ...args.slice(1)], { env, cwd }) : { command: process.execPath, args: [path.join(pack, 'bin', args[0]), ...args.slice(1)] };
@@ -134,10 +136,10 @@ function matrix(entries) {
     assert.equal(result.status, 0, `${entry}/${route}: launcher exit: ${result.stderr}`);
     const child = JSON.parse(fs.readFileSync(record));
     records.push({ entry, route, child, expectedConfig: parent.raw.config });
-    assert.equal(child.flag, entry.startsWith('claude'), `${entry}/${route}: settings route`);
     for (const [kind, sample] of Object.entries(child).filter(([key]) => key !== 'flag')) {
       assert.deepEqual([sample.password, sample.invoked, sample.bounded], [false, false, true], `${entry}/${route}/${kind}: password, invocation, bounded`);
     }
+    assert.equal(child.flag, entry.includes('claude'), `${entry}/${route}: settings route`);
     console.log(`  fixture ${entry}/${route}: parent password=true; child password=false; helper/askpass=false`);
   }
 }
@@ -145,7 +147,7 @@ function matrix(entries) {
 // req: R-3660
 await check('M1: builder children suppress fixture credential dispatch', () => matrix(['plain-worker', 'pi-worker', 'claude-worker']));
 // req: R-3661
-await check('M2: reviewer entry points suppress fixture credential dispatch', () => matrix(['pi-review', 'claude-review', 'ledger']));
+await check('M2: reviewer entry points suppress fixture credential dispatch', () => matrix(['pi-review', 'claude-review', 'ledger', 'ledger-claude']));
 // req: R-3662
 await check('M3: unrelated inherited git configuration keeps its effect', async () => {
   const { credentialStripEnv } = await import('../lib/credential-strip.mjs');
@@ -162,7 +164,7 @@ await check('M5: shipped builder guidance assigns pushes to the seat', () => {
   const preamble = fs.readFileSync(path.join(pack, 'prompts/builder-preamble.md'), 'utf8');
   assert.ok(preamble.includes('Do not push; the seat pushes after verifying; report the tip'));
   assert.ok(preamble.includes("the branch, the tip's full SHA and the seat checks run on it"));
-  for (const file of ['packages/nana-pack/prompts/builder-preamble.md', 'packages/nana-pack/rules/nana-rulings.md', 'templates/_shared/working-under-nana-pi.md', 'AGENTS.md']) {
+  for (const file of ['packages/nana-pack/prompts/builder-preamble.md', 'packages/nana-pack/rules/nana-rulings.md', 'templates/_shared/working-under-nana-pi.md', 'AGENTS.md', 'README.md']) {
     assert.doesNotMatch(fs.readFileSync(path.join(root, file), 'utf8'), /Builders (?:run touched tests, )?push|push your last commit|the pushed branch|Push with plain git push/i);
   }
 });

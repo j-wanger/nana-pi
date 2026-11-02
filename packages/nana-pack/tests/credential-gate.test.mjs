@@ -40,9 +40,11 @@ const blocked = [
   'g\'\'it credential fill', 'git -c x=y credential fill', 'git -C repo credential reject',
   '"C:\\tools\\git.exe" --no-pager credential fill',
   'git credential-manager get', 'git -c x=y credential-manager get',
+  'git credential-osxkeychain get', 'git credential-manager-core get',
+  'git credential-store get', 'git credential-wincred get',
   'git-credential-manager get', '/usr/bin/git-credential-osxkeychain get',
   '"C:\\tools\\git-credential-manager.exe" get',
-  'gh auth token', '/usr/bin/gh auth token',
+  'gh auth token', '/usr/bin/gh auth token', 'gh auth status --show-token',
   'security find-generic-password', 'security find-internet-password',
   'cmdkey /list', 'vaultcmd /list', 'Get-StoredCredential',
   'curl https://api.github.com/repos', 'wget https://api.github.com',
@@ -51,7 +53,7 @@ const blocked = [
   '& "C:\\tools\\git.exe" credential fill', '& git-credential-manager get',
   '& "Invoke-RestMethod" -Uri "https://api.github.com/repos"',
 ];
-const allowed = ['git credential-cache exit', 'git push', 'curl https://example.com', 'echo "git credential fill"', 'printf "%s" "gh auth token"', 'echo "curl https://api.github.com"'];
+const allowed = ['git credential-store --file x erase', 'gh auth status', 'git credential-cache exit', 'git push', 'curl https://example.com', 'echo "git credential fill"', 'printf "%s" "gh auth token"', 'echo "curl https://api.github.com"'];
 // req: R-3663
 await check('M4: credential commands form a role-scoped non-exemptible floor', async () => {
   for (const role of ['worker', 'reviewer']) {
@@ -74,9 +76,10 @@ await check('M7: credential gate pattern seal', async () => {
   assert.equal(CASE_MS, 10_000);
   assert.deepEqual(CREDENTIAL_PATTERNS, [
     String.raw`^git(?:\s+(?:-c|-C|--git-dir|--work-tree|--namespace)\s+\S+|\s+-\S+)*\s+credential\s+(?:fill|get|approve|reject)(?:\s|$)`,
-    String.raw`^git(?:\s+(?:-c|-C|--git-dir|--work-tree|--namespace)\s+\S+|\s+-\S+)*\s+credential-manager\s+get(?:\s|$)`,
-    String.raw`^git-credential-(?:manager|osxkeychain)\s+get(?:\s|$)`,
+    String.raw`^git(?:\s+(?:-c|-C|--git-dir|--work-tree|--namespace)\s+\S+|\s+-\S+)*\s+credential-(?:manager(?:-core)?|osxkeychain|store|wincred)\s+get(?:\s|$)`,
+    String.raw`^git-credential-(?:manager(?:-core)?|osxkeychain|store|wincred)\s+get(?:\s|$)`,
     String.raw`^gh\s+auth\s+token(?:\s|$)`,
+    String.raw`^gh\s+auth\s+status\s+(?:\S+\s+)*--show-token(?:\s|$)`,
     String.raw`^security\s+find-(?:generic|internet)-password(?:\s|$)`,
     String.raw`^(?:cmdkey\s+/list(?:\s|$)|vaultcmd(?:\s|$)|get-storedcredential(?:\s|$))`,
     String.raw`^(?:curl|wget|invoke-restmethod|invoke-webrequest|irm|iwr)\s+.*(?:https?://)api\.github\.com(?=[:/?#\s]|$)`,
