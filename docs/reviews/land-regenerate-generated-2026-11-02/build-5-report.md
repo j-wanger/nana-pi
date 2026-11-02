@@ -71,6 +71,10 @@ The explicit-path staging and merge commit use a message file under TMPDIR. Git 
 - `packages/nana-pack/tests/brief-check.test.mjs`
 - `docs/reviews/land-regenerate-generated-2026-11-02/build-5-report.md`
 
+## Post-commit correction
+
+The first merge commit's post-commit checks passed five commands, but identity-scan exited 1: two machine-home spellings in captured warning output. Replaced those prefixes with `~` in this report only, following build 4's log convention. The follow-up commit carries this correction. No product content changed. Long output below omits machine identity through that normalization. Staging, commit, final README diff capture, status and rev-parse commands exited 0. The writing check exited 0; technical-record findings remain exempt as noted above.
+
 ## Check output
 
 ### `node packages/nana-pack/tests/land-regenerate.test.mjs` — exit 0
@@ -131,9 +135,9 @@ code map: 610 modules over scripts, apps/desk, apps/bench, apps/hive, packages/n
 ```text
 FEAT-013.md: size: bytes=53008 lines=214
 summary names=0 sizes=1
-(node:26209) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/land-regenerate-generated/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+(node:26209) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://~/nana-pi-wt/land-regenerate-generated/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
-To eliminate this warning, add "type": "module" to /Users/jwang/nana-pi-wt/land-regenerate-generated/package.json.
+To eliminate this warning, add "type": "module" to ~/nana-pi-wt/land-regenerate-generated/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
