@@ -1,0 +1,6 @@
+PASS native executable wins over an earlier npm shim
+PASS resolves npm global and local layouts and case-insensitive Path
+PASS names every refusal and does not spawn on refusal
+PASS scripts-disabled placeholder fails safely
+PASS injected spawn stays unchanged and resolved spawn preserves arguments and options
+PASS win32 default spawn preserves byte-sensitive argv without a shell
