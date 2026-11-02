@@ -13,7 +13,7 @@ Report each departure.
 
 Find why the file is killed, and fix it in the test only. Read the CI log with `gh run view 41367446804 --log-failed` first. Suspects to rule in or out, with evidence: (a) a signal or group kill in `startupSignalCase` or `stopFixtureBuilder` reaching the test process itself; (b) the new `WC_HOLD_FILE`, which nothing ever writes, keeping fake pi alive until the 10 s `--max-secs` ceiling on each retry, so three attempts outlast a 20 s limit. Whatever the cause, each R-2693 attempt that does not deliver its signal must end its worker at once rather than wait for the ceiling, and the four cases together must finish well inside the file's limits. Keep R-2693's assertion unchanged. Change no product code.
 
-Reproduce under load before and after: run `node packages/nana-pack/tests/worker-claude.test.mjs` ten times while `npm test -- --jobs=4` runs on this Mac, and record both counts in `build-4-load.txt` in this folder. Update this lane's session entry with one sentence on the cause.
+Reproduce under load before and after: run `node packages/nana-pack/tests/worker-claude.test.mjs` ten times while four `yes > /dev/null` processes load the CPU (stop them afterwards), and record both counts in `build-4-load.txt` in this folder. Update this lane's session entry with one sentence on the cause.
 
 Never write to `/private/tmp/nana-3dmk-ref/` or `/private/tmp/nana-3dmk-notes/`.
 
