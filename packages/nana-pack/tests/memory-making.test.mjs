@@ -175,6 +175,30 @@ await check("scoring prints exact counts over all candidates", () => fixture(asy
  }
 }));
 
+// req: R-3567
+await check("curation review turns never become new memory", () => fixture(async ({ roots }) => {
+ const { unitsIn } = await import('../lib/memory-making.mjs');
+ const { extractShaped } = await import('../lib/memory-shaping.mjs');
+ const entries = [
+  entry('assistant','queue-call',[{type:'tool_use',name:'Bash',input:{command:'npm run memory:curate -- queue'}}]),
+  entry('assistant','relay','Which entries should we keep?'),
+  entry('assistant','review-ask',[{type:'tool_use',id:'curate-ask',name:'AskUserQuestion',input:{questions:[{question:'Keep the first entry?'}]}}]),
+  entry('user','review-result',[{type:'tool_result',tool_use_id:'curate-ask',content:'"Keep the first entry?"="Yes"'}]),
+  entry('user','review-answer','accept 1, reject 2'),
+  entry('assistant','later','Which synthetic colour should we use?'),
+  entry('user','later-answer','Blue')
+ ];
+ const dir=path.join(roots.projectsRoot,projectKey(roots.repoRoot));fs.mkdirSync(dir,{recursive:true});const file=path.join(dir,'curation.jsonl');
+ for(const [eol,final] of [['\n',true],['\r\n',true],['\n',false]]) {
+  fs.writeFileSync(file,entries.map(e=>JSON.stringify(e)+' \t').join(eol)+(final?eol:''));
+  const units=[];for await(const unit of unitsIn(file,{})) units.push(unit);
+  assert.equal(units.filter(u=>u.skipped).length,2);assert.deepEqual(units.filter(u=>!u.skipped).map(u=>u.evidence),['claude-code:synthetic#later-answer']);
+  const rules=await extractMemory(roots);assert.equal(rules.records.length,1);assert.equal(rules.skipped,2);assert.ok(rules.records[0].evidence.includes('later-answer'));
+  let sent=0;const shaped=await extractShaped({...roots,runModel:async input=>{const rows=JSON.parse(input.prompt.slice(input.prompt.indexOf('[')));sent+=rows.length;return {ok:true,usage:{tokens:1,cost:0.01},text:JSON.stringify({units:rows.map(r=>({id:r.id,kind:'decision',claim:'synthetic'}))})};}});
+  assert.equal(shaped.counts.skipped,2);assert.equal(sent,1);assert.equal(shaped.records.length,1);assert.ok(shaped.records[0].evidence.includes('later-answer'));
+ }
+}));
+
 // req: R-3196
 await check("seal: correction cues", () => assert.equal(C.CORRECTION_CUES.source, "(?:^\\s*no\\b|\\bi thought\\b|\\bagain\\b|\\bwhy did you\\b|\\bdon['’]t\\b|\\bstop\\b|\\?{2,})"));
 // req: R-3197
