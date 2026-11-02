@@ -19,7 +19,7 @@
 - Land reads CI (land-reads-ci): removing `origin` locally skips the read, with the note.
 - Land reads CI (land-reads-ci): the fake-gh command case runs only off Windows; the Windows leg runs the real spawn only through the no-gh case.
 - Land reads CI (land-reads-ci): doctor does not report gh or its sign-in, so a seat learns of a missing gh at its first land.
-- Land reads CI (land-reads-ci): each land waits for its tip's CI, about 21 minutes after the last push. A cancelled run must be re-run first. Consecutive lands sit about one CI run apart, because each later lane merges main. During a GitHub outage nothing lands.
+- Land reads CI (land-reads-ci): each land waits for its tip's CI, about 21 minutes after the last push. A cancelled run must be re-run first. Only a conflicting or unsupported merge costs another merge build, CI run and review; an eligible clean merge reuses the accepted tip's CI. During a GitHub outage nothing lands.
 - Land reads CI (land-reads-ci, independent check): a workflow whose jobs are all skipped by `if:` ends `completed/skipped`, so its repository would refuse every land, and a re-run does not help. No workflow here has one.
 - Land reads CI (land-reads-ci, independent check): an `action_required` run gets the catch-all "fix the workflow result, then run it again", where it needs the run approved. "CI response is not a workflow-run list" names no remedy.
 - Land reads CI (land-reads-ci, independent check): the time-out check also calls a kill at the output limit "timed out". A run whose name is null fails the whole list.
@@ -73,3 +73,7 @@
 - CI as the suite (ci-suite, final review): the changed-path listing quotes non-ASCII paths, so a workflow file with a non-ASCII name would not match the workflows folder.
 - CI as the suite (ci-suite, final review): a future `.github/actions/` folder is not on the fallback list.
 - Land test split (land-test-split, review round 1): R-3490's 180 s bound is backed only by lane-folder timing records; no tagged check measures time, so a later slowdown goes uncaught.
+- Clean merge (land-clean-merge, A7): the merge path re-reads CI once before taking the lock; a run starting after that snapshot is not seen. The fast-forward path still reads once.
+- Clean merge (land-clean-merge, A8): lands serialize only when they share a review-ledger home; another home or an external main operation can race the final check and fast-forward.
+- Clean merge (land-clean-merge, A9): exposure lasts from land until someone pushes main and its run reports; lands can stack in that window. Only macOS and Windows block; a Linux-only break can leave CI green.
+- Clean merge (land-clean-merge, M8): a textually clean merge can break the build; the lane intentionally gives up merge-result CI and review.
