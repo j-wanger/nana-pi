@@ -1,0 +1,34 @@
+seat-mutate: lane seat-memory-push, tip 59bdc64e8327d2098f745dac5dafb8e132dc148a, table 076fa0ffd8807693e29e88a94835c8c7dbee2e91505822324344637c31e5bf90, merge-base ac20e30ae0018b50345b6743d4bea4086fd8c8fb, 12 pairs in 5 shards (3+3+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-11-02T00:47:36.038Z
+[1/5] seat-mutate: lane seat-memory-push, shard 1/5, tip 59bdc64e8327d2098f745dac5dafb8e132dc148a, merge-base ac20e30ae0018b50345b6743d4bea4086fd8c8fb, 3 pairs, darwin, node v22.22.2, 2026-11-02T00:47:37.097Z
+[1/5] BASELINE ok   packages/nana-setup/tests/shared-memory-push.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/memory-bundle.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[1/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane seat-memory-push, shard 2/5, tip 59bdc64e8327d2098f745dac5dafb8e132dc148a, merge-base ac20e30ae0018b50345b6743d4bea4086fd8c8fb, 3 pairs, darwin, node v22.22.2, 2026-11-02T00:47:41.145Z
+[2/5] BASELINE ok   packages/nana-pack/tests/memory-bundle.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane seat-memory-push, shard 3/5, tip 59bdc64e8327d2098f745dac5dafb8e132dc148a, merge-base ac20e30ae0018b50345b6743d4bea4086fd8c8fb, 2 pairs, darwin, node v22.22.2, 2026-11-02T00:47:45.754Z
+[3/5] BASELINE ok   packages/nana-setup/tests/shared-memory-push.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[3/5] BASELINE ok   packages/nana-pack/tests/memory-bundle.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[3/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane seat-memory-push, shard 4/5, tip 59bdc64e8327d2098f745dac5dafb8e132dc148a, merge-base ac20e30ae0018b50345b6743d4bea4086fd8c8fb, 2 pairs, darwin, node v22.22.2, 2026-11-02T00:47:49.460Z
+[4/5] BASELINE ok   packages/nana-setup/tests/shared-memory-push.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/memory-bundle.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[4/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane seat-memory-push, shard 5/5, tip 59bdc64e8327d2098f745dac5dafb8e132dc148a, merge-base ac20e30ae0018b50345b6743d4bea4086fd8c8fb, 2 pairs, darwin, node v22.22.2, 2026-11-02T00:47:53.344Z
+[5/5] BASELINE ok   packages/nana-setup/tests/shared-memory-push.test.mjs (exit 0, 5 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/memory-bundle.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[5/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED B1 drop repository isolation — 1/1 named: B1: matching records print beside all index titles including an empty store; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B2 drop saved-source priority — 1/1 named: B2: parts ranking exact record budget and decimal header boundaries; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B3 read memory under launcher roles — 1/1 named: B3: skips preserve bytes and a damaged profile adds only the fixed note; also (declared): B4: slow git retains index under the deadline with one worktree probe; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B4 ignore per-call deadline in real git — 1/1 named: B4: slow git retains index under the deadline with one worktree probe; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B5 cut by merge stamp not evidence day — 1/1 named: B5: one pure date-cut maker and renderer serve store and replay inputs; also (declared): B1: matching records print beside all index titles including an empty store | B6: one load line measures ids and characters without claim or quote text; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B6 leak claims into the load log — 1/1 named: B6: one load line measures ids and characters without claim or quote text; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B7-budget retune record cap — 1/1 named: B7: seal push budget; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B7-parts reverse parts — 1/1 named: B7: seal part and source order; also (declared): B2: parts ranking exact record budget and decimal header boundaries; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B7-kinds retune kind priority — 1/1 named: B7: seal kind order; also (declared): B2: parts ranking exact record budget and decimal header boundaries; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED B7-git retune git limit — 1/1 named: B7: seal per-call git timeout; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED id retune printed prefix — 1/1 named: seal printed id length; also (declared): B2: parts ranking exact record budget and decimal header boundaries; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED margin retune test margin — 1/1 named: seal deadline test margin; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 12/12 red (12 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards
+seat-mutate: merged output docs/reviews/seat-memory-push-2026-11-01/mutation-record.txt

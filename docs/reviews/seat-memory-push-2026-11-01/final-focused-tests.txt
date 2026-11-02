@@ -1,0 +1,4 @@
+PASS  packages/nana-pack/tests/memory-bundle.test.mjs        7 pass  0.0s
+PASS  packages/nana-setup/tests/shared-memory-push.test.mjs  5 pass  5.6s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 12 pass, 0 fail, 0 skip · 5.9s

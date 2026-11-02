@@ -19,6 +19,7 @@ export const PUSH_GIT_TIMEOUT_MS = 1000;
 export const PUSH_ID_CHARS = 12;
 // Chosen 2026-11-01 (R-3415): allow process start and kill variance in the deadline test only.
 export const PUSH_TEST_MARGIN_MS = 1500;
+// Contract (R-3412, R-3414), chosen 2026-11-01: private-context guidance and a text-free failure note.
 export const PUSH_WORDS = Object.freeze({
  privacy: 'private: never quote these in issues, commits, PRs or HANDOFF; low trust is unconfirmed; retract only when the owner says a record is wrong: nana-profile retract <id> --quote "<the owner\'s words>"',
  storeError: '[nana:memory] push unavailable: store error\n',
