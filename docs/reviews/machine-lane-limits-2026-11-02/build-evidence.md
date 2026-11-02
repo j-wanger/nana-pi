@@ -38,6 +38,16 @@ The literal audit searched tests and checkers before edits. It identified the fo
 
 Logs replace identifying home/checkout prefixes with `<HOME>` and `<LANE>`; assertions and PASS/FAIL output are unchanged.
 
+## Mutation proof
+
+`SEAT_MUTATE_OUT=<lane folder>/seat-mutate.log node <lane folder>/seat-mutate.mjs` → 0 on implementation commit `3a904a9ca9ab6d395af7da185f77debf84c72ef9`.
+
+RESULT: 12/12 red (12 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards.
+
+Pairs 1–7 break the absent-file limit, written limit, numeric validation, notice segment, member preservation, ruling and seat guide respectively. The other pairs break set's printed limit, the warning and each of the three new seals. All five touched test files passed the runner's isolated baseline. The runner uses the shared mutation module; no test imports, copies or launches this seat script. The first run also had 12/12 red; pair 1 was then made a wrong value rather than a missing property, avoiding an incidental CLI TypeError and declaring its exact-stdout collateral failure.
+
+The identity scan initially found identifying home paths in four captured logs. Those prefixes were redacted without changing results; the repeated scan exited 0. `git diff --check` also exited 0.
+
 ## Known bugs touched and departures
 
 Closed: FEAT-040's ruling-order bug. The replaced October 31 ruling is gone; the new ruling is the final dated bullet. Only the explicitly requested line was removed.

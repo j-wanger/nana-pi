@@ -22,7 +22,7 @@ const pair = (n, name, edits, tests, expectRed, alsoRed = []) => ({ n, name, edi
 const ruling = "- 2026-11-01: Each machine sets how many lanes build there in its roster file; the roster command's lanes line prints the limit, default included. At most two more lanes are planned.";
 const guide = '- Keep no more lanes building than the lanes line of this machine\'s roster command allows, `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"`, and at most two more in planning.';
 const pairs = [
-  pair('1', 'omit lanes for an absent file', [one(R, ", lanes: resolveLaneLimit() };", ' };')], [T], [titles.default]),
+  pair('1', 'use a wrong lane limit for an absent file', [one(R, 'lanes: resolveLaneLimit()', 'lanes: { limit: LANE_LIMIT_DEFAULT + 1, warning: null }')], [T], [titles.default], ['roster command prints one line per slot and the source']),
   pair('2', 'ignore the written machine limit', [one(R, 'const lanes = resolveLaneLimit(raw.lanes);', 'const lanes = resolveLaneLimit();')], [T], [titles.default, titles.written, titles.malformed]),
   pair('3', 'accept any numeric lane value', [one(R, 'Number.isSafeInteger(value) && value >= 1', "typeof value === 'number'")], [T], [titles.malformed]),
   pair('4', 'omit the lane segment from notices', [one(N, "\tparts.push(`${LANES_LABEL} ${lanes?.limit ?? LANE_LIMIT_DEFAULT}${lanes?.warning ? ` ${LANES_IGNORED_MARK}` : ''}`);", '')], [NT], [titles.notice]),
