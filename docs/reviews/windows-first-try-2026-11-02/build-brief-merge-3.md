@@ -1,6 +1,6 @@
 Feature: FEAT-031 · Run checks reliably and without contaminating work
 
-Lane windows-first-try. Class: ordinary. Builder: pi-worker (small lane). Merge build, on branch tip 38d29722. Every reviewer said LAND at the previous round (kept in this folder), but main moved to 6ad0b67c before the land. This build merges main.
+Lane windows-first-try. Class: ordinary. Builder: pi-worker (small lane). Merge build, on branch tip 531c603b. Every reviewer said LAND at the previous round (kept in this folder), but main moved to ac764bcf before the land. This build merges main.
 
 ## Precedent
 
