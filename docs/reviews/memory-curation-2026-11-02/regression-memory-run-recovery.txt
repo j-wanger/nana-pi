@@ -1,0 +1,7 @@
+PASS R-3291: torn records do not block saves or repeat done units
+PASS R-3291: empty seen files do not block saves or repeat done units
+PASS R-3303: calls reserve their full timeout before starting
+PASS R-3294: local merge waits for a brief seat lock
+PASS R-3294: paused rebase recovers before fetch and pending work completes
+PASS R-3293: over-cap review listings fail loudly and lane discovery stays scoped
+PASS R-3291: preparation failures are not busy

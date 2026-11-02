@@ -57,7 +57,9 @@ re-asked decisions and logged context in interaction windows, using the isolated
 `npm run memory:meter-compare` (`scripts/outcome-compare.mjs`) compares private repeat sets.
 `npm run memory:replay` (`scripts/memory-replay.mjs`) plans paired historical replays,
 optionally screens control reproduction, runs isolated Claude arms and decides from private rows.
-These hand-run commands need Node and git; the meter and paid replay commands need authenticated Claude.
+`npm run memory:curate` (`scripts/memory-curate.mjs`) proposes private merges and retirements
+for the owner's review; only an explicit accept changes live memory.
+These hand-run commands need Node and git; proposing curation, the meter and paid replay commands need authenticated Claude.
 See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
 
 ## Requirements-first
@@ -315,7 +317,7 @@ After first-look on a product-page lane, run `npm run outside-reader -- --from <
 
 ## Tests
 
-CI covers this repository's full suite. Builders run touched tests, push their last commit and stop without waiting for CI. The seat waits for the pushed tip's CI. A land uses passing unfiltered same-platform records unless the lane changes a workflow or the runner; otherwise it runs the local suite. CI lands refresh no runtime map, land product report or local suite record. Hand commands and fallback lands refresh those artifacts.
+CI covers this repository's full suite. Builders run touched tests, commit and report their branch, full tip and seat checks. Builders do not push. The seat pushes after verifying, then waits for the pushed tip's CI. A land uses passing unfiltered same-platform records unless the lane changes a workflow or the runner; otherwise it runs the local suite. CI lands refresh no runtime map, land product report or local suite record. Hand commands and fallback lands refresh those artifacts.
 
 On a shared machine, run a fallback full suite with `npm run test:locked` (implemented by `scripts/test-locked.mjs`); it serializes full runs across worktrees. Add a path substring after `--` for an unlocked filtered run, such as `npm run test:locked -- packages/nana-pack/tests/test-locked.test.mjs`. Two runs reclaiming the same dead holder's lock at the same instant may both proceed; this can share CPU but cannot lose suite data.
 

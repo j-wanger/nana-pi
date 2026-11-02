@@ -1,0 +1,993 @@
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:1: trailing whitespace.
++PASS R-2560: claude-review starts the roster's Claude Code reviewer and records its round 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:2: trailing whitespace.
++PASS R-2561: claude-review sends the brief, the review standard once, then the reviewer sentence 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:3: trailing whitespace.
++PASS R-2562: a pi reviewer in the roster is refused before admission 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:4: trailing whitespace.
++PASS R-2564: Windows: claude-review starts a claude.cmd shim with a multi-line quoted brief on stdin and records a round 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:5: trailing whitespace.
++PASS R-2565: claude-review passes review-ledger's outcome through 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:6: trailing whitespace.
++PASS R-2566: --over-cap reaches the ledger 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:7: trailing whitespace.
++PASS R-2567: a missing, directory or blank brief or standard is refused before admission 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:8: trailing whitespace.
++PASS R-2900: claude-review sends one tree movement section, computed in the reviewed tree against main, between the brief and the review standard 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:9: trailing whitespace.
++PASS R-2902: a movement that cannot be computed reaches the reviewer as one not-computed line and the review still records its round 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:10: trailing whitespace.
++PASS R-2903: a tree with no committed ledger gets no tree movement section, even with an untracked ledger in the working tree 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:11: trailing whitespace.
++PASS R-2906: a tree movement report longer than 64 KiB reaches the reviewer whole 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:65: trailing whitespace.
++PASS built-in BLOCK: "rm -rf /tmp/x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:66: trailing whitespace.
++PASS built-in BLOCK: "rm -fr ../x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:67: trailing whitespace.
++PASS built-in BLOCK: "rm -Rf ../x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:68: trailing whitespace.
++PASS built-in BLOCK: "rm -r -f ../x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:69: trailing whitespace.
++PASS built-in BLOCK: "rm --recursive ../x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:70: trailing whitespace.
++PASS built-in BLOCK: "rm --force ../x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:71: trailing whitespace.
++PASS built-in BLOCK: "rm --no-preserve-root -r /" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:72: trailing whitespace.
++PASS built-in BLOCK: "sudo ls" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:73: trailing whitespace.
++PASS built-in BLOCK: "git push --force" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:74: trailing whitespace.
++PASS built-in BLOCK: "git push -f origin feat" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:75: trailing whitespace.
++PASS built-in BLOCK: "git reset --hard" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:76: trailing whitespace.
++PASS built-in BLOCK: "git reset --hard HEAD~1" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:77: trailing whitespace.
++PASS built-in BLOCK: "git clean -f" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:78: trailing whitespace.
++PASS built-in BLOCK: "git clean -fdx" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:79: trailing whitespace.
++PASS built-in BLOCK: "chmod 777 x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:80: trailing whitespace.
++PASS built-in BLOCK: "chown -R 777 x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:81: trailing whitespace.
++PASS built-in BLOCK: "dd if=/dev/zero of=/dev/disk2" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:82: trailing whitespace.
++PASS built-in BLOCK: "mkfs.ext4 /dev/sdb1" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:83: trailing whitespace.
++PASS built-in BLOCK: "mkfs -t ext4 /dev/sdb1" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:84: trailing whitespace.
++PASS built-in BLOCK: "shutdown -h now" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:85: trailing whitespace.
++PASS built-in BLOCK: "reboot" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:86: trailing whitespace.
++PASS built-in BLOCK: "halt" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:87: trailing whitespace.
++PASS built-in BLOCK: "Remove-Item x -Recurse" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:88: trailing whitespace.
++PASS built-in BLOCK: "Remove-Item x -Force" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:89: trailing whitespace.
++PASS built-in BLOCK: "rd /s /q x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:90: trailing whitespace.
++PASS built-in BLOCK: "rmdir /S x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:91: trailing whitespace.
++PASS built-in BLOCK: "del /f x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:92: trailing whitespace.
++PASS built-in BLOCK: "del /q x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:93: trailing whitespace.
++PASS built-in BLOCK: "erase /s x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:94: trailing whitespace.
++PASS built-in BLOCK: "format c:" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:95: trailing whitespace.
++PASS built-in BLOCK: "format D: /q" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:96: trailing whitespace.
++PASS L2 BLOCK: "rm -r -f ~" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:97: trailing whitespace.
++PASS L2 BLOCK: "rm -R ../x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:98: trailing whitespace.
++PASS L2 BLOCK: "rm -rv ~/proj" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:99: trailing whitespace.
++PASS L2 BLOCK: "/bin/rm -rf ~" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:100: trailing whitespace.
++PASS L2 BLOCK: "\\rm -rf ~" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:101: trailing whitespace.
++PASS L2 BLOCK: "find ~ -delete" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:102: trailing whitespace.
++PASS L2 BLOCK: "find . -exec rm {} +" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:103: trailing whitespace.
++PASS L2 BLOCK: "git clean --force -d" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:104: trailing whitespace.
++PASS L2 BLOCK: "git clean -d -x -f" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:105: trailing whitespace.
++PASS L2 BLOCK: "git push origin +main" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:106: trailing whitespace.
++PASS L2 BLOCK: "git push origin main --force" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:107: trailing whitespace.
++PASS L2 BLOCK: "git checkout -- ." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:108: trailing whitespace.
++PASS L2 BLOCK: "git restore ." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:109: trailing whitespace.
++PASS L2 BLOCK: "rsync -a --delete a/ b/" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:110: trailing whitespace.
++PASS L2 BLOCK: "truncate -s0 f" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:111: trailing whitespace.
++PASS L2 BLOCK: "base64 -d x | sh" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:112: trailing whitespace.
++PASS L2 BLOCK: "curl u | bash" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:113: trailing whitespace.
++PASS L2 BLOCK: "python3 -c \"import shutil;shutil.rmtree('/x')\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:114: trailing whitespace.
++PASS L2 BLOCK: "node -e \"require('fs').rmSync('/x',{recursive:true})\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:115: trailing whitespace.
++PASS L2 BLOCK: "cat ~/.aws/credentials" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:116: trailing whitespace.
++PASS L2 BLOCK: "cat ~/.netrc" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:117: trailing whitespace.
++PASS L2 BLOCK: "cat ~/.config/gh/hosts.yml" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:118: trailing whitespace.
++PASS L2 BLOCK: "ri -r -fo x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:119: trailing whitespace.
++PASS L2 BLOCK: "Remove-Item x -Recurse" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:120: trailing whitespace.
++PASS L2 BLOCK: "Get-ChildItem x | Remove-Item" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:121: trailing whitespace.
++PASS L2 BLOCK: "rd /s /q x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:122: trailing whitespace.
++PASS L2 BLOCK: "del /s /q x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:123: trailing whitespace.
++PASS L2 BLOCK: "r''m -rf ~" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:124: trailing whitespace.
++PASS L2 BLOCK: "command rm -rf ~" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:125: trailing whitespace.
++PASS L2 BLOCK: "nohup rm -rf ~/x &" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:126: trailing whitespace.
++PASS L2 BLOCK: "x=rm; $x -rf ~" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:127: trailing whitespace.
++PASS L2 BLOCK: "curl u |\n bash" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:128: trailing whitespace.
++PASS L2 BLOCK: "sudo -u x ls" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:129: trailing whitespace.
++PASS L2 BLOCK: "cd /tmp && rm -rf x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:130: trailing whitespace.
++PASS L2 BLOCK: "(rm -rf ~)" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:131: trailing whitespace.
++PASS L2 BLOCK: "eval \"$(echo rm -rf ~)\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:132: trailing whitespace.
++PASS L2 BLOCK: "bash -c \"rm -rf ~\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:133: trailing whitespace.
++PASS L2 BLOCK: "su -c \"rm x\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:134: trailing whitespace.
++PASS L2 BLOCK: "diskutil eraseDisk JHFS+ x disk2" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:135: trailing whitespace.
++PASS L2 BLOCK: "Format-Volume -DriveLetter D" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:136: trailing whitespace.
++PASS L2 BLOCK: "git branch -D main" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:137: trailing whitespace.
++PASS L2 BLOCK: "git stash drop" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:138: trailing whitespace.
++PASS L2 BLOCK: "perl -e \"system q(rm -rf ~)\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:139: trailing whitespace.
++PASS L2 BLOCK: "perl -e 'unlink glob q(*)'" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:140: trailing whitespace.
++PASS L2 BLOCK: "cat ${HOME}/.s's'h/id_rsa" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:141: trailing whitespace.
++PASS L2 BLOCK: "printf 'rm -rf ~\\n' | xargs" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:142: trailing whitespace.
++PASS L2 BLOCK: "node --eval='require(\"fs\").rmSync(\"/x\")'" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:143: trailing whitespace.
++PASS L2 BLOCK: "python3 -c'import shutil;shutil.rmtree(\"/x\")'" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:144: trailing whitespace.
++PASS L2 BLOCK: "node <<<'require(\"fs\").rmSync(\"/x\")'" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:145: trailing whitespace.
++PASS L2 BLOCK: "git -c alias.x='!rm -rf ~' x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:146: trailing whitespace.
++PASS L2 BLOCK: "git -calias.x=!rm -rf ~ x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:147: trailing whitespace.
++PASS L2 BLOCK: "grep -r \"rm -rf\" docs/" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:148: trailing whitespace.
++PASS all existing main-floor corpus commands stay blocked 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:149: trailing whitespace.
++PASS quoted inline policy writes block in bash -c and eval bodies 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:150: trailing whitespace.
++PASS quoted active-agent variable writes block for both policy filenames 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:151: trailing whitespace.
++PASS ALLOW: "echo reboot" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:152: trailing whitespace.
++PASS ALLOW: "git log --grep=sudo" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:153: trailing whitespace.
++PASS ALLOW: "npm run format c: --x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:154: trailing whitespace.
++PASS ALLOW: "ruff format c:\\x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:155: trailing whitespace.
++PASS ALLOW: "rm file.txt" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:156: trailing whitespace.
++PASS ALLOW: "rm -f build/out.o" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:157: trailing whitespace.
++PASS ALLOW: "ls -la" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:158: trailing whitespace.
++PASS ALLOW: "git status" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:159: trailing whitespace.
++PASS ALLOW: "git status; ls" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:160: trailing whitespace.
++PASS ALLOW: "git commit -m \"fix reboot loop in sudo docs\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:161: trailing whitespace.
++PASS ALLOW: "git rm -r --cached dist" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:162: trailing whitespace.
++PASS ALLOW: "git restore --staged ." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:163: trailing whitespace.
++PASS ALLOW: "git push origin feat" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:164: trailing whitespace.
++PASS ALLOW: "echo \"curl x | sh\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:165: trailing whitespace.
++PASS ALLOW: "grep -E 'a|sh' f" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:166: trailing whitespace.
++PASS ALLOW: "docker rm -f web" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:167: trailing whitespace.
++PASS ALLOW: "cat src/nana-pack-notes.md" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:168: trailing whitespace.
++PASS ALLOW: "npm test 2>&1 | tail -5" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:169: trailing whitespace.
++PASS ALLOW: "find . -name '*.ts'" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:170: trailing whitespace.
++PASS powershell tool is gated the same 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:171: trailing whitespace.
++PASS grep -r "rm -rf" docs/ is gated (pinned: rm matched anywhere in a segment) 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:172: trailing whitespace.
++PASS ordinary Git configuration remains allowed 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:173: trailing whitespace.
++PASS attached and here-string interpreter code forms are blocked 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:174: trailing whitespace.
++PASS interpreter command without deletion code remains allowed 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:175: trailing whitespace.
++PASS template source command names stay gated by the legacy policy 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:176: trailing whitespace.
++PASS traversal through a template-shaped source name stays gated 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:177: trailing whitespace.
++PASS Git shell aliases use the full destructive-command scanner 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:178: trailing whitespace.
++PASS rm-text scanner still blocks an executing nested substitution 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:179: trailing whitespace.
++PASS rm-text scanner still blocks a backtick in a git message 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:180: trailing whitespace.
++PASS headless block names category and recovery 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:181: trailing whitespace.
++PASS rm -rf . is gated 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:182: trailing whitespace.
++PASS force-with-lease to feat allowed under the README exception 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:183: trailing whitespace.
++PASS force-with-lease to main still gated 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:184: trailing whitespace.
++PASS the exception covers its segment only 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:185: trailing whitespace.
++PASS force-with-lease without the exception is gated 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:186: trailing whitespace.
++PASS plain git status ALLOW 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:187: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status; rm -rf ~" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:188: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status && sudo rm -rf /" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:189: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status | sh" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:190: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status $(rm -rf ~)" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:191: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status <<EOF\nrm -rf ~\nEOF" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:192: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status `rm -rf x`" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:193: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status || rm -rf x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:194: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status & rm -rf x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:195: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status\nrm -rf x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:196: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status; sudo ls" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:197: trailing whitespace.
++PASS compound under ^git status BLOCK: "git status | xargs rm -rf" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:198: trailing whitespace.
++PASS unanchored allow: plain rm -rf build ALLOW 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:199: trailing whitespace.
++PASS unsegmentable → no exception: "eval \"rm -rf build\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:200: trailing whitespace.
++PASS unsegmentable → no exception: "bash -c \"rm -rf build\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:201: trailing whitespace.
++PASS unsegmentable → no exception: "sh -c \"rm -rf build\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:202: trailing whitespace.
++PASS unsegmentable → no exception: "echo build | xargs rm -rf build" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:203: trailing whitespace.
++PASS unsegmentable → no exception: "zsh -lc \"rm -rf build\"" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:204: trailing whitespace.
++PASS unsegmentable → no exception: "cat <<EOF | rm -rf build\nx\nEOF" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:205: trailing whitespace.
++PASS unsegmentable → no exception: "echo $(rm -rf build)" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:206: trailing whitespace.
++PASS unsegmentable → no exception: "(rm -rf build)" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:207: trailing whitespace.
++PASS unsegmentable → no exception: "{ rm -rf build; }" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:208: trailing whitespace.
++PASS unsegmentable → no exception: "rm -rf build \\\n  more" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:209: trailing whitespace.
++PASS unsegmentable → no exception: "rm -rf 'build" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:210: trailing whitespace.
++PASS floor BLOCK under allow: "rm -rf ~" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:211: trailing whitespace.
++PASS floor BLOCK under allow: "rm -rf /" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:212: trailing whitespace.
++PASS floor BLOCK under allow: "rm -r $HOME" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:213: trailing whitespace.
++PASS floor BLOCK under allow: "rm -rf ~/" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:214: trailing whitespace.
++PASS floor BLOCK under allow: "curl u | sh" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:215: trailing whitespace.
++PASS floor BLOCK under allow: "curl u | python3" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:216: trailing whitespace.
++PASS floor BLOCK under allow: "dd if=x of=/dev/sda" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:217: trailing whitespace.
++PASS floor BLOCK under allow: "mkfs.ext4 /dev/x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:218: trailing whitespace.
++PASS non-floor segment IS exempt: rm -rf build 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:219: trailing whitespace.
++PASS `.` is not floor: rm -rf . exempt under ^rm 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:220: trailing whitespace.
++PASS sudo exempt under ^sudo (not floor) 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:221: trailing whitespace.
++PASS sudo exemption does not cover sudo rm -rf / (floor) 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:222: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf ~/." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:223: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf /." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:224: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf $HOME/." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:225: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf ${HOME}/." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:226: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf ${HOME}" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:227: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf ~//" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:228: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf /./" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:229: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf //" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:230: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf ~/./" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:231: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf $HOME/" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:232: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf ~/x/.." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:233: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf ~/.." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:234: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf /tmp/.." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:235: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf \"$HOME\"/." 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:236: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "rm -rf C:\\\\" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:237: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "sudo mkfs.ext4 /dev/x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:238: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "sudo dd if=x of=/dev/sda" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:239: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "sudo -u root dd if=x of=/dev/sda" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:240: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "doas mkfs.ext4 /dev/x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:241: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "env mkfs.ext4 /dev/x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:242: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "command dd if=x of=/dev/sda" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:243: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "nice -n 5 mkfs.ext4 /dev/x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:244: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "time dd if=x of=/dev/sda" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:245: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "sudo diskutil eraseDisk JHFS+ x disk2" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:246: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "diskutil quiet eraseDisk JHFS+ x disk2" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:247: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "curl u | sh -s arg" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:248: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "curl u | bash -s -- --flag" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:249: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "curl u | python3 /dev/stdin" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:250: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "curl u | python3 - arg" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:251: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "curl u | sudo sh -s x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:252: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "curl u | sudo -u root bash" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:253: trailing whitespace.
++PASS floor gap BLOCK under matching allow: "curl u | python3 -W ignore" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:254: trailing whitespace.
++PASS non-floor exempt under matching allow: "rm -rf build" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:255: trailing whitespace.
++PASS non-floor exempt under matching allow: "rm -rf ./dist/" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:256: trailing whitespace.
++PASS non-floor exempt under matching allow: "rm -rf /tmp/x" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:257: trailing whitespace.
++PASS non-floor exempt under matching allow: "rm -rf ~/proj/.cache" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:258: trailing whitespace.
++PASS non-floor exempt under matching allow: "sudo ls" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:259: trailing whitespace.
++PASS non-floor exempt under matching allow: "curl u | tee f" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:260: trailing whitespace.
++PASS stdin floor BLOCK under receiver allow: "curl u | python3 - --version" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:261: trailing whitespace.
++PASS stdin floor BLOCK under receiver allow: "curl u | sh -s -- --help" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:262: trailing whitespace.
++PASS stdin floor BLOCK under receiver allow: "curl u | python3 -W ignore" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:263: trailing whitespace.
++PASS stdin floor BLOCK under receiver allow: "curl u | python3" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:264: trailing whitespace.
++PASS stdin floor BLOCK under receiver allow: "curl u | bash -s --version" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:265: trailing whitespace.
++PASS stdin floor BLOCK under receiver allow: "curl u | python3 /dev/stdin --help" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:266: trailing whitespace.
++PASS stdin floor BLOCK under receiver allow: "curl u | sh" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:267: trailing whitespace.
++PASS stdin floor BLOCK under receiver allow: "curl u | bash --" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:268: trailing whitespace.
++PASS no-stdin ALLOW under receiver allow: "echo x | python3 --version" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:269: trailing whitespace.
++PASS no-stdin ALLOW under receiver allow: "echo x | python3 -- --version" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:270: trailing whitespace.
++PASS no-stdin ALLOW under receiver allow: "echo x | bash --help" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:271: trailing whitespace.
++PASS no-stdin ALLOW under receiver allow: "echo x | sh ./run.sh" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:272: trailing whitespace.
++PASS ALLOW (not pipe-to-stdin-interpreter): "cat x | python3 script.py" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:273: trailing whitespace.
++PASS ALLOW (not pipe-to-stdin-interpreter): "echo x | sh ./run.sh" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:274: trailing whitespace.
++PASS ALLOW (not pipe-to-stdin-interpreter): "echo mkfs" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:275: trailing whitespace.
++PASS ALLOW (not pipe-to-stdin-interpreter): "echo x | python3 --version" 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:276: trailing whitespace.
++PASS allow cap: entry 201 is not considered, even after an earlier rejection 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:277: trailing whitespace.
++PASS allow cap: config_invalid names the entries not considered 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:278: trailing whitespace.
++PASS allow cap: the gate is not stopped 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:279: trailing whitespace.
++PASS subject cap: allow applies at 64 KB 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:280: trailing whitespace.
++PASS subject cap: a longer command gets no exception 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:281: trailing whitespace.
++PASS catastrophic extraPattern is kept and enforced 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:282: trailing whitespace.
++PASS benign 4 MB command ALLOWs 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:284: trailing whitespace.
++PASS deny drop STOPs (extraPatterns, 2 entries): benign ls BLOCKed naming file + entry 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:285: trailing whitespace.
++PASS deny drop STOPs (protectedPaths, 1 entries): benign ls BLOCKed naming file + entry 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:286: trailing whitespace.
++PASS deny drop STOPs (extraPatterns, 201 entries): benign ls BLOCKed naming file + entry 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:287: trailing whitespace.
++PASS interactive: Allow once allows that call 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:288: trailing whitespace.
++PASS interactive: the dialog was shown 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:289: trailing whitespace.
++PASS interactive: Block is the first (default) choice 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:290: trailing whitespace.
++PASS interactive: the SAME command asks again and Block blocks 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:291: trailing whitespace.
++PASS interactive: a dismissed dialog blocks 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:292: trailing whitespace.
++PASS interactive: benign command shows no dialog 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:295: trailing whitespace.
++PASS pi seat receives the complete installed guide under its fixed heading 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:296: trailing whitespace.
++PASS stale guide installation notice names the pi seat guide and nana-setup install 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:297: trailing whitespace.
++PASS pi builder and reviewer omit the guide while retaining the rulings section 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:298: trailing whitespace.
++PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:299: trailing whitespace.
++PASS seat guide unavailable prefix is distinct from the rulings prefix 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:300: trailing whitespace.
++PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:301: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:302: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:303: trailing whitespace.
++PASS seal: RULINGS_READ_CAP is 8192 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:304: trailing whitespace.
++PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:305: trailing whitespace.
++PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:306: trailing whitespace.
++PASS no fixture text leaks into the unavailable marker 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:307: trailing whitespace.
++PASS planner prompt names no owner or work project 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:308: trailing whitespace.
++PASS the rulings file names no owner and no work project 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:309: trailing whitespace.
++PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:310: trailing whitespace.
++PASS every ruling is one bullet that opens with its date 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:311: trailing whitespace.
++PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:312: trailing whitespace.
++PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:313: trailing whitespace.
++PASS planner prompt names no model id 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:314: trailing whitespace.
++PASS the rulings file names no model, leaving the lineup to the roster 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:315: trailing whitespace.
++PASS the rulings file opens with the scope sentence for builders and reviewers 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:316: trailing whitespace.
++PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:317: trailing whitespace.
++PASS R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:319: trailing whitespace.
++PASS nana-pi Part G mirrors templates/_shared/requirements-general.md 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:320: trailing whitespace.
++PASS seal: the known-bugs folder is docs/known-bugs 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:321: trailing whitespace.
++PASS AGENTS.md marker-owned section is byte-identical to the shared file 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:322: trailing whitespace.
++PASS AGENTS.md shared section follows a complete paragraph 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:323: trailing whitespace.
++PASS working pattern names lane launcher and keeps local overrides after marker region 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:324: trailing whitespace.
++PASS pack README documents lane preamble, write gap, ceiling, and trust notice 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:325: trailing whitespace.
++PASS …and a one-byte drift is caught, not silently passed (mutation) 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:326: trailing whitespace.
++PASS shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:327: trailing whitespace.
++PASS startup guidance scopes every requirements read to row lookup 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:328: trailing whitespace.
++PASS soul continuity rule records carry before reports and session boundaries 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:329: trailing whitespace.
++PASS shared working pattern names generic defaults and local overrides 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:330: trailing whitespace.
++PASS three front doors carry one identical scoped platform claim 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:331: trailing whitespace.
++PASS shared working pattern makes the pattern the default with the machine roster 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:332: trailing whitespace.
++PASS R-1127: the shared seat land review applies in an install, hook or gate lane when the roster sets no land model 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:333: trailing whitespace.
++PASS nana-soul carries the shared default-pattern and seat land review bullets 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:334: trailing whitespace.
++PASS shared working pattern carries one seat-guide bullet 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:335: trailing whitespace.
++PASS seat-guide bullet names a guide file present in this checkout 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:336: trailing whitespace.
++PASS R-2652: the shared working pattern starts the larger-lane builder, pi or Claude Code, through pi-worker --lane-size larger and a small lane through --lane-size small 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:337: trailing whitespace.
++PASS shared working pattern says a seat that cannot start the larger-lane builder stops and asks the user 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:338: trailing whitespace.
++PASS shared working pattern says the builder builds every lane when the roster sets no larger-lane builder 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:339: trailing whitespace.
++PASS desk matrix states nana resources for every spawn class and the terminal trust step 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:340: trailing whitespace.
++PASS shared working pattern requires a threat model per plan 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:341: trailing whitespace.
++PASS R-2584: the shared working pattern's Plans bullet requires every plan to name its precedent 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:342: trailing whitespace.
++PASS R-2955: shared and project Plans bullets point planners to the prompt with the request and grounding 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:343: trailing whitespace.
++PASS R-1300: the shared working pattern gives an ordinary lane one final reviewer, defines install, hook and gate lanes, and says plans get no review round 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:344: trailing whitespace.
++PASS shared working pattern freezes edits after an all-LAND review 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:345: trailing whitespace.
++PASS shared working pattern ships urgent fixes alone 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:346: trailing whitespace.
++PASS shared working pattern states the review bar for seats 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:347: trailing whitespace.
++PASS R-2509: the shared working pattern records a non-blocking finding in its feature's known-bug file, not HANDOFF 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:348: trailing whitespace.
++PASS AGENTS.md carries the macOS install check outside the shared region 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:349: trailing whitespace.
++PASS requirements skill directs every row into the feature it serves, keeps a flat ledger's sections and names the owner 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:350: trailing whitespace.
++PASS scaffold and adopt skills direct rows into the feature each serves, keep a flat ledger's sections and name no Part G 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:351: trailing whitespace.
++PASS requirements skill names the tree check and the product report with a project root 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:352: trailing whitespace.
++PASS requirements skill names the lift's dry run, the owner's yes before --write, a clean ledger in every worktree, never discarding another session's lines, and only flags the lift has 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:353: trailing whitespace.
++PASS requirements skill's regroup paragraph names the regroup check, what the agent reads, a review of every placement and every purpose, outcome and section reason, the owner's yes before --write, --verify with --mapping and gaps as proposed features, and only flags the regroup has 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:367: trailing whitespace.
++PASS generated project update guidance is generic with adopted-project qualification 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:371: trailing whitespace.
++PASS R-2803: the hard-kill temp check names every entry left in a case temp folder and calls it empty only when none is left 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:372: trailing whitespace.
++PASS R-2646: lane size larger starts a Claude Code larger-lane builder as claude -p with its model, default permission mode, project settings only, no MCP servers and the builder tools, in the locked worktree 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:373: trailing whitespace.
++PASS R-2647: the Claude Code builder's prompt file holds the rendered preamble, the brief and the feature's known bugs once each in that order, and is gone after the build 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:374: trailing whitespace.
++PASS R-2648: for a Claude Code builder a failing brief is refused with brief-check's line before the lock and claude, and a passing brief prints brief-check's launch line 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:375: trailing whitespace.
++PASS R-2649: a Claude Code larger-lane launch prints one builder line naming claude-code and its model before claude starts 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:376: trailing whitespace.
++PASS R-2650: Windows: a claude.cmd larger-lane builder starts through cmd.exe with its arguments unchanged and a brief holding quotes, percent, bang and line breaks intact in its prompt file 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:378: trailing whitespace.
++PASS R-2651: a Claude Code builder whose CPU stays flat past the stall limit runs to its end, and the ceiling and SIGTERM still stop it 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:379: trailing whitespace.
++PASS R-2654: a Claude Code builder runs with auto-memory off and the builder Bash limit as both Bash time limits 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:380: trailing whitespace.
++PASS R-2655: a Claude Code builder gets a settings file outside the worktree carrying only the login keys and network env names from the user settings, named in one line without values, and gone after the build 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:381: trailing whitespace.
++PASS R-2664: the builder's settings file holds the sealed builder env whatever the user settings env says 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:382: trailing whitespace.
++PASS R-2665: a missing, unreadable, malformed or non-object user settings file prints one carry line without its content, and the builder still starts with only the sealed env 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:383: trailing whitespace.
++PASS R-2691: in lane mode each review option exits 1 with the review-option line before the brief or the user Claude settings are read or any temp file is written 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:385: trailing whitespace.
++PASS R-2692: a finished build, a held lock, a bad stall option, an unwritable output, the ceiling and, off Windows, SIGTERM and a closed stderr each leave the temp folder empty 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:392: trailing whitespace.
++PASS R-2721: Windows: taskkill /F /T of pi-worker's tree while a directly launched builder runs leaves no temp file, no lane lock and no watcher 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:393: trailing whitespace.
++PASS R-2722: a hard kill while the lane lock names another process, live or dead, leaves that lock unchanged, the temp folder empty and no watcher 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:395: trailing whitespace.
++PASS R-2724: after a finished build and after the ceiling the watcher exits and the ledger holds that build's one end record 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:397: trailing whitespace.
++PASS R-2728: a hard kill of one lane's pi-worker while a second lane builds in the same temp folder leaves the second lane's build, files, lock and watcher untouched 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:398: trailing whitespace.
++PASS seal: a Claude Code builder uses default permission mode, project and local settings, a carried settings file, no MCP servers, tools Read,Grep,Glob,Bash,Edit,Write, a prompt file, no stall stop, auto-memory off and the builder Bash limit 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:401: trailing whitespace.
++PASS non-lane repeated worker options keep the legacy first-occurrence behaviour 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:402: trailing whitespace.
++PASS non-lane usage text remains the legacy form 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:403: trailing whitespace.
++PASS lane options with missing values refuse before pi spawn 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:404: trailing whitespace.
++PASS lane mode refuses the main checkout before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:405: trailing whitespace.
++PASS lane mode refuses a nested cwd 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:406: trailing whitespace.
++PASS lane mode refuses a missing brief before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:407: trailing whitespace.
++PASS lane mode refuses a brief directory with a named failure 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:408: trailing whitespace.
++PASS lane mode refuses a switched lane branch before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:409: trailing whitespace.
++PASS R-2578: a lane brief with no Precedent section, an empty one or a reasonless none is refused before the lock and before pi starts 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:410: trailing whitespace.
++PASS R-2579: Precedent entries not tracked at HEAD are refused, each one named 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:411: trailing whitespace.
++PASS R-2580: honest Precedent forms pass and the launch line names the checked entry count 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:412: trailing whitespace.
++PASS R-2616: a numbered step list straight after a plain Precedent list is not read as entries 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:413: trailing whitespace.
++PASS R-2617: a bold Precedent label line starts the Precedent section 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:414: trailing whitespace.
++PASS R-2618: a brief with no Precedent section is told the label stands on a line of its own 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:415: trailing whitespace.
++PASS R-2619: bold and punctuated Precedent paths are checked as the bare path 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:416: trailing whitespace.
++PASS R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:417: trailing whitespace.
++PASS seal: worker-lane's launches have a 30-second limit and poll less often than that 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:418: trailing whitespace.
++PASS R-2620: a heading such as Precedent audit is not read as the Precedent section 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:419: trailing whitespace.
++PASS R-2581: the named feature's known-bug file follows the brief as the third prompt, and nothing follows when the feature has none 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:420: trailing whitespace.
++PASS seal: a brief's precedent section is Precedent, its no-precedent entry starts none: and its feature line starts Feature: 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:421: trailing whitespace.
++PASS verified lane passes preamble and validated brief as ordered file paths 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:422: trailing whitespace.
++PASS every pi-worker child receives NANA_ROLE=worker 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:423: trailing whitespace.
++PASS lane preamble forbids the named package-manager operations at a worktree root 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:424: trailing whitespace.
++PASS R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:425: trailing whitespace.
++PASS R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:426: trailing whitespace.
++PASS R-2662: the builder preamble tells the builder to import a needed function, never copy it, and stop on a private helper the brief does not move 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:427: trailing whitespace.
++PASS R-2583: the builder preamble frames the attached known bugs as context to report, not to fix 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:428: trailing whitespace.
++PASS lane preamble carries: wrong code first 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:429: trailing whitespace.
++PASS lane preamble carries: must-meet tests and no other new test, with the seal-test exception 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:430: trailing whitespace.
++PASS lane preamble carries: await every async case 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:431: trailing whitespace.
++PASS lane preamble carries: CRLF and whitespace cases 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:432: trailing whitespace.
++PASS lane preamble carries: IDs from the brief's range 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:433: trailing whitespace.
++PASS lane preamble carries: no suite test runs a seat script 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:434: trailing whitespace.
++PASS lane preamble carries: no unnamed test deleted 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:435: trailing whitespace.
++PASS lane preamble carries: touched tests before each commit 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:436: trailing whitespace.
++PASS lane preamble carries: seat checks before DONE 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:437: trailing whitespace.
++PASS lane preamble carries: long output to a committed file 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:438: trailing whitespace.
++PASS lane preamble carries: no builder push 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:439: trailing whitespace.
++PASS lane preamble carries: branch tip and seat checks in the report 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:440: trailing whitespace.
++PASS R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the replaced lines 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:441: trailing whitespace.
++PASS lane passes only the sealed roster and fixed brief instruction 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:442: trailing whitespace.
++PASS lane mode refuses all caller pi arguments before lock or spawn 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:443: trailing whitespace.
++PASS lane refuses caller tools without edit and write 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:444: trailing whitespace.
++PASS lane refuses tool-control forms -t, --tools, --exclude-tools, --no-tools 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:445: trailing whitespace.
++PASS lane refuses resource-disabling forms -nc, --no-context-files, -ne, --no-extensions, -na, --no-approve 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:446: trailing whitespace.
++PASS lane refuses retries before launch 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:447: trailing whitespace.
++PASS lane passes the machine roster builder to pi, each flag once 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:448: trailing whitespace.
++PASS lane omits --thinking when the machine roster builder thinking is null 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:449: trailing whitespace.
++PASS lane refuses a refused roster before starting pi, naming the file 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:450: trailing whitespace.
++PASS lane ignores a roster in project .pi/nana-pack.json 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:451: trailing whitespace.
++PASS lane prints the resolved builder and roster source on stderr before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:452: trailing whitespace.
++PASS lane size larger starts pi with the larger-lane builder's provider, model and thinking, each flag once 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:453: trailing whitespace.
++PASS lane size larger with no larger-lane builder starts pi with the builder 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:454: trailing whitespace.
++PASS lane size small starts pi with the builder even when largerBuilder is set 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:455: trailing whitespace.
++PASS lane size with a missing or unknown value refuses before pi spawn 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:456: trailing whitespace.
++PASS lane size larger prints the larger-lane builder line before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:457: trailing whitespace.
++PASS with a larger-lane builder set, a launch with no lane size, the --lane-size=larger form included, is refused before lock or spawn, naming largerBuilder and both sizes 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:462: trailing whitespace.
++PASS synchronized concurrent lane launchers spawn exactly one pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:464: trailing whitespace.
++PASS missing trust prints notice before worker attempt 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:465: trailing whitespace.
++PASS affirmative trust record suppresses notice 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:466: trailing whitespace.
++PASS handled worker exit removes its worktree lock 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:467: trailing whitespace.
++PASS unreadable worktree lock is refused 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:468: trailing whitespace.
++PASS existing worktree lock refuses and names path and pid 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:469: trailing whitespace.
++PASS sealed lane ceiling is 28,800 seconds 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:470: trailing whitespace.
++PASS max-secs override kills and names the lane wall-clock ceiling 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:471: trailing whitespace.
++PASS wall-clock ceiling kills the worker process group 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:474: trailing whitespace.
++PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:476: trailing whitespace.
++PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:477: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:478: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:480: trailing whitespace.
++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:481: trailing whitespace.
++PASS install installs the pi seat guide and uninstall removes its manifest-owned link 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:482: trailing whitespace.
++PASS install-check seat-guide heading matches the injected guide heading 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:483: trailing whitespace.
++PASS doctor recognizes the installed guide and rejects missing, POSIX-copy and stale Windows forms 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-green.txt:484: trailing whitespace.
++PASS doctor rejects a stale Windows guide copy on every host 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:78: trailing whitespace.
++PASS pi seat receives the complete installed guide under its fixed heading 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:79: trailing whitespace.
++PASS stale guide installation notice names the pi seat guide and nana-setup install 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:80: trailing whitespace.
++PASS pi builder and reviewer omit the guide while retaining the rulings section 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:81: trailing whitespace.
++PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:82: trailing whitespace.
++PASS seat guide unavailable prefix is distinct from the rulings prefix 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:83: trailing whitespace.
++PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:84: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:85: trailing whitespace.
++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:86: trailing whitespace.
++PASS seal: RULINGS_READ_CAP is 8192 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:87: trailing whitespace.
++PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:88: trailing whitespace.
++PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:89: trailing whitespace.
++PASS no fixture text leaks into the unavailable marker 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:90: trailing whitespace.
++PASS planner prompt names no owner or work project 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:91: trailing whitespace.
++PASS the rulings file names no owner and no work project 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:92: trailing whitespace.
++PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:93: trailing whitespace.
++PASS every ruling is one bullet that opens with its date 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:94: trailing whitespace.
++PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:95: trailing whitespace.
++PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:96: trailing whitespace.
++PASS planner prompt names no model id 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:97: trailing whitespace.
++PASS the rulings file names no model, leaving the lineup to the roster 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:98: trailing whitespace.
++PASS the rulings file opens with the scope sentence for builders and reviewers 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:100: trailing whitespace.
++PASS R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:102: trailing whitespace.
++PASS non-lane repeated worker options keep the legacy first-occurrence behaviour 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:103: trailing whitespace.
++PASS non-lane usage text remains the legacy form 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:104: trailing whitespace.
++PASS lane options with missing values refuse before pi spawn 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:105: trailing whitespace.
++PASS lane mode refuses the main checkout before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:106: trailing whitespace.
++PASS lane mode refuses a nested cwd 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:107: trailing whitespace.
++PASS lane mode refuses a missing brief before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:108: trailing whitespace.
++PASS lane mode refuses a brief directory with a named failure 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:109: trailing whitespace.
++PASS lane mode refuses a switched lane branch before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:110: trailing whitespace.
++PASS R-2578: a lane brief with no Precedent section, an empty one or a reasonless none is refused before the lock and before pi starts 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:111: trailing whitespace.
++PASS R-2579: Precedent entries not tracked at HEAD are refused, each one named 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:112: trailing whitespace.
++PASS R-2580: honest Precedent forms pass and the launch line names the checked entry count 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:113: trailing whitespace.
++PASS R-2616: a numbered step list straight after a plain Precedent list is not read as entries 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:114: trailing whitespace.
++PASS R-2617: a bold Precedent label line starts the Precedent section 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:115: trailing whitespace.
++PASS R-2618: a brief with no Precedent section is told the label stands on a line of its own 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:116: trailing whitespace.
++PASS R-2619: bold and punctuated Precedent paths are checked as the bare path 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:117: trailing whitespace.
++PASS R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:118: trailing whitespace.
++PASS seal: worker-lane's launches have a 30-second limit and poll less often than that 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:119: trailing whitespace.
++PASS R-2620: a heading such as Precedent audit is not read as the Precedent section 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:120: trailing whitespace.
++PASS R-2581: the named feature's known-bug file follows the brief as the third prompt, and nothing follows when the feature has none 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:121: trailing whitespace.
++PASS seal: a brief's precedent section is Precedent, its no-precedent entry starts none: and its feature line starts Feature: 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:122: trailing whitespace.
++PASS verified lane passes preamble and validated brief as ordered file paths 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:123: trailing whitespace.
++PASS every pi-worker child receives NANA_ROLE=worker 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:124: trailing whitespace.
++PASS lane preamble forbids the named package-manager operations at a worktree root 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:125: trailing whitespace.
++PASS R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:126: trailing whitespace.
++PASS R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:127: trailing whitespace.
++PASS R-2662: the builder preamble tells the builder to import a needed function, never copy it, and stop on a private helper the brief does not move 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:128: trailing whitespace.
++PASS R-2583: the builder preamble frames the attached known bugs as context to report, not to fix 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:129: trailing whitespace.
++PASS lane preamble carries: wrong code first 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:130: trailing whitespace.
++PASS lane preamble carries: must-meet tests and no other new test, with the seal-test exception 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:131: trailing whitespace.
++PASS lane preamble carries: await every async case 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:132: trailing whitespace.
++PASS lane preamble carries: CRLF and whitespace cases 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:133: trailing whitespace.
++PASS lane preamble carries: IDs from the brief's range 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:134: trailing whitespace.
++PASS lane preamble carries: no suite test runs a seat script 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:135: trailing whitespace.
++PASS lane preamble carries: no unnamed test deleted 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:136: trailing whitespace.
++PASS lane preamble carries: touched tests before each commit 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:137: trailing whitespace.
++PASS lane preamble carries: seat checks before DONE 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:138: trailing whitespace.
++PASS lane preamble carries: long output to a committed file 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:141: trailing whitespace.
++PASS R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the replaced lines 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:142: trailing whitespace.
++PASS lane passes only the sealed roster and fixed brief instruction 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:143: trailing whitespace.
++PASS lane mode refuses all caller pi arguments before lock or spawn 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:144: trailing whitespace.
++PASS lane refuses caller tools without edit and write 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:145: trailing whitespace.
++PASS lane refuses tool-control forms -t, --tools, --exclude-tools, --no-tools 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:146: trailing whitespace.
++PASS lane refuses resource-disabling forms -nc, --no-context-files, -ne, --no-extensions, -na, --no-approve 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:147: trailing whitespace.
++PASS lane refuses retries before launch 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:148: trailing whitespace.
++PASS lane passes the machine roster builder to pi, each flag once 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:149: trailing whitespace.
++PASS lane omits --thinking when the machine roster builder thinking is null 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:150: trailing whitespace.
++PASS lane refuses a refused roster before starting pi, naming the file 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:151: trailing whitespace.
++PASS lane ignores a roster in project .pi/nana-pack.json 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:152: trailing whitespace.
++PASS lane prints the resolved builder and roster source on stderr before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:153: trailing whitespace.
++PASS lane size larger starts pi with the larger-lane builder's provider, model and thinking, each flag once 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:154: trailing whitespace.
++PASS lane size larger with no larger-lane builder starts pi with the builder 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:155: trailing whitespace.
++PASS lane size small starts pi with the builder even when largerBuilder is set 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:156: trailing whitespace.
++PASS lane size with a missing or unknown value refuses before pi spawn 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:157: trailing whitespace.
++PASS lane size larger prints the larger-lane builder line before starting pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:158: trailing whitespace.
++PASS with a larger-lane builder set, a launch with no lane size, the --lane-size=larger form included, is refused before lock or spawn, naming largerBuilder and both sizes 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:163: trailing whitespace.
++PASS synchronized concurrent lane launchers spawn exactly one pi 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:165: trailing whitespace.
++PASS missing trust prints notice before worker attempt 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:166: trailing whitespace.
++PASS affirmative trust record suppresses notice 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:167: trailing whitespace.
++PASS handled worker exit removes its worktree lock 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:168: trailing whitespace.
++PASS unreadable worktree lock is refused 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:169: trailing whitespace.
++PASS existing worktree lock refuses and names path and pid 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:170: trailing whitespace.
++PASS sealed lane ceiling is 28,800 seconds 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:171: trailing whitespace.
++PASS max-secs override kills and names the lane wall-clock ceiling 
+docs/reviews/builder-credential-strip-2026-11-02/build-1-red.txt:172: trailing whitespace.
++PASS wall-clock ceiling kills the worker process group 
+docs/reviews/builder-credential-strip-2026-11-02/build-3-wrong-cache.txt:23: new blank line at EOF.
+docs/reviews/builder-credential-strip-2026-11-02/build-3-wrong-status.txt:23: new blank line at EOF.
+docs/reviews/builder-credential-strip-2026-11-02/build-3-wrong-store.txt:23: new blank line at EOF.
+docs/reviews/builder-credential-strip-2026-11-02/independent-check-3289f566.md:12: trailing whitespace.
++   
+docs/reviews/builder-credential-strip-2026-11-02/independent-check-3289f566.md:19: trailing whitespace.
++   
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:5: trailing whitespace.
++1. **MUST — Inherited `GIT_CONFIG_PARAMETERS` defeats the strip.**  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:6: trailing whitespace.
++   **Evidence:** Plan A1 (`plan.md:23`) incorrectly calls counted environment configuration highest-precedence. On Git `2.56.0.windows.2`, running `git credential fill` with the proposed three controls and an inherited fixture `credential.helper` in `GIT_CONFIG_PARAMETERS` returned exit **0**, `password=true`. Adding `GIT_CONFIG_NOSYSTEM=1` changed nothing. Global, repository-local and conditional-include helpers were suppressed by the reset; the installed system helper is `manager`.  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:9: trailing whitespace.
++2. **MUST — Disabling terminal prompts does not disable askpass.**  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:10: trailing whitespace.
++   **Evidence:** With an empty helper list, `GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`, and a temporary `GIT_ASKPASS` script returning fixture text, `git credential fill` returned exit **0**, `password=true`. This contradicts A1 and M1’s no-password/no-prompt claim (`plan.md:23,90`).  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:13: trailing whitespace.
++3. **MUST — Claude’s settings environment can undo a spawn-only strip.**  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:14: trailing whitespace.
++   **Evidence:** `pi-worker.mjs:166–172` supplies sealed settings separately from the eventual spawn environment. `claude-review.mjs:103` likewise constructs settings before spawning the ledger. `claude-settings-carry.mjs:49` copies only supplied sealed names into settings. Existing measured residuals say project settings still supply unsealed environment names (`docs/known-bugs/FEAT-006.md:68–69`). O1 only requires child-environment merges.  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:17: trailing whitespace.
++4. **MUST — A supported reviewer entry point remains unstripped.**  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:18: trailing whitespace.
++   **Evidence:** A3’s exhaustive-launch claim (`plan.md:25`) misses standalone `review-ledger run -- …`. Its actual model spawn inherits `process.env` plus reviewer markers (`packages/nana-pack/bin/review-ledger.mjs:168`). Going through `claude-review` would inherit its strip; direct ledger launches would not.  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:21: trailing whitespace.
++5. **MUST — The requirement change leaves contradictory live contracts and reporting instructions.**  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:22: trailing whitespace.
++   **Evidence:** `REQUIREMENTS.md:826` expressly requires push-and-stop and push-result reporting, while `REQUIREMENTS.md:152` requires the old dated ruling. Their tests pin those literals (`worker-lane.test.mjs:418`; `rulings.test.mjs:365–382`). The preamble’s report shape still demands the pushed branch, pushed SHA and push exit code (`builder-preamble.md:38`), beyond the line O4 replaces.  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:25: trailing whitespace.
++6. **SHOULD — Specify gate precedence and false-positive policy before writing patterns.**  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:26: trailing whitespace.
++   **Evidence:** The proposed precedent permits configured allow patterns to exempt `segHit` matches (`nana-gate.ts:165–182`). Thus an existing broad `^git` exception can defeat M4 without deliberate evasion. O3 blocks every helper binary, while M4 leaves `git credential-cache exit` undecided (`plan.md:33–40,97–100`). Existing corpus tests deliberately gate some documentation mentions (`gate-corpus.test.mjs:103`).  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:29: trailing whitespace.
++7. **SHOULD — Document legitimate authentication losses where consumers read the contract.**  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:30: trailing whitespace.
++   **Evidence:** O2 justifies reviewer stripping because reviewers never push (`plan.md:32`), but helper authentication also serves private HTTPS fetches, submodules and Git-backed package dependencies. The immutable pi checkout is created locally before the model spawn (`pi-review.mjs:178–185`), so it needs no blanket credential exception. The expected changes omit the pack README.  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:33: trailing whitespace.
++8. **SHOULD — Make the residual claim precise and keep smoke evidence synthetic.**  
+docs/reviews/builder-credential-strip-2026-11-02/plan-attack.md:34: trailing whitespace.
++   **Evidence:** The threat model includes opportunistic helper commands (`plan.md:59`), yet explicitly leaves scripted direct-helper access available (`:64`). Empty Git helper configuration does not disable a directly invoked GCM executable; noninteractive mode is not denial of stored-token access. M8 nevertheless requests a real parent credential lookup (`:106`).  
+docs/reviews/builder-credential-strip-2026-11-02/r1-land-da2a7d7a.md:1: trailing whitespace.
++**MUST — Direct ledger launches leave Claude settings unsealed.**  
