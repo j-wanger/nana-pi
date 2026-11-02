@@ -57,7 +57,9 @@ re-asked decisions and logged context in interaction windows, using the isolated
 `npm run memory:meter-compare` (`scripts/outcome-compare.mjs`) compares private repeat sets.
 `npm run memory:replay` (`scripts/memory-replay.mjs`) plans paired historical replays,
 optionally screens control reproduction, runs isolated Claude arms and decides from private rows.
-These hand-run commands need Node and git; the meter and paid replay commands need authenticated Claude.
+`npm run memory:curate` (`scripts/memory-curate.mjs`) proposes private merges and retirements
+for the owner's review; only an explicit accept changes live memory.
+These hand-run commands need Node and git; proposing curation, the meter and paid replay commands need authenticated Claude.
 See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
 
 ## Requirements-first

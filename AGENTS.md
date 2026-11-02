@@ -18,7 +18,7 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
   `~/.local/bin/pi-review`) with `review-round`, `review-shape`, `review-ledger` and `pi-worker`
   behind it, `pi-watchdog`, `nana-roster` (the per-machine roster command), the three producers the seat's Claude Code SessionStart hooks run —
   `nana-objective`, `nana-adoption` and `nana-frontier-summary` — `nana-writing` (the writing checker, on PATH; report-only), and
-  `nana-frontier` (the report-only HANDOFF structure checker).
+  `nana-frontier` (the report-only HANDOFF structure checker), and `nana-curate` (the private owner-reviewed memory queue).
 - `packages/nana-knowledge/` — the prompt-time knowledge pull: a zero-dep FTS5/BM25 index
   over the markdown knowledge stores on this machine, read from a Claude Code
   `UserPromptSubmit` hook and from pi's `before_agent_start` via one shared `hook` CLI.
