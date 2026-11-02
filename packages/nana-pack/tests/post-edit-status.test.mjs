@@ -87,6 +87,10 @@ function setup(commands, opts = {}) {
 const last = (a) => a.at(-1);
 const PASS_CMD = 'node -e "process.exit(0)"';
 const SLOW_PASS_CMD = 'node -e "setTimeout(()=>process.exit(0),100)"';
+// chosen above observed Windows node startup and shell overhead, so the control deadline does not fire under ordinary load.
+const CONTROL_DEADLINE_MS = 10_000;
+// chosen to bound both controlled cases while allowing loaded Windows child startup.
+const DEADLINE_CASE_WATCHDOG_MS = 30_000;
 const FAIL_CMD = 'node -e "process.exit(1)"';
 
 for (const [command, expected] of [["missing-tool x", "error"], ["ruff check", "checks_failed"], ["ECHO", "checks_failed"], ["dir/Z", "checks_failed"], ["%ComSpec% /c exit 1", "checks_failed"], ["@node -e x", "checks_failed"]]) {
@@ -148,30 +152,43 @@ for (const [command, expected] of [["missing-tool x", "error"], ["ruff check", "
 	const realSetTimeout = globalThis.setTimeout;
 	let controlOk = false;
 	let zeroOk = false;
+	let controlHung = false;
+	let controlRecorded = [];
+	let controlStatus = "";
+	let zeroHung = false;
+	let zeroRecorded = [];
+	let zeroStatus = "";
 	try {
 		globalThis.setTimeout = (callback, delay, ...args) => {
 			recorded.push(delay);
 			return realSetTimeout(callback, delay, ...args);
 		};
-		const control = setup([{ match: "\\.txt$", run: PASS_CMD, timeoutMs: 300 }]);
+		const control = setup([{ match: "\\.txt$", run: PASS_CMD, timeoutMs: CONTROL_DEADLINE_MS }]);
 		const controlFile = path.join(control.td, "deadline-control.txt");
 		fs.writeFileSync(controlFile, "x\n");
-		const controlRun = await settle(control.fire(controlFile));
-		controlOk = !controlRun.hung && recorded.length === 1 && recorded[0] === 300;
+		const controlRun = await settle(control.fire(controlFile), DEADLINE_CASE_WATCHDOG_MS);
+		controlHung = controlRun.hung;
+		controlRecorded = [...recorded];
+		controlStatus = control.statuses.at(-1)?.text ?? "";
+		controlOk = !controlRun.hung && recorded.length === 1 && recorded[0] === CONTROL_DEADLINE_MS;
 		fs.rmSync(control.td, { recursive: true, force: true });
 
 		recorded.length = 0;
 		const zero = setup([{ match: "\\.txt$", run: SLOW_PASS_CMD, timeoutMs: 0 }]);
 		const zeroFile = path.join(zero.td, "no-deadline.txt");
 		fs.writeFileSync(zeroFile, "x\n");
-		const zeroRun = await settle(zero.fire(zeroFile));
+		const zeroRun = await settle(zero.fire(zeroFile), DEADLINE_CASE_WATCHDOG_MS);
+		zeroHung = zeroRun.hung;
+		zeroRecorded = [...recorded];
+		zeroStatus = zero.statuses.at(-1)?.text ?? "";
 		zeroOk = !zeroRun.hung && recorded.length === 0 && zero.statuses.at(-1)?.text.includes("✓ 1 check");
 		fs.rmSync(zero.td, { recursive: true, force: true });
 	} finally {
 		globalThis.setTimeout = realSetTimeout;
 	}
-	// req: R-1702
+	// req: R-1702 R-3531
 	check("timeoutMs 0 arms no deadline and a slow check passes", controlOk && zeroOk);
+	if (!controlOk || !zeroOk) console.log("DETAIL", JSON.stringify({ controlHung, controlRecorded, controlStatus, zeroHung, zeroRecorded, zeroStatus }));
 }
 
 // A shell's missing-command result is an execution error, not a successful checker verdict.

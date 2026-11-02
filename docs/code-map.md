@@ -3891,7 +3891,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a FAIL line naming the broken behaviour; a non-zero exit code
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/mutation-runner-config.mjs`, `packages/nana-pack/lib/mutation-runner.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/ts-syntax-check.mjs`
-- **unresolved launches** — line 427: spawn · line 552: spawn; binding line 567; binding line 583; binding line 584 · line 699: spawn · line 751: spawn
+- **unresolved launches** — line 429: spawn · line 554: spawn; binding line 569; binding line 585; binding line 586 · line 701: spawn · line 753: spawn
 - **repo-code launches** — line 67: spawnSync
 
 ### `packages/nana-pack/tests/nana-roster-set.test.mjs`
