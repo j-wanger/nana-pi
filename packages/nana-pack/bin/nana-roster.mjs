@@ -162,7 +162,7 @@ export function resolveRoster(agentDir) {
 export function formatRosterLines(roster, source, lanes = resolveLaneLimit()) {
   const lines = SLOT_PRINT_ORDER.map((slot) => {
     const value = roster[slot];
-    if (value === null) return `${slot}: ${SLOT_NULL_TOKENS[slot]}`;
+    if (value == null) return `${slot}: ${SLOT_NULL_TOKENS[slot]}`;
     if (value.runtime === CLAUDE_CODE_RUNTIME) return `${slot}: ${CLAUDE_CODE_RUNTIME} ${value.model}`;
     return `${slot}: ${value.provider} ${value.model} ${value.thinking ?? DEFAULT_THINKING_TOKEN}`;
   });
@@ -173,7 +173,7 @@ export function formatRosterLines(roster, source, lanes = resolveLaneLimit()) {
 
 /** The resolved roster with every slot in SLOT_PRINT_ORDER (R-1192). */
 export function orderedRoster(roster) {
-  return Object.fromEntries(SLOT_PRINT_ORDER.map((slot) => [slot, roster[slot]]));
+  return Object.fromEntries(SLOT_PRINT_ORDER.map((slot) => [slot, roster[slot] ?? null]));
 }
 
 async function main() {
