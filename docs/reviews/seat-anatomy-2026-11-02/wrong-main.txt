@@ -1,0 +1,24 @@
+FAIL R-3640: payload fields kinds delivery and coverage
+assertion anatomy-seat.test.mjs:54:9
+FAIL R-3641: coalesced starts and turn phases
+assertion anatomy-seat.test.mjs:54:9
+FAIL R-3642: inherited sessions order invariance and skips
+assertion anatomy-seat.test.mjs:54:9
+FAIL R-3643: hook invocation and queued owner identity
+assertion anatomy-seat.test.mjs:54:9
+FAIL R-3644: seat tool classes conserve result characters
+assertion anatomy-seat.test.mjs:54:9
+FAIL R-3645: complete kind totals and distinct repeat denominators
+assertion anatomy-seat.test.mjs:54:9
+FAIL R-3646: correction joins distinguish all outcomes and sources
+assertion anatomy-seat.test.mjs:54:9
+FAIL R-3647: every seat command keeps tripwires private
+assertion anatomy-seat.test.mjs:54:9
+FAIL R-3648: reusable adapters labels and builder golden regression
+assertion anatomy-seat.test.mjs:54:9
+FAIL R-3640: seal seat extraction policy
+assertion anatomy-seat.test.mjs:238:9
+FAIL R-3644: seal seat class functions
+assertion anatomy-seat.test.mjs:255:62
+seat anatomy: 0/11 checks passed
+main code exit=1

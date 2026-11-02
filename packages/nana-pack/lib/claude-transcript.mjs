@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/claude-transcript.mjs
  * @purpose Share Claude transcript reading, day conversion and private-folder creation.
  * @inputs Transcript files, project roots, timestamps and explicit output folders.
- * @outputs Entries, text, dated days, sorted transcript paths and private folders.
+ * @outputs Entries, text, dated days, sorted transcript paths, optional counts-only observations and private folders.
  * @effects disk (reads transcripts and creates private folders)
  * @errors Filesystem errors propagate; torn JSON lines are skipped; unsafe output folders are refused.
  */
@@ -29,14 +29,14 @@ export function entriesIn(file) {
  return entries;
 }
 /** Streaming counterpart for large transcripts; retains the extractor's torn-line rule. */
-export async function* streamEntriesIn(file) {
+export async function* streamEntriesIn(file, { observe } = {}) {
  const input = fs.createReadStream(file, { encoding: "utf8" });
  const lines = readline.createInterface({ input, crlfDelay: Infinity });
  try {
   for await (const line of lines) {
    if (!line.trim()) continue;
    let entry;
-   try { entry = JSON.parse(line); } catch { continue; }
+   try { entry = JSON.parse(line); } catch { observe?.({ reason: "torn-line" }); continue; }
    yield entry;
   }
  } finally { lines.close(); input.destroy(); }
@@ -56,10 +56,11 @@ export function edtDay(timestamp) {
  return new Intl.DateTimeFormat("en-CA", { timeZone: DAY_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
 /** No selector preserves writing-trial scope; explicit selectors can include worktrees. */
-export function transcriptFiles(root, selectProject = (name) => !name.includes("-wt-") && !name.includes("-private-tmp-")) {
+export function transcriptFiles(root, selectProject = (name) => !name.includes("-wt-") && !name.includes("-private-tmp-"), { observe } = {}) {
  const found = [];
  for (const project of fs.readdirSync(root, { withFileTypes: true })) {
-  if (!project.isDirectory() || !selectProject(project.name)) continue;
+  if (!project.isDirectory()) continue;
+  if (!selectProject(project.name)) { observe?.({ reason: project.name.includes("-private-tmp-") ? "private-tmp" : project.name.includes("-wt-") ? "worktree" : "other-project" }); continue; }
   const dir = path.join(root, project.name);
   for (const name of fs.readdirSync(dir)) if (name.endsWith(".jsonl")) found.push({ project: project.name, file: path.join(dir, name) });
  }

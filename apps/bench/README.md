@@ -471,7 +471,7 @@ It keeps ordered parts, original text, contiguous unit/glue spans, brief blob/st
 Characters mean UTF-16 code units. System sections retain stored order; attempts share one build via the end record's sessions.
 Recorded briefs use the start tip; older briefs search committed history across all review folders.
 Matching accepts git checkout line-ending conversion without trimming whitespace or rewriting the received spans.
-Claude Code builders remain outside this slice because their transcripts omit the system message.
+Claude Code builders remain outside the builder adapter. Recent Claude Code seat records include a prompt snapshot; the seat adapter below reads it.
 
 Reports are counts-only JSON: units and chars with shares overall/per part, glue and unsorted counts,
 separate oversize rows, part max/p90 sizes, supply gaps by build number, opaque duplicate ids, pushed/pulled function totals,
@@ -543,6 +543,61 @@ Use `--drop <function>` to remove units and orphan headings, or `--stage <functi
 and put the ordered units in staged.txt. These options are mutually exclusive. Separators stay glue.
 Assembly uses spans, never the audit copy of the raw part. A later replay must pass these private files from outside its checkout.
 
+## Seat context anatomy (descriptive)
+
+The seat adapter needs only Node; extraction and reporting make no model call.
+It reads main-thread Claude Code JSONL files from the repository's exact project folder.
+It does not enumerate subagent files or pi seat sessions.
+
+```bash
+node apps/bench/anatomy.mjs segment --role seat --runtime claude-code --projects <claude-projects-root> --repo <repo-root> --out <private-folder>
+node apps/bench/anatomy.mjs report --in <private-folder> --corrections <private-corrections-jsonl>
+node apps/bench/test/anatomy-seat.test.mjs
+```
+
+The default remains `pi:builder`. Runtime-role adapters return `contexts`, `skipped` and `denominators`;
+the registry and injected adapters use that same contract. Missing `role` means builder for old stores.
+Seat stores use safe ordinal ids, with the session map and evidence ids kept only in the private store.
+Existing label, sample, agreement and assembly readers also accept these stores.
+Labelling is optional, paid and builder-framed; this lane makes no model-label claim about seat context.
+
+Seat `report` adds `slots`: kinds, phases, start kinds, sessions, segments, coverage, reads and corrections.
+Recorded payload is not delivered context. UTF-16 chars are not tokens, and recorded totals bound nothing about delivery.
+Headline kind shares use only `recorded-input`; `unknown` payload stays separate.
+Kind totals include all retained chars, including glue and opaque oversize tools listings.
+Function shares keep the existing oversize exclusion; rule-label function shares are not findings.
+Payload selection reads configured fields, never attachment metadata. Missing fields appear as coverage misses.
+Unknown attachment types aggregate into `attachment-other` so arbitrary type strings cannot escape the private store.
+
+File starts, compaction signals and SessionStart hooks share one coalescing start window.
+Assistant work, owner turns, tool results, queued commands and prompt hooks close that window.
+Later work is `turn` payload even before another owner turn arrives.
+Missing start snapshots or instructions have explicit exclusion reasons.
+UUID ownership uses earliest timestamps, then session and UUID; physical ties use a private content-derived representative.
+Resumes and forks retain inherited prefixes; inherited payload contributes to no corpus totals or owner-turn counts.
+Reports count skipped worktree, other-project and private-temp folders, sidechain entries and torn lines.
+
+Hook correlation is local to a start window and invocation. Raw or JSON additional context already present in
+one matching success record counts once; ambiguous pairs remain separate and counted.
+Identical invocations in later windows remain deliveries. A queued human prompt merges only with the first
+following equal owner turn in its segment, before another owner or queue; unmatched queues are counted.
+
+The repeat tables deliberately differ: `repeatedDelivery` counts later-segment chars for a session's stable
+kind and slot identity; `exactDuplicate` counts byte-identical payload chars after the first;
+`normalizedDuplicate` counts repeated normalized unit occurrences, including oversize units.
+Each table names its denominator. Hook commands identify repeatable slots; invocation ids disambiguate their representations.
+Owner turns use event identities rather than a shared owner slot.
+Seat-only read classes include memory, delegation, web, skill, write and other, without changing builder classes.
+Shell reads use the builder classifier and its conservative equal character split.
+
+Corrections accept memory-score label rows or memory-making candidate rows.
+The shared strict reader rejects malformed rows with a fixed diagnostic.
+Candidate rows carrying `claim` mark counts `estimated`; other rows mark them `labelled`.
+Evidence drops paired suffixes before joining and deduplicates by owner turn.
+The tables separate correction, decision, explicit none, unlabelled, conflict, structured answers,
+outside sessions and missing turns. They never print evidence pointers.
+No causal claim follows from these descriptive counts. The seat's private baseline and live context comparison run separately.
+
 ## Layout
 
 ```
@@ -557,10 +612,12 @@ lib/pi-exports.mjs  resolve the installed pi; import its PUBLIC Usage/calculateC
 lib/eval-module.mjs  the trusted evaluator: nonce over fd 4, HMAC-signed verdict over fd 3
 lib/agentdir.mjs    the prepared, pinned pi config dir and its credential handling
 lib/nested.mjs      nested-LLM-spend accounting: scope, dedupe, completion, unknown
-anatomy.mjs         builder anatomy CLI: segment, report, sample, agree, assemble, label (label spends)
+anatomy.mjs         role anatomy CLI: segment, report, sample, agree, assemble, label (label spends)
 lib/anatomy.mjs     private writer policy and counts-only subcommand boundary
 lib/anatomy-config.mjs  vocabulary, rules, splitters, sampling and reporting choices with provenance
 lib/anatomy-sessions.mjs  committed brief matching and multi-attempt pi context extraction
+lib/anatomy-seat.mjs  streamed Claude Code seat adapter, boundaries and private event identity
+lib/anatomy-slots.mjs  role-neutral kind totals, coverage, repeats, reads and correction joins
 lib/anatomy-spans.mjs  lossless Markdown units and glue with deterministic labels
 lib/anatomy-pulls.mjs  dedicated and wrapped shell reads by function
 lib/anatomy-measures.mjs  counts, shared normalization, agreement, blind sampling and span-based assembly

@@ -1,7 +1,7 @@
 /**
  * @module apps/bench/lib/anatomy-pulls.mjs
- * @purpose Count builder-initiated reads by configured target class and function without exporting targets.
- * @inputs Pi message entries, cwd and readBrief's public precedent paths.
+ * @purpose Count agent-initiated reads by configured target class and function without exporting targets.
+ * @inputs Pi entries or canonical calls, result chars, cwd, optional memory markers and precedent paths.
  * @outputs Read rows with class, function and result chars, including unclassified bash.
  * @effects none
  * @errors Missing or errored results contribute zero chars.
@@ -28,8 +28,9 @@ function segments(command) {
   return wrapped ? segments(wrapped[2]) : [s];
  });
 }
-function targetClass(target, { cwd = "", precedent = [] } = {}) {
+function targetClass(target, { cwd = "", precedent = [], memoryPaths = [] } = {}) {
  const clean = target.replaceAll("\\", "/").replace(/^[^/\s:]+:(?=[^/])/u, "");
+ if (memoryPaths.some((marker) => clean.toLowerCase().includes(marker.toLowerCase().replaceAll("\\", "/")))) return "memory";
  if (precedent.some((p) => clean === p || clean.endsWith(`/${p}`) || (p.endsWith("/") && clean.startsWith(p)))) return "precedent";
  for (const [cls, pattern] of TARGET_RULES) if (pattern.test(clean)) return cls;
  if (path.isAbsolute(clean) && cwd && path.relative(cwd, clean).startsWith("..")) return "outside";
@@ -50,6 +51,16 @@ function bashReads(command, options) {
  return found.length ? found : ["unclassified-bash"];
 }
 
+/** Classify and partition one call; defaults preserve the pi builder vocabulary. */
+export function callClasses(name, args = {}, { chars = 0, functions = CLASS_FUNCTION, fallbackClass, ...options } = {}) {
+ let classes;
+ if (DEDICATED_READERS.includes(name)) classes = [targetClass(args.path ?? args.file_path ?? args.file ?? "", options)];
+ else if (name === "bash") classes = bashReads(args.command ?? "", options);
+ else classes = fallbackClass ? [fallbackClass] : [];
+ const share = Math.floor(chars / classes.length);
+ return classes.map((cls, i) => ({ class: cls, function: functions[cls], chars: i === classes.length - 1 ? chars - share * i : share }));
+}
+
 /** One tool result's chars are partitioned across its shell segments, never multiplied by a pipe.
  * Chosen 2026-11-01, T6: equal integer allocation with remainder on the last segment;
  * the transcript cannot attribute pipe output to an individual segment. Counts remain exact.
@@ -61,14 +72,8 @@ export function pullsOf(entries, options = {}) {
  for (const e of entries) {
   if (e.type !== "message" || e.message?.role !== "assistant" || !Array.isArray(e.message.content)) continue;
   for (const call of e.message.content.filter((p) => p.type === "toolCall")) {
-   const args = call.arguments ?? {}, name = call.name;
-   let classes;
-   if (DEDICATED_READERS.includes(name)) classes = [targetClass(args.path ?? args.file_path ?? args.file ?? "", options)];
-   else if (name === "bash") classes = bashReads(args.command ?? "", options);
-   else continue;
    const result = results.get(call.id), chars = result && !result.isError ? textFrom(result.content).length : 0;
-   const share = Math.floor(chars / classes.length);
-   classes.forEach((cls, i) => rows.push({ class: cls, function: CLASS_FUNCTION[cls], chars: i === classes.length - 1 ? chars - share * i : share }));
+   rows.push(...callClasses(call.name, call.arguments ?? {}, { ...options, chars }));
   }
  }
  return rows;
