@@ -40,7 +40,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `apps/bench/anatomy.mjs`
 
 - **purpose** — Expose the builder anatomy CLI with an isolated model runner for labelling.
-- **inputs** — argv: segment --repo --sessions --out; report --in; sample --in --seed --n --out; agree --in --a --b; assemble --in --context --drop --stage --out; label --in --out or --resume.
+- **inputs** — argv: segment --repo --sessions --out; report --in [--labels]; sample --in --seed --n --out [--labels --heavy]; agree --in --a --b [--model --a2 --b2]; assemble --in --context --drop --stage --out; label --in --out or --resume.
 - **outputs** — Counts-only stdout and private files through runAnatomy.
 - **effects** — disk, process (read-only git and isolated Claude), network (label only)
 - **errors** — Exit 1 on unsafe output, invalid arguments or failed reads/writes.
@@ -85,7 +85,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/bench/lib/anatomy-labels.mjs`
 
-- **purpose** — Label distinct blind builder texts through an injected capped runner with durable private resume.
+- **purpose** — Own the private model-label format, its capped writer, resume and read-only validation.
 - **inputs** — Segmented contexts, guarded private output folder, injected runner, optional caps and counts-only stdout.
 - **outputs** — Private manifest and appended key/id/label rows; counts-only progress and spend lines.
 - **effects** — disk (private label store); network (only through injected runner)
@@ -100,7 +100,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Counts-only reports and agreement, blind samples, or assembled private text.
 - **effects** — none
 - **errors** — Invalid labels, duplicate ids, unknown ids and differing sheet id sets throw fixed diagnostics.
-- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/catch-stats.mjs`
 
 ### `apps/bench/lib/anatomy-pulls.mjs`
@@ -171,7 +171,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports cohensKappa/seededSample/canonSegments/samePath/sameBase/stageHints/matchGraph/components/buildLedger/componentSizes/table/claims/matchConfidence; returns plain objects and markdown strings
 - **effects** — none
 - **errors** — throws Error when kappa is given empty or unequal-length label vectors
-- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`
+- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`
 - **callees** — —
 
 ### `apps/bench/lib/checkers.mjs`
@@ -280,14 +280,14 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/bench/test/anatomy-labels.test.mjs`
 
-- **purpose** — Pin private capped anatomy labelling and resume with synthetic stores and fake runners.
+- **purpose** — Pin private capped anatomy labelling, resume and read-only measurement on synthetic stores.
 - **inputs** — Synthetic OS-temp contexts, injected runners and sealed configuration.
 - **outputs** — Awaited bounded PASS/FAIL cases and a check total; never fixture text or keys.
 - **effects** — disk (OS-temp fixtures), process (synthetic killed-run child)
 - **errors** — Assertion failures set exit code 1 without printing private values.
 - **callers** — —
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/tmp-dir.mjs`
-- **unresolved launches** — line 114: spawnSync
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/test/tmp-dir.mjs`
+- **unresolved launches** — line 116: spawnSync
 
 ### `apps/bench/test/anatomy.test.mjs`
 

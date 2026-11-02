@@ -2,7 +2,7 @@
 /**
  * @module apps/bench/anatomy.mjs
  * @purpose Expose the builder anatomy CLI with an isolated model runner for labelling.
- * @inputs argv: segment --repo --sessions --out; report --in; sample --in --seed --n --out; agree --in --a --b; assemble --in --context --drop --stage --out; label --in --out or --resume.
+ * @inputs argv: segment --repo --sessions --out; report --in [--labels]; sample --in --seed --n --out [--labels --heavy]; agree --in --a --b [--model --a2 --b2]; assemble --in --context --drop --stage --out; label --in --out or --resume.
  * @outputs Counts-only stdout and private files through runAnatomy.
  * @effects disk, process (read-only git and isolated Claude), network (label only)
  * @errors Exit 1 on unsafe output, invalid arguments or failed reads/writes.
