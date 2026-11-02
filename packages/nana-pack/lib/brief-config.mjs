@@ -16,3 +16,5 @@ export const FEATURE_LINE_PREFIX = "Feature: ";
 export const PRECEDENT_TRAILING_PUNCTUATION = ",;.):";
 /** Chosen: 65,536 bytes is about four times the largest real-brief path listing measured on 2026-10-22 and stays below Node's 1 MiB default. */
 export const PRECEDENT_LIST_MAX_BYTES = 65_536;
+/** Contract (precedent-line-parse plan Revision 3, R-3719): chosen to bound each diagnostic bullet including its ellipsis. */
+export const PRECEDENT_QUOTE_CAP = 160;

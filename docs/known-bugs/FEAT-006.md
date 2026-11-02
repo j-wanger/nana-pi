@@ -158,3 +158,4 @@
 - Builder credential strip (builder-credential-strip, review round 2): the pack README does not state that direct `review-ledger run -- claude` reviewers now get the ancestor excludes and auto-memory off.
 - Builder credential strip (builder-credential-strip, review round 2): M5's banned phrase lacks backticks.
 - Builder credential strip (credential-gate-variants, plan attack): a whole-gate probe on a very long command took over 30 s; the cause is unmeasured, and the new helper patterns alone match 80,025 chars in about 1 ms.
+- Precedent check (precedent-line-parse, plan attack): a bullet whose first word is a tracked folder name and that holds no backticked path passes the Precedent check.

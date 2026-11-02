@@ -8,7 +8,7 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
-import { FEATURE_LINE_PREFIX, PRECEDENT_LIST_MAX_BYTES, PRECEDENT_NONE, PRECEDENT_SECTION, PRECEDENT_TRAILING_PUNCTUATION } from "./brief-config.mjs";
+import { FEATURE_LINE_PREFIX, PRECEDENT_LIST_MAX_BYTES, PRECEDENT_NONE, PRECEDENT_QUOTE_CAP, PRECEDENT_SECTION, PRECEDENT_TRAILING_PUNCTUATION } from "./brief-config.mjs";
 import { isNamed } from "./frontier-config.mjs";
 import { KNOWN_BUGS_DIR } from "./known-bugs-config.mjs";
 import { scanListSections } from "./markdown-list-sections.mjs";
@@ -17,8 +17,9 @@ const LIST_PREFIX = /^\s*(?:[-*+]\s+|\d+[.)]\s+)/;
 const LINE_SUFFIX = /:\d+(?:-\d+)?$/;
 const WINDOWS_ABSOLUTE = /^[A-Za-z]:\//;
 
-function entryText(entry) {
-	return entry.lines.map((line, index) => index === 0 ? line.replace(LIST_PREFIX, "") : line.trim()).join(" ").trim();
+/** Join a bullet's original lines for bounded diagnostics and corpus audits. */
+export function entryText(entry) {
+	return entry.lines.map((line, index) => (index === 0 ? line.replace(LIST_PREFIX, "") : line).trim()).join(" ").trim();
 }
 
 function unsafePath(value) {
@@ -26,19 +27,38 @@ function unsafePath(value) {
 	return !value || value.startsWith("/") || value.startsWith("~") || WINDOWS_ABSOLUTE.test(value) || segments.includes("..");
 }
 
+function firstCodeSpan(text) {
+	const runs = [...text.matchAll(/`+/g)];
+	for (let index = 0; index < runs.length; index++) {
+		const open = runs[index];
+		const close = runs.slice(index + 1).find((run) => run[0].length === open[0].length);
+		if (!close) continue;
+		let value = text.slice(open.index + open[0].length, close.index);
+		if (value.startsWith(" ") && value.endsWith(" ") && /[^ ]/.test(value)) value = value.slice(1, -1);
+		return { value, index: open.index, end: close.index + close[0].length };
+	}
+	return null;
+}
+
 function normalizeEntry(entry) {
-	const text = entryText(entry).replaceAll("**", "");
+	const bullet = entryText(entry);
+	const text = bullet.replaceAll("**", "");
 	if (text.startsWith(PRECEDENT_NONE)) {
 		const reason = text.slice(PRECEDENT_NONE.length).trim();
 		return { kind: reason ? "none" : "invalid-none", reason, value: PRECEDENT_NONE, line: entry.line };
 	}
-	let value = text.split(/\s+/, 1)[0]?.replaceAll("`", "") ?? "";
+	const first = text.split(/\s+/, 1)[0] ?? "";
+	const span = firstCodeSpan(text);
+	const pathShaped = first.replaceAll("\\", "/").includes("/") || /^[\w.-]+\.[A-Za-z0-9]+$/.test(first);
+	let value = span && (span.index === 0 || !pathShaped) ? span.value : first.replaceAll("`", "");
+	// Keep the historical suffix outside a leading span, too (`seed`:12).
+	if (span?.index === 0) value += /^(:\d+(?:-\d+)?)/.exec(text.slice(span.end))?.[1] ?? "";
 	const unsafeBeforeMarks = unsafePath(value.replaceAll("\\", "/"));
 	while (value && PRECEDENT_TRAILING_PUNCTUATION.includes(value.at(-1))) value = value.slice(0, -1);
 	value = value.replace(LINE_SUFFIX, "").replaceAll("\\", "/");
 	if (value.startsWith("./")) value = value.slice(2);
-	const unsafe = unsafeBeforeMarks || unsafePath(value);
-	return { kind: unsafe ? "invalid-path" : "path", value, line: entry.line };
+	const unsafe = unsafeBeforeMarks || unsafePath(value) || value.includes("://");
+	return { kind: unsafe ? "invalid-path" : "path", value, line: entry.line, bullet };
 }
 
 /** Parse the first Precedent section and the first Feature line from brief text. */
@@ -105,8 +125,11 @@ export function checkBriefForLaunch({ briefPath, worktreeRoot, gitRunner }) {
 	}
 	const precedentProblems = checkPrecedent(precedent, trackedPaths);
 	if (precedentProblems.length > 0) {
-		const details = precedentProblems.map((entry) => `${JSON.stringify(entry)} is not tracked at HEAD`).join("; ");
-		return refusal(`Precedent entries at HEAD ${head}: ${details}; commit the file, or merge main if it landed there`);
+		const details = precedent.filter((entry) => checkPrecedent([entry], trackedPaths).length > 0).map((entry) => {
+			const quote = entry.bullet.length > PRECEDENT_QUOTE_CAP ? entry.bullet.slice(0, PRECEDENT_QUOTE_CAP - 1) + "…" : entry.bullet;
+			return `${JSON.stringify(entry.value)} is not tracked at HEAD (bullet: ${JSON.stringify(quote)})`;
+		}).join("; ");
+		return refusal(`Precedent entries at HEAD ${head}: ${details}; each Precedent bullet names one tracked path, in backticks or as its first word; commit the file, or merge main if it landed there`);
 	}
 	let knownBugRelative = "none";
 	let knownBugPath = null;
