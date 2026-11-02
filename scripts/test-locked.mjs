@@ -29,7 +29,7 @@ import {
 import { buildRuntimeData, killTree, signalTreeTargets, writeRuntimeData } from "./runtime-measure.mjs";
 
 // chosen: keep the machine-wide lock in the user's private home, independent of each worktree.
-const DEFAULT_LOCK_DIR = path.join(os.homedir(), ".nana", "suite.lock");
+export const DEFAULT_LOCK_DIR = path.join(os.homedir(), ".nana", "suite.lock");
 const STALE_PIDLESS_MS = 60_000; // contract (design R-626): reclaim a pid-less lock only after 60 seconds
 const RETRY_MS = 100; // chosen: short polling interval keeps contention responsive without busy-waiting
 const KILL_WAIT_MS = 500; // chosen: retain the existing prompt escalation for an unresponsive suite

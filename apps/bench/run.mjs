@@ -131,7 +131,7 @@ function signalTree(pid, signal) {
  * WAIT for the pid to actually disappear. A survivor would keep burning quota and would overlap
  * the next run's wall-clock measurement.
  */
-export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuffer = null }) {
+export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuffer = null, onSpawn = null, onOutput = null, reapOnExit = false }) {
 	return new Promise((resolve) => {
 		const t0 = Date.now();
 		let out = "";
@@ -141,6 +141,7 @@ export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuf
 		const child = spawn(cmd, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"], detached: process.platform !== "win32", windowsHide: true });
 		const pid = child.pid;
 		let killedCleanly = null;
+		let outputError = false;
 		// The live entry carries the PID as well as the kill, so an interrupt can CONFIRM the tree is
 		// gone instead of assuming the signal landed.
 		const entry = { pid, kill: () => signalTree(pid, "SIGKILL") };
@@ -148,7 +149,7 @@ export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuf
 			if (settled) return;
 			settled = true;
 			clearTimeout(timer);
-			if (timedOut) {
+			if (timedOut || reapOnExit) {
 				signalTree(pid, "SIGKILL");
 				for (let i = 0; i < 100 && treeAlive(pid); i++) await new Promise((r) => setTimeout(r, 100));
 				killedCleanly = !treeAlive(pid);
@@ -156,7 +157,7 @@ export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuf
 			// Drop it from LIVE: a finished pid can be REUSED, and treeAlive on a recycled pid would
 			// report a survivor that has nothing to do with this study.
 			LIVE.delete(entry);
-			resolve({ exit, signal, stdout: out, stderr: err, wallMs: Date.now() - t0, timedOut, killedCleanly, pid });
+			resolve({ exit, signal, stdout: out, stderr: err, wallMs: Date.now() - t0, timedOut, killedCleanly, pid, ...(outputError ? { outputError: true } : {}) });
 		};
 		const timer = setTimeout(() => {
 			timedOut = true;
@@ -167,7 +168,11 @@ export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuf
 				setTimeout(() => finish(null, "SIGKILL"), 1000).unref();
 			}, graceMs).unref();
 		}, timeoutMs);
-		child.stdout.on("data", (d) => { out += d; });
+		child.stdout.on("data", (d) => {
+			out += d;
+			try { onOutput?.(out); } catch { outputError = true; signalTree(pid, "SIGKILL"); }
+		});
+		if (reapOnExit) child.on("exit", () => signalTree(pid, "SIGKILL"));
 		child.stderr.on("data", (d) => { err += d; });
 		child.on("error", (e) => { err += `\nspawn error: ${e.message}`; finish(null, null); });
 		child.on("close", (code, signal) => finish(code, signal));
@@ -175,6 +180,7 @@ export function runChild({ cmd, args, env, cwd, timeoutMs, graceMs = 5000, onBuf
 		// Live readers, so an interrupt can write down what the child had already produced. Handed out
 		// AFTER the listeners are attached, so a salvage always reads the same buffers they fill.
 		if (onBuffer) onBuffer({ stdout: () => out, stderr: () => err });
+		onSpawn?.(pid);
 	});
 }
 

@@ -1,0 +1,9 @@
+FAIL R-3600: sandbox start tree excludes future and outside data
+FAIL R-3601: first context is exact and cuts only model-labelled kind
+FAIL R-3602: frozen checks retain failures and grader bounds
+FAIL R-3603: durable reservations cap spend and never repay interruptions
+FAIL R-3604: complete measures and stalled trees precede grading
+FAIL R-3605: live lanes abort and exclusive folders refuse peers
+FAIL R-3606: all causal inputs seal resume including committed registration
+FAIL R-3607: three error layers deduplicate and never print private text
+builder replay: 0/8 checks passed

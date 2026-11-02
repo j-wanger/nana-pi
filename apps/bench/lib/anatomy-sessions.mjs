@@ -73,7 +73,8 @@ const inProject = (cwd, repo) => {
  const p = slash(path.resolve(cwd)), root = slash(path.resolve(repo));
  return p === root || p.startsWith(`${root}/`) || p.startsWith(`${root}-wt/`);
 };
-const buildNumber = (file = "") => {
+/** Parse the committed brief's build number, never the session attempt number. */
+export const buildNumberFromBrief = (file = "") => {
  const name = basename(file);
  const m = /(?:build[-_])?brief[-_](\d+)|build[-_](\d+)[-_]brief|fix(\d*)[-_]brief/iu.exec(name);
  return m ? Number(m[1] ?? m[2] ?? (m[3] || "2")) : "unknown";
@@ -100,7 +101,7 @@ export function extractContexts({ repo, sessions }) {
   if (!c) {
    const end = start ? ends.get(start.build) : null;
    const usage = start ? collectBuildUsage(start, { before: end?.endedAt ?? null }) : collectBuildUsage({ cwd: header.cwd, sessionDir: path.dirname(file), startedAt: header.timestamp ?? "1970-01-01T00:00:00Z" }, { fsApi: { ...fs, readdirSync: () => [basename(file)] } });
-   c = { id: key, lane: basename(header.cwd), cwd: header.cwd, branch: `feat/${basename(header.cwd)}`, buildNumber: buildNumber(start?.brief), model: start?.model ?? "unknown", verdict: "none", tokens: totalTokens(usage.usage), wallMinutes: (end?.durationMs ?? usage.durationMs ?? 0) / MILLISECONDS_PER_MINUTE, landed: landed.has(basename(header.cwd)), attempts: 0, startTip: start?.tip ?? null, briefBlob: null, parts: [], excluded: [], pulls: [] };
+   c = { id: key, lane: basename(header.cwd), cwd: header.cwd, branch: `feat/${basename(header.cwd)}`, buildNumber: buildNumberFromBrief(start?.brief), model: start?.model ?? "unknown", verdict: "none", tokens: totalTokens(usage.usage), wallMinutes: (end?.durationMs ?? usage.durationMs ?? 0) / MILLISECONDS_PER_MINUTE, landed: landed.has(basename(header.cwd)), attempts: 0, startTip: start?.tip ?? null, briefBlob: null, parts: [], excluded: [], pulls: [] };
    groups.set(key, c); contexts.push(c);
   }
   const attempt = c.attempts++, exact = briefAt(repo, start);
@@ -119,7 +120,7 @@ export function extractContexts({ repo, sessions }) {
      if (section === "addendum") {
       brief = matchBrief(raw, exact);
       if (!brief) for (const candidate of (history ??= historicalBriefs(repo))) { brief = matchBrief(raw, candidate); if (brief) break; }
-      if (brief) { c.briefBlob ??= brief.blob; if (c.buildNumber === "unknown") c.buildNumber = buildNumber(brief.file); }
+      if (brief) { c.briefBlob ??= brief.blob; if (c.buildNumber === "unknown") c.buildNumber = buildNumberFromBrief(brief.file); }
       for (const p of splitAddendum(raw, brief)) push(p.name, p.raw, { section, ...(p.reason ? { reason: p.reason } : {}) });
      } else push(section, raw, { section });
     }

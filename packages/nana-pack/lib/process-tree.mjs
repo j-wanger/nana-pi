@@ -17,10 +17,10 @@ export const DEFAULT_KILL_SIGNAL = "SIGKILL";
 
 const validPid = (pid) => Number.isSafeInteger(pid) && pid > 1;
 
-/** Whether a pid names a live or inaccessible process; invalid and absent pids are false. */
-export function pidAlive(pid, { kill = process.kill } = {}) {
+/** Whether a pid (or POSIX group when group is true) is live or inaccessible; invalid and absent pids are false. */
+export function pidAlive(pid, { kill = process.kill, group = false } = {}) {
 	if (!Number.isInteger(pid) || pid <= 0) return false;
-	try { kill(pid, 0); return true; }
+	try { kill(group ? -pid : pid, 0); return true; }
 	catch (error) { return error?.code === "EPERM"; }
 }
 const useFallback = (fallback, signal) => {
