@@ -12,9 +12,10 @@ const DB = "packages/nana-knowledge/lib/db.ts";
 const BUILD = "packages/nana-knowledge/lib/build.ts";
 const R_3590 = /^M1: transient write locks allow existing and first builds to advance built_at/; // R-3590
 const R_3592 = /^M3: locked hook stays bounded and connection defaults read back/; // R-3592
+const RECOVERY_FAIL_FAST = /^M3: recovery refuses a late writer without a build busy wait and keeps the index/; // R-3592
+const SOURCES_PROBLEM_PROBE = /^M1: sources-problem probe waits out a transient lock and keeps the index/; // R-3590
 const R_3593 = /^M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms/; // R-3593
 const R_3594 = /^M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms/; // R-3594
-const R_2403 = /^R-2403: /; // R-2403 (amended)
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 const PRAGMA = "db.exec(`PRAGMA busy_timeout=${opts.busyTimeoutMs ?? (opts.create ? BUILD_BUSY_TIMEOUT_MS : QUERY_BUSY_TIMEOUT_MS)}`);";
 
@@ -41,10 +42,10 @@ const PAIRS = [
 	], tests: [BB], expectRed: [R_3590] },
 	{ n: "P5", name: "recovery waits a full build timeout instead of refusing at once", edits: [
 		one(BUILD, "db.exec(\"PRAGMA busy_timeout=0\");", "db.exec(`PRAGMA busy_timeout=${BUILD_BUSY_TIMEOUT_MS}`);"),
-	], tests: [BB, RC], expectRed: [R_2403] },
+	], tests: [BB, RC], expectRed: [RECOVERY_FAIL_FAST] },
 	{ n: "P6", name: "the sources-problem probe loses the build wait", edits: [
 		one(BUILD, "const probe = await openDb(paths.db, { readonly: true, busyTimeoutMs: BUILD_BUSY_TIMEOUT_MS });", "const probe = await openDb(paths.db, { readonly: true, busyTimeoutMs: 0 });"),
-	], tests: [BB], expectRed: [R_3590] },
+	], tests: [BB], expectRed: [SOURCES_PROBLEM_PROBE] },
 	{ n: "P7", name: "the build timeout is retuned to 4000", edits: [
 		one(DB, "export const BUILD_BUSY_TIMEOUT_MS = 5000;", "export const BUILD_BUSY_TIMEOUT_MS = 4000;"),
 	], tests: [BB], expectRed: [R_3593] },
@@ -53,4 +54,4 @@ const PAIRS = [
 	], tests: [BB], expectRed: [R_3594] },
 ];
 
-process.exitCode = await runMutations({ lane: "knowledge-busy", self: import.meta.url, tip: "34cdc8f4b5e1be0eb89a5917ab371d6f77dbbdc0", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "knowledge-busy", self: import.meta.url, tip: "HEAD", declared: DECLARED, pairs: PAIRS });

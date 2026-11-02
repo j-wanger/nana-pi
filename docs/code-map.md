@@ -1432,7 +1432,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — BuildStats (per-root counts, totals, preserved and removed rows, source and damage outcomes, timing and db size), the index's meta rows, the index age, and a doc count
 - **effects** — disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row transactions, a WAL truncate checkpoint)
 - **errors** — BuildLockedError when another live builder holds the lock; unrecoverable node:sqlite errors; a sources problem or unreadable root/folder keeps its indexed rows
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/build-busy.test.mjs`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/parse.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/sources.ts`
 
 ### `packages/nana-knowledge/lib/db.ts`
@@ -1523,8 +1523,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temporary fixtures), database (fixture indexes), process (bounded children).
 - **errors** — Each awaited case reports errors within its deadline and ends its children in finally.
 - **callers** — —
-- **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`
-- **unresolved launches** — line 30: spawn; binding line 62; binding line 126
+- **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`
+- **unresolved launches** — line 30: spawn; binding line 62; binding line 152; binding line 208; binding line 226
 
 ### `packages/nana-knowledge/tests/discovery.test.mjs`
 
