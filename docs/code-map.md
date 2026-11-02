@@ -1523,8 +1523,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temporary fixtures), database (fixture indexes), process (bounded children).
 - **errors** — Each awaited case reports errors within its deadline and ends its children in finally.
 - **callers** — —
-- **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`
-- **unresolved launches** — line 30: spawn; binding line 62; binding line 152; binding line 208; binding line 226
+- **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
+- **unresolved launches** — line 31: spawn; binding line 63; binding line 153; binding line 209; binding line 227
 
 ### `packages/nana-knowledge/tests/discovery.test.mjs`
 
@@ -1615,7 +1615,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/ledger-parse.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/sources-file.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
+- **callers** — `packages/nana-knowledge/tests/build-busy.test.mjs`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/ledger-parse.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/sources-file.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
 - **callees** — —
 
 ### `packages/nana-knowledge/tests/tokenize.test.mjs`
