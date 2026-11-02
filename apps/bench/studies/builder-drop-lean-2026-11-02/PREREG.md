@@ -47,6 +47,7 @@ Manifests and overlays stay private, outside git; `study.json` points at them by
 - 5 lanes x 2 arms x 2 repeats = 20 runs, plus one smoke run. Order: the harness's seeded schedule (seed 20261102).
 - Allowance and kill limit USD 6 per run; hard cap USD 45 for everything in the output folder.
 - No review step.
+- Replays run concurrently with other builds on the same machine; timing and cost per run may be noisier.
 
 ## Measures
 

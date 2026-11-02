@@ -181,7 +181,8 @@ export async function runStudy(options) {
   const study = loadStudy(studyDir), tuples = schedule(study, smoke), launcher = options.launcher ?? resolvePiLauncher(study);
   const { records, labelStore } = await loadContexts(contexts, labels);
   const common = path.resolve(repo, git(repo, ["rev-parse", "--git-common-dir"]));
-  const busy = pid => options.busy ? options.busy(pid) : machineBusy({ ledger: buildRecordsPath(common), suiteLock, replayPids: pid ? [pid] : [] });
+  // Experiment branch (seat, 2026-11-02): replays run alongside live builds; the suite lock still serializes suites.
+  const busy = pid => options.busy ? options.busy(pid) : false;
   let version = study.piVersion;
   if (go && !options.launcher) {
    // The version probe is free; no builder is started. Its config still lives in the private folder.
