@@ -318,7 +318,7 @@ check('MM3: set preserves four old shapes without adding unnamed role slots', ((
 		const changed = runSet(dir, ["builder", "example-gateway", "changed-model", "high"]);
 		const after = JSON.parse(fs.readFileSync(path.join(dir, "nana-pack.json"), "utf8"));
 		return [i, before.ok && before.lanes?.limit !== undefined && !Object.hasOwn(before.roster, "lanes") &&
-			(i !== 0 || JSON.stringify(orderedRoster(before.roster)) === JSON.stringify(orderedRoster(raw.roster))) &&
+			(i !== 0 || JSON.stringify(before.roster) === JSON.stringify({ ...raw.roster, planner: null, adversary: null, checker: null })) &&
 			changed.status === 0 && (i === 0 ? after.lanes === 2 : !Object.hasOwn(after, "lanes")) && !Object.hasOwn(after.roster, "lanes")];
 	});
 	// req: R-3524
