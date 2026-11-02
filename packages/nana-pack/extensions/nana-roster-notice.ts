@@ -37,7 +37,7 @@ export default function (pi: ExtensionAPI) {
 			const relative = piAgentDirIsCwdRelative();
 			const result = resolveRoster(agentDir);
 			const file = path.join(agentDir, "nana-pack.json");
-			const notice = rosterNotice(result, file, relative);
+			const notice = rosterNotice(result, file, relative, 'pi');
 			ctx.ui.setWidget(WIDGET_KEY, [notice]);
 		} catch {
 			// never throw out of a handler

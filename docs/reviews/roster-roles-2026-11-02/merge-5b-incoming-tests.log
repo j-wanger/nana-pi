@@ -1,0 +1,4 @@
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs  98 pass  2.5s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs        68 pass  25.8s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 166 pass, 0 fail, 0 skip · 28.6s

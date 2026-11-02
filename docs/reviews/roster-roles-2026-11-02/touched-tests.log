@@ -1,0 +1,5 @@
+FAIL  packages/nana-pack/tests/context-anatomy.test.mjs      7 pass, 4 fail  134.8s  — exit 1
+      | FAIL R-3213: exactly-at-cap non-ASCII builder files pass unchanged at the original pi path AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL R-3215: launchers log once before outcomes with exact part counts and default-home resolution AssertionError [ERR_ASSERTION]: pi-worker: builder: fake small default; source: C:\Users\J\AppData\Local\Temp\nana-test-3528-30xhTC\context-anatomy-YjknJf\38\home\.pi\agent\nana-pack.json
+      | FAIL R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery AssertionError [ERR_ASSERTION]: pi-worker: builder: fake small default; source: C:\Users\J\AppData\Local\Temp\nana-test-3528-30xhTC\context-anatomy-YjknJf\40\home\.pi\agent\nana-pack.json
