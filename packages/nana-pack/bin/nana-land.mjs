@@ -20,7 +20,7 @@ import { changedSuitePaths, ciScope, githubRepoOf, judgeRuns, proveCiSuite } fro
 import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
 import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
-import { CLEAN_MERGE_MESSAGE, CLEAN_MERGE_PREFIX, CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_GIT_CONFIG, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
+import { CLEAN_MERGE_MESSAGE, CLEAN_MERGE_PREFIX, CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_GENERATED_PATHS, CLEAN_MERGE_GIT_CONFIG, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
 import { LAND_LEDGER_READ_MAX_BYTES, LAND_REASON_MAX_CHARS, LAND_RECORD_LINE_PREFIX, LAND_RECORD_SCHEMA } from "../lib/land-records-config.mjs";
@@ -62,19 +62,22 @@ function cleanMergeTree(runGit, main, tip, capturedMain) {
 	const lanePaths = changed(base, tip), mainPaths = changed(base, capturedMain);
 	const attribute = [...lanePaths, ...mainPaths].find((file) => path.posix.basename(file) === ".gitattributes");
 	if (attribute) throw mergeRefusal("unsupported", `${attribute} differs between merge base and parents`);
-	const shared = lanePaths.filter((file) => mainPaths.includes(file));
-	// Probe even without overlap so old git fails explicitly rather than guessing support.
+	const generated = CLEAN_MERGE_GENERATED_PATHS.find((file) => lanePaths.includes(file) && mainPaths.includes(file));
+	if (generated) throw mergeRefusal("unsupported", `generated path ${generated} changed on both sides`);
+	// --no-renames includes every source and destination, even across different names.
+	const changedPaths = [...new Set([...lanePaths, ...mainPaths])];
+	const paths = changedPaths.length ? changedPaths : [".gitattributes"];
+	// Probe even without changes so old git fails explicitly rather than guessing support.
 	for (const parent of [tip, capturedMain]) {
 		let output;
-		try { output = git(runGit, main, "check-attr", `--source=${parent}`, "-z", "merge", "--", ...(shared.length ? shared : [".gitattributes"])); }
+		try { output = git(runGit, main, "check-attr", `--source=${parent}`, "-z", "merge", "--", ...paths); }
 		catch (error) { throw mergeRefusal("unsupported", `git check-attr --source needs git >= 2.40: ${error.message}`); }
 		const fields = output.split("\0");
 		if (fields.at(-1) === "") fields.pop();
-		const paths = shared.length ? shared : [".gitattributes"];
 		if (fields.length !== paths.length * 3) throw mergeRefusal("unsupported", "git check-attr --source returned malformed output");
 		for (let i = 0; i < fields.length; i += 3) {
 			if (fields[i] !== paths[i / 3] || fields[i + 1] !== "merge" || !fields[i + 2]) throw mergeRefusal("unsupported", "git check-attr --source returned malformed output");
-			if (shared.length && fields[i + 2] !== "unspecified") throw mergeRefusal("unsupported", `${fields[i]} has merge attribute ${fields[i + 2]} in ${parent}`);
+			if (changedPaths.length && fields[i + 2] !== "unspecified") throw mergeRefusal("unsupported", `${fields[i]} has merge attribute ${fields[i + 2]} in ${parent}`);
 		}
 	}
 	const result = runGit(main, [...CLEAN_MERGE_GIT_CONFIG.flatMap((setting) => ["-c", setting]), "merge-tree", "--write-tree", "--name-only", "--no-messages", tip, capturedMain]);
@@ -129,6 +132,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		const capturedMain = git(runGit, main, "rev-parse", "refs/heads/main");
 		const tip = git(runGit, tree, "rev-parse", "HEAD^{commit}");
 		const needsMerge = !isAncestor(runGit, capturedMain, tip, main);
+		if (needsMerge && isAncestor(runGit, tip, capturedMain, main)) throw new Error("source tip is already contained in main");
 		let landedTip = tip;
 		const refs = reviewedPairs(reviewed).map(({ sha, item }) => {
 			if (!/^[0-9a-f]{40,64}$/i.test(sha)) throw new Error(`review revision ${sha} is not a plain commit SHA`);

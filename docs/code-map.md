@@ -3839,7 +3839,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Assertion failures set exit code one.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `scripts/test.mjs`
-- **unresolved launches** — line 147: spawnSync · line 149: spawnSync
+- **unresolved launches** — line 184: spawnSync · line 186: spawnSync
 
 ### `packages/nana-pack/tests/land-fixtures.mjs`
 
