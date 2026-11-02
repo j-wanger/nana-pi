@@ -1,0 +1,17 @@
+FAIL shared owner words reach the proposer together
+FAIL propose leaves live memory unchanged and writable
+FAIL queue shows bounded numbered private decisions
+FAIL accept writes owner events atomically and refuses stale prefixes
+FAIL rejected subsets stay rejected across machines
+FAIL bad models fail closed and proposal validation is independent
+FAIL all commands honor profile and seat refusals
+FAIL seal: quote span and boundary
+FAIL seal: batch records
+FAIL seal: call cap
+FAIL seal: token cap
+FAIL seal: queue claim cap
+FAIL seal: reason cap
+FAIL seal: retirement classes
+FAIL seal: system prompt hash
+FAIL seal: curation command pattern
+FAIL seal: curation layout and words

@@ -58,7 +58,7 @@ const compare = (a, b) => { const x = rank(a), y = rank(b); return (x[0] === y[0
  * Physical resume copies and forks retain their inherited prefixes separately.
  * Parent edges break timestamp ties, so a tool result cannot precede its call.
  */
-export async function extractSeatContexts({ repo, projects }) {
+export async function extractSeatContexts({ repo, projects, policy = P }) {
  const skipped = [], observe = row => skipped.push(row);
  const files = transcriptFiles(projects, name => name === projectKey(path.resolve(repo)), { observe });
  const owners = new Map(), descriptions = [];
@@ -124,9 +124,8 @@ export async function extractSeatContexts({ repo, projects }) {
    current.parts.push(p); if (inherited) current.inheritedChars += raw.length;
    return p;
   };
-  // Correlation is per window and tool invocation, never corpus-wide text dedupe.
+  // Commandless attribution uses complete start windows, never adjacency or ids.
   const windows = new Map();
-  let precedingHook;
   for (const e of sorted) {
    if (boundaryOf(e)) {
     const start = startKind(e);
@@ -151,10 +150,10 @@ export async function extractSeatContexts({ repo, projects }) {
      }
     } else if (type === 'hook_success' || type === 'hook_additional_context') {
      const raw = mark(strings(a.content)), event = hookEvent(a);
-     const previous = precedingHook && hookEvent(precedingHook) === event &&
-      (!a[P.correlation.invocation] || !precedingHook[P.correlation.invocation] || a[P.correlation.invocation] === precedingHook[P.correlation.invocation]) ? precedingHook : undefined;
-     const kind = event === 'UserPromptSubmit' ? 'knowledge-pull' : hookKind(type === 'hook_additional_context' && !a.command ? previous ?? a : a);
-     const p = push(kind, raw, e, { delivery: 'recorded-input', identity: a.command ?? kind, hook: { type, event, invocation: a[P.correlation.invocation] } });
+     const commandless = type === 'hook_additional_context' && !a.command;
+     const kind = event === 'UserPromptSubmit' ? 'knowledge-pull' : hookKind(a);
+     const labelled = hookLabels.some(h => h.entry.statusMessage === a.command);
+     const p = push(kind, raw, e, { delivery: 'recorded-input', identity: a.command ?? kind, hook: { type, event, commandless, producer: labelled && policy.contextHooks.includes(kind), invocation: a[P.correlation.invocation] } });
      if (sessionHook(a) && window) { const group = windows.get(current) ?? []; group.push(p); windows.set(current, group); }
     } else if (type === 'hook_cancelled') {
      push('knowledge-pull', '', e, { reason: 'timed-out' }); current.events.push({ reason: 'timed-out', inherited });
@@ -169,7 +168,6 @@ export async function extractSeatContexts({ repo, projects }) {
      push(name, mark(fields.flatMap(key => field(a, key.split('.')))), e, { delivery });
     } else push('attachment-other', '', e);
    }
-   precedingHook = ['hook_success', 'hook_additional_context'].includes(type) ? (a.command ? a : undefined) : undefined;
    if (e.isCompactSummary) push('compaction-summary', textOnly(e), e, { delivery: 'recorded-input' });
    else if (ownerTurn(e)) {
     const p = push('owner', textOnly(e), e, { delivery: 'recorded-input', identity: e.uuid ?? `${current.id}:p${current.parts.length}`, uuid: e.uuid });
@@ -187,13 +185,26 @@ export async function extractSeatContexts({ repo, projects }) {
   for (const [c, group] of windows) {
    const removed = new Set();
    for (const add of group.filter(p => p.hook.type === 'hook_additional_context')) {
-    const candidates = group.filter(p => p.hook.type === 'hook_success' && p.hook.event === add.hook.event && (!p.hook.invocation || !add.hook.invocation || p.hook.invocation === add.hook.invocation));
+    let candidates;
+    if (add.hook.commandless) {
+     candidates = group.filter(p => p.hook.type === 'hook_success' && p.hook.producer);
+     const kinds = new Set(candidates.map(p => p.name));
+     if (kinds.size !== 1) {
+      if (kinds.size > 1) c.ambiguous.push({ reason: 'hook-correlation', inherited: add.inherited });
+      continue;
+     }
+     add.name = add.identity = candidates[0].name;
+     const prefix = `${c.id}:p${c.parts.indexOf(add)}`;
+     add.spans = segmentPart(add.raw, P.splitters[add.name] ?? add.name, prefix);
+    } else {
+     candidates = group.filter(p => p.hook.type === 'hook_success' && p.hook.event === add.hook.event && (!p.hook.invocation || !add.hook.invocation || p.hook.invocation === add.hook.invocation));
+    }
     const matches = candidates.filter(p => {
-     let envelope; try { envelope = JSON.parse(p.raw)?.[P.correlation.envelope]; } catch { /* raw output */ }
-     return p.raw.includes(add.raw) || (typeof envelope === 'string' && envelope.includes(add.raw));
+     let envelope; try { envelope = JSON.parse(p.raw); } catch { /* raw output */ }
+     return p.raw.includes(add.raw) || [P.correlation.envelope, P.correlation.nestedEnvelope].some(key => field(envelope, key.split('.')).some(value => value.includes(add.raw)));
     });
-    if (matches.length === 1) removed.add(add);
-    else if (matches.length > 1 || candidates.length > 1) c.ambiguous.push({ reason: 'hook-correlation', inherited: add.inherited });
+    if (matches.length === 1 || (add.hook.commandless && matches.length > 0)) removed.add(add);
+    else if (matches.length > 1 || (!add.hook.commandless && candidates.length > 1)) c.ambiguous.push({ reason: 'hook-correlation', inherited: add.inherited });
    }
    c.parts = c.parts.filter(p => !removed.has(p));
   }

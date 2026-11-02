@@ -142,6 +142,76 @@ Known limits: the CLI cannot prove that quoted words came from the owner, preven
 poisoning, or protect against a hostile process changing the pointer. Saved lines can contain
 private text: never paste real records or show output into the public repository.
 
+## Memory curation
+
+Run from the repository root with Node 22.18+, git, and the initialized private profile
+clone with saving enabled on this machine. Only `propose` needs an authenticated Claude CLI.
+`packages/nana-pack/bin/nana-curate.mjs` delegates to `scripts/memory-curate.mjs`, which
+supplies the existing isolated shaper runner: Claude Sonnet 5, low effort, $0.50 per call,
+and a 300,000 ms timeout. Tests inject a stub; no model runs in the suite.
+
+```bash
+npm run memory:curate -- propose
+npm run memory:curate -- queue
+npm run memory:curate -- accept <proposal-prefix> <another-prefix> --quote "Owner words approving these changes"
+npm run memory:curate -- reject <proposal-prefix> <another-prefix>
+```
+
+Run `propose` in the background with the seat's failure watcher and heartbeat: two calls can
+outlast the seat's shell timeout. It sends live profile and project records, including claims
+and capped owner quotes, to the model. Shared normalized owner-quote spans group records;
+groups stay together unless they exceed 60 records, when date-ordered pieces go separately.
+The model sees local ids, source, area, kind, date and group hints. Shared words are not proof
+of duplicate claims. The curator reserves each call against making's shared day ledger,
+with two calls and 200,000 tokens per run. Model work holds no clone lock. Completed batches
+persist under short zero-wait locks with liveness rechecked, so an interrupted run keeps its
+completed proposals. Failed calls do not retry.
+
+`propose` changes no record or live state. It prints only proposals, batches, rejected replies,
+dropped proposals, already-decided or already-queued proposals, split groups, unsent batches,
+tokens, cost and damaged-file counts. A missing model or no valid reply exits 1 with a fixed
+line. A valid empty proposal list succeeds. Unknown usage charges the shared conservative
+reservation; unknown cost prints `unknown`. The size line reports current live records and
+claim characters per profile/project part, and the forecast if every pending proposal passes.
+Claim characters exclude delivery's line-format overhead; fitting a delivery budget is not promised.
+
+`queue` fetches first and leads with a privacy warning. Never put its claims, quotes or model
+reasons in issues, commits, PRs or HANDOFF. It numbers pending proposals by claim characters
+freed, largest first, then key. The seat relays numbers to the owner, not key prefixes.
+Entries show the 12-hex proposal prefix, operation, retirement class, claims capped at 300
+characters with a marker, source, date, reason and absorbed-record count. The shared 4,000
+character profile budget folds whole entries; the first entry always prints, even if it alone
+exceeds that budget. Stale proposals disappear with a count. Damaged proposal and decision
+JSON files are skipped and counted. Damaged root-profile JSON refuses every command.
+
+Merges keep one existing record unchanged, preferring a saved survivor; two saved records
+cannot merge. Retirement classes are `one-off`, `dated`, `covered` and `superseded`.
+`accept` requires the owner's words and accepts several unique hexadecimal prefixes of at
+least 12 characters. `reject` takes the same prefixes without a quote. Both fetch and rebase
+first, refuse the whole request for any unknown, ambiguous, decided or stale proposal, and
+write one commit and sync. Accept also refuses overlapping selections before writing. A failed fetch or push prints `not synced`; local decisions survive.
+Review commands refuse under CI, any NANA_ROLE (even empty), or from linked worktrees.
+
+Accepting a merge writes existing supersede events in each dropped record's own area.
+Accepting a retirement writes retract events for the target and its absorbed records, so its
+merged duplicates do not return. No record bytes change. A curation retract means **no longer
+useful**, not necessarily wrong; existing liveness semantics hide it even at past replay cuts.
+Review does not confirm the survivor or raise its trust. Rejected merge subsets remain rejected;
+a rejected retirement cannot return under a different class without a new group member.
+The model can see already-queued records again, but duplicate keys and proposals touching
+pending records never add queue entries. Synced conflicting selections require separate reviews.
+
+Proposals and decisions live privately under `<private-clone>/projects/curation/`, inside the existing commit
+allow-list. There is no automatic trigger or delivery hook. Both memory makers skip and count
+the next owner turn and ask answers in a stretch that runs a curation command. This can skip
+one unrelated owner turn. Reworded re-extraction of a retired claim can still return with a
+new id. Quoted approval still depends on the seat correctly attributing the owner's words.
+
+After landing, the seat runs the real-store review separately and reports counts, acceptance
+by operation and class, spend, records made per day and records removed per review. If accepted
+proposals free fewer than 2,000 claim characters, the seat brings the owner the gap before
+planning more curation. This build reads no real store and makes no paid call.
+
 ## Memory outcomes
 
 Run from the repository root with Node 22.18+, git and an authenticated Claude CLI

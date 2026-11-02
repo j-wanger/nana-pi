@@ -149,7 +149,9 @@ function commandHit(command: string, gate: Policy, cwd: string, tool: string): H
 		for (const segment of det) {
 			const words = tokens(segment.text, true);
 			const index = commandIndex(words, true);
-			const commandWords = [base(words[index] ?? ""), ...words.slice(index + 1)]
+			// Shell wrappers can expose a whole quoted command as the command word.
+			// Seal only argument whitespace so quoted option values stay one word.
+			const commandWords = base(words[index] ?? "") + " " + words.slice(index + 1)
 				.map((word) => word.replace(/\s/g, CREDENTIAL_WORD_PLACEHOLDER)).join(" ");
 			if (credentialPatterns.some((pattern: RegExp) => pattern.test(commandWords)))
 				return { label: "credential rule", reason: "credential rule (floor): builder and reviewer credential access" };

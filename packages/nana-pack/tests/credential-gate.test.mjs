@@ -45,6 +45,10 @@ const blocked = [
   'git credential-store get', 'git credential-wincred get',
   'git-credential-manager get', '/usr/bin/git-credential-osxkeychain get',
   '"C:\\tools\\git-credential-manager.exe" get',
+  'powershell "gh auth token"',
+  'powershell -NoProfile "gh auth token"',
+  'powershell -NoProfile "git credential fill"',
+  'pwsh -NoProfile "gh auth token"',
   'gh auth token', '/usr/bin/gh auth token', 'gh auth status --show-token',
   'security find-generic-password', 'security find-internet-password',
   'cmdkey /list', 'vaultcmd /list', 'Get-StoredCredential',
@@ -109,12 +113,12 @@ await check('M2: helper near misses and unset-role forms stay allowed', async ()
 });
 // req: R-3663
 await check('M4: credential commands form a role-scoped non-exemptible floor', async () => {
+  const errors = [];
   for (const role of ['worker', 'reviewer']) {
     const run = await handler(role);
     for (const tool of ['bash', 'powershell']) for (const command of blocked) {
       const result = await run(command, tool);
-      assert.equal(result?.block, true, `${role}/${tool}/${command}`);
-      assert.match(result.reason, /credential rule/);
+      if (result?.block !== true || !/credential rule/.test(result.reason)) errors.push(`${role}/${tool}/${command}`);
     }
     for (const command of allowed) assert.equal((await run(command))?.block, undefined, command);
   }
@@ -122,6 +126,7 @@ await check('M4: credential commands form a role-scoped non-exemptible floor', a
   for (const command of [...blocked, ...allowed]) assert.equal((await run(command))?.block, undefined, `unset role: ${command}`);
   assert.equal((await run('git reset --hard'))?.block, undefined, 'configured existing git exception remains');
   assert.equal((await run('shutdown -h now'))?.block, true, 'existing unset-role deny remains');
+  assert.deepEqual(errors, [], `unrefused cases:\n${errors.join('\n')}`);
 });
 // req: R-3667
 await check('M7: credential gate pattern seal', async () => {

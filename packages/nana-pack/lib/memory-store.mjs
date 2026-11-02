@@ -9,7 +9,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { claimId, readProfileStore, readProfileJson, effectiveState, exclusiveJson, exclusiveJsonAt, writeProfileRecord, profileStamp } from './profile-store.mjs';
+import { claimId, readProfileStore, readProfileJson, effectiveState, exclusiveJson, exclusiveJsonAt, writeProfileRecord, writeProfileEvent, profileStamp } from './profile-store.mjs';
+import { PROFILE_LIMITS, PROFILE_WORDS } from './profile-config.mjs';
 import { STORE_LAYOUT as L, STORE_FIELDS, FOLDER_ID_LENGTH, WORDS as W } from './memory-run-config.mjs';
 export const unitKey=evidence=>evidence.split('+')[0];
 export const repositoryFolder=id=>id.slice(0,FOLDER_ID_LENGTH);
@@ -22,6 +23,14 @@ export function ensureRepository(dir,id) {
 }
 export function writeMemoryFile(dir,repository,folder,id,value,{now=()=>new Date(),random=randomBytes}={}) {
  return exclusiveJson(dir,`${L.projects}/${repositoryFolder(repository)}/${folder}`,id,value,profileStamp(now()),random);
+}
+/** Area-local event writer; callers own the clone lock and never rewrite records. */
+export function writeStateEvent(dir,state,action,{quote,target},{now=()=>new Date(),random=randomBytes}={}) {
+ if(!quote?.trim())throw Error(PROFILE_WORDS.quote);
+ if(quote.length>PROFILE_LIMITS.quote)throw Error(PROFILE_WORDS.quoteCap);
+ if(!state.repository)return writeProfileEvent(dir,state.id,action,{quote,target},{now,random});
+ const date=now(),stamp=profileStamp(date),event={id:state.id,action,quote,stamp,...(target?{target}:{})};
+ writeMemoryFile(dir,state.repository,L.events,state.id,event,{now:()=>date,random});return event;
 }
 /** The existing profile reader handles the identical records/events layout in each area. */
 export function readMemoryStore(dir,{onUnparseable=()=>{}}={}) {

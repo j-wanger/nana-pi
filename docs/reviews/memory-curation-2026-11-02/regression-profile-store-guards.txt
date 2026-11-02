@@ -1,0 +1,6 @@
+PASS only a seat on an enabled machine may write
+PASS trust rises only on the owner words across sessions
+PASS retract and supersede hide the right records
+PASS the pointer is configuration and the push target stays verified private
+PASS every profile command refuses under set launcher roles before reading the pointer
+PASS record commands resolve unique 12-hex prefixes across profile and project areas
