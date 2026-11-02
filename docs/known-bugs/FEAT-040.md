@@ -14,7 +14,6 @@
 - Owner profile (owner-profile, plan residual): the pushback probe moved to a later checking lane; until it lands, nothing measures whether the profile makes the seat agree more.
 - Owner profile (owner-profile, plan residual): a quote the seat wrongly attributes to the owner is saved like a real one; only the trust ladder limits it.
 - Owner profile (owner-profile, final review): privacy is checked only at init; a repo made public later is not re-checked.
-- Owner profile (owner-profile, final review): the 2026-10-31 ruling sits above the 2026-10-28 ruling, out of date order.
 - Owner profile (owner-profile, final review): with no session variable the session key falls back to the local date while the record date is UTC, so they can disagree near midnight.
 - Owner profile (owner-profile, final review): the "locked" reason word is never used.
 - Owner profile (owner-profile build 3): a second writer now waits up to 420,000 ms for the clone lock, so a save behind a hung sync can block the seat for seven minutes.

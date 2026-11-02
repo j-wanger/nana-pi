@@ -1,18 +1,20 @@
 /**
  * @module packages/nana-pack/lib/roster-notice.mjs
  * @purpose Compose the one-line session-start roster notice from a roster result and the roster file.
- * @inputs a roster resolver result ({ok:true, roster, source} | {ok:false, file, problem}), the
+ * @inputs a roster resolver result ({ok:true, roster, source, lanes?} | {ok:false, file, problem}), the
  *  roster file's path, and whether PI_CODING_AGENT_DIR stays cwd-relative for this process
  * @outputs rosterNotice(result, file, relative) -> one line of display text
  * @effects none
  * @errors none — every branch returns a string; rosterNotice never throws
  */
-import { CLAUDE_CODE_RUNTIME } from '../bin/worker-config.mjs';
+import { CLAUDE_CODE_RUNTIME, LANE_LIMIT_DEFAULT } from '../bin/worker-config.mjs';
 import { displayText } from './display.mjs';
 import { tildeify } from '../../nana-setup/lib/paths.mjs';
 import {
 	NOTICE_PREFIX,
 	DEFAULT_MARK,
+	LANES_LABEL,
+	LANES_IGNORED_MARK,
 	REFUSED_HEAD,
 	REFUSAL_CUT,
 	SIZE_LABELS,
@@ -34,13 +36,14 @@ function entryText(entry) {
 }
 
 /** The resolved roster as the notice's lineup segment (R-1194, R-1196 to R-1201). */
-function rosterSegment({ roster, source }) {
+function rosterSegment({ roster, source, lanes }) {
 	const parts = [];
 	parts.push(roster.largerBuilder !== null
 		? `builders ${entryText(roster.largerBuilder)} ${SIZE_LABELS.larger} and ${entryText(roster.builder)} ${SIZE_LABELS.small}`
 		: `builder ${entryText(roster.builder)}`);
 	parts.push(`reviewer ${entryText(roster.reviewer)}`);
 	parts.push(`land ${roster.land === null ? 'seat' : entryText(roster.land)}`);
+	parts.push(`${LANES_LABEL} ${lanes?.limit ?? LANE_LIMIT_DEFAULT}${lanes?.warning ? ` ${LANES_IGNORED_MARK}` : ''}`);
 	const mark = source === 'default' ? ` ${DEFAULT_MARK}` : '';
 	return `${NOTICE_PREFIX}${mark}: ${parts.join(', ')}`;
 }

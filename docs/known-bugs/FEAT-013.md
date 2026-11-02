@@ -199,6 +199,7 @@
 - pi versions (pi-version-support): the floor legs' README rehearsal installs the ceiling, not the floor. The setup README's floor command is pinned to CI by a check, and nothing runs it.
 - pi versions (pi-version-support): the desk passed its unit tests on pi 1.4.0 only; no browser test and no service restart ran there. The desk stays frozen.
 - pi versions (pi-version-support): each CI run now has three macOS jobs, so two lanes pushing at once may queue against GitHub's macOS job limit (inferred, not measured).
+- Review history (windows-first-try-2, review round 1): the older record that R-1713 failed once at 7d03134b was replaced rather than kept.
 - Windows knowledge hook (windows-first-try-2, plan): `openDb` in `packages/nana-knowledge/lib/db.ts` sets no busy timeout, so a background build can fail with “database is locked” while the hook connection closes; the failure is unreported and leaves `built_at` unchanged. The cause is inferred, not reproduced on CI; the product fix belongs in a separate hook lane.
 - Hook deadlines (land-records CI, 2026-10-24): R-2671's late case overran the hook deadline by 454 ms at 1e77de81. hook-deadlines now runs alone; the deadline is a hook-lane question.
 - Launch-limit judge (launch-limits-identity, plan): a pid reused before the first probe fails R-2023 as a flake. A pid gone after self-exit means a relay leak.

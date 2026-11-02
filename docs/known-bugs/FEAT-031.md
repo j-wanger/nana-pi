@@ -1,5 +1,10 @@
 # FEAT-031 — known bugs
 
+- Golden corpus (windows-first-try-2, review round 1): the CLAUDE_PROJECT_DIR control now requires "file not found" but runs the hook once without retry, so it can fail under load.
+- Test coverage (windows-first-try-2, review round 1): R-3540 and R-3541 cite checks that still pass with the new helpers removed; m2-retry.mjs tests its own predicate rather than isLoadMarker.
+- Golden retry (windows-first-try-2, review round 1): the T17 retry exclusion is keyed on the label text "T17 " and also drops the retry from two T17 cases that refresh no lock.
+- Golden retry (windows-first-try-2, review round 1): an occasional producer crash is treated as load, hiding the crash from the corpus.
+
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - Mutation runner: the seat skipped the lane's own 43-pair run under the owner's 2026-10-17 ruling; the table is committed and applies cleanly. Its one timing check (the stagger) may fail on a loaded machine. The shared runner has judged no pair on Windows, and nobody has seen the dead-run cleanup work there. A parent killed outright cleans nothing and leaves its lock for the next run to replace. A table's config values are not type-checked, and a hung git call hangs its part of the run. The runner and the suite still each hold their own copy of the child setup and the tree kill; the parallel suite lane kept both. Older lanes keep their copied runners.
