@@ -9,7 +9,8 @@
 		"pi-worker": "bin/pi-worker.mjs",
 		"review-ledger": "bin/review-ledger.mjs",
 		"nana-frontier": "bin/nana-frontier.mjs",
-		"nana-land": "bin/nana-land.mjs"
+		"nana-land": "bin/nana-land.mjs",
+		"nana-ci-wait": "bin/nana-ci-wait.mjs"
 	},
 	"pi": {
 		"extensions": ["./extensions"],

@@ -94,7 +94,7 @@ export function judgeRuns(stdout, tip, repository) {
 	catch { return { ok: false, message: "CI response is not a workflow-run list" }; }
 	if (body === null || typeof body !== "object" || Array.isArray(body) || !Number.isSafeInteger(body.total_count) || body.total_count < 0 || !Array.isArray(body.workflow_runs) || !body.workflow_runs.every(isRun))
 		return { ok: false, message: "CI response is not a workflow-run list" };
-	if (body.workflow_runs.length === 0) return { ok: false, message: `no CI run for ${String(tip).slice(0, TIP_DIGITS)} on origin; push the tip to its open pull request, then wait for CI` };
+	if (body.workflow_runs.length === 0) return { ok: false, runs: [], message: `no CI run for ${String(tip).slice(0, TIP_DIGITS)} on origin; push the tip to its open pull request, then wait for CI` };
 	const newest = new Map();
 	for (const run of body.workflow_runs) {
 		const key = String(run.workflow_id); const prior = newest.get(key);
@@ -103,7 +103,7 @@ export function judgeRuns(stdout, tip, repository) {
 	const bad = [...newest.values()].filter((run) => run.status !== CI_DONE_STATUS || run.conclusion !== CI_PASS_CONCLUSION);
 	if (bad.length) {
 		const details = bad.map((run) => `${run.name} run ${run.id} attempt ${run.run_attempt} is ${stateOf(run)}; ${remedyOf(run, repository)}`);
-		return { ok: false, message: `CI at ${String(tip).slice(0, TIP_DIGITS)}: ${details.join("; ")}` };
+		return { ok: false, runs: [...newest.values()], message: `CI at ${String(tip).slice(0, TIP_DIGITS)}: ${details.join("; ")}` };
 	}
 	const runs = [...newest.values()];
 	return { ok: true, runs, lines: runs.map((run) => `ci: ${run.name} run ${run.id} attempt ${run.run_attempt} (${run.event}) success at ${String(tip).slice(0, TIP_DIGITS)}`) };

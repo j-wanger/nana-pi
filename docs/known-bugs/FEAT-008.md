@@ -78,3 +78,4 @@
 - Clean merge (land-clean-merge, A9): exposure lasts from land until someone pushes main and its run reports; lands can stack in that window. Only macOS and Windows block; a Linux-only break can leave CI green.
 - Clean merge (land-clean-merge, M8): a textually clean merge can break the build; the lane intentionally gives up merge-result CI and review.
 - Generated-file regeneration (land-regenerate-generated, review round 1): the shared guidance says code-map and tree conflicts count as no conflict, but scaffolded projects lack one of the two generators, so such a conflict there refuses with generatorScope ENOENT.
+- CI wait (ci-wait-ready, plan): a run cancelled by hand looks like a capacity cancellation, so nana-ci-wait re-runs its cancelled jobs up to twice.

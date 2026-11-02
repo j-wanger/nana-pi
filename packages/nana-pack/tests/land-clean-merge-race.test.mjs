@@ -13,6 +13,20 @@ import { check } from './profile-fixture.mjs';
 import { cleanMergeFixture, executeCleanMerge, mergeSnapshot, commit, git, gitRunner, tree, workflowRun, runList } from './land-fixtures.mjs';
 import * as C from '../lib/land-config.mjs';
 
+// req: R-3724
+await check('CI wait: a completed pre-land rerun passes but an attempt changing during land refuses', () => {
+ for (const changed of [false,true]) {
+  const f=cleanMergeFixture(`wait-attempt-${changed}`);const snapshot=mergeSnapshot(f);let lists=0;
+  const out=executeCleanMerge(f,{runs:[workflowRun({run_attempt:2,path:'.github/workflows/ci.yml'})],afterGh:(args,_calls,result)=>{
+   if(args.some(a=>a.includes('/actions/runs?')) && ++lists===3 && changed) return {status:0,stdout:runList([workflowRun({run_attempt:3})])};
+   return result;
+  }});
+  assert.equal(out.code,changed?1:0,out.text);assert.equal(out.suites,0);
+  if(changed) {assert.match(out.text,/CI changed/);assert.deepEqual(mergeSnapshot(f),snapshot);}
+  else assert.match(out.text,/ci: ci run 101 attempt 2/);
+ }
+});
+
 // req: R-3694
 await check('M7: checkout and CI races refuse, cooperating lands serialize and rerun safely', () => {
  for(const kind of ['main','source','dirt','branch','queued','failed','identity']) {
