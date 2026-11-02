@@ -3,7 +3,7 @@
  * @purpose Define the sealed literals the roster notice composes from and the sources that show it.
  * @inputs none
  * @outputs NOTICE_PREFIX, DEFAULT_MARK, REFUSED_HEAD, REFUSAL_CUT, SIZE_LABELS, CLAUDE_CODE_MARK,
- *  WIDGET_KEY, CHANGE_POINTER, RELATIVE_DIR_TEXT, SHOW_SOURCES
+ *  WIDGET_KEY, CHANGE_POINTER, RELATIVE_DIR_TEXT, SHOW_SOURCES, LANES_LABEL, LANES_IGNORED_MARK
  * @effects none
  * @errors none
  */
@@ -12,6 +12,10 @@
 export const NOTICE_PREFIX = 'nana active · roster';
 // contract: R-1201 — carried exactly when the resolver returned the default roster.
 export const DEFAULT_MARK = '(default)';
+// contract: R-3523 — matches the roster command's advisory lane-limit line.
+export const LANES_LABEL = 'lanes';
+// contract: R-3523 — chosen to flag fallback without repeating the invalid file value.
+export const LANES_IGNORED_MARK = '(file value ignored)';
 // contract: R-1202 — the head of a refused notice.
 export const REFUSED_HEAD = 'refused:';
 // contract: R-1202 — the resolver's own validator always echoes a value after this marker

@@ -1,0 +1,12 @@
+PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+PASS install installs the pi seat guide and uninstall removes its manifest-owned link 
+PASS install-check seat-guide heading matches the injected guide heading 
+PASS doctor recognizes the installed guide and rejects missing, POSIX-copy and stale Windows forms 
+PASS doctor rejects a stale Windows guide copy on every host 
