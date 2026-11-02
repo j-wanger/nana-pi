@@ -1,0 +1,27 @@
+{
+  "id": "builder-drop-fidelity-2026-11-02-memory-shaper",
+  "model": {
+    "provider": "openai-codex",
+    "id": "gpt-6.1-sol",
+    "thinking": "high"
+  },
+  "piVersion": "1.4.0",
+  "seed": 20261102,
+  "repeats": 1,
+  "allowance": 5,
+  "killLimit": 5,
+  "cap": 5,
+  "preregistration": "PREREG.md",
+  "lanes": [
+    {
+      "build": "35194490-b84d-4098-a536-b1d9b3ae60b1",
+      "lane": "memory-shaper",
+      "grading": "../../../../../../../nana-memory-runs/builder-drop-lean-2026-11-02/manifests/memory-shaper/grading.json"
+    }
+  ],
+  "arms": [
+    {
+      "name": "control"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "builder-drop-fidelity-2026-11-02-keep-movement",
+  "model": {
+    "provider": "openai-codex",
+    "id": "gpt-6-luna",
+    "thinking": "high"
+  },
+  "piVersion": "1.4.0",
+  "seed": 20261102,
+  "repeats": 1,
+  "allowance": 3,
+  "killLimit": 3,
+  "cap": 3,
+  "preregistration": "PREREG.md",
+  "lanes": [
+    {
+      "build": "e8cee419-3d1b-42cd-b052-c42be685fda8",
+      "lane": "keep-movement",
+      "grading": "../../../../../../../nana-memory-runs/builder-drop-lean-2026-11-02/manifests/keep-movement/grading.json"
+    }
+  ],
+  "arms": [
+    {
+      "name": "control"
+    }
+  ]
+}
