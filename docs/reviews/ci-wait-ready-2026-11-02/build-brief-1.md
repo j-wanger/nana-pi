@@ -34,7 +34,7 @@ Standing authorization: when a Precedent file has a private helper this lane nee
   - the lane folder, including `gh-evidence.md`;
   - an export under the standing authorization only.
 - Never call the real `gh` or the GitHub API. Every test uses an injected Node fake gh.
-- `gh` is not installed on this laptop, and that is expected. No step of this lane needs the real `gh` or a credential, so the preamble's "`gh` is missing, report it and stop" does not apply here. Do not stop for it. For `gh-evidence.md`, quote GitHub's published manual text for `gh run rerun --failed` and `gh pr list --json` fields, cited by URL, instead of running `gh --help`.
+- This build runs on the Mac, where `gh` is installed. No step of this lane needs the real `gh`, the network or a credential: every test uses a fake gh on PATH. Do not call the real `gh` except `gh --help` and `gh run rerun --help` / `gh pr list --help` for `gh-evidence.md`, which quotes that local help text (and may also cite GitHub's published manual by URL). If `gh` were missing, that would not be a reason to stop.
 - Never read, print or use a stored credential.
 - No committed text names a person or a machine path.
 
