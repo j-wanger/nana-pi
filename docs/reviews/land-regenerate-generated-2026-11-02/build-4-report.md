@@ -51,45 +51,45 @@ FAIL M1: generated-only conflicts land actual generator bytes and preserve the m
 
 1 !== 0
 
-    at file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:38:42
-    at async check (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
-    at async file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:35:1
+    at file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:38:42
+    at async check (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:35:1
 FAIL M2: non-contract and rename conflicts refuse while contract modify-delete regenerates AssertionError [ERR_ASSERTION]: The input did not match the regular expression /merge conflict.*base.txt/. Input:
 
 'refused: unsupported merge semantics: generated path docs/code-map.md changed on both sides; merge main into the lane, then review and CI that tip\n' +
   '[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane\n'
 
-    at refuse (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:22:44)
-    at file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:55:3
-    at async check (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
-    at async file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:51:1
+    at refuse (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:22:44)
+    at file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:55:3
+    at async check (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:51:1
 FAIL M3: failed timed-out and post-write checks refuse and remove only owned temporary state AssertionError [ERR_ASSERTION]: The input did not match the regular expression /generatorFailed/. Input:
 
 'refused: unsupported merge semantics: generated path docs/code-map.md changed on both sides; merge main into the lane, then review and CI that tip\n' +
   '[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane\n'
 
-    at refuse (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:22:44)
-    at file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:77:3
-    at async check (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
-    at async file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:71:1
+    at refuse (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:22:44)
+    at file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:77:3
+    at async check (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:71:1
 FAIL M4: scope guard catches tracked index-only untracked ignored and configured escapes AssertionError [ERR_ASSERTION]: The input did not match the regular expression /generatorScope/. Input:
 
 'refused: unsupported merge semantics: generated path docs/code-map.md changed on both sides; merge main into the lane, then review and CI that tip\n' +
   '[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane\n'
 
-    at refuse (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:22:44)
-    at file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:99:13
-    at async check (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
-    at async file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:83:1
+    at refuse (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:22:44)
+    at file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:99:13
+    at async check (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:83:1
 FAIL M5: sealed Node argv ignores npm scripts and replaces decoys across line transports AssertionError [ERR_ASSERTION]: refused: unsupported merge semantics: generated path docs/code-map.md changed on both sides; merge main into the lane, then review and CI that tip
 [nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane
 
 
 1 !== 0
 
-    at file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:119:10
-    at async check (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
-    at async file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:106:1
+    at file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:119:10
+    at async check (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-regenerate.test.mjs:106:1
 PASS M6: generator contract argv timeout and refusal vocabulary are sealed
 ```
 
@@ -180,9 +180,9 @@ code map: 610 modules over scripts, apps/desk, apps/bench, apps/hive, packages/n
 ```text
 requirements: 2521 total (2264 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2264 traced by tests
 ears: 0 rows off form (allowance 0)
-(node:79615) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/land-regenerate-generated/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+(node:79615) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://~/nana-pi-wt/land-regenerate-generated/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
-To eliminate this warning, add "type": "module" to /Users/jwang/nana-pi-wt/land-regenerate-generated/package.json.
+To eliminate this warning, add "type": "module" to ~/nana-pi-wt/land-regenerate-generated/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
@@ -227,11 +227,11 @@ release status: ready
 
 0 !== 1
 
-    at unchanged (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-clean-merge.test.mjs:19:9)
-    at refused (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-clean-merge.test.mjs:25:2)
-    at file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-clean-merge.test.mjs:130:15
-    at async check (file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
-    at async file:///Users/jwang/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-clean-merge.test.mjs:124:1
+    at unchanged (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-clean-merge.test.mjs:19:9)
+    at refused (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-clean-merge.test.mjs:25:2)
+    at file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-clean-merge.test.mjs:130:15
+    at async check (file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://~/nana-pi-wt/land-regenerate-generated/packages/nana-pack/tests/land-clean-merge.test.mjs:124:1
 PASS M12: descendant main already containing the accepted tip refuses unchanged
 PASS M4: conflict names paths and the merge-review-CI remedy before any CI read
 PASS M5: merge eligibility requires applicable CI, suite proof and unchanged proof paths on both sides
@@ -414,9 +414,9 @@ PASS R-2506: a known-bug entry named for a missing, proposed or retired feature,
 PASS R-2507: a known-bug file over the read window in bytes or in lines is reported with its counts 
 PASS R-2508: this repository's known-bugs folder holds feature files and gets no name finding 
 SIZE FEAT-013.md bytes=53008 lines=214
-(node:45366) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/land-regenerate-generated/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+(node:45366) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://~/nana-pi-wt/land-regenerate-generated/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
-To eliminate this warning, add "type": "module" to /Users/jwang/nana-pi-wt/land-regenerate-generated/package.json.
+To eliminate this warning, add "type": "module" to ~/nana-pi-wt/land-regenerate-generated/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
 
