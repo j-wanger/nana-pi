@@ -27,6 +27,8 @@ Rows: R-3610 to R-3618 in must-meet order. Artifacts A-102 and A-103.
 
 Report each departure.
 
+Standing authorization: when a Precedent file has a private helper this lane needs, export it from its own module (never copy, never move it to another module) and report each export as a departure.
+
 ## Build
 
 Requirement rows first, then the tagged tests (wrong code first: each new test red against main's code, recorded in this folder), then code and README. Grep every test and checker for literals this change breaks before limiting edits. Make no paid model call and start no real builder: tests use stubs and synthetic fixtures. Never read or copy real transcripts, labels or private stores into the repository; the real-data files (draw, manifests, registration, error baseline, audit) are seat steps after the build. Add one session entry to `docs/sessions/2026-10.md`, newest first.
