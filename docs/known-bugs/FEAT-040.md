@@ -31,7 +31,7 @@
 - Memory push (seat-memory-push plan, attack N2): a reworded re-extraction of a retracted claim gets a new id and returns on the next push.
 - Memory making (making-trigger, plan residual): the merge step catches exact normalized repeats only; a reworded duplicate of a saved claim is stored again until upkeep lands.
 - Memory making (making-trigger, plan residual): whether a detached making run survives Claude Code's exit, especially on Windows, stays unchecked until the session-end lane.
-- Memory making (making-trigger, plan residual A6): on Windows an npm-installed `claude.cmd` does not start from `spawnSync("claude")`, so every call fails and units stay pending; the shared `winCommand` refuses the JSON-schema argument's double quotes, so the fix needs its own lane.
+- Memory making (making-trigger, plan residual): an npm Claude Code install made with scripts disabled keeps a text placeholder at `bin/claude.exe`; direct start fails safely, so memory units remain pending.
 - Memory making (making-trigger, plan residual): background making draws on the seat's Claude account when a land ends; the day cap bounds tokens, not rate limits.
 - Memory making (making-trigger, plan residual): a repository started from another's history (a fork) shares its memory key.
 - Memory making (making-trigger, independent recheck): a write killed partway leaves a temp file that readers ignore but the next commit adds to the private store, and nothing counts or removes it.
@@ -58,3 +58,4 @@
 - Session-end making (making-session-end, independent check): win32 uninstall matches only the current checkout's entry, so a moved checkout leaves the old SessionEnd entry failing at every exit.
 - Session-end making (making-session-end, independent check): the settings doc comment still says "all six entries" and "timeout: 5"; the code uses each row's own timeout.
 - Session-end making (making-session-end, land review round 1): the hook starts the detached run for every repository; a repository not enabled starts a node process that exits at the opt-in check without reading the profile or calling a model.
+- Memory making (claude-cmd-launch, plan residual): `apps/bench/lib/catch-judge.mjs`'s own default spawn, used when no spawn is injected, still calls bare `claude`; the bench runs on the seat Mac.

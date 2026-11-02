@@ -1,0 +1,14 @@
+﻿# Probe on the reference Windows 11 laptop, 2026-11-01 (seat, before planning).
+# Setup: npm i -g --prefix "<temp>\npm claude prefix" @anthropic-ai/claude-code@2.1.316 (scripts on; native claude.exe left out of PATH for the repro).
+
+## npm layout
+<prefix>\claude.cmd  -> "%dp0%\node_modules\@anthropic-ai\claude-code\bin\claude.exe"   %*
+<prefix>\node_modules\@anthropic-ai\claude-code\package.json: bin { claude: "bin/claude.exe" }, postinstall "node install.cjs"
+<prefix>\node_modules\@anthropic-ai\claude-code\bin\claude.exe: 335469216 bytes (install.cjs copies the win32-x64 optional dependency's binary over the placeholder)
+
+## Before: spawnSync("claude", ["--version"]) with PATH = <prefix>;<nodejs>;<system32>
+{"error":"ENOENT","status":null,"out":""}
+
+## Route (a): spawnSync(<prefix>\node_modules\@anthropic-ai\claude-code\bin\claude.exe, args) - no cmd.exe
+args: -p --model haiku --output-format json --json-schema <JSON with double quotes> --tools "" --strict-mcp-config --no-session-persistence --setting-sources "" --system-prompt <three lines, one holding "quoted"> --max-budget-usd 0.05; stdin "Return ok true."
+{"exe":true,"status":0,"is_error":false,"structured_output":{"ok":true,"echo":"quoted"},"models":["claude-haiku-5-5"],"stderr":""}
