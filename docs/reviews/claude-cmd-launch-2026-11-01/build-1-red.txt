@@ -1,0 +1,36 @@
+FAIL native executable wins over an earlier npm shim Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
++   refused: 'resolver not implemented'
+-   args: [
+-     '-p',
+-     '--json-schema',
+-     '{"type":"object"}',
+-     'line one\nline two',
+-     'trail\\',
+-     '\\"',
+-     '""',
+-     '',
+-     '%PATH%',
+-     '!'
+-   ],
+-   command: 'C:\\native\\claude.exe'
+  }
+
+FAIL resolves npm global and local layouts and case-insensitive Path Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 'C:\\npm\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe'
+
+FAIL names every refusal and does not spawn on refusal no Claude
+FAIL scripts-disabled placeholder fails safely Expected values to be strictly equal:
+
+true !== false
+
+FAIL injected spawn stays unchanged and resolved spawn preserves arguments and options Cannot read properties of undefined (reading '0')
+FAIL win32 default spawn preserves byte-sensitive argv without a shell Expected values to be strictly equal:
+
+true !== false
+
