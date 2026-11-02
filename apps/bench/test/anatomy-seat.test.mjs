@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { extractSeatContexts } from '../lib/anatomy-seat.mjs';
 import { runAnatomy } from '../lib/anatomy.mjs';
 import { entriesIn } from '../../../packages/nana-pack/lib/claude-transcript.mjs';
 import { projectKey } from '../../../packages/nana-setup/lib/project-key.mjs';
@@ -137,10 +138,67 @@ await test('R-3640: public hook labels and commandless attribution', async () =>
  for (const [i, h] of hooks.entries()) {
   const s = await segment(fixture([{ rows: [hook('success', 'startup', { command: h.entry.statusMessage }),
    attachment('hook_additional_context', { hookEvent: 'SessionStart', content: 'additional' })] }]));
-  assert.deepEqual(parts(s).map(p => p.name), [expected[i], expected[i]]);
+  assert.deepEqual(parts(s).map(p => p.name), [expected[i], expected[i] === 'roster-notice' ? 'roster-notice' : 'hook-other']);
  }
  const s = await segment(fixture([{ rows: [attachment('hook_additional_context', { hookEvent: 'SessionStart', content: 'orphan' })] }]));
  assert.equal(parts(s)[0].name, 'hook-other');
+});
+
+const publicHooks = desiredHooks({ hooksDir: '', repoRoot: '' }).filter(h => h.event === 'SessionStart');
+const labelledHook = (kind, content = '', source = 'compact', extra = {}) => hook(content, source, { command: publicHooks.find(h => h.marker.includes(`nana-${kind}.`)).entry.statusMessage, toolUseID: 'group', ...extra });
+const commandless = (content, extra = {}) => attachment('hook_additional_context', { hookEvent: 'SessionStart', hookName: 'SessionStart', toolUseID: 'unrelated', content, ...extra });
+
+// req: R-3682
+await test('R-3682: real-shaped window attribution conserves characters', async () => {
+ for (const source of ['compact', 'startup', 'clear']) for (const early of [false, true]) {
+  const context = 'synthetic roster context';
+  const rows = [labelledHook('shared-memory', 'memory', source), labelledHook('roster-notice', '', source, { stdout: JSON.stringify({ hookSpecificOutput: { additionalContext: context } }) }), labelledHook('adoption', 'adoption', source), labelledHook('objective', 'objective', source)];
+  rows.splice(early ? 1 : rows.length, 0, commandless(context));
+  const s = await segment(fixture([{ rows }])), r = await report(s);
+  assert.equal(parts(s).find(p => p.raw === context)?.name, 'roster-notice', 'M1 resolved producer kind');
+  assert.equal(s.contexts.length, 1); assert.equal(s.contexts[0].start, source);
+  assert(parts(s).every(p => p.phase === 'standing'));
+  assert.equal(r.kinds.find(k => k.kind === 'roster-notice').chars, context.length, 'M1 report roster characters');
+  assert.equal(size(parts(s), 'objective'), 'objective'.length);
+  assert.equal(r.totals.recordedInputChars, context.length + 'memoryadoptionobjective'.length, 'M1 conserved total');
+  assert.deepEqual(assembleParts(s.contexts[0]).parts.map(p => p.text), parts(s).map(p => p.raw));
+ }
+});
+
+// req: R-3683
+await test('R-3683: unresolved failed closed and competing producers never guess', async () => {
+ for (const toolUseID of [undefined, 'group', 'different']) {
+  const s = await segment(fixture([{ rows: [labelledHook('objective', '', 'startup', { stdout: 'plain output\n' }), commandless('unresolved', { toolUseID })] }]));
+  assert.equal(parts(s).find(p => p.raw === 'unresolved').name, 'hook-other', `M2 no producer ${toolUseID ?? 'missing'}`);
+ }
+ const failed = labelledHook('roster-notice'); failed.attachment.type = 'hook_non_blocking_error';
+ const s = await segment(fixture([{ rows: [failed, hook('', 'compact', { command: 'foreign', stdout: '{"additionalContext":"notice"}' }), commandless('notice')] }]));
+ assert.equal(parts(s).find(p => p.raw === 'notice').name, 'hook-other', 'M2 failed and foreign hooks');
+ const closed = await segment(fixture([{ rows: [labelledHook('roster-notice'), assistant(), commandless('later')] }]));
+ assert.equal(closed.contexts.length, 2); assert.deepEqual(closed.contexts.map(c => c.start), ['compact', 'unknown']);
+ assert.equal(parts(closed).find(p => p.raw === 'later').name, 'hook-other', 'M2 closed window');
+ assert.equal(parts(closed).find(p => p.raw === 'later').phase, 'standing');
+ const competing = await segment(fixture([{ rows: [labelledHook('roster-notice'), commandless('ambiguous', { toolUseID: undefined }), labelledHook('objective')] }]), { adapters: { 'claude-code:seat': args => extractSeatContexts({ ...args, policy: { ...C.SEAT_POLICY, contextHooks: ['roster-notice', 'objective'] } }) } });
+ assert.equal(parts(competing).find(p => p.raw === 'ambiguous').name, 'hook-other', 'M2 competing producer kinds');
+ assert.equal(competing.contexts.flatMap(c => c.ambiguous).filter(a => a.reason === 'hook-correlation').length, 1, 'M2 exactly one ambiguity');
+});
+
+// req: R-3684, R-3643
+await test('R-3684: labels not text and producer-only dedupe', async () => {
+ for (const context of ['objective', 'shared memory', 'other content\r\n \t']) {
+  const s = await segment(fixture([{ rows: [labelledHook('roster-notice', '', 'startup', { stdout: JSON.stringify({ hookSpecificOutput: { additionalContext: context } }) }), labelledHook('objective', `prefix ${context} suffix`, 'startup'), commandless(context, { toolUseID: undefined })] }])), r = await report(s);
+  assert.equal(parts(s).find(p => p.raw === context)?.name, 'roster-notice', 'M3 objective overlap cannot remove roster');
+  assert.equal(size(parts(s), 'objective'), `prefix ${context} suffix`.length);
+  assert.equal(r.totals.recordedInputChars, context.length + `prefix ${context} suffix`.length, 'M3 stdout uncounted');
+  const swapped = await segment(fixture([{ rows: [labelledHook('objective', '', 'startup', { stdout: context }), commandless(context)] }]));
+  assert.equal(parts(swapped)[1].name, 'hook-other', 'M3 label swap changes attribution');
+ }
+ for (const envelope of [{ additionalContext: 'duplicate' }, { hookSpecificOutput: { additionalContext: 'duplicate' } }]) {
+  const raw = JSON.stringify(envelope);
+  const s = await segment(fixture([{ rows: [labelledHook('roster-notice', raw), commandless('duplicate')] }]));
+  assert.equal(parts(s).length, 1, 'M3 producer envelope dedupes once');
+  assert.equal(size(parts(s), 'roster-notice'), raw.length);
+ }
 });
 
 // req: R-3642
@@ -166,11 +224,12 @@ await test('R-3643: hook invocation and queued owner identity', async () => {
  const q = s => attachment('queued_command', { prompt: s, humanTurn: true });
  const s = await segment(fixture([{ rows: [snapshot('s'), hook('same', 'startup', { toolUseID: 'h1' }), additional('same', 'h1'), hook('{"additionalContext":"json"}', 'startup', { toolUseID: 'h2' }), additional('json', 'h2'), user('one'), hook('same', 'resume', { toolUseID: 'h3' }), user('two'), hook('changed', 'resume', { toolUseID: 'h4' }), hook('a', 'resume'), hook('b', 'resume'), additional('unsettled'), q('queued'), user('queued'), q('absent'), user('repeat'), user('repeat')] }]));
  const r = await report(s);
- assert.equal(size(parts(s), 'objective'), 4 + 28 + 4 + 7 + 1 + 1 + 9);
- assert.equal(r.repeats.repeatedDelivery.chars, 4 + 7 + 1 + 1);
+ assert.equal(size(parts(s), 'objective'), 4 + 28 + 4 + 7 + 1 + 1);
+ assert.equal(r.repeats.repeatedDelivery.chars, 4 + 7 + 1 + 1 + 9);
  assert.equal(r.ownerTurns, 6); assert.equal(r.events.find(e => e.reason === 'queued-unmatched').count, 1);
- assert.equal(r.ambiguous.find(e => e.reason === 'hook-correlation').count, 1);
- assert.equal(parts(s).filter(p => p.raw === 'same').length, 2);
+ assert.equal(r.ambiguous.find(e => e.reason === 'hook-correlation'), undefined);
+ assert.equal(size(parts(s), 'hook-other'), 4 + 4 + 9);
+ assert.equal(parts(s).filter(p => p.raw === 'same').length, 3);
 });
 
 // req: R-3644
@@ -278,8 +337,9 @@ await test('R-3640: seal seat extraction policy', () => {
   rules: ['nana-soul', 'nana-standards', 'nana-writing', 'nana-rulings'], splitters: { tools: 'toolsAdded' },
   instructions: { User: 'user-rules-other', Project: 'project-instructions', AutoMem: 'auto-memory' },
   hooks: [['nana-objective', 'objective'], ['nana-adoption', 'adoption'], ['nana-roster-notice', 'roster-notice']],
+  contextHooks: ['roster-notice'],
   starts: ['startup', 'resume', 'clear', 'compact'], standing: ['system-prompt', 'project-instructions', 'auto-memory', 'user-rules-other', 'tools', 'environment'],
-  correlation: { invocation: 'toolUseID', envelope: 'additionalContext', human: 'humanTurn' },
+  correlation: { invocation: 'toolUseID', envelope: 'additionalContext', nestedEnvelope: 'hookSpecificOutput.additionalContext', human: 'humanTurn' },
   tools: { read: 'Read', grep: 'Grep', find: 'Glob', bash: 'Bash', delegation: ['Agent', 'Task'], web: ['WebFetch', 'WebSearch'], skill: ['Skill'], write: ['Edit', 'Write', 'NotebookEdit'] },
  });
 });

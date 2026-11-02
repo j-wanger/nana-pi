@@ -1,0 +1,146 @@
+FAIL M6: first open failure retries and logs its cause node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 2
+
+    at file:///<repo>/[eval1]:38:9 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+FAIL M6: first query failure retries and logs its cause node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 2
+
+    at file:///<repo>/[eval1]:38:9 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+FAIL M6: two failures fail open within budget and log both causes node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 2
+
+    at file:///<repo>/[eval1]:38:9 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+FAIL M6: seal: hook query retry delay is 50 ms and count is 1 Expected values to be strictly equal:
+
+undefined !== 50
+
+MUTATION: retry delay 50 -> 0
+FAIL M6: seal: hook query retry delay is 50 ms and count is 1 Expected values to be strictly equal:
+
+0 !== 50
+
+MUTATION: retry count 1 -> 0
+FAIL M6: first open failure retries and logs its cause node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 2
+
+    at file:///<repo>/[eval1]:38:9 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+FAIL M6: first query failure retries and logs its cause node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 2
+
+    at file:///<repo>/[eval1]:38:9 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+FAIL M6: two failures fail open within budget and log both causes node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 2
+
+    at file:///<repo>/[eval1]:38:9 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+FAIL M6: seal: hook query retry delay is 50 ms and count is 1 Expected values to be strictly equal:
+
+0 !== 1
+

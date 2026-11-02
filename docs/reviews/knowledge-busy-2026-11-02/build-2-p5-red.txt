@@ -1,0 +1,5 @@
+FAIL M3: recovery refuses a late writer without a build busy wait and keeps the index recovery lock ms=5749.6293
+FAIL  packages/nana-knowledge/tests/build-busy.test.mjs  0 pass, 1 fail  6.3s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 0 pass, 1 fail, 0 skip · 7.1s
+failed: packages/nana-knowledge/tests/build-busy.test.mjs

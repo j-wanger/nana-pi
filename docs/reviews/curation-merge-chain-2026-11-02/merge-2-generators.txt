@@ -1,0 +1,13 @@
+$ npm run map
+
+> nana-pi@0.5.0 map
+> node scripts/code-map.mjs --write
+
+docs/code-map.md: 604 modules
+
+exit: 0
+$ node scripts/requirements-tree.mjs --write
+requirements tree: 0 problems; rows 2491; features 43
+deliverables: 21 of 23 made and read by code, 21 more parked
+
+exit: 0

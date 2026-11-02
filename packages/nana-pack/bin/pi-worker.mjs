@@ -15,7 +15,7 @@ import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 import {
-	CLAUDE_APPEND_PROMPT_FILE_FLAG, CLAUDE_BUILDER_BASH_LIMIT_MS, CLAUDE_BUILDER_CHILD_ENV,
+	CLAUDE_APPEND_PROMPT_FILE_FLAG, builderChildEnv as workerEnv,
 	CLAUDE_BUILDER_PERMISSION_MODE, CLAUDE_BUILDER_PROMPT_FILE, CLAUDE_BUILDER_SETTING_SOURCES,
 	CLAUDE_BUILDER_SETTINGS_FILE, CLAUDE_BUILDER_STALL_SECS, CLAUDE_BUILDER_TOOLS,
 	CLAUDE_CODE_RUNTIME, CLAUDE_PERMISSION_MODE_FLAG, CLAUDE_SCOUT_TOOLS, ROLE_FALLBACKS, PI_MODEL_SHELL_ENV,
@@ -25,6 +25,7 @@ import {
 import { resolveRoster } from './nana-roster.mjs';
 import { resolveRole, lineageWarnings } from '../lib/roster-roles.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
+import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
 import { digestKnownBugs } from '../lib/known-bug-digest.mjs';
@@ -91,7 +92,7 @@ function trusted(worktree) {
 	return shared.status === 0 && shared.stdout.trim() === 'true';
 }
 
-let childEnv = { NANA_ROLE: 'worker' };
+let childEnv = { NANA_ROLE: 'worker', ...credentialStripEnv(process.env) };
 let maxArg;
 let laneRoot, laneGitDir, laneCommonDir, briefPath, preambleFile, laneLock, knownBugPath;
 let selectedBuilder, selectedLaneSize, selectedSlot, selectedFeature, claudeLaunch;
@@ -211,7 +212,7 @@ if (laneMode) {
 	laneRoot = cwd; laneGitDir = dirs[0]; laneCommonDir = dirs[1];
 	selectedBuilder = builder; selectedLaneSize = laneSize; selectedSlot = builderLabel === LARGER_BUILDER_LABEL ? 'largerBuilder' : 'builder';
 	const worktreeTrusted = trusted(cwd);
-	const sealed = workerEnv(builder, cwd);
+	const sealed = { ...workerEnv(builder, cwd), ...credentialStripEnv(process.env) };
 	const carry = isClaudeBuilder ? readClaudeBuilderSettings(sealed, 'pi-worker', null, cwd) : null;
 	if (carry) process.stderr.write(`${carry.line}\n`);
 	try { buildStartTip = git('rev-parse', 'HEAD'); } catch { buildStartTip = null; }
@@ -392,14 +393,6 @@ if (laneMode && buildEndKept) {
 	}
 }
 process.exit(exit);
-
-function workerEnv(entry, cwd) {
-	return entry.runtime === CLAUDE_CODE_RUNTIME ? {
-		NANA_ROLE: 'worker', NANA_WORKTREE_ROOT: cwd, NANA_HANDOFF: 'off', ...CLAUDE_BUILDER_CHILD_ENV,
-		BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
-		BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
-	} : { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
-}
 
 // Both modes consume the same role-bearing specification; later context policy fills parts/tools here.
 function prepareWorker(spec, { folder, instruction, promptPaths, promptBytes, carry }) {

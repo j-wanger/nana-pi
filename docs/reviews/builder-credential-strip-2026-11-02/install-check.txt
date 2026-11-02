@@ -1,0 +1,61 @@
+Git Bash: <program-files>\Git\bin\bash.exe
+pi: <home>\AppData\Roaming\npm\pi.cmd
+node: <program-files>\nodejs\node.exe
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+FAIL pi post-edit — write-error: write tool result is marked as an error
+PASS pi powershell gate
+PASS pi-review (cmd)
+PASS pi-review (sh)
+PASS hook set
+PASS hook memory making
+PASS hook roster notice
+PASS hook shared memory
+PASS hook adoption
+PASS hook knowledge pull
+PASS hook verifier pipe (PowerShell)
+PASS hook verifier pipe (Bash)
+PASS hook objective
+PASS doctor
+PASS pi-worker (cmd)
+PASS pi-worker (sh)
+PASS readme checklist
+settings hooks: {"SessionStart":[{"hooks":[{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-objective.mjs"],"timeout":5,"statusMessage":"nana: objective + current priority"},{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-adoption.mjs"],"timeout":5,"statusMessage":"nana: unadopted repositories"},{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-shared-memory.mjs"],"timeout":5,"statusMessage":"nana: shared memory index"},{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-roster-notice.mjs"],"timeout":5,"statusMessage":"nana: roster notice"}]}],"PreToolUse":[{"matcher":"Bash|PowerShell","hooks":[{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/verifier-pipe.mjs"],"timeout":5,"statusMessage":"nana: verifier pipe"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"node","args":["<worktree>/packages/nana-knowledge/bin/nana-knowledge.ts","hook"],"timeout":5,"statusMessage":"nana: knowledge pull"}]}],"SessionEnd":[{"hooks":[{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-memory-end.mjs"],"timeout":1.5,"statusMessage":"nana: memory"}]}]}
+last pull.log record: {"ts":"2026-11-02T06:46:03.792Z","cwd":"<os-temp>\\nana-install-check-0VOSgq\\project","session_id":null,"source":null,"reason":"ok","tokens":["nana","install","check","validate","fixture","installcheck_mvywaaqo"],"hits":["~\\notes\\docs\\install-check.md"],"ms":15}
+install-check home retained: <os-temp>\nana-install-check-0VOSgq
+
+install-check exit: 1
+
+Retry without inherited lane write boundary:
+Git Bash: <program-files>\Git\bin\bash.exe
+pi: <home>\AppData\Roaming\npm\pi.cmd
+node: <program-files>\nodejs\node.exe
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi post-edit
+PASS pi powershell gate
+PASS pi-review (cmd)
+PASS pi-review (sh)
+PASS hook set
+PASS hook memory making
+PASS hook shared memory
+PASS hook roster notice
+PASS hook knowledge pull
+PASS hook objective
+PASS hook adoption
+PASS hook verifier pipe (PowerShell)
+PASS hook verifier pipe (Bash)
+PASS doctor
+PASS pi-worker (cmd)
+PASS pi-worker (sh)
+PASS readme checklist
+
+clean install-check exit: 0

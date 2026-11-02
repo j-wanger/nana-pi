@@ -1,0 +1,15 @@
+PASS M1: transient write locks allow existing and first builds to advance built_at
+NOTE M2 run=1 ms=197 pull=true rebuild=true built_at=1793594635844->1793594636272 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=201 pull=true rebuild=true built_at=1793594636272->1793594636626 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=193 pull=true rebuild=true built_at=1793594636626->1793594636976 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=206 pull=true rebuild=true built_at=1793594636976->1793594637435 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=267 pull=true rebuild=true built_at=1793594637435->1793594637875 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=206 pull=true rebuild=true built_at=1793594637875->1793594638299 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=221 pull=true rebuild=true built_at=1793594638299->1793594638670 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=205 pull=true rebuild=true built_at=1793594638670->1793594639033 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=179 pull=true rebuild=true built_at=1793594639033->1793594639421 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=170 pull=true rebuild=true built_at=1793594639421->1793594639882 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms

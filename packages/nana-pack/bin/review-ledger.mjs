@@ -6,13 +6,14 @@
  * @inputs argv (`run --item <slug> --out <file> [--tree <path>] [--role R] [--revision R] [--over-cap WHY] -- <cmd...>`,
  *  `check --item <slug> [--tree <path>] [--revision R]`, or `keep --item <slug> --into <dir> [--repo <path>]`),
  *  the reviewed tree's git state, the user-scope review ledger, review-movement.mjs's section for `--repo`'s HEAD,
- *  review-launch.mjs's command resolver, and worker-config.mjs's REVIEWER_CHILD_ENV
+ *  review-launch.mjs's command resolver, reviewer child env, and Claude user/flag settings
  * @outputs the child's stdout written to --out and the kept-text store, a recorded round, lane-folder copies
  *  from `keep` including tree-movement.md and its movement warning, the projection note on stdout for `check`,
  *  and admission, warning, unread-verdict, cannot-start and refusal lines on stderr
  * @effects process (resolves and spawns the review command with reviewer child env and stdout piped,
  *  runs the reservation heartbeat and review-movement.mjs on keep, sets the exit code), disk (writes --out and the ledger's lock,
- *  reservation, kept text, tally and audit files, including a best-effort cannot-start line)
+ *  reservation, kept text, tally and audit files, including a best-effort cannot-start line;
+ *  Claude children receive private temporary sealed flag settings with exit/watcher cleanup)
  * @errors keep warns and never refuses over the movement; it exits 1 with no kept text unless it wrote the movement file.
  *  Other exits: 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused
  *  admission or command start, an unwritable --out, a recorded empty verdict, or a non-zero /
@@ -30,9 +31,9 @@
 //       writes nothing (no reservation, no pruning).
 
 import { spawn } from 'node:child_process';
-import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import { basename, join, resolve } from 'node:path';
 import {
   admit, canonicalItem, complete, KEEP_MOVEMENT_FILE_NAME, KEEP_NAME_HASH_CHARS, project, readRounds, release, repoKeyOf,
   reviewTextEvidence, SLUG_MAX, startHeartbeat,
@@ -40,7 +41,13 @@ import {
 import { reviewMovementSection, notComputedReason } from '../lib/review-movement.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { reviewLaunch } from './review-launch.mjs';
-import { REVIEWER_CHILD_ENV } from './worker-config.mjs';
+import { CLAUDE_BUILDER_CHILD_ENV, CLAUDE_SETTINGS_FLAG, REVIEWER_CHILD_ENV } from './worker-config.mjs';
+import { CLAUDE_BIN } from '../lib/claude-review-config.mjs';
+import { credentialStripEnv } from '../lib/credential-strip.mjs';
+import { CREDENTIAL_CONFIG_RESETS, CREDENTIAL_ENV, GIT_CONFIG_ENV } from '../lib/credential-strip-config.mjs';
+import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
+import { parseJsonBytes } from '../lib/json-text.mjs';
+import { startLaneWatcher } from '../lib/lane-watcher.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const sep = rest.indexOf('--');
@@ -158,6 +165,44 @@ const cannotStart = (reason) => {
   try { writeFileSync(out, `${line}\n`); } catch { /* best effort; stderr remains authoritative */ }
   die(line);
 };
+// Claude applies settings after spawn, so seal that environment as well. Preserve a
+// wrapper's existing flag settings (including its role/memory policy), but never let
+// their credential entries restore dispatch. Resolve only after replacing the flag.
+if (basename(child[0]).replace(/\.(?:exe|com|cmd|bat)$/i, '').toLowerCase() === CLAUDE_BIN) {
+  try {
+    const supplied = childOption(CLAUDE_SETTINGS_FLAG);
+    const settings = supplied === null ? {} : parseJsonBytes(supplied.trimStart().startsWith('{') ? supplied : readFileSync(resolve(adm.res.cwd, supplied)));
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('settings must be an object');
+    const suppliedEnv = settings.env ?? {};
+    const names = GIT_CONFIG_ENV;
+    const count = Number(suppliedEnv[names.count]);
+    // Keep a wrapper's already sealed file and its exact delivered-byte log intact.
+    // Check both dispatch routes, every reset slot, and every fixed control first.
+    const alreadySealed = Object.entries({ ...CLAUDE_BUILDER_CHILD_ENV, ...REVIEWER_CHILD_ENV, ...CREDENTIAL_ENV }).every(([name, value]) => suppliedEnv[name] === value)
+      && suppliedEnv[names.parameters]?.endsWith(CREDENTIAL_CONFIG_RESETS.map(([key, value]) => `'${key}=${value}'`).join(' '))
+      && Number.isSafeInteger(count) && count >= CREDENTIAL_CONFIG_RESETS.length
+      && CREDENTIAL_CONFIG_RESETS.every(([key, value], offset) => suppliedEnv[`${names.key}${count - CREDENTIAL_CONFIG_RESETS.length + offset}`] === key && suppliedEnv[`${names.value}${count - CREDENTIAL_CONFIG_RESETS.length + offset}`] === value);
+    if (!alreadySealed) {
+      const sealed = { ...CLAUDE_BUILDER_CHILD_ENV, ...REVIEWER_CHILD_ENV, ...credentialStripEnv({ ...process.env, ...suppliedEnv }) };
+      const carry = readClaudeBuilderSettings(sealed, 'review-ledger', childOption('--model'), adm.res.cwd);
+      carry.settings = { ...carry.settings, ...settings, env: { ...carry.settings.env, ...suppliedEnv, ...sealed } };
+      const folder = mkdtempSync(join(tmpdir(), 'nana-review-ledger-'));
+      process.once('exit', () => { try { rmSync(folder, { recursive: true, force: true }); } catch {} });
+      for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.once(signal, () => process.exit({ SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[signal]));
+      // The cleanup-only watcher handles forced Windows stops; no build or lane lock exists.
+      if (process.platform === 'win32') startLaneWatcher({ folder, lock: join(folder, 'unused-reviewer.lock'), workerPid: process.pid, commonDir: folder, cwd: adm.res.cwd });
+      const settingsFile = join(folder, 'reviewer-settings.json');
+      writeClaudeBuilderSettings(settingsFile, carry);
+      const index = child.findIndex(word => word === CLAUDE_SETTINGS_FLAG || word.startsWith(`${CLAUDE_SETTINGS_FLAG}=`));
+      if (index < 0) child.push(CLAUDE_SETTINGS_FLAG, settingsFile);
+      else if (child[index] === CLAUDE_SETTINGS_FLAG) child[index + 1] = settingsFile;
+      else child[index] = `${CLAUDE_SETTINGS_FLAG}=${settingsFile}`;
+    }
+  } catch (error) {
+    // Parser errors can contain settings values; report only a value-free refusal.
+    cannotStart(`cannot seal Claude settings (${error.code ?? 'invalid settings'})`);
+  }
+}
 const launch = reviewLaunch(child, { cwd: adm.res.cwd });
 if (launch.refused) cannotStart(launch.refused);
 // async spawn so the heartbeat keeps renewing the reservation while the review runs (sol r2 #15)
@@ -165,7 +210,7 @@ const stopHeartbeat = startHeartbeat(adm.res);
 const chunks = [];
 let k;
 try {
-  k = spawn(launch.command, launch.args, { ...launch.options, cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env, ...REVIEWER_CHILD_ENV } });
+  k = spawn(launch.command, launch.args, { ...launch.options, cwd: adm.res.cwd, stdio: ['inherit', 'pipe', 'inherit'], env: { ...process.env, ...REVIEWER_CHILD_ENV, ...credentialStripEnv(process.env) } });
 } catch (e) {
   stopHeartbeat();
   cannotStart(e.code ?? e.message);

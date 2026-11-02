@@ -100,23 +100,44 @@ export function effectiveState(recordFiles,events) {
  const byId=new Map(states.map(r=>[r.id,r]));
  const edges=events.filter(e=>e.action==='supersede'&&byId.has(e.id)&&byId.has(e.target));
  const incoming=new Map(states.map(r=>[r.id,edges.filter(e=>e.id===r.id)]));
- // DFS settles chains. On a cycle, the newest supersede's target wins; remaining nodes
- // are suppressed, not all removed. Unrelated retractions remain authoritative.
- const resolved=new Map(); const visiting=[];
- const live=id=>{
-  if(resolved.has(id)) return resolved.get(id);
-  if(!byId.get(id).live) {resolved.set(id,false);return false;}
-  const cycleAt=visiting.indexOf(id);
-  if(cycleAt>=0) {
-   const cycle=visiting.slice(cycleAt); const newest=edges.filter(e=>cycle.includes(e.id)&&cycle.includes(e.target)).sort((a,b)=>b.stamp.localeCompare(a.stamp)||b.target.localeCompare(a.target))[0];
-   for(const node of cycle) resolved.set(node,node===newest.target);
-   return resolved.get(id);
+ // Retractions cut links. A non-retracted target suppresses its predecessor even
+ // when itself superseded; only terminal cycles need a chosen live survivor.
+ const active=new Set(states.filter(r=>r.live).map(r=>r.id));
+ const links=new Map(states.map(r=>[r.id,incoming.get(r.id).filter(e=>active.has(e.id)&&active.has(e.target))]));
+ // Tarjan DFS makes cycle resolution independent of record/event traversal order.
+ const indices=new Map(),low=new Map(),stack=[],onStack=new Set(),components=[];
+ const visit=id=>{
+  indices.set(id,indices.size);low.set(id,indices.get(id));stack.push(id);onStack.add(id);
+  for(const {target} of links.get(id)) {
+   if(!indices.has(target)){visit(target);low.set(id,Math.min(low.get(id),low.get(target)));}
+   else if(onStack.has(target))low.set(id,Math.min(low.get(id),indices.get(target)));
   }
-  visiting.push(id); const hidden=incoming.get(id).some(e=>live(e.target)); visiting.pop();
-  if(!resolved.has(id)) resolved.set(id,!hidden); return resolved.get(id);
+  if(low.get(id)===indices.get(id)) {
+   const component=[];let node;
+   do {node=stack.pop();onStack.delete(node);component.push(node);}while(node!==id);
+   components.push(component);
+  }
  };
- for(const r of states) r.live=live(r.id);
+ for(const id of active)if(!indices.has(id))visit(id);
+ for(const r of states){r.live=false;r.absorbed=[];}
+ for(const component of components) {
+  const members=new Set(component),own=component.flatMap(id=>links.get(id));
+  if(own.some(e=>!members.has(e.target)))continue;
+  const newest=own.sort((a,b)=>b.stamp.localeCompare(a.stamp)||b.target.localeCompare(a.target))[0];
+  byId.get(newest?.target??component[0]).live=true;
+ }
+ // Direct supersedes is a display contract: do not turn profile conflicts transitive.
  for(const edge of edges) if(byId.get(edge.target).live) byId.get(edge.target).supersedes.push(edge.id);
+ const predecessors=new Map(states.map(r=>[r.id,[]]));
+ for(const list of links.values())for(const edge of list)predecessors.get(edge.target).push(edge.id);
+ for(const survivor of states.filter(r=>r.live)) {
+  const absorbed=new Set(),pending=[...predecessors.get(survivor.id)];
+  while(pending.length) {
+   const id=pending.pop();if(id===survivor.id||absorbed.has(id)||byId.get(id).live)continue;
+   absorbed.add(id);pending.push(...predecessors.get(id));
+  }
+  survivor.absorbed=[...absorbed].sort();
+ }
  return states;
 }
 /** Trust first, then newest; reserve a fold line so output never exceeds its whole budget. */

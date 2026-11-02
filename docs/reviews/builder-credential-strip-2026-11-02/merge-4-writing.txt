@@ -1,0 +1,38 @@
+-:1: verdict: first sentence "VERDICT: DONE" carries no verdict word
+-:5: identifier: `origin/main`
+-:5: identifier: `68a616bc35605e23d93955e8b40262e27115b843`
+-:5: identifier: `feat/builder-credential-strip`
+-:5: identifier: `3dbb388b`
+-:9: identifier: `REQUIREMENTS.md`
+-:10: identifier: `packages/nana-pack/bin/pi-worker.mjs`
+-:10: identifier: `workerEnv`
+-:10: identifier: `prepareWorker`
+-:11: identifier: `packages/nana-pack/rules/nana-rulings.md`
+-:12: identifier: `packages/nana-pack/tests/worker-claude.test.mjs`
+-:13: identifier: `docs/sessions/2026-10.md`
+-:14: identifier: `docs/code-map.md`
+-:14: identifier: `docs/requirements-tree.md`
+-:21: identifier: `git merge --no-commit --no-ff origin/main`
+-:22: identifier: `npm run map`
+-:22: identifier: `npm run req:tree`
+-:23: identifier: `node scripts/code-map.mjs --impact packages/nana-pack/bin/pi-worker.mjs`
+-:24: identifier: `node scripts/test.mjs`
+-:24: identifier: `context-anatomy`
+-:24: identifier: `credential-gate`
+-:24: identifier: `credential-strip`
+-:24: identifier: `rulings`
+-:24: identifier: `worker-claude`
+-:24: identifier: `worker-lane`
+-:25: identifier: `npm run map:check`
+-:26: identifier: `npm run readme:check`
+-:27: identifier: `node scripts/requirements-trace.mjs`
+-:28: identifier: `node scripts/requirements-tree.mjs --check`
+-:29: identifier: `node scripts/known-bugs.mjs --root .`
+-:30: identifier: `node scripts/identity-scan.mjs --root .`
+-:32: identifier: `git diff --check`
+-:34: passive: passive candidate: "repeated" in "Final-tip seat checks are repeated after the merge commit and reported in the final response."
+-:34: identifier: `merge-4-*.txt`
+-:38: passive: passive candidate: "edited" in "The brief specifically authorizes merging and ordering the archive; no narrative text was edited."
+-:40: passive: passive candidate: "fixed" in "No known bug was fixed."
+-:40: passive: passive candidate: "preserved" in "Both known-bug files were preserved, not edited."
+summary sentences=50 words=481 over=0 passive=4 banned=0 verdict=0/1 identifiers=32

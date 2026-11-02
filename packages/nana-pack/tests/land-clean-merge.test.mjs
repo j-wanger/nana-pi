@@ -71,8 +71,8 @@ await check('M2: clean merge content matches literals and an independent ordinar
   git(clone, 'checkout', '--detach', f.tip); git(clone, 'merge', '--no-ff', '--no-edit', f.capturedMain);
   const out = executeCleanMerge(f); assert.equal(out.code, 0, out.text);
   for (const [file, text] of Object.entries(expected)) {
-   assert.equal(fs.readFileSync(path.join(f.main, file), 'utf8'), text);
-   assert.equal(fs.readFileSync(path.join(clone, file), 'utf8'), text);
+   assert.equal(gitRunner(f.main, ['show', `HEAD:${file}`]).stdout, text);
+   assert.equal(gitRunner(clone, ['show', `HEAD:${file}`]).stdout, text);
   }
   assert.equal(git(f.main, 'rev-parse', 'HEAD^{tree}'), git(clone, 'rev-parse', 'HEAD^{tree}'));
   if (kind === 'rename') assert(!fs.existsSync(path.join(f.main, 'shared.txt')));
@@ -102,6 +102,43 @@ await check('M3: unsupported attributes and malformed or failing merge-tree refu
    const id=r.stdout.trim(); return {...r,stdout: mode==='crlf'?`${id}\r\n`:mode==='space'?`${id} \t\n`:id};
   }}); assert.equal(out.code,0,out.text);
  }
+});
+
+// req: R-3690
+await check('M10: rename destination merge driver refuses before merge-tree unchanged', () => {
+ const base = 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\n';
+ const f = cleanMergeFixture('m10', { 'old.txt': base, '.gitattributes': 'new.txt merge=keep\n' });
+ git(f.main, 'config', 'merge.keep.driver', 'true');
+ git(f.feature, 'mv', 'old.txt', 'new.txt');
+ commit(f.feature, 'new.txt', base.replace('one\n', 'lane one\n'), 'rename and edit');
+ commit(f.main, 'old.txt', base.replace('nine\n', 'main nine\n'), 'main edit'); refresh(f);
+ let merges = 0;
+ const out = refused(f, /unsupported.*new.txt.*merge attribute/, { runGit: (cwd, args) => {
+  if (args.includes('merge-tree')) merges++;
+  return gitRunner(cwd, args);
+ }});
+ assert.equal(merges, 0); assert.equal(out.calls.length, 0);
+});
+
+// req: R-3690, R-3697
+await check('M11: generated paths changed in separate hunks refuse unchanged', () => {
+ const base = 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\n';
+ for (const file of ['docs/code-map.md', 'docs/requirements-tree.md']) {
+  const f = cleanMergeFixture('m11', { [file]: base });
+  commit(f.feature, file, base.replace('one\n', 'lane one\n'), 'first hunk');
+  commit(f.main, file, base.replace('nine\n', 'main nine\n'), 'last hunk'); refresh(f);
+  const out = refused(f, /unsupported.*generated path/);
+  assert(out.text.includes(file)); assert.equal(out.calls.length, 0);
+ }
+ assert.deepEqual(C.CLEAN_MERGE_GENERATED_PATHS, ['docs/code-map.md', 'docs/requirements-tree.md']);
+});
+
+// req: R-3688
+await check('M12: descendant main already containing the accepted tip refuses unchanged', () => {
+ const f = cleanMergeFixture('m12');
+ git(f.main, 'merge', '--no-ff', '--no-edit', f.tip);
+ commit(f.main, 'later.txt', 'later\n', 'main advanced after land'); refresh(f);
+ const out = refused(f, /already contained/); assert.equal(out.calls.length, 0);
 });
 
 // req: R-3691

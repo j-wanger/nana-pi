@@ -1,0 +1,40 @@
+Windows measurements, 2026-11-02. Full file, all 29 checks per run.
+alone 1: exit 0; 27.316 s; 29 PASS
+alone 2: exit 0; 27.383 s; 29 PASS
+alone 3: exit 0; 27.326 s; 29 PASS
+alone 4: exit 0; 27.186 s; 29 PASS
+alone 5: exit 0; 27.288 s; 29 PASS
+alone 6: exit 0; 27.258 s; 29 PASS
+alone 7: exit 0; 27.321 s; 29 PASS
+alone 8: exit 0; 27.303 s; 29 PASS
+alone 9: exit 0; 27.265 s; 29 PASS
+alone 10: exit 0; 27.278 s; 29 PASS
+alone spread: 27.186-27.383 s
+concurrent 1: packages/nana-pack/tests/issue-watch.test.mjs; exit 0; 27.859 s
+concurrent 1: packages/nana-pack/tests/test-runner.test.mjs; exit 0; 45.957 s
+concurrent 2: packages/nana-pack/tests/issue-watch.test.mjs; exit 0; 28.187 s
+concurrent 2: packages/nana-pack/tests/test-runner.test.mjs; exit 0; 47.196 s
+concurrent 3: packages/nana-pack/tests/issue-watch.test.mjs; exit 0; 28.042 s
+concurrent 3: packages/nana-pack/tests/test-runner.test.mjs; exit 0; 47.159 s
+case guards: (29 - 3) * 8000 + 3 * (20000 + 3000) = 277000 ms < 300000 ms per file; spare 23000 ms.
+Child cleanup fits inside each CLI case margin, not an additional serial guard.
+
+Build 2 Windows measurements, 2026-11-02. Full file, 29 checks.
+build 2 alone 1: exit 0; 10.911 s; 29 PASS
+build 2 alone 2: exit 0; 10.843 s; 29 PASS
+build 2 alone 3: exit 0; 10.846 s; 29 PASS
+build 2 alone 4: exit 0; 10.976 s; 29 PASS
+build 2 alone 5: exit 0; 10.863 s; 29 PASS
+build 2 alone 6: exit 0; 10.838 s; 29 PASS
+build 2 alone 7: exit 0; 10.811 s; 29 PASS
+build 2 alone 8: exit 0; 10.878 s; 29 PASS
+build 2 alone 9: exit 0; 10.822 s; 29 PASS
+build 2 alone 10: exit 0; 10.851 s; 29 PASS
+
+Build 2 spread: 10.811-10.976 s; all ten runs below 15 s.
+CLI_EXIT_GRACE_MS: chosen 3000 ms; restart spawns nothing, leaving only output flush and process teardown.
+The grace timer replaces the existing deadline timer only when all preceding signals are present.
+Its due time is capped by the original deadline; no case limit changes.
+Build 2 case guards: (29 - 3) * 8000 + 3 * (20000 + 3000) = 277000 ms.
+Spare under 300000 ms: 23000 ms, less than the requested 30000 ms headroom.
+Cleanup stays inside the existing case margin; grace is inside the original child deadline, not added to the guard sum.
