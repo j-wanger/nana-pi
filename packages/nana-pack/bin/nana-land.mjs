@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-pack/bin/nana-land.mjs
- * @purpose Verify reviewed integration work, land it by fast-forward, and safely remove contained lane worktrees.
+ * @purpose Land reviewed tips or their eligible clean merge with current main by fast-forward, and safely remove contained lane worktrees.
  * @inputs Merge or cleanup arguments, review storage, and injectable git, command, gh, clock, lock, release-status, and CI-record readers.
  * @outputs Named helpers and command results naming reviews, CI runs, retained records, slow files, release status, and the land-record attempt.
  * @effects process (runs git, gh, and a suite command), network (through gh), disk (git merge, land/CI record storage, and worktree cleanup).
@@ -20,6 +20,7 @@ import { changedSuitePaths, ciScope, githubRepoOf, judgeRuns, proveCiSuite } fro
 import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
 import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
+import { CLEAN_MERGE_MESSAGE, CLEAN_MERGE_PREFIX, CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
 import { LAND_LEDGER_READ_MAX_BYTES, LAND_REASON_MAX_CHARS, LAND_RECORD_LINE_PREFIX, LAND_RECORD_SCHEMA } from "../lib/land-records-config.mjs";
@@ -47,9 +48,45 @@ const assertCleanTracked = (runner, cwd, label) => {
 };
 const isAncestor = (runner, ancestor, descendent, cwd) => {
 	const r = runner(cwd, ["merge-base", "--is-ancestor", ancestor, descendent]);
-	if (r.error || r.status === null) throw new Error(`git ancestor check failed: ${r.error?.message ?? r.signal ?? "unknown"}`);
+	if (r.error || ![0, 1].includes(r.status)) throw new Error(`git ancestor check failed: ${r.error?.message ?? r.signal ?? r.status ?? "unknown"}`);
 	return r.status === 0;
 };
+
+const mergeRefusal = (reason, detail) => new Error(`${CLEAN_MERGE_REASONS[reason]}${detail ? `: ${detail}` : ""}; ${CLEAN_MERGE_REMEDY}`);
+const objectId = (value) => /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(value);
+
+/** Compute an eligible textual merge without touching a ref, index or checkout. */
+function cleanMergeTree(runGit, main, tip, capturedMain) {
+	const base = git(runGit, main, "merge-base", tip, capturedMain);
+	const changed = (from, to) => git(runGit, main, "diff", "--no-renames", "--name-only", "-z", from, to).split("\0").filter(Boolean);
+	const lanePaths = changed(base, tip), mainPaths = changed(base, capturedMain);
+	const attribute = [...lanePaths, ...mainPaths].find((file) => path.posix.basename(file) === ".gitattributes");
+	if (attribute) throw mergeRefusal("unsupported", `${attribute} differs between merge base and parents`);
+	const shared = lanePaths.filter((file) => mainPaths.includes(file));
+	// Probe even without overlap so old git fails explicitly rather than guessing support.
+	for (const parent of [tip, capturedMain]) {
+		let output;
+		try { output = git(runGit, main, "check-attr", `--source=${parent}`, "-z", "merge", "--", ...(shared.length ? shared : [".gitattributes"])); }
+		catch (error) { throw mergeRefusal("unsupported", `git check-attr --source needs git >= 2.40: ${error.message}`); }
+		const fields = output.split("\0");
+		if (fields.at(-1) === "") fields.pop();
+		const paths = shared.length ? shared : [".gitattributes"];
+		if (fields.length !== paths.length * 3) throw mergeRefusal("unsupported", "git check-attr --source returned malformed output");
+		for (let i = 0; i < fields.length; i += 3) {
+			if (fields[i] !== paths[i / 3] || fields[i + 1] !== "merge" || !fields[i + 2]) throw mergeRefusal("unsupported", "git check-attr --source returned malformed output");
+			if (shared.length && fields[i + 2] !== "unspecified") throw mergeRefusal("unsupported", `${fields[i]} has merge attribute ${fields[i + 2]} in ${parent}`);
+		}
+	}
+	const result = runGit(main, ["-c", "merge.renormalize=false", "merge-tree", "--write-tree", "--name-only", "--no-messages", tip, capturedMain]);
+	const lines = String(result.stdout ?? "").split(/\r?\n/).map((line) => line.trimEnd());
+	if (lines.at(-1) === "") lines.pop();
+	if (result.error || ![0, 1].includes(result.status) || !objectId(lines[0] ?? "") ||
+		(result.status === 0 ? lines.length !== 1 : lines.length < 2 || lines.slice(1).some((line) => !line))) {
+		throw mergeRefusal("git", `exit ${result.status ?? result.signal ?? "unknown"}: ${String(result.stderr ?? result.error?.message ?? "malformed output").trim()}`);
+	}
+	if (result.status === 1) throw mergeRefusal("conflict", `${lines.slice(1, 1 + CLEAN_MERGE_NAME_CAP).join(", ")}${lines.length - 1 > CLEAN_MERGE_NAME_CAP ? ", …" : ""}`);
+	return { tree: lines[0], base };
+}
 
 /** Parse land CLI arguments, preserving repeated reviewed specifications. */
 export function parseLandArgs(args) {
@@ -91,7 +128,8 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		assertCleanTracked(runGit, tree, "source tree");
 		const capturedMain = git(runGit, main, "rev-parse", "refs/heads/main");
 		const tip = git(runGit, tree, "rev-parse", "HEAD^{commit}");
-		if (!isAncestor(runGit, capturedMain, tip, main)) throw new Error("main is not an ancestor of the source tip; fast-forward is impossible");
+		const needsMerge = !isAncestor(runGit, capturedMain, tip, main);
+		let landedTip = tip;
 		const refs = reviewedPairs(reviewed).map(({ sha, item }) => {
 			if (!/^[0-9a-f]{40,64}$/i.test(sha)) throw new Error(`review revision ${sha} is not a plain commit SHA`);
 			if (git(runGit, tree, "cat-file", "-t", sha) !== "commit") throw new Error(`review revision ${sha} is not a plain commit SHA`);
@@ -137,6 +175,13 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			const named = unreviewed.map((sha) => `${sha} ${git(runGit, tree, "show", "-s", "--format=%s", sha)}`);
 			throw new Error(`uncovered commits (get it reviewed with a new round on the tip or drop it): ${named.join("; ")}`);
 		}
+		const merge = needsMerge ? cleanMergeTree(runGit, main, tip, capturedMain) : null;
+		if (needsMerge) {
+			const laneProof = changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", merge.base, tip));
+			if (!laneProof.ok) throw mergeRefusal("proof", "lane contribution");
+			const mainProof = changedSuitePaths(git(runGit, main, "diff", "--no-renames", "--name-only", tip, merge.tree));
+			if (!mainProof.ok) throw mergeRefusal("proof", "main contribution");
+		}
 		lifecycle.stage = "ci";
 		const remoteNames = git(runGit, main, "remote");
 		const hasOrigin = remoteNames.split(/\r?\n/).map((name) => name.trim()).includes(CI_REMOTE);
@@ -144,15 +189,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		const repository = githubRepoOf(originUrl);
 		const workflowPaths = repository ? git(runGit, tree, "ls-tree", "-z", "--name-only", tip, "--", `${CI_WORKFLOW_DIR}/`) : "";
 		const scope = ciScope({ remoteNames, originUrl, workflowPaths });
-		let ciLines = [];
-		let ciNote = null;
-		let ciReadPassed = false;
-		let suiteProof = { ok: false, reason: scope.note };
-		if (!scope.applies) {
-			lifecycle.ci = "skipped";
-			ciNote = `${LAND_NOTE_PREFIX} note: CI not read: ${scope.note}`;
-		} else {
-			lifecycle.ci = "refused";
+		const readRuns = () => {
 			const apiPath = CI_RUNS_PATH.replace("<owner>", scope.repository.owner).replace("<repo>", scope.repository.repo);
 			const args = ["api", "--hostname", CI_HOST, `${apiPath}?head_sha=${tip}&per_page=${CI_RUNS_PAGE_SIZE}`];
 			const env = ghEnvironment(process.env);
@@ -170,11 +207,27 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			if (response?.status !== 0) throw new Error(`gh CI read failed (exit ${response?.status ?? response?.signal ?? "unknown"})${firstErrorLine ? `: ${firstErrorLine}` : ""}`);
 			const verdict = judgeRuns(response.stdout, tip, scope.repository);
 			if (!verdict.ok) throw new Error(verdict.message);
+			return verdict;
+		};
+		let judgedRuns;
+		let ciLines = [];
+		let ciNote = null;
+		let ciReadPassed = false;
+		let suiteProof = { ok: false, reason: scope.note };
+		if (!scope.applies) {
+			if (needsMerge) throw mergeRefusal("noCi", scope.note);
+			lifecycle.ci = "skipped";
+			ciNote = `${LAND_NOTE_PREFIX} note: CI not read: ${scope.note}`;
+		} else {
+			lifecycle.ci = "refused";
+			const verdict = readRuns();
+			judgedRuns = verdict.runs;
+			const env = ghEnvironment(process.env);
 			ciLines = verdict.lines;
 			ciReadPassed = true;
 			lifecycle.ci = "passed";
 			lifecycle.ciWaitMs = landCiWaitMs(verdict.runs);
-			suiteProof = changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", capturedMain, tip));
+			suiteProof = needsMerge ? { ok: true } : changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", capturedMain, tip));
 			if (suiteProof.ok) {
 				try {
 					const budget = budgetedGh({ runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env }), now: recordsNow });
@@ -183,6 +236,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 				} catch { suiteProof = { ok: false, reason: "CI suite records could not be read" }; }
 			}
 		}
+		if (needsMerge && !suiteProof.ok) throw mergeRefusal("suite", suiteProof.reason);
 		lifecycle.stage = "suite";
 		lifecycle.suite = suiteProof.ok ? "ci" : "local";
 		lifecycle.suiteWhy = suiteProof.ok ? null : suiteProof.reason;
@@ -200,6 +254,15 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		}
 		lifecycle.stage = "merge";
 		let reviewEvidence;
+		if (needsMerge) {
+			landedTip = git(runGit, main, "commit-tree", merge.tree, "-p", tip, "-p", capturedMain, "-m", CLEAN_MERGE_MESSAGE);
+			if (!objectId(landedTip)) throw mergeRefusal("git", "git commit-tree returned malformed output");
+			const identities = (runs) => runs.map((run) => `${run.workflow_id}/${run.id}/${run.run_attempt}`).sort();
+			try {
+				const latest = readRuns();
+				if (JSON.stringify(identities(latest.runs)) !== JSON.stringify(identities(judgedRuns))) throw new Error("newest run id or attempt changed");
+			} catch (error) { throw mergeRefusal("ciChanged", error.message); }
+		}
 		lockReviews(home, ({ rounds, reservations }) => {
 			const repoRounds = rounds.filter((r) => r.repo === repo);
 			reviewEvidence = checkRecords(repoRounds, reservations.filter((r) => r.repo === repo));
@@ -219,12 +282,12 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			if (git(runGit, main, "rev-parse", "HEAD") !== capturedMain) throw new Error("main checkout HEAD changed during suite");
 			assertCleanTracked(runGit, tree, "source tree");
 			if (git(runGit, tree, "rev-parse", "HEAD^{commit}") !== tip) throw new Error("source tip changed during suite");
-			git(runGit, main, "merge", "--ff-only", tip);
+			git(runGit, main, "merge", "--ff-only", landedTip);
 			if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout switched away from branch main during merge");
-			if (git(runGit, main, "rev-parse", "refs/heads/main") !== tip) throw new Error("main ref does not equal landed tip after merge");
+			if (git(runGit, main, "rev-parse", "refs/heads/main") !== landedTip) throw new Error("main ref does not equal landed tip after merge");
 		});
 		if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main after merge");
-		if (git(runGit, main, "rev-parse", "refs/heads/main") !== tip) throw new Error("main ref does not equal landed tip after merge");
+		if (git(runGit, main, "rev-parse", "refs/heads/main") !== landedTip) throw new Error("main ref does not equal landed tip after merge");
 		assertCleanTracked(runGit, main, "main checkout after merge");
 		if (!isAncestor(runGit, tip, "refs/heads/main", main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
 		let releaseLine;
@@ -247,7 +310,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		}
 		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...(reviewEvidence?.notes ?? []), ...recordNotes];
 		const relied = [...new Set(reviewEvidence?.relied ?? [])].map((name) => `review text relied on: ${name}`);
-		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${needsMerge ? `${CLEAN_MERGE_PREFIX} ${capturedMain} into ${tip} as ${landedTip}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

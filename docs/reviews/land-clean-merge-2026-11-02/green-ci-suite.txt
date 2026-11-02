@@ -1,0 +1,6 @@
+PASS R-3430: passing same-platform full-suite CI replaces the local suite and records its source
+PASS R-3431: unproven full-suite CI falls back once, while a carried rerun leg qualifies
+PASS R-3432: changed workflow or runner forces local coverage, but other scripts do not
+PASS R-3434: unreadable, absent, unfinished and unsuccessful CI refuse before any suite
+PASS R-3435: land readers distinguish CI, local and legacy suite times without changing old lines
+PASS seal: CI suite prefix, fallback paths and one run-list retry are declared once

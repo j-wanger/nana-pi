@@ -1,0 +1,79 @@
+FAIL M1: clean moved-main merge lands using only accepted-tip CI and review AssertionError [ERR_ASSERTION]: refused: main is not an ancestor of the source tip; fast-forward is impossible
+[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane
+
+
+1 !== 0
+
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:31:43
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:29:1
+FAIL M2: clean merge content matches literals and an independent ordinary merge AssertionError [ERR_ASSERTION]: refused: main is not an ancestor of the source tip; fast-forward is impossible
+[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane
+
+
+1 !== 0
+
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:69:44
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:48:1
+FAIL M3: unsupported attributes and malformed or failing merge-tree refuse unchanged AssertionError [ERR_ASSERTION]: The input did not match the regular expression /base.txt/. Input:
+
+'refused: main is not an ancestor of the source tip; fast-forward is impossible\n' +
+  '[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane\n'
+
+    at refused (file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:25:36)
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:84:17
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:80:1
+FAIL M4: conflict names paths and the merge-review-CI remedy before any CI read AssertionError [ERR_ASSERTION]: The input did not match the regular expression /base.txt/. Input:
+
+'refused: main is not an ancestor of the source tip; fast-forward is impossible\n' +
+  '[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane\n'
+
+    at refused (file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:25:36)
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:108:14
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:105:1
+FAIL M5: merge eligibility requires applicable CI, suite proof and unchanged proof paths on both sides AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CI.*no origin|no origin.*CI/. Input:
+
+'refused: main is not an ancestor of the source tip; fast-forward is impossible\n' +
+  '[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane\n'
+
+    at refused (file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:25:36)
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:115:2
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:113:1
+FAIL M6: uncovered lane commits including a lane-authored merge remain refused AssertionError [ERR_ASSERTION]: The input did not match the regular expression /uncovered commits/. Input:
+
+'refused: main is not an ancestor of the source tip; fast-forward is impossible\n' +
+  '[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane\n'
+
+    at refused (file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:25:36)
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:134:25
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:126:1
+FAIL M8: accepted policy limit lands a textually clean but semantically broken merge AssertionError [ERR_ASSERTION]: refused: main is not an ancestor of the source tip; fast-forward is impossible
+[nana-land] land record: refused, stage preflight, 0 min total, - suite, - CI wait; no lane
+
+
+1 !== 0
+
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:144:41
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:139:1
+FAIL M9: shared guidance, rendered region, README and ruling agree on the exemption AssertionError [ERR_ASSERTION]: The input did not match the regular expression /without conflict|conflict-free/. Input:
+
+"- Review ladder: an ordinary lane gets one final reviewer, the roster's reviewer. An install, hook or gate lane also gets the land reviewer, the seat's wrong-code pairs and one independent check. An install, hook or gate lane changes nana-setup install, uninstall or doctor; a Claude Code hook or a pi extension; the nana-gate policy; or the land and review tools (`nana-land`, `pi-review`, `claude-review`, `review-round`). Every other lane is ordinary. Maximum three rounds per item; a different model lineage reviews the work. The final review must cover the exact tip that will land; every later commit needs its own accepted review coverage."
+
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:157:10
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:150:1
+FAIL seal: clean-merge vocabulary and conflict-name cap are declared once AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 'nana-land: merge current main into accepted tip'
+
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:171:9
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:170:1

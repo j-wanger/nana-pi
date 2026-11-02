@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { readLandLedger, landRecordsPath } from "../lib/land-records.mjs";
 import os from "node:os";
 import path from "node:path";
 
@@ -86,6 +87,42 @@ export const ciFixture = (name, { origin = "https://github.com/example/fixture.g
 	else if (!workflowOnTip) commit(feature, "next.txt", "next\n", "tip");
 	return { root, main, feature, tip: git(feature, "rev-parse", "HEAD"), home: path.join(root, "home"), reviewed: null };
 };
+
+/** Prepare a moved-main fixture whose workflow already exists in the common base. */
+export function cleanMergeFixture(name, seed = {}, options = {}) {
+	const f = ciFixture(name, { workflowOnMain: true, ...options });
+	for (const [file, text] of Object.entries(seed)) {
+		mkdirSync(path.dirname(path.join(f.main, file)), { recursive: true });
+		commit(f.main, file, text, `seed ${file}`);
+	}
+	git(f.feature, "reset", "--hard", "main");
+	f.base = git(f.main, "rev-parse", "HEAD");
+	f.tip = commit(f.feature, "lane.txt", "lane\n", "lane change");
+	f.capturedMain = commit(f.main, "main.txt", "main\n", "main change");
+	return f;
+}
+
+/** Snapshot every ref and both clean checkouts, not the intentionally append-only ledgers. */
+export function mergeSnapshot(f) {
+	return { refs: git(f.main, "show-ref"), main: git(f.main, "rev-parse", "HEAD"),
+		source: git(f.feature, "rev-parse", "HEAD"), branch: git(f.main, "branch", "--show-current"),
+		mainStatus: git(f.main, "status", "--porcelain"), sourceStatus: git(f.feature, "status", "--porcelain") };
+}
+
+/** Exercise the real CI artifact reader with a synthetic full-suite record and a counting command. */
+export function executeCleanMerge(f, { records = true, runs = [workflowRun({ path: ".github/workflows/ci.yml" })], runGh, afterGh = () => {}, ...options } = {}) {
+	const calls = []; let suites = 0;
+	const entries = records ? [{ run: 101, leg: "macos-latest", attempt: 1, record: {
+		schema: 1, platform: "darwin", filters: [], files: [{ path: "synthetic.test.mjs", label: "PASS", seconds: 1 }],
+		exitCode: 0, jobs: 1, wallSeconds: 1,
+	} }] : [];
+	const gh = runGh ?? artifactGh(runs, entries);
+	const out = executeCi(f, runs, { platform: "darwin", keepLandCiRecords: () => ({ lines: [], notes: [] }),
+		runCommand: () => { suites++; return { status: 0 }; }, ...options,
+		runGh: (cwd, args, opts) => { calls.push(args); const result = gh(cwd, args, opts); return afterGh(args, calls, result) ?? result; } });
+	const common = path.resolve(f.main, git(f.main, "rev-parse", "--git-common-dir"));
+	return { ...out, suites, calls, end: readLandLedger(landRecordsPath(common)).records.at(-1) };
+}
 
 export const ensureCiReview = (fixture) => {
 	if (!fixture.reviewed) { mkdirSync(path.join(fixture.home, ".pi", "agent"), { recursive: true }); fixture.reviewed = [`${reviewTip(fixture.feature, fixture.home)}=item`]; }

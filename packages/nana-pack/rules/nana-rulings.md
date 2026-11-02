@@ -5,7 +5,6 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-09-16: Each session says which objective or current-priority line its spend serves, or proposes updating them.
 - 2026-09-18: Memory has two tiers: shared rules for every project, and project facts in the project. Start a session in the product's own folder.
 - 2026-10-09: Builder sessions get no automatic knowledge pull.
-- 2026-10-10: An independent reviewer accepts every revision that reaches main. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land.
 - 2026-10-10: rm runs freely only inside the working directory.
 - 2026-10-10: In nana-pi, Windows testing is required.
 - 2026-10-10: In nana-pi, the desk stays frozen until the owner reopens it.
@@ -31,4 +30,5 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-28: Before the seat plans new capability, it brings the owner two or three readings of the intent, once per request; a fix that restores agreed behaviour plans straight away.
 - 2026-11-02: The roster names a slot for the scout, planner, adversary and checker; a seat starts each through its slot.
 - 2026-11-01: In nana-pi, a tip's passing GitHub CI stands in for the local full suite for builders, seats and lands. Builders push and do not wait; the seat waits for CI. The local locked suite runs only when CI cannot stand in.
+- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land.
 - 2026-11-01: Each machine sets how many lanes build there in its roster file; the roster command's lanes line prints the limit, default included. At most two more lanes are planned.
