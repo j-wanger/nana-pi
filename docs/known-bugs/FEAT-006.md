@@ -154,3 +154,6 @@
 - Builder lane limit (machine-lane-limits, review round 1): a pi seat's model sees the limit only by running the roster command, because pi shows the notice as a widget.
 - Builder lane limit (machine-lane-limits, review round 1): a machine prints the default limit of 4 until its owner writes its own value; a Windows checkout that pulls without running `nana-setup install` keeps the old "four lanes" ruling and seat guide.
 - Builder lane limit (machine-lane-limits, review round 1): a bad `lanes` value's warning prints before stdout in the plain roster command but after stdout, before `was:`, in `set`.
+- Builder credential strip (builder-credential-strip, review round 2): the ledger spots Claude only by command name; `npx claude`, `node …/cli.js`, an `env` prefix, or args after `--` skip sealing.
+- Builder credential strip (builder-credential-strip, review round 2): the pack README does not state that direct `review-ledger run -- claude` reviewers now get the ancestor excludes and auto-memory off.
+- Builder credential strip (builder-credential-strip, review round 2): M5's banned phrase lacks backticks.
