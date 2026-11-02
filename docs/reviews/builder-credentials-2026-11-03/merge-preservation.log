@@ -1,0 +1,3 @@
+Non-lane tracked files match origin/main byte for byte.
+Every main session entry is unchanged; the whole lane entry is newest.
+Lane preamble and test match the pre-merge tip byte for byte.
