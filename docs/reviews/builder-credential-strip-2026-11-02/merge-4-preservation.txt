@@ -1,0 +1,8 @@
+Non-lane files differing from origin/main: 0
+Lane requirement rows preserved: R-3436, R-3437, R-3660, R-3661, R-3662, R-3663, R-3664, R-3665, R-3666, R-3667
+Other requirement rows identical to origin/main
+HEAD whole session entries: 258 missing: 0
+origin/main whole session entries: 259 missing: 0
+Newest session entry: ## 2026-11-03 — builders must not read stored credentials
+Lane known-bug files unchanged from pre-merge tip
+Preservation: PASS

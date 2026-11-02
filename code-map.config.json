@@ -63,6 +63,7 @@
     { "path": "packages/nana-pack/tests/adoption-reader.test.mjs", "reason": "Pi loads extensions from a fixture manifest." },
     { "path": "packages/nana-pack/tests/build-records.test.mjs", "reason": "Shell sources the seat guide without a path launch." },
     { "path": "packages/nana-pack/tests/ci-records.test.mjs", "reason": "Fixture command runner accepts a program parameter." },
+    { "path": "packages/nana-pack/tests/credential-strip.test.mjs", "reason": "Temporary installed launchers and fixture credential programs resolve dynamically." },
     { "path": "packages/nana-pack/tests/gate-rm-outside.test.mjs", "reason": "Shell executable comes from a fixture resolver." },
     { "path": "packages/nana-pack/tests/land-ci-edge.test.mjs", "reason": "Fixture command runner accepts a program parameter." },
     { "path": "packages/nana-pack/tests/mutation-runner.test.mjs", "reason": "Mutation fixture commands run under a shell." },

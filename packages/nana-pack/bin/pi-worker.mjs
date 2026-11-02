@@ -25,6 +25,7 @@ import {
 import { resolveRoster } from './nana-roster.mjs';
 import { resolveRole, lineageWarnings } from '../lib/roster-roles.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
+import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
 import { digestKnownBugs } from '../lib/known-bug-digest.mjs';
@@ -91,7 +92,7 @@ function trusted(worktree) {
 	return shared.status === 0 && shared.stdout.trim() === 'true';
 }
 
-let childEnv = { NANA_ROLE: 'worker' };
+let childEnv = { NANA_ROLE: 'worker', ...credentialStripEnv(process.env) };
 let maxArg;
 let laneRoot, laneGitDir, laneCommonDir, briefPath, preambleFile, laneLock, knownBugPath;
 let selectedBuilder, selectedLaneSize, selectedSlot, selectedFeature, claudeLaunch;
@@ -211,7 +212,7 @@ if (laneMode) {
 	laneRoot = cwd; laneGitDir = dirs[0]; laneCommonDir = dirs[1];
 	selectedBuilder = builder; selectedLaneSize = laneSize; selectedSlot = builderLabel === LARGER_BUILDER_LABEL ? 'largerBuilder' : 'builder';
 	const worktreeTrusted = trusted(cwd);
-	const sealed = workerEnv(builder, cwd);
+	const sealed = { ...workerEnv(builder, cwd), ...credentialStripEnv(process.env) };
 	const carry = isClaudeBuilder ? readClaudeBuilderSettings(sealed, 'pi-worker', null, cwd) : null;
 	if (carry) process.stderr.write(`${carry.line}\n`);
 	try { buildStartTip = git('rev-parse', 'HEAD'); } catch { buildStartTip = null; }

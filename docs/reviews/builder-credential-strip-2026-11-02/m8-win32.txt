@@ -1,0 +1,144 @@
+PASS M4: credential commands form a role-scoped non-exemptible floor
+PASS M7: credential gate pattern seal
+(node:10660) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<worktree>/packages/nana-pack/extensions/nana-gate.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>\packages\nana-pack\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS  packages/nana-pack/tests/credential-gate.test.mjs   2 pass  3.7s
+  installed temporary PATH launchers: win32; fixture helper and askpass only
+  fixture plain-worker/global: parent password=true; child password=false; helper/askpass=false
+  fixture plain-worker/parameters: parent password=true; child password=false; helper/askpass=false
+  fixture plain-worker/counted: parent password=true; child password=false; helper/askpass=false
+  fixture plain-worker/git-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture plain-worker/core-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture plain-worker/ssh-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture pi-worker/global: parent password=true; child password=false; helper/askpass=false
+  fixture pi-worker/parameters: parent password=true; child password=false; helper/askpass=false
+  fixture pi-worker/counted: parent password=true; child password=false; helper/askpass=false
+  fixture pi-worker/git-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture pi-worker/core-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture pi-worker/ssh-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture claude-worker/global: parent password=true; child password=false; helper/askpass=false
+  fixture claude-worker/parameters: parent password=true; child password=false; helper/askpass=false
+  fixture claude-worker/counted: parent password=true; child password=false; helper/askpass=false
+  fixture claude-worker/git-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture claude-worker/core-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture claude-worker/ssh-askpass: parent password=true; child password=false; helper/askpass=false
+PASS M1: builder children suppress fixture credential dispatch
+  fixture pi-review/global: parent password=true; child password=false; helper/askpass=false
+  fixture pi-review/parameters: parent password=true; child password=false; helper/askpass=false
+  fixture pi-review/counted: parent password=true; child password=false; helper/askpass=false
+  fixture pi-review/git-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture pi-review/core-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture pi-review/ssh-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture claude-review/global: parent password=true; child password=false; helper/askpass=false
+  fixture claude-review/parameters: parent password=true; child password=false; helper/askpass=false
+  fixture claude-review/counted: parent password=true; child password=false; helper/askpass=false
+  fixture claude-review/git-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture claude-review/core-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture claude-review/ssh-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture ledger/global: parent password=true; child password=false; helper/askpass=false
+  fixture ledger/parameters: parent password=true; child password=false; helper/askpass=false
+  fixture ledger/counted: parent password=true; child password=false; helper/askpass=false
+  fixture ledger/git-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture ledger/core-askpass: parent password=true; child password=false; helper/askpass=false
+  fixture ledger/ssh-askpass: parent password=true; child password=false; helper/askpass=false
+PASS M2: reviewer entry points suppress fixture credential dispatch
+PASS M3: unrelated inherited git configuration keeps its effect
+PASS M5: shipped builder guidance assigns pushes to the seat
+PASS M6: dated CI ruling and shared working pattern agree
+PASS M7: credential strip configuration seal
+PASS  packages/nana-pack/tests/credential-strip.test.mjs  6 pass  77.6s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 8 pass, 0 fail, 0 skip · 82.2s
+
+Temporary installed-launcher fixture exit: 0
+
+Windows install check (temporary HOME; no stored credentials):
+Git Bash: <program-files>\Git\bin\bash.exe
+pi: <home>\AppData\Roaming\npm\pi.cmd
+node: <program-files>\nodejs\node.exe
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+FAIL pi post-edit — write-error: write tool result is marked as an error
+PASS pi powershell gate
+PASS pi-review (cmd)
+PASS pi-review (sh)
+PASS hook set
+PASS hook memory making
+PASS hook roster notice
+PASS hook shared memory
+PASS hook adoption
+PASS hook knowledge pull
+PASS hook verifier pipe (PowerShell)
+PASS hook verifier pipe (Bash)
+PASS hook objective
+PASS doctor
+PASS pi-worker (cmd)
+PASS pi-worker (sh)
+PASS readme checklist
+settings hooks: {"SessionStart":[{"hooks":[{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-objective.mjs"],"timeout":5,"statusMessage":"nana: objective + current priority"},{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-adoption.mjs"],"timeout":5,"statusMessage":"nana: unadopted repositories"},{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-shared-memory.mjs"],"timeout":5,"statusMessage":"nana: shared memory index"},{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-roster-notice.mjs"],"timeout":5,"statusMessage":"nana: roster notice"}]}],"PreToolUse":[{"matcher":"Bash|PowerShell","hooks":[{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/verifier-pipe.mjs"],"timeout":5,"statusMessage":"nana: verifier pipe"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"node","args":["<worktree>/packages/nana-knowledge/bin/nana-knowledge.ts","hook"],"timeout":5,"statusMessage":"nana: knowledge pull"}]}],"SessionEnd":[{"hooks":[{"type":"command","command":"node","args":["<worktree>/packages/nana-setup/claude/hooks/nana-memory-end.mjs"],"timeout":1.5,"statusMessage":"nana: memory"}]}]}
+last pull.log record: {"ts":"2026-11-02T06:46:03.792Z","cwd":"<os-temp>\\nana-install-check-0VOSgq\\project","session_id":null,"source":null,"reason":"ok","tokens":["nana","install","check","validate","fixture","installcheck_mvywaaqo"],"hits":["~\\notes\\docs\\install-check.md"],"ms":15}
+install-check home retained: <os-temp>\nana-install-check-0VOSgq
+
+install-check exit: 1
+
+Retry without inherited lane write boundary:
+Git Bash: <program-files>\Git\bin\bash.exe
+pi: <home>\AppData\Roaming\npm\pi.cmd
+node: <program-files>\nodejs\node.exe
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi post-edit
+PASS pi powershell gate
+PASS pi-review (cmd)
+PASS pi-review (sh)
+PASS hook set
+PASS hook memory making
+PASS hook shared memory
+PASS hook roster notice
+PASS hook knowledge pull
+PASS hook objective
+PASS hook adoption
+PASS hook verifier pipe (PowerShell)
+PASS hook verifier pipe (Bash)
+PASS doctor
+PASS pi-worker (cmd)
+PASS pi-worker (sh)
+PASS readme checklist
+
+clean install-check exit: 0
+
+Touched tests:
+PASS  packages/nana-pack/tests/claude-review.test.mjs     11 pass  31.8s
+PASS  packages/nana-pack/tests/credential-gate.test.mjs   2 pass  4.3s
+PASS  packages/nana-pack/tests/credential-strip.test.mjs  6 pass  69.7s
+PASS  packages/nana-pack/tests/gate-corpus.test.mjs       227 pass  15.1s
+PASS  packages/nana-pack/tests/rulings.test.mjs           23 pass  0.2s
+PASS  packages/nana-pack/tests/templates-render.test.mjs  36 pass, 13 skip  0.2s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs     18 pass, 9 skip  62.2s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs       66 pass, 1 skip  64.8s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs  9 pass, 3 skip  7.2s
+9 files: 9 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 398 pass, 0 fail, 26 skip · 256.4s
+Touched test command exit: 0
+
+Builder code-breaking pairs (seat can rerun build-1-pairs.mjs):
+PAIR M1: lib/credential-strip.mjs; code mutation; exit=1; RED
+PAIR M2: bin/review-ledger.mjs; code mutation; exit=1; RED
+PAIR M3: lib/credential-strip.mjs; code mutation; exit=1; RED
+PAIR M4: extensions/nana-gate.ts; code mutation; exit=1; RED
+PAIR M5: prompts/builder-preamble.md; code mutation; exit=1; RED
+PAIR M6: rules/nana-rulings.md; code mutation; exit=1; RED
+PAIR M7/R-3666: lib/credential-strip-config.mjs; code mutation; exit=1; RED
+PAIR M7/R-3667: lib/credential-gate-config.mjs; code mutation; exit=1; RED
+8 mutation pairs: 8 RED, 0 survived
+No model-backed builder or reviewer was started for the credential fixtures.
+Installed PATH launchers were created by stepPath in temporary HOME; real agent directories were not edited.

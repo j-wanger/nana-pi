@@ -1,0 +1,161 @@
+Base code: 7d5f8ea4; new tests, unchanged assertions.
+
+Base narrow patterns and plain-space join: exit 1
+FAIL M1: helper read variants are a credential-rule floor unrefused cases:
+worker/bash/git credential-store --file=x get
+worker/bash/git -c a=b credential-cache get
+worker/bash/git-credential-cache get
+worker/bash/git credential-cache --timeout 5 get
+worker/bash/git -c a=b credential-store --file=x get
+worker/bash/git --no-pager credential-cache --socket /s get
+worker/bash/git credential-libsecret get
+worker/bash/git-credential-store --file=x get
+worker/bash/"C:\tools\git-credential-cache.exe" --timeout 5 get
+worker/bash//usr/lib/git-core/git-credential-libsecret get
+worker/bash/git -C "C:/work tree" credential-cache get
+worker/bash/git -c "http.extraHeader=X Y" credential-cache get
+worker/powershell/git credential-store --file=x get
+worker/powershell/git -c a=b credential-cache get
+worker/powershell/git-credential-cache get
+worker/powershell/git credential-cache --timeout 5 get
+worker/powershell/git -c a=b credential-store --file=x get
+worker/powershell/git --no-pager credential-cache --socket /s get
+worker/powershell/git credential-libsecret get
+worker/powershell/git-credential-store --file=x get
+worker/powershell/"C:\tools\git-credential-cache.exe" --timeout 5 get
+worker/powershell//usr/lib/git-core/git-credential-libsecret get
+worker/powershell/git -C "C:/work tree" credential-cache get
+worker/powershell/git -c "http.extraHeader=X Y" credential-cache get
+reviewer/bash/git credential-store --file=x get
+reviewer/bash/git -c a=b credential-cache get
+reviewer/bash/git-credential-cache get
+reviewer/bash/git credential-cache --timeout 5 get
+reviewer/bash/git -c a=b credential-store --file=x get
+reviewer/bash/git --no-pager credential-cache --socket /s get
+reviewer/bash/git credential-libsecret get
+reviewer/bash/git-credential-store --file=x get
+reviewer/bash/"C:\tools\git-credential-cache.exe" --timeout 5 get
+reviewer/bash//usr/lib/git-core/git-credential-libsecret get
+reviewer/bash/git -C "C:/work tree" credential-cache get
+reviewer/bash/git -c "http.extraHeader=X Y" credential-cache get
+reviewer/powershell/git credential-store --file=x get
+reviewer/powershell/git -c a=b credential-cache get
+reviewer/powershell/git-credential-cache get
+reviewer/powershell/git credential-cache --timeout 5 get
+reviewer/powershell/git -c a=b credential-store --file=x get
+reviewer/powershell/git --no-pager credential-cache --socket /s get
+reviewer/powershell/git credential-libsecret get
+reviewer/powershell/git-credential-store --file=x get
+reviewer/powershell/"C:\tools\git-credential-cache.exe" --timeout 5 get
+reviewer/powershell//usr/lib/git-core/git-credential-libsecret get
+reviewer/powershell/git -C "C:/work tree" credential-cache get
+reviewer/powershell/git -c "http.extraHeader=X Y" credential-cache get
++ actual - expected
+
++ [
++   'worker/bash/git credential-store --file=x get',
++   'worker/bash/git -c a=b credential-cache get',
++   'worker/bash/git-credential-cache get',
++   'worker/bash/git credential-cache --timeout 5 get',
++   'worker/bash/git -c a=b credential-store --file=x get',
++   'worker/bash/git --no-pager credential-cache --socket /s get',
++   'worker/bash/git credential-libsecret get',
++   'worker/bash/git-credential-store --file=x get',
++   'worker/bash/"C:\\tools\\git-credential-cache.exe" --timeout 5 get',
++   'worker/bash//usr/lib/git-core/git-credential-libsecret get',
++   'worker/bash/git -C "C:/work tree" credential-cache get',
++   'worker/bash/git -c "http.extraHeader=X Y" credential-cache get',
++   'worker/powershell/git credential-store --file=x get',
++   'worker/powershell/git -c a=b credential-cache get',
++   'worker/powershell/git-credential-cache get',
++   'worker/powershell/git credential-cache --timeout 5 get',
++   'worker/powershell/git -c a=b credential-store --file=x get',
++   'worker/powershell/git --no-pager credential-cache --socket /s get',
++   'worker/powershell/git credential-libsecret get',
++   'worker/powershell/git-credential-store --file=x get',
++   'worker/powershell/"C:\\tools\\git-credential-cache.exe" --timeout 5 get',
++   'worker/powershell//usr/lib/git-core/git-credential-libsecret get',
++   'worker/powershell/git -C "C:/work tree" credential-cache get',
++   'worker/powershell/git -c "http.extraHeader=X Y" credential-cache get',
++   'reviewer/bash/git credential-store --file=x get',
++   'reviewer/bash/git -c a=b credential-cache get',
++   'reviewer/bash/git-credential-cache get',
++   'reviewer/bash/git credential-cache --timeout 5 get',
++   'reviewer/bash/git -c a=b credential-store --file=x get',
++   'reviewer/bash/git --no-pager credential-cache --socket /s get',
++   'reviewer/bash/git credential-libsecret get',
++   'reviewer/bash/git-credential-store --file=x get',
++   'reviewer/bash/"C:\\tools\\git-credential-cache.exe" --timeout 5 get',
++   'reviewer/bash//usr/lib/git-core/git-credential-libsecret get',
++   'reviewer/bash/git -C "C:/work tree" credential-cache get',
++   'reviewer/bash/git -c "http.extraHeader=X Y" credential-cache get',
++   'reviewer/powershell/git credential-store --file=x get',
++   'reviewer/powershell/git -c a=b credential-cache get',
++   'reviewer/powershell/git-credential-cache get',
++   'reviewer/powershell/git credential-cache --timeout 5 get',
++   'reviewer/powershell/git -c a=b credential-store --file=x get',
++   'reviewer/powershell/git --no-pager credential-cache --socket /s get',
++   'reviewer/powershell/git credential-libsecret get',
++   'reviewer/powershell/git-credential-store --file=x get',
++   'reviewer/powershell/"C:\\tools\\git-credential-cache.exe" --timeout 5 get',
++   'reviewer/powershell//usr/lib/git-core/git-credential-libsecret get',
++   'reviewer/powershell/git -C "C:/work tree" credential-cache get',
++   'reviewer/powershell/git -c "http.extraHeader=X Y" credential-cache get'
++ ]
+- []
+
+PASS M2: helper near misses and unset-role forms stay allowed
+PASS M4: credential commands form a role-scoped non-exemptible floor
+FAIL M7: credential gate pattern seal Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- '\x01'
+
+
+Wide helper patterns, base plain-space join: exit 1
+FAIL M1: helper read variants are a credential-rule floor unrefused cases:
+worker/bash/git -C "C:/work tree" credential-cache get
+worker/bash/git -c "http.extraHeader=X Y" credential-cache get
+worker/powershell/git -C "C:/work tree" credential-cache get
+worker/powershell/git -c "http.extraHeader=X Y" credential-cache get
+reviewer/bash/git -C "C:/work tree" credential-cache get
+reviewer/bash/git -c "http.extraHeader=X Y" credential-cache get
+reviewer/powershell/git -C "C:/work tree" credential-cache get
+reviewer/powershell/git -c "http.extraHeader=X Y" credential-cache get
++ actual - expected
+
++ [
++   'worker/bash/git -C "C:/work tree" credential-cache get',
++   'worker/bash/git -c "http.extraHeader=X Y" credential-cache get',
++   'worker/powershell/git -C "C:/work tree" credential-cache get',
++   'worker/powershell/git -c "http.extraHeader=X Y" credential-cache get',
++   'reviewer/bash/git -C "C:/work tree" credential-cache get',
++   'reviewer/bash/git -c "http.extraHeader=X Y" credential-cache get',
++   'reviewer/powershell/git -C "C:/work tree" credential-cache get',
++   'reviewer/powershell/git -c "http.extraHeader=X Y" credential-cache get'
++ ]
+- []
+
+FAIL M2: helper near misses and unset-role forms stay allowed refused cases:
+worker/bash/git credential-store --file "get secrets" erase
+worker/powershell/git credential-store --file "get secrets" erase
+reviewer/bash/git credential-store --file "get secrets" erase
+reviewer/powershell/git credential-store --file "get secrets" erase
++ actual - expected
+
++ [
++   'worker/bash/git credential-store --file "get secrets" erase',
++   'worker/powershell/git credential-store --file "get secrets" erase',
++   'reviewer/bash/git credential-store --file "get secrets" erase',
++   'reviewer/powershell/git credential-store --file "get secrets" erase'
++ ]
+- []
+
+PASS M4: credential commands form a role-scoped non-exemptible floor
+FAIL M7: credential gate pattern seal Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- '\x01'
+

@@ -1,0 +1,46 @@
+PASS M1: helper read variants are a credential-rule floor
+PASS M2: helper near misses and unset-role forms stay allowed
+FAIL M4: credential commands form a role-scoped non-exemptible floor unrefused cases:
+worker/bash/powershell "gh auth token"
+worker/bash/powershell -NoProfile "gh auth token"
+worker/bash/powershell -NoProfile "git credential fill"
+worker/bash/pwsh -NoProfile "gh auth token"
+worker/powershell/powershell "gh auth token"
+worker/powershell/powershell -NoProfile "gh auth token"
+worker/powershell/powershell -NoProfile "git credential fill"
+worker/powershell/pwsh -NoProfile "gh auth token"
+reviewer/bash/powershell "gh auth token"
+reviewer/bash/powershell -NoProfile "gh auth token"
+reviewer/bash/powershell -NoProfile "git credential fill"
+reviewer/bash/pwsh -NoProfile "gh auth token"
+reviewer/powershell/powershell "gh auth token"
+reviewer/powershell/powershell -NoProfile "gh auth token"
+reviewer/powershell/powershell -NoProfile "git credential fill"
+reviewer/powershell/pwsh -NoProfile "gh auth token"
++ actual - expected
+
++ [
++   'worker/bash/powershell "gh auth token"',
++   'worker/bash/powershell -NoProfile "gh auth token"',
++   'worker/bash/powershell -NoProfile "git credential fill"',
++   'worker/bash/pwsh -NoProfile "gh auth token"',
++   'worker/powershell/powershell "gh auth token"',
++   'worker/powershell/powershell -NoProfile "gh auth token"',
++   'worker/powershell/powershell -NoProfile "git credential fill"',
++   'worker/powershell/pwsh -NoProfile "gh auth token"',
++   'reviewer/bash/powershell "gh auth token"',
++   'reviewer/bash/powershell -NoProfile "gh auth token"',
++   'reviewer/bash/powershell -NoProfile "git credential fill"',
++   'reviewer/bash/pwsh -NoProfile "gh auth token"',
++   'reviewer/powershell/powershell "gh auth token"',
++   'reviewer/powershell/powershell -NoProfile "gh auth token"',
++   'reviewer/powershell/powershell -NoProfile "git credential fill"',
++   'reviewer/powershell/pwsh -NoProfile "gh auth token"'
++ ]
+- []
+
+PASS M7: credential gate pattern seal
+(node:70653) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/packages/nana-pack/extensions/nana-gate.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/packages/nana-pack/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -362,7 +362,7 @@ function containsWholeWord(text, word) {
 }
 
 {
-	const ruling = "- 2026-11-01: In nana-pi, a tip's passing GitHub CI stands in for the local full suite for builders, seats and lands. Builders push and do not wait; the seat waits for CI. The local locked suite runs only when CI cannot stand in.";
+	const ruling = "- 2026-11-02: In nana-pi, a tip's passing GitHub CI stands in for the local full suite for builders, seats and lands. Builders do not push; the seat pushes after verifying, then waits for CI. The local locked suite runs only when CI cannot stand in.";
 	const shared = fs.readFileSync(new URL("../../../templates/_shared/working-under-nana-pi.md", import.meta.url), "utf8");
 	const agents = fs.readFileSync(PROJECT_AGENTS_PATH, "utf8");
 	const begin = "<!-- nana:working-under-nana-pi begin -->\n", end = "<!-- nana:working-under-nana-pi end -->";
