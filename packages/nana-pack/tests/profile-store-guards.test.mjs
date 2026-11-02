@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process';
 import { check, fixture, ok, refused, files, records, save, root } from './profile-fixture.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
 import { USER_KIND_WORDS } from '../lib/memory-making-config.mjs';
+import { writeMemoryFile, readMemoryStore } from '../lib/memory-store.mjs';
 const [, , preference, fact] = USER_KIND_WORDS;
 const config = () => import('../lib/profile-config.mjs');
 const store = () => import('../lib/profile-store.mjs');
@@ -106,5 +107,54 @@ await check('the pointer is configuration and the push target stays verified pri
   const repoUrl=spawnSync('git',['remote','get-url','--push','origin'],{cwd:root,encoding:'utf8'}).stdout.trim(); t.git(c.dir,'remote','set-url','--push','origin',repoUrl); refused(c.run(['init','--dir',c.dir]),C.PROFILE_WORDS.checkout);
   c.env.PROFILE_TEST_RAW_URL='1'; t.git(c.dir,'remote','set-url','--push','origin',t.bare); ok(c.run(['init','--dir',c.dir,'--unverified-remote'])); assert.equal(JSON.parse(fs.readFileSync(path.join(c.agent,'nana-pack.json'))).ownerProfile.unverifiedRemote,true); assert.match(ok(c.run(['sync'])),new RegExp(C.PROFILE_WORDS.unverified));
   t.git(a.dir,'remote','set-url','--push','origin',path.join(t.temp,'changed.git')); assert.ok(ok(save(a,'Keep local on mismatch')).includes(`${C.PROFILE_WORDS.notPushed}mismatch`)); assert.notEqual(a.run(['sync']).status,0); assert.equal(t.git(a.dir,'status','--porcelain'),'');
+ } finally {t.close();}
+});
+
+// req: R-3410
+await check('every profile command refuses under set launcher roles before reading the pointer',async()=>{
+ const C=await config(); const t=fixture();
+ try {
+  const f=t.clone('a'); init(f); ok(save(f,'Private canary claim','Private canary quote'));
+  const pointer=path.join(f.agent,'nana-pack.json'); const original=fs.readFileSync(pointer);
+  const commands=[['show'],['sync'],['save','--kind',fact,'--claim','Blocked save','--quote','Blocked words'],['confirm','000000000000','--quote','Blocked words'],['retract','000000000000','--quote','Blocked words'],['supersede','000000000000','--kind',fact,'--claim','Blocked replacement','--quote','Blocked words'],['init','--dir',f.dir,'--save']];
+  for(const role of ['worker','']) for(const args of commands) {
+   const result=f.run(args,{NANA_ROLE:role}); refused(result,C.PROFILE_WORDS.role);
+   assert.equal(result.stdout.includes('Private canary'),false);
+  }
+  fs.writeFileSync(pointer,'not json');
+  refused(f.run(['show'],{NANA_ROLE:'worker'}),C.PROFILE_WORDS.role);
+  fs.writeFileSync(pointer,original);
+  assert.deepEqual(fs.readFileSync(pointer),original);
+ } finally {t.close();}
+});
+
+// req: R-3411
+await check('record commands resolve unique 12-hex prefixes across profile and project areas',async()=>{
+ const C=await config(); const S=await store(); const t=fixture();
+ try {
+  const f=t.clone('a'); init(f); ok(save(f,'Profile prefix claim','Keep profile words'));
+  const profile=S.claimId('Profile prefix claim');
+  const repository='1234567890abcdef1234567890abcdef12345678';
+  const project='abcdef1234560000000000000000000000000000';
+  const projectRecord={id:project,type:'project',kind:'lesson',claim:'Project prefix claim',quote:'Project words',context:'',evidence:'synthetic',date:'2026-11-01',trust:'low',source:'extracted',roles:['seat'],validFrom:'2026-11-01',invalidAt:null,supersedes:[],repository};
+  writeMemoryFile(f.dir,repository,'records',project,projectRecord);
+  const profilePrefix=profile.slice(0,12),projectPrefix=project.slice(0,12);
+  refused(f.run(['retract',project.slice(0,11),'--quote','Too short']),C.PROFILE_WORDS.unknown);
+  ok(f.run(['confirm',profilePrefix,'--quote','Owner confirms profile words']));
+  ok(f.run(['retract',profilePrefix,'--quote','Owner retracts profile']));
+  ok(f.run(['supersede',projectPrefix,'--kind',fact,'--claim','Replacement project claim','--quote','Owner replaces project words']));
+  ok(f.run(['retract',projectPrefix.toUpperCase(),'--quote','Owner retracts project']));
+  const states=readMemoryStore(f.dir); assert.equal(states.find(r=>r.id===profile).live,false); assert.equal(states.find(r=>r.id===project).live,false);
+  const projectEvents=files(f.dir,path.join('projects',repository.slice(0,16),'events'));
+  assert.equal(projectEvents.length,2);
+  const events=projectEvents.map(file=>parseJsonBytes(fs.readFileSync(file)));
+  assert.deepEqual(new Set(events.map(event=>event.action)),new Set(['retract','supersede']));
+  assert.ok(events.every(event=>event.id===project));
+  const second={...projectRecord,id:'abcdef123456ffffffffffffffffffffffffffff',claim:'Second ambiguous project record'};
+  writeMemoryFile(f.dir,repository,'records',second.id,second);
+  const entries=()=>fs.readdirSync(f.dir,{recursive:true}).filter(name=>/(^|[\\/])(records|events)([\\/]|$)/.test(name)).sort();
+  const before=entries();
+  for(const prefix of ['ffffffffffff',project.slice(0,11),'abcdef123456']) refused(f.run(['retract',prefix,'--quote','No write']),C.PROFILE_WORDS.unknown);
+  assert.deepEqual(entries(),before);
  } finally {t.close();}
 });
