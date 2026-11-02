@@ -596,15 +596,15 @@ const startupSignalCase = async ({ signal, laneSize = "larger" }) => {
 		removeArtifacts(); fs.rmSync(LOCK, { force: true });
 		const root = caseTemp(`startup-${laneSize}-${signal.toLowerCase()}-${attempt}`);
 		const marker = laneSize === "small" ? PI_MARKER : PID_FILE;
-		const holdFile = path.join(TEMP, `unwritten-release-${laneSize}-${signal}-${attempt}`);
-		const run = startWorker({ extra: ["--lane-size", laneSize, "--max-secs", "10", "--stall-secs", "10"], env: tempEnv(root, { WC_SLEEP_MS: "10000", WC_HOLD_FILE: holdFile }) });
+		const run = startWorker({ extra: ["--lane-size", laneSize, "--max-secs", "10", "--stall-secs", "10"], env: tempEnv(root, { WC_SLEEP_MS: "10000" }) });
 		const hasTempFile = await waitFor(() => fs.readdirSync(root).length > 0, run.child, STARTUP_SIGNAL_READY_LIMIT_MS);
 		const startedBeforeSignal = fs.existsSync(marker);
-		if (hasTempFile && !startedBeforeSignal) run.child.kill(signal);
+		const delivered = hasTempFile && !startedBeforeSignal;
+		run.child.kill(delivered ? signal : "SIGTERM");
 		const ended = await run.closed;
 		last = { signal, laneSize, attempt, hasTempFile, startedBeforeSignal, ended, empty: tempEmpty(root), lock: fs.existsSync(LOCK), abort: run.stderr().includes(`[pi-worker] aborted by ${signal}`), stderr: run.stderr() };
 		stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
-		if (hasTempFile && !startedBeforeSignal) return last;
+		if (delivered) return last;
 	}
 	return last;
 };
