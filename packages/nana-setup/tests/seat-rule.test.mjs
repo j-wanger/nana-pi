@@ -25,14 +25,14 @@ const check = (n, ok, extra = "") => {
 const SCOPE = "This rule is for the seat, the session that launches builders and reviewers; a session started as a builder or reviewer skips it.";
 
 // The sixteen bullets, each exactly once (R-1140; owner-profile adds automatic saving).
-// RULE_7's limit, four lanes building and two more in planning, is the owner's 2026-10-31 answer.
+// RULE_7 follows the owner's 2026-11-02 per-machine roster pick; planning stays two.
 const RULE_1 = "- In Claude Code, launch each builder or reviewer as a background task and end your turn. In pi, run it as one foreground command with no timeout.";
 const RULE_2 = "- While a builder or reviewer runs, do not read or judge its partial output, transcript, diffs or test results. Do not re-run its checks before it ends.";
 const RULE_3 = "- Leave a running builder or reviewer alone until its completion notification arrives or a monitor reports a failure or a stall. Then act in that turn.";
 const RULE_4 = "- Verify once, when the build ends. Re-run the seat checks your brief names, read the builder's report, and look at every page or command output the change produces.";
 const RULE_5 = "- In an install, hook or gate lane, re-run the lane's mutation runner after any change of your own to code or tests, before the review.";
 const RULE_6 = "- Send findings on a build back in the next brief instead of fixing the builder's work yourself.";
-const RULE_7 = "- Keep at most four lanes building and two more in planning, a nana default. A lane in planning has no build yet and no builder working in it. A lane counts as building from its first build until it lands or closes.";
+const RULE_7 = '- Keep no more lanes building than the lanes line of this machine\'s roster command allows, `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"`, and at most two more in planning. A lane in planning has no build yet and no builder working in it. A lane counts as building from its first build until it lands or closes.';
 const RULE_8 = "- The builder preamble holds the builder's rules and the review standard holds the reviewer's. Judge review findings by the review standard, and restate neither in a brief.";
 const RULE_9 = "- Before you end your turn, name and start what waits on nothing else: another lane's build, a long mutation run in parts, separate research agents. Each lane's own steps stay in order.";
 const RULE_10 = "- Run the full suite whole, never in parts. Never split a long run while a full suite runs on the same machine. If a check fails on a time limit, re-run it alone before you call it a failure.";
@@ -81,7 +81,7 @@ check("R-3067: seat guide carries the outside-reader timing, output and defect r
 // req: R-1140
 check("seat guide carries: findings back in the next brief", lines.filter((l) => l === RULE_6).length === 1, JSON.stringify(lines.filter((l) => l === RULE_6)));
 // req: R-1140
-check("seat guide carries: at most four lanes building and two in planning, each slot defined", lines.filter((l) => l === RULE_7).length === 1, JSON.stringify(lines.filter((l) => l === RULE_7)));
+check("seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined", lines.filter((l) => l === RULE_7).length === 1, JSON.stringify(lines.filter((l) => l === RULE_7)));
 // req: R-1140
 check("seat guide carries: name and start independent work before the turn ends, lane steps in order", lines.filter((l) => l === RULE_9).length === 1, JSON.stringify(lines.filter((l) => l === RULE_9)));
 // req: R-1140

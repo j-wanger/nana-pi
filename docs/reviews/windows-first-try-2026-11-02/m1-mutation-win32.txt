@@ -1,0 +1,5 @@
+Command: `SEAT_MUTATE_STAGGER_SECS=0 node --experimental-strip-types packages/nana-pack/tests/mutation-runner.test.mjs`
+Exit: 1 (expected mutation failure).
+FAIL mutation runner: at two shards started a stagger apart, pairs dealt round-robin run at the same time in different scratch worktrees {"wt1":"<scratch>/wt","wt2":"<scratch>/wt","wt3":"<scratch>/wt","gap":127,"parentTime":1793587386174,"shardHeaderOffsets":{"1":316,"2":443}}
+The assertions on exit, worktree isolation, GREEN 1 and GREEN 2 remain active; the gap of 127 ms is below the unchanged 1000 ms threshold.
+Restore: the mutation was environment-only; no source or product file was changed for this run.

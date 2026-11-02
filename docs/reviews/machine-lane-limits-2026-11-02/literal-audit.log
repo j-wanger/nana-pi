@@ -1,0 +1,14 @@
+packages/nana-setup/tests/seat-rule.test.mjs:28:// RULE_7's limit, four lanes building and two more in planning, is the owner's 2026-10-31 answer.
+packages/nana-setup/tests/seat-rule.test.mjs:35:const RULE_7 = "- Keep at most four lanes building and two more in planning, a nana default. A lane in planning has no build yet and no builder working in it. A lane counts as building from its first build until it lands or closes.";
+packages/nana-setup/tests/seat-rule.test.mjs:45:const RULES = [RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_5, RULE_6, RULE_9, RULE_11, RULE_12, RULE_10, RULE_7, RULE_8, RULE_16];
+packages/nana-setup/tests/seat-rule.test.mjs:84:check("seat guide carries: at most four lanes building and two in planning, each slot defined", lines.filter((l) => l === RULE_7).length === 1, JSON.stringify(lines.filter((l) => l === RULE_7)));
+packages/nana-pack/tests/memory-making.test.mjs:122: const record = { evidence: "seat:pi:session-key:2026-10-31", quote: "The owner's exact words." };
+packages/nana-pack/tests/product-report.test.mjs:1620:    const measured = "2026-10-31T19:00:00-05:00";
+packages/nana-pack/tests/nana-roster.test.mjs:21:const { ROSTER_DEFAULTS, LANE_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER } = await import(new URL("../bin/worker-config.mjs", import.meta.url).href);
+packages/nana-pack/tests/nana-roster.test.mjs:212:		rDefault.status === 0 && rDefault.stdout === "scout: none\nbuilder: openai-codex gpt-6-luna high\nlargerBuilder: none\nreviewer: openai-codex gpt-5.6-sol default\nland: openai-codex gpt-6-astra default\nsource: default\n" &&
+packages/nana-pack/tests/nana-roster.test.mjs:335:		Object.keys(defaultTrip.parsed.roster).join(",") === SLOT_PRINT_ORDER.join(",") &&
+packages/nana-pack/tests/nana-roster.test.mjs:336:		JSON.stringify(defaultTrip.parsed.roster) === JSON.stringify(orderedRoster(ROSTER_DEFAULTS)) &&
+packages/nana-pack/tests/nana-roster.test.mjs:339:		Object.keys(fileTrip.parsed.roster).join(",") === SLOT_PRINT_ORDER.join(",") &&
+packages/nana-pack/tests/worker-lane.test.mjs:546:	builderLineRun.status === 0 && builderLines.length === 1 && builderLines[0] === "pi-worker: builder: openai-codex gpt-6-luna high; source: default" && builderLineIdx >= 0 && attemptIdx >= 0 && builderLineIdx < attemptIdx &&
+packages/nana-pack/tests/memory-run.test.mjs:78:  f.transcript([...pair(`old${index}`,'OLD',{timestamp:'2026-10-31T18:15:59Z'}),...pair(`new${index}`,`NEW${index}`,{timestamp:C.START_INSTANT})],index?'a-no-final':'a',f.main,{eol,final});
+packages/nana-pack/tests/memory-run-seals.test.mjs:22:await check('R-3298: seal start instant',()=>assert.equal(C.START_INSTANT,'2026-10-31T18:16:00Z'));

@@ -275,5 +275,21 @@ const statesEqual = (a, b) => a.type === b.type && (a.type !== "file" || a.bytes
 		JSON.stringify({ status: r.status, bakExists, originalLength: originalBytes.length, bakLength: bakBytes?.length }));
 }
 
+{
+	const cases = [{ roster: sampleRoster(), lanes: 2 }, undefined, {}, { roster: sampleRoster() }];
+	const results = cases.map((raw, i) => {
+		const dir = freshAgentDir(`lanes-preserved-${i}`);
+		if (raw !== undefined) writeRosterRaw(dir, JSON.stringify(raw));
+		const before = resolveRoster(dir);
+		const changed = runSet(dir, ["builder", "example-gateway", "changed-model", "high"]);
+		const after = JSON.parse(fs.readFileSync(path.join(dir, "nana-pack.json"), "utf8"));
+		return [i, before.ok && before.lanes?.limit !== undefined && !Object.hasOwn(before.roster, "lanes") &&
+			(i !== 0 || JSON.stringify(before.roster) === JSON.stringify(raw.roster)) &&
+			changed.status === 0 && (i === 0 ? after.lanes === 2 : !Object.hasOwn(after, "lanes")) && !Object.hasOwn(after.roster, "lanes")];
+	});
+	// req: R-3524
+	check("R-3524: lanes stays outside roster, set keeps a written limit and never adds an absent one", results.every(([, ok]) => ok), JSON.stringify(results));
+}
+
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
