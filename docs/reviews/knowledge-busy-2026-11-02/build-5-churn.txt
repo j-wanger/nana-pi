@@ -1,0 +1,220 @@
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=190 pull=true rebuild=true built_at=1793601459770->1793601460166 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=301 pull=true rebuild=true built_at=1793601460166->1793601460755 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=179 pull=true rebuild=true built_at=1793601460755->1793601461086 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=236 pull=true rebuild=true built_at=1793601461086->1793601461607 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=186 pull=true rebuild=true built_at=1793601461607->1793601462024 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=257 pull=true rebuild=true built_at=1793601462024->1793601462469 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=278 pull=true rebuild=true built_at=1793601462469->1793601463053 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=208 pull=true rebuild=true built_at=1793601463053->1793601463433 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=180 pull=true rebuild=true built_at=1793601463433->1793601463813 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=187 pull=true rebuild=true built_at=1793601463813->1793601464300 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 1 exit=0
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=186 pull=true rebuild=true built_at=1793601475164->1793601475576 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=172 pull=true rebuild=true built_at=1793601475576->1793601475904 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=173 pull=true rebuild=true built_at=1793601475904->1793601476223 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=256 pull=true rebuild=true built_at=1793601476223->1793601476725 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=189 pull=true rebuild=true built_at=1793601476725->1793601477140 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=181 pull=true rebuild=true built_at=1793601477140->1793601477564 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=173 pull=true rebuild=true built_at=1793601477564->1793601478045 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=171 pull=true rebuild=true built_at=1793601478045->1793601478545 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=188 pull=true rebuild=true built_at=1793601478545->1793601478980 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=170 pull=true rebuild=true built_at=1793601478980->1793601479416 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 2 exit=0
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=175 pull=true rebuild=true built_at=1793601489831->1793601490225 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=172 pull=true rebuild=true built_at=1793601490225->1793601490650 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=168 pull=true rebuild=true built_at=1793601490650->1793601490963 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=189 pull=true rebuild=true built_at=1793601490963->1793601491512 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=170 pull=true rebuild=true built_at=1793601491512->1793601491987 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=177 pull=true rebuild=true built_at=1793601491987->1793601492525 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=168 pull=true rebuild=true built_at=1793601492525->1793601492974 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=162 pull=true rebuild=true built_at=1793601492974->1793601493345 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=170 pull=true rebuild=true built_at=1793601493345->1793601493849 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=172 pull=true rebuild=true built_at=1793601493849->1793601494181 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 3 exit=0
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=184 pull=true rebuild=true built_at=1793601504862->1793601505257 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=172 pull=true rebuild=true built_at=1793601505257->1793601505775 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=164 pull=true rebuild=true built_at=1793601505775->1793601506182 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=208 pull=true rebuild=true built_at=1793601506182->1793601506580 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=168 pull=true rebuild=true built_at=1793601506580->1793601506911 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=215 pull=true rebuild=true built_at=1793601506911->1793601507370 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=187 pull=true rebuild=true built_at=1793601507370->1793601507772 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=266 pull=true rebuild=true built_at=1793601507772->1793601508150 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=176 pull=true rebuild=true built_at=1793601508150->1793601508591 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=173 pull=true rebuild=true built_at=1793601508591->1793601509029 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 4 exit=0
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=193 pull=true rebuild=true built_at=1793601519523->1793601519959 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=190 pull=true rebuild=true built_at=1793601519959->1793601520394 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=164 pull=true rebuild=true built_at=1793601520394->1793601520747 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=236 pull=true rebuild=true built_at=1793601520747->1793601521078 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=188 pull=true rebuild=true built_at=1793601521078->1793601521489 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=186 pull=true rebuild=true built_at=1793601521489->1793601521837 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=183 pull=true rebuild=true built_at=1793601521837->1793601522165 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=202 pull=true rebuild=true built_at=1793601522165->1793601522511 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=166 pull=true rebuild=true built_at=1793601522511->1793601522961 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=180 pull=true rebuild=true built_at=1793601522961->1793601523446 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 5 exit=0
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=185 pull=true rebuild=true built_at=1793601534019->1793601534432 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=229 pull=true rebuild=true built_at=1793601534432->1793601534771 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=173 pull=true rebuild=true built_at=1793601534771->1793601535152 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=183 pull=true rebuild=true built_at=1793601535152->1793601535626 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=172 pull=true rebuild=true built_at=1793601535626->1793601535990 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=187 pull=true rebuild=true built_at=1793601535990->1793601536385 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=186 pull=true rebuild=true built_at=1793601536385->1793601536800 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=172 pull=true rebuild=true built_at=1793601536800->1793601537162 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=181 pull=true rebuild=true built_at=1793601537162->1793601537504 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=182 pull=true rebuild=true built_at=1793601537504->1793601537960 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 6 exit=0
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=185 pull=true rebuild=true built_at=1793601548584->1793601548988 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=197 pull=true rebuild=true built_at=1793601548988->1793601549356 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=162 pull=true rebuild=true built_at=1793601549356->1793601549684 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=167 pull=true rebuild=true built_at=1793601549684->1793601550177 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=170 pull=true rebuild=true built_at=1793601550177->1793601550494 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=177 pull=true rebuild=true built_at=1793601550494->1793601550944 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=173 pull=true rebuild=true built_at=1793601550944->1793601551371 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=177 pull=true rebuild=true built_at=1793601551371->1793601551852 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=221 pull=true rebuild=true built_at=1793601551852->1793601552182 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=173 pull=true rebuild=true built_at=1793601552182->1793601552590 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 7 exit=0
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=181 pull=true rebuild=true built_at=1793601563030->1793601563433 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=164 pull=true rebuild=true built_at=1793601563433->1793601563752 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=162 pull=true rebuild=true built_at=1793601563752->1793601564080 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=189 pull=true rebuild=true built_at=1793601564080->1793601564505 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=171 pull=true rebuild=true built_at=1793601564505->1793601564836 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=167 pull=true rebuild=true built_at=1793601564836->1793601565205 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=172 pull=true rebuild=true built_at=1793601565205->1793601565563 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=187 pull=true rebuild=true built_at=1793601565563->1793601565994 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=169 pull=true rebuild=true built_at=1793601565994->1793601566450 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=181 pull=true rebuild=true built_at=1793601566450->1793601566917 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 8 exit=0
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=171 pull=true rebuild=true built_at=1793601577507->1793601577927 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=170 pull=true rebuild=true built_at=1793601577927->1793601578301 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=173 pull=true rebuild=true built_at=1793601578301->1793601578716 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=275 pull=true rebuild=true built_at=1793601578716->1793601579183 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=210 pull=true rebuild=true built_at=1793601579183->1793601579602 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=202 pull=true rebuild=true built_at=1793601579602->1793601579978 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=175 pull=true rebuild=true built_at=1793601579978->1793601580312 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=172 pull=true rebuild=true built_at=1793601580312->1793601580643 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=169 pull=true rebuild=true built_at=1793601580643->1793601580949 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=181 pull=true rebuild=true built_at=1793601580949->1793601581431 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 9 exit=0
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=173 pull=true rebuild=true built_at=1793601591898->1793601592308 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=193 pull=true rebuild=true built_at=1793601592308->1793601592784 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=165 pull=true rebuild=true built_at=1793601592784->1793601593127 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=221 pull=true rebuild=true built_at=1793601593127->1793601593448 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=202 pull=true rebuild=true built_at=1793601593448->1793601593842 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=172 pull=true rebuild=true built_at=1793601593842->1793601594229 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=174 pull=true rebuild=true built_at=1793601594229->1793601594756 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=206 pull=true rebuild=true built_at=1793601594756->1793601595239 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=180 pull=true rebuild=true built_at=1793601595239->1793601595609 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=171 pull=true rebuild=true built_at=1793601595609->1793601595974 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+RUN 10 exit=0

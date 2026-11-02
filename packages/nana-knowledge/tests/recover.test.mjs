@@ -190,7 +190,8 @@ const r2402 = await caseWithin(async () => {
 	fs.utimesSync(f.db, staleMtime / 1000, staleMtime / 1000);
 	activate(f);
 	const first = await runHook(JSON.stringify({ prompt: PHRASE, session_id: "before-heal", cwd: f.base }));
-	if (first.reason !== "query-failed") return false;
+	// Budget-bounded retries may see the detached repair finish during this pull.
+	if (first.reason !== "query-failed" && !(first.reason === "ok" && first.hits.length > 0 && first.output?.includes("orchid"))) return false;
 	const deadline = Date.now() + REBUILD_DEADLINE_MS;
 	let healed = false;
 	while (Date.now() < deadline) {

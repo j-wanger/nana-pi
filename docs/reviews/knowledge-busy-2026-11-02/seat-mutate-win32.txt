@@ -1,0 +1,38 @@
+seat-mutate: lane knowledge-busy, tip 3f9d851fd101bfbfe245176dad1930918599b20b, table 4bf5292fb29c5aacf94a2bfcf69c7d7f8e586d445c97a046b6c2b80237bb7a1c, merge-base 816f63db6d3de3bb819c38660e1ac90c601bbc4e, 11 pairs in 2 shards (6+5, round-robin, 4s apart), win32, node v22.22.2, 2026-11-02T06:56:28.662Z
+DECLARED (plan) one or more pairs per must-meet row, from the plan's wrong versions and the adversary's attack
+DECLARED (plan) R-3591 (M2, churn) is probabilistic against wrong code, so no pair rests on it alone
+DECLARED (attack SHOULD 4) P5 and P6 test whether recovery's fail-fast and the sources-problem probe are pinned at all
+[1/2] seat-mutate: lane knowledge-busy, shard 1/2, tip 3f9d851fd101bfbfe245176dad1930918599b20b, merge-base 816f63db6d3de3bb819c38660e1ac90c601bbc4e, 6 pairs, win32, node v22.22.2, 2026-11-02T06:56:32.622Z
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] BASELINE ok   packages/nana-knowledge/tests/build-busy.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] BASELINE ok   packages/nana-knowledge/tests/recover.test.mjs (exit 0, 10 PASS, 0 FAIL, )
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] RESULT: 6/6 red (4 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
+[2/2] seat-mutate: lane knowledge-busy, shard 2/2, tip 3f9d851fd101bfbfe245176dad1930918599b20b, merge-base 816f63db6d3de3bb819c38660e1ac90c601bbc4e, 5 pairs, win32, node v22.22.2, 2026-11-02T06:56:36.515Z
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] BASELINE ok   packages/nana-knowledge/tests/build-busy.test.mjs (exit 0, 11 PASS, 0 FAIL, )
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] RESULT: 5/5 red (2 exactly their named titles, 0 with a named title green, 3 with an unnamed red), 0 survived
+RED P1 no busy timeout anywhere (main's behaviour) — 2/2 named: /^M1: transient write locks allow existing and first builds to advance built_at/ | /^M3: locked hook stays bounded and connection defaults read back/; UNNAMED red: [build-busy.test.mjs] M1: sources-problem probe waits out a transient lock and keeps the index file:///<repo>/packages/nana-knowled… | [build-busy.test.mjs] M2: ten stale hook pulls and background builds survive read-write churn noPull=0, noRebuild=1; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P2 builds get only the short query wait — 1/1 named: /^M1: transient write locks allow existing and first builds to advance built_at/; UNNAMED red: [build-busy.test.mjs] M1: sources-problem probe waits out a transient lock and keeps the index file:///<repo>/packages/nana-knowled… | [build-busy.test.mjs] M3: locked hook stays bounded and connection defaults read back Expected values to be strictly equal:; 3 FAIL total (2 files changed, 2 insertions(+), 2 deletions(-))
+RED P3 the hook's query path waits as long as a build — 1/1 named: /^M3: locked hook stays bounded and connection defaults read back/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P4 the busy timeout is set after WAL setup, not first — 1/1 named: /^M1: transient write locks allow existing and first builds to advance built_at/; UNNAMED red: [build-busy.test.mjs] M1: sources-problem probe waits out a transient lock and keeps the index file:///<repo>/packages/nana-knowled… | [build-busy.test.mjs] M2: ten stale hook pulls and background builds survive read-write churn noPull=1, noRebuild=1 | [build-busy.test.mjs] M3: locked hook stays bounded and connection defaults read back Expected values to be strictly equal:; 4 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED P5 recovery waits a full build timeout instead of refusing at once — 1/1 named: /^M3: recovery refuses a late writer without a build busy wait and keeps the index/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P6 the sources-problem probe loses the build wait — 1/1 named: /^M1: sources-problem probe waits out a transient lock and keeps the index/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P7 the build timeout is retuned to 4000 — 1/1 named: /^M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P8 the query timeout is retuned to 250 — 1/1 named: /^M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P9 the hook never retries (count 0) — 3/3 named: /^M6: first open failure retries and logs its cause/ | /^M6: first query failure retries and logs its cause/ | /^M6: seal: hook query retry delay is 50 ms and count is 1/; UNNAMED red: [build-busy.test.mjs] M6: two failures fail open within budget and log both causes node:internal/modules/run_main:123; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P10 a recovered retry does not record its first cause — 2/2 named: /^M6: first open failure retries and logs its cause/ | /^M6: first query failure retries and logs its cause/; UNNAMED red: [build-busy.test.mjs] M6: two failures fail open within budget and log both causes node:internal/modules/run_main:123; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P11 the retry delay is retuned to 10 — 1/1 named: /^M6: seal: hook query retry delay is 50 ms and count is 1/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 11/11 red (6 exactly their named titles, 0 with a named title green, 5 with an unnamed red), 0 survived, across 2 shards

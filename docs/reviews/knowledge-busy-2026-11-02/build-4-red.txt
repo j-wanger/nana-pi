@@ -1,0 +1,6 @@
+PASS  packages/nana-knowledge/tests/build-busy.test.mjs  7 pass  11.0s
+FAIL  packages/nana-pack/tests/test-runner.test.mjs      52 pass, 1 fail  42.2s  — exit 1
+      | FAIL the source check detects direct mkdtemp calls while ignoring only generated leak fixtures 
+
+2 files: 1 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 59 pass, 1 fail, 0 skip · 53.9s
+failed: packages/nana-pack/tests/test-runner.test.mjs

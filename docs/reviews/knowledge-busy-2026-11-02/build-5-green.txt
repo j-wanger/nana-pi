@@ -1,0 +1,16 @@
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: two failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and count is 1
+PASS  packages/nana-knowledge/tests/build-busy.test.mjs    11 pass  15.7s
+PASS  packages/nana-knowledge/tests/hook.test.mjs          98 pass  6.4s
+PASS  packages/nana-knowledge/tests/recover.test.mjs       10 pass, 1 skip  9.8s
+PASS  packages/nana-setup/tests/hooks-win32-exec.test.mjs  31 pass  10.0s
+
+4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 150 pass, 0 fail, 1 skip · 42.7s
+PASS  packages/nana-knowledge/tests/build-busy.test.mjs    11 pass  14.8s
+PASS  packages/nana-knowledge/tests/hook.test.mjs          98 pass  6.5s
+PASS  packages/nana-knowledge/tests/recover.test.mjs       10 pass, 1 skip  9.7s
+PASS  packages/nana-setup/tests/hooks-win32-exec.test.mjs  31 pass  9.5s
+
+4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 150 pass, 0 fail, 1 skip · 41.2s

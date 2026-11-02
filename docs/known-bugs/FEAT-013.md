@@ -200,6 +200,15 @@
 - pi versions (pi-version-support): the desk passed its unit tests on pi 1.4.0 only; no browser test and no service restart ran there. The desk stays frozen.
 - pi versions (pi-version-support): each CI run now has three macOS jobs, so two lanes pushing at once may queue against GitHub's macOS job limit (inferred, not measured).
 - Review history (windows-first-try-2, review round 1): the older record that R-1713 failed once at 7d03134b was replaced rather than kept.
-- Windows knowledge hook (windows-first-try-2, plan): `openDb` in `packages/nana-knowledge/lib/db.ts` sets no busy timeout, so a background build can fail with “database is locked” while the hook connection closes; the failure is unreported and leaves `built_at` unchanged. The cause is inferred, not reproduced on CI; the product fix belongs in a separate hook lane.
 - Hook deadlines (land-records CI, 2026-10-24): R-2671's late case overran the hook deadline by 454 ms at 1e77de81. hook-deadlines now runs alone; the deadline is a hook-lane question.
 - Launch-limit judge (launch-limits-identity, plan): a pid reused before the first probe fails R-2023 as a flake. A pid gone after self-exit means a relay leak.
+- Knowledge churn (knowledge-busy, review round 1): R-3591's "every one of 10 runs" failed once on the Linux CI leg at 10398568, with noPull=1.
+- Knowledge churn (knowledge-busy, review round 2): M2 missed one pull on macOS CI at ce9d0239 and once on Linux at 10398568. Local sweeps on both systems did not reproduce it. No run proved the cause; one hook query retry and M2 failure detail are the response.
+- Windows load (knowledge-busy, review round 1): the M5 run did not reach ten consecutive loaded passes. Most failures were other SessionStart hooks timing out.
+- Recovery check (knowledge-busy, review round 1): dropping recovery's explicit `busy_timeout=0` would go unnoticed, since recovery would then wait only 100 ms.
+- Build checkpoint (knowledge-busy, review round 1): the build's final `wal_checkpoint(TRUNCATE)` can now wait up to 5 s for readers.
+- Hook retry budget (knowledge-busy, review round 3): the budget checks in `packages/nana-knowledge/lib/hook.ts` around line 211 gate the retry but reserve no time for its synchronous query. A retry that starts near the end of the budget can run past it.
+- Knowledge churn detail (knowledge-busy, review round 3): M2's failure detail prints `reason` and `retried` but not `failure`, the second cause.
+- Knowledge churn detail (knowledge-busy, review round 3): M2's failure path parses `pull.log` with no `try`. A torn line throws a parse error in place of the detail; the check still fails.
+- Mutation comment (knowledge-busy, review round 3): the comment on pair P9 in `docs/reviews/knowledge-busy-2026-11-02/seat-mutate.mjs` overstates what no check can tell apart.
+- Knowledge churn (knowledge-busy, CI round 6): M2 still missed one stale hook pull (noPull=1) on the macOS CI leg at tip ed4a399d after the bounded retry, and passed on re-run; the summary-mode CI log does not show its reason or retried detail.

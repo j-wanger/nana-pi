@@ -1,0 +1,52 @@
+FAIL M7: repeated BUSY failures return hits while budget allows node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+undefined !== 2
+
+    at file://<repo>/[eval1]:37:10 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+FAIL M7: persistent BUSY queries stop before budget with a query reserve node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+undefined !== 2
+
+    at file://<repo>/[eval1]:37:10 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+
+
+1 !== 0
+
+FAIL M7: seal: hook query reserve is 150 ms Expected values to be strictly equal:
+
+undefined !== 150
+
+FAIL M6: seal: hook query retry delay is 50 ms and attempt ceiling is 10 Expected values to be strictly equal:
+
+undefined !== 10
+
