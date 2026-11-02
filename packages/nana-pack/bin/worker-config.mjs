@@ -96,6 +96,15 @@ export const CLAUDE_BUILDER_STALL_SECS = Infinity;
 export const CLAUDE_BUILDER_CHILD_ENV = Object.freeze({ CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1' });
 // chosen 2026-10-22: one hour covers a measured 455.9-second suite plus one queued suite; the lane ceiling remains authoritative (R-2654).
 export const CLAUDE_BUILDER_BASH_LIMIT_MS = 3_600_000;
+// Contract: R-3715, builder-install-check Revision 2, 2026-11-02.
+// One definition for the actual pi and Claude builder additions; values unchanged.
+export function builderChildEnv(entry, cwd) {
+  return Object.freeze(entry.runtime === CLAUDE_CODE_RUNTIME ? {
+    NANA_ROLE: 'worker', NANA_WORKTREE_ROOT: cwd, NANA_HANDOFF: 'off', ...CLAUDE_BUILDER_CHILD_ENV,
+    BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
+    BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
+  } : { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' });
+}
 // chosen: both files sit beside the rendered preamble in the lane launcher's existing temporary folder.
 export const CLAUDE_BUILDER_PROMPT_FILE = 'builder-prompt.md';
 export const CLAUDE_BUILDER_SETTINGS_FILE = 'builder-settings.json';

@@ -89,8 +89,8 @@ check("environment removes overrides and redirects home, temp and npm cache", ()
 check("sealed override list removes every listed key and caller npm config keys case-insensitively", () => {
   const source = Object.fromEntries([...OVERRIDE_ENV.map((key) => [key, "caller"]), ["Npm_Config_Cache", "outside"], ["npm_config_userconfig", "outside"], ["PATH", "/bin"]]);
   const env = buildEnvironment(source, "/temp/home", "win32");
-  assert.equal(OVERRIDE_ENV.length, 9);
-  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"]);
+  assert.equal(OVERRIDE_ENV.length, 10);
+  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF", "NANA_WORKTREE_ROOT"]);
   assert.deepEqual(Object.keys(env).filter((key) => key.toLowerCase().startsWith("npm_config_")).map((key) => key.toLowerCase()), ["npm_config_cache"]);
   assert.equal(Object.keys(env).some((key) => OVERRIDE_ENV.some((item) => item.toLowerCase() === key.toLowerCase())), false);
 });
@@ -569,7 +569,7 @@ check("reporting: the first lines name Git Bash on win32 only, then pi and node"
 
 // req: R-1071
 check("pin R-1071: the override list", () => {
-  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"]);
+  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF", "NANA_WORKTREE_ROOT"]);
 });
 
 // req: R-1070, R-1080

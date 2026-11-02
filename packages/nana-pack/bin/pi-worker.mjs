@@ -15,7 +15,7 @@ import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
 import {
-	CLAUDE_APPEND_PROMPT_FILE_FLAG, CLAUDE_BUILDER_BASH_LIMIT_MS, CLAUDE_BUILDER_CHILD_ENV,
+	CLAUDE_APPEND_PROMPT_FILE_FLAG, builderChildEnv as workerEnv,
 	CLAUDE_BUILDER_PERMISSION_MODE, CLAUDE_BUILDER_PROMPT_FILE, CLAUDE_BUILDER_SETTING_SOURCES,
 	CLAUDE_BUILDER_SETTINGS_FILE, CLAUDE_BUILDER_STALL_SECS, CLAUDE_BUILDER_TOOLS,
 	CLAUDE_CODE_RUNTIME, CLAUDE_PERMISSION_MODE_FLAG, CLAUDE_SCOUT_TOOLS, ROLE_FALLBACKS, PI_MODEL_SHELL_ENV,
@@ -393,14 +393,6 @@ if (laneMode && buildEndKept) {
 	}
 }
 process.exit(exit);
-
-function workerEnv(entry, cwd) {
-	return entry.runtime === CLAUDE_CODE_RUNTIME ? {
-		NANA_ROLE: 'worker', NANA_WORKTREE_ROOT: cwd, NANA_HANDOFF: 'off', ...CLAUDE_BUILDER_CHILD_ENV,
-		BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
-		BASH_MAX_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
-	} : { NANA_WORKTREE_ROOT: cwd, NANA_ROLE: 'worker' };
-}
 
 // Both modes consume the same role-bearing specification; later context policy fills parts/tools here.
 function prepareWorker(spec, { folder, instruction, promptPaths, promptBytes, carry }) {
