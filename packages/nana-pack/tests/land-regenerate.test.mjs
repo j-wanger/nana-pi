@@ -81,13 +81,14 @@ await check('M3: failed timed-out and post-write checks refuse and remove only o
 
 // req: R-3709
 await check('M4: scope guard catches tracked index-only untracked ignored and configured escapes',()=>{
- for(const kind of ['write','delete','untracked','ignored','index','output','root','target']) {
+ for(const kind of ['write','delete','untracked','ignored','index','staged','output','root','target']) {
   const f=regenerateFixture(`m4-${kind}`,[outputs[0]]),o=observe();let effect='';
   if(kind==='ignored'){commit(f.feature,'.gitignore','ignored.tmp\n','ignore');effect="require('node:fs').writeFileSync('ignored.tmp','extra');";}
   if(kind==='write')effect="require('node:fs').writeFileSync('base.txt','extra');";
   if(kind==='delete')effect="require('node:fs').unlinkSync('base.txt');";
   if(kind==='untracked')effect="require('node:fs').writeFileSync('extra.tmp','extra');";
   if(kind==='index')effect="require('node:child_process').execFileSync('git',['update-index','--force-remove','base.txt']);";
+  if(kind==='staged')effect="require('node:fs').writeFileSync('base.txt','extra');require('node:child_process').execFileSync('git',['add','base.txt']);";
   if(['output','root'].includes(kind)) {
    const config=JSON.parse(fs.readFileSync(path.join(f.feature,'code-map.config.json'),'utf8'));
    if(kind==='output')config.mapPath='../escape.md';else config.roots=['../escape'];
