@@ -1,4 +1,4 @@
-Feature: FEAT-013 · Pull knowledge into each prompt
+Feature: FEAT-013 · Install and connect harness runtimes
 
 Lane knowledge-busy. Class: hook (`packages/nana-knowledge/lib/db.ts`, read by the UserPromptSubmit knowledge hook). Threat model: honest variation in our tools' output is in scope (SQLite contention from another connection opening, reading or closing; a held build lock; a slow or loaded Windows runner; an exclusive lock held for seconds); deliberate forgery is out.
 
