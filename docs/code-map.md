@@ -90,7 +90,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Named segmentation, labelling, normalization, sampling and reporting choices.
 - **effects** — none
 - **errors** — none
-- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-slots.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-slots.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/replay.test.mjs`
 - **callees** — —
 
 ### `apps/bench/lib/anatomy-labels.mjs`
@@ -512,14 +512,14 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/bench/test/replay.test.mjs`
 
-- **purpose** — Pin the eight replay contracts using synthetic private stores and unpaid stub processes.
+- **purpose** — Pin the replay contracts using synthetic private stores and unpaid stub processes.
 - **inputs** — OS-temp repositories, synthetic streams, manifests and injected runners.
-- **outputs** — Eight awaited bounded PASS/FAIL cases; no private fixture text.
+- **outputs** — Awaited bounded PASS/FAIL cases; no private fixture text.
 - **effects** — disk (OS temp only), process (stub children and macOS sandbox)
 - **errors** — Assertion failures set exit code 1.
 - **callers** — —
-- **callees** — `apps/bench/ext/replay-context.ts`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/replay-context.mjs`, `apps/bench/lib/replay-errors.mjs`, `apps/bench/lib/replay-grade.mjs`, `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay-journal.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/process-tree.mjs`
-- **unresolved launches** — line 184: spawnSync
+- **callees** — `apps/bench/ext/replay-context.ts`, `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/replay-context.mjs`, `apps/bench/lib/replay-errors.mjs`, `apps/bench/lib/replay-grade.mjs`, `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay-journal.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/process-tree.mjs`
+- **unresolved launches** — line 209: spawnSync
 
 ### `apps/bench/test/study-tasks.test.mjs`
 

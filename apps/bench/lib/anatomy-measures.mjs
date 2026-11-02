@@ -15,7 +15,7 @@ const safePart = (name) => REPORT_PARTS.includes(name) ? name : "extra-section";
 const round = (n) => Number(n.toFixed(SHARE_DIGITS));
 const pct = (n, total) => total ? round(100 * n / total) : 0;
 const flat = (contexts) => contexts.flatMap((c) => c.parts.flatMap((p) => p.spans.map((s) => ({ c, p, s }))));
-const oversize = (s) => s.kind === "unit" && s.text.length > OVERSIZE_UNIT_CHARS;
+export const oversize = (s) => s.kind === "unit" && s.text.length > OVERSIZE_UNIT_CHARS;
 const functionOf = (s) => s.kind === "glue" ? "glue" : s.label;
 function counts(rows, vocabulary = labels) {
  const chars = rows.reduce((n, { s }) => n + s.text.length, 0), total = rows.length;

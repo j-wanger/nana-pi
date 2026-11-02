@@ -1,0 +1,123 @@
+
+> nana-pi@0.5.0 map
+> node scripts/code-map.mjs --write
+
+docs/code-map.md: 604 modules
+requirements tree: 0 problems; rows 2463; features 44
+deliverables: 21 of 24 made and read by code, 21 more parked
+COMMAND: npm run map:check
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 604 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+EXIT: 0
+COMMAND: npm run readme:check
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 1109 claims checked; 0 problem(s)
+EXIT: 0
+COMMAND: node scripts/requirements-trace.mjs
+requirements: 2463 total (2206 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2206 traced by tests
+ears: 0 rows off form (allowance 0)
+Non-fatal module-type warning omitted because it contains a local path.
+EXIT: 0
+COMMAND: node scripts/requirements-tree.mjs --check
+requirements tree: 0 problems; rows 2463; features 44
+deliverables: 21 of 24 made and read by code, 21 more parked
+EXIT: 0
+COMMAND: node scripts/known-bugs.mjs --root .
+FEAT-013.md: size: bytes=51503 lines=205
+summary names=0 sizes=1
+Non-fatal module-type warning omitted because it contains a local path.
+EXIT: 0
+COMMAND: node scripts/identity-scan.mjs --root .
+summary files=6403 findings=0 totals=5,0,0,4
+EXIT: 0
+
+Touched test output: right
+SKIP R-3600: sandbox start tree excludes future and outside data — needs the macOS sandbox and POSIX start-tree clone
+PASS R-3601: first context is exact and cuts only model-labelled kind
+PASS R-3601: label cuts keep unlabelled oversize units and refuse smaller gaps
+SKIP R-3602: frozen checks retain failures and grader bounds — needs the macOS replay grader's process and module diagnostics
+PASS R-3603: durable reservations cap spend and never repay interruptions
+PASS R-3604: complete measures and stalled trees precede grading
+PASS R-3605: live lanes abort and exclusive folders refuse peers
+PASS R-3606: all causal inputs seal resume including committed registration
+PASS R-3607: three error layers deduplicate and never print private text
+builder replay: 7/7 checks passed, 2 skipped
+EXIT: 0
+
+Touched test output: anatomy
+PASS R-3270: pushed parts and recorded attempts preserve committed context
+PASS R-3271: configured labels and fence-aware spans tile exact input
+PASS R-3272: counts shares oversize duplicates sizes and zero supply
+synthetic subcommands 5; unsafe writers 3; private-text leaks 0
+PASS R-3273: all writers refuse unsafe output and all printers keep text private
+PASS R-3274: assembly uses spans and preserves whole cut and staged text
+PASS R-3275: wrapped and dedicated pulls count exact calls chars and functions
+PASS R-3276: blinded seeded sample and three-pair agreement reject unequal ids
+PASS R-3277: one complete count row per build sums attempt usage
+PASS R-3278: seal oversize threshold is 3000 UTF-16 chars
+anatomy: 9/9 checks passed
+EXIT: 0
+
+Touched test output: runner
+PASS collects every test file directly under a package tests dir 
+PASS collection does not recurse and takes only .test.mjs files 
+PASS a path segment named fixtures is never collected 
+PASS each file runs with --experimental-strip-types from its package dir 
+PASS each file gets a fresh temp HOME and USERPROFILE, not the real one 
+PASS the temp HOME is per file, not shared between files 
+PASS every child disables git auto gc without replacing caller git config entries 
+PASS a failing file's TMPDIR and leaked contents are removed 
+PASS a file that exits non-zero is FAIL and the run exits 1 
+PASS a file killed by a signal is FAIL, naming its exit code (win32 has no signal to report) 
+PASS a FAIL line from an exit-0 file is a WARN and does not flip the verdict 
+PASS an exit-0 file that printed only SKIP lines is FAIL without a declared precondition 
+PASS a silent exit-0 file is FAIL without a declared precondition 
+PASS without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown 
+PASS in non-verbose mode a failing file prints its first 20 failing check lines 
+PASS one line per file, then a totals line with both tallies, exiting 1 on a failure 
+PASS each test gets a unique TMPDIR and the runner removes leaked temp contents 
+PASS ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept 
+PASS PI_CODING_AGENT_DIR is scrubbed too and the rest of PI_ is left alone 
+PASS CLAUDE_CONFIG_DIR is scrubbed from the child env 
+PASS a file whose declared skip condition does not hold runs instead of skipping 
+PASS study tasks SKIP only when their declared extension prerequisite is absent 
+PASS study tasks run when their declared extension prerequisite exists 
+PASS R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling 
+PASS a substring argument runs only the files whose repo-relative path contains it 
+PASS --verbose streams a passing file's own output 
+PASS no match says so, exits 1, and still removes its scratch dir 
+PASS NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL 
+PASS the timeout kill takes the child's whole process tree with it 
+PASS the scratch dir is removed after the run 
+PASS a timed-out file's TMPDIR and leaked contents are removed 
+PASS tracked mutation fails naming the tracked file while untracked files do not appear 
+PASS tracked mutation is detected when the file was already dirty before the run 
+PASS staging an already-dirty tracked file is detected without a working-tree change 
+PASS after a child exits the runner waits only a bounded drain for stdio to close 
+PASS termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows) 
+PASS --self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero 
+PASS NANA_TEST_SELFTEST=1 is the same as --self-test 
+PASS R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set 
+PASS R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage 
+PASS R-2753: the run record names the default per-file time limit the runner applied 
+PASS R-3433: whole-run records carry the actual path filters, empty for an unfiltered run 
+PASS R-2880: a record-fixture file that passes after 1 second is labelled PASS with no cause, and the file that outlives the record limit is labelled FAIL timed out, serial and parallel 
+PASS seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds 
+PASS the source check detects direct mkdtemp calls while ignoring only generated leak fixtures 
+PASS the shared temp helper removes its registered root when the process exits 
+PASS R-2666: a finished file whose temp folder stays busy gets one FAIL line naming the file, the folder and the code, counts as one failure, and every other file still runs, serial and parallel 
+PASS seal: a finished file's temp folder removal retries 5 times on a 100 ms step 
+PASS R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it 
+PASS R-1381: off win32 each file on the declared Windows skip list runs 
+PASS R-1382: win32 still runs each desk and bench file off the declared Windows skip list 
+PASS R-1383: the declared Windows skip list names only collected desk and bench test files 
+PASS R-1521: the declared Windows skip list names no bench test file 
+
+all checks passed
+EXIT: 0

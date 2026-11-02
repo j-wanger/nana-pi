@@ -9,7 +9,7 @@
 import path from "node:path";
 import { entriesIn } from "../../../packages/nana-pack/lib/claude-transcript.mjs";
 import { readLabels } from "./anatomy-labels.mjs";
-import { distinctUnits, normalize } from "./anatomy-measures.mjs";
+import { distinctUnits, normalize, oversize } from "./anatomy-measures.mjs";
 
 export async function loadContexts(contexts, labels) {
  const records = entriesIn(path.join(contexts, "contexts.jsonl"));
@@ -24,7 +24,10 @@ function cutPart(part, dropLabel, labelStore, context) {
   let key = labelStore?.byId.get(s.id);
   if (!key) key = [...units.values()].find(u => u.normalized === normalize(s.text, context))?.key;
   const label = labelStore?.labels.get(key)?.label;
-  if (label === undefined) throw new Error("replay: model labels missing");
+  if (label === undefined) {
+   if (oversize(s)) continue;
+   throw new Error("replay: model labels missing");
+  }
   if (label === dropLabel) remove.add(s.id);
  }
  const orphan = new Set();

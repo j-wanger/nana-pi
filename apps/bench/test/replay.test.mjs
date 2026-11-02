@@ -1,8 +1,8 @@
 /**
  * @module apps/bench/test/replay.test.mjs
- * @purpose Pin the eight replay contracts using synthetic private stores and unpaid stub processes.
+ * @purpose Pin the replay contracts using synthetic private stores and unpaid stub processes.
  * @inputs OS-temp repositories, synthetic streams, manifests and injected runners.
- * @outputs Eight awaited bounded PASS/FAIL cases; no private fixture text.
+ * @outputs Awaited bounded PASS/FAIL cases; no private fixture text.
  * @effects disk (OS temp only), process (stub children and macOS sandbox)
  * @errors Assertion failures set exit code 1.
  */
@@ -14,6 +14,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { segmentPart } from "../lib/anatomy-spans.mjs";
 import { distinctUnits } from "../lib/anatomy-measures.mjs";
+import { OVERSIZE_UNIT_CHARS } from "../lib/anatomy-config.mjs";
 import { entriesIn } from "../../../packages/nana-pack/lib/claude-transcript.mjs";
 import { pidAlive } from "../../../packages/nana-pack/lib/process-tree.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -142,6 +143,30 @@ await test("R-3601: first context is exact and cuts only model-labelled kind", a
   const f = await fixture(), l = launcher(f.base, stubBody(stream()).replace("sections:p.sections", "sections:{preamble:'reordered'}"));
   const rows = await R.runStudy({ ...f, go: true, launcher: l, sandboxReadPaths: [l.pre[0]], busy: () => false, suiteLock: path.join(f.base, "suite") });
   assert.equal(rows[0].outcome, "harness: prompt-mismatch");
+ }
+});
+// req: R-3601
+await test("R-3601: label cuts keep unlabelled oversize units and refuse smaller gaps", async () => {
+ const { renderContext } = await import("../lib/replay-context.mjs");
+ for (const location of ["brief", "instruction"]) {
+  const c = context(), p = c.parts.find(p => p.name === location);
+  const text = `| ${"x".repeat(OVERSIZE_UNIT_CHARS)} | \t\r\n`;
+  p.spans = [
+   { id: "heading", kind: "glue", heading: true, headingId: "kept", text: "# Kept\r\n" },
+   { id: "header", kind: "glue", text: "| Kind |\r\n| --- |\r\n" },
+   { id: "oversize", kind: "unit", headingIds: ["kept"], text },
+   { id: "dropped", kind: "unit", headingIds: ["kept"], text: "| Model lesson |" },
+  ];
+  const labelStore = labelsFor(c), options = { clone: "/synthetic/replay/work", arm: { name: "no-lessons", dropLabel: "lessons" }, labelStore };
+  const rendered = renderContext(c, options), output = location === "instruction" ? rendered.instruction : rendered.systemPrompt;
+  assert.equal(output.split(text).length - 1, 1);
+  assert.ok(!output.includes("Model lesson"));
+  assert.ok(output.includes("# Kept\r\n")); assert.ok(output.includes("| Kind |\r\n| --- |\r\n"));
+  for (const length of [OVERSIZE_UNIT_CHARS, OVERSIZE_UNIT_CHARS - 1]) {
+   p.spans.push({ id: "missing", kind: "unit", text: "z".repeat(length) });
+   assert.throws(() => renderContext(c, options), /replay: model labels missing/u);
+   p.spans.pop();
+  }
  }
 });
 // req: R-3602

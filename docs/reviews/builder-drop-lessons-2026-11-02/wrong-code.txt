@@ -1,0 +1,18 @@
+R-3601 mutation pair
+
+Wrong code: branch-base cutPart, before production edits.
+Command: REPLAY_TEST_DEBUG=1 node apps/bench/test/replay.test.mjs
+Exit: 1
+FAIL R-3601: label cuts keep unlabelled oversize units and refuse smaller gaps
+Error: replay: model labels missing
+builder replay: 6/7 checks passed, 2 skipped
+
+Correct code: shared oversize predicate keeps missing-label oversize units.
+Command: node apps/bench/test/replay.test.mjs
+Exit: 0
+PASS R-3601: label cuts keep unlabelled oversize units and refuse smaller gaps
+builder replay: 7/7 checks passed, 2 skipped
+
+The assertions were unchanged between runs. Both system and instruction cuts
+use synthetic spans; the check pins exact-once retention, selected-label removal,
+heading/table retention and refusal at and below the imported oversize bound.
