@@ -71,8 +71,8 @@ await check('M2: clean merge content matches literals and an independent ordinar
   git(clone, 'checkout', '--detach', f.tip); git(clone, 'merge', '--no-ff', '--no-edit', f.capturedMain);
   const out = executeCleanMerge(f); assert.equal(out.code, 0, out.text);
   for (const [file, text] of Object.entries(expected)) {
-   assert.equal(fs.readFileSync(path.join(f.main, file), 'utf8'), text);
-   assert.equal(fs.readFileSync(path.join(clone, file), 'utf8'), text);
+   assert.equal(gitRunner(f.main, ['show', `HEAD:${file}`]).stdout, text);
+   assert.equal(gitRunner(clone, ['show', `HEAD:${file}`]).stdout, text);
   }
   assert.equal(git(f.main, 'rev-parse', 'HEAD^{tree}'), git(clone, 'rev-parse', 'HEAD^{tree}'));
   if (kind === 'rename') assert(!fs.existsSync(path.join(f.main, 'shared.txt')));
