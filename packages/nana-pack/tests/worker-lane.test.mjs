@@ -400,6 +400,7 @@ check("every pi-worker child receives NANA_ROLE=worker", result.startsWith("work
 check("lane preamble forbids the named package-manager operations at a worktree root", prompt1Text.includes("Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root"));
 const preambleText = prompt1Text;
 const RULE_LINE = {
+	storedCredential: "- Never read, print or use a stored credential: no `git credential fill` or `get`, no token from a keychain, file or environment variable, and no direct GitHub API call. If a step needs a credential or `gh` is missing, report it and stop.",
 	knownBugsFolder: `- Never edit \`HANDOFF.md\`, \`${KNOWN_BUGS_DIR}/\` or session archives.`,
 	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
 	reuseNotCopy: "- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private and the brief does not name moving it to a shared module, report the departure and stop.",
@@ -421,6 +422,8 @@ const RULE_LINE = {
 const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
 // req: R-2510
 check("R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives", preambleOnce(RULE_LINE.knownBugsFolder), RULE_LINE.knownBugsFolder);
+// req: R-3650
+check("R-3650: the builder preamble forbids reading, printing or using a stored credential exactly once", preambleOnce(RULE_LINE.storedCredential), RULE_LINE.storedCredential);
 // req: R-2582
 check("R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure", preambleOnce(RULE_LINE.precedentFirst), RULE_LINE.precedentFirst);
 // req: R-2662
