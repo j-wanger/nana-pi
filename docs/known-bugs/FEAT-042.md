@@ -13,5 +13,10 @@
 - Builder anatomy labels (anatomy-labeller, final review): resume does not compare the input store's counts with its manifest.
 - Builder anatomy labels (anatomy-labeller, final review): `--resume` with a missing folder creates an empty folder before it refuses.
 - Builder anatomy labels (anatomy-labeller, final review): only the unit's own worktree and branch are masked; plan A3's broader claim about home paths overstates the masking.
-- Builder anatomy labels (anatomy-label-check, seat measurement): the heavy-sheet weighted bar (0.85) sits above the check labellers' own agreement there (κ 0.74), so it cannot be met as defined; six functions stay unmeasurable until definitions sharpen where the labellers split.
+- Builder anatomy labels (anatomy-label-check, seat measurement): the heavy sheet misses the 0.85 weighted-agreement bar; six functions stay unmeasurable until definitions sharpen where the labellers split.
 - Builder anatomy labels (anatomy-label-check, seat measurement): labeller A on the new sheets was Sonnet, not Opus, because Opus became the label model; sheet 2's labeller A was also Sonnet.
+- Builder anatomy labels (anatomy-label-check, final review): the overall-bar recheck after the model change reused sheet 2 rather than drawing a fresh seeded sheet.
+- Builder anatomy labels (anatomy-label-check, final review): `labeller-counts.md` omits per-part shares, denominator details, context-dependent and empty-normalized counts, token and subscription-cost status, the Part 1 tip correction, committed agreement outputs and the step-0 store-count explanation.
+- Builder anatomy labels (anatomy-label-check, final review): pooled per-function counts use the union of labels from three labellers, which can exceed the pair's κ denominator and make near-threshold counts unclear.
+- Builder anatomy labels (anatomy-label-check, final review): precedent's model:B agreement is displayed as 0.70 to two decimals against a 0.7 bar, so rounding can hide a shortfall.
+- Builder anatomy labels (anatomy-label-check, final review): `report --labels` excludes occurrences that normalize to empty text from every table, while the stated denominator does not name that exclusion.
