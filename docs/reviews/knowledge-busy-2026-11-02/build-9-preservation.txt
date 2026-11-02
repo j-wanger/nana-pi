@@ -1,0 +1,3 @@
+Non-lane differences from origin/main: 0
+Preserved inherited lane archive and known-bug deltas; archive changed only by automatic merge.
+M2 unchanged: true

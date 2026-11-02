@@ -1,0 +1,12 @@
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 585 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 1 problem(s)
+  docs/code-map.md is stale against the code; run 'npm run map'
+requirements: 2426 total (2170 implemented · 7 planned · 54 retired · 190 untested · 5 violated); 2170 traced by tests
+ears: 0 rows off form (allowance 0)
+requirements tree: 0 problems; rows 2426; features 43
+deliverables: 21 of 23 made and read by code, 21 more parked
+summary files=5876 findings=0 totals=5,0,0,4
+hook: packages/nana-knowledge/lib/build.ts — directly imported by packages/nana-knowledge/bin/nana-knowledge.ts

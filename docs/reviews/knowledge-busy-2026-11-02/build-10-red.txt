@@ -1,0 +1,9 @@
+Wrong-code pair: existing build 9 hook at 6ac2222854f17e17a55bfa7501f3797c40d75509 (hook unchanged from 8a07d3e6).
+Command: node packages/nana-knowledge/tests/sources-file.test.mjs
+Observed before editing hook.ts:
+FAIL R-2860: a pull with an unparseable or unreadable sources.json prints one frozen-index notice line first, with or without pointers undefined
+Exit: 1
+The other nine checks passed. No assertion was changed.
+Cause: the assertion also pins ordinary pull.log records to their original eight keys; unconditional attempts adds a ninth key, even without a retry and before any query.
+Fix: include attempts alongside retried only when a structured query/open failure was recorded. Notice composition and every return path stay unchanged; bounded retry diagnostics remain available.
+Fixed run: build-10-green.txt, exit 0.
