@@ -19,7 +19,9 @@ const R_3594 = /^M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms/; // R-3594
 const HOOK = "packages/nana-knowledge/lib/hook.ts";
 const R_3595_OPEN = /^M6: first open failure retries and logs its cause/; // R-3595
 const R_3595_QUERY = /^M6: first query failure retries and logs its cause/; // R-3595
-const R_3596 = /^M6: seal: hook query retry delay is 50 ms and count is 1/; // R-3596
+const R_3596 = /^M6: seal: hook query retry delay is 50 ms and attempt ceiling is 10/; // R-3596
+const R_3596_PERSIST = /^M6: persistent failures fail open within budget and log both causes/; // R-3596
+const NON_BUSY = /^M8: non-busy open and query failures return after one attempt/; // R-3595
 const one = (file, anchor, replacement) => ({ file, anchor, replacement, times: 1 });
 const PRAGMA = "db.exec(`PRAGMA busy_timeout=${opts.busyTimeoutMs ?? (opts.create ? BUILD_BUSY_TIMEOUT_MS : QUERY_BUSY_TIMEOUT_MS)}`);";
 
@@ -58,15 +60,19 @@ const PAIRS = [
 	], tests: [BB], expectRed: [R_3594] },
 	// Added by the seat after build 5 (R-3595, R-3596). A retry that ignores the budget has no pair: with a 50 ms
 	// delay inside a 1500 ms budget, no check can tell it apart, so it rests on review.
-	{ n: "P9", name: "the hook never retries (count 0)", edits: [
-		one(HOOK, "export const HOOK_QUERY_RETRY_COUNT = 1;", "export const HOOK_QUERY_RETRY_COUNT = 0;"),
+	// Refreshed by the seat after builds 9-11 replaced the single retry with budget-bounded busy-only retries.
+	{ n: "P9", name: "the hook never retries (ceiling 1)", edits: [
+		one(HOOK, "export const HOOK_QUERY_MAX_ATTEMPTS = 10;", "export const HOOK_QUERY_MAX_ATTEMPTS = 1;"),
 	], tests: [BB], expectRed: [R_3595_OPEN, R_3595_QUERY, R_3596] },
 	{ n: "P10", name: "a recovered retry does not record its first cause", edits: [
-		one(HOOK, "if (attempt === 0) retried = cause;", "if (attempt === 0) retried = undefined;"),
+		one(HOOK, "if (attempts === 1) retried = cause;", "if (attempts === 1) retried = undefined;"),
 	], tests: [BB], expectRed: [R_3595_OPEN, R_3595_QUERY] },
 	{ n: "P11", name: "the retry delay is retuned to 10", edits: [
 		one(HOOK, "export const HOOK_QUERY_RETRY_DELAY_MS = 50;", "export const HOOK_QUERY_RETRY_DELAY_MS = 10;"),
 	], tests: [BB], expectRed: [R_3596] },
+	{ n: "P12", name: "every failure is retried, not only busy and locked", edits: [
+		one(HOOK, "retryable = primaryCode === 5 || primaryCode === 6;", "retryable = true;"),
+	], tests: [BB], expectRed: [NON_BUSY] },
 ];
 
 process.exitCode = await runMutations({ lane: "knowledge-busy", self: import.meta.url, tip: "HEAD", declared: DECLARED, pairs: PAIRS });
