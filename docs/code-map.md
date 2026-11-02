@@ -4408,7 +4408,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — A failed check prints its reason and exits non-zero.
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
-- **unresolved launches** — line 475: spawnSync · line 476: spawnSync · line 478: spawnSync · line 486: spawnSync · line 490: spawnSync · line 491: spawnSync · line 492: spawnSync · line 497: spawnSync · line 498: spawnSync · line 499: spawnSync · line 508: spawnSync · line 509: spawnSync · line 510: spawnSync · line 520: spawnSync · line 521: spawnSync · line 522: spawnSync · line 531: spawnSync
+- **unresolved launches** — line 492: spawnSync · line 493: spawnSync · line 495: spawnSync · line 503: spawnSync · line 507: spawnSync · line 508: spawnSync · line 509: spawnSync · line 514: spawnSync · line 515: spawnSync · line 516: spawnSync · line 525: spawnSync · line 526: spawnSync · line 527: spawnSync · line 537: spawnSync · line 538: spawnSync · line 539: spawnSync · line 548: spawnSync
 
 ### `packages/nana-pack/tests/requirements-unclaimed.test.mjs`
 

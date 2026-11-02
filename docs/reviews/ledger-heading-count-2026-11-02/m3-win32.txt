@@ -1,0 +1,2 @@
+Heading-count literal search: grep -nE on requirements-tree.test.mjs
+grep exit: 1 (1 means no matches)
