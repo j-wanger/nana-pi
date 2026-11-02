@@ -59,4 +59,4 @@ Report:
 - `packages/nana-pack/tests/objective-golden.test.mjs`: `runHook`, `golden`, `withCaseLimit`, the T17 cases and the CLAUDE_PROJECT_DIR control.
 - `packages/nana-setup/lib/hook-producer.mjs`: `hookProducerConfig` and the markers; imported, unchanged.
 - `packages/nana-pack/lib/frontier-summary-config.mjs`: `FRONTIER_TAG` and `FRONTIER_UNAVAILABLE`; imported, unchanged.
-- `packages/nana-pack/tests/land-checks.mjs`: a shared test helper with the six-tag header.
+- `packages/nana-pack/tests/land-fixtures.mjs`: a shared test helper with the six-tag header.

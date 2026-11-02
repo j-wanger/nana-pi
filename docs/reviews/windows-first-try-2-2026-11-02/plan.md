@@ -94,7 +94,7 @@ Residuals:
 - `packages/nana-pack/tests/objective-golden.test.mjs` — `runHook` (121-133), `golden` (150-172), `withCaseLimit` uses (1356, 1378, 1398), the T17 cases (1094-1109), and the control at 676-678.
 - `packages/nana-setup/lib/hook-producer.mjs` — `hookProducerConfig` (50) and the markers (33, 38). Imported, unchanged.
 - `packages/nana-pack/lib/frontier-summary-config.mjs` — `FRONTIER_TAG` and `FRONTIER_UNAVAILABLE`. Imported, unchanged.
-- `packages/nana-pack/tests/land-checks.mjs` and `packages/nana-pack/tests/review-ledger-fixture.mjs` — shared test helpers with the six-tag header, the form both new helpers follow.
+- `packages/nana-pack/tests/land-fixtures.mjs` and `packages/nana-pack/tests/review-ledger-fixture.mjs` — shared test helpers with the six-tag header, the form both new helpers follow.
 
 ## Outside precedent
 
