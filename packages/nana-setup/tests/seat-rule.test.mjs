@@ -100,7 +100,7 @@ check("seat guide carries: preamble and review standard named, not restated", li
 	check("pi seat guide explains parallel builds and the shared working pattern names both guide loaders", guide.split(sentence).length === 2 && guide.indexOf(sentence) > guide.indexOf(RULE_9) && guide.indexOf(sentence) < guide.indexOf(RULES.find((rule) => rule === RULE_11)) && seatLine?.includes("Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions") && agents.includes(seatLine), JSON.stringify({ seatLine, guideHasSentence: guide.includes(sentence), agentsHasLine: agents.includes(seatLine ?? "") }));
 }
 
-// req: R-3530
+// req: R-3536
 check('MM9: role launch guidance names commands slots seat exceptions scheduling and ruling', (() => {
 	const shared=fs.readFileSync(SHARED_WORKING,'utf8'), agents=fs.readFileSync(path.join(ROOT,'AGENTS.md'),'utf8');
 	const ruling=fs.readFileSync(path.join(ROOT,'packages/nana-pack/rules/nana-rulings.md'),'utf8');

@@ -387,7 +387,7 @@ check("MM1: old machine and whole-written rosters print role null tokens after l
 	});
 })());
 const roleConfig = await import('../bin/worker-config.mjs');
-// req: R-3531
+// req: R-3537
 check('seal: role fallbacks are none seat builder builder', JSON.stringify(roleConfig.ROLE_FALLBACKS) === JSON.stringify({ scout: 'none', planner: 'seat', adversary: 'builder', checker: 'builder' }));
 // req: R-3532
 check('seal: Claude scout adds WebSearch and WebFetch', roleConfig.CLAUDE_SCOUT_TOOLS === 'Read,Grep,Glob,Bash,Edit,Write,WebSearch,WebFetch');

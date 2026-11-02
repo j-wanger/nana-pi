@@ -53,7 +53,7 @@ export const CLAUDE_CODE_RUNTIME = 'claude-code';
 export const CLAUDE_CODE_SUBAGENT_MODELS = Object.freeze(['sonnet', 'opus', 'haiku', 'fable']);
 // contract: R-1123, R-1192 — the print order every roster-reading surface agrees on.
 export const SLOT_PRINT_ORDER = Object.freeze(['scout', 'builder', 'largerBuilder', 'reviewer', 'land', 'planner', 'adversary', 'checker']);
-// contract: roster-roles plan revision 2, owner defaults 2026-11-02 (R-3531).
+// contract: roster-roles plan revision 2, owner defaults 2026-11-02 (R-3537).
 export const ROLE_FALLBACKS = Object.freeze({ scout: 'none', planner: 'seat', adversary: 'builder', checker: 'builder' });
 // contract: R-1123 — null tokens for nullable/optional slots; required entries have none.
 export const SLOT_NULL_TOKENS = Object.freeze({ largerBuilder: 'none', land: 'seat', ...ROLE_FALLBACKS });

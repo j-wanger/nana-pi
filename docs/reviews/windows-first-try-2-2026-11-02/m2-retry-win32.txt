@@ -1,0 +1,6 @@
+Command: node docs/reviews/windows-first-try-2-2026-11-02/m2-retry.mjs
+shape 1: PASS retries=1
+shape 2: PASS retries=1
+shape 3: PASS retries=1
+different block: BYTE-IDENTICAL remains false; retries=1
+Script exit=0
