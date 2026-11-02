@@ -7,6 +7,8 @@
  *  and the bounded shim)
  * @errors A failed comparison prints its cases and exits nonzero.
  */
+import { readBrief, checkPrecedent } from "../lib/brief-precedent.mjs";
+import * as briefConfig from "../lib/brief-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import {
@@ -142,6 +144,87 @@ check("R-2621: brief-check names the brief path it tried and the base a relative
 	unreadableResult.status === 1 && unreadableLines.length === 1 && unreadableLines[0].startsWith("brief-check:") &&
 	unreadableLines[0].includes(expectedTriedPath) && unreadableLines[0].includes("--tree") &&
 	fs.existsSync(unrelatedBrief) && !fs.existsSync(unreadableTreePath), unreadableResult.stderr);
+
+// Literal compatibility fixtures from anatomy-label-check, ci-suite,
+// ci-timing-records and build-records briefs/plans (copied, never read at runtime).
+const compatibility = [
+	["- `scripts/ci-records.mjs:19-30, :44-67`: `ghFromEnvironment`, the command seam that every OS can use, and `ghResult`, whose result classes these are. Both move into gh-runner.mjs, as named moves, and gain a timeout class.", "scripts/ci-records.mjs", "path"],
+	["- REQUIREMENTS.md:788-791 — R-2573, R-2574 and R-2576; R-2905 at `:727`; R-1460's lines at `:2217-2219`.", "REQUIREMENTS.md", "path"],
+	["- `apps/bench/lib/anatomy.mjs`", "apps/bench/lib/anatomy.mjs", "path"],
+	["- AGENTS.md — \"Shared-machine test runs\" is nana-pi's own section after the markers; \"CI covers this repository's suite\" goes there only (S7). \"Install check before a land\" is left alone.", "AGENTS.md", "path"],
+	["- packages/nana-pack/bin/review-ledger.mjs — the `report` subcommand's `--repo` handling, line shape and not-a-repository message.", "packages/nana-pack/bin/review-ledger.mjs", "path"],
+	["- none: no tracked code calls gh today, so the gh runner and its JSON handling are new.", "none:", "none"],
+	["- apps/bench/lib/usage.mjs — the Usage sum helpers to move into `packages/nana-pack/lib/pi-usage.mjs` and re-export.", "apps/bench/lib/usage.mjs", "path"],
+	["- packages/nana-pack/bin/review-round.mjs — `repoKeyOf`, and the tally's field names.", "packages/nana-pack/bin/review-round.mjs", "path"],
+];
+// req: R-3718
+check("R-3718: literal legacy subjects keep their values and membership outcomes", compatibility.every(([bullet, value, kind]) => {
+	const entries = readBrief(`## Precedent\n${bullet}`).precedent;
+	return entries[0].value === value && entries[0].kind === kind && checkPrecedent(entries, [value]).length === 0 &&
+		checkPrecedent(entries, []).length === (kind === "none" ? 0 : 1);
+}));
+
+const runnerPath = "packages/nana-pack/tests/test-runner.test.mjs";
+for (const name of [runnerPath, "space"]) {
+	fs.mkdirSync(path.dirname(path.join(lane, name)), { recursive: true });
+	fs.writeFileSync(path.join(lane, name), "fixture\n");
+}
+git(lane, "add", runnerPath, "space");
+git(lane, "commit", "-qm", "selection fixtures");
+const selectionCases = [
+	[`- the runner's declared Windows skip list in \`${runnerPath}\` (case J)…`, runnerPath],
+	[`- the **runner** in \`${runnerPath}:12-30\`,`, runnerPath],
+	[`- the runner reads\n  \`${runnerPath}\``, runnerPath],
+	[`- the runner in \`\` ${runnerPath} \`\``, runnerPath],
+	["- the file `space name.mjs`", "space"],
+	[`- the runner in \`${runnerPath}\` then \`missing.mjs\``, runnerPath],
+];
+const selectionResults = [];
+for (const [bullet, expected] of selectionCases) {
+	for (const ending of ["\n", "\r\n", ""]) {
+		const text = `## Precedent\n${bullet} \t`.replaceAll("\n", ending === "\r\n" ? "\r\n" : "\n") + ending;
+		const brief = writeBrief("selection.md", text);
+		fs.rmSync(marker, { force: true });
+		const launched = runWorker(brief);
+		selectionResults.push(readBrief(text).precedent?.[0].value === expected && launched.status === 0 &&
+			fs.existsSync(marker) && selectedLine(launched.stderr)?.startsWith("pi-worker: precedent: 1 checked at HEAD"));
+	}
+}
+// req: R-3716
+check("R-3716: prose-first code spans launch with one checked entry", selectionResults.every(Boolean), JSON.stringify(selectionResults));
+
+const longBullet = `- the **wrapped** ${"long note ".repeat(20)}\n  names \`missing.mjs\``;
+const refusalCases = [
+	["- the missing `missing.mjs`", "missing.mjs"],
+	["- the error `ENOTFILE`", "ENOTFILE"],
+	["- the invalid `../outside.mjs` then `seed`", "../outside.mjs"],
+	["- the prose has no span", "the"],
+	["- the URL `https://example.invalid/file`", "https://example.invalid/file"],
+	[longBullet, "missing.mjs"],
+];
+const refusalResults = [];
+const head = git(lane, "rev-parse", "--short", "HEAD").stdout.trim();
+const rule = "each Precedent bullet names one tracked path, in backticks or as its first word";
+for (const [bullet, value] of refusalCases) {
+	const brief = writeBrief("refusal.md", `## Precedent\r\n${bullet.replaceAll("\n", "\r\n")}\t`);
+	const original = bullet.slice(2).split("\n").map((line) => line.trim()).join(" ");
+	const cap = briefConfig.PRECEDENT_QUOTE_CAP;
+	const quote = original.length > cap ? original.slice(0, cap - 1) + "…" : original;
+	const expected = `pi-worker: lane refused: Precedent entries at HEAD ${head}: ${JSON.stringify(value)} is not tracked at HEAD (bullet: ${JSON.stringify(quote)}); ${rule}; commit the file, or merge main if it landed there`;
+	fs.rmSync(marker, { force: true });
+	const launched = runWorker(brief);
+	const checked = runCheck(brief);
+	refusalResults.push(launched.status === 1 && checked.status === 1 && !fs.existsSync(marker) &&
+		selectedLine(launched.stderr) === expected && selectedLine(checked.stderr) === expected && expected.split(rule).length === 2);
+}
+// req: R-3717 R-2579
+check("R-3717: refusals quote the original bullet and rule identically without starting pi", refusalResults.every(Boolean), JSON.stringify(refusalResults));
+
+const plannerText = fs.readFileSync(path.join(root, "prompts", "planner.md"), "utf8");
+const readmeText = fs.readFileSync(path.join(root, "README.md"), "utf8");
+// req: R-3719
+check("R-3719: planner and README state selection and seal the quote cap", briefConfig.PRECEDENT_QUOTE_CAP === 160 &&
+	[plannerText, readmeText].every((text) => text.includes("first backticked span") && text.includes("first word") && text.includes("file extension")));
 
 if (fs.existsSync(samplerMarker)) {
 	const samplerPid = Number(fs.readFileSync(samplerMarker, "utf8"));

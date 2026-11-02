@@ -19,7 +19,8 @@ Line ranges identify the original conflict-marker presentation, before resolutio
 3. `docs/code-map.md:13–17`: main's coverage summary, then generator output; no hand merge.
 4. `docs/code-map.md:4431–4435`: main's profile-fixture caller list, then generator output; no hand merge.
 5. `docs/requirements-tree.md:96–100`: main's CAP-02 summary, then generator output; no hand merge.
-6. `packages/nana-pack/README.md:701–709`: combined. Main's contained-tip refusal, rename-aware attribute checks and clean separate-hunk generated-path refusal stay. Lane's generated-only conflict exception and full private-index regeneration contract stay. Removed only main's now-false blanket statement that the helper never regenerates.
+6. `packages/nana-pack/README.md:701–709`: combined. Main's contained-tip refusal, rename-aware attribute checks and clean separate-hunk generated-path refusal stay. Lane's generated-only conflict exception and full private-index regeneration contract stay. Removed main's now-false blanket statement that the helper never regenerates, but also accidentally dropped two unrelated sections that had merged without conflict.
+   Build 5 restored `## Memory curation` and `#### Builder and reviewer credentials` verbatim from `origin/main` in their original positions because build 4 had deleted existing usage, privacy and credential guidance.
 7. `packages/nana-pack/bin/nana-land.mjs:23–28`: both imports. Main's `CLEAN_MERGE_GENERATED_PATHS` plus lane's generator contract, timeout and reasons.
 8. `packages/nana-pack/rules/nana-rulings.md:32–38`: main's builder-no-push ruling verbatim; main's independent-review ruling plus the lane's one generated-conflict clause.
 

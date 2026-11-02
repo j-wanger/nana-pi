@@ -1,0 +1,254 @@
+PASS R-2585: brief-check prints what pi-worker would print for the same brief and starts nothing 
+PASS R-2670: brief-check and pi-worker give the same line for every brief while a CPU sampler slower than the child limit is first on PATH, and the sampler never runs 
+PASS seal: R-2585's children have a 30-second limit and the worker polls less often than that 
+PASS R-2621: brief-check names the brief path it tried and the base a relative brief resolves from 
+PASS R-3718: literal legacy subjects keep their values and membership outcomes 
+PASS R-3716: prose-first code spans launch with one checked entry 
+PASS R-3717: refusals quote the original bullet and rule identically without starting pi 
+PASS R-3719: planner and README state selection and seal the quote cap 
+PASS non-lane repeated worker options keep the legacy first-occurrence behaviour 
+PASS non-lane usage text remains the legacy form 
+PASS lane options with missing values refuse before pi spawn 
+PASS lane mode refuses the main checkout before starting pi 
+PASS lane mode refuses a nested cwd 
+PASS lane mode refuses a missing brief before starting pi 
+PASS lane mode refuses a brief directory with a named failure 
+PASS lane mode refuses a switched lane branch before starting pi 
+PASS R-2578: a lane brief with no Precedent section, an empty one or a reasonless none is refused before the lock and before pi starts 
+PASS R-2579: Precedent entries not tracked at HEAD are refused, each one named 
+PASS R-2580: honest Precedent forms pass and the launch line names the checked entry count 
+PASS R-2616: a numbered step list straight after a plain Precedent list is not read as entries 
+PASS R-2617: a bold Precedent label line starts the Precedent section 
+PASS R-2618: a brief with no Precedent section is told the label stands on a line of its own 
+PASS R-2619: bold and punctuated Precedent paths are checked as the bare path 
+PASS R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler 
+PASS seal: worker-lane's launches have a 30-second limit and poll less often than that 
+PASS R-2620: a heading such as Precedent audit is not read as the Precedent section 
+PASS R-2581: the named feature's known-bug file follows the brief as the third prompt, and nothing follows when the feature has none 
+PASS seal: a brief's precedent section is Precedent, its no-precedent entry starts none: and its feature line starts Feature: 
+PASS verified lane passes preamble and validated brief as ordered file paths 
+PASS every pi-worker child receives NANA_ROLE=worker 
+PASS lane preamble forbids the named package-manager operations at a worktree root 
+PASS R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives 
+PASS R-3650: the builder preamble forbids reading, printing or using a stored credential exactly once 
+PASS R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure 
+PASS R-2662: the builder preamble tells the builder to import a needed function, never copy it, and stop on a private helper the brief does not move 
+PASS R-2583: the builder preamble frames the attached known bugs as context to report, not to fix 
+PASS lane preamble carries: wrong code first 
+PASS lane preamble carries: must-meet tests and no other new test, with the seal-test exception 
+PASS lane preamble carries: await every async case 
+PASS lane preamble carries: CRLF and whitespace cases 
+PASS lane preamble carries: IDs from the brief's range 
+PASS lane preamble carries: no suite test runs a seat script 
+PASS lane preamble carries: no unnamed test deleted 
+PASS lane preamble carries: touched tests before each commit 
+PASS lane preamble carries: seat checks before DONE 
+PASS lane preamble carries: long output to a committed file 
+PASS lane preamble carries: no builder push 
+PASS lane preamble carries: branch tip and seat checks in the report 
+PASS R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the replaced lines 
+PASS lane passes only the sealed roster and fixed brief instruction 
+PASS lane mode refuses all caller pi arguments before lock or spawn 
+PASS lane refuses caller tools without edit and write 
+PASS lane refuses tool-control forms -t, --tools, --exclude-tools, --no-tools 
+PASS lane refuses resource-disabling forms -nc, --no-context-files, -ne, --no-extensions, -na, --no-approve 
+PASS lane refuses retries before launch 
+PASS lane passes the machine roster builder to pi, each flag once 
+PASS lane omits --thinking when the machine roster builder thinking is null 
+PASS lane refuses a refused roster before starting pi, naming the file 
+PASS lane ignores a roster in project .pi/nana-pack.json 
+PASS lane prints the resolved builder and roster source on stderr before starting pi 
+PASS lane size larger starts pi with the larger-lane builder's provider, model and thinking, each flag once 
+PASS lane size larger with no larger-lane builder starts pi with the builder 
+PASS lane size small starts pi with the builder even when largerBuilder is set 
+PASS lane size with a missing or unknown value refuses before pi spawn 
+PASS lane size larger prints the larger-lane builder line before starting pi 
+PASS with a larger-lane builder set, a launch with no lane size, the --lane-size=larger form included, is refused before lock or spawn, naming largerBuilder and both sizes 
+(node:26756) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/J/nana-pi-wt/precedent-line-parse/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\J\nana-pi-wt\precedent-line-parse\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS synchronized concurrent lane launchers spawn exactly one pi 
+SKIP production lane revalidation refuses changed branch before pi spawn — Node's Windows PATH search tries only .com/.exe, so the extensionless git wrapper cannot run
+PASS missing trust prints notice before worker attempt 
+PASS affirmative trust record suppresses notice 
+PASS handled worker exit removes its worktree lock 
+PASS unreadable worktree lock is refused 
+PASS existing worktree lock refuses and names path and pid 
+PASS sealed lane ceiling is 28,800 seconds 
+PASS max-secs override kills and names the lane wall-clock ceiling 
+PASS wall-clock ceiling kills the worker process group 
+PASS R-2950: planner prompt names its sources in conflict order and resolves pack paths 
+PASS R-2951: planner prompt requests Questions for the owner in plan-section order 
+PASS R-3030: planner prompt makes Outside precedent part of the required section order 
+PASS R-3031: planner prompt requires a licensed outside project or a located none 
+PASS R-3070: planner prompt specifies the five-line owner-question form, ranking and overflow 
+PASS R-3011: readings put the top questions for each reading in the same message 
+PASS R-2952: without an agreed reading the planner returns readings and no plan 
+PASS R-2953: planner prompt pins its planning and forecast rules without scratch-plan pointers 
+PASS R-2954: a plan in the prompt form passes brief parsing and precedent checking 
+PASS R-3012: seat guide posts one plan-question issue with the build label and default title 
+PASS R-3013: seat guide distinguishes blocking waits, optional defaults and None 
+PASS collects every test file directly under a package tests dir 
+PASS collection does not recurse and takes only .test.mjs files 
+PASS a path segment named fixtures is never collected 
+PASS each file runs with --experimental-strip-types from its package dir 
+PASS each file gets a fresh temp HOME and USERPROFILE, not the real one 
+PASS the temp HOME is per file, not shared between files 
+PASS every child disables git auto gc without replacing caller git config entries 
+PASS a failing file's TMPDIR and leaked contents are removed 
+PASS a file that exits non-zero is FAIL and the run exits 1 
+PASS a file killed by a signal is FAIL, naming its exit code (win32 has no signal to report) 
+PASS a FAIL line from an exit-0 file is a WARN and does not flip the verdict 
+PASS an exit-0 file that printed only SKIP lines is FAIL without a declared precondition 
+PASS a silent exit-0 file is FAIL without a declared precondition 
+PASS without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown 
+PASS in non-verbose mode a failing file prints its first 20 failing check lines 
+PASS one line per file, then a totals line with both tallies, exiting 1 on a failure 
+PASS each test gets a unique TMPDIR and the runner removes leaked temp contents 
+PASS ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept 
+PASS PI_CODING_AGENT_DIR is scrubbed too and the rest of PI_ is left alone 
+PASS CLAUDE_CONFIG_DIR is scrubbed from the child env 
+PASS a file whose declared skip condition does not hold runs instead of skipping 
+PASS study tasks SKIP only when their declared extension prerequisite is absent 
+PASS study tasks run when their declared extension prerequisite exists 
+PASS R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling 
+PASS a substring argument runs only the files whose repo-relative path contains it 
+PASS --verbose streams a passing file's own output 
+PASS no match says so, exits 1, and still removes its scratch dir 
+PASS NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL 
+PASS the timeout kill takes the child's whole process tree with it 
+PASS the scratch dir is removed after the run 
+PASS a timed-out file's TMPDIR and leaked contents are removed 
+PASS tracked mutation fails naming the tracked file while untracked files do not appear 
+PASS tracked mutation is detected when the file was already dirty before the run 
+PASS staging an already-dirty tracked file is detected without a working-tree change 
+PASS after a child exits the runner waits only a bounded drain for stdio to close 
+PASS termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows) 
+PASS --self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero 
+PASS NANA_TEST_SELFTEST=1 is the same as --self-test 
+PASS R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set 
+PASS R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage 
+PASS R-2753: the run record names the default per-file time limit the runner applied 
+PASS R-3433: whole-run records carry the actual path filters, empty for an unfiltered run 
+PASS R-2880: a record-fixture file that passes after 1 second is labelled PASS with no cause, and the file that outlives the record limit is labelled FAIL timed out, serial and parallel 
+PASS seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds 
+PASS the source check detects direct mkdtemp calls while ignoring only generated leak fixtures 
+PASS the shared temp helper removes its registered root when the process exits 
+PASS R-2666: a finished file whose temp folder stays busy gets one FAIL line naming the file, the folder and the code, counts as one failure, and every other file still runs, serial and parallel 
+PASS seal: a finished file's temp folder removal retries 5 times on a 100 ms step 
+PASS R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it 
+PASS R-1381: off win32 each file on the declared Windows skip list runs 
+PASS R-1382: win32 still runs each desk and bench file off the declared Windows skip list 
+PASS R-1383: the declared Windows skip list names only collected desk and bench test files 
+PASS R-1521: the declared Windows skip list names no bench test file 
+
+all checks passed
+PASS R-3210: reviewer isolation and configured effort preserve exact argv order
+PASS R-3219: both Claude launchers exclude ancestor memory while keeping tree instructions eligible
+PASS R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits
+PASS R-3211: cloud carry preserves settings-only logins without exposing values
+PASS R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes
+PASS R-3213: exactly-at-cap non-ASCII builder files pass unchanged at the original pi path
+PASS R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading
+PASS R-3215: launchers log once before outcomes with exact part counts and default-home resolution
+PASS R-3216: failed unsafe and unavailable logging cannot alter launcher or hook delivery
+PASS R-3217: seat memory log names whole shortened and omitted entries without changing stdout
+PASS R-3218: known-bug digest seal is 6000 UTF-16 units
+PASS R-3270: pushed parts and recorded attempts preserve committed context
+PASS R-3271: configured labels and fence-aware spans tile exact input
+PASS R-3272: counts shares oversize duplicates sizes and zero supply
+synthetic subcommands 5; unsafe writers 3; private-text leaks 0
+PASS R-3273: all writers refuse unsafe output and all printers keep text private
+PASS R-3274: assembly uses spans and preserves whole cut and staged text
+PASS R-3275: wrapped and dedicated pulls count exact calls chars and functions
+PASS R-3276: blinded seeded sample and three-pair agreement reject unequal ids
+PASS R-3277: one complete count row per build sums attempt usage
+PASS R-3278: seal oversize threshold is 3000 UTF-16 chars
+anatomy: 9/9 checks passed
+PASS R-3390: distinct blind texts are labelled once
+PASS R-3391: bounded batches charge unknown usage and print progress
+PASS R-3392: malformed batches are rejected whole
+PASS R-3393: unsafe destinations and echoed text stay private
+PASS R-3394: capped and killed runs resume only missing keys
+PASS R-3395: changed model or prompt refuses resume
+PASS R-3396: consecutive failure stop resets after success
+PASS R-3397: seal label model
+PASS R-3397: seal label effort
+PASS R-3398: seal system prompt hash
+PASS R-3391: seal batch unit limit
+PASS R-3391: seal batch char limit
+PASS R-3391: seal run token cap
+PASS R-3391: seal unknown usage charge
+PASS R-3391: seal progress interval
+PASS R-3396: seal failure streak
+PASS R-3390: seal order seed
+PASS R-3394: seal label file
+PASS R-3395: seal manifest file
+PASS R-3399: model pairs map normalized keys and preserve rule pairs
+PASS R-3400: weights count heavy keys once and expose disputed weight
+PASS R-3401: dual minima seeded ids and heavy boundary make blind sheets
+PASS R-3402: model shares have occurrence and per-part distinct denominators
+PASS R-3403: all report readers follow model labels and mark mixed pulls
+PASS R-3404: context dependence short raw boundary and empty counts
+PASS R-3405: readers refuse damage privately without changing files
+PASS R-3406: two sheet pairs pool every function once per key
+PASS R-3401: seal label sample minimum
+PASS R-3401: seal label heavy minimum
+PASS R-3404: seal label short chars
+anatomy labels: 30/30 checks passed
+PASS R-3640: payload fields kinds delivery and coverage
+PASS R-3641: coalesced starts and turn phases
+PASS R-3641: realistic compact attachment order
+PASS R-3640: public hook labels and commandless attribution
+PASS R-3682: real-shaped window attribution conserves characters
+PASS R-3683: unresolved failed closed and competing producers never guess
+PASS R-3684: labels not text and producer-only dedupe
+PASS R-3642: inherited sessions order invariance and skips
+PASS R-3643: hook invocation and queued owner identity
+PASS R-3644: seat tool classes conserve result characters
+PASS R-3645: complete kind totals and distinct repeat denominators
+PASS R-3646: correction joins distinguish all outcomes and sources
+PASS R-3647: every seat command keeps tripwires private
+PASS R-3648: reusable adapters labels and builder golden regression
+PASS R-3640: seal seat extraction policy
+PASS R-3644: seal seat class functions
+seat anatomy: 16/16 checks passed
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 605 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 1 problem(s)
+  docs/code-map.md is stale against the code; run 'npm run map'
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 1086 claims checked; 0 problem(s)
+requirements: 2498 total (2241 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2241 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:11904) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/J/nana-pi-wt/precedent-line-parse/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\J\nana-pi-wt\precedent-line-parse\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+requirements tree: 0 problems; rows 2498; features 43
+deliverables: 21 of 23 made and read by code, 21 more parked
+FEAT-013.md: size: bytes=51503 lines=205
+summary names=0 sizes=1
+(node:22464) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/J/nana-pi-wt/precedent-line-parse/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\J\nana-pi-wt\precedent-line-parse\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 605 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+PASS R-2585: brief-check prints what pi-worker would print for the same brief and starts nothing 
+PASS R-2670: brief-check and pi-worker give the same line for every brief while a CPU sampler slower than the child limit is first on PATH, and the sampler never runs 
+PASS seal: R-2585's children have a 30-second limit and the worker polls less often than that 
+PASS R-2621: brief-check names the brief path it tried and the base a relative brief resolves from 
+PASS R-3718: literal legacy subjects keep their values and membership outcomes 
+PASS R-3716: prose-first code spans launch with one checked entry 
+PASS R-3717: refusals quote the original bullet and rule identically without starting pi 
+PASS R-3719: planner and README state selection and seal the quote cap 

@@ -142,6 +142,78 @@ Known limits: the CLI cannot prove that quoted words came from the owner, preven
 poisoning, or protect against a hostile process changing the pointer. Saved lines can contain
 private text: never paste real records or show output into the public repository.
 
+## Memory curation
+
+Run from the repository root with Node 22.18+, git, and the initialized private profile
+clone with saving enabled on this machine. Only `propose` needs an authenticated Claude CLI.
+`packages/nana-pack/bin/nana-curate.mjs` delegates to `scripts/memory-curate.mjs`, which
+supplies the existing isolated shaper runner: Claude Sonnet 5, low effort, $0.50 per call,
+and a 300,000 ms timeout. Tests inject a stub; no model runs in the suite.
+
+```bash
+npm run memory:curate -- propose
+npm run memory:curate -- queue
+npm run memory:curate -- accept <proposal-prefix> <another-prefix> --quote "Owner words approving these changes"
+npm run memory:curate -- reject <proposal-prefix> <another-prefix>
+```
+
+Run `propose` in the background with the seat's failure watcher and heartbeat: two calls can
+outlast the seat's shell timeout. It sends live profile and project records, including claims
+and capped owner quotes, to the model. Shared normalized owner-quote spans group records;
+groups stay together unless they exceed 60 records, when date-ordered pieces go separately.
+The model sees local ids, source, area, kind, date and group hints. Shared words are not proof
+of duplicate claims. The curator reserves each call against making's shared day ledger,
+with two calls and 200,000 tokens per run. Model work holds no clone lock. Completed batches
+persist under short zero-wait locks with liveness rechecked, so an interrupted run keeps its
+completed proposals. Failed calls do not retry.
+
+`propose` changes no record or live state. It prints only proposals, batches, rejected replies,
+dropped proposals, already-decided or already-queued proposals, split groups, unsent batches,
+tokens, cost and damaged-file counts. A missing model or no valid reply exits 1 with a fixed
+line. A valid empty proposal list succeeds. Unknown usage charges the shared conservative
+reservation; unknown cost prints `unknown`. The size line reports current live records and
+claim characters per profile/project part, and the forecast if every pending proposal passes.
+Claim characters exclude delivery's line-format overhead; fitting a delivery budget is not promised.
+
+`queue` fetches first and leads with a privacy warning. Never put its claims, quotes or model
+reasons in issues, commits, PRs or HANDOFF. It numbers pending proposals by claim characters
+freed, largest first, then key. The seat relays numbers to the owner, not key prefixes.
+Entries show the 12-hex proposal prefix, operation, retirement class, claims capped at 300
+characters with a marker, source, date, reason and absorbed-record count. The shared 4,000
+character profile budget folds whole entries; the first entry always prints, even if it alone
+exceeds that budget. Stale proposals disappear with a count. Damaged proposal and decision
+JSON files are skipped and counted. Damaged root-profile JSON refuses every command.
+
+Merges keep one existing record unchanged, preferring a saved survivor; two saved records
+cannot merge. Retirement classes are `one-off`, `dated`, `covered` and `superseded`.
+`accept` requires the owner's words and accepts several unique hexadecimal prefixes of at
+least 12 characters. `reject` takes the same prefixes without a quote. Both fetch and rebase
+first, refuse the whole request for any unknown, ambiguous, decided or stale proposal, and
+write one commit and sync. Accept also refuses overlapping selections before writing. A failed fetch or push prints `not synced`; local decisions survive.
+Review commands refuse under CI, any NANA_ROLE (even empty), or from linked worktrees.
+
+Accepting a merge writes existing supersede events in each dropped record's own area.
+Earlier drops stay hidden through later merges of the survivor. Accepting a retirement writes
+retract events for the target and its entire absorbed chain, so merged duplicates do not return.
+An explicit retract cuts a chain and restores its direct predecessor; restored records remain
+independent and are not absorbed by a later survivor. No record bytes change. A curation retract
+means **no longer useful**, not necessarily wrong; existing liveness semantics hide it even at past replay cuts.
+Review does not confirm the survivor or raise its trust. Rejected merge subsets remain rejected;
+a rejected retirement cannot return under a different class without a new group member.
+The model can see already-queued records again, but duplicate keys and proposals touching
+pending records never add queue entries. Synced conflicting selections require separate reviews.
+
+Proposals and decisions live privately under `<private-clone>/projects/curation/`, inside the existing commit
+allow-list. There is no automatic trigger or delivery hook. Both memory makers skip and count
+the next owner turn and ask answers in a stretch that runs a curation command. This can skip
+one unrelated owner turn. Reworded re-extraction of a retired claim can still return with a
+new id. Quoted approval still depends on the seat correctly attributing the owner's words.
+
+After landing, the seat runs the real-store review separately and reports counts, acceptance
+by operation and class, spend, records made per day and records removed per review. If accepted
+proposals free fewer than 2,000 claim characters, the seat brings the owner the gap before
+planning more curation. This build reads no real store and makes no paid call.
+
 ## Memory outcomes
 
 Run from the repository root with Node 22.18+, git and an authenticated Claude CLI
@@ -652,9 +724,31 @@ scratch=$(mktemp -d)
 pi-worker --out "$scratch/wp-a-out.md" --stall-secs 300 --poll 20 -- --provider openai-codex --model gpt-5.6-sol -t read,grep,find,bash,edit,write …
 ```
 
+#### Builder and reviewer credentials
+
+Builders do not push. The seat checks the reported branch and full tip, then pushes and waits for CI.
+The launchers stop git's normal credential dispatch in pi and Claude Code children.
+They reset inherited helpers in both git environment forms and disable askpass and terminal prompts.
+Claude flag settings carry the same controls into tool shells, including inherited counted entries.
+Unrelated git settings keep their effect.
+
+Children lose helper authentication for HTTPS fetches, private submodules and git-backed package dependencies.
+They keep pi provider logins and npm registry configuration.
+The seat fetches or installs authenticated sources before the build.
+
+The pi gate adds a credential-rule floor for worker and reviewer roles, before configured command exceptions.
+It catches direct credential commands and common HTTP clients calling the GitHub API.
+It still allows credential-cache shutdown, quoted documentation mentions and ordinary pushes under existing policy.
+The rule does not run in Claude Code builders or reviewers.
+
+Limits remain: scripts can call helpers or credential stores directly, and children can remove the controls for their own subprocesses.
+Managed Claude policy can supply environment above flag settings.
+The gate remains advisory by load path; unattended enforcement belongs to the container layer.
+The controls stop git's dispatch, not access to a credential store by other means.
+
 #### Lane builder
 
-Use `pi-worker --lane <name> --brief <file> --out <file> [--max-secs N] [--stall-secs N] [--poll N] [--lane-size <small|larger>]` with no `--` or pi arguments. Lane mode requires cwd to be the real repository root of a linked worktree on exactly `feat/<name>`; the brief must be a readable regular file. Its first Precedent section starts at a Precedent heading with no word after the name, or a line holding only `Precedent:`, plain or bold; a plain label's list ends at a blank line, heading, non-list line, or other marker kind at the first entry's indentation. The section must list at least one worktree-root-relative path tracked at that worktree's HEAD, or `none:` with a reason; invalid or unlisted paths refuse the launch before the lock. It refuses the main checkout, a nested cwd, detached or switched branches, invalid inputs, a roster the roster resolver refuses, a launch with no `--lane-size` once the roster sets `largerBuilder`, and every caller pi argument before acquiring the lock or starting a builder. It resolves this machine's roster (see Machine roster below): `--lane-size larger` starts the roster's larger-lane builder, pi or Claude Code, falling back to the builder when that slot is null; `--lane-size small`, or no size while `largerBuilder` is null, starts the pi builder.
+Use `pi-worker --lane <name> --brief <file> --out <file> [--max-secs N] [--stall-secs N] [--poll N] [--lane-size <small|larger>]` with no `--` or pi arguments. Lane mode requires cwd to be the real repository root of a linked worktree on exactly `feat/<name>`; the brief must be a readable regular file. Its first Precedent section starts at a Precedent heading with no word after the name, or a line holding only `Precedent:`, plain or bold; a plain label's list ends at a blank line, heading, non-list line, or other marker kind at the first entry's indentation. The section must list at least one worktree-root-relative path tracked at that worktree's HEAD, in backticks or as its first word, or `none:` with a reason; a leading code span wins, otherwise the first backticked span wins when the first word has no slash or file extension, otherwise the first word wins; invalid or unlisted paths refuse the launch before the lock. It refuses the main checkout, a nested cwd, detached or switched branches, invalid inputs, a roster the roster resolver refuses, a launch with no `--lane-size` once the roster sets `largerBuilder`, and every caller pi argument before acquiring the lock or starting a builder. It resolves this machine's roster (see Machine roster below): `--lane-size larger` starts the roster's larger-lane builder, pi or Claude Code, falling back to the builder when that slot is null; `--lane-size small`, or no size while `largerBuilder` is null, starts the pi builder.
 
 For a pi entry, lane mode builds the complete pi argv itself with the entry's provider and model, `--thinking` when set, tools `read,grep,find,bash,edit,write`, the rendered `prompts/builder-preamble.md` path, the validated brief path, and a fixed instruction naming the lane. For a Claude Code entry it starts `claude -p` with `--model <model> --permission-mode default --setting-sources project,local --settings <temporary-settings-file> --strict-mcp-config --tools Read,Grep,Glob,Bash,Edit,Write --allowedTools Read,Grep,Glob,Bash,Edit,Write --append-system-prompt-file <temporary-prompt-file>` followed by that instruction. The prompt file, outside the worktree, contains the rendered preamble, the brief and then any feature-named known-bug file; the unplaced file is never a fallback. The same temporary folder and `finally` cleanup cover the preamble, prompt, settings and captured-output files. After the builder and precedent lines, lane mode performs its trust check, reads Claude settings when needed, and reads the build-start HEAD before installing its start-up signal listeners or creating the temporary folder. A refusal or handled signal after that folder exists removes it too. Immediately after creating that folder, pi-worker starts a detached watcher through a one-shot hop. When a hard stop takes pi-worker, the watcher removes the lane folder, completes the build record as `stopped`, and releases only its worker's lock after no recorded builder may still run. Off Windows it first checks that a live recorded builder started no later than the pid record, then ends that builder's process group; an unreadable or later start keeps the lock and signals nothing. On Windows it ends no process, and a builder launched through `cmd.exe` keeps the lock even after that recorded command process ends. A stop before the hop starts can still leave the newly created empty folder.
 

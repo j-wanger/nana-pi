@@ -160,7 +160,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Private contexts, labels, blind sheets or replay parts; counts-only stdout.
 - **effects** — disk (explicit private folders), process (extractor's read-only git), network (injected label runner only)
 - **errors** — Returns 1 with fixed diagnostics on invalid inputs, unsafe output or malformed data.
-- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-slots.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
 
 ### `apps/bench/lib/catch-extract.mjs`
@@ -264,7 +264,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports emptyUsage/addUsage/totalTokens/costTotal/costOfRecord/observedCostOfRecord/costUnknownReason/parseStream/incompleteReason; parseStream returns {tokens, nested, cost, finalText, settled, toolCalls, retries, compactions, errors}
 - **effects** — none
 - **errors** — none thrown — an unterminated or malformed stream is reported through `settled: false` and incompleteReason(), and an unpriceable run through costUnknownReason()
-- **callers** — `apps/bench/aggregate.mjs`, `apps/bench/run.mjs`, `apps/bench/test/aggregate.test.mjs`, `apps/bench/test/nested.test.mjs`, `apps/bench/test/usage.test.mjs`, `scripts/memory-shape-runners.mjs`
+- **callers** — `apps/bench/aggregate.mjs`, `apps/bench/run.mjs`, `apps/bench/test/aggregate.test.mjs`, `apps/bench/test/nested.test.mjs`, `apps/bench/test/usage.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `scripts/memory-shape-runners.mjs`
 - **callees** — `packages/nana-pack/lib/pi-usage.mjs`
 
 ### `apps/bench/run.mjs`
@@ -952,7 +952,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — CI record and missing-input lines with a success code only when one record prints.
 - **effects** — process (runs git and gh through the pack reader), network (through gh), disk (temporary artifact downloads).
 - **errors** — Named revision, origin, gh, run, artifact, record, and cleanup failures return or retain the reader's code.
-- **callers** — `packages/nana-pack/tests/ci-records.test.mjs`
+- **callers** — `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`
 - **callees** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`
 
 ### `scripts/code-map-launch-config.mjs`
@@ -1879,7 +1879,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the child's stdout written to --out and the kept-text store, a recorded round, lane-folder copies from `keep` including tree-movement.md and its movement warning, the projection note on stdout for `check`, and admission, warning, unread-verdict, cannot-start and refusal lines on stderr
 - **effects** — process (resolves and spawns the review command with reviewer child env and stdout piped, runs the reservation heartbeat and review-movement.mjs on keep, sets the exit code), disk (writes --out and the ledger's lock, reservation, kept text, tally and audit files, including a best-effort cannot-start line; Claude children receive private temporary sealed flag settings with exit/watcher cleanup)
 - **errors** — keep warns and never refuses over the movement; it exits 1 with no kept text unless it wrote the movement file. Other exits: 1 on a bad subcommand, a missing --out or `--`, a `--over-cap` on check, a refused admission or command start, an unwritable --out, a recorded empty verdict, or a non-zero / non-review-shaped result (only the latter returns the reservation with no round consumed); exit 0 otherwise
-- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/keep-movement.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-ledger-state.test.mjs`, `packages/nana-pack/tests/review-ledger-verdicts.test.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`
+- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/keep-movement.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-ledger-state.test.mjs`, `packages/nana-pack/tests/review-ledger-verdicts.test.mjs`, `packages/nana-pack/tests/review-ledger.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/claude-settings-carry.mjs`, `packages/nana-pack/lib/credential-strip-config.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/review-movement.mjs`
 - **repo-code launches** — line 213: spawn
 
@@ -1890,7 +1890,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — an admission or refusal with its note and warning, a reservation file, a round appended to the tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
 - **effects** — disk (an O_EXCL lock around every read-decide-write, reservation files, the kept-text store, the never-rotated tally and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing heartbeat interval)
 - **errors** — canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, an over-cap revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or a lost reservation
-- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/keep-movement.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-class.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-round.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
+- **callers** — `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/keep-movement.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-class.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-round.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/rename-retry.mjs`, `packages/nana-pack/lib/verdict-config.mjs`
 
 ### `packages/nana-pack/bin/review-shape.mjs`
@@ -2091,7 +2091,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Precedent section, none-entry and feature-line tokens, accepted trailing punctuation, and git output cap.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
+- **callers** — `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/brief-precedent.mjs`
@@ -3232,7 +3232,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temp fixtures and a slow CPU-sampler shim), process (git, command subprocesses and the bounded shim)
 - **errors** — A failed comparison prints its cases and exits nonzero.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/ci-records.mjs`
 
 ### `packages/nana-pack/tests/build-records.test.mjs`
 
@@ -4884,7 +4884,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — one PASS / FAIL line per check and a non-zero exit when any check failed
 - **effects** — process (runs the copied runner as a child per case, including one with a runtime preload; one case leaves a detached grandchild, reaped here), disk (one mkdtemp tree holding every fixture root and the preload, removed at exit)
 - **errors** — a FAIL line naming the broken runner behaviour; a non-zero exit code
-- **callers** — —
+- **callers** — `packages/nana-pack/tests/brief-check.test.mjs`
 - **callees** — `apps/bench/test/study-tasks.test.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `scripts/test.mjs`
 - **unresolved launches** — line 95: spawnSync; binding line 211; binding line 290; binding line 303; binding line 310; binding line 318; binding line 339; binding line 364; binding line 381; binding line 400; binding line 419; binding line 472; binding line 474; binding line 496; binding line 497; binding line 498; binding line 547; binding line 593; binding line 595; binding line 629 · line 444: spawn · line 674: spawnSync · line 725: spawnSync; binding line 761; binding line 762; binding line 767; binding line 788; binding line 789
 
