@@ -1,10 +1,10 @@
-seat-mutate: lane knowledge-busy, tip 0bed0dcb4faab9c4cb21b1c1fbcf7e5383fec161, table 4e7aae1ab4398c3f7cfcca2cdac648433c6ed2f9157f0f2f8b5ba3ee4df32055, merge-base 0bd1df8996c5a8bbf946cb132e1c3a54315e9a8c, 8 pairs in 2 shards (4+4, round-robin, 4s apart), win32, node v22.22.2, 2026-11-02T05:11:46.968Z
+seat-mutate: lane knowledge-busy, tip 5ba96994d5fa6a663acc4e0937f3c615c379e2c9, table 4e7aae1ab4398c3f7cfcca2cdac648433c6ed2f9157f0f2f8b5ba3ee4df32055, merge-base ac764bcf0d8aecbef9b53599ccfb0bb0bfbe82bf, 8 pairs in 2 shards (4+4, round-robin, 4s apart), win32, node v22.22.2, 2026-11-02T06:45:25.886Z
 DECLARED (plan) one or more pairs per must-meet row, from the plan's wrong versions and the adversary's attack
 DECLARED (plan) R-3591 (M2, churn) is probabilistic against wrong code, so no pair rests on it alone
 DECLARED (attack SHOULD 4) P5 and P6 test whether recovery's fail-fast and the sources-problem probe are pinned at all
-[1/2] seat-mutate: lane knowledge-busy, shard 1/2, tip 0bed0dcb4faab9c4cb21b1c1fbcf7e5383fec161, merge-base 0bd1df8996c5a8bbf946cb132e1c3a54315e9a8c, 4 pairs, win32, node v22.22.2, 2026-11-02T05:11:50.545Z
+[1/2] seat-mutate: lane knowledge-busy, shard 1/2, tip 5ba96994d5fa6a663acc4e0937f3c615c379e2c9, merge-base ac764bcf0d8aecbef9b53599ccfb0bb0bfbe82bf, 4 pairs, win32, node v22.22.2, 2026-11-02T06:45:29.262Z
 [1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
-[1/2] BASELINE ok   packages/nana-knowledge/tests/build-busy.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[1/2] BASELINE ok   packages/nana-knowledge/tests/build-busy.test.mjs (exit 0, 11 PASS, 0 FAIL, )
 [1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
 [1/2] BASELINE ok   packages/nana-knowledge/tests/recover.test.mjs (exit 0, 10 PASS, 0 FAIL, )
 [1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
@@ -13,18 +13,18 @@ DECLARED (attack SHOULD 4) P5 and P6 test whether recovery's fail-fast and the s
 [1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
 [1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
 [1/2] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
-[2/2] seat-mutate: lane knowledge-busy, shard 2/2, tip 0bed0dcb4faab9c4cb21b1c1fbcf7e5383fec161, merge-base 0bd1df8996c5a8bbf946cb132e1c3a54315e9a8c, 4 pairs, win32, node v22.22.2, 2026-11-02T05:11:54.764Z
+[2/2] seat-mutate: lane knowledge-busy, shard 2/2, tip 5ba96994d5fa6a663acc4e0937f3c615c379e2c9, merge-base ac764bcf0d8aecbef9b53599ccfb0bb0bfbe82bf, 4 pairs, win32, node v22.22.2, 2026-11-02T06:45:33.780Z
 [2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
-[2/2] BASELINE ok   packages/nana-knowledge/tests/build-busy.test.mjs (exit 0, 7 PASS, 0 FAIL, )
+[2/2] BASELINE ok   packages/nana-knowledge/tests/build-busy.test.mjs (exit 0, 11 PASS, 0 FAIL, )
 [2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
 [2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
 [2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
 [2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
 [2/2] RESULT: 4/4 red (2 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived
-RED P1 no busy timeout anywhere (main's behaviour) — 2/2 named: /^M1: transient write locks allow existing and first builds to advance built_at/ | /^M3: locked hook stays bounded and connection defaults read back/; UNNAMED red: [build-busy.test.mjs] M1: sources-problem probe waits out a transient lock and keeps the index file:///<repo>/packages/nana-knowled… | [build-busy.test.mjs] M2: ten stale hook pulls and background builds survive read-write churn noPull=4, noRebuild=4; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED P1 no busy timeout anywhere (main's behaviour) — 2/2 named: /^M1: transient write locks allow existing and first builds to advance built_at/ | /^M3: locked hook stays bounded and connection defaults read back/; UNNAMED red: [build-busy.test.mjs] M1: sources-problem probe waits out a transient lock and keeps the index file:///<repo>/packages/nana-knowled… | [build-busy.test.mjs] M2: ten stale hook pulls and background builds survive read-write churn noPull=2, noRebuild=5; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED P2 builds get only the short query wait — 1/1 named: /^M1: transient write locks allow existing and first builds to advance built_at/; UNNAMED red: [build-busy.test.mjs] M1: sources-problem probe waits out a transient lock and keeps the index file:///<repo>/packages/nana-knowled… | [build-busy.test.mjs] M3: locked hook stays bounded and connection defaults read back Expected values to be strictly equal:; 3 FAIL total (2 files changed, 2 insertions(+), 2 deletions(-))
 RED P3 the hook's query path waits as long as a build — 1/1 named: /^M3: locked hook stays bounded and connection defaults read back/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
-RED P4 the busy timeout is set after WAL setup, not first — 1/1 named: /^M1: transient write locks allow existing and first builds to advance built_at/; UNNAMED red: [build-busy.test.mjs] M1: sources-problem probe waits out a transient lock and keeps the index file:///<repo>/packages/nana-knowled… | [build-busy.test.mjs] M2: ten stale hook pulls and background builds survive read-write churn noPull=4, noRebuild=4 | [build-busy.test.mjs] M3: locked hook stays bounded and connection defaults read back Expected values to be strictly equal:; 4 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
+RED P4 the busy timeout is set after WAL setup, not first — 1/1 named: /^M1: transient write locks allow existing and first builds to advance built_at/; UNNAMED red: [build-busy.test.mjs] M1: sources-problem probe waits out a transient lock and keeps the index file:///<repo>/packages/nana-knowled… | [build-busy.test.mjs] M2: ten stale hook pulls and background builds survive read-write churn noPull=1, noRebuild=4 | [build-busy.test.mjs] M3: locked hook stays bounded and connection defaults read back Expected values to be strictly equal:; 4 FAIL total (1 file changed, 2 insertions(+), 2 deletions(-))
 RED P5 recovery waits a full build timeout instead of refusing at once — 1/1 named: /^M3: recovery refuses a late writer without a build busy wait and keeps the index/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED P6 the sources-problem probe loses the build wait — 1/1 named: /^M1: sources-problem probe waits out a transient lock and keeps the index/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
 RED P7 the build timeout is retuned to 4000 — 1/1 named: /^M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
