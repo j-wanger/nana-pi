@@ -281,7 +281,7 @@ async function retryCase(s, stage, twice = false, spent = false) {
    opens++;
    if (stage === 'open' && (twice || opens === 1)) {
     if (spent) time = hook.BUDGET_MS + 1;
-    throw Object.assign(new Error('private prompt /private/index.db'), { code: opens === 1 ? 'SQLITE_BUSY' : 'SQLITE_LOCKED' });
+    throw Object.assign(new Error('private prompt /private/index.db'), { code: opens === 1 ? 'SQLITE_BUSY' : 'SQLITE_LOCKED', errcode: opens === 1 ? 5 : 6 });
    }
    const db = await openDb(...args);
    const close = db.close.bind(db);
@@ -292,7 +292,7 @@ async function retryCase(s, stage, twice = false, spent = false) {
    queries++;
    if (stage === 'query' && (twice || queries === 1)) {
     if (spent) time = hook.BUDGET_MS + 1;
-    throw Object.assign(new Error('private prompt /private/index.db'), { code: queries === 1 ? 'SQLITE_BUSY' : 'SQLITE_LOCKED' });
+    throw Object.assign(new Error('private prompt /private/index.db'), { code: queries === 1 ? 'SQLITE_BUSY' : 'SQLITE_LOCKED', errcode: queries === 1 ? 5 : 6 });
    }
    return search(...args);
   },
@@ -304,13 +304,13 @@ async function retryCase(s, stage, twice = false, spent = false) {
  const reason = stage === 'open' ? 'db-open-failed' : 'query-failed';
  assert.equal(opens, spent ? 1 : (twice ? hook.HOOK_QUERY_MAX_ATTEMPTS : 2));
  assert.equal(closes, stage === 'query' ? opens : (twice || spent ? 0 : 1));
- assert.equal(row.retried, reason + ': SQLITE_BUSY');
+ assert.equal(row.retried, reason + ': SQLITE_BUSY (5)');
  assert.ok(elapsed < hook.BUDGET_MS, 'elapsed=' + elapsed);
  assert.doesNotMatch(JSON.stringify({ retried: row.retried, failure: row.failure }), /private/);
  if (twice || spent) {
   assert.equal(result.output, null);
   assert.equal(result.reason, reason);
-  if (!spent) assert.equal(row.failure, reason + ': SQLITE_LOCKED');
+  if (!spent) assert.equal(row.failure, reason + ': SQLITE_LOCKED (6)');
  } else {
   assert.ok(result.output?.startsWith('[nana:knowledge]'));
   assert.ok(result.output.includes('Quasar telemetry'));
@@ -418,5 +418,42 @@ await check("M7: persistent BUSY queries stop before budget with a query reserve
 // req: R-3596
 await check("M7: seal: hook query reserve is 150 ms", async () => {
  assert.equal(hook.HOOK_QUERY_RESERVE_MS, 150);
+});
+// req: R-3595
+await check("M8: non-busy open and query failures return after one attempt", async (s) => {
+ await seed(s);
+ const h = child(s, ["--input-type=module", "-e", `
+ import assert from 'node:assert/strict';
+ import fs from 'node:fs';
+ import path from 'node:path';
+ import * as hook from ${JSON.stringify(new URL("../lib/hook.ts", import.meta.url).href)};
+ for (const stage of ['open', 'query']) {
+  for (const errcode of [11, undefined]) {
+   let opens = 0, closes = 0;
+   // A busy-looking message or code is not a structured busy errcode.
+   const error = Object.assign(new Error('database locked /private/index.db'), { code: 'SQLITE_BUSY', errcode });
+   const result = await hook.runHook(JSON.stringify({ prompt: 'quasar nebula telescope horizon findings', session_id: stage }), {
+    spawnFn: () => {},
+    openDbFn: async () => {
+     opens++;
+     if (stage === 'open') throw error;
+     return { close: () => { closes++; } };
+    },
+    searchFn: () => { throw error; },
+   });
+   assert.equal(opens, 1, stage + ': non-busy failure must not retry');
+   assert.equal(closes, stage === 'query' ? 1 : 0);
+   assert.equal(result.reason, stage === 'open' ? 'db-open-failed' : 'query-failed');
+   assert.equal(result.output, null);
+   const row = JSON.parse(fs.readFileSync(path.join(process.env.NANA_KNOWLEDGE_HOME, 'pull.log'), 'utf8').trim().split('\\n').at(-1));
+   assert.equal(row.attempts, 1);
+   assert.equal(row.retried, result.reason + ': SQLITE_BUSY' + (errcode === undefined ? '' : ' (11)'));
+   assert.equal(row.failure, undefined);
+   assert.doesNotMatch(JSON.stringify(row), /private/);
+  }
+ }
+ `], "");
+ await h.done;
+ assert.equal(h.code, 0, h.err);
 });
 process.exitCode = fails ? 1 : 0;

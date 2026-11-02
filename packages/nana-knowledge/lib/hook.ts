@@ -195,6 +195,7 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 		let db: Awaited<ReturnType<typeof openDb>> | undefined;
 		let reason = "db-open-failed";
 		let failed = false;
+		let retryable = false;
 		try {
 			db = await (opts.openDbFn ?? openDb)(paths.db, {});
 			// Opening is asynchronous; recheck before entering SQLite's synchronous busy wait.
@@ -205,13 +206,15 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 			failed = true;
 			// Only structured codes cross into the record: messages may contain paths or prompt text.
 			const e = error as { code?: unknown; errcode?: unknown } | null;
+			const primaryCode = typeof e?.errcode === "number" && Number.isInteger(e.errcode) ? e.errcode & 0xff : null;
+			retryable = primaryCode === 5 || primaryCode === 6;
 			const code = typeof e?.code === "string" && /^[A-Z][A-Z0-9_]{0,63}$/.test(e.code) ? e.code : "unknown-error";
 			const cause = `${reason}: ${code}${typeof e?.errcode === "number" && Number.isInteger(e.errcode) ? ` (${e.errcode})` : ""}`;
 			if (attempts === 1) retried = cause;
 			else failure = cause;
 		} finally { try { db?.close(); } catch { /* ignore */ } }
 		if (!failed) break;
-		if (attempts === HOOK_QUERY_MAX_ATTEMPTS || !hasQueryBudget(HOOK_QUERY_RETRY_DELAY_MS)) return none(reason);
+		if (!retryable || attempts === HOOK_QUERY_MAX_ATTEMPTS || !hasQueryBudget(HOOK_QUERY_RETRY_DELAY_MS)) return none(reason);
 		await new Promise((resolve) => setTimeout(resolve, HOOK_QUERY_RETRY_DELAY_MS));
 		if (!hasQueryBudget()) return none(reason);
 	}
