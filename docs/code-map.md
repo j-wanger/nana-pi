@@ -2388,7 +2388,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Declare land-time process, CI, and runtime-map contract values with their provenance.
 - **inputs** — none
-- **outputs** — Process bounds, CI scope, verdict and records-budget values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
+- **outputs** — Process bounds, CI scope, clean-merge policy, verdict and records-budget values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/gh-runner-async.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-clean-merge-race.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/ci-records.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
@@ -3748,7 +3748,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Assertion failures set exit code one.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `scripts/test.mjs`
-- **unresolved launches** — line 144: spawnSync · line 146: spawnSync
+- **unresolved launches** — line 147: spawnSync · line 149: spawnSync
 
 ### `packages/nana-pack/tests/land-fixtures.mjs`
 

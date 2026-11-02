@@ -13,5 +13,6 @@ const pairs=[
  {n:'7',name:'fast-forward to tip instead of merge',tests:[clean],expectRed:[/^M1:/,/^M2:/,/^M3:/,/^M8:/],edits:[edit('"merge", "--ff-only", landedTip','"merge", "--ff-only", tip')]},
  {n:'8',name:'drop captured-main recheck inside lock',tests:[race],expectRed:[/^M7:/],edits:[edit('if (git(runGit, main, "rev-parse", "HEAD") !== capturedMain) throw new Error("main checkout HEAD changed during suite");','// Wrong: captured main is not checked.')]},
  {n:'9',name:'read merge CI instead of accepted-tip CI at re-read',tests:[clean],expectRed:[/^M1:/],edits:[edit('head_sha=${tip}&per_page=${CI_RUNS_PAGE_SIZE}','head_sha=${landedTip}&per_page=${CI_RUNS_PAGE_SIZE}')]},
+ {n:'10',name:'honor a custom default driver and disabled rename detection',tests:[clean],expectRed:[/^M2:/],edits:[edit('[...CLEAN_MERGE_GIT_CONFIG.flatMap((setting) => ["-c", setting]), "merge-tree",','["-c", "merge.renormalize=false", "merge-tree",')]},
 ];
 process.exitCode=await runMutations({lane:'land-clean-merge',self:import.meta.url,tip:'HEAD',branch:'feat/land-clean-merge',pairs});

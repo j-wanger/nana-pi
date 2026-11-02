@@ -16,7 +16,7 @@ import * as C from '../lib/land-config.mjs';
 // req: R-3694
 await check('M7: checkout and CI races refuse, cooperating lands serialize and rerun safely', () => {
  for(const kind of ['main','source','dirt','branch','queued','failed','identity']) {
-  const f=cleanMergeFixture(`m7-${kind}`); let ready=false, fired=false, expected=mergeSnapshot(f), lists=0;
+  const f=cleanMergeFixture(`m7-${kind}`); let ready=false, fired=false, expected=mergeSnapshot(f), lists=0, fastForwards=0;
   const out=executeCleanMerge(f,{
    afterGh:(args,_calls,result)=>{
     if(args[0]==='run'&&args[1]==='download') ready=true;
@@ -30,6 +30,7 @@ await check('M7: checkout and CI races refuse, cooperating lands serialize and r
     return result;
    },
    runGit:(cwd,args)=>{
+    if(args[0]==='merge'&&args[1]==='--ff-only') fastForwards++;
     if(ready&&!fired&&!['queued','failed','identity'].includes(kind)) {
      fired=true;
      if(kind==='main') commit(f.main,'racer.txt','racer\n','racer main');
@@ -43,6 +44,7 @@ await check('M7: checkout and CI races refuse, cooperating lands serialize and r
   });
   assert(fired,`${kind} injection must run`); assert.equal(out.code,1,out.text); assert.equal(out.suites,0);
   assert.deepEqual(mergeSnapshot(f),expected,kind);
+  assert.equal(fastForwards,0,`${kind}: rechecks must refuse before invoking the fast-forward`);
   if(['queued','failed','identity'].includes(kind)) assert(out.text.includes(C.CLEAN_MERGE_REASONS.ciChanged),out.text);
  }
  const first=cleanMergeFixture('m7-two');

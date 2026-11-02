@@ -49,6 +49,9 @@ await check('M2: clean merge content matches literals and an independent ordinar
  const base = 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\n';
  for (const kind of ['hunks', 'rename', 'added']) {
   const f = cleanMergeFixture(`m2-${kind}`, { 'shared.txt': base });
+  // Honest repository settings must not select a custom default driver or disable supported rename detection.
+  git(f.main, 'config', 'merge.default', 'keep'); git(f.main, 'config', 'merge.keep.driver', 'true');
+  git(f.main, 'config', 'merge.renames', 'false'); git(f.main, 'config', 'merge.renormalize', 'true');
   let expected;
   if (kind === 'hunks') {
    commit(f.feature, 'shared.txt', base.replace('one\n', 'lane one\n'), 'first hunk');
@@ -172,6 +175,7 @@ await check('seal: clean-merge vocabulary and conflict-name cap are declared onc
  assert.equal(C.CLEAN_MERGE_MESSAGE,'nana-land: merge current main into accepted tip');
  assert.equal(C.CLEAN_MERGE_PREFIX,'merged main:'); assert.equal(C.CLEAN_MERGE_NAME_CAP,10);
  assert.equal(C.CLEAN_MERGE_REMEDY,'merge main into the lane, then review and CI that tip');
+ assert.deepEqual(C.CLEAN_MERGE_GIT_CONFIG,['merge.renormalize=false','merge.default=text','merge.renames=true']);
  assert.deepEqual(C.CLEAN_MERGE_REASONS,{
   conflict:'merge conflict', unsupported:'unsupported merge semantics', git:'git merge-tree failed',
   noCi:'clean merge needs applicable CI', suite:'clean merge needs proven suite',

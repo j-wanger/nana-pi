@@ -20,7 +20,7 @@ import { changedSuitePaths, ciScope, githubRepoOf, judgeRuns, proveCiSuite } fro
 import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
 import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
-import { CLEAN_MERGE_MESSAGE, CLEAN_MERGE_PREFIX, CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
+import { CLEAN_MERGE_MESSAGE, CLEAN_MERGE_PREFIX, CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_GIT_CONFIG, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
 import { LAND_LEDGER_READ_MAX_BYTES, LAND_REASON_MAX_CHARS, LAND_RECORD_LINE_PREFIX, LAND_RECORD_SCHEMA } from "../lib/land-records-config.mjs";
@@ -77,7 +77,7 @@ function cleanMergeTree(runGit, main, tip, capturedMain) {
 			if (shared.length && fields[i + 2] !== "unspecified") throw mergeRefusal("unsupported", `${fields[i]} has merge attribute ${fields[i + 2]} in ${parent}`);
 		}
 	}
-	const result = runGit(main, ["-c", "merge.renormalize=false", "merge-tree", "--write-tree", "--name-only", "--no-messages", tip, capturedMain]);
+	const result = runGit(main, [...CLEAN_MERGE_GIT_CONFIG.flatMap((setting) => ["-c", setting]), "merge-tree", "--write-tree", "--name-only", "--no-messages", tip, capturedMain]);
 	const lines = String(result.stdout ?? "").split(/\r?\n/).map((line) => line.trimEnd());
 	if (lines.at(-1) === "") lines.pop();
 	if (result.error || ![0, 1].includes(result.status) || !objectId(lines[0] ?? "") ||

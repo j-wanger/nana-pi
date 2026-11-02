@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/land-config.mjs
  * @purpose Declare land-time process, CI, and runtime-map contract values with their provenance.
  * @inputs none
- * @outputs Process bounds, CI scope, verdict and records-budget values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
+ * @outputs Process bounds, CI scope, clean-merge policy, verdict and records-budget values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
  * @effects none
  * @errors none
  */
@@ -48,6 +48,8 @@ export const CLEAN_MERGE_MESSAGE = "nana-land: merge current main into accepted 
 export const CLEAN_MERGE_PREFIX = "merged main:";
 // chosen 2026-11-02 (R-3697, O2): name ten paths before eliding a long conflict list.
 export const CLEAN_MERGE_NAME_CAP = 10;
+// contract (R-3689, R-3697, A2), chosen 2026-11-02: repository settings cannot select a default custom driver or disable rename detection.
+export const CLEAN_MERGE_GIT_CONFIG = Object.freeze(["merge.renormalize=false", "merge.default=text", "merge.renames=true"]);
 // chosen 2026-11-02 (R-3697, O1): every merge refusal points back to the reviewed lane flow.
 export const CLEAN_MERGE_REMEDY = "merge main into the lane, then review and CI that tip";
 export const CLEAN_MERGE_REASONS = Object.freeze({
