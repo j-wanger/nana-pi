@@ -1,7 +1,7 @@
 # Build 4 CPU-load probe
 
-- Cause: a missed R-2693 delivery retried without stopping its worker. In the small-builder case, `WC_HOLD_FILE` named a file nobody creates, so fake pi waited until the 10-second wall-clock ceiling. CI run 41367446804 killed the test file after 21.2 seconds, during R-2693; the earlier macOS run failed an assertion instead. Each miss now sends SIGTERM immediately, and the unused hold-file setup is gone.
-- Suspect (a) ruled out: startupSignalCase signals only the pi-worker child. For cleanup, the small pi fixture is detached and its pid is its group id; the larger fake Claude fixture is not detached, so the negative-pid group lookup misses and fallback kills only its pid. Neither targets the test process.
+- Cause: `stopFixtureBuilder` can read an empty pid file before fake Claude writes its pid. `Number("")` is 0, so `process.kill(-0, "SIGKILL")` targets the test process group. The reviewer places this during R-2692 cleanup, before R-2693, in CI run 41367446804.
+- The small fake pi waits for its configured `WC_HOLD_FILE` to exist. The startup signal case keeps that builder held until pi-worker handles the signal; a missed attempt still sends SIGTERM.
 - Before fix: worker-claude test under four `yes > /dev/null` CPU loaders — 10 passed, 0 failed.
 - After fix: worker-claude test under four `yes > /dev/null` CPU loaders — 10 passed, 0 failed.
 - The R-2693 assertion is unchanged. No product code changed.

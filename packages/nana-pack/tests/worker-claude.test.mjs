@@ -257,6 +257,7 @@ const groupAlive = (pid) => {
 const stopFixtureBuilder = () => {
 	if (process.platform === "win32" || !fs.existsSync(PID_FILE)) return;
 	const pid = Number(fs.readFileSync(PID_FILE, "utf8"));
+	if (!Number.isSafeInteger(pid) || pid <= 0) return;
 	try { process.kill(-pid, "SIGKILL"); } catch { try { process.kill(pid, "SIGKILL"); } catch {} }
 };
 const selectedBriefLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.startsWith("pi-worker: lane refused:") || line.startsWith("pi-worker: precedent:")) ?? null;
@@ -596,7 +597,8 @@ const startupSignalCase = async ({ signal, laneSize = "larger" }) => {
 		removeArtifacts(); fs.rmSync(LOCK, { force: true });
 		const root = caseTemp(`startup-${laneSize}-${signal.toLowerCase()}-${attempt}`);
 		const marker = laneSize === "small" ? PI_MARKER : PID_FILE;
-		const run = startWorker({ extra: ["--lane-size", laneSize, "--max-secs", "10", "--stall-secs", "10"], env: tempEnv(root, { WC_SLEEP_MS: "10000" }) });
+		const holdFile = path.join(root, "hold-builder");
+		const run = startWorker({ extra: ["--lane-size", laneSize, "--max-secs", "10", "--stall-secs", "10"], env: tempEnv(root, { WC_SLEEP_MS: "10000", WC_HOLD_FILE: holdFile }) });
 		const hasTempFile = await waitFor(() => fs.readdirSync(root).length > 0, run.child, STARTUP_SIGNAL_READY_LIMIT_MS);
 		const startedBeforeSignal = fs.existsSync(marker);
 		const delivered = hasTempFile && !startedBeforeSignal;
