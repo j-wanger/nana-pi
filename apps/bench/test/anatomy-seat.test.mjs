@@ -18,6 +18,7 @@ import { projectKey } from '../../../packages/nana-setup/lib/project-key.mjs';
 import { segmentPart } from '../lib/anatomy-spans.mjs';
 import { distinctUnits, assembleParts } from '../lib/anatomy-measures.mjs';
 import * as C from '../lib/anatomy-config.mjs';
+import { desiredHooks } from '../../../packages/nana-setup/lib/settings.mjs';
 
 const root = tmpDir(path.join(os.tmpdir(), 'seat-anatomy-'));
 let serial = 0, failures = 0, cases = 0;
@@ -112,6 +113,36 @@ await test('R-3641: coalesced starts and turn phases', async () => {
  assert.equal(parts(s).find(p => p.raw === 'continued').phase, 'turn');
 });
 
+// req: R-3641
+await test('R-3641: realistic compact attachment order', async () => {
+ const rows = [snapshot('old'), user('first'), boundary(), instructions([{ type: 'Project', content: 'rules' }]),
+  attachment('session_context', { context: 'context' }), attachment('date', { date: 'date' }), user('summary', { isCompactSummary: true }),
+  attachment('total_tokens_reminder', { text: 'tokens' }), attachment('file', { content: 'file' }), attachment('task_status', { text: 'task' }),
+  attachment('invoked_skills', { skills: [{ content: 'skill' }] }), attachment('skill_listing', { content: 'tools' }),
+  attachment('deferred_tools_delta', { addedLines: ['delta'] }), attachment('environment', { snapshot: 'env' }), attachment('model', { text: 'model' }),
+  hook('refresh', 'compact'), snapshot('new')];
+ for (const [eol, final] of [['\n', true], ['\r\n', true], ['\r\n', false]]) {
+  const s = await segment(fixture([{ rows, eol, final }]));
+  assert.equal(s.contexts.length, 2);
+  assert.equal(s.contexts[1].start, 'compact');
+  assert(s.contexts[1].parts.every(p => p.phase === 'standing'));
+  assert.deepEqual(s.contexts[1].excluded, []);
+ }
+});
+
+// req: R-3640
+await test('R-3640: public hook labels and commandless attribution', async () => {
+ const hooks = desiredHooks({ hooksDir: '/synthetic/hooks', repoRoot: '/synthetic/repo' }).filter(h => h.event === 'SessionStart');
+ const expected = ['objective', 'adoption', 'shared-memory', 'roster-notice'];
+ for (const [i, h] of hooks.entries()) {
+  const s = await segment(fixture([{ rows: [hook('success', 'startup', { command: h.entry.statusMessage }),
+   attachment('hook_additional_context', { hookEvent: 'SessionStart', content: 'additional' })] }]));
+  assert.deepEqual(parts(s).map(p => p.name), [expected[i], expected[i]]);
+ }
+ const s = await segment(fixture([{ rows: [attachment('hook_additional_context', { hookEvent: 'SessionStart', content: 'orphan' })] }]));
+ assert.equal(parts(s)[0].name, 'hook-other');
+});
+
 // req: R-3642
 await test('R-3642: inherited sessions order invariance and skips', async () => {
  const prefix = [{ ...snapshot('system'), uuid: 'shared-system', timestamp: '2026-01-01T00:00:00Z' }, user('prefix', { uuid: 'shared-owner', timestamp: '2026-01-01T00:00:01Z' })];
@@ -135,7 +166,7 @@ await test('R-3643: hook invocation and queued owner identity', async () => {
  const q = s => attachment('queued_command', { prompt: s, humanTurn: true });
  const s = await segment(fixture([{ rows: [snapshot('s'), hook('same', 'startup', { toolUseID: 'h1' }), additional('same', 'h1'), hook('{"additionalContext":"json"}', 'startup', { toolUseID: 'h2' }), additional('json', 'h2'), user('one'), hook('same', 'resume', { toolUseID: 'h3' }), user('two'), hook('changed', 'resume', { toolUseID: 'h4' }), hook('a', 'resume'), hook('b', 'resume'), additional('unsettled'), q('queued'), user('queued'), q('absent'), user('repeat'), user('repeat')] }]));
  const r = await report(s);
- assert.equal(size(parts(s), 'objective'), 4 + 28 + 4 + 7 + 1 + 1);
+ assert.equal(size(parts(s), 'objective'), 4 + 28 + 4 + 7 + 1 + 1 + 9);
  assert.equal(r.repeats.repeatedDelivery.chars, 4 + 7 + 1 + 1);
  assert.equal(r.ownerTurns, 6); assert.equal(r.events.find(e => e.reason === 'queued-unmatched').count, 1);
  assert.equal(r.ambiguous.find(e => e.reason === 'hook-correlation').count, 1);

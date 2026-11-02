@@ -572,6 +572,9 @@ Unknown attachment types aggregate into `attachment-other` so arbitrary type str
 File starts, compaction signals and SessionStart hooks share one coalescing start window.
 Assistant work, owner turns, tool results, queued commands and prompt hooks close that window.
 Later work is `turn` payload even before another owner turn arrives.
+Start-type shares measure only payload recorded before those closing events, not all startup configuration.
+Startup and clear snapshots and instructions recorded after the first owner prompt count as `turn`.
+`unrecorded-system` means no snapshot in the start window, not no snapshot anywhere in the segment.
 Missing start snapshots or instructions have explicit exclusion reasons.
 UUID ownership uses earliest timestamps, then session and UUID; physical ties use a private content-derived representative.
 Resumes and forks retain inherited prefixes; inherited payload contributes to no corpus totals or owner-turn counts.

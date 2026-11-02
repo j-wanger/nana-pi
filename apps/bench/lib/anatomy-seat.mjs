@@ -12,6 +12,7 @@ import { streamEntriesIn, transcriptFiles } from '../../../packages/nana-pack/li
 import { ownerTurn, textOnly } from '../../../packages/nana-pack/lib/memory-making.mjs';
 import { WRAPPER_TAGS } from '../../../packages/nana-pack/lib/memory-making-config.mjs';
 import { SLOT_MARKERS } from '../../../packages/nana-pack/lib/memory-replay-config.mjs';
+import { desiredHooks } from '../../../packages/nana-setup/lib/settings.mjs';
 import { projectKey } from '../../../packages/nana-setup/lib/project-key.mjs';
 import { SEAT_POLICY as P, SEAT_CLASS_FUNCTION } from './anatomy-config.mjs';
 import { segmentPart } from './anatomy-spans.mjs';
@@ -31,15 +32,19 @@ const bodyOf = e => Array.isArray(e.message?.content) ? e.message.content : [];
 const hookEvent = a => (a?.hookEvent ?? a?.hookName)?.split(':')[0];
 const sessionHook = a => ['hook_success', 'hook_additional_context'].includes(a?.type) && hookEvent(a) === 'SessionStart';
 const boundaryOf = e => e.type === 'compact_boundary' || e.subtype === 'compact_boundary' || e.isCompactSummary || sessionHook(e.attachment);
+const hookLabels = desiredHooks({ hooksDir: '', repoRoot: '' }).filter(h => h.event === 'SessionStart');
 function hookKind(a) {
  const command = a.command ?? '';
+ const labelled = hookLabels.find(h => h.entry.statusMessage === command);
+ if (labelled) return hookKind({ command: labelled.spec.script });
  if (SLOT_MARKERS.hooks.some(marker => command.includes(marker))) return 'shared-memory';
  return P.hooks.find(([marker]) => command.includes(marker))?.[1] ?? 'hook-other';
 }
 function typeOf(a) { return a?.type?.startsWith('ultra_effort_') ? 'ultra_effort' : a?.type; }
-function standing(e) {
- const type = typeOf(e.attachment);
- return type === 'instructions' || P.standing.includes(P.payloads[type]?.[0]);
+function closesWindow(e) {
+ const a = e.attachment;
+ return e.type === 'assistant' || ownerTurn(e) || bodyOf(e).some(p => p.type === 'tool_result') ||
+  a?.type === 'queued_command' || hookEvent(a) === 'UserPromptSubmit' || a?.type === 'hook_cancelled';
 }
 function startKind(e) {
  if (e.type === 'compact_boundary' || e.subtype === 'compact_boundary' || e.isCompactSummary) return 'compact';
@@ -121,12 +126,13 @@ export async function extractSeatContexts({ repo, projects }) {
   };
   // Correlation is per window and tool invocation, never corpus-wide text dedupe.
   const windows = new Map();
+  let precedingHook;
   for (const e of sorted) {
    if (boundaryOf(e)) {
     const start = startKind(e);
     if (!window) open(start);
     else if (start !== 'unknown' && (current.start === 'unknown' || start === 'compact' || current.start === 'startup')) current.start = start;
-   } else if (!standing(e)) window = false;
+   } else if (closesWindow(e)) window = false;
    const inherited = Boolean(e.uuid && (owners.get(e.uuid)?.description !== description || owners.get(e.uuid)?.sessionId !== session));
    current.cwd ||= e.cwd ?? '';
    if (e.uuid) current.entries.push({ uuid: e.uuid, sourceSession: owners.get(e.uuid)?.sessionId ?? session, inherited, structured: false });
@@ -144,7 +150,10 @@ export async function extractSeatContexts({ repo, projects }) {
       push(kind, file.content, e, { delivery: 'recorded-input', identity: file.path ?? kind });
      }
     } else if (type === 'hook_success' || type === 'hook_additional_context') {
-     const raw = mark(strings(a.content)), event = hookEvent(a), kind = event === 'UserPromptSubmit' ? 'knowledge-pull' : hookKind(a);
+     const raw = mark(strings(a.content)), event = hookEvent(a);
+     const previous = precedingHook && hookEvent(precedingHook) === event &&
+      (!a[P.correlation.invocation] || !precedingHook[P.correlation.invocation] || a[P.correlation.invocation] === precedingHook[P.correlation.invocation]) ? precedingHook : undefined;
+     const kind = event === 'UserPromptSubmit' ? 'knowledge-pull' : hookKind(type === 'hook_additional_context' && !a.command ? previous ?? a : a);
      const p = push(kind, raw, e, { delivery: 'recorded-input', identity: a.command ?? kind, hook: { type, event, invocation: a[P.correlation.invocation] } });
      if (sessionHook(a) && window) { const group = windows.get(current) ?? []; group.push(p); windows.set(current, group); }
     } else if (type === 'hook_cancelled') {
@@ -160,6 +169,7 @@ export async function extractSeatContexts({ repo, projects }) {
      push(name, mark(fields.flatMap(key => field(a, key.split('.')))), e, { delivery });
     } else push('attachment-other', '', e);
    }
+   precedingHook = ['hook_success', 'hook_additional_context'].includes(type) ? (a.command ? a : undefined) : undefined;
    if (e.isCompactSummary) push('compaction-summary', textOnly(e), e, { delivery: 'recorded-input' });
    else if (ownerTurn(e)) {
     const p = push('owner', textOnly(e), e, { delivery: 'recorded-input', identity: e.uuid ?? `${current.id}:p${current.parts.length}`, uuid: e.uuid });

@@ -1,0 +1,10 @@
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs          11 pass  27.8s
+PASS  packages/nana-pack/tests/memory-making.test.mjs            24 pass  0.2s
+PASS  packages/nana-pack/tests/memory-replay.test.mjs            20 pass  0.5s
+PASS  packages/nana-pack/tests/memory-shaping.test.mjs           20 pass  0.4s
+PASS  packages/nana-pack/tests/writing-trial-extractor.test.mjs  15 pass  0.1s
+PASS  apps/bench/test/anatomy-labels.test.mjs                    30 pass  1.3s
+PASS  apps/bench/test/anatomy-seat.test.mjs                      13 pass  0.4s
+PASS  apps/bench/test/anatomy.test.mjs                           9 pass  1.0s
+
+8 files: 8 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 142 pass, 0 fail, 0 skip · 32.0s
