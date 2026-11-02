@@ -1,0 +1,883 @@
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:2: trailing whitespace.
+++PASS R-2780: an artifact line is read by its ID, and a reused ID, a malformed or misplaced line, or a live entry in a proposed or retired feature gets one note 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:4: trailing whitespace.
+++PASS R-2781: an unknown class or a location of the wrong shape for its class gets one note 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:6: trailing whitespace.
+++PASS R-2782: a tracked entry matching nothing, an untracked or non-file writer, a reasonless manual entry, or a second entry at the same location gets one note 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:8: trailing whitespace.
+++PASS R-2783: a registry reference binds the claim's run and every writer, a built-from list needs only live entries, and a valid home reference gets no not-tracked note 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:10: trailing whitespace.
+++PASS R-2795: a reads line names a live entry read by tracked files, and a malformed, unknown, own, repeated or misplaced line or an untracked reader gets one note 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:12: trailing whitespace.
+++PASS R-2798: each built-from entry is registered or read in the deliverable's home feature 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:14: trailing whitespace.
+++PASS R-2830: an artifact Read by line reads its own feature's entry, and a malformed, foreign, unknown, untracked, reasonless, repeated or misplaced line gets one note 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:16: trailing whitespace.
+++PASS R-2831: a runtime reader needs a reason on both Read by forms and never counts as code 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:18: trailing whitespace.
+++PASS R-2832: an artifact park needs its own unread entry, a since date and a reason, and a park of a read entry parks nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:20: trailing whitespace.
+++PASS R-2833: a reader path whose file name is a test file gets one note on every reader form, and a harness file in a tests folder gets none 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:22: trailing whitespace.
+++PASS R-2834: the shared consumer predicate gives each entry its reader kinds, and an entry with none and no park gets one note 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:24: trailing whitespace.
+++PASS seal: the test-reader glob and the no-declared-reader note read as sealed 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:26: trailing whitespace.
+++PASS a manual maker or a rule or person reader with no reason gets one note naming the row 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:28: trailing whitespace.
+++PASS a maker or reader path not tracked at HEAD gets one note naming the row and the path 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:30: trailing whitespace.
+++PASS a missing or unreadable line, or an automatic claim with no code path, gets one note naming it 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:32: trailing whitespace.
+++PASS R-2640: an unreadable or misplaced Parked line gets one note and parks nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:34: trailing whitespace.
+++PASS R-2641: a parked deliverable that code makes and reads counts as live with one note naming its Parked line 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:36: trailing whitespace.
+++PASS R-2793: a clone-store entry is bound to the age table's run and writer, and the table keys come from the store constants 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:38: trailing whitespace.
+++PASS R-2784: this repository's ledger names every unparked deliverable's artifact or what it is built from, and keeps no plain-path artifact 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:40: trailing whitespace.
+++PASS every deliverable in this repository's ledger has a Made by and a Read by line 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:42: trailing whitespace.
+++PASS R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:44: trailing whitespace.
+++PASS R-1400: set given a printed line's tokens replaces only that slot and prints the new roster and the old line, from an absent file and from a file roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:46: trailing whitespace.
+++PASS R-1401: set keeps objective, gate and every other top-level member, from a file saved with a byte-order mark and CRLF 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:48: trailing whitespace.
+++PASS R-1402: set refuses no slot, an unknown slot and each malformed entry, naming the slot or field, and changes no byte 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:50: trailing whitespace.
+++PASS R-1403: set refuses a path the resolver refuses and leaves it unchanged 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:52: trailing whitespace.
+++PASS R-1404: set inside a pi model shell refuses naming PI_SESSION_ID before reading the file and writes nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:54: trailing whitespace.
+++PASS R-1405: set renames a temporary file from the target's folder, and a failed temporary write or rename leaves the file byte-identical with no temporary file behind 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:56: trailing whitespace.
+++PASS R-1406: set through a symlinked nana-pack.json writes the target and keeps the link 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:58: trailing whitespace.
+++PASS R-1407: set leaves the replaced bytes in nana-pack.json.bak 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:60: trailing whitespace.
+++PASS R-3524: lanes stays outside roster, set keeps a written limit and never adds an absent one 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:62: trailing whitespace.
+++PASS sealed default roster is luna high builder, sol reviewer, astra land and no scout 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:64: trailing whitespace.
+++PASS absent user nana-pack.json yields the default roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:66: trailing whitespace.
+++PASS user nana-pack.json without a roster yields the default roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:68: trailing whitespace.
+++PASS a valid machine roster replaces every slot, keeping a null scout and a null land 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:70: trailing whitespace.
+++PASS a machine roster saved with a byte-order mark and CRLF line endings is read 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:72: trailing whitespace.
+++PASS the roster is read from PI_CODING_AGENT_DIR, not the home agent dir 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:74: trailing whitespace.
+++PASS a project .pi/nana-pack.json roster is never read 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:76: trailing whitespace.
+++PASS each invalid roster shape is refused naming the slot or field 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:78: trailing whitespace.
+++PASS a provider or model holding a C1 control character is refused naming the slot and field 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:80: trailing whitespace.
+++PASS an unreadable or malformed user nana-pack.json is refused naming the file 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:82: trailing whitespace.
+++PASS roster command prints one line per slot and the source 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:84: trailing whitespace.
+++PASS roster command prints a refused roster on stderr and exits 1 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:86: trailing whitespace.
+++PASS a machine roster without largerBuilder reads it as null, and one with a pi or a Claude Code entry keeps it as written 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:88: trailing whitespace.
+++PASS each invalid largerBuilder, and a runtime field in any other slot, is refused naming the slot or field 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:90: trailing whitespace.
+++PASS R-2563: set reviewer claude-code opus is stored and printed 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:92: trailing whitespace.
+++PASS roster command prints largerBuilder after the builder: claude-code and the model, a pi entry's three fields, or none 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:94: trailing whitespace.
+++PASS roster command --json prints one roster object whose roster value, set as the roster member of a file holding the installer's seed, the resolver reads back as the same roster, for the default and a file roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:96: trailing whitespace.
+++PASS roster command --json prints a refused roster on stderr with empty stdout and exits 1 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:98: trailing whitespace.
+++PASS R-1636: importing nana-roster with argv[1] naming another file or no file completes and prints nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:100: trailing whitespace.
+++PASS seal: LANE_LIMIT_DEFAULT is 4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:102: trailing whitespace.
+++PASS R-3520: absent and null lane limits default, and lanes without a roster retain default source 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:104: trailing whitespace.
+++PASS R-3521: a written lane limit prints exactly, set agrees, and JSON stays slots only 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:106: trailing whitespace.
+++PASS R-3522: malformed lane values keep the roster and default limit with one warning 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:108: trailing whitespace.
+++PASS ears: the CLI prints the report line right after the summary line, naming the count and the allowance 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:110: trailing whitespace.
+++PASS REQUIREMENTS.md and the markers the suite carries agree 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:112: trailing whitespace.
+++PASS rail roots equal the package test roots and two app roots collected by npm test 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:114: trailing whitespace.
+++PASS no collected test root has nested test files outside fixture directories 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:116: trailing whitespace.
+++PASS the rail read the whole file and traced something 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:118: trailing whitespace.
+++PASS ears: a two-shall row and a no-shall row are counted, a retired one is not 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:120: trailing whitespace.
+++PASS ears: over the allowance each off-form row is a problem, at the allowance none 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:122: trailing whitespace.
+++PASS seal: EARS_ALLOWANCE is 0 (G-015) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:124: trailing whitespace.
+++PASS this repo: zero rows off form 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:126: trailing whitespace.
+++PASS seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:128: trailing whitespace.
+++PASS R-1000: CRLF ledger and general rows are read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:130: trailing whitespace.
+++PASS R-1000: spaces and tab after closing pipes are read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:132: trailing whitespace.
+++PASS R-1001: CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:134: trailing whitespace.
+++PASS R-1000: CRLF test-file marker traces its four-digit row 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:136: trailing whitespace.
+++PASS R-1000: both four-digit row prefixes load 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:138: trailing whitespace.
+++PASS R-1000: TS markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:140: trailing whitespace.
+++PASS R-1000: invalid row ID R-0123 is rejected 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:142: trailing whitespace.
+++PASS R-1000: invalid row ID R-10000 is rejected 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:144: trailing whitespace.
+++PASS R-1000: invalid row ID R-１２３ is rejected 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:146: trailing whitespace.
+++PASS R-1001: missing closing pipe names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:148: trailing whitespace.
+++PASS R-1001: missing closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:150: trailing whitespace.
+++PASS R-1001: zero-width space after closing pipe names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:152: trailing whitespace.
+++PASS R-1001: zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:154: trailing whitespace.
+++PASS R-1001: fenced example names REQUIREMENTS.md:6 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:156: trailing whitespace.
+++PASS R-1001: fenced example names REQUIREMENTS-general.md:6 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:158: trailing whitespace.
+++PASS R-1001: R candidate names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:160: trailing whitespace.
+++PASS R-1001: R candidate names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:162: trailing whitespace.
+++PASS R-1001: G candidate names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:164: trailing whitespace.
+++PASS R-1001: G candidate names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:166: trailing whitespace.
+++PASS R-1001: U+2028 inside a cell is read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:168: trailing whitespace.
+++PASS R-1001: U+0085 inside a cell is read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:170: trailing whitespace.
+++PASS R-1001: U+200B after closing pipe names REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:172: trailing whitespace.
+++PASS R-1000: both rails remove exactly one BOM from a double-BOM first-line row 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:174: trailing whitespace.
+++PASS R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe read 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:176: trailing whitespace.
+++PASS R-1001: a leading BOM before the first row is ignored 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:178: trailing whitespace.
+++PASS R-1000: a BOM and comma or U+2028 separated first-line marker list traces 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:180: trailing whitespace.
+++PASS R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:182: trailing whitespace.
+++PASS R-1000: Python rail reads four-digit R/G rows 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:184: trailing whitespace.
+++PASS R-1000: Python row grammar rejects leading-zero, five-digit and non-ASCII IDs 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:186: trailing whitespace.
+++PASS R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:188: trailing whitespace.
+++PASS R-1001: Python reads U+0085, U+FEFF and U+00A0 around row cells and after the pipe 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:190: trailing whitespace.
+++PASS R-1001: Python ignores a leading BOM before the first row 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:192: trailing whitespace.
+++PASS R-1000: Python leaves the second BOM before a double-BOM first-line row 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:194: trailing whitespace.
+++PASS R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:196: trailing whitespace.
+++PASS R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:198: trailing whitespace.
+++PASS R-1001: Python U+2028 inside a cell is read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:200: trailing whitespace.
+++PASS R-1001: Python U+0085 inside a cell is read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:202: trailing whitespace.
+++PASS R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:204: trailing whitespace.
+++PASS R-1001: Python CRLF ledger and general rows are read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:206: trailing whitespace.
+++PASS R-1001: Python spaces and tab after closing pipes are read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:208: trailing whitespace.
+++PASS R-1001: Python CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:210: trailing whitespace.
+++PASS R-1001: Python missing closing pipe names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:212: trailing whitespace.
+++PASS R-1001: Python missing closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:214: trailing whitespace.
+++PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:216: trailing whitespace.
+++PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:218: trailing whitespace.
+++PASS R-1001: Python fenced example names REQUIREMENTS.md:6 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:220: trailing whitespace.
+++PASS R-1001: Python fenced example names REQUIREMENTS-general.md:6 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:222: trailing whitespace.
+++PASS R-1001: Python R candidate names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:224: trailing whitespace.
+++PASS R-1001: Python R candidate names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:226: trailing whitespace.
+++PASS R-1001: Python G candidate names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:228: trailing whitespace.
+++PASS R-1001: Python G candidate names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:230: trailing whitespace.
+++PASS roster notice hook: one JSON object with the notice as SessionStart context on every source and with no source, and exit 0 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:232: trailing whitespace.
+++PASS roster notice hook: the notice is a user message for startup, resume, clear and fork, for a missing or unreadable source and for an input that fails on read, and not for compact 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:234: trailing whitespace.
+++PASS roster notice hook: a copy that cannot load its modules prints the unavailable notice in both fields with no path, and exits 0 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:236: trailing whitespace.
+++PASS roster notice hook: a throw after its modules have loaded also fails open with the unavailable notice 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:238: trailing whitespace.
+++PASS roster notice: one line that starts with the prefix and names the builders, reviewer and land by model and thinking 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:240: trailing whitespace.
+++PASS roster notice: each entry shows its model and thinking and never its provider field, for a default, a file and a Claude Code roster and a model id that contains its provider 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:242: trailing whitespace.
+++PASS roster notice: sealed values — prefix, size labels, Claude Code mark, default mark, refusal head and cut, change pointer, relative-dir text, shown start sources and widget key 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:244: trailing whitespace.
+++PASS roster notice: a larger-lane builder is named for larger lanes before the builder for small lanes 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:246: trailing whitespace.
+++PASS roster notice: a Claude Code entry's model is followed by the Claude Code mark, and a pi entry's is not 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:248: trailing whitespace.
+++PASS roster notice: a null land reads land seat 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:250: trailing whitespace.
+++PASS roster notice: a scout is never named, set or null 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:252: trailing whitespace.
+++PASS roster notice: a lone builder carries no size label 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:254: trailing whitespace.
+++PASS roster notice: only the default roster is marked default, and a file roster equal to the default is not 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:256: trailing whitespace.
+++PASS roster notice: every refusal kind shows the problem cut before its first ' (' with no echoed value or line break, and a roster path holding ' (' stays whole 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:258: trailing whitespace.
+++PASS roster notice: every notice, refused ones included, ends with the change pointer and the roster file 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:260: trailing whitespace.
+++PASS roster notice: the roster file shows the home folder as ~ wherever it appears 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:262: trailing whitespace.
+++PASS extension: with a UI, startup, new, resume and fork each set exactly one widget above the editor holding only the notice, a refused roster included, and raise no notify 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:264: trailing whitespace.
+++PASS extension: no UI, and the reload reason, each set no widget and raise nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:266: trailing whitespace.
+++PASS parity: the hook and the extension show the same notice for a default, a file and a refused roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:268: trailing whitespace.
+++PASS relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:270: trailing whitespace.
+++PASS seal: lane notice label is lanes 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:272: trailing whitespace.
+++PASS seal: ignored lane notice mark is (file value ignored) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:274: trailing whitespace.
+++PASS R-3523: notice shows lane limit after land, marks fallback, and omits it when unknown 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:276: trailing whitespace.
+++PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:278: trailing whitespace.
+++PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:280: trailing whitespace.
+++PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:282: trailing whitespace.
+++PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:284: trailing whitespace.
+++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:286: trailing whitespace.
+++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:288: trailing whitespace.
+++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:290: trailing whitespace.
+++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:292: trailing whitespace.
+++PASS install installs the pi seat guide and uninstall removes its manifest-owned link 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:294: trailing whitespace.
+++PASS install-check seat-guide heading matches the injected guide heading 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:296: trailing whitespace.
+++PASS doctor recognizes the installed guide and rejects missing, POSIX-copy and stale Windows forms 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:298: trailing whitespace.
+++PASS doctor rejects a stale Windows guide copy on every host 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:300: trailing whitespace.
+++PASS pi seat receives the complete installed guide under its fixed heading 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:302: trailing whitespace.
+++PASS stale guide installation notice names the pi seat guide and nana-setup install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:304: trailing whitespace.
+++PASS pi builder and reviewer omit the guide while retaining the rulings section 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:306: trailing whitespace.
+++PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:308: trailing whitespace.
+++PASS seat guide unavailable prefix is distinct from the rulings prefix 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:310: trailing whitespace.
+++PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:312: trailing whitespace.
+++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:314: trailing whitespace.
+++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:316: trailing whitespace.
+++PASS seal: RULINGS_READ_CAP is 8192 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:318: trailing whitespace.
+++PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:320: trailing whitespace.
+++PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:322: trailing whitespace.
+++PASS no fixture text leaks into the unavailable marker 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:324: trailing whitespace.
+++PASS planner prompt names no owner or work project 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:326: trailing whitespace.
+++PASS the rulings file names no owner and no work project 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:328: trailing whitespace.
+++PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:330: trailing whitespace.
+++PASS every ruling is one bullet that opens with its date 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:332: trailing whitespace.
+++PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:334: trailing whitespace.
+++PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:336: trailing whitespace.
+++PASS planner prompt names no model id 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:338: trailing whitespace.
+++PASS the rulings file names no model, leaving the lineup to the roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:340: trailing whitespace.
+++PASS the rulings file opens with the scope sentence for builders and reviewers 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:342: trailing whitespace.
+++PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:344: trailing whitespace.
+++PASS R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:346: trailing whitespace.
+++PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:348: trailing whitespace.
+++PASS seat guide holds no bullet beyond its sixteen rules 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:350: trailing whitespace.
+++PASS seat guide carries: launch in the background and end the turn 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:352: trailing whitespace.
+++PASS seat guide carries: no reading or judging partial work mid-run 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:354: trailing whitespace.
+++PASS seat guide carries: act on completion or a monitor's failure or stall 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:356: trailing whitespace.
+++PASS seat guide carries: verify once at the end 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:358: trailing whitespace.
+++PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:360: trailing whitespace.
+++PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:362: trailing whitespace.
+++PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:364: trailing whitespace.
+++PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:366: trailing whitespace.
+++PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:368: trailing whitespace.
+++PASS seat guide carries: findings back in the next brief 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:370: trailing whitespace.
+++PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:372: trailing whitespace.
+++PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:374: trailing whitespace.
+++PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:376: trailing whitespace.
+++PASS seat guide carries: preamble and review standard named, not restated 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:378: trailing whitespace.
+++PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:380: trailing whitespace.
+++PASS R-1400: set given a printed line's tokens replaces only that slot and prints the new roster and the old line, from an absent file and from a file roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:382: trailing whitespace.
+++PASS R-1401: set keeps objective, gate and every other top-level member, from a file saved with a byte-order mark and CRLF 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:384: trailing whitespace.
+++PASS R-1402: set refuses no slot, an unknown slot and each malformed entry, naming the slot or field, and changes no byte 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:386: trailing whitespace.
+++PASS R-1403: set refuses a path the resolver refuses and leaves it unchanged 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:388: trailing whitespace.
+++PASS R-1404: set inside a pi model shell refuses naming PI_SESSION_ID before reading the file and writes nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:390: trailing whitespace.
+++PASS R-1405: set renames a temporary file from the target's folder, and a failed temporary write or rename leaves the file byte-identical with no temporary file behind 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:392: trailing whitespace.
+++PASS R-1406: set through a symlinked nana-pack.json writes the target and keeps the link 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:394: trailing whitespace.
+++PASS R-1407: set leaves the replaced bytes in nana-pack.json.bak 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:396: trailing whitespace.
+++PASS R-3524: lanes stays outside roster, set keeps a written limit and never adds an absent one 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:398: trailing whitespace.
+++PASS sealed default roster is luna high builder, sol reviewer, astra land and no scout 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:400: trailing whitespace.
+++PASS absent user nana-pack.json yields the default roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:402: trailing whitespace.
+++PASS user nana-pack.json without a roster yields the default roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:404: trailing whitespace.
+++PASS a valid machine roster replaces every slot, keeping a null scout and a null land 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:406: trailing whitespace.
+++PASS a machine roster saved with a byte-order mark and CRLF line endings is read 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:408: trailing whitespace.
+++PASS the roster is read from PI_CODING_AGENT_DIR, not the home agent dir 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:410: trailing whitespace.
+++PASS a project .pi/nana-pack.json roster is never read 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:412: trailing whitespace.
+++PASS each invalid roster shape is refused naming the slot or field 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:414: trailing whitespace.
+++PASS a provider or model holding a C1 control character is refused naming the slot and field 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:416: trailing whitespace.
+++PASS an unreadable or malformed user nana-pack.json is refused naming the file 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:418: trailing whitespace.
+++PASS roster command prints one line per slot and the source 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:420: trailing whitespace.
+++PASS roster command prints a refused roster on stderr and exits 1 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:422: trailing whitespace.
+++PASS a machine roster without largerBuilder reads it as null, and one with a pi or a Claude Code entry keeps it as written 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:424: trailing whitespace.
+++PASS each invalid largerBuilder, and a runtime field in any other slot, is refused naming the slot or field 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:426: trailing whitespace.
+++PASS R-2563: set reviewer claude-code opus is stored and printed 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:428: trailing whitespace.
+++PASS roster command prints largerBuilder after the builder: claude-code and the model, a pi entry's three fields, or none 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:430: trailing whitespace.
+++PASS roster command --json prints one roster object whose roster value, set as the roster member of a file holding the installer's seed, the resolver reads back as the same roster, for the default and a file roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:432: trailing whitespace.
+++PASS roster command --json prints a refused roster on stderr with empty stdout and exits 1 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:434: trailing whitespace.
+++PASS R-1636: importing nana-roster with argv[1] naming another file or no file completes and prints nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:436: trailing whitespace.
+++PASS seal: LANE_LIMIT_DEFAULT is 4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:438: trailing whitespace.
+++PASS R-3520: absent and null lane limits default, and lanes without a roster retain default source 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:440: trailing whitespace.
+++PASS R-3521: a written lane limit prints exactly, set agrees, and JSON stays slots only 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:442: trailing whitespace.
+++PASS R-3522: malformed lane values keep the roster and default limit with one warning 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:444: trailing whitespace.
+++PASS ears: the CLI prints the report line right after the summary line, naming the count and the allowance 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:446: trailing whitespace.
+++PASS REQUIREMENTS.md and the markers the suite carries agree 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:448: trailing whitespace.
+++PASS rail roots equal the package test roots and two app roots collected by npm test 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:450: trailing whitespace.
+++PASS no collected test root has nested test files outside fixture directories 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:452: trailing whitespace.
+++PASS the rail read the whole file and traced something 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:454: trailing whitespace.
+++PASS ears: a two-shall row and a no-shall row are counted, a retired one is not 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:456: trailing whitespace.
+++PASS ears: over the allowance each off-form row is a problem, at the allowance none 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:458: trailing whitespace.
+++PASS seal: EARS_ALLOWANCE is 0 (G-015) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:460: trailing whitespace.
+++PASS this repo: zero rows off form 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:462: trailing whitespace.
+++PASS seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:464: trailing whitespace.
+++PASS R-1000: CRLF ledger and general rows are read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:466: trailing whitespace.
+++PASS R-1000: spaces and tab after closing pipes are read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:468: trailing whitespace.
+++PASS R-1001: CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:470: trailing whitespace.
+++PASS R-1000: CRLF test-file marker traces its four-digit row 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:472: trailing whitespace.
+++PASS R-1000: both four-digit row prefixes load 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:474: trailing whitespace.
+++PASS R-1000: TS markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:476: trailing whitespace.
+++PASS R-1000: invalid row ID R-0123 is rejected 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:478: trailing whitespace.
+++PASS R-1000: invalid row ID R-10000 is rejected 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:480: trailing whitespace.
+++PASS R-1000: invalid row ID R-１２３ is rejected 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:482: trailing whitespace.
+++PASS R-1001: missing closing pipe names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:484: trailing whitespace.
+++PASS R-1001: missing closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:486: trailing whitespace.
+++PASS R-1001: zero-width space after closing pipe names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:488: trailing whitespace.
+++PASS R-1001: zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:490: trailing whitespace.
+++PASS R-1001: fenced example names REQUIREMENTS.md:6 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:492: trailing whitespace.
+++PASS R-1001: fenced example names REQUIREMENTS-general.md:6 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:494: trailing whitespace.
+++PASS R-1001: R candidate names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:496: trailing whitespace.
+++PASS R-1001: R candidate names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:498: trailing whitespace.
+++PASS R-1001: G candidate names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:500: trailing whitespace.
+++PASS R-1001: G candidate names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:502: trailing whitespace.
+++PASS R-1001: U+2028 inside a cell is read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:504: trailing whitespace.
+++PASS R-1001: U+0085 inside a cell is read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:506: trailing whitespace.
+++PASS R-1001: U+200B after closing pipe names REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:508: trailing whitespace.
+++PASS R-1000: both rails remove exactly one BOM from a double-BOM first-line row 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:510: trailing whitespace.
+++PASS R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe read 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:512: trailing whitespace.
+++PASS R-1001: a leading BOM before the first row is ignored 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:514: trailing whitespace.
+++PASS R-1000: a BOM and comma or U+2028 separated first-line marker list traces 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:516: trailing whitespace.
+++PASS R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:518: trailing whitespace.
+++PASS R-1000: Python rail reads four-digit R/G rows 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:520: trailing whitespace.
+++PASS R-1000: Python row grammar rejects leading-zero, five-digit and non-ASCII IDs 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:522: trailing whitespace.
+++PASS R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:524: trailing whitespace.
+++PASS R-1001: Python reads U+0085, U+FEFF and U+00A0 around row cells and after the pipe 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:526: trailing whitespace.
+++PASS R-1001: Python ignores a leading BOM before the first row 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:528: trailing whitespace.
+++PASS R-1000: Python leaves the second BOM before a double-BOM first-line row 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:530: trailing whitespace.
+++PASS R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:532: trailing whitespace.
+++PASS R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:534: trailing whitespace.
+++PASS R-1001: Python U+2028 inside a cell is read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:536: trailing whitespace.
+++PASS R-1001: Python U+0085 inside a cell is read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:538: trailing whitespace.
+++PASS R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:540: trailing whitespace.
+++PASS R-1001: Python CRLF ledger and general rows are read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:542: trailing whitespace.
+++PASS R-1001: Python spaces and tab after closing pipes are read and clean 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:544: trailing whitespace.
+++PASS R-1001: Python CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:546: trailing whitespace.
+++PASS R-1001: Python missing closing pipe names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:548: trailing whitespace.
+++PASS R-1001: Python missing closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:550: trailing whitespace.
+++PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:552: trailing whitespace.
+++PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:554: trailing whitespace.
+++PASS R-1001: Python fenced example names REQUIREMENTS.md:6 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:556: trailing whitespace.
+++PASS R-1001: Python fenced example names REQUIREMENTS-general.md:6 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:558: trailing whitespace.
+++PASS R-1001: Python R candidate names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:560: trailing whitespace.
+++PASS R-1001: Python R candidate names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:562: trailing whitespace.
+++PASS R-1001: Python G candidate names REQUIREMENTS.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:564: trailing whitespace.
+++PASS R-1001: Python G candidate names REQUIREMENTS-general.md:5 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:566: trailing whitespace.
+++PASS roster notice hook: one JSON object with the notice as SessionStart context on every source and with no source, and exit 0 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:568: trailing whitespace.
+++PASS roster notice hook: the notice is a user message for startup, resume, clear and fork, for a missing or unreadable source and for an input that fails on read, and not for compact 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:570: trailing whitespace.
+++PASS roster notice hook: a copy that cannot load its modules prints the unavailable notice in both fields with no path, and exits 0 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:572: trailing whitespace.
+++PASS roster notice hook: a throw after its modules have loaded also fails open with the unavailable notice 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:574: trailing whitespace.
+++PASS roster notice: one line that starts with the prefix and names the builders, reviewer and land by model and thinking 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:576: trailing whitespace.
+++PASS roster notice: each entry shows its model and thinking and never its provider field, for a default, a file and a Claude Code roster and a model id that contains its provider 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:578: trailing whitespace.
+++PASS roster notice: sealed values — prefix, size labels, Claude Code mark, default mark, refusal head and cut, change pointer, relative-dir text, shown start sources and widget key 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:580: trailing whitespace.
+++PASS roster notice: a larger-lane builder is named for larger lanes before the builder for small lanes 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:582: trailing whitespace.
+++PASS roster notice: a Claude Code entry's model is followed by the Claude Code mark, and a pi entry's is not 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:584: trailing whitespace.
+++PASS roster notice: a null land reads land seat 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:586: trailing whitespace.
+++PASS roster notice: a scout is never named, set or null 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:588: trailing whitespace.
+++PASS roster notice: a lone builder carries no size label 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:590: trailing whitespace.
+++PASS roster notice: only the default roster is marked default, and a file roster equal to the default is not 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:592: trailing whitespace.
+++PASS roster notice: every refusal kind shows the problem cut before its first ' (' with no echoed value or line break, and a roster path holding ' (' stays whole 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:594: trailing whitespace.
+++PASS roster notice: every notice, refused ones included, ends with the change pointer and the roster file 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:596: trailing whitespace.
+++PASS roster notice: the roster file shows the home folder as ~ wherever it appears 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:598: trailing whitespace.
+++PASS extension: with a UI, startup, new, resume and fork each set exactly one widget above the editor holding only the notice, a refused roster included, and raise no notify 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:600: trailing whitespace.
+++PASS extension: no UI, and the reload reason, each set no widget and raise nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:602: trailing whitespace.
+++PASS parity: the hook and the extension show the same notice for a default, a file and a refused roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:604: trailing whitespace.
+++PASS relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:606: trailing whitespace.
+++PASS seal: lane notice label is lanes 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:608: trailing whitespace.
+++PASS seal: ignored lane notice mark is (file value ignored) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:610: trailing whitespace.
+++PASS R-3523: notice shows lane limit after land, marks fallback, and omits it when unknown 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:612: trailing whitespace.
+++PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:614: trailing whitespace.
+++PASS install places nana-rulings.md in the pi agent dir (link on POSIX, byte-equal copy on win32) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:616: trailing whitespace.
+++PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:618: trailing whitespace.
+++PASS install places nana-rulings.md in the Claude rules folder (link on POSIX, byte-equal copy on win32) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:620: trailing whitespace.
+++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:622: trailing whitespace.
+++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:624: trailing whitespace.
+++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:626: trailing whitespace.
+++PASS doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:628: trailing whitespace.
+++PASS install installs the pi seat guide and uninstall removes its manifest-owned link 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:630: trailing whitespace.
+++PASS install-check seat-guide heading matches the injected guide heading 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:632: trailing whitespace.
+++PASS doctor recognizes the installed guide and rejects missing, POSIX-copy and stale Windows forms 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:634: trailing whitespace.
+++PASS doctor rejects a stale Windows guide copy on every host 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:636: trailing whitespace.
+++PASS pi seat receives the complete installed guide under its fixed heading 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:638: trailing whitespace.
+++PASS stale guide installation notice names the pi seat guide and nana-setup install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:640: trailing whitespace.
+++PASS pi builder and reviewer omit the guide while retaining the rulings section 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:642: trailing whitespace.
+++PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:644: trailing whitespace.
+++PASS seat guide unavailable prefix is distinct from the rulings prefix 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:646: trailing whitespace.
+++PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:648: trailing whitespace.
+++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:650: trailing whitespace.
+++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:652: trailing whitespace.
+++PASS seal: RULINGS_READ_CAP is 8192 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:654: trailing whitespace.
+++PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:656: trailing whitespace.
+++PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:658: trailing whitespace.
+++PASS no fixture text leaks into the unavailable marker 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:660: trailing whitespace.
+++PASS planner prompt names no owner or work project 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:662: trailing whitespace.
+++PASS the rulings file names no owner and no work project 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:664: trailing whitespace.
+++PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:666: trailing whitespace.
+++PASS every ruling is one bullet that opens with its date 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:668: trailing whitespace.
+++PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:670: trailing whitespace.
+++PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:672: trailing whitespace.
+++PASS planner prompt names no model id 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:674: trailing whitespace.
+++PASS the rulings file names no model, leaving the lineup to the roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:676: trailing whitespace.
+++PASS the rulings file opens with the scope sentence for builders and reviewers 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:678: trailing whitespace.
+++PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:680: trailing whitespace.
+++PASS R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:682: trailing whitespace.
+++PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:684: trailing whitespace.
+++PASS seat guide holds no bullet beyond its sixteen rules 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:686: trailing whitespace.
+++PASS seat guide carries: launch in the background and end the turn 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:688: trailing whitespace.
+++PASS seat guide carries: no reading or judging partial work mid-run 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:690: trailing whitespace.
+++PASS seat guide carries: act on completion or a monitor's failure or stall 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:692: trailing whitespace.
+++PASS seat guide carries: verify once at the end 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:694: trailing whitespace.
+++PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:696: trailing whitespace.
+++PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:698: trailing whitespace.
+++PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:700: trailing whitespace.
+++PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:702: trailing whitespace.
+++PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:704: trailing whitespace.
+++PASS seat guide carries: findings back in the next brief 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:706: trailing whitespace.
+++PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:708: trailing whitespace.
+++PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:710: trailing whitespace.
+++PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:712: trailing whitespace.
+++PASS seat guide carries: preamble and review standard named, not restated 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:714: trailing whitespace.
+++PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:716: trailing whitespace.
+++PASS R-1400: set given a printed line's tokens replaces only that slot and prints the new roster and the old line, from an absent file and from a file roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:718: trailing whitespace.
+++PASS R-1401: set keeps objective, gate and every other top-level member, from a file saved with a byte-order mark and CRLF 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:720: trailing whitespace.
+++PASS R-1402: set refuses no slot, an unknown slot and each malformed entry, naming the slot or field, and changes no byte 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:722: trailing whitespace.
+++PASS R-1403: set refuses a path the resolver refuses and leaves it unchanged 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:724: trailing whitespace.
+++PASS R-1404: set inside a pi model shell refuses naming PI_SESSION_ID before reading the file and writes nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:726: trailing whitespace.
+++PASS R-1405: set renames a temporary file from the target's folder, and a failed temporary write or rename leaves the file byte-identical with no temporary file behind 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:728: trailing whitespace.
+++PASS R-1406: set through a symlinked nana-pack.json writes the target and keeps the link 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:730: trailing whitespace.
+++PASS R-1407: set leaves the replaced bytes in nana-pack.json.bak 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:732: trailing whitespace.
+++PASS sealed default roster is luna high builder, sol reviewer, astra land and no scout 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:734: trailing whitespace.
+++PASS absent user nana-pack.json yields the default roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:736: trailing whitespace.
+++PASS user nana-pack.json without a roster yields the default roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:738: trailing whitespace.
+++PASS a valid machine roster replaces every slot, keeping a null scout and a null land 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:740: trailing whitespace.
+++PASS a machine roster saved with a byte-order mark and CRLF line endings is read 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:742: trailing whitespace.
+++PASS the roster is read from PI_CODING_AGENT_DIR, not the home agent dir 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:744: trailing whitespace.
+++PASS a project .pi/nana-pack.json roster is never read 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:746: trailing whitespace.
+++PASS each invalid roster shape is refused naming the slot or field 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:748: trailing whitespace.
+++PASS a provider or model holding a C1 control character is refused naming the slot and field 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:750: trailing whitespace.
+++PASS an unreadable or malformed user nana-pack.json is refused naming the file 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:752: trailing whitespace.
+++PASS roster command prints a refused roster on stderr and exits 1 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:754: trailing whitespace.
+++PASS a machine roster without largerBuilder reads it as null, and one with a pi or a Claude Code entry keeps it as written 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:756: trailing whitespace.
+++PASS each invalid largerBuilder, and a runtime field in any other slot, is refused naming the slot or field 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:758: trailing whitespace.
+++PASS R-2563: set reviewer claude-code opus is stored and printed 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:760: trailing whitespace.
+++PASS roster command prints largerBuilder after the builder: claude-code and the model, a pi entry's three fields, or none 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:762: trailing whitespace.
+++PASS roster command --json prints one roster object whose roster value, set as the roster member of a file holding the installer's seed, the resolver reads back as the same roster, for the default and a file roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:764: trailing whitespace.
+++PASS roster command --json prints a refused roster on stderr with empty stdout and exits 1 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:766: trailing whitespace.
+++PASS R-1636: importing nana-roster with argv[1] naming another file or no file completes and prints nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:768: trailing whitespace.
+++FAIL seal: LANE_LIMIT_DEFAULT is 4 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:770: trailing whitespace.
+++PASS roster notice: one line that starts with the prefix and names the builders, reviewer and land by model and thinking 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:772: trailing whitespace.
+++PASS roster notice: each entry shows its model and thinking and never its provider field, for a default, a file and a Claude Code roster and a model id that contains its provider 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:774: trailing whitespace.
+++PASS roster notice: sealed values — prefix, size labels, Claude Code mark, default mark, refusal head and cut, change pointer, relative-dir text, shown start sources and widget key 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:776: trailing whitespace.
+++PASS roster notice: a larger-lane builder is named for larger lanes before the builder for small lanes 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:778: trailing whitespace.
+++PASS roster notice: a Claude Code entry's model is followed by the Claude Code mark, and a pi entry's is not 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:780: trailing whitespace.
+++PASS roster notice: a null land reads land seat 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:782: trailing whitespace.
+++PASS roster notice: a scout is never named, set or null 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:784: trailing whitespace.
+++PASS roster notice: a lone builder carries no size label 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:786: trailing whitespace.
+++PASS roster notice: only the default roster is marked default, and a file roster equal to the default is not 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:788: trailing whitespace.
+++PASS roster notice: every refusal kind shows the problem cut before its first ' (' with no echoed value or line break, and a roster path holding ' (' stays whole 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:790: trailing whitespace.
+++PASS roster notice: every notice, refused ones included, ends with the change pointer and the roster file 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:792: trailing whitespace.
+++PASS roster notice: the roster file shows the home folder as ~ wherever it appears 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:794: trailing whitespace.
+++PASS extension: with a UI, startup, new, resume and fork each set exactly one widget above the editor holding only the notice, a refused roster included, and raise no notify 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:796: trailing whitespace.
+++PASS extension: no UI, and the reload reason, each set no widget and raise nothing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:798: trailing whitespace.
+++PASS parity: the hook and the extension show the same notice for a default, a file and a refused roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:800: trailing whitespace.
+++PASS relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:802: trailing whitespace.
+++FAIL seal: lane notice label is lanes 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:804: trailing whitespace.
+++FAIL seal: ignored lane notice mark is (file value ignored) 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:806: trailing whitespace.
+++PASS pi seat receives the complete installed guide under its fixed heading 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:808: trailing whitespace.
+++PASS stale guide installation notice names the pi seat guide and nana-setup install 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:810: trailing whitespace.
+++PASS pi builder and reviewer omit the guide while retaining the rulings section 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:812: trailing whitespace.
+++PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:814: trailing whitespace.
+++PASS seat guide unavailable prefix is distinct from the rulings prefix 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:816: trailing whitespace.
+++PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:818: trailing whitespace.
+++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:820: trailing whitespace.
+++PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:822: trailing whitespace.
+++PASS seal: RULINGS_READ_CAP is 8192 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:824: trailing whitespace.
+++PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:826: trailing whitespace.
+++PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:828: trailing whitespace.
+++PASS no fixture text leaks into the unavailable marker 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:830: trailing whitespace.
+++PASS planner prompt names no owner or work project 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:832: trailing whitespace.
+++PASS the rulings file names no owner and no work project 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:834: trailing whitespace.
+++PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:836: trailing whitespace.
+++PASS every ruling is one bullet that opens with its date 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:838: trailing whitespace.
+++PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:840: trailing whitespace.
+++PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:842: trailing whitespace.
+++PASS planner prompt names no model id 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:844: trailing whitespace.
+++PASS the rulings file names no model, leaving the lineup to the roster 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:846: trailing whitespace.
+++PASS the rulings file opens with the scope sentence for builders and reviewers 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:848: trailing whitespace.
+++PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:850: trailing whitespace.
+++PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:852: trailing whitespace.
+++PASS seat guide carries: launch in the background and end the turn 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:854: trailing whitespace.
+++PASS seat guide carries: no reading or judging partial work mid-run 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:856: trailing whitespace.
+++PASS seat guide carries: act on completion or a monitor's failure or stall 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:858: trailing whitespace.
+++PASS seat guide carries: verify once at the end 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:860: trailing whitespace.
+++PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:862: trailing whitespace.
+++PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:864: trailing whitespace.
+++PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:866: trailing whitespace.
+++PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:868: trailing whitespace.
+++PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:870: trailing whitespace.
+++PASS seat guide carries: findings back in the next brief 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:872: trailing whitespace.
+++PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:874: trailing whitespace.
+++PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:876: trailing whitespace.
+++PASS seat guide carries: preamble and review standard named, not restated 
+docs/reviews/land-test-split-2026-11-01/merge-3-inherited-whitespace.txt:878: trailing whitespace.
+++PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+docs/reviews/windows-first-try-2026-11-02/r1-reviewer-79b94b90.md:34: trailing whitespace.
++  
+docs/reviews/windows-first-try-2026-11-02/r2-reviewer-fe5b3c40.md:11: trailing whitespace.
++  
+packages/nana-pack/tests/land-checks.mjs:53: new blank line at EOF.
