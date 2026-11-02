@@ -53,6 +53,16 @@ const PAIRS = [
 	{ n: "S8", name: "the preamble tells builders to push again", edits: [
 		one(PREAMBLE, "- Do not push; the seat pushes after verifying; report the tip. Do not wait for or read CI.", "- Push your last commit with plain git push and report the tip. Do not wait for or read CI."),
 	], tests: [STRIP_T], expectRed: [M5] },
+	// Added by the windows sub-seat after build 2 (round 1 MUST and SHOULD 2).
+	{ n: "S9", name: "a direct review-ledger Claude run gets no sealed settings (round 1 MUST)", edits: [
+		one(LEDGER, "if (basename(child[0]).replace(/\\.(?:exe|com|cmd|bat)$/i, '').toLowerCase() === CLAUDE_BIN) {", "if (false) {"),
+	], tests: [STRIP_T], expectRed: [M2] },
+	{ n: "S10", name: "gh auth status --show-token slips past the gate (round 1 SHOULD 2)", edits: [
+		one(GATE_CFG, "auth\\s+status\\s+(?:\\S+\\s+)*--show-token(?:\\s|$)", "auth\\s+status\\s+(?:\\S+\\s+)*--show-tokens(?:\\s|$)"),
+	], tests: [GATE_T], expectRed: [M4, M7_GATE] },
+	{ n: "S11", name: "git credential-store and credential-wincred get slip past the gate (round 1 SHOULD 2)", edits: [
+		one(GATE_CFG, "\\s+credential-(?:manager(?:-core)?|osxkeychain|store|wincred)\\s+get", "\\s+credential-(?:manager(?:-core)?|osxkeychain)\\s+get"),
+	], tests: [GATE_T], expectRed: [M4, M7_GATE] },
 ];
 
 process.exitCode = await runMutations({ lane: "builder-credential-strip", self: import.meta.url, tip: "HEAD", declared: DECLARED, pairs: PAIRS });
