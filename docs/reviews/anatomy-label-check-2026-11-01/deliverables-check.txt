@@ -1,0 +1,22 @@
+PASS R-2780: an artifact line is read by its ID, and a reused ID, a malformed or misplaced line, or a live entry in a proposed or retired feature gets one note 
+PASS R-2781: an unknown class or a location of the wrong shape for its class gets one note 
+PASS R-2782: a tracked entry matching nothing, an untracked or non-file writer, a reasonless manual entry, or a second entry at the same location gets one note 
+PASS R-2783: a registry reference binds the claim's run and every writer, a built-from list needs only live entries, and a valid home reference gets no not-tracked note 
+PASS R-2795: a reads line names a live entry read by tracked files, and a malformed, unknown, own, repeated or misplaced line or an untracked reader gets one note 
+PASS R-2798: each built-from entry is registered or read in the deliverable's home feature 
+PASS R-2830: an artifact Read by line reads its own feature's entry, and a malformed, foreign, unknown, untracked, reasonless, repeated or misplaced line gets one note 
+PASS R-2831: a runtime reader needs a reason on both Read by forms and never counts as code 
+PASS R-2832: an artifact park needs its own unread entry, a since date and a reason, and a park of a read entry parks nothing 
+PASS R-2833: a reader path whose file name is a test file gets one note on every reader form, and a harness file in a tests folder gets none 
+PASS R-2834: the shared consumer predicate gives each entry its reader kinds, and an entry with none and no park gets one note 
+PASS seal: the test-reader glob and the no-declared-reader note read as sealed 
+PASS a manual maker or a rule or person reader with no reason gets one note naming the row 
+PASS a maker or reader path not tracked at HEAD gets one note naming the row and the path 
+PASS a missing or unreadable line, or an automatic claim with no code path, gets one note naming it 
+PASS R-2640: an unreadable or misplaced Parked line gets one note and parks nothing 
+PASS R-2641: a parked deliverable that code makes and reads counts as live with one note naming its Parked line 
+PASS R-2793: a clone-store entry is bound to the age table's run and writer, and the table keys come from the store constants 
+PASS R-2784: this repository's ledger names every unparked deliverable's artifact or what it is built from, and keeps no plain-path artifact 
+PASS every deliverable in this repository's ledger has a Made by and a Read by line 
+PASS R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files 
+all checks passed
