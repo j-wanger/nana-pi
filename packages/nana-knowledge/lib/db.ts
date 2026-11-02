@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-knowledge/lib/db.ts
  * @purpose Open and verify the node:sqlite knowledge database, create its FTS5 schema on the build path, and read or write the meta table.
- * @inputs the database file path and {create, readonly}; node:sqlite imported dynamically with its SQLite
+ * @inputs the database file path and {create, readonly, busyTimeoutMs}; node:sqlite imported dynamically with its SQLite
  *  ExperimentalWarning muted
  * @outputs a Db handle (exec / prepare / close), index damage classification and validation, a meta value or null, and SCHEMA_VERSION
  * @effects disk (mkdirs the parent and creates the database file on the create path), database (WAL
@@ -35,6 +35,11 @@ export function loadSqlite(): Promise<any> {
 }
 
 export const SCHEMA_VERSION = "1";
+
+/** chosen: tolerate brief reader/checkpoint contention in detached builds, well below the build-lock TTL. */
+export const BUILD_BUSY_TIMEOUT_MS = 5000;
+/** chosen: wait out brief connection churn while leaving most of the hook budget available. */
+export const QUERY_BUSY_TIMEOUT_MS = 100;
 
 /** SQLite primary result codes classified as index damage; contract: R-2400, R-2401. */
 export const DAMAGE_CODES = new Set([1, 11, 26]);
@@ -109,13 +114,15 @@ CREATE TRIGGER IF NOT EXISTS docs_au AFTER UPDATE ON docs BEGIN
 END;
 `;
 
-export async function openDb(dbPath: string, opts: { create?: boolean; readonly?: boolean } = {}): Promise<Db> {
+export async function openDb(dbPath: string, opts: { create?: boolean; readonly?: boolean; busyTimeoutMs?: number } = {}): Promise<Db> {
 	const { DatabaseSync } = await loadSqlite();
 	if (opts.create) fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 	const db = new DatabaseSync(dbPath, { readOnly: !!opts.readonly }) as Db;
 	try {
-		// Schema/PRAGMA only on the build path. The query path opens an existing file and
-		// issues nothing but SELECTs — a read-only *handle* would trip over WAL's shm file.
+		// Install the handler before WAL setup or any schema/query statement can meet a lock.
+		db.exec(`PRAGMA busy_timeout=${opts.busyTimeoutMs ?? (opts.create ? BUILD_BUSY_TIMEOUT_MS : QUERY_BUSY_TIMEOUT_MS)}`);
+		// Schema/WAL setup only on the build path. Query handles remain read-write
+		// because a read-only handle can trip over WAL's shm file.
 		if (opts.create) {
 			db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
 			db.exec(SCHEMA);

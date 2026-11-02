@@ -14,7 +14,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { checkIndex, indexDamage, openDb, setMeta, type Db } from "./db.ts";
+import { BUILD_BUSY_TIMEOUT_MS, checkIndex, indexDamage, openDb, setMeta, type Db } from "./db.ts";
 import { parseArticle, parseLedger, type Row } from "./parse.ts";
 import { paths } from "./paths.ts";
 import { contains, loadSources, skipNames, type Root, type SourcesProblem } from "./sources.ts";
@@ -324,11 +324,11 @@ async function buildLocked(opts: LockedBuildOptions, sources: LoadedSources): Pr
 	if (opts.rebuild && !problem && !opts.recoveryFilesDeleted) deleteIndexFiles();
 	const existing = fs.existsSync(paths.db);
 	if (problem && existing) {
-		const probe = await openDb(paths.db, { readonly: true });
+		const probe = await openDb(paths.db, { readonly: true, busyTimeoutMs: BUILD_BUSY_TIMEOUT_MS });
 		try { checkIndex(probe); }
 		finally { try { probe.close(); } catch { /* preserve the check error */ } }
 	}
-	const db = await openDb(paths.db, { create: !problem || !existing });
+	const db = await openDb(paths.db, { create: !problem || !existing, busyTimeoutMs: BUILD_BUSY_TIMEOUT_MS });
 	try {
 		checkIndex(db);
 		return buildOpen(db, sources, t0);
