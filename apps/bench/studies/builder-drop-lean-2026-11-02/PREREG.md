@@ -48,6 +48,7 @@ Manifests and overlays stay private, outside git; `study.json` points at them by
 - Allowance and kill limit USD 6 per run; hard cap USD 45 for everything in the output folder.
 - No review step.
 - Replays run concurrently with other builds on the same machine; timing and cost per run may be noisier.
+- Fidelity gap: the `nana-writing` command is not on the replay builder's PATH, unlike historical builds.
 
 ## Measures
 

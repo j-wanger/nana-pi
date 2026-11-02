@@ -174,6 +174,9 @@ async function reviewRun({ review, out, tuple, manifestHash, cap, runDir, work, 
  return rows.find(r => r.key === key)?.reviewer ?? "missing";
 }
 export async function runStudy(options) {
+ // Experiment branch (seat, 2026-11-02): builders need node/npm; expose the real node install read-only.
+ const nodeBin = path.dirname(fs.realpathSync(process.execPath));
+ options = { ...options, sandboxReadPaths: [...(options.sandboxReadPaths ?? []), path.dirname(nodeBin)] };
  const { studyDir, repo, contexts, labels, go = false, smoke = false, sourceDir = defaultSourceDir(), suiteLock = DEFAULT_LOCK_DIR, pollMs = BUSY_POLL_MS, platform = process.platform } = options;
  if (go) requireBackend(platform);
  const out = privateFolder(options.out, { allowAncestorSymlinks: true, refuseCheckout: true }), release = await lockFolder(out);
@@ -225,7 +228,7 @@ export async function runStudy(options) {
     if (fs.existsSync(path.join(sourceDir, "nana-pack.json"))) fs.copyFileSync(path.join(sourceDir, "nana-pack.json"), path.join(agentDir, "nana-pack.json"));
     await verifyAuth({ dir: agentDir, sourceDir });
    } else fs.mkdirSync(agentDir);
-   const env = { ...replayEnv({ home, temp, agentDir, suiteLock }), NANA_REPLAY_CONTEXT: path.join(runDir, "prompt.json"), NANA_REPLAY_SESSION: path.join(runDir, "session.jsonl"), NANA_REPLAY_RUN_DIR: runDir };
+   const env = { ...replayEnv({ home, temp, agentDir, suiteLock, bin: `${nodeBin}:/usr/bin:/bin:/usr/sbin:/sbin` }), NANA_REPLAY_CONTEXT: path.join(runDir, "prompt.json"), NANA_REPLAY_SESSION: path.join(runDir, "session.jsonl"), NANA_REPLAY_RUN_DIR: runDir };
    write(path.join(home, "gitconfig"), REMOTE_HOSTS.map(host => `[url "https://replay.invalid/"]\n\tinsteadOf = https://${host}/\n\tinsteadOf = git@${host}:\n`).join(""));
    const args = [...cloneArgs(study, work, runDir), "--", rendered.instruction], profile = profileFor({ ...options, out, tuple, sourceDir, launcher, suiteLock });
    write(path.join(runDir, "sandbox.sb"), profile); write(path.join(runDir, "argv.json"), args);
