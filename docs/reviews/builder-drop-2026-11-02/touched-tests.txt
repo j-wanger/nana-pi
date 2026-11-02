@@ -1,0 +1,24 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs apps/bench packages/nana-pack/tests/test-locked.test.mjs
+
+PASS  packages/nana-pack/tests/test-locked.test.mjs  17 pass  4.9s
+PASS  apps/bench/test/agentdir.test.mjs              26 pass  0.0s
+PASS  apps/bench/test/aggregate.test.mjs             62 pass  0.0s
+PASS  apps/bench/test/anatomy-labels.test.mjs        30 pass  1.4s
+PASS  apps/bench/test/anatomy.test.mjs               9 pass  1.0s
+PASS  apps/bench/test/argv.test.mjs                  32 pass, 1 skip  0.0s
+PASS  apps/bench/test/catch-ledger.test.mjs          78 pass  1.4s
+PASS  apps/bench/test/checkers.test.mjs              92 pass  3.5s
+PASS  apps/bench/test/evaluator-hardening.test.mjs   68 pass  2.3s
+PASS  apps/bench/test/integration.test.mjs           48 pass  2.1s
+PASS  apps/bench/test/nested.test.mjs                59 pass  0.0s
+PASS  apps/bench/test/ops.test.mjs                   48 pass  0.3s
+PASS  apps/bench/test/orchestration-paths.test.mjs   94 pass  7.3s
+PASS  apps/bench/test/plan.test.mjs                  57 pass  0.1s
+PASS  apps/bench/test/replay.test.mjs                8 pass  7.8s
+SKIP  apps/bench/test/study-tasks.test.mjs           needs apps/bench/.ext/pi-web-access (not present)
+PASS  apps/bench/test/timeout.test.mjs               12 pass  1.6s
+PASS  apps/bench/test/usage.test.mjs                 90 pass  0.0s
+
+18 files: 17 PASS, 0 FAIL, 1 SKIP, 0 WARN · checks: 830 pass, 0 fail, 1 skip · 34.2s

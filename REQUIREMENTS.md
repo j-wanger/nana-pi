@@ -3283,7 +3283,9 @@ Read by: A-086 · code: scripts/component-audit.mjs, scripts/hive-page.mjs
 Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
 Outcome: A developer can judge whether an agent, prompt or workflow change improves relevant outcomes at an understood cost.
 Kind: product
-Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270, R-3390
+Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270, R-3390, R-3604
+Made by: R-3604 · manual: the seat runs node apps/bench/replay.mjs run with a private output folder outside git · A-101
+Read by: R-3604 · code: apps/bench/replay.mjs
 Made by: R-3270 · manual: the seat runs node apps/bench/anatomy.mjs segment with a private output folder outside git · A-092
 Read by: R-3270 · code: apps/bench/anatomy.mjs
 Made by: R-3390 · manual: the seat runs node apps/bench/anatomy.mjs label with a private output folder outside git · A-098
@@ -3495,6 +3497,25 @@ Read by: A-098 · code: apps/bench/lib/anatomy-labels.mjs
 | R-3404 | WHEN report runs with labels, it shall count keys spanning parts, occurrences below 40 raw chars and empty-normalized occurrences without exposing text or keys. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3404: context dependence short raw boundary and empty counts`, `apps/bench/test/anatomy-labels.test.mjs::R-3404: seal label short chars` |
 | R-3405 | WHEN a labels reader runs, it shall preserve input bytes, modes, mtimes and listing, print no text or keys, bind provenance to the file digest and refuse missing, symlinked, nonregular, torn, malformed, duplicate, off-vocabulary, foreign or stale rows and mismatched manifest counts with fixed diagnostics. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3405: readers refuse damage privately without changing files` |
 | R-3406 | WHEN agree runs with a second sheet pair and model labels, it shall print all functions' pooled model:consensus and model:b agreement and distinct counts, deduplicating keys first-pair-first and printing overlap. | implemented | `apps/bench/test/anatomy-labels.test.mjs::R-3406: two sheet pairs pool every function once per key` |
+
+## FEAT-045 · Test which builder context changes builds
+Purpose: Replay past first builds with one kind of context removed, isolate the start tree, grade frozen checks and record spend and measures without a study verdict.
+Status: active
+Artifact: A-101 · builder replay journal and rows · user-home store: ~/<private --out folder>/journal.jsonl and rows.jsonl · manual: the seat runs node apps/bench/replay.mjs run outside any git checkout; synthetic runs use OS temp
+Read by: A-101 · code: apps/bench/replay.mjs
+Reads: A-092 · apps/bench/lib/replay-context.mjs
+Reads: A-098 · apps/bench/lib/replay-context.mjs
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3600 | WHEN replay launches a builder, it shall isolate a single-start-tree clone under a filesystem sandbox and filtered environment, withhold grading overlays until its tree dies, audit remote access and refuse unsupported platforms. | implemented | `apps/bench/test/replay.test.mjs::R-3600: sandbox start tree excludes future and outside data` |
+| R-3601 | WHEN replay renders a context arm, it shall preserve attempt zero's first system and user messages after declared path substitutions, remove only selected sections or model-labelled units with emptied headings and tables, and flag a recorded prompt mismatch. | implemented | `apps/bench/test/replay.test.mjs::R-3601: first context is exact and cuts only model-labelled kind` |
+| R-3602 | WHEN replay grades a frozen manifest, it shall verify overlay hashes, run files directly with stable file-qualified check identities, retain four outcome kinds, score named-interface code faults as failures and distinguish incompatible graders with worst and best bounds. | implemented | `apps/bench/test/replay.test.mjs::R-3602: frozen checks retain failures and grader bounds` |
+| R-3603 | WHEN replay admits a paid operation, it shall durably reserve its allowance before launch, enforce the cap and running kill limit including smoke and review spend, charge unknown cost in full and never automatically repay interrupted tuples. | implemented | `apps/bench/test/replay.test.mjs::R-3603: durable reservations cap spend and never repay interruptions` |
+| R-3604 | WHEN a replay tuple ends, it shall retain one private row with checks, usage, cost, time, turns, tools, retries, compactions, pulls, errors, process outcome and optional review measures after killing stalled or ceiling-limited process trees. | implemented | `apps/bench/test/replay.test.mjs::R-3604: complete measures and stalled trees precede grading` |
+| R-3605 | WHEN replay detects a live build or non-replay suite holder before or during a run or before grading, it shall yield without automatic repayment, ignore dead holders and refuse a second invocation on the same private folder. | implemented | `apps/bench/test/replay.test.mjs::R-3605: live lanes abort and exclusive folders refuse peers` |
+| R-3606 | WHEN replay resumes, it shall refuse changed rendered prompts, contexts, labels, attempt selection, grader assets, harness, sandbox, pi version, study values or committed pre-registration rather than mix rows. | implemented | `apps/bench/test/replay.test.mjs::R-3606: all causal inputs seal resume including committed registration` |
+| R-3607 | WHEN replay classifies stored or live events, it shall deduplicate failed call ids, count tool failures and precedence-ordered diagnostics separately from process outcomes, exclude successful calls including wrapped expected-red tests, group stored sessions by brief build number, print unclassified rates and mark precedent touches as noncausal without exposing text. | implemented | `apps/bench/test/replay.test.mjs::R-3607: three error layers deduplicate and never print private text` |
 
 # Open questions and deliberate omissions
 

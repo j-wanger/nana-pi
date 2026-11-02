@@ -1,0 +1,9 @@
+PASS R-3600: sandbox start tree excludes future and outside data
+PASS R-3601: first context is exact and cuts only model-labelled kind
+PASS R-3602: frozen checks retain failures and grader bounds
+PASS R-3603: durable reservations cap spend and never repay interruptions
+PASS R-3604: complete measures and stalled trees precede grading
+PASS R-3605: live lanes abort and exclusive folders refuse peers
+PASS R-3606: all causal inputs seal resume including committed registration
+PASS R-3607: three error layers deduplicate and never print private text
+builder replay: 8/8 checks passed

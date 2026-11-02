@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 584 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 594 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -63,6 +63,16 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — —
 - **callees** — `apps/bench/lib/nested.mjs`
 
+### `apps/bench/ext/replay-context.ts`
+
+- **purpose** — Supply the exact private recorded first system prompt at the before-agent-start boundary.
+- **inputs** — NANA_REPLAY_CONTEXT private JSON containing sections and their joined systemPrompt.
+- **outputs** — Exact system bytes persisted through pi's custom preamble and ordered post-cwd sections.
+- **effects** — disk (one private prompt read)
+- **errors** — Missing or inconsistent prompt input refuses extension loading.
+- **callers** — `apps/bench/lib/replay.mjs`, `apps/bench/test/replay.test.mjs`
+- **callees** — —
+
 ### `apps/bench/lib/agentdir.mjs`
 
 - **purpose** — Prepare and verify the pi config directory the bench runs against, so a study never inherits the operator's agent settings.
@@ -70,7 +80,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports defaultSourceDir/defaultBenchDir/PINNED_SETTINGS/prepareAgentDir/verifyAuth/settingsFingerprintInput; creates the bench dir with pinned settings.json and an auth.json SYMLINK to the operator's credential file
 - **effects** — disk (mkdir, writes settings.json, symlinks auth.json)
 - **errors** — throws Error when the source auth.json is missing or the bench auth.json is not the expected symlink
-- **callers** — `apps/bench/lib/plan.mjs`, `apps/bench/run.mjs`, `apps/bench/test/agentdir.test.mjs`
+- **callers** — `apps/bench/lib/plan.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/run.mjs`, `apps/bench/test/agentdir.test.mjs`
 - **callees** — —
 
 ### `apps/bench/lib/anatomy-config.mjs`
@@ -80,7 +90,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Named segmentation, labelling, normalization, sampling and reporting choices.
 - **effects** — none
 - **errors** — none
-- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`
 - **callees** — —
 
 ### `apps/bench/lib/anatomy-labels.mjs`
@@ -90,7 +100,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Private manifest and appended key/id/label rows; counts-only progress and spend lines.
 - **effects** — disk (private label store); network (only through injected runner)
 - **errors** — Fixed fingerprint diagnostics or filesystem errors propagate to the CLI's sanitized boundary; bad calls reject batches.
-- **callers** — `apps/bench/lib/anatomy.mjs`
+- **callers** — `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/replay-context.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/lib/plan.mjs`
 
 ### `apps/bench/lib/anatomy-measures.mjs`
@@ -100,7 +110,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Counts-only reports and agreement, blind samples, or assembled private text.
 - **effects** — none
 - **errors** — Invalid labels, duplicate ids, unknown ids and differing sheet id sets throw fixed diagnostics.
-- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/replay-context.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/replay.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/catch-stats.mjs`
 
 ### `apps/bench/lib/anatomy-pulls.mjs`
@@ -110,7 +120,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Read rows with class, function and result chars, including unclassified bash.
 - **effects** — none
 - **errors** — Missing or errored results contribute zero chars.
-- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/anatomy.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
 
 ### `apps/bench/lib/anatomy-sessions.mjs`
@@ -120,7 +130,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Private segmented contexts, counted exclusions, skip reasons and extraction denominators.
 - **effects** — disk (explicit roots), process (read-only bounded git queries)
 - **errors** — Filesystem or git discovery failures propagate to the counts-only CLI boundary.
-- **callers** — `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/replay.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/pi-usage.mjs`
 
 ### `apps/bench/lib/anatomy-spans.mjs`
@@ -130,7 +140,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Ordered contiguous unit/glue spans with offsets, heading ancestry and rule tiers.
 - **effects** — none
 - **errors** — none; unrecognized prose receives a fixed unsorted reason.
-- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/replay.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`
 
 ### `apps/bench/lib/anatomy.mjs`
@@ -224,7 +234,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports tupleKey/rng/shuffle/profilesFor/buildSchedule/filterPlan/loadOrCreateSchedule/OPERATIONAL_KEYS/studyFingerprint/fileSha/readJsonl/readResults/assertFingerprint; persists schedule.json and quarantines a torn results tail
 - **effects** — disk (reads the study dir and results.jsonl, writes schedule.json and the quarantined tail)
 - **errors** — assertFingerprint throws when a results file was written under a different fingerprint; readJsonl reports a torn tail rather than parsing it
-- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/run.mjs`, `apps/bench/test/plan.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/replay-journal.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/run.mjs`, `apps/bench/test/plan.test.mjs`
 - **callees** — `apps/bench/lib/agentdir.mjs`
 
 ### `apps/bench/lib/profiles.mjs`
@@ -237,6 +247,76 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — `apps/bench/run.mjs`, `apps/bench/test/argv.test.mjs`
 - **callees** — —
 
+### `apps/bench/lib/replay-config.mjs`
+
+- **purpose** — Declare replay operational defaults and diagnostic rules with provenance, never study values.
+- **inputs** — none
+- **outputs** — Harness defaults, diagnostic precedence, masks and sandbox system paths.
+- **effects** — none
+- **errors** — none
+- **callers** — `apps/bench/lib/replay-errors.mjs`, `apps/bench/lib/replay-grade.mjs`, `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay.mjs`
+- **callees** — —
+
+### `apps/bench/lib/replay-context.mjs`
+
+- **purpose** — Render only a recorded first attempt with declared substitutions and one structural or model-label cut.
+- **inputs** — Private anatomy context spans, readLabels store, arm and clone path.
+- **outputs** — Ordered sections, exact joined system text, first instruction and selected attempt.
+- **effects** — disk (explicit private context and label inputs)
+- **errors** — Invalid arms, missing first context or model labels refuse rendering.
+- **callers** — `apps/bench/lib/replay.mjs`, `apps/bench/test/replay.test.mjs`
+- **callees** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
+
+### `apps/bench/lib/replay-errors.mjs`
+
+- **purpose** — Normalize pi input forms and count failed tools, diagnostics and process outcomes without text.
+- **inputs** — Session entries or JSON events; precedent paths and optional process outcome.
+- **outputs** — Canonical entries/events and counts-only error summaries.
+- **effects** — none
+- **errors** — Malformed events are ignored, never printed.
+- **callers** — `apps/bench/lib/replay.mjs`, `apps/bench/test/replay.test.mjs`
+- **callees** — `apps/bench/lib/replay-config.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
+
+### `apps/bench/lib/replay-grade.mjs`
+
+- **purpose** — Apply frozen overlays after builder exit and grade stable per-file checks without excusing broken implementations.
+- **inputs** — Frozen grading manifest, private tree/output folder and busy predicate.
+- **outputs** — Private full test captures and check outcomes with exclusion status and worst/best bounds.
+- **effects** — disk (overlay and private evidence), process (bounded direct node test files)
+- **errors** — Hash/path mismatches refuse grading; process failures become grader-broken outcomes.
+- **callers** — `apps/bench/lib/replay.mjs`, `apps/bench/test/replay.test.mjs`
+- **callees** — `apps/bench/lib/replay-config.mjs`, `apps/bench/run.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
+
+### `apps/bench/lib/replay-isolation.mjs`
+
+- **purpose** — Build historical-only workspaces, filesystem profiles and filtered environments and detect live machine owners.
+- **inputs** — Explicit repository tip, run paths, allowed runtime paths, ledger and suite-lock locations.
+- **outputs** — One-commit clones, Seatbelt text, child environment and busy decisions.
+- **effects** — disk (run folder), process (bounded git, tar and pid queries)
+- **errors** — Unsupported platforms and failed start-tree preparation refuse launch.
+- **callers** — `apps/bench/lib/replay.mjs`, `apps/bench/test/replay.test.mjs`
+- **callees** — `apps/bench/lib/replay-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
+
+### `apps/bench/lib/replay-journal.mjs`
+
+- **purpose** — Persist replay identities, exclusive folder ownership and durable no-retry spend reservations.
+- **inputs** — Private output folder, immutable manifest, bounded operation allowances and injected execution.
+- **outputs** — Fsynced start/end/refusal journal, one row per admitted key and interrupted recovery rows.
+- **effects** — disk (private output only), process (pid liveness)
+- **errors** — Cap refusals stop admission; identity, lock and persistence failures stop execution.
+- **callers** — `apps/bench/lib/replay.mjs`, `apps/bench/test/replay.test.mjs`
+- **callees** — `apps/bench/lib/plan.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/process-tree.mjs`
+
+### `apps/bench/lib/replay.mjs`
+
+- **purpose** — Coordinate private historical builder replays and expose counts-only manual subcommands without study verdicts.
+- **inputs** — Explicit study, repository, context/label roots and private output; injectable unpaid launcher and machine checks.
+- **outputs** — Immutable manifest, spend journal, private streams/checks/measure rows and counts-only CLI results.
+- **effects** — disk (private output), process (isolated builder, grader and optional reviewer), network (only after explicit go)
+- **errors** — Fixed replay diagnostics; unsupported isolation, busy machines and changed inputs refuse paid launch.
+- **callers** — `apps/bench/replay.mjs`, `apps/bench/test/replay.test.mjs`
+- **callees** — `apps/bench/ext/replay-context.ts`, `apps/bench/lib/agentdir.mjs`, `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/plan.mjs`, `apps/bench/lib/replay-config.mjs`, `apps/bench/lib/replay-context.mjs`, `apps/bench/lib/replay-errors.mjs`, `apps/bench/lib/replay-grade.mjs`, `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay-journal.mjs`, `apps/bench/lib/usage.mjs`, `apps/bench/replay.mjs`, `apps/bench/run.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `scripts/memory-shape-runners.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`
+
 ### `apps/bench/lib/usage.mjs`
 
 - **purpose** — Parse a pi `--mode json` event stream into deterministic per-run metrics, keeping the run's own model spend strictly apart from what its tools spent.
@@ -244,8 +324,18 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports emptyUsage/addUsage/totalTokens/costTotal/costOfRecord/observedCostOfRecord/costUnknownReason/parseStream/incompleteReason; parseStream returns {tokens, nested, cost, finalText, settled, toolCalls, retries, compactions, errors}
 - **effects** — none
 - **errors** — none thrown — an unterminated or malformed stream is reported through `settled: false` and incompleteReason(), and an unpriceable run through costUnknownReason()
-- **callers** — `apps/bench/aggregate.mjs`, `apps/bench/run.mjs`, `apps/bench/test/aggregate.test.mjs`, `apps/bench/test/nested.test.mjs`, `apps/bench/test/usage.test.mjs`, `scripts/memory-shape-runners.mjs`
+- **callers** — `apps/bench/aggregate.mjs`, `apps/bench/lib/replay-journal.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/run.mjs`, `apps/bench/test/aggregate.test.mjs`, `apps/bench/test/nested.test.mjs`, `apps/bench/test/usage.test.mjs`, `scripts/memory-shape-runners.mjs`
 - **callees** — `packages/nana-pack/lib/pi-usage.mjs`
+
+### `apps/bench/replay.mjs`
+
+- **purpose** — Expose manual private builder replay render, run, grade, errors and rows commands.
+- **inputs** — Explicit CLI paths and --go/--smoke flags.
+- **outputs** — Counts-only stdout and fixed diagnostics with the deciding exit code.
+- **effects** — disk, process, network (only explicit run --go through the harness)
+- **errors** — Exit 1 on refused or invalid inputs; no private exception text prints.
+- **callers** — `apps/bench/lib/replay.mjs`
+- **callees** — `apps/bench/lib/replay.mjs`
 
 ### `apps/bench/run.mjs`
 
@@ -254,9 +344,9 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — appends records to results.jsonl; writes each run's raw stream, stderr and workspace diff under the study dir; exports parseArgs/loadStudy/runChild/executeRun/registrationProbe/runPlan and the interrupt and budget helpers; progress on stdout
 - **effects** — disk (study dir reads, evidence and results writes), process (spawns pi children, installs SIGINT handling, exits non-zero), network (the model calls those children make)
 - **errors** — exit 1 on a bad invocation or a study that fails to load; a run failure is recorded as data (state fail | harness | grader) rather than thrown; the plan stops on the cumulative budget, on 3 consecutive systemic failures, on a child that did not die cleanly, or — once that run's record is on disk — on a graded run whose evidence could not be written
-- **callers** — `apps/bench/test/integration.test.mjs`, `apps/bench/test/ops.test.mjs`, `apps/bench/test/orchestration-paths.test.mjs`, `apps/bench/test/plan.test.mjs`, `apps/bench/test/study-tasks.test.mjs`, `apps/bench/test/timeout.test.mjs`
+- **callers** — `apps/bench/lib/replay-grade.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/integration.test.mjs`, `apps/bench/test/ops.test.mjs`, `apps/bench/test/orchestration-paths.test.mjs`, `apps/bench/test/plan.test.mjs`, `apps/bench/test/study-tasks.test.mjs`, `apps/bench/test/timeout.test.mjs`
 - **callees** — `apps/bench/lib/agentdir.mjs`, `apps/bench/lib/checkers.mjs`, `apps/bench/lib/fixture.mjs`, `apps/bench/lib/pi-exports.mjs`, `apps/bench/lib/plan.mjs`, `apps/bench/lib/profiles.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/lib/process-tree.mjs`
-- **repo-code launches** — line 141: spawn · line 659: spawn
+- **repo-code launches** — line 141: spawn · line 665: spawn
 
 ### `apps/bench/test/agentdir.test.mjs`
 
@@ -389,6 +479,17 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `apps/bench/lib/plan.mjs`, `apps/bench/run.mjs`
+
+### `apps/bench/test/replay.test.mjs`
+
+- **purpose** — Pin the eight replay contracts using synthetic private stores and unpaid stub processes.
+- **inputs** — OS-temp repositories, synthetic streams, manifests and injected runners.
+- **outputs** — Eight awaited bounded PASS/FAIL cases; no private fixture text.
+- **effects** — disk (OS temp only), process (stub children and macOS sandbox)
+- **errors** — Assertion failures set exit code 1.
+- **callers** — —
+- **callees** — `apps/bench/ext/replay-context.ts`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/replay-context.mjs`, `apps/bench/lib/replay-errors.mjs`, `apps/bench/lib/replay-grade.mjs`, `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay-journal.mjs`, `apps/bench/lib/replay.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/process-tree.mjs`
+- **unresolved launches** — line 182: spawnSync
 
 ### `apps/bench/test/study-tasks.test.mjs`
 
@@ -1143,7 +1244,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Safe ok/text/usage results without printing subprocess data.
 - **effects** — process (bounded piped children in OS temp); network (the chosen model through its CLI)
 - **errors** — Spawn, parse and incomplete-stream failures return ok false, never raw errors.
-- **callers** — `apps/bench/anatomy.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/memory-replay.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `scripts/memory-replay.mjs`, `scripts/memory-run.mjs`, `scripts/memory-shape.mjs`, `scripts/outcome-meter.mjs`
+- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/lib/replay.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/memory-replay.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `scripts/memory-replay.mjs`, `scripts/memory-run.mjs`, `scripts/memory-shape.mjs`, `scripts/outcome-meter.mjs`
 - **callees** — `apps/bench/lib/catch-judge.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`
 - **repo-code launches** — line 57: spawn
 
@@ -1324,7 +1425,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — runtime data (schema 1 hashes, tests, tip, measurement time, and optional dirty count) and command exit codes
 - **effects** — process (spawns git and the locked suite, forwards SIGINT/SIGTERM/SIGHUP off Windows, lists and kills the suite's process tree), disk (a temp coverage folder under the OS temp folder, the runtime data file)
 - **errors** — leaves earlier runtime data unchanged and exits non-zero when the suite's completion record is missing or disagrees with the records read, or when a stop signal arrives before the suite finishes; otherwise exits with the suite's own exit code
-- **callers** — `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/test-locked.mjs`
+- **callers** — `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/test-locked.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/test-locked.mjs`
 - **repo-code launches** — line 57: spawn · line 148: spawnSync
 
@@ -1356,7 +1457,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — The deciding suite exit code plus record problems and prefixed land notes for skipped measures, reruns, report writes, and write failures.
 - **effects** — disk (lock, record and coverage folders, suite records, runtime data, product report), process (spawns git and suite commands, lists and signals the suite process tree).
 - **errors** — Suite failures remain nonzero; record or runtime write failures after a passing suite become notes without changing its verdict.
-- **callers** — `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `scripts/runtime-measure.mjs`
+- **callers** — `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `scripts/runtime-measure.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`
 - **repo-code launches** — line 123: spawn; binding line 256; binding line 266; binding line 277; binding line 309
 
@@ -2039,7 +2140,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Parsed entries, path judgments, or the worker-compatible refusal/launch line and known-bug path.
 - **effects** — disk (the launch check reads the brief and regular known-bug file metadata)
 - **errors** — Read and git failures become fail-closed result objects; pure helpers represent malformed entries as data.
-- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/planner-prompt.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `scripts/component-audit.mjs`, `scripts/deliverables.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/replay.mjs`, `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/planner-prompt.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `scripts/component-audit.mjs`, `scripts/deliverables.mjs`
 - **callees** — `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`
 
 ### `packages/nana-pack/lib/build-records-config.mjs`
@@ -2059,7 +2160,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — End records, best-effort append results, ledger reads, session usage, paired build views, and shared report lines.
 - **effects** — disk (record append and bounded ledger/session reads)
 - **errors** — Append operations return named failures; bounded ledger reads throw ERR_TOO_LARGE or filesystem errors.
-- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/bin/build-report.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/pi-usage.mjs`, `packages/nana-pack/lib/record-ledger.mjs`
 
 ### `packages/nana-pack/lib/ci-records.mjs`
@@ -2119,7 +2220,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Entries, text, dated days, sorted transcript paths and private folders.
 - **effects** — disk (reads transcripts and creates private folders)
 - **errors** — Filesystem errors propagate; torn JSON lines are skipped; unsafe output folders are refused.
-- **callers** — `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-replay-context.mjs`, `packages/nana-pack/lib/memory-replay.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/lib/outcome-meter.mjs`, `packages/nana-pack/lib/writing-trial-extractor.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/replay-context.mjs`, `apps/bench/lib/replay-errors.mjs`, `apps/bench/lib/replay-grade.mjs`, `apps/bench/lib/replay-journal.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/replay.test.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-replay-context.mjs`, `packages/nana-pack/lib/memory-replay.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/lib/outcome-meter.mjs`, `packages/nana-pack/lib/writing-trial-extractor.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/config.ts`
@@ -2401,7 +2502,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — true only when the owned lock was removed
 - **effects** — disk (reads and may remove one lock file)
 - **errors** — never throws
-- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-sync.mjs`
+- **callers** — `apps/bench/lib/replay-journal.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-sync.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/lane-watcher-child.mjs`
@@ -2684,7 +2785,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — pidAlive, killProcessTree's boolean outcome, killProcessTreeNoWait, and sealed taskkill/default constants
 - **effects** — process (signals a process group or starts taskkill)
 - **errors** — never throws
-- **callers** — `apps/bench/run.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/mutation-runner-config.mjs`, `packages/nana-pack/lib/mutation-runner.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
+- **callers** — `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay-journal.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/run.mjs`, `apps/bench/test/replay.test.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/mutation-runner-config.mjs`, `packages/nana-pack/lib/mutation-runner.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
 - **callees** — —
 - **repo-code launches** — line 37: spawnSync · line 63: spawn
 

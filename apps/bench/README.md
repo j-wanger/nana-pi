@@ -1,7 +1,8 @@
 # apps/bench — a reusable benchmark for the pi coding agent
 
 Runs the same tasks through different pi configurations and writes down what each one cost.
-Cross-platform, `node <file>` tests, no npm dependencies of its own.
+Cross-platform analysis and tests, `node <file>` tests, no npm dependencies of its own.
+Builder replay launches require macOS.
 
 ## Dependencies
 
@@ -12,6 +13,9 @@ Cross-platform, `node <file>` tests, no npm dependencies of its own.
 | ↳ its bundled **`@earendil-works/pi-ai`** | `calculateCost(model, usage)` and the `Usage` type — both **root exports** (`dist/index.d.ts` → `models.ts` / `types.ts`); never a deep `dist/` path | ships inside pi 1.4.0 |
 | ↳ **`ModelRuntime`** from the pi root export | `ModelRuntime.create({allowModelNetwork:false})` → `getModel(provider, id)`, so nested-call pricing resolves **offline** from pi's bundled/cached catalogs | pi 1.4.0 |
 | **`pi-web-access`** under `apps/bench/.ext/` | profile C **only**. Reviewed, content-pinned by sha256 in `study.json`, deliberately **not vendored** into this repo | **0.28.0** — `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0` |
+| **git and tar** | replay start-tree materialization; git also reads registration and build provenance | system tools |
+| **sandbox-exec** | kernel filesystem isolation for replay launches | macOS only; other platforms refuse paid replay |
+| **Claude Code CLI** | optional supplementary replay reviews only | explicit authenticated native executable; not needed for replay tests |
 | **Playwright** | — | **none.** The bench has no browser tests |
 | anything else from npm | — | **none.** Zero runtime dependencies; the `test/*.test.mjs` files are zero-dep `node <file>` runs with no model calls |
 
@@ -39,8 +43,9 @@ npm test -- apps/bench                        # every bench test, from the repo 
 `--go` is mandatory for real spend: with no flag the runner only prints. `--keep` leaves each run's
 temp workspace in place (evidence is saved either way).
 
-Every bench test runs on win32; `agentdir`'s folder-mode check prints SKIP there, since Windows has
-no POSIX mode bits to hold a `0700` directory.
+Every bench test file runs on win32. `agentdir`'s folder-mode check prints SKIP there, since Windows has
+no POSIX mode bits to hold a `0700` directory. Replay's live-sandbox branches run only on macOS;
+the other replay assertions run on all three platforms.
 
 **Interrupting:** Ctrl-C signals the current child (and its process group), then — before exiting
 130 — drains what the child had already written with a bounded wait, confirms the whole group is
@@ -543,6 +548,96 @@ Use `--drop <function>` to remove units and orphan headings, or `--stage <functi
 and put the ordered units in staged.txt. These options are mutually exclusive. Separators stay glue.
 Assembly uses spans, never the audit copy of the raw part. A later replay must pass these private files from outside its checkout.
 
+## Builder context replay
+
+`replay.mjs` is the replay harness, not a study or a verdict. It consumes the private anatomy contexts
+and model labels, a study directory and frozen grading manifests. No study values ship here.
+All five commands print counts, hashes and fixed diagnostics, never prompts, test text or replies.
+Keep all outputs outside any git checkout; output folders use owner-only modes on POSIX.
+
+```bash
+node apps/bench/replay.mjs render --contexts <context-store> --labels <label-store> --build <build-id> --arm <arm.json> --out <private-folder>
+node apps/bench/replay.mjs run --study <study-dir> --repo <repo> --contexts <context-store> --labels <label-store> --out <private-folder>
+node apps/bench/replay.mjs run --study <study-dir> --repo <repo> --contexts <context-store> --labels <label-store> --out <private-folder> --go --smoke
+node apps/bench/replay.mjs run --study <study-dir> --repo <repo> --contexts <context-store> --labels <label-store> --out <private-folder> --go
+node apps/bench/replay.mjs grade --manifest <grading.json> --tree <private-clone> --out <private-folder>
+node apps/bench/replay.mjs errors --sessions <sessions-root> --repo <repo>
+node apps/bench/replay.mjs rows --in <private-folder>
+node --experimental-strip-types apps/bench/test/replay.test.mjs
+```
+
+Without `--go`, run writes the schedule and exact argv to private `<private-folder>/dry-run.json`, and prints counts,
+reserved spend and sandbox hashes. `--smoke` selects one tuple; it still requires `--go` to spend.
+A smoke tuple has its own journal key and counts against the same cap as builds and reviews.
+The later study lane supplies the registration, manifests, control pilot and verdict rule.
+
+Inputs:
+- `study.json`: `id`, `model` (`provider`, `id`, `thinking`), `piVersion`, `seed`, `repeats`,
+  `allowance`, `killLimit`, `cap`, `preregistration`, `lanes` and `arms`.
+  Each lane names `build`, `lane` and `grading` (relative to the study folder).
+  The registration file must be tracked and clean at HEAD; its bytes and last commit enter the manifest.
+  Operational overrides are `stallMs`, `ceilingMs` and additional audited `remoteHosts`.
+- Each arm is `{ "name": "control" }`, a name with `dropSections`, or a name with `dropLabel`.
+  Section cuts remove listings, not callable tool schemas. Label cuts use model labels, never rule labels.
+- Each grading manifest has `overlay` entries (`source`, tree-relative `path`, `sha256`), `files`,
+  `checks`, `interface.modules` (`path`, `exports`) and optional `interface.commands`.
+  Overlay sources resolve against the manifest folder. Each check has `file`, `text`, `occurrence`,
+  `id` (`file#text#occurrence`), `row`, positive `weight` and `class` (`fail-to-pass` or `pass-to-pass`).
+  Optional `masks` entries carry a regexp `pattern` and `replacement`; `timeoutMs` bounds each file.
+  Only unindented PASS/FAIL declarations count; SKIP and runner summaries cannot create checks.
+- Optional `review` names `model`, `effort`, `allowance`, optional `repeat` and `timeoutMs`.
+  A real review also needs an absolute native Claude `entry`; `credentialFile` can name an independently
+  authorised credentials file, linked into the private reviewer config. It is never copied or hashed.
+  The reviewer's Read tool reaches this run folder, not other runs or live checkouts. Failed or unavailable reviews are `missing`, not zero findings.
+
+The renderer takes attempt zero's system message and first user instruction. It excludes later attempts,
+custom messages, compactions and edits. It substitutes the original cwd, the supplied main checkout,
+`~/nana-pi` and `$HOME/nana-pi` with the clone path, and sets the cwd section to that path.
+Split addendum parts rejoin with no extra separators. Empty headings survive unrelated cuts;
+fully removed tables lose their headers. Anatomy assembly itself is unchanged.
+The extension uses pi 1.4.0's custom-preamble fallback because forced prompts are not recorded in its transcript.
+It preserves the joined front-section bytes before cwd and custom sections after cwd.
+The harness compares the session's own system text with the expected bytes; a mismatch is `harness: prompt-mismatch`.
+
+Each run gets a one-commit git repository made from the recorded start tip with git archive and tar.
+It has no remote, later objects or grading overlay. The builder runs under a deny-default Seatbelt profile:
+only its run folder, the shared suite lock, OS paths, pi/Node runtime and the named credential are reachable.
+Only its run folder and the suite lock are writable, apart from device files. The credential is read-only;
+OAuth renewal requiring an external write can fail and is not silently granted broader access.
+HOME, temp and agent settings live under the run folder. Retry and compaction settings come from the source config;
+only historical gate and post-edit extensions load, plus the replay extension. No lane watcher runs.
+The child environment excludes GitHub tokens and shell hooks; its PATH omits gh. Git remote URLs rewrite to an invalid host.
+Network access stays open for the provider. A command naming an audited public host yields `leak-suspect`;
+other network routes remain a residual, not a claimed security boundary.
+Linux and Windows refuse `run --go` with `replay: no isolation backend`; use a container backend before adding support.
+
+The harness yields to a live build record or a live non-replay suite-lock holder before launch, during the builder
+and before grading or review. Dead holders are ignored. Busy detection aborts the builder and records `aborted: busy`.
+Detection is polling, not mutual exclusion with builders. One exclusive pid file prevents concurrent replay writers.
+The real suite lock is passed through, so a replay builder's locked suite still waits for other suites.
+The whole remembered builder tree must be dead before overlays arrive. Stalls and ceiling kills remain run outcomes,
+not grader errors. Each grader file runs directly in a fresh HOME, with full output captured privately.
+Named-interface syntax/import/missing-implementation faults fail; unnamed imports are `grader-incompatible`.
+Spawn failures, timeouts and harness kills are `grader-broken`. Rows retain exclusions and worst/best bounds.
+
+Before spending, `journal.jsonl` durably records the tuple, manifest hash and reserved allowance.
+Admission refuses when spent plus reservations plus the next allowance exceeds the cap.
+Running priced spend above `killLimit` kills the builder. **Overshoot can be one model turn**, whose usage arrives at completion;
+unknown nested spend can make this only an observed bound. Null-cost operations charge their full allowance, never zero.
+A durable start without an end remains interrupted. Resume preserves saved partial usage and never automatically pays that tuple again.
+A row written just before a crash is retained even if its journal end did not arrive; its full reservation stays charged.
+Changing any manifest input refuses resume instead of mixing rows. This includes prompts, contexts, labels, grading files,
+overlays, harness modules, sandbox paths, source settings, pi version, all study values and committed registration.
+
+`rows.jsonl` holds each tuple's manifest hash, check outcomes, Usage buckets, cost or its missing-price reason,
+wall time, turns, tool counts, retries, compactions, pulls by class/function, process outcome, errors and optional review count/cost.
+`reviews.jsonl` holds supplementary review operations under the same spend journal.
+Error counts separate failed tool calls, precedence-ordered diagnostics and process outcomes.
+Successful calls, including successful wrappers around expected-red tests, do not count as failures merely because their text looks red.
+Precedent touches are labelled `proxy, not causal`. Stored sessions group by their build record's brief number using
+anatomy's shared parser, not their attempt name; sessions without matched build records enter `unknown`.
+The rows command is counts-only; it gives no causal verdict. Tests use synthetic OS-temp repositories and unpaid stub children.
+
 ## Layout
 
 ```
@@ -569,7 +664,15 @@ catch-ledger.mjs    the catch ledger CLI: extract, label, match, stats over revi
 lib/catch-extract.mjs  pull candidate findings out of a review corpus
 lib/catch-judge.mjs    the ONLY model call in apps/bench: label + match prompts, schemas, validation
 lib/catch-stats.mjs    the ledger's tallies and rates
-ext/                bench-owned pi extensions (the nested-usage sidecar)
+replay.mjs          private replay CLI: render, run, grade, errors and rows
+lib/replay.mjs      schedule, fingerprint, supervised builder and optional reviewer orchestration
+lib/replay-config.mjs  operational defaults, error patterns and sandbox paths (no study values)
+lib/replay-context.mjs  attempt-zero span renderer and session prompt comparison
+lib/replay-isolation.mjs  historical start trees, Seatbelt profiles, filtered env and busy detection
+lib/replay-grade.mjs  frozen overlays, stable check ids, failure attribution and bounds
+lib/replay-journal.mjs  durable spend reservations, exclusive folder and no-retry recovery
+lib/replay-errors.mjs  event normalization, failed tools and ordered diagnostics
+ext/                bench-owned pi extensions (nested-usage sidecar and replay-context.ts)
 test/               test files with no model calls (stub-child integration + every
                     orchestration path incl. a real-fixture run + an adversarial matrix against
                     the trusted evaluator)

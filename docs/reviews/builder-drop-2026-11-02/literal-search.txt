@@ -1,0 +1,234 @@
+packages/nana-setup/tests/retired-artifacts.test.mjs:19:import { resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/retired-artifacts.test.mjs:408:		const layout = resolveLayout({ home: h });
+packages/nana-setup/tests/retired-artifacts.test.mjs:429:		const layout = resolveLayout({ home: h });
+packages/nana-setup/tests/retired-artifacts.test.mjs:439:		const layout = resolveLayout({ home: h });
+packages/nana-setup/tests/project.test.mjs:85:	check("AGENTS.md has the empty Layout + Rules sections", /## Layout\n/.test(read(path.join(dir, "AGENTS.md"))) && /## Rules that don't move\n/.test(read(path.join(dir, "AGENTS.md"))));
+packages/nana-setup/tests/doctor-release.test.mjs:16:import { resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/doctor-release.test.mjs:31:const getRow = (repo, root) => diagnoseWithPi(resolveLayout({ home: path.join(root, "home") }), { projectDir: root, releaseRepo: repo }).find((row) => row.label === "release status");
+packages/nana-setup/tests/objective-path-shapes.test.mjs:28:const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+packages/nana-setup/tests/objective-path-shapes.test.mjs:102:			const layout = resolveLayout({ home });
+packages/nana-setup/tests/objective-path-shapes.test.mjs:122:			const layout = resolveLayout({ home });
+packages/nana-setup/tests/objective-path-shapes.test.mjs:130:			const layout = resolveLayout({ home });
+packages/nana-setup/tests/objective-path-shapes.test.mjs:136:		const layout = resolveLayout({ home });
+packages/nana-setup/tests/objective-path-shapes.test.mjs:156:			const layout = resolveLayout({ home });
+packages/nana-setup/tests/objective-path-shapes.test.mjs:165:		const baselineLayout = resolveLayout({ home: baselineHome });
+packages/nana-setup/tests/objective-path-shapes.test.mjs:166:		const baselineLabels = install(baselineLayout, {}).map((x) => x.label); // first, fresh in-process call
+packages/nana-setup/tests/objective-path-shapes.test.mjs:178:		const layout = resolveLayout({ home });
+packages/nana-setup/tests/objective-path-shapes.test.mjs:230:		const layout = resolveLayout({ home });
+packages/nana-setup/tests/desk-service.test.mjs:142:	const baseLayout = (dir) => ({
+packages/nana-setup/tests/desk-service.test.mjs:154:		const layout = baseLayout(dir);
+packages/nana-setup/tests/desk-service.test.mjs:176:		const layout = baseLayout(dir);
+packages/nana-setup/tests/desk-service.test.mjs:197:		const layout = baseLayout(dir);
+packages/nana-setup/tests/desk-service.test.mjs:217:		const layout = baseLayout(dir);
+packages/nana-setup/tests/desk-service.test.mjs:230:		const failed = withStubFirst(() => stepDesk(baseLayout(tmpDir(path.join(os.tmpdir(), "nana-desk-bootstrap-fail-"))), {}));
+packages/nana-setup/tests/desk-service.test.mjs:234:		const failedKickstart = withStubFirst(() => stepDesk(baseLayout(dir), {}));
+packages/nana-setup/tests/desk-service.test.mjs:268:		const layout = baseLayout(dir);
+packages/nana-setup/tests/desk-service.test.mjs:291:		const layout = baseLayout(dir);
+packages/nana-setup/tests/desk-service.test.mjs:306:		const layout = baseLayout(dir);
+packages/nana-setup/tests/desk-service.test.mjs:320:		const layout = baseLayout(dir);
+packages/nana-setup/tests/desk-service.test.mjs:342:		const layout = baseLayout(dir);
+packages/nana-setup/tests/stale-copies.test.mjs:18:import { pkgRoot, resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/stale-copies.test.mjs:82:	return { home, project, layout: resolveLayout({ home }) };
+packages/nana-setup/tests/doctor-memory-links.test.mjs:19:import { resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/doctor-memory-links.test.mjs:64:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-memory-links.test.mjs:77:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-memory-links.test.mjs:111:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/verifier-pipe.test.mjs:17:import { platform, resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/verifier-pipe.test.mjs:130:const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-package-source.test.mjs:14:import { resolveLayout, repoRoot } from "../lib/paths.mjs";
+packages/nana-setup/tests/doctor-package-source.test.mjs:25:const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:21:const { resolveLayout } = await import("../lib/paths.mjs");
+packages/nana-setup/tests/uninstall.test.mjs:53:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:73:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:113:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:130:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:145:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:182:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:216:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:230:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:254:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:266:  const updateLayout = resolveLayout({ home: updateHome });
+packages/nana-setup/tests/uninstall.test.mjs:267:  fs.mkdirSync(updateLayout.knowledgeHome, { recursive: true });
+packages/nana-setup/tests/uninstall.test.mjs:268:  fs.writeFileSync(path.join(updateLayout.knowledgeHome, "sources.json"), JSON.stringify({ roots: [] }));
+packages/nana-setup/tests/uninstall.test.mjs:269:  const updateSettings = path.join(updateLayout.claudeHome, "settings.json");
+packages/nana-setup/tests/uninstall.test.mjs:271:  fs.writeFileSync(updateSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: `bash '${updateLayout.hooksDir}/context-size-check.sh'` }] }] } }, null, 2) + "\n");
+packages/nana-setup/tests/uninstall.test.mjs:272:  fs.mkdirSync(updateLayout.hooksDir, { recursive: true });
+packages/nana-setup/tests/uninstall.test.mjs:273:  const contextLink = path.join(updateLayout.hooksDir, "context-size-check.sh");
+packages/nana-setup/tests/uninstall.test.mjs:289:  const dryLayout = resolveLayout({ home: dryHome });
+packages/nana-setup/tests/uninstall.test.mjs:290:  fs.mkdirSync(dryLayout.knowledgeHome, { recursive: true });
+packages/nana-setup/tests/uninstall.test.mjs:291:  fs.writeFileSync(path.join(dryLayout.knowledgeHome, "sources.json"), JSON.stringify({ roots: [] }));
+packages/nana-setup/tests/uninstall.test.mjs:298:  const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs", "hook nana-memory-end.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "pi rule link nana-seat.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
+packages/nana-setup/tests/uninstall.test.mjs:316:    const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:344:    const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:356:    const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:377:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:395:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:416:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:435:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:452:  const danglingLayout = resolveLayout({ home: danglingHome });
+packages/nana-setup/tests/uninstall.test.mjs:453:  fs.mkdirSync(danglingLayout.hooksDir, { recursive: true });
+packages/nana-setup/tests/uninstall.test.mjs:454:  fs.mkdirSync(danglingLayout.claudeHome, { recursive: true });
+packages/nana-setup/tests/uninstall.test.mjs:455:  fs.writeFileSync(danglingLayout.claudeSettings, "{}\n");
+packages/nana-setup/tests/uninstall.test.mjs:456:  const live = path.join(danglingLayout.hooksDir, "nana-objective.mjs");
+packages/nana-setup/tests/uninstall.test.mjs:457:  const dangling = path.join(danglingLayout.hooksDir, "nana-adoption.mjs");
+packages/nana-setup/tests/uninstall.test.mjs:467:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:489:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:509:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/uninstall.test.mjs:530:  const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-detail.test.mjs:21:const { pkgRoot, resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+packages/nana-setup/tests/doctor-detail.test.mjs:36:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-detail.test.mjs:53:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-detail.test.mjs:84:	const original = resolveLayout({ home });
+packages/nana-setup/tests/doctor-detail.test.mjs:341:		const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-detail.test.mjs:409:		const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-detail.test.mjs:434:		const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-detail.test.mjs:473:		const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-detail.test.mjs:498:		const layout = resolveLayout({ home });
+packages/nana-setup/tests/doctor-knowledge.test.mjs:22:const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+packages/nana-setup/tests/doctor-knowledge.test.mjs:24:const layout = resolveLayout({ home });
+packages/nana-setup/tests/paths.test.mjs:3: * @purpose Pins resolveLayout's isRealHome guard (false whenever ANY explicit override — --home, --claude-home, --pi-home — is in force, even when --home resolves to the same path as the real home directory) and tildeify's case rule on a case-variant home path (R-1204)
+packages/nana-setup/tests/paths.test.mjs:4: * @inputs lib/paths.mjs resolveLayout and tildeify, NANA_SETUP_PLATFORM (the forced-platform seam), and os.homedir() (under the suite runner this is already a fresh per-file temp HOME, never the developer's real one — scripts/test.mjs scrubs it; resolveLayout itself touches no disk either way)
+packages/nana-setup/tests/paths.test.mjs:18:const { resolveLayout, tildeify } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+packages/nana-setup/tests/paths.test.mjs:26:check("no override at all: isRealHome is true", resolveLayout({}).isRealHome === true);
+packages/nana-setup/tests/paths.test.mjs:27:check("--claude-home alone (even at the real path): isRealHome is false", resolveLayout({ claudeHome: os.homedir() }).isRealHome === false);
+packages/nana-setup/tests/paths.test.mjs:28:check("--pi-home alone (even at the real path): isRealHome is false", resolveLayout({ piHome: os.homedir() }).isRealHome === false);
+packages/nana-setup/tests/paths.test.mjs:31:check("--home set to the home directory's OWN path still forces isRealHome false", resolveLayout({ home: os.homedir() }).isRealHome === false);
+packages/nana-setup/tests/install-overlap.test.mjs:4: * @inputs lib/steps.mjs install, lib/paths.mjs resolveLayout, the nana-setup CLI, a throwaway home with one tiny knowledge source, and process-global spies installed through CommonJS builtins plus syncBuiltinESMExports
+packages/nana-setup/tests/install-overlap.test.mjs:17:const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+packages/nana-setup/tests/install-overlap.test.mjs:34:const layout = resolveLayout({ home });
+packages/nana-setup/tests/settings-merge.test.mjs:25:const { resolveLayout, platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+packages/nana-setup/tests/settings-merge.test.mjs:701:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/settings-merge.test.mjs:833:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/settings-merge.test.mjs:886:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/settings-merge.test.mjs:933:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/settings-merge.test.mjs:960:	const layout = resolveLayout({ home });
+packages/nana-setup/tests/settings-merge.test.mjs:1010:		install(resolveLayout({ home }), { afterTempWrite: () => fs.writeFileSync(file, concurrent) });
+packages/nana-setup/tests/agent-dir-consumers.test.mjs:46:		const l = L.resolveLayout(${JSON.stringify(opts)}); console.log(JSON.stringify({ piHome: l.piHome, knowledgeHome: l.knowledgeHome, runtime: K.home() }));`;
+packages/nana-setup/tests/readme-rehearsal.test.mjs:17:import { resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/readme-rehearsal.test.mjs:236:      const binDir = resolveLayout({ home }).binDir;
+packages/nana-setup/tests/doctor-trust.test.mjs:14:import { resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/doctor-trust.test.mjs:23:const row = diagnoseWithPi(resolveLayout({ home }), { projectDir }).find((check) => check.label === "project trust");
+packages/nana-setup/tests/pi-launch-limits.test.mjs:16:import { resolveLayout, repoRoot } from "../lib/paths.mjs";
+packages/nana-setup/tests/pi-launch-limits.test.mjs:149:	const layout = { ...resolveLayout({ home }), isRealHome: true };
+packages/nana-setup/tests/pi-launch-limits.test.mjs:206:	fs.writeFileSync(wrapper, `import { stepPiRegister } from ${JSON.stringify(stepsUrl)};\nimport { resolveLayout } from ${JSON.stringify(pathsUrl)};\nconst layout = { ...resolveLayout({ home: process.env.FIXTURE_HOME }), isRealHome: true };\nstepPiRegister(layout, {}, { env: process.env, limits: { version: Number(process.env.LIMIT_MS), install: Number(process.env.LIMIT_MS) }, platform: () => process.platform });\n`);
+packages/nana-setup/tests/pi-launch-limits.test.mjs:412:	const makeLayout = () => ({ ...resolveLayout({ home: tmpDir(path.join(os.tmpdir(), "nana-pi-default-limit-")) }), isRealHome: true });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:413:	stepPiRegister(makeLayout(), {}, { spawn: recorder, platform: () => process.platform });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:414:	stepPiRegister(makeLayout(), { dryRun: true }, { spawn: recorder, platform: () => process.platform });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:415:	diagnose(makeLayout(), { projectDir: os.tmpdir(), pi: { spawn: recorder, platform: () => process.platform } });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:443:	const makeLayout = () => ({ ...resolveLayout({ home: tmpDir(path.join(os.tmpdir(), "nana-pi-direct-launch-")) }), isRealHome: true });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:444:	const installLayout = makeLayout();
+packages/nana-setup/tests/pi-launch-limits.test.mjs:445:	stepPiRegister(installLayout, {}, { spawn: recorder("install", installLayout.piHome), platform: "win32", env, exists, isFile, readText });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:446:	const dryLayout = makeLayout();
+packages/nana-setup/tests/pi-launch-limits.test.mjs:447:	stepPiRegister(dryLayout, { dryRun: true }, { spawn: recorder("dry-run", dryLayout.piHome), platform: "win32", env, exists, isFile, readText });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:448:	const doctorLayout = makeLayout();
+packages/nana-setup/tests/pi-launch-limits.test.mjs:449:	diagnose(doctorLayout, { projectDir: os.tmpdir(), pi: { spawn: recorder("doctor", doctorLayout.piHome), platform: "win32", env, exists, isFile, readText } });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:453:	const specialLayout = makeLayout();
+packages/nana-setup/tests/pi-launch-limits.test.mjs:454:	const specialRows = stepPiRegister(specialLayout, {}, { spawn: recorder("special", specialLayout.piHome), platform: "win32", env, exists, isFile, readText, manifestRoot });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:490:		const makeLayout = () => ({ ...resolveLayout({ home: tmpDir(path.join(os.tmpdir(), "nana-pi-fallback-launch-")) }), isRealHome: true });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:491:		stepPiRegister(makeLayout(), {}, { spawn: recorder, platform: "win32", env, exists, isFile, readText });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:492:		stepPiRegister(makeLayout(), { dryRun: true }, { spawn: recorder, platform: "win32", env, exists, isFile, readText });
+packages/nana-setup/tests/pi-launch-limits.test.mjs:493:		diagnose(makeLayout(), { projectDir: os.tmpdir(), pi: { spawn: recorder, platform: "win32", env, exists, isFile, readText } });
+packages/nana-setup/tests/fresh-machine.test.mjs:15:import { resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/fresh-machine.test.mjs:35:const layout = resolveLayout();
+packages/nana-setup/tests/fresh-machine.test.mjs:60:const windowsLayoutHome = path.join(path.parse(repo).root, "fixture-home");
+packages/nana-setup/tests/fresh-machine.test.mjs:61:const windowsLayout = resolveLayout({ home: windowsLayoutHome });
+packages/nana-setup/tests/fresh-machine.test.mjs:62:const windowsBin = `%USERPROFILE%\\${path.relative(windowsLayoutHome, windowsLayout.binDir).split(path.sep).join("\\")}`;
+packages/nana-setup/tests/fresh-machine.test.mjs:63:const windowsObjectiveNames = [path.basename(windowsLayout.piObjective), path.basename(windowsLayout.piPackConfig)];
+packages/nana-setup/tests/fresh-machine.test.mjs:89:		const doctorPath = objectiveTarget(resolveLayout(), cfg);
+packages/nana-setup/tests/memory-end-wiring.test.mjs:16:import { resolveLayout, repoRoot } from '../lib/paths.mjs';
+packages/nana-setup/tests/memory-end-wiring.test.mjs:29:   process.env.NANA_SETUP_PLATFORM=platform;const layout=resolveLayout({home:path.join(td,platform)});
+packages/nana-setup/tests/memory-end-wiring.test.mjs:53:    if(args.includes('install')){const layout=resolveLayout({home});fs.mkdirSync(layout.knowledgeHome,{recursive:true});fs.writeFileSync(path.join(layout.knowledgeHome,'index.db'),'fixture');install(layout);return {status:0,stdout:'',stderr:''};}
+packages/nana-setup/tests/pi-registration.test.mjs:31:const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+packages/nana-setup/tests/pi-registration.test.mjs:110:	const state = registrationState(resolveLayout({ home }));
+packages/nana-setup/tests/pi-registration.test.mjs:131:	const state = registrationState(resolveLayout({ home }));
+packages/nana-setup/tests/pi-registration.test.mjs:139:	check("a missing pi settings.json is not a match", !registrationState(resolveLayout({ home })).present);
+packages/nana-setup/tests/pi-registration.test.mjs:159:	const coverage = packageCoverage(resolveLayout({ home }), fixtureRoot);
+packages/nana-setup/tests/pi-registration.test.mjs:163:	const rootCoverage = packageCoverage(resolveLayout({ home }), fixtureRoot);
+packages/nana-setup/tests/pi-registration.test.mjs:172:	const coverage = packageCoverage(resolveLayout({ home }));
+packages/nana-setup/tests/pi-registration.test.mjs:191:		const fakeReal = { ...resolveLayout({ home }), isRealHome: true };
+packages/nana-setup/tests/pi-registration.test.mjs:213:	const result = stepPiRegister({ ...resolveLayout({ home }), isRealHome: true }, {}, { spawn });
+packages/nana-setup/tests/pi-registration.test.mjs:248:				const state = wtSteps.registrationState(wtPaths.resolveLayout({ home }));
+packages/nana-setup/tests/pi-registration.test.mjs:278:					check(`\`~\` per-package entries are expanded and matched from the worktree`, wtSteps.registrationState(wtPaths.resolveLayout({ home })).present);
+packages/nana-setup/tests/pi-registration.test.mjs:287:				check("a different git repo is NOT a match", !wtSteps.registrationState(wtPaths.resolveLayout({ home })).present);
+packages/nana-setup/tests/pi-registration.test.mjs:320:	const fakeLayout = { piHome: "/Users/fake/.pi/agent", isRealHome: true };
+packages/nana-setup/tests/pi-registration.test.mjs:322:	const missing = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("missing"), { code: "ENOENT" }) }) });
+packages/nana-setup/tests/pi-registration.test.mjs:325:	const denied = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("denied"), { code: "EACCES" }) }) });
+packages/nana-setup/tests/pi-registration.test.mjs:328:	const failed = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ status: 2, stderr: "bad version" }) });
+packages/nana-setup/tests/pi-registration.test.mjs:339:	const fakeLayout = { piHome: "C:\\Users\\fake\\.pi\\agent", isRealHome: true };
+packages/nana-setup/tests/pi-registration.test.mjs:342:	const result = stepPiRegister(fakeLayout, {}, injected);
+packages/nana-setup/tests/pi-registration.test.mjs:344:	check("win32 pi registration uses ComSpec and sets agent dir for install", result[0]?.status === "created" && calls.length === 3 && calls[0].command === "C:\\Windows\\cmd.exe" && calls[0].args[0] === "/d" && calls[1].options.env.PI_CODING_AGENT_DIR === fakeLayout.piHome, JSON.stringify({ result, calls }));
+packages/nana-setup/tests/pi-registration.test.mjs:345:	const missing = stepPiRegister(fakeLayout, {}, { ...injected, exists: () => false, spawn: () => { throw new Error("must not spawn"); } });
+packages/nana-setup/tests/pi-registration.test.mjs:348:	const failed = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ status: 1, stderr: "failed" }) });
+packages/nana-setup/tests/pi-registration.test.mjs:351:	const spawnError = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("denied"), { code: "EACCES" }) }) });
+packages/nana-setup/tests/pi-registration.test.mjs:354:	const refused = stepPiRegister(fakeLayout, {}, { ...injected, exists: (p) => p.toLowerCase() === "c:\\%bad\\pi.cmd", env: { PATH: "C:\\%bad", PATHEXT: ".CMD" }, spawn: () => { throw new Error("must not spawn"); } });
+packages/nana-setup/tests/pi-registration.test.mjs:357:	const direct = stepPiRegister(fakeLayout, {}, { ...injected, exists: (p) => p.toLowerCase() === "c:\\bin\\pi.exe", spawn: (command, args) => { calls.push({ command, args }); return { status: 0, stdout: "1.2.3" }; } });
+packages/nana-setup/tests/pi-registration.test.mjs:425:		const anchored = stepPiRegister({ ...resolveLayout({ home: piHomeWith(null) }), isRealHome: true }, {}, { platform: () => process.platform });
+packages/nana-setup/tests/state-manifest.test.mjs:16:import { resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/state-manifest.test.mjs:23:const layout = resolveLayout({ home: path.join(os.tmpdir(), "manifest-sample") });
+packages/nana-setup/tests/state-manifest.test.mjs:46:const ledgerLayouts = [
+packages/nana-setup/tests/state-manifest.test.mjs:48:  resolveLayout({ home: path.join(os.tmpdir(), "manifest-custom"), piHome: path.join(os.tmpdir(), "manifest-custom-pi"), claudeHome: path.join(os.tmpdir(), "manifest-custom-claude") }),
+packages/nana-setup/tests/state-manifest.test.mjs:51:check("R-2871: the manifest holds exactly one row for each path the review ledger names, read from ledgerPaths, wherever pi home is", ledgerLayouts.every((current) => {
+packages/nana-setup/tests/state-manifest.test.mjs:62:const ownerLayout = resolveLayout({ home: installHome });
+packages/nana-setup/tests/state-manifest.test.mjs:63:fs.mkdirSync(ownerLayout.knowledgeHome, { recursive: true });
+packages/nana-setup/tests/state-manifest.test.mjs:64:fs.writeFileSync(path.join(ownerLayout.knowledgeHome, "sources.json"), JSON.stringify({ roots: [] }));
+packages/nana-setup/tests/state-manifest.test.mjs:66:const installedRows = stateRows(ownerLayout);
+packages/nana-setup/tests/state-manifest.test.mjs:68:  ownerLayout.claudeSettings, path.join(ownerLayout.sharedMemoryDir, "MEMORY.md"),
+packages/nana-setup/tests/state-manifest.test.mjs:69:  path.join(ownerLayout.rulesDir, "nana-personal.md"), ownerLayout.piPackConfig, ownerLayout.piObjective,
+packages/nana-setup/tests/state-manifest.test.mjs:70:  ownerLayout.subagentConfig, ownerLayout.reviewerAgent, path.join(ownerLayout.knowledgeHome, "index.db"), ownerLayout.copyRecord,
+packages/nana-setup/tests/state-manifest.test.mjs:71:  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+packages/nana-setup/tests/state-manifest.test.mjs:72:  ...["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE].map((name) => path.join(ownerLayout.rulesDir, name)),
+packages/nana-setup/tests/state-manifest.test.mjs:73:  ...["requirements", "spec", "py-lint", "py-review", "py-test"].map((name) => path.join(ownerLayout.skillsDir, name)),
+packages/nana-setup/tests/state-manifest.test.mjs:74:  ...["pi-review", "pi-worker", "nana-land", "nana-setup", "nana-writing"].map((name) => path.join(ownerLayout.binDir, name)),
+packages/nana-setup/tests/state-manifest.test.mjs:75:  ...["pi-review.cmd", "pi-worker.cmd", "nana-land.cmd", "nana-setup.cmd", "nana-writing.cmd"].map((name) => path.join(ownerLayout.binDir, name)),
+packages/nana-setup/tests/state-manifest.test.mjs:76:  ownerLayout.piRulings,
+packages/nana-setup/tests/state-manifest.test.mjs:77:  ownerLayout.piSeatGuide,
+packages/nana-setup/tests/state-manifest.test.mjs:87:  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+packages/nana-setup/tests/state-manifest.test.mjs:90:  ownerLayout.copyRecord,
+packages/nana-setup/tests/state-manifest.test.mjs:91:  ...["pi-review.cmd", "pi-worker.cmd", "nana-land.cmd", "nana-setup.cmd", "nana-writing.cmd"].map((name) => path.join(ownerLayout.binDir, name)),
+packages/nana-setup/tests/state-manifest.test.mjs:114:const expectedState = stateRows(resolveLayout({ home })).map((row) => `${row.store}\t${row.class}\t${row.owner}\t${row.path}\t${fs.existsSync(row.path) ? "present" : "absent"}`).sort();
+packages/nana-setup/tests/state-manifest.test.mjs:121:const defaultLayout = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home], { encoding: "utf8" });
+packages/nana-setup/tests/state-manifest.test.mjs:123:check("default disjoint home roots still produce a paths listing", defaultLayout.status === 0, `${defaultLayout.status} ${defaultLayout.stderr}`);
+packages/nana-setup/tests/restore.test.mjs:18:import { resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/restore.test.mjs:50:const sourceLayout = resolveLayout({ home });
+packages/nana-setup/tests/restore.test.mjs:51:const sourceRows = stateRows(sourceLayout);
+packages/nana-setup/tests/restore.test.mjs:61:fs.mkdirSync(path.dirname(sourceLayout.piPackConfig), { recursive: true });
+packages/nana-setup/tests/restore.test.mjs:62:fs.writeFileSync(sourceLayout.piPackConfig, JSON.stringify({ objective: { path: objective } }));
+packages/nana-setup/tests/restore.test.mjs:65:const memoryDir = projectMemoryDir(sourceLayout.projectsDir, project);
+packages/nana-setup/tests/restore.test.mjs:74:const transcript = path.join(sourceLayout.projectsDir, path.basename(path.dirname(memoryDir)), "session.jsonl");
+packages/nana-setup/tests/restore.test.mjs:76:fs.mkdirSync(path.join(sourceLayout.piHome, "apps"), { recursive: true });
+packages/nana-setup/tests/restore.test.mjs:77:fs.writeFileSync(path.join(sourceLayout.piHome, "apps", "app.txt"), "app fixture\n");
+packages/nana-setup/tests/restore.test.mjs:97:fs.mkdirSync(path.join(sourceLayout.knowledgeHome), { recursive: true });
+packages/nana-setup/tests/restore.test.mjs:98:fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "sources.json"), JSON.stringify({ roots: [knowledgeRoot] }));
+packages/nana-setup/tests/restore.test.mjs:99:fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "pull.log"), "pull bytes\n");
+packages/nana-setup/tests/restore.test.mjs:100:for (const name of ["index.db-wal", "index.db-shm", "build.lock.reclaim", "unknown-future-artifact"]) fs.writeFileSync(path.join(sourceLayout.knowledgeHome, name), `generated:${name}`);
+packages/nana-setup/tests/restore.test.mjs:101:fs.writeFileSync(sourceLayout.piPackConfig, JSON.stringify({ objective: { path: objective } }));
+packages/nana-setup/tests/restore.test.mjs:124:check("source project trust is recorded", trustSrc.status === 0 && new ProjectTrustStore(sourceLayout.piHome).get(project) === true, `${trustSrc.status} ${trustSrc.stderr}`);
+packages/nana-setup/tests/restore.test.mjs:149:  path.join(memoryDir, "project.md"), ...ledger.map((row) => row.path), sourceLayout.piPackConfig, sourceLayout.piObjective,
+packages/nana-setup/tests/restore.test.mjs:150:  sourceLayout.piSettings, path.join(sourceLayout.knowledgeHome, "sources.json"), path.join(sourceLayout.knowledgeHome, "pull.log"),
+packages/nana-setup/tests/restore.test.mjs:151:  path.join(sourceLayout.piHome, "apps", "app.txt"), path.join(home, ".local", "share", "nana", "state.dat"),
+packages/nana-setup/tests/restore.test.mjs:157:check("knowledge generated sidecars, reclaim lock and unknown future files are excluded", listedPaths.status === 0 && ["index.db-wal", "index.db-shm", "build.lock.reclaim", "unknown-future-artifact"].every((name) => !listedNames.includes(path.relative(home, path.join(sourceLayout.knowledgeHome, name)).split(path.sep).join("/"))), listedNames.filter((name) => /(?:index\.db-(?:wal|shm)|build\.lock\.reclaim|unknown-future-artifact)$/.test(name)).join(", "));
+packages/nana-setup/tests/restore.test.mjs:166:check("clean destination reports every durable store absent", clean.status === 0 && stateRows(resolveLayout({ home: destination })).filter((row) => row.class === "durable").every((row) => clean.stdout.split("\n").some((line) => line.startsWith(`${row.store}\t`) && line.endsWith("\tabsent"))), `${clean.status} ${clean.stderr}`);
+packages/nana-setup/tests/restore.test.mjs:179:const dstLayout = resolveLayout({ home: destination });
+packages/nana-setup/tests/restore.test.mjs:180:const packageRoot = path.join(dstLayout.piHome, "npm", "node_modules", "pi-subagents");
+packages/nana-setup/tests/doctor-pi-dependencies.test.mjs:14:import { resolveLayout } from "../lib/paths.mjs";
+packages/nana-setup/tests/doctor-pi-dependencies.test.mjs:104:  const layout = { ...resolveLayout({ home: fixture.home }), isRealHome: true };
+packages/nana-setup/tests/doctor-runtime.test.mjs:15:import { resolveLayout, repoRoot } from "../lib/paths.mjs";
+packages/nana-setup/tests/doctor-runtime.test.mjs:28:const layout = { ...resolveLayout({ home }), isRealHome: true };
+packages/nana-setup/tests/doctor-runtime.test.mjs:57:	const override = resolveLayout({ home });
+packages/nana-setup/tests/doctor-runtime.test.mjs:73:	check("win32 refused pi shim is note under home override", diagnose(resolveLayout({ home }), { projectDir: home, pi: { platform: () => "win32", env: { PATH: "C:\\%bad", PATHEXT: ".CMD" }, exists: (p) => p.toLowerCase() === "c:\\%bad\\pi.cmd", spawn: () => { throw new Error("must not spawn"); } } }).find((item) => item.label === "pi executable")?.status === "note");
+packages/nana-setup/tests/doctor-runtime.test.mjs:100:	check("PATH mismatch under override is informational", diagnose(resolveLayout({ home }), { projectDir: home }).find((item) => item.label === "PATH resolves pi-review")?.status === "note");
+packages/nana-pack/tests/frontier.test.mjs:80:	const rootLayout = fs.readFileSync(path.resolve(HERE, "../../../AGENTS.md"), "utf8");
+packages/nana-pack/tests/frontier.test.mjs:82:	check("CLI inventory names nana-frontier without stale ordinals", rootLayout.includes("nana-frontier") && packReadme.includes("nana-frontier") && !packReadme.includes("The ninth CLI"));
+packages/nana-pack/tests/memory-session-end.test.mjs:16:import { resolveLayout } from '../../nana-setup/lib/paths.mjs';
+packages/nana-pack/tests/memory-session-end.test.mjs:45: const layout=resolveLayout({home:f.temp,piHome:f.a.agent});const opts={projectDir:f.main,releaseRepo:f.main,runGit:f.runGit,memory:{runGit:f.runGit,now},pi:{spawn:()=>({status:0,stdout:'1.0.2'})}};
+packages/nana-pack/tests/hive-city.test.mjs:70:  const { cityLayout, cityShapeProblems, roundPosition } = await city(); const { CITY } = await import('../../../apps/hive/config.mjs'); const p = await plan(), data = await audit();
+packages/nana-pack/tests/hive-city.test.mjs:71:  const m = cityLayout(data, p); assert.deepEqual(m, cityLayout(data, p)); assert.deepEqual(cityShapeProblems(m), []);
+packages/nana-pack/tests/hive-city.test.mjs:90:  assert(cityLayout(data, q).fenceRadius > m.fenceRadius);
+packages/nana-pack/tests/hive-city.test.mjs:92:  assert(cityLayout(data, t).townOuterRadius > m.townOuterRadius);
+packages/nana-pack/tests/hive-city.test.mjs:109:    const controlled = cityLayout(data, p, control.positions);
+packages/nana-pack/tests/agent-dir-parity.test.mjs:11:// nana-setup (resolveLayout().piHome) resolve exactly piAgentDir(); `--home` keeps the installer
+packages/nana-pack/tests/agent-dir-parity.test.mjs:61:const { resolveLayout } = await import(new URL("../../nana-setup/lib/paths.mjs", import.meta.url).href);
+packages/nana-pack/tests/agent-dir-parity.test.mjs:122:	const layout = resolveLayout({});
+packages/nana-pack/tests/agent-dir-parity.test.mjs:160:	const l = resolveLayout({ home: tmpHome });
+packages/nana-pack/tests/agent-dir-parity.test.mjs:163:	const lp = resolveLayout({ home: tmpHome, piHome: path.join(HOME, "explicit") });
+apps/bench/test/argv.test.mjs:94:check("C: the sidecar is the LAST extension loaded", /bench-nested-usage\.ts$/.test(eArgs[1]), eArgs[1]);

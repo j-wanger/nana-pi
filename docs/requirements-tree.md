@@ -357,9 +357,9 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Reads: A-003, A-015, A-046, A-006, A-030, A-032, A-033
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 123 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3406
+  Parent: — · Rows: 131 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3406, R-3600–R-3607
   Kind: product
-  Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270, R-3390
+  Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270, R-3390, R-3604
   - **FEAT-034 · Define reproducible comparisons**
     Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
     Status: active
@@ -399,6 +399,13 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: —
     Parent: CAP-08 · Rows: 26 · IDs: R-3270–R-3278, R-3390–R-3406
     Artifacts: A-092, A-098
+  - **FEAT-045 · Test which builder context changes builds**
+    Purpose: Replay past first builds with one kind of context removed, isolate the start tree, grade frozen checks and record spend and measures without a study verdict.
+    Status: active
+    Also applies: —
+    Parent: CAP-08 · Rows: 8 · IDs: R-3600–R-3607
+    Artifacts: A-101
+    Reads: A-092, A-098
 
 | ID | Home | Also applies to | Count |
 |---|---|---|---:|
