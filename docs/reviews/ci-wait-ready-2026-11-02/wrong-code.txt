@@ -1,0 +1,1251 @@
+FAIL M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<worktree>/packages/nana-pack/lib/ci-wait.mjs' imported from <worktree>/packages/nana-pack/tests/ci-wait.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<worktree>/packages/nana-pack/lib/ci-wait.mjs' imported from <worktree>/packages/nana-pack/tests/ci-wait.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<worktree>/packages/nana-pack/lib/ci-wait.mjs' imported from <worktree>/packages/nana-pack/tests/ci-wait.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<worktree>/packages/nana-pack/lib/ci-wait.mjs' imported from <worktree>/packages/nana-pack/tests/ci-wait.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<worktree>/packages/nana-pack/lib/ci-wait.mjs' imported from <worktree>/packages/nana-pack/tests/ci-wait.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL M6: CI wait policy values and API vocabulary are sealed once Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<worktree>/packages/nana-pack/lib/ci-wait.mjs' imported from <worktree>/packages/nana-pack/tests/ci-wait.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+Base absent implementation exit: 1
+PASS CI wait: a completed pre-land rerun passes but an attempt changing during land refuses
+PASS M7: checkout and CI races refuse, cooperating lands serialize and rerun safely
+Base existing identity guard exit: 0
+
+MUTATION skip readiness
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+PAIR FAILED: expected cited check to reject wrong code
+CORRECTED skip readiness
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+
+MUTATION rerun regardless of blocking jobs
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+PAIR FAILED: expected cited check to reject wrong code
+CORRECTED rerun regardless of blocking jobs
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+
+MUTATION no rerun cap
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+PAIR FAILED: expected cited check to reject wrong code
+CORRECTED no rerun cap
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+
+MUTATION capacity is success
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+PAIR FAILED: expected cited check to reject wrong code
+CORRECTED capacity is success
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+
+MUTATION unbounded wait
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+PAIR FAILED: expected cited check to reject wrong code
+CORRECTED unbounded wait
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+
+MUTATION CLI always red
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+PAIR FAILED: expected cited check to reject wrong code
+CORRECTED CLI always red
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+
+MUTATION wrong rerun seal
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+PAIR FAILED: expected cited check to reject wrong code
+CORRECTED wrong rerun seal
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+
+MUTATION remove land attempt identity guard
+COMMAND node packages/nana-pack/tests/land-clean-merge-race.test.mjs
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+PAIR FAILED: expected cited check to reject wrong code
+CORRECTED remove land attempt identity guard
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private<mutation-temp>/packages/nana-setup/lib/project-key.mjs' imported from /private<mutation-temp>/packages/nana-pack/lib/memory-making.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private<mutation-temp>/packages/nana-setup/lib/project-key.mjs'
+}
+
+Node.js v22.22.2
+
+EXIT 1
+
+MUTATION skip readiness
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+FAIL M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:55:69
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:52:1
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CI did not finish/. Input:
+
+'gh could not start: Expected values to be strictly equal:\n\n30000 !== 7\n\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:107:216
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:98:1
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(calls[0].includes(branch))
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:121:298
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:113:1
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED skip readiness
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION rerun regardless of blocking jobs
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+FAIL M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 0
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:92:196
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:85:1
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED rerun regardless of blocking jobs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION no rerun cap
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: The input did not match the regular expression /3 attempts/. Input:
+
+'ci: rerun 101 after capacity-cancelled attempt 1 (1/2)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 2 (2/2)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 3 (3/2)\n' +
+  'CI did not finish before the wait deadline: ci run 101 attempt 3 (completed)\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:72:35
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:69:1
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED no rerun cap
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION capacity is success
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:72:9
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:69:1
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:105:47
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:98:1
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(out.text.includes(judgeRuns(runList([workflowRun({run_attempt:2})]),tip,repository).lines[0]))
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:115:146
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:113:1
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED capacity is success
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION unbounded wait
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CI did not finish/. Input:
+
+'gh could not start: bounded fake call count\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:101:158
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:98:1
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED unbounded wait
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION CLI always red
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes AssertionError [ERR_ASSERTION]: ci: ci run 101 attempt 1 (pull_request) success at f3c34b46
+
+
+1 !== 0
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:121:131
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:113:1
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED CLI always red
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION wrong rerun seal
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: The input did not match the regular expression /3 attempts/. Input:
+
+'ci: rerun 101 after capacity-cancelled attempt 1 (1/3)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 2 (2/3)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 3 (3/3)\n' +
+  'CI did not finish before the wait deadline: ci run 101 attempt 3 (completed)\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:72:35
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:69:1
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+FAIL M6: CI wait policy values and API vocabulary are sealed once AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+3 !== 2
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:128:9
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:126:1
+
+EXIT 1
+CORRECTED wrong rerun seal
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION remove land attempt identity guard
+COMMAND node packages/nana-pack/tests/land-clean-merge-race.test.mjs
+FAIL CI wait: a completed pre-land rerun passes but an attempt changing during land refuses AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+ci: ci run 101 attempt 2 (pull_request) success at 38b09ba9
+merged main: 5732f19e45f22ab200b7f2774921bfe59979b0e1 into 38b09ba9690c239a352f0915ceba086201a115d9 as c491118ed7b6e64c0c08bcf1956065c19cb18be1
+suite: ci run 101 attempt 1 platform darwin
+push command: git push
+release status: ready
+[nana-land] land record: landed, stage -, 0 min total, suite ci, - CI wait; no lane
+
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:24:10
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:17:1
+FAIL M7: checkout and CI races refuse, cooperating lands serialize and rerun safely AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+ci: ci run 101 attempt 1 (pull_request) success at 9fc86850
+merged main: 58a34f548bfe721d0a9cbd5e4afaf48f43e30b9d into 9fc86850b91aca5834345999a1717da17b5eb9e3 as 2e1fff9aef79725c42d6b217f2afc9986f91e168
+suite: ci run 101 attempt 1 platform darwin
+push command: git push
+release status: ready
+[nana-land] land record: landed, stage -, 0 min total, suite ci, - CI wait; no lane
+
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:59:54
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:31:1
+
+EXIT 1
+CORRECTED remove land attempt identity guard
+PASS CI wait: a completed pre-land rerun passes but an attempt changing during land refuses
+PASS M7: checkout and CI races refuse, cooperating lands serialize and rerun safely
+
+EXIT 0
+
+MUTATION skip readiness
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+FAIL M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:55:69
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:52:1
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CI did not finish/. Input:
+
+'gh could not start: Expected values to be strictly equal:\n\n30000 !== 7\n\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:111:216
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:102:1
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(calls[0].includes(branch))
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:125:298
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:117:1
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED skip readiness
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION rerun regardless of blocking jobs
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+FAIL M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 0
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:96:196
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:87:1
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED rerun regardless of blocking jobs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION no rerun cap
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: The input did not match the regular expression /3 attempts/. Input:
+
+'ci: rerun 101 after capacity-cancelled attempt 1 (1/2)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 2 (2/2)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 3 (3/2)\n' +
+  'CI did not finish before the wait deadline: ci run 101 attempt 3 (completed)\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:74:35
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:71:1
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED no rerun cap
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION capacity is success
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:74:9
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:71:1
+FAIL M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:92:203
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:87:1
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:109:47
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:102:1
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(out.text.includes(judgeRuns(runList([workflowRun({run_attempt:2})]),tip,repository).lines[0]))
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:119:146
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:117:1
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED capacity is success
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION unbounded wait
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CI did not finish/. Input:
+
+'gh could not start: bounded fake call count\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:105:158
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:102:1
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED unbounded wait
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION CLI always red
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes AssertionError [ERR_ASSERTION]: ci: ci run 101 attempt 1 (pull_request) success at bb4375c1
+
+
+1 !== 0
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:125:131
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:117:1
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED CLI always red
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION wrong rerun seal
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: The input did not match the regular expression /3 attempts/. Input:
+
+'ci: rerun 101 after capacity-cancelled attempt 1 (1/3)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 2 (2/3)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 3 (3/3)\n' +
+  'CI did not finish before the wait deadline: ci run 101 attempt 3 (completed)\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:74:35
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:71:1
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+FAIL M6: CI wait policy values and API vocabulary are sealed once AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+3 !== 2
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:132:9
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:130:1
+
+EXIT 1
+CORRECTED wrong rerun seal
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION remove land attempt identity guard
+COMMAND node packages/nana-pack/tests/land-clean-merge-race.test.mjs
+FAIL CI wait: a completed pre-land rerun passes but an attempt changing during land refuses AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+ci: ci run 101 attempt 2 (pull_request) success at c35a8f38
+merged main: f7a72e91de04595d77da191941e962ba1eb8b1fc into c35a8f38985040b960aba97b1fc3fd6827748cd6 as a82ef068772ea2e66ad51b894ec3bb9158a67def
+suite: ci run 101 attempt 1 platform darwin
+push command: git push
+release status: ready
+[nana-land] land record: landed, stage -, 0 min total, suite ci, - CI wait; no lane
+
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:24:10
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:17:1
+FAIL M7: checkout and CI races refuse, cooperating lands serialize and rerun safely AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+ci: ci run 101 attempt 1 (pull_request) success at 58956c47
+merged main: 447ab60f0ab6c3e98f80b45972abc688f0771fb7 into 58956c4759957ff56405364f87237a38b6fbf521 as 70bc89521ad567bd79c9b875c4810e74cc355104
+suite: ci run 101 attempt 1 platform darwin
+push command: git push
+release status: ready
+[nana-land] land record: landed, stage -, 0 min total, suite ci, - CI wait; no lane
+
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:59:54
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:31:1
+
+EXIT 1
+CORRECTED remove land attempt identity guard
+PASS CI wait: a completed pre-land rerun passes but an attempt changing during land refuses
+PASS M7: checkout and CI races refuse, cooperating lands serialize and rerun safely
+
+EXIT 0
+
+REGRESSION MUTATION: forgetting requested identities after observing a pending newer attempt
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: ci: rerun 101 after capacity-cancelled attempt 1 (1/2)
+ci: rerun 101 after capacity-cancelled attempt 1 (2/2)
+CI at aaaaaaaa: ci run 101 attempt 2 is cancelled; run gh run rerun 101 --repo example/fixture; capacity-cancelled after 3 attempts
+
+
+1 !== 0
+
+    at file://<worktree>/packages/nana-pack/tests/ci-wait.test.mjs:76:246
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/ci-wait.test.mjs:71:1
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+EXIT 1
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+CORRECTED requested identity memory EXIT 0
+
+MUTATION skip readiness
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+FAIL M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:55:69
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:52:1
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CI did not finish/. Input:
+
+'gh could not start: Expected values to be strictly equal:\n\n30000 !== 7\n\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:112:216
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:103:1
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(calls[0].includes(branch))
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:126:298
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:118:1
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED skip readiness
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION rerun regardless of blocking jobs
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+FAIL M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 0
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:97:196
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:88:1
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED rerun regardless of blocking jobs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION no rerun cap
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: The input did not match the regular expression /3 attempts/. Input:
+
+'ci: rerun 101 after capacity-cancelled attempt 1 (1/2)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 2 (2/2)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 3 (3/2)\n' +
+  'CI did not finish before the wait deadline: ci run 101 attempt 3 (completed)\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:74:35
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:71:1
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED no rerun cap
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION capacity is success
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:74:9
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:71:1
+FAIL M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:93:203
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:88:1
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:110:47
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:103:1
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(out.text.includes(judgeRuns(runList([workflowRun({run_attempt:2})]),tip,repository).lines[0]))
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:120:146
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:118:1
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED capacity is success
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION unbounded wait
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+FAIL M4: one deadline bounds readiness jobs reruns pending absent runs and API failures AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CI did not finish/. Input:
+
+'gh could not start: bounded fake call count\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:106:158
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:103:1
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED unbounded wait
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION forget requested attempt identities
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: ci: rerun 101 after capacity-cancelled attempt 1 (1/2)
+ci: rerun 101 after capacity-cancelled attempt 1 (2/2)
+CI at aaaaaaaa: ci run 101 attempt 2 is cancelled; run gh run rerun 101 --repo example/fixture; capacity-cancelled after 3 attempts
+
+
+1 !== 0
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:76:246
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:71:1
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED forget requested attempt identities
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION CLI always red
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+FAIL M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes AssertionError [ERR_ASSERTION]: ci: ci run 101 attempt 1 (pull_request) success at c5794b14
+
+
+1 !== 0
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:126:131
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:118:1
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 1
+CORRECTED CLI always red
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION wrong rerun seal
+COMMAND node packages/nana-pack/tests/ci-wait.test.mjs
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+FAIL M2: capacity retries wait for attempt advancement and stop after two writes per workflow AssertionError [ERR_ASSERTION]: The input did not match the regular expression /3 attempts/. Input:
+
+'ci: rerun 101 after capacity-cancelled attempt 1 (1/3)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 2 (2/3)\n' +
+  'ci: rerun 101 after capacity-cancelled attempt 3 (3/3)\n' +
+  'CI did not finish before the wait deadline: ci run 101 attempt 3 (completed)\n'
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:74:35
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:71:1
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+FAIL M6: CI wait policy values and API vocabulary are sealed once AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+3 !== 2
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:133:9
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/ci-wait.test.mjs:131:1
+
+EXIT 1
+CORRECTED wrong rerun seal
+PASS M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs
+PASS M2: capacity retries wait for attempt advancement and stop after two writes per workflow
+PASS M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data
+PASS M4: one deadline bounds readiness jobs reruns pending absent runs and API failures
+PASS M5: waiter and Node-fake CLI print judgeRuns success lines and rerun notes
+PASS M6: CI wait policy values and API vocabulary are sealed once
+
+EXIT 0
+
+MUTATION remove land attempt identity guard
+COMMAND node packages/nana-pack/tests/land-clean-merge-race.test.mjs
+FAIL CI wait: a completed pre-land rerun passes but an attempt changing during land refuses AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+ci: ci run 101 attempt 2 (pull_request) success at 9ea33a73
+merged main: 43f24b866e4e198d8844a83041f947e8390eb188 into 9ea33a733bd3cb65a6968ace30c6fdf2bdd817db as d679d177ee65f8f5fe4377d570bbdd21ae4ab28c
+suite: ci run 101 attempt 1 platform darwin
+push command: git push
+release status: ready
+[nana-land] land record: landed, stage -, 0 min total, suite ci, - CI wait; no lane
+
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:24:10
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:17:1
+FAIL M7: checkout and CI races refuse, cooperating lands serialize and rerun safely AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+ci: ci run 101 attempt 1 (pull_request) success at 9f57e64a
+merged main: f5756dde6565d4d308a3e542bf7756ceb75ade7c into 9f57e64aeaae973d6d8b8de8e098acee934e2fcb as 659641c5cf049e44249362730fd464409042b681
+suite: ci run 101 attempt 1 platform darwin
+push command: git push
+release status: ready
+[nana-land] land record: landed, stage -, 0 min total, suite ci, - CI wait; no lane
+
+
+0 !== 1
+
+    at file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:59:54
+    at async check (file:///private<mutation-temp>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file:///private<mutation-temp>/packages/nana-pack/tests/land-clean-merge-race.test.mjs:31:1
+
+EXIT 1
+CORRECTED remove land attempt identity guard
+PASS CI wait: a completed pre-land rerun passes but an attempt changing during land refuses
+PASS M7: checkout and CI races refuse, cooperating lands serialize and rerun safely
+
+EXIT 0

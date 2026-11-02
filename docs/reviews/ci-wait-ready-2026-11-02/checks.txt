@@ -1,0 +1,120 @@
+
+COMMAND npm run map:check
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 612 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+EXIT 0
+
+COMMAND npm run readme:check
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 1088 claims checked; 1 problem(s)
+  packages/nana-pack/README.md:697: 'ci.yml' does not exist
+EXIT 1
+
+COMMAND node scripts/requirements-trace.mjs
+requirements: 2520 total (2263 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2263 traced by tests
+ears: 0 rows off form (allowance 0)
+  R-3724 cites 'packages/nana-pack/tests/ci-wait.test.mjs::M1: origin-matched remote PR readiness diagnoses absent CI without gating existing runs' but no test with that title carries '// req: R-3724'
+  R-3724 cites 'packages/nana-pack/tests/land-ci-edge.test.mjs::R-2590: a repository or tip without GitHub CI skips the CI read and notes why' but no test with that title carries '// req: R-3724'
+(node:50639) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+EXIT 1
+
+COMMAND node scripts/requirements-tree.mjs --check
+requirements tree: 0 problems; rows 2520; features 43
+deliverables: 21 of 23 made and read by code, 21 more parked
+EXIT 0
+
+COMMAND node scripts/known-bugs.mjs --root .
+FEAT-013.md: size: bytes=53008 lines=214
+summary names=0 sizes=1
+(node:50652) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+EXIT 0
+
+COMMAND npm run map:check
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 612 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+EXIT 0
+
+COMMAND npm run readme:check
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 1088 claims checked; 0 problem(s)
+EXIT 0
+
+COMMAND node scripts/requirements-trace.mjs
+requirements: 2520 total (2263 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2263 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:39341) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+EXIT 0
+
+COMMAND node scripts/requirements-tree.mjs --check
+requirements tree: 0 problems; rows 2520; features 43
+deliverables: 21 of 23 made and read by code, 21 more parked
+EXIT 0
+
+COMMAND node scripts/known-bugs.mjs --root .
+FEAT-013.md: size: bytes=53008 lines=214
+summary names=0 sizes=1
+(node:39351) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+EXIT 0
+
+FINAL PRECOMMIT npm run map:check
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 612 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+EXIT 0
+
+FINAL PRECOMMIT npm run readme:check
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 1088 claims checked; 0 problem(s)
+EXIT 0
+
+FINAL PRECOMMIT node scripts/requirements-trace.mjs
+requirements: 2520 total (2263 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2263 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:61290) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+EXIT 0
+
+FINAL PRECOMMIT node scripts/requirements-tree.mjs --check
+requirements tree: 0 problems; rows 2520; features 43
+deliverables: 21 of 23 made and read by code, 21 more parked
+EXIT 0
+
+FINAL PRECOMMIT node scripts/known-bugs.mjs --root .
+FEAT-013.md: size: bytes=53008 lines=214
+summary names=0 sizes=1
+(node:61300) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+EXIT 0

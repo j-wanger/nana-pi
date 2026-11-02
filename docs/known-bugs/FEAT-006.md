@@ -158,3 +158,4 @@
 - Builder credential strip (builder-credential-strip, review round 2): the pack README does not state that direct `review-ledger run -- claude` reviewers now get the ancestor excludes and auto-memory off.
 - Builder credential strip (builder-credential-strip, review round 2): M5's banned phrase lacks backticks.
 - Builder credential strip (credential-gate-variants, plan attack): a whole-gate probe on a very long command took over 30 s; the cause is unmeasured, and the new helper patterns alone match 80,025 chars in about 1 ms.
+- Builder preamble (ci-wait-ready, build 1): the preamble's rule to stop when `gh` is missing fires on lanes whose subject is gh, though they need no real gh; the workaround is a brief line saying gh is not needed.

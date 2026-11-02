@@ -17,9 +17,10 @@ import { canonicalItem, reviewTextEvidence, withReviewLedgerLock, repoKeyOf } fr
 import { releaseStatus } from "../lib/release-status.mjs";
 import { realPath } from "../lib/real-path.mjs";
 import { changedSuitePaths, ciScope, githubRepoOf, judgeRuns, proveCiSuite } from "../lib/land-ci.mjs";
+import { ciReadiness, ciTarget, ciRunJobs, classifyRun } from "../lib/ci-wait.mjs";
 import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
-import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
+import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, CI_ADVISORY_WORKFLOW, CI_DONE_STATUS, CI_PASS_CONCLUSION, TIP_DIGITS, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
 import { CLEAN_MERGE_MESSAGE, CLEAN_MERGE_PREFIX, CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_GENERATED_PATHS, CLEAN_MERGE_GIT_CONFIG, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
@@ -210,7 +211,29 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			}
 			if (response?.status !== 0) throw new Error(`gh CI read failed (exit ${response?.status ?? response?.signal ?? "unknown"})${firstErrorLine ? `: ${firstErrorLine}` : ""}`);
 			const verdict = judgeRuns(response.stdout, tip, scope.repository);
-			if (!verdict.ok) throw new Error(verdict.message);
+			if (!verdict.ok) {
+				const remedy = `nana-ci-wait --tip ${tip}`;
+				if (verdict.runs?.length === 0) {
+					let diagnosis;
+					try {
+						const target = ciTarget({ cwd: tree, tip, runGit });
+						diagnosis = ciReadiness({ ...target, cwd: main, runGh, reads: 1, env });
+					} catch (error) { diagnosis = { ok: false, message: error.message }; }
+					throw new Error(`${verdict.message}; ${diagnosis.ok ? "PR is ready; wait for CI to start" : diagnosis.message}; ${remedy}`);
+				}
+				for (const run of verdict.runs ?? []) {
+					if (run.status !== CI_DONE_STATUS || run.conclusion === CI_PASS_CONCLUSION) continue;
+					let kind;
+					try {
+						const jobs = ciRunJobs(run, { cwd: main, repository: scope.repository, runGh, env });
+						const workflow = runGit(tree, ["show", `${tip}:${CI_ADVISORY_WORKFLOW}`]);
+						const workflowText = workflow.status === 0 ? workflow.stdout : "";
+						kind = classifyRun(run, jobs, { workflowText });
+					} catch { /* Missing evidence preserves the original red refusal. */ }
+					if (kind === "capacity-cancelled") throw new Error(`CI at ${tip.slice(0, TIP_DIGITS)}: ${run.name} run ${run.id} attempt ${run.run_attempt} is ${run.conclusion} (capacity-cancelled); ${remedy}`);
+				}
+				throw new Error(verdict.message);
+			}
 			return verdict;
 		};
 		let judgedRuns;

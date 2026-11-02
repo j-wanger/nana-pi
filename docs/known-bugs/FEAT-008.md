@@ -77,3 +77,4 @@
 - Clean merge (land-clean-merge, A8): lands serialize only when they share a review-ledger home; another home or an external main operation can race the final check and fast-forward.
 - Clean merge (land-clean-merge, A9): exposure lasts from land until someone pushes main and its run reports; lands can stack in that window. Only macOS and Windows block; a Linux-only break can leave CI green.
 - Clean merge (land-clean-merge, M8): a textually clean merge can break the build; the lane intentionally gives up merge-result CI and review.
+- CI wait (ci-wait-ready, plan): a run cancelled by hand looks like a capacity cancellation, so nana-ci-wait re-runs its cancelled jobs up to twice.

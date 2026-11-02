@@ -26,6 +26,24 @@ export const CI_RUNS_PATH = "repos/<owner>/<repo>/actions/runs";
 // measured 2026-10-22 (R-2591): per_page=101 and 150 each returned 100; landed tips had one or two runs over 40 lands.
 export const CI_RUNS_PAGE_SIZE = 100;
 
+// chosen 2026-11-02 (R-3721, R-3725): two capacity recoveries before asking the seat.
+export const CI_CANCEL_RERUNS = 2;
+// chosen 2026-11-02 (R-3720, R-3725): allow GitHub two seconds to compute mergeability.
+export const CI_READY_READS = 3;
+export const CI_READY_DELAY_MS = 1_000;
+// chosen 2026-11-02 (R-3723, R-3725): modest API cadence, with room for slow hosted Windows CI.
+export const CI_POLL_INTERVAL_MS = 10_000;
+export const CI_WAIT_TIMEOUT_MS = 7_200_000;
+// contract (R-3720, R-3725): gh PR fields identify both the head ref and its repository.
+export const CI_PR_FIELDS = "number,mergeable,headRefName,headRefOid,headRepository,headRepositoryOwner";
+// contract (R-3722, R-3725): attempt-specific GitHub REST jobs endpoint; all pages are required.
+export const CI_JOBS_PATH = "repos/<owner>/<repo>/actions/runs/<run>/attempts/<attempt>/jobs";
+// measured 2026-11-02 (R-3722, R-3725): ci.yml:68-70, suite's matrix continue-on-error.
+// Recognize only the current suite stanza, never another job's continue-on-error or a guessed OS name.
+export const CI_ADVISORY_WORKFLOW = ".github/workflows/ci.yml";
+export const CI_ADVISORY_JOB = "suite (ubuntu-latest)";
+export const CI_ADVISORY_RULE = /^  suite:[ \t]*\r?\n(?:(?:    [^\r\n]*|[ \t]*|    #[^\r\n]*)\r?\n)*?    continue-on-error: \$\{\{ matrix\.os == 'ubuntu-latest' \}\}[ \t]*(?:\r?\n|$)/m;
+
 // chosen 2026-10-22 (R-2589): about 60 times the measured 0.47-second runs call.
 export const CI_READ_TIMEOUT_MS = 30_000;
 
