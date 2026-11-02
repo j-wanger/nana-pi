@@ -53,4 +53,4 @@ const PAIRS = [
 	], tests: [BB], expectRed: [R_3594] },
 ];
 
-process.exitCode = await runMutations({ lane: "knowledge-busy", self: import.meta.url, tip: "cadd0b14", declared: DECLARED, pairs: PAIRS });
+process.exitCode = await runMutations({ lane: "knowledge-busy", self: import.meta.url, tip: "34cdc8f4b5e1be0eb89a5917ab371d6f77dbbdc0", declared: DECLARED, pairs: PAIRS });
