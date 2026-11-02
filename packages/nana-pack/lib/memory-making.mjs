@@ -20,11 +20,11 @@ import { CANDIDATES_FILE, CLAIM_CAP, CONTEXT_MIN_WORDS, CORRECTION_CUES, CORRECT
 
 const words = (text) => text.trim().split(/\s+/u).filter(Boolean).length;
 const partsOf = (entry) => entry.message?.content ?? entry.content;
-const textOnly = (entry) => {
+export const textOnly = (entry) => {
  const content = partsOf(entry);
  return typeof content === "string" ? content : Array.isArray(content) ? content.filter((p) => p?.type === "text" && typeof p.text === "string").map((p) => p.text).join("\n") : "";
 };
-function ownerTurn(entry) {
+export function ownerTurn(entry) {
  if (entry.type !== "user" || entry.isMeta || entry.isSidechain || entry.isCompactSummary) return false;
  const parts = partsOf(entry);
  if (Array.isArray(parts) && parts.some((p) => p?.type === "tool_result")) return false;

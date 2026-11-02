@@ -1,0 +1,8 @@
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs   11 pass  27.6s
+PASS  packages/nana-pack/tests/credential-gate.test.mjs   2 pass  1.3s
+PASS  packages/nana-pack/tests/credential-strip.test.mjs  6 pass  21.7s
+PASS  packages/nana-pack/tests/rulings.test.mjs           23 pass  0.1s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs     24 pass, 3 skip  29.8s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs       68 pass  26.2s
+
+6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 134 pass, 0 fail, 3 skip · 107.2s

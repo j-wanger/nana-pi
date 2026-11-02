@@ -1,0 +1,26 @@
+Git Bash: C:\Program Files\Git\bin\bash.exe
+pi: C:\Users\J\AppData\Roaming\npm\pi.cmd
+node: C:\Program Files\nodejs\node.exe
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi post-edit
+PASS pi powershell gate
+PASS pi-review (cmd)
+PASS pi-review (sh)
+PASS hook set
+PASS hook memory making
+PASS hook roster notice
+PASS hook shared memory
+PASS hook adoption
+PASS hook objective
+PASS hook knowledge pull
+PASS hook verifier pipe (Bash)
+PASS hook verifier pipe (PowerShell)
+PASS doctor
+PASS pi-worker (cmd)
+PASS pi-worker (sh)
+PASS readme checklist

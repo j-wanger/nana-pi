@@ -95,8 +95,28 @@ export const SAMPLE_MIN_TIER = 1;
 export const KAPPA_MIN_COUNT = 10;
 export const RULE_TIERS = Object.freeze(["part", "heading", "lead", "keyword", "unsorted"]);
 // Chosen O3: only named known parts leave the private store; unknown sections aggregate here.
-export const REPORT_PARTS = Object.freeze(["preamble", "tools", "rules", "docs", "addendum", "brief", "known-bugs", "project_context", "skills", "cwd", "nana-objective", "nana-writing", "nana-rulings", "toolsAdded", "instruction", "knowledge-pull"]);
+export const REPORT_PARTS = Object.freeze(["preamble", "tools", "rules", "docs", "addendum", "brief", "known-bugs", "project_context", "skills", "cwd", "nana-objective", "nana-writing", "nana-rulings", "toolsAdded", "instruction", "knowledge-pull", "system-prompt", "nana-soul", "nana-standards", "user-rules-other", "project-instructions", "auto-memory", "shared-memory", "objective", "adoption", "roster-notice", "hook-other", "attached-files", "environment", "harness", "owner", "notification", "compaction-summary", "attachment-other"]);
 
+// Chosen 2026-11-02, seat plan A1-A5 / R-3640..R-3644: field-only payload
+// selection and conservative correlation for the observed Claude Code shapes.
+// No metadata fallback. Unknown types remain a counts-only coverage bucket.
+export const SEAT_POLICY = Object.freeze({
+ payloads: {
+  prompt_snapshot: ['system-prompt', 'recorded-input', ['systemPrompt']],
+  skill_listing: ['tools', 'unknown', ['content']], deferred_tools_delta: ['tools', 'unknown', ['addedLines', 'addedBlocks']], agent_listing_delta: ['tools', 'unknown', ['addedLines', 'addedBlocks']], mcp_instructions_delta: ['tools', 'unknown', ['addedLines', 'addedBlocks']], deferred_tools_record: ['tools', 'unknown', ['entries']],
+  invoked_skills: ['skills', 'unknown', ['skills.content']], file: ['attached-files', 'unknown', ['content']], edited_text_file: ['attached-files', 'unknown', ['snippet']], compact_file_reference: ['attached-files', 'unknown', []],
+  environment: ['environment', 'unknown', ['snapshot']], session_context: ['environment', 'unknown', ['context']], date: ['environment', 'unknown', ['date']], model: ['environment', 'unknown', ['text']], auto_mode: ['environment', 'unknown', []], remote_session_change: ['environment', 'unknown', []],
+  total_tokens_reminder: ['harness', 'unknown', ['text']], silent_turn_reminder: ['harness', 'unknown', ['text']], task_status: ['harness', 'unknown', ['text']], ultra_effort: ['harness', 'unknown', ['text']], thinking_drop: ['harness', 'unknown', ['text']], command_permissions: ['harness', 'unknown', ['text']],
+ },
+ rules: ['nana-soul', 'nana-standards', 'nana-writing', 'nana-rulings'], splitters: { tools: 'toolsAdded' },
+ instructions: { User: 'user-rules-other', Project: 'project-instructions', AutoMem: 'auto-memory' },
+ hooks: [['nana-objective', 'objective'], ['nana-adoption', 'adoption'], ['nana-roster-notice', 'roster-notice']],
+ starts: ['startup', 'resume', 'clear', 'compact'], standing: ['system-prompt', 'project-instructions', 'auto-memory', 'user-rules-other', 'tools', 'environment'],
+ correlation: { invocation: 'toolUseID', envelope: 'additionalContext', human: 'humanTurn' },
+ tools: { read: 'Read', grep: 'Grep', find: 'Glob', bash: 'Bash', delegation: ['Agent', 'Task'], web: ['WebFetch', 'WebSearch'], skill: ['Skill'], write: ['Edit', 'Write', 'NotebookEdit'] },
+});
+// Chosen 2026-11-02, O3 / R-3644: seat-only classes never widen builder rows.
+export const SEAT_CLASS_FUNCTION = Object.freeze({ ...CLASS_FUNCTION, memory: 'knowledge', delegation: 'knowledge', web: 'knowledge', skill: 'tools', write: 'task', other: 'unsorted' });
 // Chosen by the owner on 2026-11-01 after Sonnet low-effort labels missed both
 // agreement bars on the fixed check set (R-3397).
 export const LABEL_MODEL = "claude-opus-5-5";
