@@ -1,0 +1,4 @@
+npm run test:locked (foreground, unfiltered): exit 1
+264 files: 244 PASS, 2 FAIL, 18 SKIP, 0 WARN · checks: 7723 pass, 3 fail, 156 skip · 1168.9s
+Failed only the known environment gaps: post-edit-utf8.test.mjs (no Python) and template-acceptance.test.mjs (no uv).
+Changed test file times: packages/nana-pack/tests/objective-golden.test.mjs 61.4s; packages/nana-setup/tests/hooks-win32-exec.test.mjs 11.2s.
