@@ -14,6 +14,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
+import { MEMORY_END_ENTRY, MEMORY_END_TIMEOUT_SECONDS } from './memory-end-config.mjs';
 
 // The Claude Code settings.json merge. Pure functions: the file is read and written by the
 // caller, so the merge itself is trivially testable and can never half-write.
@@ -194,19 +195,20 @@ export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
 export function desiredHooks({ hooksDir, repoRoot, platform }) {
 	const win32 = platform === "win32";
 	const hookTarget = (name) => (win32 ? `${repoRoot}/packages/nana-setup/claude/hooks/${name}` : `${hooksDir}/${name}`);
-	const nodeHook = (name, statusMessage) => {
+	const nodeHook = (name, statusMessage, timeout = 5) => {
 		const target = hookTarget(name);
 		return {
 			spec: { interpreters: ["node"], script: name },
 			entry: win32
-				? { type: "command", command: "node", args: [target], timeout: 5, statusMessage }
-				: { type: "command", command: `node ${shq(target)}`, timeout: 5, statusMessage },
+				? { type: "command", command: "node", args: [target], timeout, statusMessage }
+				: { type: "command", command: `node ${shq(target)}`, timeout, statusMessage },
 		};
 	};
 	const objective = nodeHook("nana-objective.mjs", "nana: objective + current priority");
 	const adoption = nodeHook("nana-adoption.mjs", "nana: unadopted repositories");
 	const shared = nodeHook("nana-shared-memory.mjs", "nana: shared memory index");
 	const rosterNotice = nodeHook("nana-roster-notice.mjs", "nana: roster notice");
+	const memoryEnd = nodeHook(MEMORY_END_ENTRY.file, MEMORY_END_ENTRY.statusMessage, MEMORY_END_TIMEOUT_SECONDS);
 	const verifierPipeTarget = hookTarget("verifier-pipe.mjs");
 	const verifierPipeSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
 	const verifierPipeEntry = win32
@@ -231,6 +233,7 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 			entry: verifierPipeEntry,
 		},
 		{ event: "UserPromptSubmit", label: "UserPromptSubmit knowledge pull", marker: "nana-knowledge.ts hook", spec: knowledgeSpec, entry: knowledgeEntry },
+		{ event: MEMORY_END_ENTRY.event, label: `${MEMORY_END_ENTRY.event} memory making`, marker: MEMORY_END_ENTRY.file, spec: memoryEnd.spec, entry: memoryEnd.entry },
 	];
 }
 
@@ -478,7 +481,7 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 		const groups = settings?.hooks?.[w.event];
 		let movedVerifier = false;
 		if (win32 && w.matcher === WIN_VERIFIER_MATCHER && Array.isArray(groups)) {
-			const alreadyAtWinMatcher = groups.some((group) => group?.matcher === WIN_VERIFIER_MATCHER && Array.isArray(group.hooks) && group.hooks.some((hook) => hook?.timeout === 5 && installerTarget(hook, w, platform)));
+			const alreadyAtWinMatcher = groups.some((group) => group?.matcher === WIN_VERIFIER_MATCHER && Array.isArray(group.hooks) && group.hooks.some((hook) => hook?.timeout === w.entry.timeout && installerTarget(hook, w, platform)));
 			let moved;
 			for (let gi = groups.length - 1; gi >= 0; gi--) {
 				const group = groups[gi];
@@ -486,7 +489,7 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 				let removedFromGroup = false;
 				for (let i = group.hooks.length - 1; i >= 0; i--) {
 					const hook = group.hooks[i];
-					if (hook?.timeout !== 5 || !installerTarget(hook, w, platform)) continue;
+					if (hook?.timeout !== w.entry.timeout || !installerTarget(hook, w, platform)) continue;
 					const [removed] = group.hooks.splice(i, 1);
 					moved ??= removed;
 					movedVerifier = true;
@@ -516,7 +519,7 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 				if (!matcherOk || !Array.isArray(group?.hooks)) continue;
 				for (let i = 0; i < group.hooks.length; i++) {
 					const hook = group.hooks[i];
-					if (hook?.timeout !== 5) continue;
+					if (hook?.timeout !== w.entry.timeout) continue;
 					const match = installerTarget(hook, w, platform);
 					if (!match) continue;
 					// installerTarget already guarantees match.target is absolute, by the

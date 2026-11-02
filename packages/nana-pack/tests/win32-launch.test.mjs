@@ -12,6 +12,7 @@
  *  assertions exit nonzero
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { withPathPrepended } from "./env-path.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -193,7 +194,7 @@ console.log("VERDICT: LAND");
 		? spawnSync(process.execPath, [npmCli, "install", "--global", "--prefix", prefix, "--offline", "--ignore-scripts", tgzPath], { encoding: "utf8" })
 		: { status: 1, stderr: tgz.stderr || "npm pack failed or npm_execpath is not set" };
 	const shim = path.join(prefix, "pi.cmd");
-	const env = { ...process.env, PATH: `${prefix}${path.delimiter}${process.env.PATH ?? ""}`, HOME: temp, USERPROFILE: temp, TEMP: temp, TMP: temp, PI_CODING_AGENT_DIR: path.join(temp, "empty-agent-dir") };
+	const env = { ...withPathPrepended(process.env, prefix), HOME: temp, USERPROFILE: temp, TEMP: temp, TMP: temp, PI_CODING_AGENT_DIR: path.join(temp, "empty-agent-dir") };
 	const found = installed.status === 0 ? findPi({ env, cwd: prefix }) : null;
 	const ready = installed.status === 0 && found === shim;
 	if (!ready) {
@@ -222,7 +223,7 @@ console.log("VERDICT: LAND");
 		const laneCalls = readRecord();
 		const expectedArgv = ["--provider", LANE_DEFAULTS.provider, "--model", LANE_DEFAULTS.model, "--thinking", LANE_DEFAULTS.thinking, "-t", LANE_DEFAULTS.tools];
 		const builderLine = laneRun.stderr.split(/\r?\n/).find((l) => l.startsWith("pi-worker: builder:"));
-		// req: R-1125 R-1124
+		// req: R-1125 R-1124 R-3453
 		check("Windows: lane pi-worker prints the builder line and starts the npm-installed pi entry with node and the lane argv",
 			laneRun.status === 0 && Boolean(builderLine) && laneCalls.length === 1 &&
 			laneCalls[0].execPath.toLowerCase() === process.execPath.toLowerCase() &&

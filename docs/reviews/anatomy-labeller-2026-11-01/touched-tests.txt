@@ -1,0 +1,4 @@
+PASS  apps/bench/test/anatomy-labels.test.mjs  19 pass  1.1s
+PASS  apps/bench/test/anatomy.test.mjs         9 pass  1.2s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 28 pass, 0 fail, 0 skip · 2.7s

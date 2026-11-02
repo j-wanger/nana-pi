@@ -1,0 +1,197 @@
+﻿# Per-check timings before the lane, reference Windows 11 laptop (Ryzen AI 9 365), each file run alone with its own HOME/TEMP, 2026-11-01.
+# Columns: seconds since start, seconds since the previous line, output line.
+
+## packages/nana-pack/tests/profile-store.test.mjs
+ 168.4s +168.4s  PASS a save writes one shape record into the private clone and nowhere else
+ 193.4s + 25.0s  PASS only a seat on an enabled machine may write
+ 237.6s + 44.1s  PASS trust rises only on the owner words across sessions
+ 299.9s + 62.3s  PASS retract and supersede hide the right records
+ 319.8s + 19.9s  PASS the pointer is configuration and the push target stays verified private
+ 319.8s +  0.0s  PASS seal: PROFILE_MEDIUM_SESSIONS is 3
+ 319.8s +  0.0s  PASS seal: PROFILE_SHOW_BUDGET is 4000
+ 319.8s +  0.0s  PASS seal: PROFILE_GIT_TIMEOUT_MS is 15000
+ 319.8s +  0.0s  PASS seal: PROFILE_LOCK_WAIT_MS covers 28 Git steps
+ 319.8s +  0.0s  PASS seal: PROFILE_LOCK_STALE_MS is 120000
+ 319.8s +  0.0s  PASS seal: PROFILE_PUSH_RETRIES is 1
+ 319.8s +  0.0s  PASS seal: PROFILE_LIMITS
+ 319.8s +  0.0s  PASS seal: PROFILE_SESSION_VARIABLES
+ 319.8s +  0.0s  PASS seal: PROFILE_STAMP_FORMAT
+ 319.8s +  0.0s  PASS seal: PROFILE_PATH_POLICY
+ 319.8s +  0.0s  PASS seal: PROFILE_REMOTE_FORMS
+ 319.8s +  0.0s  PASS seal: PROFILE_LAYOUT
+ 319.8s +  0.0s  PASS seal: PROFILE_WORDS
+exit 0 after 319.8s
+
+## packages/nana-pack/tests/review-ledger.test.mjs
+   4.1s +  4.1s  PASS no --item → refused with the required-item message 
+  12.9s +  8.8s  PASS pi-review --worker ×5 (sol r1 #3): every one refused, the review never runs 
+  14.0s +  1.1s  PASS review-ledger run earns a counted round 
+  15.2s +  1.1s  PASS review-ledger run starts its command with NANA_ROLE=reviewer and NANA_HANDOFF=off over a caller's worker role 
+  16.3s +  1.1s  PASS review-ledger run -- pi starts pi and records its round 
+  16.4s +  0.1s  PASS outside git without --tree → refused 
+  16.6s +  0.1s  PASS pi-worker runs a worker under the watchdog (exit 0, output written) 
+  16.6s +  0.0s  PASS pi-worker touched no ledger file 
+  28.3s + 11.7s  PASS pi-watchdog removes capture directories after success, child failure and stall 
+  28.4s +  0.1s  PASS pi-worker refuses review options (--item) 
+  28.4s +  0.0s  PASS pi-worker source never imports the ledger API 
+  39.7s + 11.3s  PASS sol-final.md / r3b.md / anything.md on revisions 1-3 admitted 
+  39.7s +  0.0s  PASS notes.md on a 4th revision refused 
+  39.7s +  0.0s  PASS tally holds exactly 3 rounds, audit exactly 3 verdicts 
+  39.7s +  0.0s  PASS tally record {v,ts,kind:round,repo,item,revision(full sha),role,launcher} 
+  40.3s +  0.6s  PASS switching launcher (review-ledger run) does not reset the count 
+  51.6s + 11.3s  PASS ten verdicts under ten roles on one revision all admitted 
+  51.6s +  0.0s  PASS …and they are ONE round (10 v2 verdict records, 10 audit verdicts) 
+  51.6s +  0.0s  PASS completed round records verdict and readRounds filters without mutation 
+  53.8s +  2.3s  PASS two sol reviews of one revision (sol r1: consumed 2) = one round 
+  55.0s +  1.2s  PASS new revision earns a round regardless of role 
+  55.6s +  0.6s  PASS fourth revision refused 
+  56.8s +  1.2s  PASS re-reviewing an already-counted revision is admitted and earns nothing 
+  59.4s +  2.6s  PASS --revision <short> and --revision HEAD resolve to the same full sha (no new round) 
+  60.0s +  0.6s  PASS --revision naming a different commit than HEAD is refused (revision derives from HEAD) 
+  60.6s +  0.6s  PASS unresolvable --revision inside git refused 
+  77.7s + 17.1s  PASS complete records the LAND corpus forms and final SEND-BACK 
+  98.4s + 20.7s  PASS complete records an empty verdict for malformed verdict suffixes 
+ 114.2s + 15.8s  PASS complete extracts plain first-line verdicts, supported scores, BOM and line endings 
+ 144.7s + 30.5s  PASS complete refuses marks, corrections, conflicting verdicts, invisible characters and bounded-token lookalikes 
+ 144.7s +  0.0s  PASS every configured verdict look-alike canonicalizes to its target 
+ 147.1s +  2.3s  PASS review-ledger run exits 1 when the recorded verdict is empty and 0 when it is a word 
+ 152.9s +  5.8s  PASS pi-review exits 1 without its success line when the recorded verdict is empty 
+ 160.4s +  7.5s  PASS an empty verdict prints one stderr line naming the selected line, its condition and the conflicting line 
+ 168.9s +  8.6s  PASS the empty-verdict line says nana-land refuses the revision and counts the rounds left 
+ 173.0s +  4.0s  PASS complete appends every verdict at v2 and returns the revision ordinal 
+ 175.1s +  2.2s  PASS report prints one line per verdict on a revision 
+ 179.8s +  4.7s  PASS R-2568: a recorded round keeps its review text by hash beside the tally 
+ 182.9s +  3.1s  PASS R-2660: a kept review text whose first rename fails with EPERM, EBUSY or EACCES is still kept and its round recorded, on every platform 
+ 185.0s +  2.0s  PASS R-2569: a missing or different output file at record time still records and keeps the captured verdict 
+ 186.0s +  1.0s  PASS R-2575: a failed store write records no round 
+ 191.4s +  5.4s  PASS R-2573: keep writes each kept review text of the item into the lane folder 
+ 194.0s +  2.5s  PASS R-2574: keep refuses a differing file and writes nothing 
+ 198.1s +  4.1s  PASS 'caseitem' after 3 rounds of 'CaseItem' refused (one item) 
+ 202.3s +  4.2s  PASS 'scope  one' after 3 rounds of 'scope one' refused 
+ 202.4s +  0.1s  PASS --item "../item" refused, no stack 
+ 202.4s +  0.1s  PASS --item "a/b" refused, no stack 
+ 202.5s +  0.1s  PASS --item ".." refused, no stack 
+ 202.6s +  0.1s  PASS --item "xxxxxxxxxx"… refused, no stack 
+ 207.3s +  4.7s  PASS same slug, unrelated repo B: its own item (admitted) 
+ 210.8s +  3.5s  PASS two worktrees: one repo identity in the tally 
+ 212.0s +  1.2s  PASS worktree W2 at A's already-counted revision: admitted, no new round 
+ 212.7s +  0.6s  PASS worktree W2 at a 4th revision: refused (the item is shared) 
+ 212.9s +  0.2s  PASS outside git refuses admission unless --tree names a reviewed repository 
+ 214.1s +  1.2s  PASS scratch launcher cwd with --tree uses the reviewed repository scope 
+ 217.0s +  2.9s  PASS pi-review --tree succeeds from a non-git scratch cwd 
+ 219.2s +  2.3s  PASS review-ledger child executes from selected directory, not repository root 
+ 219.8s +  0.6s  PASS legacy path-keyed tally rows remain readable 
+ 222.4s +  2.6s  PASS tracked stdout and untracked stderr redirects into the reviewed tree are refused through both launchers 
+ 239.6s + 17.2s  PASS prefixed verdict accepted by shape predicate is extracted into the recorded round 
+ 239.6s +  0.0s  PASS pi-review enforces the case-sensitive verdict line boundary 
+ 239.6s +  0.0s  PASS review-ledger enforces the case-sensitive verdict line boundary 
+ 242.0s +  2.4s  PASS infra failure → exit 1 
+ 248.5s +  6.5s  PASS stalled attempt → exit 1 (watchdog killed it) 
+ 248.5s +  0.0s  PASS no reservation left behind, no round counted 
+ 252.7s +  4.2s  PASS …so the item still has all 3 rounds, and the 4th is refused 
+ 258.1s +  5.4s  PASS race1: exactly one of two concurrent launchers wins the last round 
+ 263.4s +  5.3s  PASS race2: exactly one of two concurrent launchers wins the last round 
+ 268.7s +  5.3s  PASS race3: exactly one of two concurrent launchers wins the last round 
+ 274.8s +  6.1s  PASS the in-flight review holds the last round (check says no) 
+ 276.1s +  1.3s  PASS after SIGKILL + a dead-pid lock, the next review is admitted 
+ 276.1s +  0.0s  PASS the crashed reservation was pruned, and the lock released 
+ 276.1s +  0.0s  PASS the crashed attempt consumed no round (3 rounds) 
+ 276.1s +  0.0s  SKIP watchdog signals reap children, release review reservations and preserve signal exit codes — Windows has no POSIX signal to a process group
+ 279.5s +  3.4s  PASS the expired reservation is pruned; a replacement is admitted as round 3 
+ 280.0s +  0.5s  PASS complete(expired A) refused, NOT recorded 
+ 280.0s +  0.0s  PASS complete(B) recorded; the item has 3 rounds, never 4 
+ 280.0s +  0.0s  PASS completing B twice is refused (its reservation was consumed) 
+ 280.0s +  0.0s  PASS a forged reservation id records nothing 
+ 281.1s +  1.0s  PASS a future-dated reservation is stale (does not hold a round) 
+ 287.2s +  6.1s  PASS the audit log rotated twice (.1 holds only the 2nd generation; rot's verdicts are gone from it) 
+ 287.8s +  0.6s  PASS after two rotations, item rot's 4th revision is still refused 
+ 287.8s +  0.0s  PASS the tally never rotates 
+ 292.0s +  4.2s  PASS a corrupted round line refuses admission with file:line 
+ 293.2s +  1.2s  PASS …deleting the line is the documented repair (2 rounds left → admitted) 
+ 293.9s +  0.6s  PASS a record missing repo/revision is malformed too 
+ 293.9s +  0.0s  PASS an incomplete round line refuses admission naming file:line 
+ 296.4s +  2.6s  PASS every ledger file as a symlink is refused at once before the review, target untouched, no stack 
+ 298.3s +  1.9s  PASS every ledger data file that is a directory is refused before the review, naming the path, no stack 
+ 298.4s +  0.1s  SKIP an unwritable ledger directory is refused at once before the review, saying it must be writable, no stack — the hosted runner's account still wri
+ 299.1s +  0.7s  PASS lock path is a directory: refused at once with a message, no stack 
+ 300.9s +  1.9s  PASS check with a read-only reservations dir succeeds (it writes nothing) 
+ 300.9s +  0.0s  PASS check changed neither the tally, the audit nor the reservations (captured before check) 
+ 301.5s +  0.6s  PASS check on a machine with no ledger creates nothing 
+ 306.9s +  5.4s  PASS --over-cap --retries is refused (a flag is not a reason) 
+ 308.7s +  1.8s  PASS --over-cap '  ' is refused 
+ 308.7s +  0.0s  PASS no override was recorded by the spoofs 
+ 311.6s +  2.9s  PASS --over-cap 'instrumented X' runs 
+ 311.6s +  0.0s  PASS the override is recorded with reason, round and timestamp 
+ 311.6s +  0.0s  PASS the over-cap round carries the override in the tally 
+ 313.2s +  1.6s  PASS dirty tree review → round 1, ledger line {revision:<sha>+snap:<64hex>, head:<sha>, snapshot:<64hex>} 
+ 314.3s +  1.1s  PASS edit a tracked file (uncommitted) → round 2 
+ 315.5s +  1.2s  PASS revert the edit → original revision recognised, no new round 
+ 316.8s +  1.3s  PASS stage the same content → the same revision (index state is not work state), no new round 
+ 318.1s +  1.2s  PASS commit the change → a new revision (clean sha, snapshot null), a new round 
+ 318.7s +  0.6s  PASS explicit --revision HEAD on a dirty tree still carries the snapshot (4th state → refused) 
+ 318.9s +  0.2s  PASS a worker reply with NO review token succeeds (exit 0, output written) 
+ 318.9s +  0.0s  PASS …and ran exactly once (zero retries) 
+ 319.0s +  0.1s  PASS a failing worker is NOT retried by default (1 attempt, exit 1) 
+ 319.2s +  0.2s  PASS --retries 1 opts in explicitly, with a mutation warning (2 attempts) 
+ 321.6s +  2.4s  PASS pi-review still requires review shape (the same plain reply is no verdict) 
+ 321.6s +  0.0s  PASS pi-watchdog imports no ledger or review module 
+ 322.0s +  0.5s  PASS corrupt index → refused, the message names git's error, no stack, no round 
+ 322.3s +  0.2s  PASS check refuses too 
+ 323.0s +  0.7s  PASS clean tree → the bare HEAD sha 
+ 323.5s +  0.5s  PASS collapse: an untracked file is part of the state (≠ clean) 
+ 324.0s +  0.5s  PASS …and removing it returns to the clean sha 
+ 325.6s +  1.6s  PASS lost committed exec bit retains plain HEAD 
+ 326.9s +  1.3s  PASS CRLF checkout retains plain HEAD 
+ 327.9s +  1.0s  PASS cached removal of normalized content retains plain HEAD 
+ 328.7s +  0.8s  PASS …chmod back → the clean sha 
+ 331.0s +  2.2s  PASS normalized dirty copies share one snapshot 
+ 335.1s +  4.2s  PASS snapshot derivation leaves git metadata unchanged 
+ 336.5s +  1.4s  PASS clean checkout under core.autocrlf and core.safecrlf retains plain HEAD 
+ 338.5s +  2.0s  PASS scratch objects resolve a linked repository with special path characters 
+ 341.1s +  2.6s  PASS a clean submodule at its recorded commit → the bare HEAD sha 
+ 343.0s +  2.0s  PASS collapse: two different dirty submodule contents (both render '-dirty') → distinct 
+ 344.0s +  1.0s  PASS …submodule restored → the clean sha 
+ 344.0s +  0.0s  PASS the full sha-256 is retained (64 hex) 
+ 345.9s +  1.9s  PASS split: modified + new file — unstaged, intent-to-add, fully staged → ONE revision 
+ 346.9s +  1.0s  PASS split: diff.noprefix / mnemonicPrefix / color.ui / quotePath / renames set → same revision 
+ 347.4s +  0.5s  PASS split: ignored files (*.log, build/) do not change the revision 
+ 347.9s +  0.5s  PASS …nor does editing an ignored file 
+ 348.3s +  0.5s  PASS split: touching a file (mtime only) does not change the revision 
+ 349.6s +  1.3s  PASS split: `git rm --cached` (index only; the file is unchanged on disk) → still the clean sha 
+ 350.2s +  0.6s  PASS the review's own --out file inside the tree is excluded from its snapshot 
+ 351.6s +  1.4s  PASS edit during the review → exit 1, 'changed during the review', verdict NOT recorded as valid 
+ 351.6s +  0.0s  PASS …the round IS consumed for the admitted revision (tally: unverified, completedAs = the new state) 
+ 351.6s +  0.0s  PASS …and no reservation is left behind 
+ 353.0s +  1.5s  PASS a review whose --out lands inside the reviewed tree is stable (its own output is excluded) 
+ 357.0s +  4.0s  PASS while a renewing review runs past its stale window, another admission sees it in flight 
+ 359.0s +  2.0s  PASS …and the renewing review completes and is recorded (exit 0, round 1) 
+ 360.8s +  1.8s  PASS a live but NON-renewing owner is reclaimed after the window (0 in flight) 
+ 360.8s +  0.0s  PASS …and its late completion records nothing 
+ 361.9s +  1.0s  PASS renew() refreshes a reservation older than the old 12 h lease 
+ 362.4s +  0.5s  PASS …and completes 
+ 362.4s +  0.0s  PASS renew() of a consumed reservation returns false 
+ 363.1s +  0.8s  PASS toctou: admitted at the clean HEAD 
+ 365.2s +  2.1s  PASS toctou: the completion was blocked on the lock when the tree was edited 
+ 365.2s +  0.0s  PASS toctou: an edit made while completion waits on the lock → verdict recorded UNVERIFIED, not valid 
+ 366.3s +  1.1s  PASS a TRACKED --out is refused before the review runs (file untouched, nothing reserved) 
+ 367.1s +  0.8s  PASS …also when spelled through ../ (resolved) 
+ 367.9s +  0.8s  PASS …and a path tracked in HEAD but removed from the index 
+ 369.6s +  1.7s  PASS an untracked in-tree --out warns, the review still runs, and the output stays out of its snapshot 
+ 371.0s +  1.4s  PASS an ignored in-tree --out is silent 
+ 372.1s +  1.1s  PASS an --out outside the tree is silent 
+ 372.9s +  0.8s  PASS review-ledger check refuses a tracked --out too 
+ 373.6s +  0.8s  PASS a symlinked --out aimed at a tracked file is refused BEFORE the review (target byte-identical, nothing reserved or counted) 
+ 374.4s +  0.8s  PASS …through a chain of two links is refused BEFORE the review (target byte-identical, nothing reserved or counted) 
+ 374.6s +  0.2s  PASS a dangling --out link is resolved to where the write would land (in-tree → warns) 
+ 375.5s +  0.9s  PASS a TRACKED file named ..notes.md is in-tree and refused (file untouched) 
+ 376.9s +  1.4s  PASS an untracked ..draft.md is in-tree: warns, and is excluded from the snapshot (verdict verified) 
+ 376.9s +  0.0s  PASS relUnder: by segment 
+ 382.7s +  5.7s  PASS repeated FAILED over-cap launches: the audit rotates (never above the cap), overrides still recorded 
+ 390.1s +  7.4s  PASS report records metadata, omits unused override reasons, and reports real over-cap reason read-only 
+ 390.1s +  0.1s  PASS legacy rounds print - for every unavailable report field 
+ 390.1s +  0.0s  PASS Trust model declares wrapper-only formal rounds, supplemental reviews and revision-based counting 
+ 396.1s +  6.0s  PASS pi-review: explicit --retries → one-line notice 
+ 396.1s +  0.0s  PASS pi-review: no --retries → no notice 
+ 396.4s +  0.3s  PASS pi-worker: explicit --retries → notice; default → none 
+ 396.5s +  0.1s  PASS …a pi arg named --retries (after --) is not the flag 
+exit 0 after 397.0s

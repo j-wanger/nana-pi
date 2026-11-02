@@ -1,0 +1,159 @@
+# Local runs, 2026-11-01, on the reference Windows 11 laptop's environment.
+# The session's shell hands Node the variable spelled PATH and GNU tar first, so each run goes through a launcher that hands the test node ONE key spelled Path
+# (the PowerShell spelling) with C:\Windows\System32 first, so tar is the System32 bsdtar 3.8.9. npm_execpath is set to the installed npm-cli.js, as 'npm run' sets it.
+# The unchanged tests at HEAD under this environment: restore FAILs 'archive excludes every independently derived non-durable fixture'; pi-registration FAILs 'Windows integration selected the prepended npm pi shim' (it selected the real npm pi.cmd).
+
+## packages/nana-setup/tests/restore.test.mjs
+PASS README backup and extraction commands are byte-exact 
+PASS source home installs 
+PASS source project trust is recorded 
+PASS independent durable fixtures are all listed 
+PASS knowledge generated sidecars, reclaim lock and unknown future files are excluded 
+PASS archive excludes every independently derived non-durable fixture 
+PASS tar listings split on CRLF and LF 
+PASS a forbidden path in the archive listing is caught in slash form 
+PASS clean destination reports every durable store absent 
+PASS extracted archive entries contain no symlink of any target 
+PASS restored doctor reports project trust only 
+PASS trust clears the only doctor warning 
+PASS every independently expected durable fixture restores byte-equal 
+PASS R-2872: a kept review text survives the documented backup and restore and reads as intact to nana-land's evidence check 
+PASS destination has no secret markers 
+PASS destination has no symlink resolving into source home 
+PASS destination files contain no source-home path 
+exit 0
+
+## packages/nana-pack/tests/env-path.test.mjs
+PASS withPathPrepended on win32 leaves one PATH key, B;A, keeps the rest and leaves the input unchanged 
+PASS withPathPrepended on win32 removes every letter-case spelling and keeps the first spelling's value, as Node does for a spawn 
+PASS withPathPrepended on linux replaces only PATH and keeps a distinct Path key untouched 
+PASS no lookup test spreads process.env with a PATH key, and the scan sees one across CRLF, trailing space and no final newline 
+exit 0
+
+## packages/nana-setup/tests/pi-launch-limits.test.mjs
+PASS R-2484: the launch-limit test accepts a stop up to the limit, the relay settle window and the sealed 3.5-second margin, below the relay backstop 
+PASS R-2020: a pi that hangs on --version makes install and install --dry-run stop at the limit, report pi packages ✗ naming pi --version and the limit, and exit 1 
+PASS R-2021: a pi that hangs on --version makes doctor stop at the limit and report pi executable ✗ naming pi --version and the limit 
+PASS R-2022: a pi install that hangs makes install stop at the limit, report pi packages ✗ naming pi install, the package folder and the limit, and exit 1 
+PASS R-2023: every process a timed-out pi --version or pi install started, pi's own child included, has ended when install, the dry run and doctor report 
+(node:20696) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-2890: a recorded pid still alive when the judge's wait ends makes the run read not ended, is named with its probe result, and is left running 
+PASS R-2891: a run judged after its fixture could have ended by itself, or holding a record with no start time, reads not ended with the reason named 
+PASS R-2892: a probe error other than ESRCH, or a record without a positive integer pid and ppid, makes the judge report its run not ended and name it 
+PASS R-2893: the launch-limit test signals only through its allowed kill calls, imports no tree-kill helper and starts no kill command 
+PASS R-2894: a fixture tree gets a sealed 6-second start allowance apart from the parent-kill bound and a sealed 1-second self-exit margin, and a stopped launch returns at least that margin before the
+SKIP R-2895: the parent-kill check counts a launch whose pi starts its child after the default poll but inside the start allowance as started POSIX process-tree timing
+PASS R-2024: with no limit injected, install, the dry run and doctor give pi --version 30 s and each pi install 120 s 
+PASS R-2301: on win32, install, its dry run and doctor start an npm pi.cmd's package entry with the running Node, its limit, install's agent folder and a checkout path holding % and ! unchanged, never
+PASS R-2302: on win32, a pi.cmd with no npm package beside it, another package there, or the package's entry missing still runs through ComSpec in install, its dry run and doctor 
+PASS R-2027: the relay gives a signalled pi launch 1000 ms to clean up before ending its process tree 
+PASS R-2025: pi install started under the limit receives the agent folder install chose as PI_CODING_AGENT_DIR 
+SKIP R-2026: SIGINT, SIGTERM and SIGHUP each sent to install's process group end the pi launch it waits on win32 has no process-group signal, and process.kill ends a process without running its handle
+SKIP R-2027: SIGINT lets pi install remove its lock before install ends its launch processes win32 delivers console Ctrl-C to the attached pi process and has no process-group SIGINT equivalent
+PASS R-2300: on Windows, a kill of install alone ends the npm pi launch it waits on within the parent check and the signal grace 
+SKIP R-2130: a SIGKILL of install's whole process group ends the pi launch it waits on within the parent check and the signal grace Windows has no process-group SIGKILL
+SKIP R-2131: a SIGKILL of install alone ends the pi launch it waits on within the parent check and the signal grace a Windows parent's death leaves process.ppid unchanged
+PASS R-2303: on Windows, a kill of the pi launch relay alone ends the npm pi it runs and pi's child within the parent check and the signal grace 
+PASS R-2132: a pi install that writes just under 1 MiB of control characters to each of stdout and stderr reads created on exit 0 and failed with its last error line on exit 1 
+SKIP R-2133: SIGINT to install's process group, alone or with the relay signalled too, still lets a pi install that cleans up over two parent checks remove its lock before its processes end Windows ha
+exit 0
+
+## packages/nana-setup/tests/pi-registration.test.mjs
+PASS relative per-package entry (how this machine is registered) 
+PASS relative per-package entry, the knowledge half 
+PASS relative entry to the root itself 
+PASS absolute entry to the root 
+PASS absolute entry under the root 
+PASS remote IS us: git:github.com/<owner>/nana-pi 
+PASS remote IS us: git:github.com/<owner>/nana-pi@v0.4.1 
+PASS remote IS us: git:github.com/<owner>/nana-pi#main 
+PASS remote IS us: git:github.com/<owner>/nana-pi.git 
+PASS remote IS us: github:<owner>/nana-pi 
+PASS remote IS us: https://github.com/<owner>/nana-pi 
+PASS remote IS us: https://github.com/<owner>/nana-pi.git 
+PASS remote IS us: https://github.com/<owner>/nana-pi@v1 
+PASS remote IS us: git:git@github.com:<owner>/nana-pi 
+PASS remote IS us: git@github.com:<owner>/nana-pi.git 
+PASS remote IS us: ssh://git@github.com/<owner>/nana-pi 
+PASS remote IS us: git://github.com/<owner>/nana-pi 
+PASS remote IS us: git+ssh://git@github.com/<owner>/nana-pi 
+PASS remote is NOT us: https://evil.example/archive/<owner>/nana-pi 
+PASS remote is NOT us: https://github.com.evil.example/<owner>/nana-pi 
+PASS remote is NOT us: https://evil.example/github.com/<owner>/nana-pi 
+PASS remote is NOT us: git:gitlab.com/<owner>/nana-pi 
+PASS remote is NOT us: https://github.com/someone/nana-pi 
+PASS remote is NOT us: https://github.com/<owner>/nana-pi-other 
+PASS remote is NOT us: git:github.com/<owner>/nana-pi-fork 
+PASS remote is NOT us: https://github.com/<owner>/nana-pi/extra 
+PASS remote is NOT us: github:someone/nana-pi 
+PASS remote is NOT us: file://github.com/<owner>/nana-pi 
+PASS remote is NOT us: http://github.com/<owner>/nana-pi 
+PASS remote is NOT us: ftp://github.com/<owner>/nana-pi 
+PASS remote is NOT us: javascript://github.com/<owner>/nana-pi 
+PASS an npm package is not us 
+PASS another local repo is not us 
+PASS a sibling with a prefix name is not us 
+PASS someone else's fork is not us 
+PASS a non-string entry is not us 
+PASS registered by relative path is detected as present 
+PASS the matching entry is reported 
+PASS install reports all extension directories registered 
+PASS install did not add an entry 
+PASS doctor reports pi packages ✓ 
+PASS R-927: when this repo is already registered, install and doctor both name the matching entry on the pi packages row 
+PASS an unrelated package list is not a match 
+PASS entries are still reported 
+PASS a missing pi settings.json is not a match 
+PASS diverging fixture root manifest extension directory remains uncovered 
+PASS fixture manifest root checkout identity covers its extension directories 
+PASS knowledge-only registration leaves nana-pack's manifest extension directory uncovered 
+PASS doctor names nana-pack's uncovered extensions directory 
+PASS win32 install runs a pi.cmd through cmd.exe to add only the missing per-package entry, never a root entry 
+PASS install reports a pi settings.json saved with a byte-order mark as registered and starts no pi 
+PASS the throwaway worktree is a linked worktree of the main clone 
+PASS the MAIN clone's relative entry marks the WORKTREE as registered 
+PASS install from the worktree does not run `pi install` for a registered repo 
+PASS no entry was added 
+PASS R-384: install from a linked worktree counts the main checkout's entries as registered, and install from this checkout counts the worktree's entries, adding none 
+SKIP the main clone is not under $HOME
+PASS a different git repo is NOT a match 
+PASS the live settings.json registers ~/nana-pi (by whatever spelling) 
+PASS darwin missing pi is skipped with install hint 
+PASS darwin found pi with EACCES is a problem and fails install 
+PASS darwin found pi with nonzero version probe is a problem 
+PASS win32 pi registration uses ComSpec and sets agent dir for install 
+PASS win32 missing pi is skipped with install hint 
+PASS win32 found pi with failing version probe is a problem 
+PASS win32 found pi with spawn error is a problem 
+PASS win32 refused shim is a problem without spawn 
+PASS win32 executable launches direct 
+PASS Windows fixture npm installed the local shim 
+PASS Windows integration selected the prepended npm pi shim 
+PASS Windows npm shim preserves spaced metacharacter manifest root argv 
+PASS R-391: under --home with an unregistered extension directory, install and install --dry-run both report the pi packages step skipped (--home override in play) 
+PASS R-358: under --home, install and install --dry-run start no pi install while a working pi is first on PATH 
+PASS R-1930: with pi not on PATH, the dry-run pi packages step reports skipped with the pi install hint, as install does, on darwin and win32 
+PASS R-1931: when install would report the pi packages step ✗ before any pi install, the dry run reports the same ✗ and exits 1 
+PASS R-1932: with a working pi on PATH and an unregistered extension directory, the dry-run pi packages step reports would add and starts no pi install 
+PASS repository manifests remain byte-identical after fixture coverage checks 
+exit 0
+
+## packages/nana-pack/tests/win32-launch.test.mjs
+PASS win32 launch runs the npm pi package's bin entry with the running node and the arguments unchanged 
+PASS win32 launch starts a pi.exe directly 
+PASS win32 launch refuses with a named reason when pi, its package, its bin or its entry is missing 
+PASS win32 launch refuses with a named reason, without throwing, when pi's bin is not a string 
+PASS non-win32 launch is pi by name with the arguments unchanged 
+PASS Windows: lane pi-worker prints the builder line and starts the npm-installed pi entry with node and the lane argv 
+PASS Windows: non-lane pi-worker hands pi line breaks, %, !, quotes and a trailing backslash unchanged 
+PASS Windows: pi-review hands the review standard to pi as text 
+PASS Windows: pi-review's recorded revision is a plain sha, not a +snap 
+PASS Windows: a busy pi is not stopped as stalled 
+PASS Windows: a pi.cmd with no npm package beside it starts nothing and leaves no capture directory 
+PASS Windows: a refused launch writes its reason to --out 
+PASS Windows: review-ledger run -- pi starts the npm-installed pi entry with node and the arguments unchanged 
+PASS Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round 
+PASS Windows: lane pi-worker starts pi from a short or differently cased worktree path 
+all passed
+exit 0

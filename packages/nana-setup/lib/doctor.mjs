@@ -45,6 +45,11 @@ import { piInvocation } from "./pi-invocation.mjs";
 import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { linkOk } from "./stale-copies.mjs";
 import { piPackagesState } from "./pi-dependencies.mjs";
+import { localMemoryRun, healthWords } from '../../nana-pack/lib/memory-run.mjs';
+import { profileGit, unpushedProfile } from '../../nana-pack/lib/profile-sync.mjs';
+import { resolveProfile } from '../../nana-pack/bin/nana-profile.mjs';
+import { OPT_IN_MEMBER, PUSH_WORDS, WORDS as MEMORY_WORDS } from '../../nana-pack/lib/memory-run-config.mjs';
+import { MEMORY_MAKING_NOTE } from './memory-end-config.mjs';
 
 const OK = "ok";
 const FAIL = "fail";
@@ -498,6 +503,18 @@ export function diagnose(layout, opts = {}) {
 		add(NOTE, "pi default-dir nana-pack.json", `${stranded} exists but is NOT read (PI_CODING_AGENT_DIR is set)`);
 	const configState = piPackConfigState(layout.piPackConfig);
 	const cfg = configState.cfg;
+	let making = MEMORY_MAKING_NOTE.disabled;
+	try {
+		const resolved = resolveProfile(layout.piHome);
+		const enabled = cfg?.[OPT_IN_MEMBER];
+		if (resolved.ok && Array.isArray(enabled) && enabled.length) {
+			const dir = resolved.pointer.dir;
+			const runGit = opts.memory?.runGit ?? profileGit();
+			const runs = enabled.map(repository => localMemoryRun(dir, repository, {runGit})).filter(Boolean).sort((a,b)=>b.time.localeCompare(a.time));
+			making = `enabled ${enabled.length}; last ${runs.length ? healthWords(runs[0],opts.memory?.now) : MEMORY_MAKING_NOTE.never}; ${PUSH_WORDS.unpushed} ${unpushedProfile(dir,{runGit})??MEMORY_WORDS.unknown}`;
+		}
+	} catch { making = MEMORY_MAKING_NOTE.unreadable; }
+	add(NOTE, MEMORY_MAKING_NOTE.label, making);
 	add(cfg ? OK : FAIL, "pi nana-pack.json", cfg ? layout.piPackConfig : configState.parseDetail ?? `missing or unparseable: ${layout.piPackConfig}`);
 	const pf = projectFileState(cfg?.objective?.projectFile);
 	add(pf.status, "pi objective.projectFile", pf.detail);

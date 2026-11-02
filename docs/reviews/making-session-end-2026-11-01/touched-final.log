@@ -1,0 +1,8 @@
+PASS  packages/nana-pack/tests/memory-session-end.test.mjs   5 pass  10.9s
+PASS  packages/nana-setup/tests/memory-end-hook.test.mjs     7 pass  3.6s
+PASS  packages/nana-setup/tests/memory-end-wiring.test.mjs   1 pass  0.4s
+PASS  packages/nana-pack/tests/memory-run-recovery.test.mjs  7 pass  29.4s
+PASS  packages/nana-pack/tests/test-runner.test.mjs          52 pass  30.6s
+PASS  packages/nana-pack/tests/templates-render.test.mjs     173 pass  96.6s
+
+6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 245 pass, 0 fail, 0 skip · 97.1s

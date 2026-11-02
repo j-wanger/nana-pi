@@ -31,6 +31,7 @@
 - Memory push (seat-memory-push plan, attack N2): a reworded re-extraction of a retracted claim gets a new id and returns on the next push.
 - Memory making (making-trigger, plan residual): the merge step catches exact normalized repeats only; a reworded duplicate of a saved claim is stored again until upkeep lands.
 - Memory making (making-trigger, plan residual): whether a detached making run survives Claude Code's exit, especially on Windows, stays unchecked until the session-end lane.
+- Memory making (making-trigger, plan residual A6): on Windows an npm-installed `claude.cmd` does not start from `spawnSync("claude")`, so every call fails and units stay pending; the shared `winCommand` refuses the JSON-schema argument's double quotes, so the fix needs its own lane.
 - Memory making (making-trigger, plan residual): background making draws on the seat's Claude account when a land ends; the day cap bounds tokens, not rate limits.
 - Memory making (making-trigger, plan residual): a repository started from another's history (a fork) shares its memory key.
 - Memory making (making-trigger, independent recheck): a write killed partway leaves a temp file that readers ignore but the next commit adds to the private store, and nothing counts or removes it.
@@ -38,10 +39,22 @@
 - Owner profile (making-trigger, independent recheck): a damaged file already in the profile's own records or events folders still blocks saves; only new writes are safe.
 - Memory making (making-trigger, independent recheck): the temp name adds 41 characters to store paths, so a long clone folder on Windows can pass the 260-character limit without long paths enabled.
 - Memory making (making-trigger, independent recheck): store writes need hard links, so on FAT, exFAT or some network drives every write fails with an error.
-- Memory making (making-trigger, final review): review units come only from `refs/heads/main`, so a repository whose main branch has another name never gets review lessons.
+- Memory making (making-trigger, final review; widened by making-session-end): review units come only from `refs/heads/main`, so a repository whose main branch has another name gets no review lessons; an enabled repository with `docs/reviews/` and no `main` fails every manual make, status and session-end run (land runs are unaffected).
 - Memory making (making-trigger, final review): if a lock holder releases between the create failure and the read, `acquireMemoryLock` throws past its catch; on the day lock this aborts a run after spend, and its units are re-sent next run.
 - Memory making (making-trigger, final review): unit keys include the session id, so if a real Claude Code fork rewrites it on copied entries, those turns are sent again.
-- Memory making (making-trigger, plan residual A6): on Windows an npm-installed `claude.cmd` does not start from `spawnSync("claude")`, so every call fails and units stay pending.
 - Memory making (making-trigger, final review): a run's fetch outside the clone lock can collide with a seat save's fetch, so the save briefly reports not pushed and is pushed at the next sync.
 - Memory making (making-trigger, final review): the merge step re-reads the whole store for each candidate while holding the clone lock, so the hold grows with candidates times store files.
 - Memory making (making-trigger, final review): the land line prints `memory: started` even for a repository that is not enabled, and repeats its prefix.
+- Memory making (making-trigger round 2): when the listing fails during make, the line prints `pending 0`, the starting value; status prints the true count.
+- Memory making (making-trigger round 2): status, and make without a lane, start one git process per review folder (about 260, 3.9 s here); remembered land requests grow the per-land listing.
+- Memory making (making-trigger round 2): two zero-wait clone-lock windows before model work make a concurrent seat save report busy more often; session-end runs make it more frequent.
+- Session-end making (making-session-end, plan residual): a Windows start stalled past the 1,500 ms kill is cancelled before it spawns and prints `Hook cancelled` at exit; the units wait for the next run.
+- Session-end making (making-session-end, plan residual): whether Claude Code on Windows kills the detached run another way is unchecked until the owner's machine check.
+- Session-end making (making-session-end, plan residual): the tracking-ref update assumes the default `origin` fetch refspec; a custom refspec keeps the old ahead count, and the push is unaffected.
+- Session-end making (making-session-end, plan residual): `profileGit` spawns git without `windowsHide`; only the owner's Windows check can see a stray window.
+- Session-end making (making-session-end, plan residual): the legacy hook migration in settings still gates on `timeout === 5`, which a future hook with another timeout would meet.
+- Session-end making (making-session-end, independent check): the hook's read waits for end of input, not a parse, so a held-open stdin starts nothing; the next run sweeps the units.
+- Session-end making (making-session-end, independent check): an empty run returns after the recovery commit and before any push, so that commit stays local until a later run or sync; status shows it as unpushed.
+- Session-end making (making-session-end, independent check): win32 uninstall matches only the current checkout's entry, so a moved checkout leaves the old SessionEnd entry failing at every exit.
+- Session-end making (making-session-end, independent check): the settings doc comment still says "all six entries" and "timeout: 5"; the code uses each row's own timeout.
+- Session-end making (making-session-end, land review round 1): the hook starts the detached run for every repository; a repository not enabled starts a node process that exits at the opt-in check without reading the profile or calling a model.

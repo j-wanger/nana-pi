@@ -1,9 +1,9 @@
 /**
  * @module apps/bench/lib/anatomy.mjs
- * @purpose Run the five hand-operated builder anatomy subcommands with private writers and counts-only printers.
- * @inputs Explicit argv roots and injected stdout/stderr callbacks.
- * @outputs Private contexts, blind sheets or replay parts; counts-only JSON on stdout.
- * @effects disk (explicit private folders), process (extractor's read-only git queries)
+ * @purpose Run hand-operated builder anatomy subcommands with private writers and counts-only printers.
+ * @inputs Explicit argv roots, injected runner, optional token cap and stdout/stderr callbacks.
+ * @outputs Private contexts, labels, blind sheets or replay parts; counts-only stdout.
+ * @effects disk (explicit private folders), process (extractor's read-only git), network (injected label runner only)
  * @errors Returns 1 with fixed diagnostics on invalid inputs, unsafe output or malformed data.
  */
 import fs from "node:fs";
@@ -12,9 +12,10 @@ import { entriesIn, privateFolder } from "../../../packages/nana-pack/lib/claude
 import { CONTEXT_FILE, MANIFEST_FILE, SAMPLE_SIZE, SHEET_FILE, STAGED_FILE } from "./anatomy-config.mjs";
 import { extractContexts } from "./anatomy-sessions.mjs";
 import { agreement, assembleParts, drawSample, reportContexts } from "./anatomy-measures.mjs";
+import { labelContexts } from "./anatomy-labels.mjs";
 
-const COMMANDS = ["segment", "report", "sample", "agree", "assemble"];
-const OPTIONS = ["repo", "sessions", "out", "in", "seed", "n", "a", "b", "context", "drop", "stage"];
+const COMMANDS = ["segment", "report", "sample", "agree", "assemble", "label"];
+const OPTIONS = ["repo", "sessions", "out", "in", "seed", "n", "a", "b", "context", "drop", "stage", "resume"];
 function argsIn(argv) {
  const [command, ...rest] = argv;
  if (!COMMANDS.includes(command)) throw new Error("arguments");
@@ -29,10 +30,16 @@ function argsIn(argv) {
 const write = (folder, name, text) => fs.writeFileSync(path.join(folder, name), text, { mode: 0o600, flag: "wx" });
 const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
 /** All paths and exception strings stay private; only fixed reasons and count fields print. */
-export async function runAnatomy(argv, { stdout = (s) => process.stdout.write(s), stderr = (s) => process.stderr.write(s) } = {}) {
+export async function runAnatomy(argv, { runModel, caps, stdout = (s) => process.stdout.write(s), stderr = (s) => process.stderr.write(s) } = {}) {
  try {
   const args = argsIn(argv), print = (o) => stdout(`${JSON.stringify(o)}\n`);
   let out;
+  if (args.resume && args.command !== "label") throw new Error("arguments");
+  if (args.command === "label") {
+   if (!args.in || Boolean(args.out) === Boolean(args.resume)) throw new Error("arguments");
+   out = privateFolder(args.out ?? args.resume, { allowAncestorSymlinks: true, refuseCheckout: true });
+   if (!args.resume && fs.readdirSync(out).length) { const error = new Error("output occupied"); error.code = "OUTPUT_OCCUPIED"; throw error; }
+  }
   if (["segment", "sample", "assemble"].includes(args.command)) {
    if (!args.out) throw new Error("arguments");
    out = privateFolder(args.out, { allowAncestorSymlinks: true, refuseCheckout: true });
@@ -48,6 +55,7 @@ export async function runAnatomy(argv, { stdout = (s) => process.stdout.write(s)
   }
   if (!args.in) throw new Error("arguments");
   const contexts = entriesIn(path.join(args.in, CONTEXT_FILE));
+  if (args.command === "label") await labelContexts(contexts, { out, resume: Boolean(args.resume), runModel, caps, stdout });
   if (args.command === "report") print(reportContexts(contexts));
   if (args.command === "sample") {
    const sheet = drawSample(contexts, { seed: args.seed, n: args.n === undefined ? SAMPLE_SIZE : Number(args.n) });
@@ -69,7 +77,7 @@ export async function runAnatomy(argv, { stdout = (s) => process.stdout.write(s)
   }
   return 0;
  } catch (error) {
-  const reason = error.code === "OUTPUT_CHECKOUT" ? "output checkout refused" : error.code === "OUTPUT_SYMLINK" ? "output symlink refused" : error.code === "OUTPUT_OCCUPIED" ? "output not empty" : /^ids differ: \d+$/u.test(error.message) ? error.message : "invalid inputs or read/write failure";
+  const reason = error.code === "OUTPUT_CHECKOUT" ? "output checkout refused" : error.code === "OUTPUT_SYMLINK" ? "output symlink refused" : error.code === "OUTPUT_OCCUPIED" ? "output not empty" : error.code === "LABEL_FINGERPRINT" ? "label fingerprint mismatch" : /^ids differ: \d+$/u.test(error.message) ? error.message : "invalid inputs or read/write failure";
   stderr(`anatomy: ${reason}\n`); return 1;
  }
 }

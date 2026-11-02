@@ -1,0 +1,266 @@
+PASS pi seat receives the complete installed guide under its fixed heading
+PASS stale guide installation notice names the pi seat guide and nana-setup install
+PASS pi builder and reviewer omit the guide while retaining the rulings section
+PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing
+PASS seat guide unavailable prefix is distinct from the rulings prefix
+PASS seal: SEAT_GUIDE_READ_CAP is 8192
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason
+PASS seal: RULINGS_READ_CAP is 8192
+PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang
+PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker
+PASS no fixture text leaks into the unavailable marker
+PASS planner prompt names no owner or work project
+PASS the rulings file names no owner and no work project
+PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction
+PASS every ruling is one bullet that opens with its date
+PASS R-2956: the rulings file carries the 2026-10-28 readings ruling
+PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move
+PASS planner prompt names no model id
+PASS the rulings file names no model, leaving the lineup to the roster
+PASS the rulings file opens with the scope sentence for builders and reviewers
+FAIL R-3437: the CI ruling and project-specific coverage govern the shared land checklist CI ruling, checklist or rendered shared source differs
+FAIL  packages/nana-pack/tests/rulings.test.mjs        21 pass, 1 fail  0.2s  — exit 1
+FAIL R-3430: passing same-platform full-suite CI replaces the local suite and records its source AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 0
+
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:62:70
+    at check (file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:19:8)
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:61:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+FAIL R-3431: unproven full-suite CI falls back once, while a carried rerun leg qualifies AssertionError [ERR_ASSERTION]: no record
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:82:10
+    at check (file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:19:8)
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:69:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+FAIL R-3432: changed workflow or runner forces local coverage, but other scripts do not AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^suite: local the lane changes the CI workflow or test runner$/m. Input:
+
+'review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md\n' +
+  'ci: ci run 101 attempt 1 (pull_request) success at 2ce91016\n' +
+  'ci record: darwin macos-latest run 101 attempt 1 (pull_request): 1 files, 1 PASS, 0 FAIL, 0 SKIP, exit 0, wall 1s at 4 jobs\n' +
+  'ci record: slowest darwin macos-latest run 101 attempt 1: one.test.mjs 1s\n' +
+  "ci record: 1 records from 1 CI runs at 2ce91016; seconds are hosted-runner seconds under each record's job count\n" +
+  'ci record: kept 1 of 1 records\n' +
+  'push command: git push\n' +
+  'release status: ready\n' +
+  '[nana-land] land record: landed, stage -, 0 min total, 0 min suite, - CI wait; no lane\n'
+
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:97:10
+    at check (file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:19:8)
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:94:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+FAIL R-3434: unreadable, absent, unfinished and unsuccessful CI refuse before any suite AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== NaN
+
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:110:64
+    at check (file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:19:8)
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:107:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+FAIL R-3435: land readers distinguish CI, local and legacy suite times without changing old lines AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ undefined
+- 'local'
+
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:128:114
+    at check (file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:19:8)
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:124:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+FAIL seal: CI suite prefix, fallback paths and one run-list retry are declared once AssertionError [ERR_ASSERTION]: R-3434
+
+undefined !== 1
+
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:144:9
+    at check (file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:19:8)
+    at file://<worktree>/packages/nana-pack/tests/land-ci-suite.test.mjs:143:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+FAIL  packages/nana-pack/tests/land-ci-suite.test.mjs  0 pass, 6 fail  6.4s  — exit 1
+PASS non-lane repeated worker options keep the legacy first-occurrence behaviour
+PASS non-lane usage text remains the legacy form
+PASS lane options with missing values refuse before pi spawn
+PASS lane mode refuses the main checkout before starting pi
+PASS lane mode refuses a nested cwd
+PASS lane mode refuses a missing brief before starting pi
+PASS lane mode refuses a brief directory with a named failure
+PASS lane mode refuses a switched lane branch before starting pi
+PASS R-2578: a lane brief with no Precedent section, an empty one or a reasonless none is refused before the lock and before pi starts
+PASS R-2579: Precedent entries not tracked at HEAD are refused, each one named
+PASS R-2580: honest Precedent forms pass and the launch line names the checked entry count
+PASS R-2616: a numbered step list straight after a plain Precedent list is not read as entries
+PASS R-2617: a bold Precedent label line starts the Precedent section
+PASS R-2618: a brief with no Precedent section is told the label stands on a line of its own
+PASS R-2619: bold and punctuated Precedent paths are checked as the bare path
+PASS R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler
+PASS seal: worker-lane's launches have a 30-second limit and poll less often than that
+PASS R-2620: a heading such as Precedent audit is not read as the Precedent section
+PASS R-2581: the named feature's known-bug file follows the brief as the third prompt, and nothing follows when the feature has none
+PASS seal: a brief's precedent section is Precedent, its no-precedent entry starts none: and its feature line starts Feature:
+PASS verified lane passes preamble and validated brief as ordered file paths
+PASS every pi-worker child receives NANA_ROLE=worker
+PASS lane preamble forbids the named package-manager operations at a worktree root
+PASS R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives
+PASS R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure
+PASS R-2662: the builder preamble tells the builder to import a needed function, never copy it, and stop on a private helper the brief does not move
+PASS R-2583: the builder preamble frames the attached known bugs as context to report, not to fix
+PASS lane preamble carries: wrong code first
+PASS lane preamble carries: must-meet tests and no other new test, with the seal-test exception
+PASS lane preamble carries: await every async case
+PASS lane preamble carries: CRLF and whitespace cases
+PASS lane preamble carries: IDs from the brief's range
+PASS lane preamble carries: no suite test runs a seat script
+PASS lane preamble carries: no unnamed test deleted
+FAIL lane preamble carries: touched tests before each commit Each commit follows a green run of the tests your change touches.
+PASS lane preamble carries: seat checks before DONE
+PASS lane preamble carries: long output to a committed file
+FAIL lane preamble carries: push and stop without reading CI Where `AGENTS.md` says CI covers the suite, push your last commit and stop: do not wait for or read its CI run, and commit nothing after the push.
+FAIL lane preamble carries: pushed tip or local suite evidence in the report Then commits; per item, files, rows, mutation pairs, commands and exit codes; the pushed branch, the pushed tip's full SHA and the push's exit code, or the full-suite summary line with its check count where you ran it; and what was not done.
+FAIL R-3436: the preamble pins the CI full-suite fallback and contains none of the replaced lines # nana lane builder
+
+You are a builder running in the verified lane worktree: /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-test-98466-7X70DI/worker-lane-e665Cr/lane on branch feat/alpha.
+
+Scope
+- Work only in that worktree. Commit on its lane branch with explicit paths and a message file written under `$TMPDIR`, never inside the worktree.
+- Never edit `HANDOFF.md`, `docs/known-bugs/` or session archives.
+- Never create, edit, comment on or close a GitHub issue; put open questions in the report.
+- New requirement rows take IDs only from the range your brief names.
+- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.
+- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private and the brief does not name moving it to a shared module, report the departure and stop.
+- The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches. When they end with an omitted-lines line, read the whole file before reporting.
+- A findings list is closures only.
+- Never start model sessions or subagents.
+- Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root; render a template project into a temp directory and use that project's toolchain there.
+- Keep gate-trigger text out of bash command strings.
+
+Tests
+- Follow requirement diff → tagged tests → code.
+- Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.
+- Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.
+- Mutation proof breaks the CODE, never inverts the assertion.
+- A test harness awaits every async case under a per-case limit.
+- A change that reads text line by line gets CRLF, trailing space or tab, and no-final-newline cases.
+- No test writes the repository it runs in; put fixtures in the OS temp directory.
+- No suite test runs, imports or copies a seat script.
+- Never delete a test your brief does not name.
+
+Before you report
+- Each commit follows a green run of the tests your change touches; your last commit follows a green full suite.
+- Run the repository's full suite as its `AGENTS.md` says, including one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.
+- Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.
+- Send long script output to a committed file and paste only the lines your brief asks for.
+- When your brief asks for CI, read the finished run once and report. Do not wait for another notification.
+
+Report shape:
+First line: `VERDICT: DONE`, `VERDICT: PARTIAL` or `VERDICT: BLOCKED`.
+Then commits; per item, files, rows, mutation pairs, commands and exit codes; the suite summary line with its check count; and what was not done.
+
+PASS lane passes only the sealed roster and fixed brief instruction
+PASS lane mode refuses all caller pi arguments before lock or spawn
+PASS lane refuses caller tools without edit and write
+PASS lane refuses tool-control forms -t, --tools, --exclude-tools, --no-tools
+PASS lane refuses resource-disabling forms -nc, --no-context-files, -ne, --no-extensions, -na, --no-approve
+PASS lane refuses retries before launch
+PASS lane passes the machine roster builder to pi, each flag once
+PASS lane omits --thinking when the machine roster builder thinking is null
+PASS lane refuses a refused roster before starting pi, naming the file
+PASS lane ignores a roster in project .pi/nana-pack.json
+PASS lane prints the resolved builder and roster source on stderr before starting pi
+PASS lane size larger starts pi with the larger-lane builder's provider, model and thinking, each flag once
+PASS lane size larger with no larger-lane builder starts pi with the builder
+PASS lane size small starts pi with the builder even when largerBuilder is set
+PASS lane size with a missing or unknown value refuses before pi spawn
+PASS lane size larger prints the larger-lane builder line before starting pi
+PASS with a larger-lane builder set, a launch with no lane size, the --lane-size=larger form included, is refused before lock or spawn, naming largerBuilder and both sizes
+(node:99399) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<worktree>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <worktree>/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS synchronized concurrent lane launchers spawn exactly one pi
+PASS production lane revalidation refuses changed branch before pi spawn
+PASS missing trust prints notice before worker attempt
+PASS affirmative trust record suppresses notice
+PASS handled worker exit removes its worktree lock
+PASS unreadable worktree lock is refused
+PASS existing worktree lock refuses and names path and pid
+PASS sealed lane ceiling is 28,800 seconds
+PASS max-secs override kills and names the lane wall-clock ceiling
+PASS wall-clock ceiling kills the worker process group
+FAIL  packages/nana-pack/tests/worker-lane.test.mjs    63 pass, 4 fail  29.4s  — exit 1
+PASS collects every test file directly under a package tests dir
+PASS collection does not recurse and takes only .test.mjs files
+PASS a path segment named fixtures is never collected
+PASS each file runs with --experimental-strip-types from its package dir
+PASS each file gets a fresh temp HOME and USERPROFILE, not the real one
+PASS the temp HOME is per file, not shared between files
+PASS every child disables git auto gc without replacing caller git config entries
+PASS a failing file's TMPDIR and leaked contents are removed
+PASS a file that exits non-zero is FAIL and the run exits 1
+PASS a file killed by a signal is FAIL, naming the signal
+PASS a FAIL line from an exit-0 file is a WARN and does not flip the verdict
+PASS an exit-0 file that printed only SKIP lines is FAIL without a declared precondition
+PASS a silent exit-0 file is FAIL without a declared precondition
+PASS without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown
+PASS in non-verbose mode a failing file prints its first 20 failing check lines
+PASS one line per file, then a totals line with both tallies, exiting 1 on a failure
+PASS each test gets a unique TMPDIR and the runner removes leaked temp contents
+PASS ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept
+PASS PI_CODING_AGENT_DIR is scrubbed too and the rest of PI_ is left alone
+PASS CLAUDE_CONFIG_DIR is scrubbed from the child env
+PASS a file declared unrunnable on this platform SKIPs with its reason printed
+PASS study tasks SKIP only when their declared extension prerequisite is absent
+PASS study tasks run when their declared extension prerequisite exists
+PASS R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling
+PASS a substring argument runs only the files whose repo-relative path contains it
+PASS --verbose streams a passing file's own output
+PASS no match says so, exits 1, and still removes its scratch dir
+PASS NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL
+PASS the timeout kill takes the child's whole process tree with it
+PASS the scratch dir is removed after the run
+PASS a timed-out file's TMPDIR and leaked contents are removed
+PASS tracked mutation fails naming the tracked file while untracked files do not appear
+PASS tracked mutation is detected when the file was already dirty before the run
+PASS staging an already-dirty tracked file is detected without a working-tree change
+PASS after a child exits the runner waits only a bounded drain for stdio to close
+PASS termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows)
+PASS --self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero
+PASS NANA_TEST_SELFTEST=1 is the same as --self-test
+PASS R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set
+PASS R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage
+PASS R-2753: the run record names the default per-file time limit the runner applied
+FAIL R-3433: whole-run records carry the actual path filters, empty for an unfiltered run PASS  packages/probe/tests/a-pass.test.mjs    1 pass  1.0s
+FAIL  packages/probe/tests/c-silent.test.mjs  0 pass  0.0s  — no check passed and no skip was declared
+      | diagnostic only
+
+2 files: 1 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 1 pass, 0 fail, 0 skip · 1.1s
+failed: packages/probe/tests/c-silent.test.mjs
+
+PASS R-2880: a record-fixture file that passes after 1 second is labelled PASS with no cause, and the file that outlives the record limit is labelled FAIL timed out, serial and parallel
+PASS seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds
+PASS the source check detects direct mkdtemp calls while ignoring only generated leak fixtures
+PASS the shared temp helper removes its registered root when the process exits
+PASS R-2666: a finished file whose temp folder stays busy gets one FAIL line naming the file, the folder and the code, counts as one failure, and every other file still runs, serial and parallel
+PASS seal: a finished file's temp folder removal retries 5 times on a 100 ms step
+PASS R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it
+PASS R-1381: off win32 each file on the declared Windows skip list runs
+PASS R-1382: win32 still runs each desk and bench file off the declared Windows skip list
+PASS R-1383: the declared Windows skip list names only collected desk and bench test files
+PASS R-1521: the declared Windows skip list names no bench test file
+
+1 check(s) failed
+FAIL  packages/nana-pack/tests/test-runner.test.mjs    52 pass, 2 fail  31.4s  — exit 1
+
+4 files: 0 PASS, 4 FAIL, 0 SKIP, 0 WARN · checks: 136 pass, 13 fail, 0 skip · 31.7s
+failed: packages/nana-pack/tests/land-ci-suite.test.mjs, packages/nana-pack/tests/rulings.test.mjs, packages/nana-pack/tests/test-runner.test.mjs, packages/nana-pack/tests/worker-lane.test.mjs

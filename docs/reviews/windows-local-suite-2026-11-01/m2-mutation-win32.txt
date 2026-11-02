@@ -1,0 +1,19 @@
+# M2 mutation: slash normalization removed from slashRelative; run on win32
+PASS README backup and extraction commands are byte-exact 
+PASS source home installs 
+PASS source project trust is recorded 
+PASS independent durable fixtures are all listed 
+PASS knowledge generated sidecars, reclaim lock and unknown future files are excluded 
+PASS archive excludes every independently derived non-durable fixture 
+PASS tar listings split on CRLF and LF 
+FAIL a forbidden path in the archive listing is caught in slash form .pi\agent\trust.json, .pi\agent\review-ledger.lock, .pi\agent\review-ledger.reservations, .nana\suite.lock, .pi\agent\nana-knowledge\shown, .pi\agent\nana-knowledge\build.lock, .pi\agent\desk.log, .pi\agent\mcp-cache.json, .pi\agent\handoffs, .pi\agent\nana-journal.jsonl, .pi\agent\auth.json, .pi\agent\mcp-auth.json, .pi\agent\models.json, .pi\agent\models-store.json, .pi\agent\mcp.json, .claude\.credentials.json, .claude\settings.json, .claude.json, .pi\agent\sessions, .claude\projects\C--Users-J-AppData-Local-Temp-state-restore-SAqOwT-clone-product\session.jsonl, .pi\bench-agent, .pi\agent\nana-desk\stage-keys
+PASS clean destination reports every durable store absent 
+PASS extracted archive entries contain no symlink of any target 
+PASS restored doctor reports project trust only 
+PASS trust clears the only doctor warning 
+PASS every independently expected durable fixture restores byte-equal 
+PASS R-2872: a kept review text survives the documented backup and restore and reads as intact to nana-land's evidence check 
+PASS destination has no secret markers 
+PASS destination has no symlink resolving into source home 
+PASS destination files contain no source-home path 
+exit 1

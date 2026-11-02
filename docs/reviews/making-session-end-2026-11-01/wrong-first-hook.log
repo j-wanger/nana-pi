@@ -1,0 +1,19 @@
+Wrong-code-first record: hook/config absent. Exit 1.
+Identity-sanitized: absolute machine paths and repetitive Node stacks omitted.
+
+FAIL R-3350: session and land share one quiet hidden starter
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/claude/hooks/nana-memory-end.mjs
+FAIL R-3351: guards deadline errors and open stdin stay quiet
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/claude/hooks/nana-memory-end.mjs
+FAIL R-3352: broken checkout exits silently
+  ENOENT: copyfile packages/nana-setup/claude/hooks/nana-memory-end.mjs -> isolated.mjs
+FAIL R-3355: run survives hook exit and timeout descendant kill
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+FAIL R-3358: seal entry timeout
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+FAIL R-3359: seal stdin deadline
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+FAIL R-3360: seal hook identity
+  ERR_MODULE_NOT_FOUND: packages/nana-setup/lib/memory-end-config.mjs
+
+The later mutation record breaks each implemented behavior and requires these same named tests to fail.
