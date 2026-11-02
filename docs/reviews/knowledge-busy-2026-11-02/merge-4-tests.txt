@@ -1,0 +1,9 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs packages/nana-knowledge/tests/build-busy.test.mjs packages/nana-knowledge/tests/incremental-build.test.mjs packages/nana-knowledge/tests/recover.test.mjs
+
+PASS  packages/nana-knowledge/tests/build-busy.test.mjs         11 pass  9.4s
+PASS  packages/nana-knowledge/tests/incremental-build.test.mjs  30 pass  0.1s
+PASS  packages/nana-knowledge/tests/recover.test.mjs            11 pass  7.0s
+
+3 files: 3 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 52 pass, 0 fail, 0 skip · 16.9s

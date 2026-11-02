@@ -1,0 +1,58 @@
+-:1: verdict: first sentence "VERDICT: PARTIAL" carries no verdict word
+-:10: identifier: `REQUIREMENTS.md`
+-:11: length: 27 words (cap 25)
+-:11: identifier: `packages/nana-knowledge/lib/hook.ts`
+-:11: identifier: `QUERY_BUSY_TIMEOUT_MS`
+-:11: identifier: `attempts`
+-:11: identifier: `retried`
+-:11: identifier: `failure`
+-:12: identifier: `packages/nana-knowledge/tests/build-busy.test.mjs`
+-:14: identifier: `packages/nana-knowledge/tests/recover.test.mjs`
+-:15: length: 27 words (cap 25)
+-:15: identifier: `packages/nana-knowledge/README.md`
+-:16: identifier: `docs/code-map.md`
+-:16: identifier: `docs/requirements-tree.md`
+-:17: identifier: `docs/reviews/knowledge-busy-2026-11-02/build-9-*`
+-:21: identifier: `origin/main`
+-:21: identifier: `f6a475658217bed9cb58b9413dd21f35e8b11673`
+-:23: passive: passive candidate: "copied" in "No helper was copied or moved."
+-:27: identifier: `NK_BUSY_ONLY=M7 node packages/nana-knowledge/tests/build-busy.test.mjs`
+-:27: identifier: `NK_BUSY_ONLY='M6: seal' ...`
+-:27: identifier: `build-9-red.txt`
+-:28: identifier: `NK_BUSY_ONLY='M7: repeated' node packages/nana-knowledge/tests/build-busy.test.mjs`
+-:28: identifier: `ok`
+-:28: identifier: `db-open-failed`
+-:28: identifier: `build-9-single-retry-red.txt`
+-:28: identifier: `build-9-busy-{1,2,3}.txt`
+-:32: identifier: `git fetch origin`
+-:33: identifier: `git merge --no-commit origin/main`
+-:34: identifier: `npm run map:impact -- packages/nana-knowledge/lib/hook.ts`
+-:36: identifier: `node packages/nana-knowledge/tests/build-busy.test.mjs`
+-:37: identifier: `node packages/nana-knowledge/tests/hook.test.mjs`
+-:38: identifier: `node packages/nana-knowledge/tests/incremental-build.test.mjs`
+-:39: identifier: `node packages/nana-knowledge/tests/recover.test.mjs`
+-:40: identifier: `node packages/nana-pack/tests/test-runner.test.mjs`
+-:41: identifier: `npm run map`
+-:41: identifier: `npm run req:tree`
+-:42: identifier: `npm run map:check`
+-:43: identifier: `npm run readme:check`
+-:44: identifier: `node scripts/requirements-trace.mjs --root .`
+-:45: identifier: `node scripts/requirements-tree.mjs --root .`
+-:46: identifier: `node scripts/requirements-tree.mjs --check`
+-:47: identifier: `node scripts/known-bugs.mjs --root .`
+-:48: identifier: `git diff --check`
+-:48: identifier: `build-9-staged-whitespace.txt`
+-:49: identifier: `node scripts/lane-class.mjs --root .`
+-:51: passive: passive candidate: "marked" in "`node packages/nana-setup/bin/install-check.mjs`: 1; 18 checks passed, pi post-edit failed with `write-error: write tool result is marked as an error`."
+-:51: passive: passive candidate: "attempted" in "No install change was attempted."
+-:51: identifier: `node packages/nana-setup/bin/install-check.mjs`
+-:51: identifier: `write-error: write tool result is marked as an error`
+-:51: identifier: `build-9-install-check.txt`
+-:54: passive: passive candidate: "staged" in "The merge index contains upstream changes already staged by Git; lane additions are staged by explicit paths."
+-:58: length: 28 words (cap 25)
+-:58: passive: passive candidate: "addressed" in "The retry-budget bug from review round 3 is addressed by reserving the synchronous busy timeout and finish allowance."
+-:58: passive: passive candidate: "fixed" in "No other known bug is fixed."
+-:60: passive: passive candidate: "written" in "No seat script ran, no issue operation occurred, and neither prohibited temporary directory was written."
+-:60: passive: passive candidate: "started" in "No independent reviewer was started."
+-:60: passive: passive candidate: "represented" in "The unrelated install-check failure remains for the seat; this build must not be represented as an entirely green install rehearsal."
+summary sentences=82 words=879 over=3 passive=9 banned=0 verdict=0/1 identifiers=44

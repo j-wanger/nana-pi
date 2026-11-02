@@ -4,7 +4,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 
 - **CAP-01 · Maintain direction and useful context**
   Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
-  Parent: — · Rows: 461 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863, R-2970–R-2977, R-2979, R-2990–R-2999, R-3188–R-3219, R-3230–R-3269, R-3290–R-3336, R-3340–R-3342, R-3350–R-3362, R-3370–R-3389, R-3410, R-3411, R-3437, R-3470–R-3474, R-3526–R-3529, R-3532–R-3537, R-3560–R-3577, R-3650, R-3703–R-3705
+  Parent: — · Rows: 466 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863, R-2970–R-2977, R-2979, R-2990–R-2999, R-3188–R-3219, R-3230–R-3269, R-3290–R-3336, R-3340–R-3342, R-3350–R-3362, R-3370–R-3389, R-3410, R-3411, R-3437, R-3470–R-3474, R-3526–R-3529, R-3532–R-3537, R-3560–R-3577, R-3650, R-3698–R-3705
   Kind: product
   Deliverables: R-001, R-108, R-873, R-201, R-217, R-749
   - **FEAT-001 · Keep goals and priorities in view**
@@ -60,7 +60,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Turn past sessions and reviews into shaped, low-trust memory records that point back to their evidence, and keep them.
     Status: active
     Also applies: —
-    Parent: CAP-01 · Rows: 105 · IDs: R-3188–R-3209, R-3230–R-3269, R-3290–R-3309, R-3340–R-3342, R-3350–R-3362, R-3410, R-3411, R-3470–R-3474
+    Parent: CAP-01 · Rows: 128 · IDs: R-3188–R-3209, R-3230–R-3269, R-3290–R-3309, R-3340–R-3342, R-3350–R-3362, R-3410, R-3411, R-3470–R-3474, R-3560–R-3577, R-3698–R-3702
     Artifacts: A-088, A-090, A-091, A-093, A-100
     - **SUB-023 · Keep a private owner profile**
       Purpose: Keep what the seat learns about its owner in a private, synced store, ranked by trust the owner's words earn.
@@ -71,19 +71,19 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     - **SUB-024 · Make memory when sessions and lands end**
       Purpose: Make new enabled repository units once into a private, synchronized project store through one merge step.
       Parent: FEAT-040 · Rows: 36 · IDs: R-3290–R-3309, R-3340–R-3342, R-3350–R-3362
+    - **SUB-027 · Curate memory through the owner's review**
+      Purpose: Let a model propose merges and retirements of live memory records, and change the store only through the owner's accept.
+      Parent: FEAT-040 · Rows: 23 · IDs: R-3560–R-3577, R-3698–R-3702
   - **FEAT-043 · Measure memory outcomes**
     Purpose: Count, per window of owner interactions and pooled, owner corrections and decisions given again, review findings that recur and each role's logged context size, so memory changes are judged against a measured baseline.
     Status: active
     Also applies: —
-    Parent: CAP-01 · Rows: 65 · IDs: R-3310–R-3336, R-3370–R-3389, R-3560–R-3577
+    Parent: CAP-01 · Rows: 47 · IDs: R-3310–R-3336, R-3370–R-3389
     Artifacts: A-095, A-097
     Reads: A-088, A-089, A-091
     - **SUB-025 · Replay past corrections with and without memory**
       Purpose: Replay past owner corrections from their recorded context with and without a candidate memory bundle, and judge blind whether the agent repeats the mistake, so a delivery is decided without waiting for field volume.
       Parent: FEAT-043 · Rows: 20 · IDs: R-3370–R-3389
-    - **SUB-027 · Curate memory through the owner's review**
-      Purpose: Let a model propose merges and retirements of live memory records, and change the store only through the owner's accept.
-      Parent: FEAT-043 · Rows: 18 · IDs: R-3560–R-3577
   - **FEAT-005 · Communicate decisions clearly**
     Purpose: Deliver the preferred writing guidance and check report readability and structure.
     Status: active
@@ -163,14 +163,14 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Parent: CAP-03 · Rows: 21 · IDs: R-174–R-188, R-819–R-824
 - **CAP-04 · Bring nana to each project and maintain it**
   Purpose: Install the toolkit, adopt projects, diagnose its environment and manage its lifecycle.
-  Parent: — · Rows: 596 · IDs: R-143–R-158, R-190, R-191, R-194, R-199, R-300–R-346, R-349–R-372, R-377–R-385, R-387–R-404, R-462, R-464, R-468, R-469, R-581, R-582, R-584–R-587, R-589–R-597, R-640, R-645–R-647, R-650–R-654, R-660–R-669, R-673–R-679, R-683, R-684, R-686–R-688, R-736–R-741, R-804, R-809–R-813, R-825, R-827, R-848, R-849, R-858, R-859, R-900–R-909, R-921–R-932, R-936–R-939, R-950–R-959, R-964, R-980, R-985–R-991, R-995–R-999, R-1031–R-1037, R-1039, R-1050, R-1051, R-1053–R-1061, R-1063, R-1064, R-1070–R-1084, R-1090–R-1094, R-1096, R-1100–R-1104, R-1111, R-1126–R-1128, R-1142, R-1150–R-1153, R-1193, R-1205–R-1209, R-1213, R-1214, R-1300, R-1310–R-1313, R-1320, R-1321, R-1330, R-1340, R-1360, R-1420–R-1426, R-1440–R-1443, R-1530, R-1531, R-1540–R-1546, R-1580–R-1586, R-1590–R-1593, R-1600–R-1606, R-1610–R-1618, R-1670, R-1690, R-1713, R-1750–R-1752, R-1760–R-1766, R-1780–R-1782, R-1790–R-1796, R-1810–R-1812, R-1850–R-1855, R-1860, R-1861, R-1870, R-1871, R-1880–R-1889, R-1900–R-1904, R-1930–R-1932, R-1940–R-1944, R-1972, R-1974, R-1980–R-1985, R-1990–R-1997, R-2000–R-2004, R-2010–R-2015, R-2020–R-2027, R-2050–R-2052, R-2060, R-2061, R-2070–R-2076, R-2080–R-2085, R-2091, R-2130–R-2133, R-2180–R-2184, R-2200–R-2205, R-2230–R-2237, R-2260–R-2263, R-2280–R-2282, R-2290–R-2294, R-2300–R-2303, R-2310–R-2313, R-2315–R-2318, R-2320–R-2325, R-2390–R-2394, R-2397, R-2398, R-2410–R-2412, R-2420–R-2423, R-2498, R-2499, R-2556–R-2559, R-2577, R-2584, R-2623–R-2628, R-2652, R-2671–R-2674, R-2681–R-2687, R-2701–R-2705, R-2711–R-2717, R-2760–R-2765, R-2850–R-2852, R-2870–R-2872, R-2890–R-2895, R-3713–R-3715
+  Parent: — · Rows: 603 · IDs: R-143–R-158, R-190, R-191, R-194, R-199, R-300–R-346, R-349–R-372, R-377–R-385, R-387–R-404, R-462, R-464, R-468, R-469, R-581, R-582, R-584–R-587, R-589–R-597, R-640, R-645–R-647, R-650–R-654, R-660–R-669, R-673–R-679, R-683, R-684, R-686–R-688, R-736–R-741, R-804, R-809–R-813, R-825, R-827, R-848, R-849, R-858, R-859, R-900–R-909, R-921–R-932, R-936–R-939, R-950–R-959, R-964, R-980, R-985–R-991, R-995–R-999, R-1031–R-1037, R-1039, R-1050, R-1051, R-1053–R-1061, R-1063, R-1064, R-1070–R-1084, R-1090–R-1094, R-1096, R-1100–R-1104, R-1111, R-1126–R-1128, R-1142, R-1150–R-1153, R-1193, R-1205–R-1209, R-1213, R-1214, R-1300, R-1310–R-1313, R-1320, R-1321, R-1330, R-1340, R-1360, R-1420–R-1426, R-1440–R-1443, R-1530, R-1531, R-1540–R-1546, R-1580–R-1586, R-1590–R-1593, R-1600–R-1606, R-1610–R-1618, R-1670, R-1690, R-1713, R-1750–R-1752, R-1760–R-1766, R-1780–R-1782, R-1790–R-1796, R-1810–R-1812, R-1850–R-1855, R-1860, R-1861, R-1870, R-1871, R-1880–R-1889, R-1900–R-1904, R-1930–R-1932, R-1940–R-1944, R-1972, R-1974, R-1980–R-1985, R-1990–R-1997, R-2000–R-2004, R-2010–R-2015, R-2020–R-2027, R-2050–R-2052, R-2060, R-2061, R-2070–R-2076, R-2080–R-2085, R-2091, R-2130–R-2133, R-2180–R-2184, R-2200–R-2205, R-2230–R-2237, R-2260–R-2263, R-2280–R-2282, R-2290–R-2294, R-2300–R-2303, R-2310–R-2313, R-2315–R-2318, R-2320–R-2325, R-2390–R-2394, R-2397, R-2398, R-2410–R-2412, R-2420–R-2423, R-2498, R-2499, R-2556–R-2559, R-2577, R-2584, R-2623–R-2628, R-2652, R-2671–R-2674, R-2681–R-2687, R-2701–R-2705, R-2711–R-2717, R-2760–R-2765, R-2850–R-2852, R-2870–R-2872, R-2890–R-2895, R-3590–R-3596, R-3713–R-3715
   Kind: product
   Deliverables: R-301, R-327, R-1150, R-341, R-1070, R-596
   - **FEAT-013 · Install and connect harness runtimes**
     Purpose: Install and identify the intended runtime resources, hooks, skills, commands and configuration while preserving foreign content.
     Status: active
     Also applies: R-004
-    Parent: CAP-04 · Rows: 217 · IDs: R-190, R-191, R-194, R-199, R-300–R-326, R-345, R-349–R-353, R-357–R-361, R-363, R-378, R-379, R-381–R-384, R-387, R-388, R-391, R-392, R-589, R-663, R-665, R-679, R-687, R-688, R-736, R-739, R-825, R-827, R-921–R-927, R-932, R-936, R-938, R-939, R-950, R-951, R-964, R-980, R-985, R-995, R-1033–R-1036, R-1039, R-1050, R-1051, R-1053, R-1054, R-1058, R-1061, R-1063, R-1064, R-1093, R-1094, R-1111, R-1128, R-1205–R-1208, R-1330, R-1340, R-1420–R-1426, R-1546, R-1590–R-1593, R-1610–R-1618, R-1690, R-1713, R-1850–R-1852, R-1860, R-1861, R-1870, R-1871, R-1880–R-1889, R-1900–R-1904, R-1930–R-1932, R-1940–R-1944, R-1981, R-1982, R-1984, R-2010–R-2015, R-2020, R-2022–R-2027, R-2080–R-2083, R-2130–R-2133, R-2200–R-2202, R-2205, R-2260–R-2263, R-2282, R-2290, R-2291, R-2300–R-2303, R-2390–R-2394, R-2397, R-2398, R-2498, R-2499, R-2671–R-2674, R-2704, R-2716, R-2717, R-2890–R-2895
+    Parent: CAP-04 · Rows: 224 · IDs: R-190, R-191, R-194, R-199, R-300–R-326, R-345, R-349–R-353, R-357–R-361, R-363, R-378, R-379, R-381–R-384, R-387, R-388, R-391, R-392, R-589, R-663, R-665, R-679, R-687, R-688, R-736, R-739, R-825, R-827, R-921–R-927, R-932, R-936, R-938, R-939, R-950, R-951, R-964, R-980, R-985, R-995, R-1033–R-1036, R-1039, R-1050, R-1051, R-1053, R-1054, R-1058, R-1061, R-1063, R-1064, R-1093, R-1094, R-1111, R-1128, R-1205–R-1208, R-1330, R-1340, R-1420–R-1426, R-1546, R-1590–R-1593, R-1610–R-1618, R-1690, R-1713, R-1850–R-1852, R-1860, R-1861, R-1870, R-1871, R-1880–R-1889, R-1900–R-1904, R-1930–R-1932, R-1940–R-1944, R-1981, R-1982, R-1984, R-2010–R-2015, R-2020, R-2022–R-2027, R-2080–R-2083, R-2130–R-2133, R-2200–R-2202, R-2205, R-2260–R-2263, R-2282, R-2290, R-2291, R-2300–R-2303, R-2390–R-2394, R-2397, R-2398, R-2498, R-2499, R-2671–R-2674, R-2704, R-2716, R-2717, R-2890–R-2895, R-3590–R-3596
     Artifacts: A-011, A-012, A-013, A-060, A-061, A-062, A-063, A-064, A-065, A-066, A-081
     Reads: A-004, A-005, A-036, A-037, A-049, A-080
     - **SUB-011 · Select the active runtime and home**

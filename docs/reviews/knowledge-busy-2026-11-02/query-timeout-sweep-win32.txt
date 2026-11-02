@@ -1,0 +1,17 @@
+Query busy-timeout sweep on the reference Windows 11 laptop (20 logical CPUs), 2026-11-02, Node v22.22.2, knowledge-busy at 98c8f018 in a scratch checkout.
+Command: node --no-warnings docs/reviews/knowledge-busy-2026-11-02/query-timeout-sweep.mjs <scratch checkout> 50 100,250,500,1000
+For each value the script patches QUERY_BUSY_TIMEOUT_MS in the scratch checkout db.ts (restored after), then runs the real stale-index hook 50 times under the M2 tight read-write churn, and 3 times against a 3000 ms BEGIN EXCLUSIVE.
+Loaded = 8 extra busy-loop node processes. This run did not yet record miss reasons; a 5-run re-check after adding them showed the held-lock hook still pulls: 160ms pulled, three times.
+
+=== idle
+{"queryTimeoutMs":100,"runs":50,"missedPulls":0,"hookMsP50":201,"hookMsMax":240,"heldLockHookMs":[163,157,160]}
+{"queryTimeoutMs":250,"runs":50,"missedPulls":0,"hookMsP50":200,"hookMsMax":256,"heldLockHookMs":[165,160,160]}
+{"queryTimeoutMs":500,"runs":50,"missedPulls":0,"hookMsP50":200,"hookMsMax":233,"heldLockHookMs":[163,161,158]}
+{"queryTimeoutMs":1000,"runs":50,"missedPulls":0,"hookMsP50":192,"hookMsMax":248,"heldLockHookMs":[175,160,161]}
+=== loaded (8 busy-loop processes)
+{"queryTimeoutMs":100,"runs":50,"missedPulls":0,"hookMsP50":213,"hookMsMax":268,"heldLockHookMs":[162,173,171]}
+{"queryTimeoutMs":250,"runs":50,"missedPulls":0,"hookMsP50":226,"hookMsMax":285,"heldLockHookMs":[173,180,182]}
+{"queryTimeoutMs":500,"runs":50,"missedPulls":0,"hookMsP50":228,"hookMsMax":269,"heldLockHookMs":[177,173,178]}
+{"queryTimeoutMs":1000,"runs":50,"missedPulls":0,"hookMsP50":220,"hookMsMax":303,"heldLockHookMs":[177,168,165]}
+
+Reading: on Windows no value misses (0/50 each, idle and loaded), and the hook under a held exclusive lock returns in about 160-180 ms with a pull at every value. In WAL mode an exclusive write transaction does not block readers, so the R-3592 lock case never makes the query wait.

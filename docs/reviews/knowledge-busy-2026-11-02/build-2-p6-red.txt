@@ -1,0 +1,5 @@
+FAIL  packages/nana-knowledge/tests/build-busy.test.mjs  0 pass, 1 fail  1.3s  — exit 1
+      | FAIL M1: sources-problem probe waits out a transient lock and keeps the index file:///<repo>/packages/nana-knowledge/lib/db.ts:65
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 0 pass, 1 fail, 0 skip · 2.0s
+failed: packages/nana-knowledge/tests/build-busy.test.mjs

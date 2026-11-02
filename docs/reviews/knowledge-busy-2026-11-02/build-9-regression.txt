@@ -1,0 +1,141 @@
+PASS fail-open: not json prints nothing
+PASS fail-open: empty stdin prints nothing
+PASS fail-open: json null prints nothing
+PASS fail-open: json array prints nothing
+PASS fail-open: json string prints nothing
+PASS fail-open: missing prompt prints nothing
+PASS fail-open: prompt is a number prints nothing
+PASS fail-open: prompt is an object prints nothing
+PASS not-a-string skip leaves pull.log byte-identical
+PASS hook skips short prompts
+PASS too-short skip leaves pull.log byte-identical
+PASS hook skips slash commands
+PASS slash-command skip leaves pull.log byte-identical
+PASS hook skips a system-reminder prompt
+PASS system-reminder skip leaves pull.log byte-identical
+PASS hook skips a SYSTEM NOTIFICATION prompt
+PASS SYSTEM NOTIFICATION skip leaves pull.log byte-identical
+PASS hook skips a task-notification prompt
+PASS task-notification skip leaves pull.log byte-identical
+PASS only the first 8 KB of a prompt is tokenized
+PASS too-few-tokens skip leaves pull.log byte-identical
+PASS each skip reason leaves pull.log byte-identical
+PASS reviewer role skips output and pull-log writes
+PASS worker role skips output and pull-log writes
+PASS worker role control with same input is not role-skipped
+PASS real prompt pulls pointers
+PASS ok appends one correctly shaped row with printed hits
+PASS block header frames the text as untrusted DATA, not instructions
+PASS block lines are title — path — snippet
+PASS block is under the char cap
+PASS at most 3 pointers
+PASS snippets are bounded at 160 chars
+PASS shown file records what was printed
+PASS same prompt in same session prints nothing
+PASS all-shown repeat leaves pull.log byte-identical
+PASS a DIFFERENT session still gets the pointers
+PASS dedup is per session, not global
+PASS a new topic in the same session still pulls
+PASS over budget before retrieval prints nothing
+PASS pre-retrieval budget appends one row with empty hits
+PASS post-query budget fixture has retrievable hits
+PASS post-retrieval budget with hits prints nothing and logs empty hits
+PASS a real pull is well inside the 1500 ms budget (5 ms)
+PASS renderBlock truncates to the cap
+PASS renderBlock drops whole lines, never half a line
+PASS stale index spawns a build
+PASS fresh index spawns nothing
+PASS an index older than 1 h is stale (a doc written this morning is pullable now)
+PASS R-1710: a pull on an index older than one hour prints its pointers and returns before the index is rebuilt
+PASS no index: prints nothing
+PASS no-index appends one correctly shaped outcome row
+PASS no index: spawns a background build
+PASS no index: does NOT build synchronously
+PASS bad-json is logged exactly once with its outcome
+PASS bad-input appends one correctly shaped outcome row
+PASS eligible invocation results each append exactly one JSONL line
+PASS every pull log row has numeric elapsed ms
+PASS log carries ts/cwd/session/source/tokens/hits/reason
+PASS log tokens exclude stopwords
+PASS no-hits appends exactly one line with empty hits
+PASS corrupt index logs db-open-failed or query-failed, never no-hits
+PASS CLI hook stays fail-open on a corrupt index
+PASS CLI query exits 1 on a corrupt index
+PASS CLI hook prints a block for a fresh session
+PASS CLI hook prints nothing on garbage stdin
+PASS CLI hook exits 0 on garbage stdin (no throw above)
+PASS CLI hook emits no stderr warning noise
+PASS R-228: seal: STDIN_MAX_BYTES is 256 KB
+NOTE stdin cap: at-cap 262144 bytes -> 324 chars, over-cap 262145 bytes -> 0 chars, reason bad-json
+PASS R-228: the hook command reads a payload of exactly STDIN_MAX_BYTES and cuts one byte more, printing nothing
+PASS hung stdin: the hook exits at all (1575 ms)
+PASS hung stdin: exit code 0
+PASS hung stdin: prints nothing
+PASS hung stdin: the async deadline fires (1575 ms)
+PASS malformed stdin: exit code 0
+PASS malformed stdin: prints nothing
+NOTE stale pull: exit 70 ms, output closed 71 ms, rebuilt before close false, rebuilt 103 ms after close
+PASS R-1711: the hook command on an index older than one hour prints only the pull block and a build outside its process group rebuilds the index
+PASS three sequential lock attempts in one process: exactly one wins
+PASS the lock file records the owning pid
+PASS release leaves a lock owned by ANOTHER pid alone
+PASS a lock older than the TTL is reclaimed
+PASS the reclaimed lock is ours
+PASS reclaim leaves no .reclaim litter behind
+PASS release removes OUR lock
+PASS a lock older than the TTL whose owner is ALIVE is NOT reclaimed
+PASS ...and the alive owner's lock is left in place
+PASS a pid-less lock older than the TTL is reclaimed
+PASS a lock with a dead pid is reclaimed even when its mtime is fresh
+PASS a second reclaimer loses while the reclaim lock is held
+PASS ...and it does NOT remove the stale lock it lost the race for
+PASS an ORPHANED reclaim lock is swept, and the sweep itself never grants the build lock
+PASS the sweep leaves the stale lock for the next attempt to reclaim
+PASS the next attempt then reclaims it
+PASS 16 processes reclaim one stale lock: exactly one WON (1 winners)
+PASS every loser reported LOST and none crashed
+PASS the winner's lock survives every loser
+PASS the race leaves no .reclaim litter behind
+PASS build() fails fast while another builder holds the lock
+PASS build() runs once the lock is free
+PASS first build indexes both articles
+PASS first build rows = 2 articles + 2 ledger entries
+PASS node_modules skipped
+PASS files > 1 MB skipped
+PASS missing root reported, not fatal
+PASS per-root counts
+PASS touch (mtime only) does NOT re-index
+PASS touch keeps the same row count
+PASS second no-op build re-indexes nothing
+PASS content change re-indexes exactly one file
+PASS edited body is searchable
+PASS removed body is NOT searchable
+PASS no duplicate row for the re-indexed file
+PASS deleted file is removed from the index
+PASS deleted body is no longer searchable
+PASS --rebuild re-indexes everything
+PASS build reports a db size
+PASS shown files older than 7 days pruned
+PASS recent shown files kept
+PASS missing root: nothing is removed
+PASS missing root: its rows are preserved and still counted
+PASS missing root: it is still reported missing
+PASS missing root: its rows are still searchable
+PASS restored root: nothing re-indexed, nothing removed
+PASS restored root: same row count as before it vanished
+PASS root dropped from sources.json: its rows are purged
+PASS purged rows are no longer searchable
+PASS the walker skips a .git folder and a nested raw folder under an articles root
+PASS the walker skips a linked folder under an articles root (a junction on Windows)
+PASS a file whose size and mtime are unchanged is not read: same-length new bytes stay unindexed
+PASS R-2400: a build over a random-bytes, a half-truncated or a page-overwritten index.db resolves and a query then hits
+PASS R-2401: a build over a SQLite file whose docs or files table lacks a used column resolves and a query then hits
+FAIL R-2402: a pull over a page-overwritten index older than one hour starts a build that heals it, and a later pull hits
+PASS R-2403: builds over healthy or page-damaged write-locked indexes fail, keep index.db's inode and bytes, and a fresh handle reads the committed sentinel
+PASS R-2403: a writer arriving after recovery takes its lock is blocked before delete, then the damaged index recovers
+PASS R-2404: a build that loses the build lock leaves a damaged index.db byte for byte
+PASS R-2405: status on a random-bytes, half-truncated or page-overwritten index exits 0 with one line naming the damage and build --rebuild, no stack
+PASS R-2406: build on a random-bytes, half-truncated or page-overwritten index exits 0 with one line naming the damage, no stack
+PASS R-2407: build and build --rebuild with an unparseable sources.json over a random-bytes, half-truncated or page-overwritten index exit 0, keep index.db byte for byte and print one line naming the damage as not rebuilt
+PASS R-2408: an unparseable sources.json over a stale healthy index keeps every row, refreshes its age and prunes an old shown file
+PASS R-2409: an unparseable sources.json with no index exits 0, prints UNPARSEABLE and creates an empty index
