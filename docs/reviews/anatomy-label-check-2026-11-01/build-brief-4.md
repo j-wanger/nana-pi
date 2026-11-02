@@ -6,7 +6,7 @@ Lane anatomy-label-check. Class: ordinary. Builder: pi-worker (small lane). Buil
 
 - `docs/sessions/2026-10.md`
 - `HANDOFF.md`
-- `docs/reviews/seat-memory-push-2026-11-01/build-brief-a4.md`
+- `docs/reviews/anatomy-label-check-2026-11-01/build-brief-3.md`
 
 Report each departure.
 
