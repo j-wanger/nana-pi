@@ -9,7 +9,7 @@ Lane builder-drop. Class: ordinary. Builder: pi-worker (small lane). Build sessi
 
 - `packages/nana-pack/lib/process-tree.mjs` (the shared tree probe and kill; import it, never copy it)
 - `packages/nana-pack/lib/tree-kill-scan.mjs` (`TREE_KILL_EXCEPTIONS`; do not add an exception)
-- the runner's declared Windows skip list in `packages/nana-pack/tests/test-runner.test.mjs` (case J) and any existing `process.platform` skip in `apps/bench/test/`
+- `packages/nana-pack/tests/test-runner.test.mjs` (case J, the declared Windows skip list; also any existing `process.platform` skip in `apps/bench/test/`)
 
 Standing authorization: when a Precedent file has a private helper this lane needs, export it from its own module (never copy, never move it) and report each export as a departure.
 
