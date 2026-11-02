@@ -181,12 +181,12 @@ await check("M2: ten stale hook pulls and background builds survive read-write c
   if (!pull || !rebuild) {
    const records = fs.existsSync(path.join(s.home, "pull.log")) ? fs.readFileSync(path.join(s.home, "pull.log"), "utf8").trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line)) : [];
    const record = records.findLast((row) => row.session_id === `churn-${i}`);
-   missed.push(`run=${i} ms=${h.ms} reason=${record?.reason ?? "no-record"} retried=${JSON.stringify(record?.retried ?? null)} rebuild=${rebuild} built_at=${before}->${after}`);
+   missed.push(`run=${i} ms=${h.ms} reason=${record?.reason ?? "no-record"} retried=${JSON.stringify(record?.retried ?? null)} failure=${JSON.stringify(record?.failure ?? null)} code=${JSON.stringify(h.code)} stdoutHead=${JSON.stringify(h.out.slice(0, 120))} stderrHead=${JSON.stringify(h.err.slice(0, 120))} rebuild=${rebuild} built_at=${before}->${after}`);
   }
   console.log(`NOTE M2 run=${i} ms=${h.ms} pull=${pull} rebuild=${rebuild} built_at=${before}->${after} stdoutHead=${JSON.stringify(h.out.slice(0, 60))}`);
  }
- assert.equal(noPull, 0, `noPull=${noPull}, noRebuild=${noRebuild}\n${missed.join("\n")}`);
- assert.equal(noRebuild, 0, `noPull=${noPull}, noRebuild=${noRebuild}\n${missed.join("\n")}`);
+ assert.equal(noPull, 0, `noPull=${noPull}, noRebuild=${noRebuild} | ${missed.join(" | ")}`);
+ assert.equal(noRebuild, 0, `noPull=${noPull}, noRebuild=${noRebuild} | ${missed.join(" | ")}`);
 });
 
 // req: R-3592
