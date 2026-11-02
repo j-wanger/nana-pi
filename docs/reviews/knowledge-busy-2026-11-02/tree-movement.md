@@ -2,7 +2,7 @@
 
 Read every feature this names before you judge the change.
 
-tree movement ac764bc..9217516: 6 rows in 2 features
+tree movement ac764bc..ce9d023: 6 rows in 2 features
 FEAT-003 · Index and connect existing knowledge sources
   R-2403 text changed
 FEAT-013 · Install and connect harness runtimes
