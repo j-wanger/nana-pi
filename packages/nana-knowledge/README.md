@@ -178,7 +178,7 @@ Behaviour, in the order it is decided:
   which rebuilds it from the sources when they can be read. A knowledge pull is never the
   reason a prompt fails to run.
 - **Budget: normally well under 1500 ms — not a hard bound.** The query itself is measured
-  at ~8 ms on the real index, inside a ~60 ms Node start. A query may now wait up to 100 ms on a database lock, and a build up to 5 s. A `setTimeout(process.exit(0))
+  at ~8 ms on the real index, inside a ~60 ms Node start. A query may wait up to 100 ms on a database lock, and a build up to 5 s. After an open or query failure, the hook closes its handle and retries the open and query once after 50 ms, only while budget remains. Its log names the first failure in `retried` and a second failure in `failure`, using structured error codes rather than private error messages. A `setTimeout(process.exit(0))
   .unref()` timer is armed before stdin is read, and what it bounds is **asynchronous**
   stalls: a stdin that is never closed, a slow spawn, a blocked pipe — those exit 0
   silently on the deadline. It cannot bound a **synchronous** stall: if a wedged

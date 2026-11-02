@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import * as dbLib from "../lib/db.ts";
 import { BUDGET_MS, STALE_MS } from "../lib/hook.ts";
+import * as hook from "../lib/hook.ts";
 
 const cli = fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -157,6 +158,7 @@ await check("M2: ten stale hook pulls and background builds survive read-write c
  `]);
  await waitFor(() => churn.out.includes("ready"));
  let noPull = 0, noRebuild = 0;
+ const missed = [];
  for (let i = 1; i <= 10; i++) {
   await waitFor(() => !fs.existsSync(s.env.NK_LOCK));
   let before = 0;
@@ -176,10 +178,15 @@ await check("M2: ten stale hook pulls and background builds survive read-write c
   const rebuild = after > before;
   if (!pull) noPull++;
   if (!rebuild) noRebuild++;
+  if (!pull || !rebuild) {
+   const records = fs.existsSync(path.join(s.home, "pull.log")) ? fs.readFileSync(path.join(s.home, "pull.log"), "utf8").trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line)) : [];
+   const record = records.findLast((row) => row.session_id === `churn-${i}`);
+   missed.push(`run=${i} ms=${h.ms} reason=${record?.reason ?? "no-record"} retried=${JSON.stringify(record?.retried ?? null)} rebuild=${rebuild} built_at=${before}->${after}`);
+  }
   console.log(`NOTE M2 run=${i} ms=${h.ms} pull=${pull} rebuild=${rebuild} built_at=${before}->${after} stdoutHead=${JSON.stringify(h.out.slice(0, 60))}`);
  }
- assert.equal(noPull, 0, `noPull=${noPull}, noRebuild=${noRebuild}`);
- assert.equal(noRebuild, 0, `noPull=${noPull}, noRebuild=${noRebuild}`);
+ assert.equal(noPull, 0, `noPull=${noPull}, noRebuild=${noRebuild}\n${missed.join("\n")}`);
+ assert.equal(noRebuild, 0, `noPull=${noPull}, noRebuild=${noRebuild}\n${missed.join("\n")}`);
 });
 
 // req: R-3592
@@ -255,5 +262,86 @@ await check("M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms", async () => {
 // req: R-3594
 await check("M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms", async () => {
  assert.equal(dbLib.QUERY_BUSY_TIMEOUT_MS, 100);
+});
+async function retryCase(s, stage, twice = false, spent = false) {
+ await seed(s);
+ const h = child(s, ["--input-type=module", "-e", `
+ import assert from 'node:assert/strict';
+ import fs from 'node:fs';
+ import path from 'node:path';
+ import * as hook from ${JSON.stringify(new URL("../lib/hook.ts", import.meta.url).href)};
+ import { openDb } from ${JSON.stringify(new URL("../lib/db.ts", import.meta.url).href)};
+ import { search } from ${JSON.stringify(new URL("../lib/query.ts", import.meta.url).href)};
+ let opens = 0, queries = 0, closes = 0, time = 0;
+ const stage = ${JSON.stringify(stage)}, twice = ${twice}, spent = ${spent};
+ const opts = {
+  spawnFn: () => { throw new Error('unexpected rebuild'); },
+  clock: spent ? () => time : Date.now,
+  openDbFn: async (...args) => {
+   opens++;
+   if (stage === 'open' && (twice || opens === 1)) {
+    if (spent) time = hook.BUDGET_MS + 1;
+    throw Object.assign(new Error('private prompt /private/index.db'), { code: opens === 1 ? 'SQLITE_BUSY' : 'SQLITE_LOCKED' });
+   }
+   const db = await openDb(...args);
+   const close = db.close.bind(db);
+   db.close = () => { closes++; close(); };
+   return db;
+  },
+  searchFn: (...args) => {
+   queries++;
+   if (stage === 'query' && (twice || queries === 1)) {
+    if (spent) time = hook.BUDGET_MS + 1;
+    throw Object.assign(new Error('private prompt /private/index.db'), { code: queries === 1 ? 'SQLITE_BUSY' : 'SQLITE_LOCKED' });
+   }
+   return search(...args);
+  },
+ };
+ const started = Date.now();
+ const result = await hook.runHook(JSON.stringify({ prompt: 'quasar nebula telescope horizon findings', session_id: 'retry' }), opts);
+ const elapsed = Date.now() - started;
+ const row = JSON.parse(fs.readFileSync(path.join(process.env.NANA_KNOWLEDGE_HOME, 'pull.log'), 'utf8').trim());
+ const reason = stage === 'open' ? 'db-open-failed' : 'query-failed';
+ assert.equal(opens, spent ? 1 : 2);
+ assert.equal(closes, stage === 'query' ? opens : (twice || spent ? 0 : 1));
+ assert.equal(row.retried, reason + ': SQLITE_BUSY');
+ assert.ok(elapsed < hook.BUDGET_MS, 'elapsed=' + elapsed);
+ assert.doesNotMatch(JSON.stringify({ retried: row.retried, failure: row.failure }), /private/);
+ if (twice || spent) {
+  assert.equal(result.output, null);
+  assert.equal(result.reason, reason);
+  if (!spent) assert.equal(row.failure, reason + ': SQLITE_LOCKED');
+ } else {
+  assert.ok(result.output?.startsWith('[nana:knowledge]'));
+  assert.ok(result.output.includes('Quasar telemetry'));
+  assert.equal(row.reason, 'ok');
+  assert.ok(elapsed >= hook.HOOK_QUERY_RETRY_DELAY_MS);
+ }
+ `], "");
+ await h.done;
+ assert.equal(h.code, 0, h.err);
+}
+
+// req: R-3595
+await check("M6: first open failure retries and logs its cause", async (s) => {
+ await retryCase(s, "open");
+});
+// req: R-3595
+await check("M6: first query failure retries and logs its cause", async (s) => {
+ await retryCase(s, "query");
+});
+// req: R-3595
+await check("M6: two failures fail open within budget and log both causes", async (s) => {
+ for (const stage of ["open", "query"]) {
+  await retryCase(s, stage, true);
+  fs.rmSync(path.join(s.home, "pull.log"));
+  await retryCase(s, stage, true, true);
+  fs.rmSync(path.join(s.home, "pull.log"));
+ }
+});
+// req: R-3596
+await check("M6: seal: hook query retry delay is 50 ms and count is 1", async () => {
+ assert.equal(hook.HOOK_QUERY_RETRY_DELAY_MS, 50);
+ assert.equal(hook.HOOK_QUERY_RETRY_COUNT, 1);
 });
 process.exitCode = fails ? 1 : 0;

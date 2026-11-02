@@ -203,6 +203,7 @@
 - Hook deadlines (land-records CI, 2026-10-24): R-2671's late case overran the hook deadline by 454 ms at 1e77de81. hook-deadlines now runs alone; the deadline is a hook-lane question.
 - Launch-limit judge (launch-limits-identity, plan): a pid reused before the first probe fails R-2023 as a flake. A pid gone after self-exit means a relay leak.
 - Knowledge churn (knowledge-busy, review round 1): R-3591's "every one of 10 runs" failed once on the Linux CI leg at 10398568, with noPull=1.
+- Knowledge churn (knowledge-busy, review round 2): M2 missed one pull on macOS CI at ce9d0239 and once on Linux at 10398568. Local sweeps on both systems did not reproduce it. No run proved the cause; one hook query retry and M2 failure detail are the response.
 - Windows load (knowledge-busy, review round 1): the M5 run did not reach ten consecutive loaded passes. Most failures were other SessionStart hooks timing out.
 - Recovery check (knowledge-busy, review round 1): dropping recovery's explicit `busy_timeout=0` would go unnoticed, since recovery would then wait only 100 ms.
 - Build checkpoint (knowledge-busy, review round 1): the build's final `wal_checkpoint(TRUNCATE)` can now wait up to 5 s for readers.

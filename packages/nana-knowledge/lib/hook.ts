@@ -26,6 +26,9 @@ import { frozenNotice, readSourcesFile } from "./sources-file.mjs";
 import { meaningfulTokens, PROMPT_MAX_CHARS, skipReason } from "./tokenize.ts";
 
 export const BUDGET_MS = 1500;
+// chosen: one short pause for transient open/close races, inside the prompt budget (R-3596).
+export const HOOK_QUERY_RETRY_DELAY_MS = 50;
+export const HOOK_QUERY_RETRY_COUNT = 1;
 export const BLOCK_MAX_CHARS = 2000;
 export const TOP_K = 3;
 // 1 h, not 24 h: an incremental no-op rebuild is 0.1 s, and a doc written in the
@@ -132,7 +135,7 @@ export function renderBlock(hits: Hit[]): string {
  * @param raw   the hook JSON from stdin
  * @returns     what to print (null = print nothing) and why
  */
-export async function runHook(raw: string, opts: { now?: number; budgetMs?: number; clock?: () => number; spawnFn?: () => void } = {}): Promise<HookResult> {
+export async function runHook(raw: string, opts: { now?: number; budgetMs?: number; clock?: () => number; spawnFn?: () => void; openDbFn?: typeof openDb; searchFn?: typeof search } = {}): Promise<HookResult> {
 	const clock = opts.clock ?? Date.now;
 	const t0 = clock();
 	const budget = opts.budgetMs ?? BUDGET_MS;
@@ -140,6 +143,8 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	let input: any = null;
 	let parsed = false;
 	let notice: string | null = null;
+	let retried: string | undefined;
+	let failure: string | undefined;
 	const finish = (reason: string, output: string | null = null, hits: Hit[] = []): HookResult => {
 		const excluded = new Set(["reviewer-role", "worker-role", "all-shown", "not-a-string", "too-short", "slash-command", "harness-notification", "too-few-tokens"]);
 		if (!excluded.has(reason)) {
@@ -150,6 +155,8 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 				session_id: valid && typeof input.session_id === "string" ? input.session_id : null,
 				source: valid && typeof input.source === "string" ? input.source : (valid && typeof input.hook_event_name === "string" ? "claude-code" : null),
 				reason,
+				...(retried ? { retried } : {}),
+				...(failure ? { failure } : {}),
 				tokens: valid && typeof input.prompt === "string" ? meaningfulTokens(input.prompt.slice(0, PROMPT_MAX_CHARS)).slice(0, 24) : [],
 				hits: output ? hits.map((h) => h.display) : [],
 				ms: clock() - t0,
@@ -176,12 +183,29 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	if (!fs.existsSync(paths.db)) return none(`no-index(${freshness})`);
 	if (over()) return none("budget");
 
-	let db;
-	try { db = await openDb(paths.db, {}); } catch { return none("db-open-failed"); }
-	let hits: Hit[];
-	try { hits = search(db, prompt, TOP_K, { excludeMonthlySessionArchives: true }); }
-	catch { return none("query-failed"); }
-	finally { try { db.close(); } catch { /* ignore */ } }
+	let hits: Hit[] = [];
+	for (let attempt = 0; attempt <= HOOK_QUERY_RETRY_COUNT; attempt++) {
+		let db: Awaited<ReturnType<typeof openDb>> | undefined;
+		let reason = "db-open-failed";
+		let failed = false;
+		try {
+			db = await (opts.openDbFn ?? openDb)(paths.db, {});
+			reason = "query-failed";
+			hits = (opts.searchFn ?? search)(db, prompt, TOP_K, { excludeMonthlySessionArchives: true });
+		} catch (error) {
+			failed = true;
+			// Only structured codes cross into the record: messages may contain paths or prompt text.
+			const e = error as { code?: unknown; errcode?: unknown } | null;
+			const code = typeof e?.code === "string" && /^[A-Z][A-Z0-9_]{0,63}$/.test(e.code) ? e.code : "unknown-error";
+			const cause = `${reason}: ${code}${typeof e?.errcode === "number" && Number.isInteger(e.errcode) ? ` (${e.errcode})` : ""}`;
+			if (attempt === 0) retried = cause;
+			else failure = cause;
+		} finally { try { db?.close(); } catch { /* ignore */ } }
+		if (!failed) break;
+		if (attempt === HOOK_QUERY_RETRY_COUNT || over()) return none(reason);
+		await new Promise((resolve) => setTimeout(resolve, HOOK_QUERY_RETRY_DELAY_MS));
+		if (over()) return none(reason);
+	}
 	if (over()) return none("budget");
 	if (hits.length === 0) return none("no-hits");
 

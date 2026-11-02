@@ -1524,7 +1524,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Each awaited case reports errors within its deadline and ends its children in finally.
 - **callers** — —
 - **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
-- **unresolved launches** — line 31: spawn; binding line 63; binding line 153; binding line 209; binding line 227
+- **unresolved launches** — line 32: spawn; binding line 64; binding line 154; binding line 216; binding line 234; binding line 268
 
 ### `packages/nana-knowledge/tests/discovery.test.mjs`
 
