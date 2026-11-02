@@ -1,0 +1,31 @@
+PASS merge preflight refuses a non-main checkout
+PASS tracked main changes refuse before running the suite
+PASS tracked source changes refuse before running the suite
+PASS suite-time main branch switch refuses before merge
+PASS suite-time main tracked changes refuse before merge
+PASS suite-time source tracked changes refuse before merge
+PASS final review reading, rechecks and ff-only merge run inside one ledger lock
+PASS a verified SEND-BACK written by the suite refuses before merge
+PASS suite-time source revision change refuses before merge
+PASS suite-time main divergence refuses before merge
+PASS non-fast-forward source tip without CI refuses before running the suite
+PASS a reviewed SHA must be ancestor of the source tip and match a LAND record
+PASS a matching-item LAND round for a different revision cannot authorize a merge
+PASS drifted LAND round cannot authorize a merge
+PASS uncovered integration commits are refused and named
+PASS main commits outside the reviewed ancestry are not reported as unreviewed
+PASS a LAND round for another item does not authorize this item
+PASS a LAND commit outside the source tip ancestry is refused
+PASS annotated tag object IDs are not accepted as reviewed commits (R-976)
+PASS snapshot review revisions are never accepted as plain reviewed commits
+PASS runLand requires verified reviews
+PASS an in-flight review of the reviewed tip refuses without merging
+PASS an in-flight snapshot review of the reviewed tip refuses without merging
+PASS an in-flight review of a different commit does not block land
+PASS a verified SEND-BACK for another item at the commit refuses land
+PASS a verified SEND-BACK at a working-state snapshot refuses land
+PASS an explicit empty verdict beside LAND refuses land
+PASS a legacy round without verdict does not block a version-2 LAND
+PASS an unverified SEND-BACK beside LAND does not block land
+PASS a version-1 LAND alone refuses on the first tally reading
+PASS a version-1-only second tally reading refuses after the suite

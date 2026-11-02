@@ -1,0 +1,29 @@
+PASS M1: clean moved-main merge lands using only accepted-tip CI and review
+FAIL M2: clean merge content matches literals and an independent ordinary merge AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'lane one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\n'
+- 'lane one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nmain nine\n'
+
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:74:11
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:48:1
+PASS M3: unsupported attributes and malformed or failing merge-tree refuse unchanged
+PASS M4: conflict names paths and the merge-review-CI remedy before any CI read
+PASS M5: merge eligibility requires applicable CI, suite proof and unchanged proof paths on both sides
+PASS M6: uncovered lane commits including a lane-authored merge remain refused
+PASS M8: accepted policy limit lands a textually clean but semantically broken merge
+PASS M9: shared guidance, rendered region, README and ruling agree on the exemption
+FAIL seal: clean-merge vocabulary and conflict-name cap are declared once AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ undefined
+- [
+-   'merge.renormalize=false',
+-   'merge.default=text',
+-   'merge.renames=true'
+- ]
+
+    at file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:178:9
+    at async check (file://<worktree>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<worktree>/packages/nana-pack/tests/land-clean-merge.test.mjs:174:1

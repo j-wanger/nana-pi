@@ -1,0 +1,6 @@
+PASS R-2586: a tip whose newest CI run of a workflow concluded other than success is refused before the suite
+PASS R-2587: a tip with no CI run, or with a newest run still queued or running, is refused before the suite
+PASS R-2588: the newest run of each workflow at its latest attempt decides, and the land names it
+PASS R-2591: the CI read asks github.com for the full tip SHA in origin's repository
+PASS R-2592: the pack README and the shared Land checklist say a land waits for the tip's CI
+PASS seal: the land reads CI from origin on github.com, workflows in .github/workflows, 100 runs a page, within 30 seconds, and passes only completed success

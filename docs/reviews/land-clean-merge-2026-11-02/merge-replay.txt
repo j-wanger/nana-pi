@@ -1,0 +1,367 @@
+Command per merge build m: git merge-tree --write-tree --name-only --no-messages $m^1 $m^2
+Sources: supplied merge-measure.txt (all history) and merge-recent.txt (since 2026-10-27).
+These are the seat replay outputs, not a new measurement or delivered savings.
+
+=== All history ===
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md REQUIREMENTS.md ] :: Merge origin/main into feat/seat-anatomy without behavior ch
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md REQUIREMENTS.md ] :: Merge origin/main into feat/roster-roles preserving reviewed
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md REQUIREMENTS.md ] :: Merge origin/main into feat/seat-anatomy
+conflict=0 sametree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge remote-tracking branch 'origin/main' into feat/ledger-
+conflict=0 difftree overlap=[] :: Merge origin/main into feat/roster-roles without behavior ch
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md REQUIREMENTS.md ] :: Merge origin/main into builder-credentials and record round 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md REQUIREMENTS.md ] :: Merge origin/main into feat/roster-roles and resolve require
+conflict=1 difftree overlap=[docs/code-map.md docs/known-bugs/FEAT-031.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge origin/main into windows-first-try-2 without behavior 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md packages/nana-pack/bin/nana-roster.mjs packages/nana-pack/bin/worker-config.mjs packages/nana-pack/lib/roster-notice.mjs packages/nana-pack/lib/roster-set.mjs packages/nana-pack/README.md packages/nana-pack/rules/nana-rulings.md packages/nana-pack/tests/nana-roster-set.test.mjs packages/nana-pack/tests/nana-roster.test.mjs packages/nana-pack/tests/roster-notice.test.mjs packages/nana-setup/claude/rules/nana-seat.md packages/nana-setup/tests/seat-rule.test.mjs REQUIREMENTS.md ] :: Merge origin/main into roster-roles preserving roles and lan
+conflict=0 difftree overlap=[docs/code-map.md docs/known-bugs/FEAT-031.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge origin/main into windows-first-try without behavior ch
+conflict=0 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge origin/main into windows-first-try-2 and record round 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge origin/main into land-test-split without behavior chan
+conflict=0 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge origin/main into windows-first-try and record review n
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge remote-tracking branch 'origin/main' into feat/windows
+conflict=1 difftree overlap=[docs/code-map.md docs/sessions/2026-10.md ] :: Merge origin/main into feat/anatomy-label-check
+conflict=1 difftree overlap=[code-map.config.json docs/code-map.md docs/known-bugs/FEAT-031.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge remote-tracking branch 'origin/main' into feat/land-te
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md REQUIREMENTS.md ] :: Merge origin/main into anatomy-label-check
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge remote-tracking branch 'origin/main' into feat/claude-
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge origin/main into feat/windows-local-suite
+conflict=1 difftree overlap=[docs/sessions/2026-10.md ] :: Merge origin/main into making-session-end
+conflict=1 difftree overlap=[docs/sessions/2026-10.md ] :: Merge origin/main into memory-replay
+conflict=1 difftree overlap=[docs/sessions/2026-10.md ] :: Merge origin/main into feat/anatomy-labeller
+conflict=0 sametree overlap=[] :: Merge remote-tracking branch 'origin/main' into feat/making-
+conflict=1 difftree overlap=[docs/sessions/2026-10.md ] :: Merge origin/main into audit-test-speed and preserve both se
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge origin/main into builder-anatomy; preserve both lanes 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge origin/main into builder-anatomy; preserve both featur
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/lib/memory-making.mjs packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge origin/main into feat/making-trigger
+conflict=0 sametree overlap=[] :: Merge main into feat/map-spawn-edges
+conflict=0 sametree overlap=[] :: Merge main into feat/visual-check
+conflict=1 difftree overlap=[docs/known-bugs/FEAT-039.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/product-overview.test.mjs REQUIREMENTS.md scripts/product-report.mjs ] :: Merge main into feat/records-counts
+conflict=1 difftree overlap=[docs/code-map.md docs/known-bugs/FEAT-039.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge main into feat/page-needs-you
+conflict=0 sametree overlap=[] :: Merge remote-tracking branch 'origin/main' into feat/first-l
+conflict=1 difftree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge main into feat/pi-seat-guide
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/claude/rules/nana-seat.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/clarify-questions
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/issue-watch
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/clarify-questions
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md packages/nana-pack/tests/handoff-issues.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/issue-watch
+conflict=1 difftree overlap=[HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/page-on-pages
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/page-on-pages
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/issues-home
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-knowledge/tests/sources-file.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-test-limits (knowledge-fre
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-test-limits
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-freeze-notice (adopt
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/launch-limits-identity (adopti
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/adoption-window
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/launch-limits-identity
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-freeze-notice
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/artifact-readers
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge main (win-temp-check) into feat/land-records; regenera
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/project-check-line
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/lane-temp-cleanup
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/objective-hook-win
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/install-check-builder
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/test-runner.test.mjs REQUIREMENTS.md scripts/test.mjs ] :: Merge main (win-flake-hardening landed) into feat/shared-hel
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge main (claude-code-builder-parity landed) into feat/win
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md README.md REQUIREMENTS.md ] :: Merge main (ci-timing-records landed) into feat/win-flake-ha
+conflict=1 difftree overlap=[docs/code-map.md docs/known-bugs/FEAT-007.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge main (ci-timing-records landed) into feat/claude-code-
+conflict=1 difftree overlap=[AGENTS.md docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md packages/nana-pack/tests/templates-render.test.mjs REQUIREMENTS.md templates/_shared/working-under-nana-pi.md ] :: Merge main (session-start-frontier and park-deliverables lan
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md README.md REQUIREMENTS.md ] :: Merge main (park-deliverables landed) into feat/ci-timing-re
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md README.md REQUIREMENTS.md ] :: Merge main (build-records and session-start-frontier landed)
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md README.md REQUIREMENTS.md ] :: Merge main (session-start-frontier landed) into feat/ci-timi
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge main (build-records landed) into feat/ci-timing-record
+conflict=1 difftree overlap=[AGENTS.md docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md templates/_shared/working-under-nana-pi.md ] :: Merge main (build-records landed) into feat/session-start-fr
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/park-deliverables
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/build-records
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/extensions/nana-rulings.ts packages/nana-pack/README.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/session-start-frontier
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/land-reads-ci
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/build-records
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/land-reads-ci
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/lib/brief-precedent.mjs packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/build-records
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/session-start-frontier
+conflict=1 difftree overlap=[AGENTS.md docs/code-map.md docs/known-bugs/FEAT-006.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md templates/_shared/working-under-nana-pi.md ] :: Merge branch 'main' into feat/precedent-first
+conflict=1 difftree overlap=[AGENTS.md docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md templates/_shared/working-under-nana-pi.md ] :: Merge branch 'main' into feat/precedent-first
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/claude-review-launcher
+conflict=1 difftree overlap=[AGENTS.md docs/code-map.md docs/requirements-tree.md packages/nana-pack/bin/pi-review.mjs packages/nana-pack/README.md REQUIREMENTS.md templates/_shared/working-under-nana-pi.md ] :: Merge branch 'main' into feat/claude-review-launcher
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/ci-jobs
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/review-outputs-kept
+conflict=0 sametree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/ci-jobs
+conflict=0 sametree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/ci-jobs
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/report-deliverables
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/claude-review-launcher
+conflict=1 difftree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/ci-jobs
+conflict=0 sametree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/report-deliverables
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/suite-records
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/review-outputs-kept
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/runtime-map-live
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/gate-rm-gitbash-tmp
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-leg-flakes
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/cap-fields-own
+conflict=0 sametree overlap=[REQUIREMENTS.md ] :: Merge branch 'main' into feat/ledger-stages
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge bcabe3ce (the knowledge-index-recover land tip, a fast
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/verifier-pipe-commit-match
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-index-recover
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-index-recover
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/verifier-pipe-commit-match
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-hook-variant-loop
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-index-recover
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/bin/nana-setup.mjs packages/nana-setup/claude/hooks/nana-shared-memory.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main fed7d7f9 (the shared-memory-index-cap land tip, n
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 63aca2fb (the review-launch-win-paths land tip, n
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 36427021 (the project-odd-seeds land tip, after k
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 29269b13 (the knowledge-sources-unparseable land 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 10517a64 (the gate-stop-names-config land tip, fa
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge main 10517a64 (the gate-stop-names-config land tip, fa
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 10517a64 (the gate-stop-names-config land tip, fa
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main f42b81c5 (the lifecycle-compaction-reason land ti
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/rm-outside-asks
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main edabe12f (the win-pi-launch-orphan land tip, fast
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 5e3ae8f5 (the doctor-path-row-remedy land tip, fa
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md packages/nana-setup/tests/doctor-fix-line.test.mjs REQUIREMENTS.md ] :: Merge main 62f00a1d (the win-copy-backup-noise land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-pi-launch-orphan
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/doctor-path-row-remedy
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-copy-backup-noise
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/lane-guard-temp-root
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/lib/paths.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 5ef07f7f (the objective-path-shapes land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge main 5ef07f7f (the objective-path-shapes land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 5ef07f7f (the objective-path-shapes land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 5ef07f7f (the objective-path-shapes land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 5ef07f7f (the objective-path-shapes land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/review-ledger-run-win-launch
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md packages/nana-setup/lib/steps.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/pack-config-utf16
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/review-ledger-run-win-launch
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main b06dc56a (the gate-rm-bare-repo land tip, fast-fo
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge main 2d9f3cb5 (the install-link-race land tip, fast-fo
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/install-link-race
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/pack-config-utf16
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/review-ledger-run-win-launch
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 0305bc8d (the post-edit-values-named land tip, fa
+conflict=0 sametree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/pack-config-utf16
+conflict=0 sametree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/gate-rm-bare-repo
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge main 215cd600 (the realpath-strict-fallback land tip, 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/realpath-strict-fallback
+conflict=0 sametree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/install-link-race
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main a112fd30 (the mutation-runner-takeover-race land 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 6f0098a8 (the notify-lifecycle-pins land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/notify-lifecycle-pins
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/checkout-spelling-converge
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/post-edit-values-named
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/realpath-strict-fallback
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/realpath-strict-fallback
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/mutation-runner-takeover-race
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/handoff-cap-surrogate
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 07f8f6f9 (the post-edit-timeout-name land tip, fa
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main aa5f25cd (the mutation-runner-lock-overlap land t
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/product-report.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/notify-lifecycle-pins
+conflict=1 difftree overlap=[docs/sessions/2026-10.md HANDOFF.md ] :: Merge branch 'main' into feat/mutation-runner-lock-overlap
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/pi-launch-followups
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/notify-lifecycle-pins
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/mutation-runner-lock-overlap
+conflict=0 sametree overlap=[REQUIREMENTS.md ] :: Merge branch 'main' into feat/post-edit-timeout-name
+conflict=1 difftree overlap=[docs/code-map.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 773de493 (the win-lock-fix-command land tip, fast
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md packages/nana-setup/tests/settings-merge.test.mjs REQUIREMENTS.md ] :: Merge main 2683652b (the pack-config-agent-dir-pins land tip
+conflict=0 sametree overlap=[HANDOFF.md ] :: Merge main 8f24ade6 (the install-cli-pins land tip, fast-for
+conflict=1 difftree overlap=[docs/code-map.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 0a878bc6 (the install-cli-pins land tip, fast-for
+conflict=1 difftree overlap=[docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 54f1271f (the config-advice-fixes land tip, fast-
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 15703d8d (the pi-probe-timeout land tip, fast-for
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 1b54211c (the install-check-review-launch land ti
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 31b95f34 (the project-check-quiet land tip, fast-
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 445f4d5b (the knowledge-index-pins land tip, fast
+conflict=1 difftree overlap=[docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main bcbd4309 (the ci-suite-timeout land tip, fast-for
+conflict=0 sametree overlap=[REQUIREMENTS.md ] :: Merge branch 'main' into feat/install-cli-pins
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/install-check-review-launch
+conflict=0 sametree overlap=[REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-index-pins
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/project-check-quiet
+conflict=1 difftree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/ci-suite-timeout
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/pi-probe-timeout
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 20debe02 (the install-check-turn-edit-powershell 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/install-check-turn-edit-powers
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/hook-deadlines
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/doctor.mjs REQUIREMENTS.md ] :: Merge main 6f07daee (setup-checkout-spelling land) into feat
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/install-check-turn-edit-powers
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/setup-checkout-spelling
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/doctor.mjs REQUIREMENTS.md ] :: Merge main 8466795b into feat/win-config-json-path (doctor.m
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/pi-probe-timeout
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/doctor-fix-line
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/setup-checkout-spelling
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-config-json-path
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/doctor-fix-line
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/review-test-waits
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/mutation-runner-win-lock
+conflict=0 sametree overlap=[] :: Merge main 6bc2f727 (the win-watchdog-cpu-read land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 2cd533d9 (the win-hook-settings-repair land tip, 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 531ff1ec (the win-silent-skips land tip, fast-for
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 463a9dcc (the win-claude-skills land tip, fast-fo
+conflict=0 sametree overlap=[] :: Merge main 0361bbb7 (the install-dry-run-pi-packages land ti
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/install-check-config.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md packages/nana-setup/tests/install-check.test.mjs REQUIREMENTS.md ] :: Merge main e3b73c90 (the install-dry-run-pi-packages land ti
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main bffa2f2d (the hook-output-fail-open land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 39fd679a (the knowledge-unreadable-root land tip,
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-unreadable-root
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-watchdog-cpu-read
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-silent-skips
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/readme-windows-checklist
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-watchdog-cpu-read
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-hook-settings-repair
+conflict=0 sametree overlap=[docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-claude-skills
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-unreadable-root
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 27fb9d3c (the install-pins land tip, fast-forward
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 32d6aa8b (the mutation-runner-win-prune land tip,
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 2389726e (the win-hook-rows land tip, fast-forwar
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/install-check-config.mjs packages/nana-setup/README.md packages/nana-setup/tests/install-check.test.mjs REQUIREMENTS.md ] :: Merge main c5bb221e (the pi-seat-live-turn land tip, fast-fo
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/mutation-runner-win-prune
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/review-records-pin
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/pi-seat-live-turn
+conflict=1 difftree overlap=[docs/code-map.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main f0d6da24 (the knowledge-pull-fail-open-pin land t
+conflict=1 difftree overlap=[docs/code-map.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/mutation-runner-win-prune
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/review-records-pin
+conflict=1 difftree overlap=[docs/code-map.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/pwsh-lexer-oracle
+conflict=1 difftree overlap=[docs/code-map.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main c827fcf8 (the win-path-commands land tip, fast-fo
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge main c827fcf8 (the win-path-commands land tip, fast-fo
+conflict=0 sametree overlap=[docs/code-map.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-pull-fail-open-pin
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge main c827fcf8 (the win-path-commands land tip, fast-fo
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 44ae4ade (the trust-finds-pi land tip, fast-forwa
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 9d09376e (the post-edit-win-survivors land tip, f
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/post-edit-win-survivors
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/pwsh-lexer-oracle
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main f497c5ad (the stale-copies-hooks land tip, fast-f
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-setup/lib/doctor.mjs REQUIREMENTS.md ] :: Merge main f497c5ad (the stale-copies-hooks land tip, fast-f
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge main f497c5ad (the stale-copies-hooks land tip, fast-f
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-setup/lib/doctor.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main f497c5ad (the stale-copies-hooks land tip, fast-f
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main cb1a5b57 (the adopt-structure-markers land tip, f
+conflict=0 sametree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/mutation-runner-win-prune
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 02f1c139 (the review-ledger-run-reviewer land tip
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/review-ledger-run-reviewer
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-path-commands
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main 1e42e7df (the win-review-stubs land tip, fast-for
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md REQUIREMENTS.md ] :: Merge main c73ec797 (the doctor-quiet land tip, fast-forward
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main d5000084 (the bom-pack-config land tip, fast-forw
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/lib/steps.mjs packages/nana-setup/tests/install.test.mjs REQUIREMENTS.md ] :: Merge main 8070d5e9 (the knowledge-refresh-pin land tip, fas
+conflict=0 sametree overlap=[] :: Merge main 8bbcd480 (the win-pi-registration-test land tip, 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/doctor-quiet
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main 904aa308 (the win-pi-registration-test land tip, 
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main f8d20142 (the post-edit-win-pin land tip, fast-fo
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main f82ec84d (the unread-verdict-loud land tip, fast-
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main 655f9b8f (the win-stale-copies land tip, fast-for
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main 1e3b4bf1 (the install-honest-report land tip, fas
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/tests/hooks-win32-exec.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/knowledge-refresh-pin
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/README.md REQUIREMENTS.md ] :: Merge main faf601e (the leaf-total-drop land tip, fast-forwa
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main 4fe70c5 (the unclaimed-tests land tip, fast-forwa
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main a538552 (the report-not-passed land tip, fast-for
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-pi-registration-test
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/post-edit-win-pin
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/product-report.test.mjs packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md scripts/product-report.mjs ] :: Merge main d7b0896 (the silent-main-guard land tip, fast-for
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-stale-copies
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main d7b0896 (the silent-main-guard land tip, fast-for
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md scripts/product-report.mjs ] :: Merge main 27531b4 (the blast-radius land tip, fast-forward 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge main f9cd9fd (the adopt-closes-check land tip, fast-fo
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main 105e7d0 (the parallel-runner land tip, fast-forwa
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/unread-verdict-loud
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge main dbbba7e (the readme-install land tip, fast-forwar
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/unclaimed-tests
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/README.md README.md REQUIREMENTS.md ] :: Merge main 8482c2e (the win-leg-flip land tip, fast-forward 
+conflict=0 sametree overlap=[] :: Merge main 27603d4 (the review-timeline land tip, fast-forwa
+conflict=0 sametree overlap=[] :: Merge main a1d07f6 (the audit-open-questions land tip, fast-
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/report-not-passed
+conflict=0 sametree overlap=[HANDOFF.md ] :: Merge main 21136f2 (the review-timeline land tip, fast-forwa
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main 713d6aa into feat/leaf-total-drop (keeps the lane
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/bom-pack-config
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-stale-copies
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/blast-radius
+conflict=0 sametree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/install-honest-report
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/silent-main-guard
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/adopt-closes-check
+conflict=0 sametree overlap=[HANDOFF.md ] :: Merge main ae52094 (the audit-open-questions land tip, fast-
+conflict=0 sametree overlap=[HANDOFF.md ] :: Merge main d6c4780 (the review-timeline land tip, fast-forwa
+conflict=0 sametree overlap=[HANDOFF.md ] :: Merge main 64e7907 (the audit-open-questions land tip, fast-
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge main f00a132 (the review-timeline land tip, fast-forwa
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main f64cb58 (the audit-open-questions land tip, fast-
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main 713d6aa (the win-gate-tmp land tip, fast-forward 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main 713d6aa (the win-gate-tmp land tip, fast-forward 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/readme-install
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-leg-flip
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/review-timeline
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/extensions/nana-gate.ts packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main a1ea491 (the clean-revision land tip, fast-forwar
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-pack/tests/test-runner.test.mjs README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/parallel-runner
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/blast-radius
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main 6b3e432 (the gate-rm-workdir land tip, fast-forwa
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main f29827a (the study-stop land tip, fast-forward of
+conflict=1 difftree overlap=[apps/bench/README.md docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main b8616fb (the report-test-details land tip, fast-f
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge main b7df8d8 (the g005-carveout land tip, fast-forward
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main ed38cb4 (the rulings-file land tip, fast-forward 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main ab5c3e8 (the bench-win land tip, fast-forward of 
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/tests/skills-and-standards.test.mjs REQUIREMENTS.md ] :: Merge main ab5c3e8 (the bench-win land tip, fast-forward of 
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/bench-win
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-gate-tmp
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/gate-rm-workdir
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/study-stop
+conflict=1 difftree overlap=[docs/sessions/2026-10.md HANDOFF.md ] :: Merge branch 'main' into feat/linux-path-spelling
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-skill-occupied
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/watchdog-exit
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-leg-blocking
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/readme-check-cp1252
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/clean-revision
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/roster-set
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-skill-occupied
+conflict=1 difftree overlap=[AGENTS.md docs/code-map.md docs/requirements-tree.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge branch 'main' into feat/rulings-file
+conflict=1 difftree overlap=[docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/README.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-gate-tmp
+conflict=1 difftree overlap=[docs/code-map.md docs/sessions/2026-10.md HANDOFF.md ] :: Merge branch 'main' into feat/linux-lane-guard
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/tree-briefs
+conflict=1 difftree overlap=[docs/sessions/2026-10.md HANDOFF.md ] :: Merge branch 'main' into feat/win-review-paths
+conflict=1 difftree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-review-paths
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-review-paths
+conflict=0 sametree overlap=[docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge branch 'main' into feat/win-impact-paths
+conflict=0 sametree overlap=[docs/code-map.md ] :: Merge branch 'main' into feat/win-template-tests
+conflict=1 difftree overlap=[docs/sessions/2026-10.md HANDOFF.md ] :: Merge branch 'main' into feat/win-review-tests
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/win-setup-tools
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/win-install-shape
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/win-pi-handoff
+conflict=0 sametree overlap=[] :: Merge branch 'main' into feat/runtime-map
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/README.md README.md REQUIREMENTS.md ] :: Merge main (5b53ebc: fresh-install landed) into feat/roster
+conflict=0 sametree overlap=[] :: Merge main (bc84b70: the review standard and plan rules) int
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/tests/fresh-machine.test.mjs README.md REQUIREMENTS.md ] :: Merge main (bc84b70: the review standard and plan rules) int
+conflict=1 difftree overlap=[.github/workflows/ci.yml docs/requirements-tree.md packages/nana-pack/tests/ci-workflow.test.mjs packages/nana-pack/tests/requirements-tree.test.mjs REQUIREMENTS.md ] :: Merge main (a907b45: CI pins pi's dependency tree) into feat
+conflict=1 difftree overlap=[AGENTS.md docs/code-map.md docs/requirements-tree.md packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-setup/README.md README.md REQUIREMENTS.md ] :: Merge main (3f5151f: Claude Code hooks on Windows) into feat
+conflict=0 sametree overlap=[] :: Merge main (7e6ce39) into feat/cc-hooks-windows before the p
+conflict=1 difftree overlap=[docs/code-map.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md packages/nana-pack/tests/requirements-tree.test.mjs README.md REQUIREMENTS.md ] :: Merge main (c22bab5: verdict reader, pi seat on Windows) int
+conflict=1 difftree overlap=[docs/code-map.md packages/nana-pack/README.md REQUIREMENTS.md ] :: Merge main (c505601, verdict-position) into feat/pi-cmd-laun
+conflict=0 sametree overlap=[REQUIREMENTS.md ] :: Merge main (0110601, windows-ci) into feat/verdict-position
+
+=== Since 2026-10-27 ===
+ex=1 docs/code-map.md 
+ex=1 docs/requirements-tree.md 
+ex=1 docs/code-map.md docs/sessions/2026-10.md 
+ex=0 
+ex=0 
+ex=1 docs/sessions/2026-10.md 
+ex=1 docs/code-map.md 
+ex=1 docs/code-map.md docs/requirements-tree.md 
+ex=1 docs/code-map.md docs/sessions/2026-10.md packages/nana-pack/lib/roster-notice.mjs packages/nana-pack/README.md packages/nana-pack/tests/nana-roster-set.test.mjs packages/nana-pack/tests/nana-roster.test.mjs packages/nana-pack/tests/roster-notice.test.mjs packages/nana-setup/tests/seat-rule.test.mjs REQUIREMENTS.md 
+ex=0 
+ex=0 
+ex=1 docs/requirements-tree.md 
+ex=0 
+ex=0 
+ex=1 docs/sessions/2026-10.md 
+ex=1 docs/code-map.md 
+ex=1 docs/sessions/2026-10.md 
+ex=1 docs/code-map.md docs/requirements-tree.md 
+ex=1 docs/code-map.md 
+ex=1 docs/code-map.md docs/requirements-tree.md HANDOFF.md 
+ex=1 docs/sessions/2026-10.md 
+ex=1 docs/sessions/2026-10.md 
+ex=1 docs/sessions/2026-10.md 
+ex=0 
+ex=1 docs/sessions/2026-10.md 
+ex=1 docs/code-map.md docs/sessions/2026-10.md HANDOFF.md 
+ex=1 docs/code-map.md docs/sessions/2026-10.md HANDOFF.md 
+ex=1 docs/code-map.md docs/requirements-tree.md packages/nana-pack/lib/memory-making.mjs REQUIREMENTS.md 
+ex=1 docs/code-map.md docs/requirements-tree.md 
+ex=0 
+ex=0 
+ex=1 docs/known-bugs/FEAT-039.md docs/requirements-tree.md docs/sessions/2026-10.md HANDOFF.md 
+ex=1 docs/code-map.md docs/known-bugs/FEAT-039.md docs/requirements-tree.md 
+ex=0 
+ex=1 docs/requirements-tree.md 
+ex=0 
+ex=1 docs/code-map.md docs/sessions/2026-10.md HANDOFF.md 
+ex=0 
+ex=1 docs/code-map.md 
+ex=1 HANDOFF.md 
+ex=0 
+ex=1 docs/code-map.md docs/requirements-tree.md HANDOFF.md 
+ex=0 
+ex=1 docs/code-map.md 

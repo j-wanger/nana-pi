@@ -1,0 +1,16 @@
+seat-mutate: lane land-clean-merge, tip cc39e206a337e79f905deb81b9b9e9c4f265f543, table de3ee642d4fd9f69ed3dce015c174f201d51f02d48ba5e4eb3942838df7e75b0, merge-base 68a616bc35605e23d93955e8b40262e27115b843, 10 pairs in 1 shards (10, round-robin, 0s apart), darwin, node v22.22.2, 2026-11-02T13:29:32.422Z
+[1/1] seat-mutate: lane land-clean-merge, shard 1/1, tip cc39e206a337e79f905deb81b9b9e9c4f265f543, merge-base 68a616bc35605e23d93955e8b40262e27115b843, 10 pairs, darwin, node v22.22.2, 2026-11-02T13:29:33.469Z
+[1/1] BASELINE ok   packages/nana-pack/tests/land-clean-merge.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[1/1] BASELINE ok   packages/nana-pack/tests/land-clean-merge-race.test.mjs (exit 0, 1 PASS, 0 FAIL, )
+[1/1] RESULT: 10/10 red (10 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 treat a conflict as clean — 1/1 named: /^M4:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 accept malformed merge-tree output — 1/1 named: /^M3:/; 1 FAIL total (1 file changed, 1 insertion(+), 2 deletions(-))
+RED 3 skip merge attribute check — 1/1 named: /^M3:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 check proof paths only on lane side — 1/1 named: /^M5:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 skip the CI re-read — 1/1 named: /^M7:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6 exempt lane-authored merge commits — 1/1 named: /^M6:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 fast-forward to tip instead of merge — 4/4 named: /^M1:/ | /^M2:/ | /^M3:/ | /^M8:/; 4 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 8 drop captured-main recheck inside lock — 1/1 named: /^M7:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 9 read merge CI instead of accepted-tip CI at re-read — 1/1 named: /^M1:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 10 honor a custom default driver and disabled rename detection — 1/1 named: /^M2:/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 10/10 red (10 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 1 shards

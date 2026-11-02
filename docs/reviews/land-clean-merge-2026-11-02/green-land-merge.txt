@@ -1,0 +1,27 @@
+PASS R-2571: the land refuses a revision whose matching LAND records all have missing or altered kept texts
+PASS R-2572: a land's success report names the kept review texts
+PASS R-2576: a land notes each earlier kept review text missing from the tip
+PASS successful land updates main checkout files and leaves tracked state clean
+PASS untracked collision refuses land without changing main
+PASS branch switch at merge invocation refuses without a success report
+PASS main advancing during suite refuses before merge
+PASS the land runs its suite with the source tip's full SHA in NANA_LAND_TIP
+PASS a passing land shows its suite's land notes
+PASS after a land the runtime data names main's tip and is not stale
+PASS suite command runs in the source tree
+PASS suite failure leaves main unchanged and prints no success report
+PASS a suite killed by signal refuses and names a nonzero exit
+PASS cleanup refuses a contained branch when checkout is not on main
+PASS cleanup refuses a branch not contained by main
+PASS cleanup refuses untracked dirt in a contained worktree
+PASS cleanup refuses a branch checked out in multiple worktrees
+PASS cleanup reports a lane branch deleted before cleanup
+PASS cleanup removes a contained feat branch without force
+PASS README and AGENTS describe the land helper
+PASS successful merge prints post-merge release status and divergence
+PASS release status failure after merge keeps success code and output
+PASS successful merge without copier reports only the origin release clause
+PASS unknown land options, including either exemption placement, are named before git runs
+PASS successful land output keeps push and release status but has no archive stubs
+PASS a separate clone is refused before reviewed-SHA resolution or ledger reading
+PASS normalized checkout review lands its exact tip

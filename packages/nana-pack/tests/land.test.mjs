@@ -142,11 +142,15 @@ check("suite-time main divergence refuses before merge", () => {
 	assert.notEqual(git(main, "rev-parse", "refs/heads/main"), initialMain);
 });
 // req: R-975
-check("non-fast-forward source tip refuses before running the suite", () => {
-	const root = tmpDir(path.join(os.tmpdir(), "land-no-ff-")); const main = repo(root, "main");
-	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next"); commit(main, "parallel.txt", "parallel\n", "parallel");
-	const out = runLand({ tree: feature, main, suite: 'node -e "process.exit(0)"', reviewed: [] });
-	assert.notEqual(out.code, 0); assert.match(out.text, /ancestor/i);
+check("non-fast-forward source tip without CI refuses before running the suite", () => {
+	const fixture = ciFixture("no-ff", { origin: null, workflowOnTip: false });
+	commit(fixture.main, "parallel.txt", "parallel\n", "parallel");
+	const before = git(fixture.main, "rev-parse", "HEAD");
+	let suites = 0;
+	const out = executeCi(fixture, [], { runCommand: () => { suites++; return { status: 0 }; } });
+	assert.equal(out.code, 1); assert.equal(suites, 0);
+	assert.match(out.text, /clean merge needs applicable CI: no origin remote/);
+	assert.equal(git(fixture.main, "rev-parse", "HEAD"), before);
 });
 // req: R-976
 check("a reviewed SHA must be ancestor of the source tip and match a LAND record", () => {

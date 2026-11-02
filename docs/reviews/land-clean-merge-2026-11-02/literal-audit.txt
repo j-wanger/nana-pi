@@ -1,0 +1,75 @@
+packages/nana-pack/tests/adoption-producer.test.mjs:152:	const handoffOnly = repo("handoff-only", ["HANDOFF.md"]);
+packages/nana-pack/tests/land-clean-merge-race.test.mjs:33:    if(args[0]==='merge'&&args[1]==='--ff-only') fastForwards++;
+packages/nana-pack/tests/context-anatomy.test.mjs:219:  write(path.join(m.repo,'REQUIREMENTS.md'), ledger); git(m.repo,'add','REQUIREMENTS.md'); git(m.repo,'commit','-qm','ledger'); git(m.lane,'merge','--ff-only','main');
+packages/nana-pack/tests/ci-records.test.mjs:3: * @purpose Pin the CI suite-record reader from runner output through fake GitHub responses.
+packages/nana-pack/tests/ci-records.test.mjs:162:		downloads: { [runId]: { [`${CI_ARTIFACT_PREFIX}${leg}-${attempt}`]: { files: [{ name: "nana-suite-record.json", source: recordFile(`record-${id}-${stateNumber}`, value) }] } } },
+packages/nana-pack/tests/ci-records.test.mjs:233:			[String(10)]: Object.fromEntries([101, 102, 103].map((id, index) => [`${CI_ARTIFACT_PREFIX}${["macos-latest", "ubuntu-latest", "windows-latest"][index]}-1`, { files: [{ name: "nana-suite-record.json", source: records[id] }] }])),
+packages/nana-pack/tests/ci-records.test.mjs:234:			[String(20)]: Object.fromEntries([201, 202].map((id, index) => [`${CI_ARTIFACT_PREFIX}windows-latest-${index + 1}`, { files: [{ name: "nana-suite-record.json", source: records[id] }] }])),
+packages/nana-pack/tests/ci-records.test.mjs:235:			[String(30)]: { [`${CI_ARTIFACT_PREFIX}ubuntu-latest-1`]: { files: [{ name: "nana-suite-record.json", source: records[301] }] } },
+packages/nana-pack/tests/ci-records.test.mjs:305:				[`${CI_ARTIFACT_PREFIX}macos-latest-1`]: { files: [{ name: "nana-suite-record.json", source: good }] },
+packages/nana-pack/tests/ci-records.test.mjs:306:				[`${CI_ARTIFACT_PREFIX}windows-latest-1`]: { files: [{ name: "nana-suite-record.json", source: good }] },
+packages/nana-pack/tests/ci-records.test.mjs:307:				[`${CI_ARTIFACT_PREFIX}windows-latest-2`]: { files: [{ name: "nana-suite-record.json", source: good }] },
+packages/nana-pack/tests/ci-records.test.mjs:308:				[`${CI_ARTIFACT_PREFIX}stale-latest-1`]: { files: [{ name: "nana-suite-record.json", source: old }] },
+packages/nana-pack/tests/ci-records.test.mjs:310:				[`${CI_ARTIFACT_PREFIX}garbage-1`]: { files: [{ name: "nana-suite-record.json", content: "not json" }] },
+packages/nana-pack/tests/ci-records.test.mjs:311:				[`${CI_ARTIFACT_PREFIX}schema-two-1`]: { files: [{ name: "nana-suite-record.json", source: schemaTwo }] },
+packages/nana-pack/tests/ci-records.test.mjs:314:			42: { [`${CI_ARTIFACT_PREFIX}ubuntu-latest-1`]: { files: [{ name: "nana-suite-record.json", source: good }] } },
+packages/nana-pack/tests/ci-records.test.mjs:360:check("seal: CI suite records are suite-record- artifacts of .github/workflows/ci.yml runs, and their lines start ci record:", () => {
+packages/nana-pack/tests/ci-records.test.mjs:361:	assert.equal(CI_ARTIFACT_PREFIX, "suite-record-", "R-2632");
+packages/nana-pack/tests/ci-records.test.mjs:363:	assert.equal(CI_SUITE_JOB, "suite", "R-2634");
+packages/nana-pack/tests/path-spelling.test.mjs:535:        git(main, "merge", "--ff-only", `feat/gp6iii-${kind}-${wtKind}`);
+packages/nana-pack/tests/land-ci-edge.test.mjs:34:check("R-2589: a CI read that cannot complete refuses before the suite and names the cause", () => {
+packages/nana-pack/tests/main-ci.test.mjs:16:import { RECORD_SCHEMA, CI_WORKFLOW_RUN_PATH } from "../lib/suite-records-config.mjs";
+packages/nana-pack/tests/land-merge.test.mjs:119:	assert.equal(calls.filter(({ cwd, args }) => cwd === main && args[0] === "merge" && args[1] === "--ff-only").length, 1);
+packages/nana-pack/tests/land-merge.test.mjs:120:	assert(calls.some(({ cwd, args }) => cwd === main && args.join(" ") === `merge --ff-only ${tip}`));
+packages/nana-pack/tests/land-merge.test.mjs:239:	const feature = tree(main, "feat/other"); commit(feature, "next.txt", "next\n", "next"); git(main, "merge", "--ff-only", "feat/other"); git(main, "checkout", "-b", "alternate");
+packages/nana-pack/tests/land-merge.test.mjs:251:	const feature = tree(main, "feat/dirty"); commit(feature, "next.txt", "next\n", "next"); git(main, "merge", "--ff-only", "feat/dirty");
+packages/nana-pack/tests/land-merge.test.mjs:258:	const feature = tree(main, "feat/dupe"); commit(feature, "next.txt", "next\n", "next"); git(main, "merge", "--ff-only", "feat/dupe");
+packages/nana-pack/tests/land-merge.test.mjs:272:	const feature = tree(main, "feat/landed"); commit(feature, "next.txt", "next\n", "next"); git(main, "merge", "--ff-only", "feat/landed");
+packages/nana-pack/tests/land-merge.test.mjs:295:	for (const pattern of [/nana-land merge/, /clean source tree/, /clean tracked state.*checkout on `main`/, /verified `LAND` review/, /runs the suite/, /suite in the source tree/, /Immediately before merging it rechecks/, /one `git merge --ff-only/, /main ref equal to the tip/, /verifies containment/, /branch switch.*between the final check and merge is not defended/, /Do not operate the main checkout during a land/, /helper refuses afterwards without success records/, /untracked collision/, /is a separate operation/, /clean worktree whose.*branch is contained in `main`/]) assert.match(readme, pattern);
+packages/nana-pack/tests/land-merge.test.mjs:297:	for (const pattern of [/clean source/, /clean `main` checkout/, /verified review rounds/, /CI or the local suite on the reviewed tip/, /Revalidate if either checkout changes/, /ff-only merge, and containment verification/, /separate operation/, /clean.*worktree contained in `main`/]) assert.match(agents, pattern);
+packages/nana-pack/tests/land-merge.test.mjs:298:	assert.match(agents, /use `nana-land`/); assert.match(agents, /clean `main` checkout/); assert.match(agents, /verified review rounds/); assert.match(agents, /Revalidate if either checkout changes/); assert.match(agents, /ff-only merge, and containment verification/); assert.match(agents, /clean `feat\/<lane>` worktree contained in `main`/);
+packages/nana-pack/tests/land-merge.test.mjs:376:check("normalized checkout review lands its exact tip", () => {
+packages/nana-pack/tests/templates-update.test.mjs:119:check("Python rendered Jinja includes the shared source", pythonJinja.trim() === "{% include 'templates/_shared/requirements-general.md' %}" && sharedRequirements.size === 22);
+packages/nana-pack/tests/templates-update.test.mjs:125:check("TypeScript rendered Jinja includes the shared source", typescriptJinja.trim() === "{% include 'templates/_shared/requirements-general.md' %}" && sharedRequirements.size === 22);
+packages/nana-pack/tests/templates-update.test.mjs:208:   const matches = rendered.status === 0 && generalRows.size === sharedRequirements.size && JSON.stringify([...generalRows]) === JSON.stringify([...expectedRows]) && !/\{\{|\{%/.test(generalText);
+packages/nana-pack/tests/land-ci-records.test.mjs:17:import { CI_ARTIFACT_PREFIX, CI_RECORDS_KEEP, CI_SLOW_SHARE, CI_STORE_SUBPATH, RECORD_SCHEMA, SLOWEST_LIST_MAX } from "../lib/suite-records-config.mjs";
+packages/nana-pack/tests/land-ci-records.test.mjs:115:check("R-2751: each CI record read at a land is kept once in the clone's ci-runs store with its tip, run, attempt, leg, event and time, never among local suite records", () => {
+packages/nana-pack/tests/land-ci-suite.test.mjs:3: * @purpose Pin CI suite substitution, fail-closed fallback, refusal, and land-record readers.
+packages/nana-pack/tests/land-ci-suite.test.mjs:44:check("R-3430: passing same-platform full-suite CI replaces the local suite and records its source", () => {
+packages/nana-pack/tests/land-ci-suite.test.mjs:105:check("R-3434: unreadable, absent, unfinished and unsuccessful CI refuse before any suite", () => {
+packages/nana-pack/tests/land-ci-suite.test.mjs:122:check("R-3435: land readers distinguish CI, local and legacy suite times without changing old lines", () => {
+packages/nana-pack/tests/land-ci-suite.test.mjs:141:check("seal: CI suite prefix, fallback paths and one run-list retry are declared once", () => {
+packages/nana-pack/tests/rulings.test.mjs:365:	const ruling = "- 2026-11-01: In nana-pi, a tip's passing GitHub CI stands in for the local full suite for builders, seats and lands. Builders push and do not wait; the seat waits for CI. The local locked suite runs only when CI cannot stand in.";
+packages/nana-pack/tests/rulings.test.mjs:375:			&& shared.includes("where the project's `AGENTS.md` says CI covers its suite")
+packages/nana-pack/tests/rulings.test.mjs:379:			&& agents.split(end)[1].includes("CI covers this repository's suite")
+packages/nana-pack/tests/rulings.test.mjs:380:			&& agents.split(end)[1].includes("main's push run, read by the seat's main CI check, is the post-land suite check")
+packages/nana-pack/tests/rulings.test.mjs:381:			&& !shared.includes("CI covers this repository's suite") && rendered === shared,
+packages/nana-pack/tests/rulings.test.mjs:382:		"CI ruling, checklist or rendered shared source differs");
+packages/nana-pack/tests/land.test.mjs:83:check("final review reading, rechecks and ff-only merge run inside one ledger lock", () => {
+packages/nana-pack/tests/land.test.mjs:102:	assert(events.slice(suiteAt + 1, exitAt).some((event) => event.includes("merge --ff-only")));
+packages/nana-pack/tests/land.test.mjs:109:	assert.equal(events.slice(exitAt + 1).some((event) => event.includes("merge --ff-only")), false);
+packages/nana-pack/tests/land.test.mjs:145:check("non-fast-forward source tip without CI refuses before running the suite", () => {
+packages/nana-pack/tests/land-ci-read.test.mjs:34:check("R-2586: a tip whose newest CI run of a workflow concluded other than success is refused before the suite", () => {
+packages/nana-pack/tests/land-ci-read.test.mjs:48:check("R-2587: a tip with no CI run, or with a newest run still queued or running, is refused before the suite", () => {
+packages/nana-pack/tests/land-ci-read.test.mjs:106:	assert(readme.includes("Where `origin` is on github.com and the tip tracks a workflow under `.github/workflows`, the helper refuses until the newest CI run of each workflow for the tip has passed at its latest attempt."));
+packages/nana-pack/tests/land-ci-read.test.mjs:107:	const bullets = shared.split(/\r?\n/).filter((line) => line.startsWith("- Land checklist:")); assert.equal(bullets.length, 1); assert(bullets[0].includes("Where origin is on github.com and the tip tracks a workflow, `nana-land` also refuses until the newest CI run of each workflow for the tip has passed, so push the tip to its open pull request, do not cancel its run, and wait for CI."));
+packages/nana-pack/tests/adoption-reader.test.mjs:63:const handoffOnly = repo("handoff-only");
+packages/nana-pack/tests/product-report.test.mjs:250:    check("rendered #features and feature detail views show the feature facts and shared rows", model.features.every((f) => features.text.includes(f.id) && features.text.includes(f.label) && features.text.includes(f.status) && features.text.includes(f.assessmentState)) && detail.text.includes("Purpose") && detail.text.includes("What it does") && detail.text.includes("current — matches the stamped ledger, not rechecked against later decisions"), `${features.text.slice(0, 250)} / ${detail.text.slice(0, 250)}`);
+packages/nana-pack/tests/product-report.test.mjs:1345:        "Artifact: A-004 · CI result · CI record: ci: .github/workflows/ci.yml#suite · CI: .github/workflows/ci.yml",
+packages/nana-pack/tests/templates-render.test.mjs:561:	const canonicalSupport = `Support: macOS tested; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.`;
+packages/nana-pack/tests/templates-render.test.mjs:889:			check(`${language}: rendered AGENTS.md marker region matches shared bytes and follows a paragraph`,
+packages/nana-pack/tests/templates-render.test.mjs:890:				markerBlock(renderedAgents) === fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf-8") &&
+packages/nana-pack/tests/land-clean-merge.test.mjs:116:await check('M5: merge eligibility requires applicable CI, suite proof and unchanged proof paths on both sides', () => {
+packages/nana-pack/tests/land-clean-merge.test.mjs:119: refused(cleanMergeFixture('m5-record'), /clean merge needs proven suite: CI suite records could not be read/, {records:false});
+packages/nana-pack/tests/land-clean-merge.test.mjs:161:  assert.match(bullet,/without conflict|conflict-free/); assert(!bullet.includes('there are no exemptions'));
+packages/nana-pack/tests/land-clean-merge.test.mjs:163: for(const sentence of shared.split(/(?<=\.)\s+/).filter(s=>/every later commit/i.test(s))) assert.match(sentence,/lane authors/);
+packages/nana-pack/tests/land-clean-merge.test.mjs:167: const ruling='- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land.';
+packages/nana-pack/tests/land-clean-merge.test.mjs:170: assert(!rulings.includes('- 2026-10-10: An independent reviewer'));
+packages/nana-pack/tests/land-clean-merge.test.mjs:181:  noCi:'clean merge needs applicable CI', suite:'clean merge needs proven suite',
+packages/nana-pack/tests/ci-workflow.test.mjs:3: * @purpose Pins root CI triggers, ceiling and floor pi install-check coverage, suite matrix, and gated release permissions and ordering.
+packages/nana-pack/tests/ci-workflow.test.mjs:13:import { CI_ARTIFACT_PREFIX } from "../lib/suite-records-config.mjs";
+packages/nana-pack/tests/ci-workflow.test.mjs:20:check("root CI runs the suite on macOS, Linux, and Windows and gates tag release", () => {
+packages/nana-pack/tests/ci-workflow.test.mjs:202:check("R-2556: every CI suite step passes the job count to the runner after npm's separator", () => {
+packages/nana-pack/tests/ci-workflow.test.mjs:245:check("R-2631: every CI suite step points the runner's record knob at the leg's temp folder", () => {
+packages/nana-pack/tests/ci-workflow.test.mjs:258:  assert.equal(keys[0].line, '      NANA_CI_RECORD_NAME: "nana-suite-record.json"');
+packages/nana-pack/tests/worker-lane.test.mjs:419:	readCiOnce: "Where `AGENTS.md` says CI covers the suite, push your last commit and stop: do not wait for or read its CI run, and commit nothing after the push.",

@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/land-config.mjs
  * @purpose Declare land-time process, CI, and runtime-map contract values with their provenance.
  * @inputs none
- * @outputs Process bounds, CI scope, verdict and records-budget values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
+ * @outputs Process bounds, CI scope, clean-merge policy, verdict and records-budget values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
  * @effects none
  * @errors none
  */
@@ -42,6 +42,23 @@ export const CI_RUN_LIST_RETRIES = 1;
 // contract (R-3432), chosen by the seat 2026-11-01: proof-defining workflow and collection changes require local coverage.
 export const SUITE_FALLBACK_PATHS = Object.freeze([".github/workflows/", "scripts/test.mjs"]);
 export const SUITE_CHANGED_REASON = "the lane changes the CI workflow or test runner";
+
+// chosen 2026-11-02 (R-3697, clean-merge plan O1): identify only the merge this land creates.
+export const CLEAN_MERGE_MESSAGE = "nana-land: merge current main into accepted tip";
+export const CLEAN_MERGE_PREFIX = "merged main:";
+// chosen 2026-11-02 (R-3697, O2): name ten paths before eliding a long conflict list.
+export const CLEAN_MERGE_NAME_CAP = 10;
+// contract (R-3690, R-3697, plan Q3), chosen 2026-11-02: generated outputs need regeneration, not textual merging.
+export const CLEAN_MERGE_GENERATED_PATHS = Object.freeze(["docs/code-map.md", "docs/requirements-tree.md"]);
+// contract (R-3689, R-3697, A2), chosen 2026-11-02: repository settings cannot select a default custom driver or disable rename detection.
+export const CLEAN_MERGE_GIT_CONFIG = Object.freeze(["merge.renormalize=false", "merge.default=text", "merge.renames=true"]);
+// chosen 2026-11-02 (R-3697, O1): every merge refusal points back to the reviewed lane flow.
+export const CLEAN_MERGE_REMEDY = "merge main into the lane, then review and CI that tip";
+export const CLEAN_MERGE_REASONS = Object.freeze({
+	conflict: "merge conflict", unsupported: "unsupported merge semantics", git: "git merge-tree failed",
+	noCi: "clean merge needs applicable CI", suite: "clean merge needs proven suite",
+	proof: "clean merge proof path changed", ciChanged: "clean merge CI changed before lock",
+});
 
 // contract (R-3430, R-3431): one source line on a successful land.
 export const SUITE_LINE_PREFIX = "suite:";

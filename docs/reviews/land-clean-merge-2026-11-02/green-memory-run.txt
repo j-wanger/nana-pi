@@ -1,0 +1,8 @@
+PASS R-3290: each owner and ask unit is made once
+PASS R-3291: pending units survive busy caps failures and stale locks
+PASS R-3292: known and unknown usage obey run and shared day caps
+PASS R-3293: only enabled post-start main sources use a stable root key
+PASS R-3294: two machines and seat saves converge without machine files
+PASS R-3295: one live normalized claim prefers the seat in either order
+PASS R-3296: narrow private evidence survives deletion without public text
+PASS R-3297: land starts making only after the final merge and cannot alter its verdict

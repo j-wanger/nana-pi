@@ -1,0 +1,9 @@
+Feature: FEAT-008 · Integrate and clean up reviewed changes
+
+Lane land-clean-merge. Class: gate (land tool: nana-land). Threat model: honest variation in our tools' output is in scope (git merge-tree output and exit codes, merge attributes and drivers, renames, CI reruns and newer attempts, concurrent lands sharing one review ledger, generated files both sides touched); deliberate forgery is out.
+
+Review `git diff origin/main...HEAD` on `feat/land-clean-merge`. The owner's ruling (2026-11-02): "no conflict lane merge needs no CI". The plan of record is `plan.md` in this folder (revision 2 after `plan-attack.md`, a pi adversary: 3 MUST, 5 SHOULD, 1 NOTE, all taken); `merge-measure.txt` and `merge-recent.txt` hold the replay of past merge builds (14 of 44 textually clean, an upper bound). Defaults taken: a nana-land-made clean merge counts as review-covered (Q1); "no conflict" means git's textual merge (Q2); generated files both sides changed count as a conflict, regeneration is a later lane (Q3). Rows R-3688 to R-3697. `build-report.md` and the mutation records show the build (10 of 10 pairs red).
+
+Question: does the feature work for its user, the seat landing reviewed lanes after main moved; check especially that a clean merge lands with merged content equal to an ordinary git merge, that unsupported merges (drivers, attribute changes, malformed merge-tree output, git failures) and conflicts refuse with refs and worktrees unchanged, that a proof-defining path changed on either side refuses, that only nana-land's own merge commit is exempt from review, that races refuse, and that AGENTS, the shared template, the pack README and the new ruling all say the same thing; and does the change cause a harm the review standard lists?
+
+Do not begin any line with the word "Verdict". Write the verdict only as the exact last line, `VERDICT: LAND` or `VERDICT: SEND-BACK`, and nowhere else, not bolded.

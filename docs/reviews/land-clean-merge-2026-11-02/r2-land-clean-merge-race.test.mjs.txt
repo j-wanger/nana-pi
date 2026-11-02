@@ -1,0 +1,1 @@
+PASS M7: checkout and CI races refuse, cooperating lands serialize and rerun safely
