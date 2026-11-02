@@ -1,0 +1,41 @@
+-:1: verdict: first sentence "MUST / R-3641: only assistant work, owner turns, tool results, queues and prompt hooks close the start window." carries no verdict word
+-:6: identifier: `apps/bench/README.md`
+-:6: identifier: `seat-counts.md`
+-:7: identifier: `desiredHooks`
+-:7: identifier: `packages/nana-setup/lib/settings.mjs`
+-:11: identifier: `REQUIREMENTS.md`
+-:12: identifier: `apps/bench/lib/anatomy-seat.mjs`
+-:13: identifier: `apps/bench/test/anatomy-seat.test.mjs`
+-:14: identifier: `unsettled`
+-:15: identifier: `apps/bench/README.md`
+-:16: identifier: `docs/code-map.md`
+-:17: passive: passive candidate: "written" in "No transcript text, owner text or session ids were written or printed."
+-:17: identifier: `docs/reviews/seat-anatomy-2026-11-02/seat-counts.md`
+-:28: passive: passive candidate: "inverted" in "No assertion was inverted."
+-:28: passive: passive candidate: "awaited" in "Every async case is awaited under the existing per-case limit."
+-:34: identifier: `npm run map:impact -- apps/bench/lib/anatomy-seat.mjs apps/bench/lib/anatomy-config.mjs`
+-:35: identifier: `node scripts/test.mjs anatomy-seat.test.mjs anatomy.test.mjs anatomy-labels.test.mjs memory-making.test.mjs memory-shaping.test.mjs memory-replay.test.mjs writing-trial-extractor.test.mjs`
+-:36: identifier: `node apps/bench/test/anatomy-seat.test.mjs`
+-:37: passive: passive candidate: "unchanged" in "The committed golden is unchanged."
+-:37: identifier: `SEAT_RECORD_GOLDEN="$TMPDIR/seat-anatomy-r1-golden.json" node apps/bench/test/anatomy-seat.test.mjs`
+-:37: identifier: `cmp "$TMPDIR/seat-anatomy-r1-golden.json" docs/reviews/seat-anatomy-2026-11-02/builder-golden.json`
+-:38: identifier: `node packages/nana-pack/tests/test-runner.test.mjs`
+-:39: identifier: `npm run map`
+-:39: identifier: `npm run map:check`
+-:39: identifier: `npm run readme:check`
+-:40: identifier: `NODE_NO_WARNINGS=1 node scripts/requirements-trace.mjs`
+-:41: identifier: `NODE_NO_WARNINGS=1 node scripts/requirements-tree.mjs --check`
+-:42: identifier: `node scripts/known-bugs.mjs --root .`
+-:43: identifier: `node scripts/lane-class.mjs --root . --files apps/bench/lib/anatomy-seat.mjs,apps/bench/test/anatomy-seat.test.mjs,apps/bench/README.md,REQUIREMENTS.md`
+-:44: identifier: `git diff --check`
+-:45: identifier: `node "$TMPDIR/seat-anatomy-r1-counts.mjs"`
+-:45: identifier: `extractSeatContexts`
+-:45: identifier: `reportSlots`
+-:46: identifier: `node scripts/identity-scan.mjs --root .`
+-:50: passive: passive candidate: "copied" in "No helper was copied or moved."
+-:50: passive: passive candidate: "imported" in "The status source is imported through public desiredHooks, not extracted from private settings implementation."
+-:52: passive: passive candidate: "fixed" in "No listed known bug was fixed or modified."
+-:52: passive: passive candidate: "claimed" in "No findings are claimed from function shares."
+-:52: passive: passive candidate: "delegated" in "The full suite is delegated to CI under AGENTS.md; no locked full suite or CI reader is run."
+-:54: identifier: `/context`
+summary sentences=54 words=547 over=0 passive=9 banned=0 verdict=0/1 identifiers=30

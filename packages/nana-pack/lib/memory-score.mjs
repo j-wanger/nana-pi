@@ -10,12 +10,12 @@ import fs from "node:fs";
 import { memoryArgs } from "./memory-making.mjs";
 
 const kinds = ["correction", "decision", "lesson"];
-function rows(file, labels) {
+export function rows(file, labels, { allowDuplicates = false } = {}) {
  const records = fs.readFileSync(file, "utf8").split(/\r?\n/u).filter((line) => line.trim()).map((line) => JSON.parse(line));
  const seen = new Set();
  for (const row of records) {
   if (typeof row?.evidence !== "string" || !row.evidence || !(labels ? [...kinds, "none"] : kinds).includes(row.kind)) throw new Error("invalid score record");
-  if (labels && seen.has(row.evidence)) throw new Error("duplicate label");
+  if (labels && !allowDuplicates && seen.has(row.evidence)) throw new Error("duplicate label");
   seen.add(row.evidence);
  }
  return records;

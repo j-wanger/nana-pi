@@ -1,0 +1,16 @@
+PASS R-3640: payload fields kinds delivery and coverage
+PASS R-3641: coalesced starts and turn phases
+PASS R-3641: realistic compact attachment order
+FAIL R-3640: public hook labels and commandless attribution
+assertion anatomy-seat.test.mjs:140:10
+PASS R-3642: inherited sessions order invariance and skips
+FAIL R-3643: hook invocation and queued owner identity
+assertion anatomy-seat.test.mjs:169:9
+PASS R-3644: seat tool classes conserve result characters
+PASS R-3645: complete kind totals and distinct repeat denominators
+PASS R-3646: correction joins distinguish all outcomes and sources
+PASS R-3647: every seat command keeps tripwires private
+PASS R-3648: reusable adapters labels and builder golden regression
+PASS R-3640: seal seat extraction policy
+PASS R-3644: seal seat class functions
+seat anatomy: 11/13 checks passed

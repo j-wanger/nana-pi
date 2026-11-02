@@ -1,0 +1,2863 @@
+{
+  "contexts": [
+    {
+      "id": "older-1",
+      "lane": "<LANE>",
+      "cwd": "<ROOT>",
+      "branch": "feat/<LANE>",
+      "buildNumber": "unknown",
+      "model": "unknown",
+      "verdict": "none",
+      "tokens": 0,
+      "wallMinutes": 0,
+      "landed": false,
+      "attempts": 1,
+      "startTip": null,
+      "briefBlob": null,
+      "parts": [
+        {
+          "name": "preamble",
+          "raw": "Synthetic preamble.",
+          "attempt": 0,
+          "section": "preamble",
+          "spans": [
+            {
+              "id": "older-1:a0:p0:0",
+              "kind": "unit",
+              "start": 0,
+              "end": 19,
+              "text": "Synthetic preamble.",
+              "headingIds": [],
+              "label": "unsorted",
+              "tier": "unsorted",
+              "reason": "no-rule"
+            }
+          ]
+        },
+        {
+          "name": "skills",
+          "raw": "<skills>synthetic</skills>",
+          "attempt": 0,
+          "section": "skills",
+          "spans": [
+            {
+              "id": "older-1:a0:p1:0",
+              "kind": "unit",
+              "start": 0,
+              "end": 26,
+              "text": "<skills>synthetic</skills>",
+              "headingIds": [],
+              "label": "tools",
+              "tier": "part"
+            }
+          ]
+        },
+        {
+          "name": "tools",
+          "raw": "Tool one.\n\nTool two.",
+          "attempt": 0,
+          "section": "tools",
+          "spans": [
+            {
+              "id": "older-1:a0:p2:0",
+              "kind": "unit",
+              "start": 0,
+              "end": 10,
+              "text": "Tool one.\n",
+              "headingIds": [],
+              "label": "tools",
+              "tier": "part"
+            },
+            {
+              "id": "older-1:a0:p2:1",
+              "kind": "glue",
+              "start": 10,
+              "end": 11,
+              "text": "\n",
+              "headingIds": []
+            },
+            {
+              "id": "older-1:a0:p2:2",
+              "kind": "unit",
+              "start": 11,
+              "end": 20,
+              "text": "Tool two.",
+              "headingIds": [],
+              "label": "tools",
+              "tier": "part"
+            }
+          ]
+        },
+        {
+          "name": "instruction",
+          "raw": "Synthetic instruction.",
+          "attempt": 0,
+          "spans": [
+            {
+              "id": "older-1:a0:p3:0",
+              "kind": "unit",
+              "start": 0,
+              "end": 22,
+              "text": "Synthetic instruction.",
+              "headingIds": [],
+              "label": "unsorted",
+              "tier": "unsorted",
+              "reason": "no-rule"
+            }
+          ]
+        }
+      ],
+      "excluded": [],
+      "pulls": []
+    }
+  ],
+  "segment": {
+    "command": "segment",
+    "files": 1,
+    "builds": 1,
+    "recorded": 0,
+    "splitRecorded": 0,
+    "older": 1,
+    "splitOlder": 0,
+    "briefUnmatched": 0,
+    "withKnownBugs": 0,
+    "skipped": [],
+    "excluded": []
+  },
+  "plain": {
+    "overall": [
+      {
+        "function": "purpose",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "task",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "method",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "constraints",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "precedent",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "knowledge",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "lessons",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "tools",
+        "units": 3,
+        "unitShare": 50,
+        "chars": 45,
+        "charShare": 51.72
+      },
+      {
+        "function": "output contract",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "feedback",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "unsorted",
+        "units": 2,
+        "unitShare": 33.33,
+        "chars": 41,
+        "charShare": 47.13
+      },
+      {
+        "function": "glue",
+        "units": 1,
+        "unitShare": 16.67,
+        "chars": 1,
+        "charShare": 1.15
+      }
+    ],
+    "parts": [
+      {
+        "part": "instruction",
+        "counts": [
+          {
+            "function": "purpose",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "task",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "method",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "constraints",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "precedent",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "knowledge",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "lessons",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "tools",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "output contract",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "feedback",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unsorted",
+            "units": 1,
+            "unitShare": 100,
+            "chars": 22,
+            "charShare": 100
+          },
+          {
+            "function": "glue",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          }
+        ],
+        "max": 22,
+        "p90": 22
+      },
+      {
+        "part": "preamble",
+        "counts": [
+          {
+            "function": "purpose",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "task",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "method",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "constraints",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "precedent",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "knowledge",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "lessons",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "tools",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "output contract",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "feedback",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unsorted",
+            "units": 1,
+            "unitShare": 100,
+            "chars": 19,
+            "charShare": 100
+          },
+          {
+            "function": "glue",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          }
+        ],
+        "max": 19,
+        "p90": 19
+      },
+      {
+        "part": "skills",
+        "counts": [
+          {
+            "function": "purpose",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "task",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "method",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "constraints",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "precedent",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "knowledge",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "lessons",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "tools",
+            "units": 1,
+            "unitShare": 100,
+            "chars": 26,
+            "charShare": 100
+          },
+          {
+            "function": "output contract",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "feedback",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unsorted",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "glue",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          }
+        ],
+        "max": 26,
+        "p90": 26
+      },
+      {
+        "part": "tools",
+        "counts": [
+          {
+            "function": "purpose",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "task",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "method",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "constraints",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "precedent",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "knowledge",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "lessons",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "tools",
+            "units": 2,
+            "unitShare": 66.67,
+            "chars": 19,
+            "charShare": 95
+          },
+          {
+            "function": "output contract",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "feedback",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unsorted",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "glue",
+            "units": 1,
+            "unitShare": 33.33,
+            "chars": 1,
+            "charShare": 5
+          }
+        ],
+        "max": 10,
+        "p90": 10
+      }
+    ],
+    "oversize": [],
+    "zeroSupply": [
+      {
+        "function": "purpose",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "task",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "method",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "constraints",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "precedent",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "knowledge",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "lessons",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "tools",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "output contract",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "feedback",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "purpose",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "task",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "method",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "constraints",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "precedent",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "knowledge",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "lessons",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "tools",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "output contract",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "feedback",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "purpose",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "task",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "method",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "constraints",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "precedent",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "knowledge",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "lessons",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "tools",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "output contract",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "feedback",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      }
+    ],
+    "duplicates": [],
+    "pulls": {
+      "byClass": [
+        {
+          "class": "precedent",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "known-bugs",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "tests",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "brief",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "docs",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "source",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "outside",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "discovery",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "unclassified-bash",
+          "calls": 0,
+          "chars": 0
+        }
+      ],
+      "byFunction": [
+        {
+          "function": "purpose",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "task",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "method",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "constraints",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "precedent",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "knowledge",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "lessons",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "tools",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 45
+        },
+        {
+          "function": "output contract",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "feedback",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "unsorted",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 41
+        }
+      ]
+    },
+    "excluded": [],
+    "builds": [
+      {
+        "id": "older-1",
+        "lane": "<LANE>",
+        "buildNumber": "unknown",
+        "attempts": 1,
+        "model": "unknown",
+        "verdict": "none",
+        "functions": {
+          "purpose": {
+            "units": 0,
+            "chars": 0
+          },
+          "task": {
+            "units": 0,
+            "chars": 0
+          },
+          "method": {
+            "units": 0,
+            "chars": 0
+          },
+          "constraints": {
+            "units": 0,
+            "chars": 0
+          },
+          "precedent": {
+            "units": 0,
+            "chars": 0
+          },
+          "knowledge": {
+            "units": 0,
+            "chars": 0
+          },
+          "lessons": {
+            "units": 0,
+            "chars": 0
+          },
+          "tools": {
+            "units": 3,
+            "chars": 45
+          },
+          "output contract": {
+            "units": 0,
+            "chars": 0
+          },
+          "feedback": {
+            "units": 0,
+            "chars": 0
+          },
+          "unsorted": {
+            "units": 2,
+            "chars": 41
+          },
+          "glue": {
+            "units": 0,
+            "chars": 1
+          }
+        },
+        "pulledChars": 0,
+        "tokens": 0,
+        "wallMinutes": 0,
+        "landed": false
+      }
+    ]
+  },
+  "labelled": {
+    "overall": [
+      {
+        "function": "purpose",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "task",
+        "units": 5,
+        "unitShare": 83.33,
+        "chars": 86,
+        "charShare": 98.85
+      },
+      {
+        "function": "method",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "constraints",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "precedent",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "knowledge",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "lessons",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "tools",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "output contract",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "feedback",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "unsorted",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "unlabelled",
+        "units": 0,
+        "unitShare": 0,
+        "chars": 0,
+        "charShare": 0
+      },
+      {
+        "function": "glue",
+        "units": 1,
+        "unitShare": 16.67,
+        "chars": 1,
+        "charShare": 1.15
+      }
+    ],
+    "parts": [
+      {
+        "part": "instruction",
+        "counts": [
+          {
+            "function": "purpose",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "task",
+            "units": 1,
+            "unitShare": 100,
+            "chars": 22,
+            "charShare": 100
+          },
+          {
+            "function": "method",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "constraints",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "precedent",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "knowledge",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "lessons",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "tools",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "output contract",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "feedback",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unsorted",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unlabelled",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "glue",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          }
+        ],
+        "max": 22,
+        "p90": 22
+      },
+      {
+        "part": "preamble",
+        "counts": [
+          {
+            "function": "purpose",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "task",
+            "units": 1,
+            "unitShare": 100,
+            "chars": 19,
+            "charShare": 100
+          },
+          {
+            "function": "method",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "constraints",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "precedent",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "knowledge",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "lessons",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "tools",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "output contract",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "feedback",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unsorted",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unlabelled",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "glue",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          }
+        ],
+        "max": 19,
+        "p90": 19
+      },
+      {
+        "part": "skills",
+        "counts": [
+          {
+            "function": "purpose",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "task",
+            "units": 1,
+            "unitShare": 100,
+            "chars": 26,
+            "charShare": 100
+          },
+          {
+            "function": "method",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "constraints",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "precedent",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "knowledge",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "lessons",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "tools",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "output contract",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "feedback",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unsorted",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unlabelled",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "glue",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          }
+        ],
+        "max": 26,
+        "p90": 26
+      },
+      {
+        "part": "tools",
+        "counts": [
+          {
+            "function": "purpose",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "task",
+            "units": 2,
+            "unitShare": 66.67,
+            "chars": 19,
+            "charShare": 95
+          },
+          {
+            "function": "method",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "constraints",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "precedent",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "knowledge",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "lessons",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "tools",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "output contract",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "feedback",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unsorted",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "unlabelled",
+            "units": 0,
+            "unitShare": 0,
+            "chars": 0,
+            "charShare": 0
+          },
+          {
+            "function": "glue",
+            "units": 1,
+            "unitShare": 33.33,
+            "chars": 1,
+            "charShare": 5
+          }
+        ],
+        "max": 10,
+        "p90": 10
+      }
+    ],
+    "oversize": [],
+    "zeroSupply": [
+      {
+        "function": "purpose",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "task",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "method",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "constraints",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "precedent",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "knowledge",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "lessons",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "tools",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "output contract",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "feedback",
+        "group": "1",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "purpose",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "task",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "method",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "constraints",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "precedent",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "knowledge",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "lessons",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "tools",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "output contract",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "feedback",
+        "group": "2+",
+        "builds": 0,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "purpose",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "task",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 0,
+        "zeroShare": 0
+      },
+      {
+        "function": "method",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "constraints",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "precedent",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "knowledge",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "lessons",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "tools",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "output contract",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      },
+      {
+        "function": "feedback",
+        "group": "unknown",
+        "builds": 1,
+        "zero": 1,
+        "zeroShare": 100
+      }
+    ],
+    "duplicates": [],
+    "pulls": {
+      "byClass": [
+        {
+          "class": "precedent",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "known-bugs",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "tests",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "brief",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "docs",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "source",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "outside",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "discovery",
+          "calls": 0,
+          "chars": 0
+        },
+        {
+          "class": "unclassified-bash",
+          "calls": 0,
+          "chars": 0
+        }
+      ],
+      "byFunction": [
+        {
+          "function": "purpose",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "task",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 86
+        },
+        {
+          "function": "method",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "constraints",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "precedent",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "knowledge",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "lessons",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "tools",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "output contract",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "feedback",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        },
+        {
+          "function": "unsorted",
+          "calls": 0,
+          "chars": 0,
+          "pushedChars": 0
+        }
+      ],
+      "functionProvenance": "target-rule functions; model-labelled pushed chars"
+    },
+    "excluded": [],
+    "builds": [
+      {
+        "id": "older-1",
+        "lane": "<LANE>",
+        "buildNumber": "unknown",
+        "attempts": 1,
+        "model": "unknown",
+        "verdict": "none",
+        "functions": {
+          "purpose": {
+            "units": 0,
+            "chars": 0
+          },
+          "task": {
+            "units": 5,
+            "chars": 86
+          },
+          "method": {
+            "units": 0,
+            "chars": 0
+          },
+          "constraints": {
+            "units": 0,
+            "chars": 0
+          },
+          "precedent": {
+            "units": 0,
+            "chars": 0
+          },
+          "knowledge": {
+            "units": 0,
+            "chars": 0
+          },
+          "lessons": {
+            "units": 0,
+            "chars": 0
+          },
+          "tools": {
+            "units": 0,
+            "chars": 0
+          },
+          "output contract": {
+            "units": 0,
+            "chars": 0
+          },
+          "feedback": {
+            "units": 0,
+            "chars": 0
+          },
+          "unsorted": {
+            "units": 0,
+            "chars": 0
+          },
+          "unlabelled": {
+            "units": 0,
+            "chars": 0
+          },
+          "glue": {
+            "units": 0,
+            "chars": 1
+          }
+        },
+        "pulledChars": 0,
+        "tokens": 0,
+        "wallMinutes": 0,
+        "landed": false
+      }
+    ],
+    "provenance": {
+      "model": "claude-opus-5-5",
+      "promptSha256": "422f2aa3ad294594735a46cb05cbaee66450cef501ee7407c2b11e327fcaad52",
+      "labelsSha256": "db29fc972f355e43365ea60b8e9d1e19af6501bc7fdcdfb2d10fc0a9fd986fb4"
+    },
+    "interpretation": "blind-text model labels; not findings until the pre-registered bars pass",
+    "perOccurrence": {
+      "counts": [
+        {
+          "function": "purpose",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "task",
+          "units": 5,
+          "unitShare": 83.33,
+          "chars": 86,
+          "charShare": 98.85
+        },
+        {
+          "function": "method",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "constraints",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "precedent",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "knowledge",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "lessons",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "tools",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "output contract",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "feedback",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "unsorted",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "unlabelled",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "glue",
+          "units": 1,
+          "unitShare": 16.67,
+          "chars": 1,
+          "charShare": 1.15
+        }
+      ],
+      "denominator": {
+        "basis": "non-oversize occurrences including glue",
+        "units": 6,
+        "chars": 87
+      },
+      "parts": [
+        {
+          "part": "instruction",
+          "counts": [
+            {
+              "function": "purpose",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "task",
+              "units": 1,
+              "unitShare": 100,
+              "chars": 22,
+              "charShare": 100
+            },
+            {
+              "function": "method",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "constraints",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "precedent",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "knowledge",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "lessons",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "tools",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "output contract",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "feedback",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unsorted",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unlabelled",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "glue",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            }
+          ],
+          "denominator": {
+            "basis": "non-oversize occurrences including glue in part",
+            "units": 1,
+            "chars": 22
+          }
+        },
+        {
+          "part": "preamble",
+          "counts": [
+            {
+              "function": "purpose",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "task",
+              "units": 1,
+              "unitShare": 100,
+              "chars": 19,
+              "charShare": 100
+            },
+            {
+              "function": "method",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "constraints",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "precedent",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "knowledge",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "lessons",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "tools",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "output contract",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "feedback",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unsorted",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unlabelled",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "glue",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            }
+          ],
+          "denominator": {
+            "basis": "non-oversize occurrences including glue in part",
+            "units": 1,
+            "chars": 19
+          }
+        },
+        {
+          "part": "skills",
+          "counts": [
+            {
+              "function": "purpose",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "task",
+              "units": 1,
+              "unitShare": 100,
+              "chars": 26,
+              "charShare": 100
+            },
+            {
+              "function": "method",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "constraints",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "precedent",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "knowledge",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "lessons",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "tools",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "output contract",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "feedback",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unsorted",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unlabelled",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "glue",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            }
+          ],
+          "denominator": {
+            "basis": "non-oversize occurrences including glue in part",
+            "units": 1,
+            "chars": 26
+          }
+        },
+        {
+          "part": "tools",
+          "counts": [
+            {
+              "function": "purpose",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "task",
+              "units": 2,
+              "unitShare": 66.67,
+              "chars": 19,
+              "charShare": 95
+            },
+            {
+              "function": "method",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "constraints",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "precedent",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "knowledge",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "lessons",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "tools",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "output contract",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "feedback",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unsorted",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unlabelled",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "glue",
+              "units": 1,
+              "unitShare": 33.33,
+              "chars": 1,
+              "charShare": 5
+            }
+          ],
+          "denominator": {
+            "basis": "non-oversize occurrences including glue in part",
+            "units": 3,
+            "chars": 20
+          }
+        }
+      ]
+    },
+    "perDistinct": {
+      "counts": [
+        {
+          "function": "purpose",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "task",
+          "units": 5,
+          "unitShare": 100,
+          "chars": 86,
+          "charShare": 100
+        },
+        {
+          "function": "method",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "constraints",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "precedent",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "knowledge",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "lessons",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "tools",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "output contract",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "feedback",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "unsorted",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        },
+        {
+          "function": "unlabelled",
+          "units": 0,
+          "unitShare": 0,
+          "chars": 0,
+          "charShare": 0
+        }
+      ],
+      "denominator": {
+        "basis": "distinct nonempty non-oversize texts; representative blind chars",
+        "units": 5,
+        "chars": 86
+      },
+      "parts": [
+        {
+          "part": "instruction",
+          "counts": [
+            {
+              "function": "purpose",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "task",
+              "units": 1,
+              "unitShare": 100,
+              "chars": 22,
+              "charShare": 100
+            },
+            {
+              "function": "method",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "constraints",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "precedent",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "knowledge",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "lessons",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "tools",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "output contract",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "feedback",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unsorted",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unlabelled",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            }
+          ],
+          "denominator": {
+            "basis": "distinct keys present in part; representative blind chars",
+            "units": 1,
+            "chars": 22
+          }
+        },
+        {
+          "part": "preamble",
+          "counts": [
+            {
+              "function": "purpose",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "task",
+              "units": 1,
+              "unitShare": 100,
+              "chars": 19,
+              "charShare": 100
+            },
+            {
+              "function": "method",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "constraints",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "precedent",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "knowledge",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "lessons",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "tools",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "output contract",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "feedback",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unsorted",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unlabelled",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            }
+          ],
+          "denominator": {
+            "basis": "distinct keys present in part; representative blind chars",
+            "units": 1,
+            "chars": 19
+          }
+        },
+        {
+          "part": "skills",
+          "counts": [
+            {
+              "function": "purpose",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "task",
+              "units": 1,
+              "unitShare": 100,
+              "chars": 26,
+              "charShare": 100
+            },
+            {
+              "function": "method",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "constraints",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "precedent",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "knowledge",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "lessons",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "tools",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "output contract",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "feedback",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unsorted",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unlabelled",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            }
+          ],
+          "denominator": {
+            "basis": "distinct keys present in part; representative blind chars",
+            "units": 1,
+            "chars": 26
+          }
+        },
+        {
+          "part": "tools",
+          "counts": [
+            {
+              "function": "purpose",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "task",
+              "units": 2,
+              "unitShare": 100,
+              "chars": 19,
+              "charShare": 100
+            },
+            {
+              "function": "method",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "constraints",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "precedent",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "knowledge",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "lessons",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "tools",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "output contract",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "feedback",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unsorted",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            },
+            {
+              "function": "unlabelled",
+              "units": 0,
+              "unitShare": 0,
+              "chars": 0,
+              "charShare": 0
+            }
+          ],
+          "denominator": {
+            "basis": "distinct keys present in part; representative blind chars",
+            "units": 2,
+            "chars": 19
+          }
+        }
+      ]
+    },
+    "contextDependent": {
+      "spanningParts": {
+        "keys": 0,
+        "occurrences": 0,
+        "rawChars": 0
+      },
+      "short": {
+        "keys": 5,
+        "occurrences": 5,
+        "rawChars": 86
+      }
+    },
+    "emptyNormalized": 0
+  }
+}

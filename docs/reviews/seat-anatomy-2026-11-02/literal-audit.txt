@@ -1,0 +1,3 @@
+apps/bench/test/anatomy-seat.test.mjs:255:await test('R-3644: seal seat class functions', () => assert.deepEqual(C.SEAT_CLASS_FUNCTION, { ...C.CLASS_FUNCTION, memory: 'knowledge', delegation: 'knowledge', web: 'knowledge', skill: 'tools', write: 'task', other: 'unsorted' }));
+packages/nana-pack/tests/writing-trial-extractor.test.mjs:14:import { OWNER_WORD_DIGESTS, RULE_TITLE, checksByDay, collect, loadPrivateCorpus, preserve, runExtractor, score, scoreDecisions, transcriptFiles } from "../lib/writing-trial-extractor.mjs";
+packages/nana-pack/tests/writing-trial-extractor.test.mjs:64:	const files = transcriptFiles(f.root);
