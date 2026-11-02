@@ -1,0 +1,33 @@
+M5 / R-3474 evidence: one real memory-runner call through createRunner, with only an npm-installed
+Claude Code on PATH. Recorded by the seat's Windows sub-seat on the reference Windows 11 laptop,
+2026-11-01. Node 22.22.2.
+
+This replaces the build-1 record, which called claudeRunner directly and so missed the createRunner
+default-spawn defect found in review round 1.
+
+Setup
+- Package: @anthropic-ai/claude-code@2.1.316, installed with `npm i -g --prefix <prefix>` into a temp
+  folder whose path holds spaces. Install scripts ran, so bin/claude.exe is the real binary.
+- The process Path held only: <prefix>; <node>; %SystemRoot%\System32; %SystemRoot%.
+  No native claude.exe was on it: `where claude` listed only <prefix>\claude and <prefix>\claude.cmd.
+- `spawnSync("claude", ["--version"])` under that Path: ENOENT, in both runs.
+- Driver: `createRunner({ runner: "claude" })` from scripts/memory-shape-runners.mjs, imported
+  unchanged from each checkout, with no spawn passed. This is the call scripts/memory-run.mjs makes
+  (`createRunner()`, whose default runner is claude). Default model (claude-sonnet-5) and cap.
+- System prompt (multi-line) asked the model to echo this exact string through the JSON schema:
+    a"b\c%PATH%!x! "q" \
+  It holds a double quote, a backslash, %PATH%, !x!, quoted words and a trailing backslash.
+
+Before the fix (main at 6c4b5363, runner spawns "claude")
+  ok: false, 1 ms, usage null, text ""            (the spawn fails with ENOENT)
+
+After the fix (feat/claude-cmd-launch at 7a7c2a11)
+  resolved command: <prefix>\node_modules\@anthropic-ai\claude-code\bin\claude.exe  (direct, no cmd.exe)
+  ok: true, 3430 ms
+  usage: tokens 1273, cost 0.0009246
+  text: {"echo":"a\"b\\c%PATH%!x! \"q\" \\"}
+  echo equals the string sent: true   (%PATH% unexpanded and !x! intact, so no shell parsed argv)
+
+Not run: `nana-memory make` against a scratch store; the createRunner call above is the runner
+memory-run.mjs builds.
+Not covered: an install made with scripts disabled (known bug in docs/known-bugs/FEAT-040.md).
