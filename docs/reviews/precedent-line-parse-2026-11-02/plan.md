@@ -148,3 +148,7 @@ Consequences:
 A chosen code span contributes only its first whitespace-separated token, then the existing punctuation and line-suffix normalization applies. Bare-first path shape is decided after that same normalization. These corrections preserve main's accepted multiple-line-reference spans and bare suffixed subjects.
 
 Residual: a path containing a space inside a code span is not supported. M1's inner-space fixture pins selection of the first token, not the whole span.
+
+## Residual after build 3 (seat, 2026-11-02)
+
+A code span's value is its first whitespace-separated token, so a Precedent path containing a space cannot be named. nana-pi tracks 24 such paths, all Jinja-conditional template files under `templates/python/template/` and `templates/typescript/template/` and their bench fixture copy, for example `{% if not adopt %}src{% endif %}`. The workaround is to cite the parent folder, for example `templates/python/template/`. The seat checked build 3's `corpus.txt`: no bullet main accepts names one of those 24 paths. Of 2,561 bullets, 0 changed from accepted to refused, and 85 prose-first bullets changed from refused to accepted.
