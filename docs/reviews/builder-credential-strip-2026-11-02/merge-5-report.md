@@ -35,7 +35,7 @@ The merge applied without conflicts. Every non-lane file is identical to origin/
 - `node scripts/identity-scan.mjs --root .`: 0.
 - Read-only preservation comparison: 0; no non-lane differences, every row agrees with its designated parent, every archive entry remains whole, prior reviews and known-bug files unchanged.
 
-These checks run again on the merge commit before the explicit push-and-stop step; their final-tip results belong in the closing report.
+The first final-tip run passed every command except identity scan (exit 1): two newly tracked warning logs exposed absolute home paths. An evidence-only follow-up replaces those paths with `<lane>` in the saved trace and known-bugs logs. No product or test changes. All required checks run again on the corrected final commit before push; their final-tip results belong in the closing report.
 
 ## Precedent, known bugs and limits
 

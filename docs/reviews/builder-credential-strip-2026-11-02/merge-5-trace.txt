@@ -1,6 +1,6 @@
 requirements: 2484 total (2227 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2227 traced by tests
 ears: 0 rows off form (allowance 0)
-(node:67765) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/jwang/nana-pi-wt/builder-credential-strip/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+(node:67765) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<lane>/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
-To eliminate this warning, add "type": "module" to /Users/jwang/nana-pi-wt/builder-credential-strip/package.json.
+To eliminate this warning, add "type": "module" to <lane>/package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
