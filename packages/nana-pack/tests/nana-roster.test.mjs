@@ -209,8 +209,8 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 	const rFile = spawnSync(process.execPath, [cli], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: dirSeatNone } });
 	// req: R-1123
 	check("roster command prints one line per slot and the source",
-		rDefault.status === 0 && rDefault.stdout === "scout: none\nbuilder: openai-codex gpt-6-luna high\nlargerBuilder: none\nreviewer: openai-codex gpt-5.6-sol default\nland: openai-codex gpt-6-astra default\nsource: default\n" &&
-		rFile.status === 0 && rFile.stdout === `scout: none\nbuilder: example-gateway roster-model low\nlargerBuilder: none\nreviewer: example-gateway gpt-5.6-sol default\nland: seat\nsource: ${file}\n`,
+		rDefault.status === 0 && rDefault.stdout === "scout: none\nbuilder: openai-codex gpt-6-luna high\nlargerBuilder: none\nreviewer: openai-codex gpt-5.6-sol default\nland: openai-codex gpt-6-astra default\nplanner: seat\nadversary: builder\nchecker: builder\nsource: default\n" &&
+		rFile.status === 0 && rFile.stdout === `scout: none\nbuilder: example-gateway roster-model low\nlargerBuilder: none\nreviewer: example-gateway gpt-5.6-sol default\nland: seat\nplanner: seat\nadversary: builder\nchecker: builder\nsource: ${file}\n`,
 		JSON.stringify({ rDefault, rFile }));
 }
 
@@ -257,7 +257,7 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 		["largerBuilder pi entry missing thinking", shaped((r) => { r.largerBuilder = { provider: "example-gateway", model: "x" }; }), "thinking"],
 		["builder runtime field", shaped((r) => { r.builder.runtime = "claude-code"; }), "runtime"],
 		["reviewer runtime field", shaped((r) => { r.reviewer.runtime = "claude-code"; }), "provider"],
-		["scout runtime field", shaped((r) => { r.scout.runtime = "claude-code"; }), "runtime"],
+		["scout runtime field with pi fields", shaped((r) => { r.scout.runtime = "claude-code"; }), "scout"],
 		["land runtime field", shaped((r) => { r.land = { provider: "example-gateway", model: "x", thinking: null, runtime: "claude-code" }; }), "runtime"],
 		["largerBuilder null is accepted", shaped((r) => { r.largerBuilder = null; }), null],
 		["largerBuilder pi entry accepted", shaped((r) => { r.largerBuilder = entry("example-gateway", "x", "low"); }), null],
@@ -369,6 +369,29 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 		rOther.status === 0 && rOther.stdout === "imported",
 		JSON.stringify({ rMissing, rOther }));
 }
+
+// req: R-1121 R-1123 R-1192
+check("MM1: old machine and whole-written rosters print role null tokens after land", (() => {
+	return [sampleRoster(), { ...sampleRoster(), scout: null, largerBuilder: null, builder: entry('openai-codex', 'gpt-6.1-sol', 'medium'), reviewer: claudeEntry('opus') }].every(roster => {
+		const dir = freshAgentDir('roles-old'); const file = writeRoster(dir, roster);
+		const env = { ...process.env, PI_CODING_AGENT_DIR: dir };
+		const r = spawnSync(process.execPath, [cli], { env, encoding: 'utf8', timeout: 5000 });
+		const j = spawnSync(process.execPath, [cli, '--json'], { env, encoding: 'utf8', timeout: 5000 });
+		const resolved = resolveRoster(dir); const parsed = JSON.parse(j.stdout);
+		const oldLines = ['scout', 'builder', 'largerBuilder', 'reviewer', 'land'].map(slot => {
+			const e = roster[slot]; return `${slot}: ${e == null ? (slot === 'land' ? 'seat' : 'none') : e.runtime ? `claude-code ${e.model}` : `${e.provider} ${e.model} ${e.thinking ?? 'default'}`}`;
+		});
+		return resolved.ok && r.status === 0 && j.status === 0 && r.stdout === [...oldLines, 'planner: seat', 'adversary: builder', 'checker: builder', `source: ${file}`, ''].join('\n') &&
+			Object.keys(parsed.roster).join(',') === 'scout,builder,largerBuilder,reviewer,land,planner,adversary,checker' && ['planner','adversary','checker'].every(s => parsed.roster[s] === null);
+	});
+})());
+const roleConfig = await import('../bin/worker-config.mjs');
+// req: R-3531
+check('seal: role fallbacks are none seat builder builder', JSON.stringify(roleConfig.ROLE_FALLBACKS) === JSON.stringify({ scout: 'none', planner: 'seat', adversary: 'builder', checker: 'builder' }));
+// req: R-3532
+check('seal: Claude scout adds WebSearch and WebFetch', roleConfig.CLAUDE_SCOUT_TOOLS === 'Read,Grep,Glob,Bash,Edit,Write,WebSearch,WebFetch');
+// req: R-3533
+check('seal: lineage aliases join Anthropic and OpenAI providers', JSON.stringify(roleConfig.LINEAGE_ALIASES) === JSON.stringify({ 'claude-code': 'anthropic', anthropic: 'anthropic', openai: 'openai', 'openai-codex': 'openai' }));
 
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

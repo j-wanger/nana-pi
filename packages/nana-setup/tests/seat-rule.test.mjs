@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/tests/seat-rule.test.mjs
- * @purpose Pins that the seat guide opens with exactly one scope sentence and carries each of its sixteen rules exactly once, with no other bullet, numbered or not.
+ * @purpose Pin the seat guide's scope, original rules and role-launch rule without extra bullets.
  * @inputs packages/nana-setup/claude/rules/nana-seat.md
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (reads the guide file)
@@ -26,7 +26,7 @@ const SCOPE = "This rule is for the seat, the session that launches builders and
 
 // The sixteen bullets, each exactly once (R-1140; owner-profile adds automatic saving).
 // RULE_7's limit, four lanes building and two more in planning, is the owner's 2026-10-31 answer.
-const RULE_1 = "- In Claude Code, launch each builder or reviewer as a background task and end your turn. In pi, run it as one foreground command with no timeout.";
+const RULE_1 = "- In Claude Code, launch each builder, reviewer or role child as a background task and end your turn. In pi, run it as one foreground command with no timeout.";
 const RULE_2 = "- While a builder or reviewer runs, do not read or judge its partial output, transcript, diffs or test results. Do not re-run its checks before it ends.";
 const RULE_3 = "- Leave a running builder or reviewer alone until its completion notification arrives or a monitor reports a failure or a stall. Then act in that turn.";
 const RULE_4 = "- Verify once, when the build ends. Re-run the seat checks your brief names, read the builder's report, and look at every page or command output the change produces.";
@@ -42,7 +42,8 @@ const RULE_13 = "- On a lane that produces or changes a page a person looks at, 
 const RULE_14 = "- On a lane that changes the product page, after first-look run `npm run outside-reader -- --from <first-look folder> --out <folder>` outside git, show the owner its top new finding in your report, and write a known-bug line only for a finding that is a real defect.";
 const RULE_15 = "- On a lane whose page has a reference, run `npm run visual-reader -- --from <first-look folder> --out <folder>` outside git before you point the owner to the shots. Point the owner to them only after it prints a pass, or after you have judged them side by side with the reference yourself and say so in your report.";
 const RULE_16 = "- On an enabled personal machine, automatically save quoted preferences, corrections, facts and thinking about the owner to both the private profile and today's shared memory until delivery lands. Run `node \"$HOME/nana-pi/packages/nana-pack/bin/nana-profile.mjs\" save`; never enable saving on a machine without the owner's choice. Show each Saved: line in your reply so the owner can retract it; confirm only on an explicit owner yes with new owner words. Never save as a builder or reviewer, from a linked worktree, or from a disabled machine. Decisions belong in nana-rulings.md and open threads in GitHub issues.";
-const RULES = [RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_5, RULE_6, RULE_9, RULE_11, RULE_12, RULE_10, RULE_7, RULE_8, RULE_16];
+const ROLE_RULE = fs.readFileSync(GUIDE, 'utf8').split(/\r?\n/).find(line => line.startsWith('- Start scout '));
+const RULES = [ROLE_RULE, RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_5, RULE_6, RULE_9, RULE_11, RULE_12, RULE_10, RULE_7, RULE_8, RULE_16];
 
 const raw = (() => { try { return fs.readFileSync(GUIDE, "utf8"); } catch { return ""; } })();
 const text = raw.replace(/\r/g, "");
@@ -57,7 +58,7 @@ check("seat guide scopes itself to the seat in one sentence before its first bul
 // A numbered item ("1." or "1)") counts as a bullet too.
 const bullets = lines.filter((l) => /^\s*(?:[-*+]|\d{1,9}[.)])\s/.test(l));
 // req: R-1140
-check("seat guide holds no bullet beyond its sixteen rules", bullets.length === RULES.length && bullets.every((b) => RULES.includes(b)), JSON.stringify(bullets));
+check("seat guide holds only its original rules and the role-launch rule", bullets.length === RULES.length && bullets.every((b) => RULES.includes(b)), JSON.stringify(bullets));
 
 // req: R-1140
 check("seat guide carries: launch in the background and end the turn", lines.filter((l) => l === RULE_1).length === 1, JSON.stringify(lines.filter((l) => l === RULE_1)));
@@ -99,4 +100,13 @@ check("seat guide carries: preamble and review standard named, not restated", li
 	check("pi seat guide explains parallel builds and the shared working pattern names both guide loaders", guide.split(sentence).length === 2 && guide.indexOf(sentence) > guide.indexOf(RULE_9) && guide.indexOf(sentence) < guide.indexOf(RULES.find((rule) => rule === RULE_11)) && seatLine?.includes("Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions") && agents.includes(seatLine), JSON.stringify({ seatLine, guideHasSentence: guide.includes(sentence), agentsHasLine: agents.includes(seatLine ?? "") }));
 }
 
+// req: R-3530
+check('MM9: role launch guidance names commands slots seat exceptions scheduling and ruling', (() => {
+	const shared=fs.readFileSync(SHARED_WORKING,'utf8'), agents=fs.readFileSync(path.join(ROOT,'AGENTS.md'),'utf8');
+	const ruling=fs.readFileSync(path.join(ROOT,'packages/nana-pack/rules/nana-rulings.md'),'utf8');
+	return ['scout','planner','adversary','checker','pi-worker --slot','node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs" --slot','node "$env:USERPROFILE\\nana-pi\\packages\\nana-pack\\bin\\pi-worker.mjs" --slot','seat','none'].every(s=>text.includes(s)) &&
+		/launch.*role.*background/.test(text) && /In pi.*foreground/.test(text) &&
+		[shared,agents].every(t=>t.includes('pi-worker --slot')&&t.includes('scout')&&t.includes('planner')&&t.includes('adversary')&&t.includes('checker')&&t.includes('seat')&&t.includes('none')) &&
+		ruling.includes('2026-11-02: The roster names a slot for the scout, planner, adversary and checker; a seat starts each through its slot.');
+})());
 process.exit(fails ? 1 : 0);

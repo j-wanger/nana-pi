@@ -6,6 +6,9 @@
  * @effects disk (reads the user-scope nana-pack.json, writes a temporary file in the real target's folder, may write nana-pack.json.bak in the agent dir, and replaces the user-scope nana-pack.json)
  * @errors never throws; every failure, including a mid-write throw, is caught and returned as {ok:false, problem} naming the guard, the slot or field, or the file
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { parseJsonBytes } from './json-text.mjs';
 import { writePackConfigMember } from './pack-config-write.mjs';
 import { resolveRoster, validateRosterShape, orderedRoster, formatRosterLines } from '../bin/nana-roster.mjs';
 import { PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN, CLAUDE_CODE_RUNTIME, SLOT_PRINT_ORDER } from '../bin/worker-config.mjs';
@@ -65,7 +68,14 @@ export function setRosterSlot(agentDir, args, {
   const { roster: validated, problem } = validateRosterShape(nextRoster);
   if (problem) return { ok: false, problem };
 
-  const result = writePackConfigMember(agentDir, 'roster', validated, { writeTemp, rename });
+  // Preserve the old five-slot write shape, plus only explicitly present/named roles.
+  // A normalized read must not opt another checkout into the new schema.
+  let raw;
+  try { raw = parseJsonBytes(readFileSync(join(agentDir, 'nana-pack.json'))); }
+  catch (error) { if (error?.code !== 'ENOENT') return { ok: false, problem: `${join(agentDir, 'nana-pack.json')}: ${error.message}` }; }
+  const writeSlots = new Set(['scout', 'builder', 'largerBuilder', 'reviewer', 'land', ...Object.keys(raw?.roster ?? {}), slot]);
+  const written = Object.fromEntries(Object.entries(validated).filter(([key]) => writeSlots.has(key)));
+  const result = writePackConfigMember(agentDir, 'roster', written, { writeTemp, rename });
   if (!result.ok) return result;
   return { ...result, roster: validated, previousTokens: slotTokens(base.roster, slot) };
 }

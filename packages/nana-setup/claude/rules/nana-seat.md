@@ -2,7 +2,8 @@
 
 This rule is for the seat, the session that launches builders and reviewers; a session started as a builder or reviewer skips it.
 
-- In Claude Code, launch each builder or reviewer as a background task and end your turn. In pi, run it as one foreground command with no timeout.
+- In Claude Code, launch each builder, reviewer or role child as a background task and end your turn. In pi, run it as one foreground command with no timeout.
+- Start scout (code scouting and research gathering), planner, adversary and checker through `pi-worker --slot <slot> --brief <file> --out <file>`. Node form: `node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs" --slot <slot> --brief <file> --out <file>`; PowerShell: `node "$env:USERPROFILE\nana-pi\packages\nana-pack\bin\pi-worker.mjs" --slot <slot> --brief <file> --out <file>`. A role whose roster line reads `seat` or `none` runs in the seat. Scout and planner launches are the seat's choice; use an adversary once per plan and a checker once per install, hook or gate lane. Read lineage warnings; change a shared or unverified slot rather than silently substituting another model.
 - While a builder or reviewer runs, do not read or judge its partial output, transcript, diffs or test results. Do not re-run its checks before it ends.
 - Leave a running builder or reviewer alone until its completion notification arrives or a monitor reports a failure or a stall. Then act in that turn.
 - Verify once, when the build ends. Re-run the seat checks your brief names, read the builder's report, and look at every page or command output the change produces.

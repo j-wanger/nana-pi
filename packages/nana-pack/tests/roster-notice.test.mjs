@@ -153,12 +153,13 @@ check("roster notice: a null land reads land seat",
 		return n.includes("land seat") && !n.includes("zz-land-model");
 	})());
 
-// req: R-1199
-check("roster notice: a scout is never named, set or null",
+// req: R-3528
+check("MM7: roster notice shows a set scout and omits a null scout",
 	(() => {
 		const withScout = rosterNotice({ ok: true, roster: sampleRoster(), source: "x" }, fileAt(freshAgentDir("l7-set")), false);
 		const noScout = rosterNotice({ ok: true, roster: { ...sampleRoster(), scout: null }, source: "x" }, fileAt(freshAgentDir("l7-null")), false);
-		return !withScout.includes("zz-scout-model-l7") && !withScout.toLowerCase().includes("scout") && !noScout.toLowerCase().includes("scout");
+		const claudeScout = rosterNotice({ ok: true, roster: { ...sampleRoster(), scout: claudeEntry('sonnet') }, source: 'x' }, fileAt(freshAgentDir('l7-claude')), false);
+		return withScout.includes('scout zz-scout-model-l7') && withScout.indexOf('scout zz-scout-model-l7') > withScout.indexOf('land zz-land-model') && claudeScout.includes(`scout sonnet ${CLAUDE_CODE_MARK}`) && !noScout.toLowerCase().includes('scout');
 	})());
 
 // req: R-1200
@@ -421,7 +422,8 @@ async function runExtensionOnce(agentDir, { cwd } = {}) {
 	const l15 = await (async () => {
 		const results = [];
 		const dirDefault = freshAgentDir("l15-default");
-		results.push(["default", runHookOnce(dirDefault) === await runExtensionOnce(dirDefault)]);
+		const withoutLineage = text => text.replace(/, lineage: [^·]+(?= ·)/, '');
+		results.push(["default", withoutLineage(runHookOnce(dirDefault)) === withoutLineage(await runExtensionOnce(dirDefault))]);
 		const dirFile = freshAgentDir("l15-file");
 		writeRoster(dirFile, sampleRoster());
 		results.push(["file", runHookOnce(dirFile) === await runExtensionOnce(dirFile)]);
@@ -454,6 +456,34 @@ async function runExtensionOnce(agentDir, { cwd } = {}) {
 	// req: R-1215
 	check("relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused roster", l16.pass, JSON.stringify(l16.results));
 }
+
+const roleNoticeCase = async fn => {
+	let timer;
+	try { return await Promise.race([fn(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('role notice case time limit')), 10_000); })]); }
+	finally { clearTimeout(timer); }
+};
+// req: R-1194
+check('MM7: both seats show resolved roles after land', await roleNoticeCase(async () => {
+	const dir = freshAgentDir('roles-parity');
+	const roster = {...sampleRoster(), scout:null, builder:{provider:'openai-codex',model:'gpt-6.1-sol',thinking:'medium'},reviewer:claudeEntry('opus')};
+	writeRoster(dir,roster);
+	const hook = runHookOnce(dir), extension = await runExtensionOnce(dir);
+	for (const text of [hook,extension]) {
+		const at = ['land zz-land-model','planner seat','adversary gpt-6.1-sol medium','checker gpt-6.1-sol medium'].map(s => text.indexOf(s));
+		if (!at.every((n,i) => n >= 0 && (i === 0 || n > at[i-1]))) return false;
+	}
+	return true;
+}));
+// req: R-3529
+check('MM8: resolved lineage pairs warn on shared and unknown sides in both seats', (() => {
+	const mac = {...ROSTER_DEFAULTS,builder:{provider:'openai-codex',model:'gpt-6.1-sol',thinking:'medium'},reviewer:claudeEntry('opus')};
+	const notice = (roster,runtime) => rosterNotice({ok:true,roster,source:'x'},'x',false,runtime);
+	const cc=notice(mac,'claude-code'), pi=notice(mac,'pi'), def=notice(ROSTER_DEFAULTS,'claude-code');
+	const joined=notice({...mac,planner:{provider:'anthropic',model:'x',thinking:null},adversary:claudeEntry('opus'),checker:{provider:'openai',model:'x',thinking:null},reviewer:{provider:'openai-codex',model:'y',thinking:null}},'pi');
+	const dir=freshAgentDir('roles-written-default'); const env={...process.env,PI_CODING_AGENT_DIR:dir}; delete env.PI_SESSION_ID;
+	const set=spawnSync(process.execPath,[path.resolve(path.dirname(hookPath),'../../../nana-pack/bin/nana-roster.mjs'),'set','builder','openai-codex','gpt-6-luna','high'],{env,encoding:'utf8',timeout:5000});
+	return !cc.includes('lineage') && /lineage.*adversary.*planner.*unverified/.test(pi) && /lineage.*checker.*openai.*reviewer/.test(def) && /adversary.*anthropic.*planner/.test(joined) && /checker.*openai.*reviewer/.test(joined) && set.status===0 && /checker.*openai.*reviewer/.test(notice(resolveRoster(dir).roster,'claude-code'));
+})());
 
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

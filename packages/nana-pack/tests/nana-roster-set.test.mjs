@@ -275,5 +275,39 @@ const statesEqual = (a, b) => a.type === b.type && (a.type !== "file" || a.bytes
 		JSON.stringify({ status: r.status, bakExists, originalLength: originalBytes.length, bakLength: bakBytes?.length }));
 }
 
+// req: R-1122
+check('MM2: role slots and scout accept pi Claude and null tokens and name malformed slots', (() => {
+	const observations = [];
+	for (const slot of ['planner','adversary','checker','scout']) {
+		for (const tokens of [['openai-codex','gpt-6.1-sol','high'], ['claude-code', slot === 'scout' ? 'sonnet' : 'opus'], [({planner:'seat',adversary:'builder',checker:'builder',scout:'none'})[slot]]]) {
+			const dir = freshAgentDir('roles-set'); const r = runSet(dir, [slot, ...tokens]);
+			observations.push(r.status === 0 && r.stdout.includes(`${slot}: ${tokens.join(' ')}\n`));
+		}
+	}
+	for (const [slot, bad, token] of [['checker',{runtime:'claude-code',model:'gpt-6'},'roster.checker.model'],['planner','opus','roster.planner'],['adversary',{provider:'openai',model:'x',thinking:'bad'},'roster.adversary.thinking']]) {
+		const dir = freshAgentDir('roles-bad'); writeRoster(dir, {...sampleRoster(),[slot]:bad});
+		const r = runPlain(dir); observations.push(r.status === 1 && r.stderr.includes(token));
+	}
+	return observations.every(Boolean);
+})());
+// req: R-3524
+check('MM3: set preserves four old shapes without adding unnamed role slots', (() => {
+	const old = sampleRoster(); const four = {...old}; delete four.largerBuilder;
+	const acceptsMain = r => Object.keys(r).every(s => ['scout','builder','largerBuilder','reviewer','land'].includes(s)) && !r.scout?.runtime;
+	return [null, {lanes:2}, {roster:four,lanes:2,objective:{enabled:false}}, {roster:old,lanes:2}].every(raw => {
+		const dir = freshAgentDir('roles-compatible'); if (raw) writeRosterRaw(dir, JSON.stringify(raw));
+		const r = runSet(dir, ['builder','openai-codex','gpt-6.1-sol','medium']);
+		const after = JSON.parse(fs.readFileSync(path.join(dir,'nana-pack.json'),'utf8'));
+		if (r.status !== 0 || !acceptsMain(after.roster) || after.roster.largerBuilder !== null) return false;
+		for (const [k,v] of Object.entries(raw ?? {})) if (k !== 'roster' && JSON.stringify(after[k]) !== JSON.stringify(v)) return false;
+		return ['planner','adversary','checker'].every(s => !Object.hasOwn(after.roster,s));
+	}) && (() => {
+		const dir = freshAgentDir('roles-existing'); writeRoster(dir,{...old,planner:null});
+		const r = runSet(dir,['builder','openai-codex','gpt-6.1-sol','medium']);
+		const after = JSON.parse(fs.readFileSync(path.join(dir,'nana-pack.json'),'utf8')).roster;
+		return r.status === 0 && Object.hasOwn(after,'planner') && !Object.hasOwn(after,'adversary') && !Object.hasOwn(after,'checker');
+	})();
+})());
+
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
