@@ -43,6 +43,10 @@ Every command below exited 0 before committing. Full output uses the merge-2- pr
 
 All brief-named checks will run on the last merge commit before plain git push. Their final-tip output stays in OS temporary storage, leaving the verified commit unchanged. The final report gives their exit codes.
 
+## Final-tip log cleanup
+
+The second merge committed as `55b4c3ed4af3fab07c49e1bf179583d86c055ed2`. Every requested final-tip check passed except identity (exit 1): the scanner now included the newly tracked second-merge trace and known-bug logs, whose Node warnings contained local checkout paths. The follow-up replaces those paths with <checkout>, as for the first logs. No code, rows, tests or generator output changes. The full requested checks run again on the cleanup commit before push.
+
 ## Not done
 
 CI is the suite. No locked full suite, CI inspection, model session, subagent, real store, paid call, Windows machine run, issue operation, install check or land. No writes to the prohibited reference folders. Main's known-bug deletions remain deleted. Review remains seat work.
