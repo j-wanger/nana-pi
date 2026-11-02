@@ -63,8 +63,10 @@ export async function piRunner(input, { spawn = spawnSync } = {}) {
  } catch { return failed(); }
 }
 
-export function createRunner({ runner = RUNNER, spawn = spawnSync, ...overrides } = {}) {
+export function createRunner({ runner = RUNNER, spawn, ...overrides } = {}) {
  if (!["claude", "pi"].includes(runner)) throw new Error("invalid memory runner");
  if (runner === "pi" && ["model", "effort", "budgetUsd", "timeoutMs", "maxBuffer"].some(key => key in overrides)) throw new Error("Claude options require Claude runner");
- return (input) => (runner === "claude" ? claudeRunner : piRunner)(input, { spawn, ...overrides });
+ return (input) => runner === "claude"
+  ? claudeRunner(input, { ...overrides, ...(spawn === undefined ? {} : { spawn }) })
+  : piRunner(input, { spawn, ...overrides });
 }

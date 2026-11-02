@@ -11,7 +11,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { claudeRunner } from "../../../scripts/memory-shape-runners.mjs";
+import { claudeRunner, createRunner } from "../../../scripts/memory-shape-runners.mjs";
 let claudeCommand;
 try { ({ claudeCommand } = await import("../lib/claude-launch.mjs")); } catch { claudeCommand = () => ({ refused: "resolver not implemented" }); }
 import { tmpDir } from "./tmp-dir.mjs";
@@ -60,6 +60,10 @@ await check("resolves npm global and local layouts and case-insensitive Path", (
 // req: R-3471
 await check("names every refusal and does not spawn on refusal", async () => {
  const f = fixture();
+ const missingEntry = fixture(); missingEntry.files.set("c:\\npm\\claude.cmd", "shim");
+ missingEntry.pkg("C:\\npm\\node_modules\\@anthropic-ai\\claude-code");
+ missingEntry.files.delete("c:\\npm\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe");
+ assert.equal(claudeCommand([], missingEntry.options).refused, "Claude entry C:\\npm\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe is not a file");
  const cases = [
   ["no Claude", { ...f.options, env: { PATH: "C:\\empty" } }, "not on PATH"],
   ["missing package", { ...f.options, exists: (p) => p.toLowerCase() === "c:\\npm\\claude.cmd", readText: () => { throw Error(); } }, "npm"],
@@ -92,14 +96,20 @@ await check("scripts-disabled placeholder fails safely", async () => {
 await check("injected spawn stays unchanged and resolved spawn preserves arguments and options", async () => {
  const input = { system: "sys\nline", prompt: "prompt", schema: { type: "object", properties: { x: { type: "string" } } } };
  let injected;
- await claudeRunner(input, { spawn: (...args) => { injected = args; return { status: 1, stdout: "" }; } });
+ await createRunner({ runner: "claude", spawn: (...args) => { injected = args; return { status: 1, stdout: "" }; } })(input);
  assert.equal(injected[0], "claude"); assert.ok(injected[1].includes("--json-schema")); assert.equal(injected[2].windowsHide, true);
+ let mainCall;
+ await claudeRunner(input, { platform: "darwin", spawnSync: (...args) => { mainCall = args; return { status: 1, stdout: "" }; } });
+ let resolverCalls = 0;
  let received;
- const { CLAUDE_MODEL, CLAUDE_EFFORT } = await import("../lib/memory-shaping-config.mjs");
- const launchArgs = ["-p", "--model", CLAUDE_MODEL, "--output-format", "json", "--json-schema", JSON.stringify(input.schema), "--tools", "", "--strict-mcp-config", "--no-session-persistence", "--setting-sources", "", "--system-prompt", input.system, "--max-budget-usd", "0.5", "--effort", CLAUDE_EFFORT];
- await claudeRunner(input, { platform: "win32", resolveLaunch: (args) => ({ command: "resolved.exe", args }), spawnSync: (...args) => { received = args; return { status: 1, stdout: "" }; } });
- assert.equal(received[0], "resolved.exe"); assert.deepEqual(received[1], launchArgs);
- assert.deepEqual({ input: received[2].input, encoding: received[2].encoding, stdio: received[2].stdio, maxBuffer: received[2].maxBuffer, timeout: received[2].timeout, cwd: received[2].cwd, windowsHide: received[2].windowsHide }, { input: input.prompt, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], maxBuffer: 64 << 20, timeout: 300000, cwd: os.tmpdir(), windowsHide: true });
+ await createRunner({ runner: "claude", platform: "win32", resolveLaunch: (args, options) => {
+  resolverCalls++; assert.deepEqual(args, mainCall[1]);
+  assert.deepEqual({ env: options.env, cwd: options.cwd }, { env: mainCall[2].env, cwd: mainCall[2].cwd });
+  return { command: "resolved.exe", args };
+ }, spawnSync: (...args) => { received = args; return { status: 1, stdout: "" }; } })(input);
+ assert.equal(resolverCalls, 1);
+ assert.equal(received[0], "resolved.exe"); assert.deepEqual(received[1], mainCall[1]);
+ assert.deepEqual({ input: received[2].input, encoding: received[2].encoding, stdio: received[2].stdio, maxBuffer: received[2].maxBuffer, timeout: received[2].timeout, cwd: received[2].cwd, windowsHide: received[2].windowsHide, env: received[2].env }, { input: mainCall[2].input, encoding: mainCall[2].encoding, stdio: mainCall[2].stdio, maxBuffer: mainCall[2].maxBuffer, timeout: mainCall[2].timeout, cwd: mainCall[2].cwd, windowsHide: mainCall[2].windowsHide, env: mainCall[2].env });
 });
 // req: R-3473
 await check("win32 default spawn preserves byte-sensitive argv without a shell", async () => {

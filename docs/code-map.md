@@ -3166,7 +3166,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Failed assertions set exit code 1.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/memory-shape-runners.mjs`
-- **repo-code launches** — line 112: spawnSync
+- **repo-code launches** — line 122: spawnSync
 
 ### `packages/nana-pack/tests/claude-review.test.mjs`
 
