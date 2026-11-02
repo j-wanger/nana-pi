@@ -49,6 +49,7 @@ const WORKER = path.join(PACK, "bin", "pi-worker.mjs");
 const BRIEF_CHECK = path.join(PACK, "bin", "brief-check.mjs");
 const PREAMBLE = path.join(PACK, "prompts", "builder-preamble.md");
 const CASE_LIMIT_MS = 20_000;
+const STARTUP_SIGNAL_READY_LIMIT_MS = 5_000; // Chosen to bound fixture readiness below the per-case watchdog.
 const BLOCKING_READ_SETTLE_MS = 500; // Chosen to let the selected start-up read begin after the precedent line.
 const BLOCKING_READ_END_MS = 2_000; // Chosen to bound a lost SIGTERM well below the per-case watchdog.
 const BLOCKING_HELPER_HANG_MS = 30_000; // Chosen to outlast both the bounded signal wait and the per-case watchdog.
@@ -134,10 +135,10 @@ const fakeScript = path.join(BIN, "fake-claude.cjs");
 fs.writeFileSync(fakeScript, FAKE_BODY);
 if (process.platform === "win32") {
 	fs.writeFileSync(path.join(BIN, "claude.cmd"), `@echo off\r\n"${process.execPath}" "${fakeScript}" %*\r\n`);
-	writeFakePi(BIN, `const fs=require("node:fs"); if(process.env.WC_PI_SLEEP_SECS){fs.writeFileSync(process.env.WC_PID_FILE,String(process.pid));setTimeout(()=>process.stdout.write("fake pi\\n"),Number(process.env.WC_PI_SLEEP_SECS)*1000)}else{fs.writeFileSync(${JSON.stringify(PI_MARKER)},"spawned\\n");process.stdout.write("fake pi\\n")}`);
+	writeFakePi(BIN, `const fs=require("node:fs"); if(process.env.WC_PI_SLEEP_SECS){fs.writeFileSync(process.env.WC_PID_FILE,String(process.pid));setTimeout(()=>process.stdout.write("fake pi\\n"),Number(process.env.WC_PI_SLEEP_SECS)*1000)}else{fs.writeFileSync(${JSON.stringify(PI_MARKER)},"spawned\\n");if(process.env.WC_HOLD_FILE){const wait=()=>fs.existsSync(process.env.WC_HOLD_FILE)?process.stdout.write("fake pi\\n"):setTimeout(wait,10);wait()}else process.stdout.write("fake pi\\n")}`);
 } else {
 	fs.writeFileSync(path.join(BIN, "claude"), `#!${process.execPath}\nrequire(${JSON.stringify(fakeScript)});\n`, { mode: 0o755 });
-	fs.writeFileSync(path.join(BIN, "pi"), `#!/bin/sh\nif [ -n "$WC_PI_SLEEP_SECS" ]; then printf '%s\\n' "$$" > "$WC_PID_FILE"; exec sleep "$WC_PI_SLEEP_SECS"; fi\nprintf 'spawned\\n' > "${PI_MARKER}"\nprintf 'fake pi\\n'\n`, { mode: 0o755 });
+	fs.writeFileSync(path.join(BIN, "pi"), `#!/bin/sh\nif [ -n "$WC_PI_SLEEP_SECS" ]; then printf '%s\\n' "$$" > "$WC_PID_FILE"; exec sleep "$WC_PI_SLEEP_SECS"; fi\nprintf 'spawned\\n' > "${PI_MARKER}"\nif [ -n "$WC_HOLD_FILE" ]; then while [ ! -e "$WC_HOLD_FILE" ]; do sleep 0.01; done; fi\nprintf 'fake pi\\n'\n`, { mode: 0o755 });
 }
 
 const baseEnv = (extra = {}) => {
@@ -256,6 +257,7 @@ const groupAlive = (pid) => {
 const stopFixtureBuilder = () => {
 	if (process.platform === "win32" || !fs.existsSync(PID_FILE)) return;
 	const pid = Number(fs.readFileSync(PID_FILE, "utf8"));
+	if (!Number.isSafeInteger(pid) || pid <= 0) return;
 	try { process.kill(-pid, "SIGKILL"); } catch { try { process.kill(pid, "SIGKILL"); } catch {} }
 };
 const selectedBriefLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.startsWith("pi-worker: lane refused:") || line.startsWith("pi-worker: precedent:")) ?? null;
@@ -595,14 +597,16 @@ const startupSignalCase = async ({ signal, laneSize = "larger" }) => {
 		removeArtifacts(); fs.rmSync(LOCK, { force: true });
 		const root = caseTemp(`startup-${laneSize}-${signal.toLowerCase()}-${attempt}`);
 		const marker = laneSize === "small" ? PI_MARKER : PID_FILE;
-		const run = startWorker({ extra: ["--lane-size", laneSize, "--max-secs", "10", "--stall-secs", "10"], env: tempEnv(root, { WC_SLEEP_MS: "10000" }) });
-		const hasTempFile = await waitFor(() => fs.readdirSync(root).length > 0, run.child);
+		const holdFile = path.join(root, "hold-builder");
+		const run = startWorker({ extra: ["--lane-size", laneSize, "--max-secs", "10", "--stall-secs", "10"], env: tempEnv(root, { WC_SLEEP_MS: "10000", WC_HOLD_FILE: holdFile }) });
+		const hasTempFile = await waitFor(() => fs.readdirSync(root).length > 0, run.child, STARTUP_SIGNAL_READY_LIMIT_MS);
 		const startedBeforeSignal = fs.existsSync(marker);
-		if (hasTempFile && !startedBeforeSignal) run.child.kill(signal);
+		const delivered = hasTempFile && !startedBeforeSignal;
+		run.child.kill(delivered ? signal : "SIGTERM");
 		const ended = await run.closed;
 		last = { signal, laneSize, attempt, hasTempFile, startedBeforeSignal, ended, empty: tempEmpty(root), lock: fs.existsSync(LOCK), abort: run.stderr().includes(`[pi-worker] aborted by ${signal}`), stderr: run.stderr() };
 		stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
-		if (hasTempFile && !startedBeforeSignal) return last;
+		if (delivered) return last;
 	}
 	return last;
 };
