@@ -6,7 +6,7 @@ Scope
 - Work only in that worktree. Commit on its lane branch with explicit paths and a message file written under `$TMPDIR`, never inside the worktree.
 - Never edit `HANDOFF.md`, `docs/known-bugs/` or session archives.
 - Never create, edit, comment on or close a GitHub issue; put open questions in the report.
-- Never read, print or use a stored credential: no `git credential fill` or `get`, no token from a keychain, file or environment variable, and no direct GitHub API call. Push with plain `git push`; if a step needs a credential or `gh` is missing, report it and stop.
+- Never read, print or use a stored credential: no `git credential fill` or `get`, no token from a keychain, file or environment variable, and no direct GitHub API call. If a step needs a credential or `gh` is missing, report it and stop.
 - New requirement rows take IDs only from the range your brief names.
 - Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.
 - When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private and the brief does not name moving it to a shared module, report the departure and stop.
@@ -32,8 +32,8 @@ Before you report
 - Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.
 - Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.
 - Send long script output to a committed file and paste only the lines your brief asks for.
-- Where `AGENTS.md` says CI covers the suite, push your last commit and stop: do not wait for or read its CI run, and commit nothing after the push.
+- Do not push; the seat pushes after verifying; report the tip. Do not wait for or read CI.
 
 Report shape:
 First line: `VERDICT: DONE`, `VERDICT: PARTIAL` or `VERDICT: BLOCKED`.
-Then commits; per item, files, rows, mutation pairs, commands and exit codes; the pushed branch, the pushed tip's full SHA and the push's exit code, or the full-suite summary line with its check count where you ran it; and what was not done.
+Then commits; per item, files, rows, mutation pairs, commands and exit codes; the branch, the tip's full SHA and the seat checks run on it, or the full-suite summary line with its check count where you ran it; and what was not done.

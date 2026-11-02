@@ -13,6 +13,7 @@ import { spawn } from 'node:child_process';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { piAgentDir } from '../lib/agent-dir.mjs';
+import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { readReviewStandard } from '../lib/review-standard.mjs';
 import { reviewMovementSection } from '../lib/review-movement.mjs';
 import { resolveRoster } from './nana-roster.mjs';
@@ -100,7 +101,7 @@ for (const name of OPTIONAL) if (parsed.values.has(name)) ledgerArgs.push(name, 
 // The actual admission remains authoritative, including an explicit over-cap override.
 const preflight = project(ledgerArgs.slice(2));
 if (!preflight.ok && !(parsed.values.has('--over-cap') && preflight.message.includes('over the cap'))) die(preflight.message);
-const carry = readClaudeBuilderSettings({ ...CLAUDE_BUILDER_CHILD_ENV, ...REVIEWER_CHILD_ENV }, 'claude-review', reviewer.model, tree);
+const carry = readClaudeBuilderSettings({ ...CLAUDE_BUILDER_CHILD_ENV, ...REVIEWER_CHILD_ENV, ...credentialStripEnv(process.env) }, 'claude-review', reviewer.model, tree);
 process.stderr.write(`${carry.line}\n`);
 const folder = mkdtempSync(join(tmpdir(), 'nana-claude-review-'));
 const settingsFile = join(folder, 'reviewer-settings.json');
@@ -119,7 +120,7 @@ const parts = [contextPart('brief', briefPath, brief.text), ...knownBugs.parts,
   contextPart('standard', standard.path, standard.text),
   { name: 'settings', source: carry.source, fullChars: carry.fullChars, deliveredChars: JSON.stringify(carry.settings).length }];
 if (movement !== null) parts.push(contextPart('movement', tree, movement));
-const child = spawn(process.execPath, ledgerArgs, { stdio: ['pipe', 'inherit', 'inherit'] });
+const child = spawn(process.execPath, ledgerArgs, { stdio: ['pipe', 'inherit', 'inherit'], env: { ...process.env, ...credentialStripEnv(process.env) } });
 child.once('spawn', () => appendContextLoad({ launcher: 'claude-review', role: 'reviewer', runtime: CLAUDE_CODE_RUNTIME, model: reviewer.model, effort: carry.effort, cwd: tree, item: value('--item'), parts }));
 child.stdin.on('error', () => { /* review-ledger may refuse or fail before reading the prompt */ });
 child.on('error', (error) => die(`cannot start review-ledger: ${error.code ?? error.message}`));

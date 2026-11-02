@@ -89,6 +89,7 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 
 ### Working pattern
 
+- Builder pushes: builders do not push. They report the branch, the full tip and the seat checks run on it. The seat pushes after verifying, then waits for CI where the project uses it.
 - Default worktree root: `~/<repo>-wt/<lane>`; branch: `feat/<lane>`, based on main. One writer per worktree.
 - Review corpus: `docs/reviews/<lane>-<date>/`. Builder launcher: `pi-worker --lane <name> --brief <file> --out <file>`. Reviewer launcher: `pi-review` for a pi roster entry; `node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs"` for a Claude Code entry.
 - Review ladder: an ordinary lane gets one final reviewer, the roster's reviewer. An install, hook or gate lane also gets the land reviewer, the seat's wrong-code pairs and one independent check. An install, hook or gate lane changes nana-setup install, uninstall or doctor; a Claude Code hook or a pi extension; the nana-gate policy; or the land and review tools (`nana-land`, `pi-review`, `claude-review`, `review-round`). Every other lane is ordinary. Maximum three rounds per item; a different model lineage reviews the work. The final review must cover the exact tip that will land; every later commit needs its own accepted review coverage.
@@ -143,7 +144,7 @@ discards that scope's custom denies).
 
 ### Shared-machine test runs
 
-CI covers this repository's suite. Builders run touched tests, push their last commit and stop without waiting for or reading CI. The seat waits for that tip's CI; main's push run, read by the seat's main CI check, is the post-land suite check. The local full suite runs only when CI cannot stand in. Run that fallback with `npm run test:locked` when worktrees share a machine. The command holds one machine-wide lock for full runs; path-filtered runs do not wait for it.
+CI covers this repository's suite. Builders run touched tests, commit and report their branch, full tip and seat checks run on it. Builders do not push or read CI. The seat pushes after verifying, then waits for that tip's CI; main's push run, read by the seat's main CI check, is the post-land suite check. The local full suite runs only when CI cannot stand in. Run that fallback with `npm run test:locked` when worktrees share a machine. The command holds one machine-wide lock for full runs; path-filtered runs do not wait for it.
 
 ### Install check before a land
 

@@ -1,0 +1,15 @@
+command: node scripts/test.mjs packages/nana-pack/tests/claude-review.test.mjs packages/nana-pack/tests/context-anatomy.test.mjs packages/nana-pack/tests/review-ledger.test.mjs packages/nana-pack/tests/review-ledger-launch.test.mjs packages/nana-pack/tests/review-ledger-state.test.mjs packages/nana-pack/tests/review-ledger-verdicts.test.mjs packages/nana-pack/tests/readme-check.test.mjs
+NANA_WORKTREE_ROOT: cleared
+PASS  packages/nana-pack/tests/claude-review.test.mjs           11 pass  29.2s
+FAIL  packages/nana-pack/tests/context-anatomy.test.mjs         10 pass, 1 fail  61.0s  — exit 1
+      | FAIL R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+PASS  packages/nana-pack/tests/readme-check.test.mjs            11 pass  0.8s
+PASS  packages/nana-pack/tests/review-ledger-launch.test.mjs    32 pass  91.5s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs     96 pass  105.1s
+PASS  packages/nana-pack/tests/review-ledger-verdicts.test.mjs  19 pass  94.2s
+PASS  packages/nana-pack/tests/review-ledger.test.mjs           23 pass, 1 skip  39.8s
+
+7 files: 6 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 202 pass, 1 fail, 1 skip · 422.3s
+failed: packages/nana-pack/tests/context-anatomy.test.mjs
+
+exit: 1

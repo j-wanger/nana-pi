@@ -73,5 +73,4 @@
 - Issue watch (issue-watch, confirmation round): in pi, a comment whose delivery keeps failing holds back every later comment until delivery works again.
 - Issue watch (issue-watch, seat live run): with no new comments the cursor stays at the last comment's time for hours; seen ids prevent repeats, but each run refetches from that time.
 - Builder credentials (builder-credentials, review round 1): the new line forbids using any stored credential, yet `git push` and `gh pr create` both use one, so a literal reader may see a contradiction; the hardening lane builder-credential-strip replaces the push wording.
-- Builder credentials (builder-credentials, review round 1): "plain `git push`" can be read too literally on a branch with no upstream.
 - Builder credentials (builder-credentials, review round 1): R-3650 sits out of numeric order beside R-2510, as the brief asked.
