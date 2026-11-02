@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/issue-watch.test.mjs
- * @purpose Pin the eight issue-watch must-meets and its sealed values without time or network waits.
+ * @purpose Pin issue-watch behaviour and sealed harness timings with fake-clock and bounded real CLI checks.
  * @inputs Watch, asynchronous runner, extension, fake clock and gh seams, temporary projects and seat guide.
  * @outputs Requirement-tagged PASS/FAIL lines.
  * @effects disk (OS temporary fixtures), process (fake-gh CLI children only).
@@ -20,6 +20,8 @@ import extension from "../extensions/nana-frontier-summary.ts";
 import * as config from "../lib/frontier-summary-config.mjs";
 import { GH_COMMAND_ENV } from "../lib/suite-records-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+import * as timing from "./issue-watch-timing.mjs";
+import { killProcessTreeNoWait, pidAlive } from "../lib/process-tree.mjs";
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "issue watch ")));
 const summaryGh = path.join(TD, "summary-gh.mjs");
@@ -49,10 +51,10 @@ function fixture({ rows = [], type = "User", since = iso(0), text = pointer, run
 	return { root, clock, lines, owners, calls, start };
 }
 let failures = 0;
-async function check(title, fn) {
+async function check(title, fn, limitMs = timing.CASE_LIMIT_MS) {
 	if (process.env.NANA_TEST_CASE && !title.startsWith(process.env.NANA_TEST_CASE)) return;
 	let timer;
-	try { await Promise.race([Promise.resolve().then(fn), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("case limit")), 8000); })]); console.log("PASS", title); }
+	try { await Promise.race([Promise.resolve().then(fn), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("case limit")), limitMs); })]); console.log("PASS", title); }
 	catch (error) { failures++; console.log("FAIL", title, error.stack); }
 	finally { clearTimeout(timer); }
 }
@@ -154,13 +156,88 @@ await check("R-2997: seat comments print no text and never reach pi or start a t
 	await handlers.session_start({}, { cwd: f.root, hasUI: true, isIdle: () => true }); await settle(); await f.clock.advance(config.WATCH_INTERVAL_MS);
 	assert.deepEqual(messages, []); await handlers.session_shutdown({}, {});
 });
+// The same real CLI harness serves the original check and both timing must-meets.
+async function runCli({ startDelayMs = 0, hangAfterRestart = false } = {}) {
+	const f = fixture(), fake = path.join(f.root, "gh.mjs"), preload = path.join(f.root, "clock.mjs"), count = path.join(f.root, "polls");
+	fs.writeFileSync(preload, `
+		import fs from 'node:fs';
+		import { WATCH_INTERVAL_MS, WATCH_RUN_MS } from ${JSON.stringify(new URL("../lib/frontier-summary-config.mjs", import.meta.url).href)};
+		import { SIGNAL_POLL_MS, WATCH_POLL_MS } from ${JSON.stringify(new URL("./issue-watch-timing.mjs", import.meta.url).href)};
+		Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ${startDelayMs});
+		const later = globalThis.setTimeout;
+		globalThis.setTimeout = (fn, delay, ...args) => {
+			if (delay !== WATCH_RUN_MS) return later(fn, delay === WATCH_INTERVAL_MS ? WATCH_POLL_MS : delay, ...args);
+			const signal = setInterval(() => {
+				if (!fs.existsSync(${JSON.stringify(count)}) || Number(fs.readFileSync(${JSON.stringify(count)}, 'utf8')) < 3) return;
+				clearInterval(signal);
+				fn(...args);
+				if (${hangAfterRestart}) setInterval(() => {}, SIGNAL_POLL_MS);
+			}, SIGNAL_POLL_MS);
+			return signal;
+		};`);
+	fs.writeFileSync(fake, `import fs from 'node:fs'; const file=${JSON.stringify(count)}; const n=fs.existsSync(file)?Number(fs.readFileSync(file,'utf8')):0; if(process.argv.includes('--jq')) process.stdout.write(${JSON.stringify(response("User"))}); else { fs.writeFileSync(file,String(n+1)); process.stdout.write(n ? ${JSON.stringify(response(JSON.stringify([row(1, 800, "command answer")])))} : ${JSON.stringify(response("[]"))}); }`);
+	const polls = () => fs.existsSync(count) ? Number(fs.readFileSync(count, "utf8")) : 0;
+	const child = spawn(process.execPath, ["--import", pathToFileURL(preload).href, path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root, "--since", iso(0)], {
+		detached: process.platform !== "win32",
+		env: { ...process.env, NANA_ROLE: "", [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) },
+	});
+	let stdout = "", stderr = "", deadline, cleanup;
+	try {
+		return await new Promise((resolve, reject) => {
+			let expired;
+			child.stdout.on("data", (data) => { stdout += data; });
+			child.stderr.on("data", (data) => { stderr += data; });
+			child.once("error", reject);
+			child.once("close", (status) => {
+				clearTimeout(deadline); clearTimeout(cleanup);
+				try {
+					assert.equal(pidAlive(child.pid), false, "CLI pid must be gone after close");
+					if (expired) reject(expired);
+					else resolve({ status, stdout, stderr, polls: polls(), pid: child.pid });
+				} catch (error) { reject(error); }
+			});
+			deadline = setTimeout(() => {
+				const missing = polls() < 3 ? "no third poll" : !/comment by example: .*command answer/.test(stdout) ? "no owner answer line" : !/^Issue watch restart: .* --since /m.test(stdout) ? "no restart line" : "no exit after restart";
+				expired = Object.assign(new Error(`CLI deadline: ${missing}`), { pid: child.pid });
+				cleanup = setTimeout(() => reject(Object.assign(new Error(`${expired.message}; cleanup did not close child`), { pid: child.pid })), timing.CLI_CLEANUP_MS);
+				killProcessTreeNoWait(child.pid, { fallback: (signal) => child.kill(signal) });
+			}, timing.CLI_DEADLINE_MS);
+		});
+	} finally { clearTimeout(deadline); clearTimeout(cleanup); }
+}
+function assertCli(cli) {
+	assert.equal(cli.status, 0, cli.stderr); assert(cli.polls >= 3);
+	assert.match(cli.stdout, /comment by example: .*command answer/);
+	assert.match(cli.stdout.trimEnd().split("\n").at(-1), /^Issue watch restart: .* --since /);
+	assert.equal(pidAlive(cli.pid), false);
+}
 // req: R-2992
 await check("R-2992: real opted-in command keeps polling prints an owner answer and ends with restart", async () => {
-	const f = fixture(), fake = path.join(f.root, "gh.mjs"), preload = path.join(f.root, "clock.mjs"), count = path.join(f.root, "polls");
-	fs.writeFileSync(preload, `import { WATCH_INTERVAL_MS, WATCH_RUN_MS } from ${JSON.stringify(new URL("../lib/frontier-summary-config.mjs", import.meta.url).href)}; const later = globalThis.setTimeout; globalThis.setTimeout = (fn, delay, ...args) => later(fn, delay === WATCH_INTERVAL_MS ? 50 : delay === WATCH_RUN_MS ? 3000 : delay, ...args);`);
-	fs.writeFileSync(fake, `import fs from 'node:fs'; const file=${JSON.stringify(count)}; const n=fs.existsSync(file)?Number(fs.readFileSync(file,'utf8')):0; if(process.argv.includes('--jq')) process.stdout.write(${JSON.stringify(response("User"))}); else { fs.writeFileSync(file,String(n+1)); process.stdout.write(n ? ${JSON.stringify(response(JSON.stringify([row(1, 800, "command answer")])))} : ${JSON.stringify(response("[]"))}); }`);
-	const cli = await new Promise((resolve, reject) => { const child = spawn(process.execPath, ["--import", pathToFileURL(preload).href, path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root, "--since", iso(0)], { env: { ...process.env, NANA_ROLE: "", [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) } }); let stdout = "", stderr = ""; const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("CLI limit")); }, 6000); child.stdout.on("data", (data) => { stdout += data; }); child.stderr.on("data", (data) => { stderr += data; }); child.on("error", reject); child.on("close", (status) => { clearTimeout(timer); resolve({ status, stdout, stderr }); }); });
-	assert.equal(cli.status, 0, cli.stderr); assert(Number(fs.readFileSync(count, "utf8")) >= 2); assert.match(cli.stdout, /comment by example: .*command answer/); assert.match(cli.stdout.trimEnd().split("\n").at(-1), /^Issue watch restart: .* --since /);
+	assertCli(await runCli());
+}, timing.CLI_DEADLINE_MS + timing.CLI_CASE_MARGIN_MS);
+// req: R-3703
+await check("R-3703: slow-starting CLI completes three polls owner answer and restart", async () => {
+	assertCli(await runCli({ startDelayMs: timing.CLI_START_DELAY_MS }));
+}, timing.CLI_DEADLINE_MS + timing.CLI_CASE_MARGIN_MS);
+// req: R-3704
+await check("R-3704: non-exiting CLI reports no exit after restart and leaves no child", async () => {
+	const started = performance.now();
+	await assert.rejects(runCli({ hangAfterRestart: true }), (error) => {
+		assert.match(error.message, /no exit after restart/);
+		assert(!error.message.includes("case limit"));
+		assert(performance.now() - started <= timing.CLI_DEADLINE_MS + timing.CLI_CLEANUP_MS);
+		assert(Number.isInteger(error.pid));
+		assert.equal(pidAlive(error.pid), false);
+		return true;
+	});
+}, timing.CLI_DEADLINE_MS + timing.CLI_CASE_MARGIN_MS);
+// req: R-3705
+await check("R-3705: seal the issue-watch harness timing names and values", () => {
+	assert.deepEqual({ ...timing }, {
+		CASE_LIMIT_MS: 8000, CLI_DEADLINE_MS: 20000, CLI_CLEANUP_MS: 2000,
+		CLI_CASE_MARGIN_MS: 3000, CLI_START_DELAY_MS: 4000, SIGNAL_POLL_MS: 25,
+		WATCH_POLL_MS: 50, DEFAULT_RUNNER_MS: 3000, ROLE_EXIT_MS: 2000, ABSENT_POINTER_EXIT_MS: 5000,
+	});
 });
 // req: R-2995
 await check("R-2995: unreadable pointers never name a watch in the session block", () => {
@@ -184,7 +261,7 @@ await check("R-2997: default watch runner is asynchronous without a runner injec
 	let watch;
 	try {
 		await new Promise((resolve, reject) => {
-			const timer = setTimeout(() => reject(new Error("default runner blocked or did not deliver")), 3000);
+			const timer = setTimeout(() => reject(new Error("default runner blocked or did not deliver")), timing.DEFAULT_RUNNER_MS);
 			watch = watchIssues({ root: f.root, since: iso(0), env: { ...process.env, [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) }, onOwner: () => { clearTimeout(timer); resolve(); }, emit: (line) => { if (line.startsWith("Issue watch:")) { clearTimeout(timer); reject(new Error(line)); } } });
 		});
 		assert(fs.existsSync(heartbeat));
@@ -195,7 +272,7 @@ await check("R-2996: real worker and reviewer commands exit zero immediately wit
 	const f = fixture(), fake = path.join(f.root, "forbidden-gh.mjs"), marker = path.join(f.root, "called");
 	fs.writeFileSync(fake, `import fs from 'node:fs'; fs.writeFileSync(${JSON.stringify(marker)}, 'called'); process.exit(99);`);
 	for (const role of ["worker", "reviewer"]) {
-		const cli = spawnSync(process.execPath, [path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root], { encoding: "utf8", timeout: 2000, env: { ...process.env, NANA_ROLE: role, [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) } });
+		const cli = spawnSync(process.execPath, [path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root], { encoding: "utf8", timeout: timing.ROLE_EXIT_MS, env: { ...process.env, NANA_ROLE: role, [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) } });
 		assert.equal(cli.status, 0); assert.equal(cli.stdout, ""); assert.equal(cli.stderr, ""); assert(!fs.existsSync(marker));
 	}
 });
@@ -277,7 +354,7 @@ await check("R-2994: absent list-based malformed and non-opted HANDOFFs exit wit
 	}
 	const f = fixture(); fs.rmSync(path.join(f.root, "HANDOFF.md")); const watch = f.start(); await watch.done; assert.equal(f.calls.length, 0);
 	const fake = path.join(TD, "must-not-call.mjs"); fs.writeFileSync(fake, "process.exitCode=99;");
-	const cli = spawnSync(process.execPath, [path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root], { encoding: "utf8", timeout: 5000, env: { ...process.env, NANA_ROLE: "", [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) } });
+	const cli = spawnSync(process.execPath, [path.join(ROOT, "packages/nana-pack/bin/nana-issue-watch.mjs"), "--root", f.root], { encoding: "utf8", timeout: timing.ABSENT_POINTER_EXIT_MS, env: { ...process.env, NANA_ROLE: "", [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fake]) } });
 	assert.equal(cli.status, 0); assert.equal(cli.stdout, "Issue watch: no issues pointer; not watching.\n");
 });
 // req: R-2995

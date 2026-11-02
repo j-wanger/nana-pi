@@ -1,0 +1,26 @@
+Wrong-code evidence (Windows, 2026-11-02)
+M1 / main harness + synchronous 4000 ms preload delay
+exit 1
+FAIL R-3703: slow-starting CLI completes three polls owner answer and restart Error: CLI limit
+M2 / main harness with only case-limit failure and referenced handle
+exit 1
+FAIL R-3704: non-exiting CLI reports no exit after restart and leaves no child Error: case limit
+M3 / missing timing surface
+exit 1
+FAIL R-3705: seal the issue-watch harness timing names and values AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+R-3703: corrected harness
+exit 0
+PASS R-3703: slow-starting CLI completes three polls owner answer and restart
+R-3704: corrected harness
+exit 0
+PASS R-3704: non-exiting CLI reports no exit after restart and leaves no child
+R-3705: corrected harness
+exit 0
+PASS R-3705: seal the issue-watch harness timing names and values
+M2 / only case-owned timeout (safe kill retained)
+exit 1
+FAIL R-3704: non-exiting CLI reports no exit after restart and leaves no child AssertionError [ERR_ASSERTION]: The input did not match the regular expression /no exit after restart/. Input:
+M2 / only case-owned timeout (safe kill retained)
+exit 1
+FAIL R-3704: non-exiting CLI reports no exit after restart and leaves no child AssertionError [ERR_ASSERTION]: The input did not match the regular expression /no exit after restart/. Input:
+'case limit'
