@@ -216,7 +216,7 @@ export async function runStudy(options) {
    const noRun = reason => { const grading = notRun(tuple); return { ...measureRun("", { cwd: work, outcome: reason, wallMs: 0 }), outcome: reason, checks: grading.checks, graderStatus: grading.status, bounds: grading.bounds, cost: null, costReason: "no priced builder usage" }; };
    if (busy()) return noRun("launch-refused");
    fs.mkdirSync(runDir, { recursive: true, mode: 0o700 });
-   await createStartTree(repo, c.startTip, work);
+   await createStartTree(repo, c.startTip, work, c);
    const rendered = renderContext(c, { clone: work, arm: study.arms.find(a => a.name === tuple.arm), labelStore, mainCheckout: repo });
    write(path.join(runDir, "prompt.json"), rendered);
    const home = path.join(runDir, "home"), temp = path.join(runDir, "tmp"), agentDir = path.join(runDir, "agent");
@@ -228,7 +228,7 @@ export async function runStudy(options) {
     if (fs.existsSync(path.join(sourceDir, "nana-pack.json"))) fs.copyFileSync(path.join(sourceDir, "nana-pack.json"), path.join(agentDir, "nana-pack.json"));
     await verifyAuth({ dir: agentDir, sourceDir });
    } else fs.mkdirSync(agentDir);
-   const env = { ...replayEnv({ home, temp, agentDir, suiteLock, bin: `${nodeBin}:/usr/bin:/bin:/usr/sbin:/sbin` }), NANA_REPLAY_CONTEXT: path.join(runDir, "prompt.json"), NANA_REPLAY_SESSION: path.join(runDir, "session.jsonl"), NANA_REPLAY_RUN_DIR: runDir };
+   const env = { ...replayEnv({ home, temp, agentDir, suiteLock, bin: `${nodeBin}:/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin` }), NANA_REPLAY_CONTEXT: path.join(runDir, "prompt.json"), NANA_REPLAY_SESSION: path.join(runDir, "session.jsonl"), NANA_REPLAY_RUN_DIR: runDir };
    write(path.join(home, "gitconfig"), REMOTE_HOSTS.map(host => `[url "https://replay.invalid/"]\n\tinsteadOf = https://${host}/\n\tinsteadOf = git@${host}:\n`).join(""));
    const args = [...cloneArgs(study, work, runDir), "--", rendered.instruction], profile = profileFor({ ...options, out, tuple, sourceDir, launcher, suiteLock });
    write(path.join(runDir, "sandbox.sb"), profile); write(path.join(runDir, "argv.json"), args);

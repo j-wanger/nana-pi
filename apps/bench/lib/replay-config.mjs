@@ -15,7 +15,7 @@ export const CEILING_MS = 3 * 60 * 60 * 1000;
 export const CHECK_MS = 5 * 60 * 1000;
 export const GIT_MS = 30000;
 // Chosen 2026-11-02: deny-by-default Seatbelt permits OS runtime files, not /Users or /private/tmp.
-export const SYSTEM_READ_PATHS = ["/System", "/usr", "/bin", "/sbin", "/Library/Apple", "/private/var/db/dyld", "/private/etc", "/dev"];
+export const SYSTEM_READ_PATHS = ["/System", "/usr", "/bin", "/sbin", "/Library/Apple", "/Library/Developer/CommandLineTools", "/private/var/db/dyld", "/private/etc", "/dev"];
 export const SYSTEM_WRITE_PATHS = ["/dev/null", "/dev/tty", "/dev/random", "/dev/urandom"];
 // Node diagnostics/codes; order is fixed precedence (plan A9/O4, 2026-11-02).
 export const DIAGNOSTICS = [

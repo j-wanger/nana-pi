@@ -519,7 +519,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — Assertion failures set exit code 1.
 - **callers** — —
 - **callees** — `apps/bench/ext/replay-context.ts`, `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/replay-context.mjs`, `apps/bench/lib/replay-errors.mjs`, `apps/bench/lib/replay-grade.mjs`, `apps/bench/lib/replay-isolation.mjs`, `apps/bench/lib/replay-journal.mjs`, `apps/bench/lib/replay.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/process-tree.mjs`
-- **unresolved launches** — line 209: spawnSync
+- **unresolved launches** — line 252: spawnSync
 
 ### `apps/bench/test/study-tasks.test.mjs`
 

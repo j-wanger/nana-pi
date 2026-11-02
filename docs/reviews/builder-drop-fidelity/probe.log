@@ -1,0 +1,5 @@
+init exit=0
+commit exit=0
+stale rename exit=0
+unrelated write denied=1
+profile probe exit=0

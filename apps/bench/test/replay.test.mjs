@@ -86,6 +86,49 @@ const launcher = (base, body) => ({ cmd: process.execPath, pre: [put(path.join(b
 const stubBody = (xs, tail = "") => `import fs from 'node:fs';const p=JSON.parse(fs.readFileSync(process.env.NANA_REPLAY_CONTEXT,'utf8'));fs.writeFileSync(process.env.NANA_REPLAY_SESSION,JSON.stringify({type:'message',message:{role:'system',content:'',sections:p.sections}})+'\\n');process.stdout.write(${JSON.stringify(lines(xs))});${tail}`;
 
 // req: R-3600
+await test("R-3600: profile permits read-only Command Line Tools", async () => {
+ const I = await import("../lib/replay-isolation.mjs");
+ const profile = I.sandboxProfile({ runDir: folder(), suiteLock: path.join(folder(), "suite.lock") });
+ assert.ok(profile.includes('(allow file-read* (subpath "/Library/Developer/CommandLineTools"))'));
+ assert.ok(!profile.split("\n").some(line => line.includes("file-write*") && line.includes("/Library/Developer")));
+ // The child PATH is assembled by runStudy; pin that boundary without a model call.
+ const source = fs.readFileSync(new URL("../lib/replay.mjs", import.meta.url), "utf8");
+ assert.ok(source.includes('${nodeBin}:/Library/Developer/CommandLineTools/usr/bin:/usr/bin:'));
+});
+// req: R-3600
+await test("R-3600: profile permits only stale lock siblings", async () => {
+ const { sandboxProfile } = await import("../lib/replay-isolation.mjs");
+ const base = folder(), suiteLock = path.join(base, "odd.lock+name"), profile = sandboxProfile({ runDir: folder(), suiteLock });
+ const rule = profile.split("\n").find(line => line.startsWith('(allow file-write* (regex '));
+ assert.ok(rule);
+ const expression = new RegExp(JSON.parse(rule.slice('(allow file-write* (regex '.length, -2)));
+ const lock = path.join(fs.realpathSync(base), "odd.lock+name");
+ for (const suffix of [".stale-uuid", ".stale-uuid/pid"]) assert.ok(expression.test(lock + suffix));
+ for (const target of [lock + ".other", lock + ".stale-", lock + "Xstale-uuid", path.join(fs.realpathSync(base), "unrelated")]) assert.ok(!expression.test(target));
+ assert.ok(!profile.includes(`(allow file-write* (subpath ${JSON.stringify(fs.realpathSync(base))}))`));
+});
+// req: R-3600
+await test("R-3600: checkout preserves recorded and fallback branches", async () => {
+ const { createStartTree } = await import("../lib/replay-isolation.mjs");
+ const f = await fixture();
+ for (const c of [{ branch: "feat/recorded", lane: "fallback" }, { lane: "fallback" }]) {
+  const clone = path.join(folder(), "work"); await createStartTree(f.repo, f.startTip, clone, c);
+  assert.equal(git(clone, ["branch", "--show-current"]), c.branch ?? `feat/${c.lane}`);
+  assert.equal(git(clone, ["rev-parse", "main"]), git(clone, ["rev-parse", "HEAD"]));
+  assert.equal(git(clone, ["rev-list", "--all", "--count"]), "1");
+ }
+ if (process.platform === "darwin") {
+  const R = await import("../lib/replay.mjs");
+  f.c.branch = "feat/recorded";
+  put(path.join(f.contexts, "contexts.jsonl"), lines([f.c], "\r\n", false));
+  const l = launcher(f.base, stubBody(stream()));
+  await R.runStudy({ ...f, go: true, launcher: l, sandboxReadPaths: [l.pre[0]], busy: () => false, suiteLock: path.join(f.base, "suite") });
+  const work = path.join(f.out, "runs", fs.readdirSync(path.join(f.out, "runs"))[0], "work");
+  assert.equal(git(work, ["branch", "--show-current"]), "feat/recorded");
+  assert.equal(git(work, ["rev-parse", "main"]), git(work, ["rev-parse", "HEAD"]));
+ }
+});
+// req: R-3600
 await test("R-3600: sandbox start tree excludes future and outside data", async () => {
  const I = await import("../lib/replay-isolation.mjs"), R = await import("../lib/replay.mjs");
  const f = await fixture();

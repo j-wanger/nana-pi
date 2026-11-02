@@ -21,7 +21,9 @@ const real = p => { const resolved = path.resolve(p); try { return fs.realpathSy
 const quote = p => JSON.stringify(real(p));
 export function sandboxProfile({ runDir, readPaths = [], suiteLock = DEFAULT_LOCK_DIR }) {
  const read = [...new Set([...SYSTEM_READ_PATHS, runDir, suiteLock, ...readPaths].map(real))];
- return `(version 1)\n(deny default)\n(allow process* signal sysctl-read mach-lookup ipc-posix* network* file-read-metadata)\n(allow file-read* (literal "/"))\n${read.map(p => `(allow file-read* (subpath ${quote(p)}))`).join("\n")}\n${[runDir, suiteLock, ...SYSTEM_WRITE_PATHS].map(p => `(allow file-write* (subpath ${quote(p)}))`).join("\n")}\n`;
+ // Match only quarantine siblings and their contents, not the shared lock parent.
+ const staleLock = `^${real(suiteLock).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}\\.stale-[^/]+(/.*)?$`;
+ return `(version 1)\n(deny default)\n(allow process* signal sysctl-read mach-lookup ipc-posix* network* file-read-metadata)\n(allow file-read* (literal "/"))\n${read.map(p => `(allow file-read* (subpath ${quote(p)}))`).join("\n")}\n${[runDir, suiteLock, ...SYSTEM_WRITE_PATHS].map(p => `(allow file-write* (subpath ${quote(p)}))`).join("\n")}\n(allow file-write* (regex ${JSON.stringify(staleLock)}))\n`;
 }
 /** Nothing ambient reaches the child, including git credentials and provider/shell hooks. */
 export function replayEnv({ home, temp, agentDir, suiteLock = DEFAULT_LOCK_DIR, bin, parent = process.env }) {
@@ -33,7 +35,7 @@ function checked(command, args, options) {
  return r.stdout;
 }
 /** Git archive never copies the source object database, index, remotes, hooks or later commits. */
-export async function createStartTree(repo, tip, clone) {
+export async function createStartTree(repo, tip, clone, { branch, lane = "replay" } = {}) {
  if (!/^[a-f0-9]{40,64}$/u.test(tip ?? "")) throw new Error("replay: invalid start tip");
  fs.mkdirSync(clone, { recursive: true, mode: 0o700 });
  const run = path.dirname(clone), archive = path.join(run, "start.tar"), config = path.join(run, "gitconfig");
@@ -42,8 +44,9 @@ export async function createStartTree(repo, tip, clone) {
  checked("git", ["archive", "--format=tar", `--output=${archive}`, tip], { cwd: repo, env });
  checked("tar", ["-xf", archive, "-C", clone], { cwd: run, env }); fs.unlinkSync(archive);
  const git = args => checked("git", args, { cwd: clone, env });
- git(["init", "-q"]); git(["config", "core.hooksPath", path.join(run, "no-hooks")]); git(["add", "--all"]);
+ git(["init", "-q", "-b", branch || `feat/${lane}`]); git(["config", "core.hooksPath", path.join(run, "no-hooks")]); git(["add", "--all"]);
  git(["-c", "user.name=Replay", "-c", "user.email=replay@example.invalid", "-c", "commit.gpgsign=false", "commit", "--allow-empty", "-qm", "historical replay start"]);
+ if ((branch || `feat/${lane}`) !== "main") git(["branch", "main"]);
  return clone;
 }
 /** Reuse the suite's descendant walk without signalling; never copy its private tree parser. */
