@@ -1,0 +1,9 @@
+Product mutation command: in an uncommitted copy of `packages/nana-pack/extensions/nana-post-edit.ts`, change the deadline-arm guard from `timeoutMs > 0` to `timeoutMs >= 0`, then run `node --experimental-strip-types packages/nana-pack/tests/post-edit-status.test.mjs`.
+Exit: 3 (expected mutation failure).
+FAIL timeoutMs 0 arms no deadline and a slow check passes
+DETAIL {"controlHung":false,"controlRecorded":[10000],"controlStatus":"[dim]post-edit ✓ 1 check · deadline-control.txt","zeroHung":false,"zeroRecorded":[0,2000],"zeroStatus":"[error]post-edit ✗ 1/1 · no-deadline.txt"}
+Control mutation command: in an uncommitted copy of `packages/nana-pack/tests/post-edit-status.test.mjs`, change `CONTROL_DEADLINE_MS` from 10000 to 1, then run `node --experimental-strip-types packages/nana-pack/tests/post-edit-status.test.mjs`.
+Exit: 1 (expected mutation failure).
+FAIL timeoutMs 0 arms no deadline and a slow check passes
+DETAIL {"controlHung":false,"controlRecorded":[1,2000],"controlStatus":"[warning]post-edit ⏱ timeout · deadline-control.txt","zeroHung":false,"zeroRecorded":[],"zeroStatus":"[dim]post-edit ✓ 1 check · no-deadline.txt"}
+Restore: each temporary mutation was restored from its saved original bytes. The product extension and test now contain their committed intended values.

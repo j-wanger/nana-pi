@@ -1,0 +1,5 @@
+Command: `npm run test:locked` (foreground, no filter).
+Exit: 1; the suite had only the two expected unavailable-tool failures.
+Summary: `264 files: 244 PASS, 2 FAIL, 18 SKIP, 0 WARN · checks: 7723 pass, 3 fail, 156 skip · 1153.3s`
+Expected failures: `post-edit-utf8.test.mjs` (2 Python checks; Python 3.7 or later unavailable) and `template-acceptance.test.mjs` (uvx unavailable). Neither was a time-limit failure.
+Touched-file times: `packages/nana-pack/tests/post-edit-status.test.mjs` — 3.8s; `packages/nana-pack/tests/mutation-runner.test.mjs` — 141.9s.

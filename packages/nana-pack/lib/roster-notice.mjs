@@ -1,18 +1,21 @@
 /**
  * @module packages/nana-pack/lib/roster-notice.mjs
  * @purpose Compose the one-line session-start roster notice from a roster result and the roster file.
- * @inputs a roster resolver result ({ok:true, roster, source} | {ok:false, file, problem}), the
- *  roster file's path, and whether PI_CODING_AGENT_DIR stays cwd-relative for this process
- * @outputs rosterNotice(result, file, relative) -> one line of display text
+ * @inputs a roster resolver result ({ok:true, roster, source, lanes?} | {ok:false, file, problem}), the
+ *  roster file's path, whether PI_CODING_AGENT_DIR stays cwd-relative, and the seat runtime
+ * @outputs rosterNotice(result, file, relative, seatRuntime) -> one line of display text
  * @effects none
  * @errors none — every branch returns a string; rosterNotice never throws
  */
-import { CLAUDE_CODE_RUNTIME } from '../bin/worker-config.mjs';
+import { CLAUDE_CODE_RUNTIME, LANE_LIMIT_DEFAULT } from '../bin/worker-config.mjs';
+import { resolveRole, lineageWarnings } from './roster-roles.mjs';
 import { displayText } from './display.mjs';
 import { tildeify } from '../../nana-setup/lib/paths.mjs';
 import {
 	NOTICE_PREFIX,
 	DEFAULT_MARK,
+	LANES_LABEL,
+	LANES_IGNORED_MARK,
 	REFUSED_HEAD,
 	REFUSAL_CUT,
 	SIZE_LABELS,
@@ -34,13 +37,20 @@ function entryText(entry) {
 }
 
 /** The resolved roster as the notice's lineup segment (R-1194, R-1196 to R-1201). */
-function rosterSegment({ roster, source }) {
+function rosterSegment({ roster, source, lanes }, seatRuntime) {
 	const parts = [];
 	parts.push(roster.largerBuilder !== null
 		? `builders ${entryText(roster.largerBuilder)} ${SIZE_LABELS.larger} and ${entryText(roster.builder)} ${SIZE_LABELS.small}`
 		: `builder ${entryText(roster.builder)}`);
 	parts.push(`reviewer ${entryText(roster.reviewer)}`);
 	parts.push(`land ${roster.land === null ? 'seat' : entryText(roster.land)}`);
+	if (roster.scout != null) parts.push(`scout ${entryText(roster.scout)}`);
+	for (const role of ['planner', 'adversary', 'checker']) {
+		const resolved = resolveRole(roster, role);
+		parts.push(`${role} ${resolved.entry ? entryText(resolved.entry) : resolved.slot}`);
+	}
+	parts.push(...lineageWarnings(roster, seatRuntime));
+	parts.push(`${LANES_LABEL} ${lanes?.limit ?? LANE_LIMIT_DEFAULT}${lanes?.warning ? ` ${LANES_IGNORED_MARK}` : ''}`);
 	const mark = source === 'default' ? ` ${DEFAULT_MARK}` : '';
 	return `${NOTICE_PREFIX}${mark}: ${parts.join(', ')}`;
 }
@@ -66,12 +76,12 @@ function refusalSegment(problem, file) {
  * (R-1215) — the notice then names no lineup, whatever `result` holds, because this process's
  * folder and a lane worktree could each resolve a different file.
  */
-export function rosterNotice(result, file, relative) {
+export function rosterNotice(result, file, relative, seatRuntime = 'pi') {
 	const pointer = `${CHANGE_POINTER} ${tildeify(file)}`;
 	const head = relative
 		? `${NOTICE_PREFIX} ${RELATIVE_DIR_TEXT}`
 		: result.ok
-			? rosterSegment(result)
+			? rosterSegment(result, seatRuntime)
 			: refusalSegment(result.problem, file);
 	return `${head} · ${pointer}`;
 }

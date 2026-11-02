@@ -72,3 +72,4 @@
 - CI as the suite (ci-suite, final review): the budget wrapper's stop flag counts time after the last call, so the post-merge "stopped at the 60 s budget" note can appear on a finished read; it is advisory.
 - CI as the suite (ci-suite, final review): the changed-path listing quotes non-ASCII paths, so a workflow file with a non-ASCII name would not match the workflows folder.
 - CI as the suite (ci-suite, final review): a future `.github/actions/` folder is not on the fallback list.
+- Land test split (land-test-split, review round 1): R-3490's 180 s bound is backed only by lane-folder timing records; no tagged check measures time, so a later slowdown goes uncaught.

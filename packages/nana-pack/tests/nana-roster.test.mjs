@@ -18,7 +18,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "bin", "nana-roster.mjs");
 const { resolveRoster, validateRosterShape, formatRosterLines, orderedRoster } = await import(new URL("../bin/nana-roster.mjs", import.meta.url).href);
-const { ROSTER_DEFAULTS, LANE_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER } = await import(new URL("../bin/worker-config.mjs", import.meta.url).href);
+const workerConfig = await import(new URL("../bin/worker-config.mjs", import.meta.url).href);
+const { ROSTER_DEFAULTS, LANE_DEFAULTS, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, LANE_LIMIT_DEFAULT } = workerConfig;
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
@@ -209,8 +210,8 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 	const rFile = spawnSync(process.execPath, [cli], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: dirSeatNone } });
 	// req: R-1123
 	check("roster command prints one line per slot and the source",
-		rDefault.status === 0 && rDefault.stdout === "scout: none\nbuilder: openai-codex gpt-6-luna high\nlargerBuilder: none\nreviewer: openai-codex gpt-5.6-sol default\nland: openai-codex gpt-6-astra default\nsource: default\n" &&
-		rFile.status === 0 && rFile.stdout === `scout: none\nbuilder: example-gateway roster-model low\nlargerBuilder: none\nreviewer: example-gateway gpt-5.6-sol default\nland: seat\nsource: ${file}\n`,
+		rDefault.status === 0 && rDefault.stdout === `scout: none\nbuilder: openai-codex gpt-6-luna high\nlargerBuilder: none\nreviewer: openai-codex gpt-5.6-sol default\nland: openai-codex gpt-6-astra default\nplanner: seat\nadversary: builder\nchecker: builder\nlanes: ${LANE_LIMIT_DEFAULT}\nsource: default\n` &&
+		rFile.status === 0 && rFile.stdout === `scout: none\nbuilder: example-gateway roster-model low\nlargerBuilder: none\nreviewer: example-gateway gpt-5.6-sol default\nland: seat\nplanner: seat\nadversary: builder\nchecker: builder\nlanes: ${LANE_LIMIT_DEFAULT}\nsource: ${file}\n`,
 		JSON.stringify({ rDefault, rFile }));
 }
 
@@ -257,7 +258,7 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 		["largerBuilder pi entry missing thinking", shaped((r) => { r.largerBuilder = { provider: "example-gateway", model: "x" }; }), "thinking"],
 		["builder runtime field", shaped((r) => { r.builder.runtime = "claude-code"; }), "runtime"],
 		["reviewer runtime field", shaped((r) => { r.reviewer.runtime = "claude-code"; }), "provider"],
-		["scout runtime field", shaped((r) => { r.scout.runtime = "claude-code"; }), "runtime"],
+		["scout runtime field with pi fields", shaped((r) => { r.scout.runtime = "claude-code"; }), "scout"],
 		["land runtime field", shaped((r) => { r.land = { provider: "example-gateway", model: "x", thinking: null, runtime: "claude-code" }; }), "runtime"],
 		["largerBuilder null is accepted", shaped((r) => { r.largerBuilder = null; }), null],
 		["largerBuilder pi entry accepted", shaped((r) => { r.largerBuilder = entry("example-gateway", "x", "low"); }), null],
@@ -368,6 +369,87 @@ check("sealed default roster is luna high builder, sol reviewer, astra land and 
 		rMissing.status === 0 && rMissing.stdout === "imported" &&
 		rOther.status === 0 && rOther.stdout === "imported",
 		JSON.stringify({ rMissing, rOther }));
+}
+
+// req: R-1121 R-1123 R-1192
+check("MM1: old machine and whole-written rosters print role null tokens after land", (() => {
+	return [sampleRoster(), { ...sampleRoster(), scout: null, largerBuilder: null, builder: entry('openai-codex', 'gpt-6.1-sol', 'medium'), reviewer: claudeEntry('opus') }].every(roster => {
+		const dir = freshAgentDir('roles-old'); const file = writeRoster(dir, roster);
+		const env = { ...process.env, PI_CODING_AGENT_DIR: dir };
+		const r = spawnSync(process.execPath, [cli], { env, encoding: 'utf8', timeout: 5000 });
+		const j = spawnSync(process.execPath, [cli, '--json'], { env, encoding: 'utf8', timeout: 5000 });
+		const resolved = resolveRoster(dir); const parsed = JSON.parse(j.stdout);
+		const oldLines = ['scout', 'builder', 'largerBuilder', 'reviewer', 'land'].map(slot => {
+			const e = roster[slot]; return `${slot}: ${e == null ? (slot === 'land' ? 'seat' : 'none') : e.runtime ? `claude-code ${e.model}` : `${e.provider} ${e.model} ${e.thinking ?? 'default'}`}`;
+		});
+		return resolved.ok && r.status === 0 && j.status === 0 && r.stdout === [...oldLines, 'planner: seat', 'adversary: builder', 'checker: builder', `lanes: ${LANE_LIMIT_DEFAULT}`, `source: ${file}`, ''].join('\n') &&
+			Object.keys(parsed.roster).join(',') === 'scout,builder,largerBuilder,reviewer,land,planner,adversary,checker' && ['planner','adversary','checker'].every(s => parsed.roster[s] === null);
+	});
+})());
+const roleConfig = await import('../bin/worker-config.mjs');
+// req: R-3537
+check('seal: role fallbacks are none seat builder builder', JSON.stringify(roleConfig.ROLE_FALLBACKS) === JSON.stringify({ scout: 'none', planner: 'seat', adversary: 'builder', checker: 'builder' }));
+// req: R-3532
+check('seal: Claude scout adds WebSearch and WebFetch', roleConfig.CLAUDE_SCOUT_TOOLS === 'Read,Grep,Glob,Bash,Edit,Write,WebSearch,WebFetch');
+// req: R-3533
+check('seal: lineage aliases join Anthropic and OpenAI providers', JSON.stringify(roleConfig.LINEAGE_ALIASES) === JSON.stringify({ 'claude-code': 'anthropic', anthropic: 'anthropic', openai: 'openai', 'openai-codex': 'openai' }));
+
+// req: R-3520
+check("seal: LANE_LIMIT_DEFAULT is 4", LANE_LIMIT_DEFAULT === 4);
+
+const runLanes = (dir, args = []) => {
+	const env = { ...process.env, HOME: dir, USERPROFILE: dir, PI_CODING_AGENT_DIR: dir };
+	delete env.PI_SESSION_ID;
+	return spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env, timeout: 5000 });
+};
+{
+	const cases = [undefined, {}, { lanes: null }, { lanes: 2 }];
+	const results = cases.map((raw, i) => {
+		const dir = freshAgentDir(`lanes-default-${i}`);
+		if (raw !== undefined) writeRosterRaw(dir, JSON.stringify(raw));
+		const resolved = resolveRoster(dir), run = runLanes(dir);
+		const expected = raw?.lanes ?? LANE_LIMIT_DEFAULT;
+		return [i, resolved.ok && resolved.roster === ROSTER_DEFAULTS && resolved.source === "default" &&
+			JSON.stringify(resolved.lanes) === JSON.stringify({ limit: expected, warning: null }) &&
+			run.status === 0 && run.stdout.includes(`land: openai-codex gpt-6-astra default\nplanner: seat\nadversary: builder\nchecker: builder\nlanes: ${expected}\nsource: default\n`) && run.stderr === ""];
+	});
+	// req: R-3520
+	check("R-3520: absent and null lane limits default, and lanes without a roster retain default source", results.every(([, ok]) => ok), JSON.stringify(results));
+}
+{
+	const dir = freshAgentDir("lanes-two");
+	writeRosterRaw(dir, JSON.stringify({ roster: sampleRoster(), lanes: 2 }));
+	const resolved = resolveRoster(dir), run = runLanes(dir);
+	const expected = `scout: example-gateway gpt-6-luna medium\nbuilder: example-gateway roster-model low\nlargerBuilder: none\nreviewer: example-gateway gpt-5.6-sol default\nland: seat\nplanner: seat\nadversary: builder\nchecker: builder\nlanes: 2\nsource: ${path.join(dir, "nana-pack.json")}\n`;
+	const json = runLanes(dir, ["--json"]);
+	let parsed; try { parsed = JSON.parse(json.stdout); } catch {}
+	const changed = runLanes(dir, ["set", "builder", "example-gateway", "changed-model", "high"]);
+	const after = runLanes(dir);
+	// req: R-3521
+	check("R-3521: a written lane limit prints exactly, set agrees, and JSON stays slots only",
+		resolved.ok && JSON.stringify(resolved.lanes) === JSON.stringify({ limit: 2, warning: null }) &&
+		run.status === 0 && run.stdout === expected && run.stderr === "" &&
+		json.status === 0 && Object.keys(parsed ?? {}).join(",") === "roster" &&
+		Object.keys(parsed?.roster ?? {}).join(",") === SLOT_PRINT_ORDER.join(",") &&
+		changed.status === 0 && after.status === 0 && changed.stdout === after.stdout && after.stdout.includes("\nlanes: 2\n"),
+		JSON.stringify({ resolved, run, json, changed, after }));
+}
+{
+	const results = ['"2"', 'true', '[2]', '{}', '0', '-1', '2.5', '1e400'].map((value, i) => {
+		const dir = freshAgentDir(`lanes-malformed-${i}`);
+		writeRosterRaw(dir, JSON.stringify({ roster: sampleRoster() }));
+		const baseline = runLanes(dir).stdout;
+		const original = resolveRoster(dir).roster;
+		writeRosterRaw(dir, `{"roster":${JSON.stringify(sampleRoster())},"lanes":${value}}`);
+		const resolved = resolveRoster(dir), run = runLanes(dir);
+		const warnings = run.stderr.trimEnd().split("\n");
+		return [value, resolved.ok && JSON.stringify(resolved.roster) === JSON.stringify(original) &&
+			resolved.lanes?.limit === LANE_LIMIT_DEFAULT && typeof resolved.lanes?.warning === "string" && resolved.lanes.warning.includes("lanes") &&
+			run.status === 0 && run.stdout === baseline && run.stdout.includes(`\nlanes: ${LANE_LIMIT_DEFAULT}\n`) &&
+			warnings.length === 1 && warnings[0].startsWith("nana-roster: lanes ignored:")];
+	});
+	// req: R-3522
+	check("R-3522: malformed lane values keep the roster and default limit with one warning", results.every(([, ok]) => ok), JSON.stringify(results));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

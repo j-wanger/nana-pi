@@ -1,0 +1,15 @@
+Command: node --no-warnings docs/reviews/windows-first-try-2-2026-11-02/m1-state.mjs .
+platform=win32; node=v22.22.2
+build command: NANA_KNOWLEDGE_HOME=<temp> node --experimental-strip-types packages/nana-knowledge/bin/nana-knowledge.ts build
+(a) completed: build exit=0
+(a) completed: {"indexMtimeMs":1793591981339.1768,"walBytes":null,"buildLockPresent":false,"buildLockAgeMs":null,"builtAt":"1793591981334"}
+(b) baseline: build exit=0
+(b) before locked build: {"indexMtimeMs":1793584781517,"walBytes":null,"buildLockPresent":false,"buildLockAgeMs":null,"builtAt":"1793591981507"}
+(b) exclusive lock held: build exit=1
+(b) build stderr contains: database is locked
+(b) failed, lock released: {"indexMtimeMs":1793584781517,"walBytes":null,"buildLockPresent":false,"buildLockAgeMs":null,"builtAt":"1793591981507"}
+(b) built_at unchanged=true
+(c) baseline: build exit=0
+(c) build.lock present: {"indexMtimeMs":1793591981820.8083,"walBytes":null,"buildLockPresent":true,"buildLockAgeMs":2.777099609375,"builtAt":"1793591981816"}
+cleanup: 3 temp homes removed; remaining=0
+Script exit=0
