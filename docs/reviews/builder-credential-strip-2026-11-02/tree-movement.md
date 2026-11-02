@@ -2,7 +2,7 @@
 
 Read every feature this names before you judge the change.
 
-tree movement 5bb4887..3289f56: 10 rows in 2 features
+tree movement 6dc5953..4d2a1d6: 10 rows in 2 features
 FEAT-001 · Keep goals and priorities in view
   R-3437 text changed
 FEAT-006 · Launch builders with execution limits
