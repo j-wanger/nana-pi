@@ -13,7 +13,6 @@
 - Memory maker (owner-profile build 2): the maker's evidence resolver rejects a seat-saved pointer whose session key contains a colon.
 - Owner profile (owner-profile, plan residual): the pushback probe moved to a later checking lane; until it lands, nothing measures whether the profile makes the seat agree more.
 - Owner profile (owner-profile, plan residual): a quote the seat wrongly attributes to the owner is saved like a real one; only the trust ladder limits it.
-- Owner profile (owner-profile, final review): show and sync skip the role refusal, so a builder or reviewer that ran show would print owner claims into output that may be committed under docs/reviews; the delivery slice fixes this first.
 - Owner profile (owner-profile, final review): privacy is checked only at init; a repo made public later is not re-checked.
 - Owner profile (owner-profile, final review): the 2026-10-31 ruling sits above the 2026-10-28 ruling, out of date order.
 - Owner profile (owner-profile, final review): with no session variable the session key falls back to the local date while the record date is UTC, so they can disagree near midnight.
@@ -29,6 +28,7 @@
 - Owner profile (owner-profile, confirmation review): the 28 locked git steps behind the lock wait are not counted from the code; the risk runs only toward waiting too long.
 - Requirements (owner-profile, round-3 review): SUB-023 sits above SUB-022 in REQUIREMENTS.md; the tree keeps the same order.
 - Requirements (owner-profile, round-3 review): the SUB-022 heading follows the R-3249 table row with no blank line, so a strict Markdown renderer may read it as part of the table.
+- Memory push (seat-memory-push plan, attack N2): a reworded re-extraction of a retracted claim gets a new id and returns on the next push.
 - Memory making (making-trigger, plan residual): the merge step catches exact normalized repeats only; a reworded duplicate of a saved claim is stored again until upkeep lands.
 - Memory making (making-trigger, plan residual): whether a detached making run survives Claude Code's exit, especially on Windows, stays unchecked until the session-end lane.
 - Memory making (making-trigger, plan residual A6): on Windows an npm-installed `claude.cmd` does not start from `spawnSync("claude")`, so every call fails and units stay pending; the shared `winCommand` refuses the JSON-schema argument's double quotes, so the fix needs its own lane.
