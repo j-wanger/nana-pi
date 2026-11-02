@@ -58,3 +58,4 @@
 - Session-end making (making-session-end, independent check): win32 uninstall matches only the current checkout's entry, so a moved checkout leaves the old SessionEnd entry failing at every exit.
 - Session-end making (making-session-end, independent check): the settings doc comment still says "all six entries" and "timeout: 5"; the code uses each row's own timeout.
 - Session-end making (making-session-end, land review round 1): the hook starts the detached run for every repository; a repository not enabled starts a node process that exits at the opt-in check without reading the profile or calling a model.
+- Memory making (claude-cmd-launch, plan residual): `apps/bench/lib/catch-judge.mjs`'s own default spawn, used when no spawn is injected, still calls bare `claude`; the bench runs on the seat Mac.
