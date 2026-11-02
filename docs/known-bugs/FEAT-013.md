@@ -207,3 +207,7 @@
 - Windows load (knowledge-busy, review round 1): the M5 run did not reach ten consecutive loaded passes. Most failures were other SessionStart hooks timing out.
 - Recovery check (knowledge-busy, review round 1): dropping recovery's explicit `busy_timeout=0` would go unnoticed, since recovery would then wait only 100 ms.
 - Build checkpoint (knowledge-busy, review round 1): the build's final `wal_checkpoint(TRUNCATE)` can now wait up to 5 s for readers.
+- Hook retry budget (knowledge-busy, review round 3): the budget checks in `packages/nana-knowledge/lib/hook.ts` around line 211 gate the retry but reserve no time for its synchronous query. A retry that starts near the end of the budget can run past it.
+- Knowledge churn detail (knowledge-busy, review round 3): M2's failure detail prints `reason` and `retried` but not `failure`, the second cause.
+- Knowledge churn detail (knowledge-busy, review round 3): M2's failure path parses `pull.log` with no `try`. A torn line throws a parse error in place of the detail; the check still fails.
+- Mutation comment (knowledge-busy, review round 3): the comment on pair P9 in `docs/reviews/knowledge-busy-2026-11-02/seat-mutate.mjs` overstates what no check can tell apart.
