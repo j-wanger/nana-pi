@@ -64,7 +64,7 @@
     { "path": "packages/nana-pack/tests/build-records.test.mjs", "reason": "Shell sources the seat guide without a path launch." },
     { "path": "packages/nana-pack/tests/ci-records.test.mjs", "reason": "Fixture command runner accepts a program parameter." },
     { "path": "packages/nana-pack/tests/gate-rm-outside.test.mjs", "reason": "Shell executable comes from a fixture resolver." },
-    { "path": "packages/nana-pack/tests/land.test.mjs", "reason": "Fixture command runner accepts a program parameter." },
+    { "path": "packages/nana-pack/tests/land-ci-edge.test.mjs", "reason": "Fixture command runner accepts a program parameter." },
     { "path": "packages/nana-pack/tests/mutation-runner.test.mjs", "reason": "Mutation fixture commands run under a shell." },
     { "path": "packages/nana-pack/tests/pack-config-utf16.test.mjs", "reason": "Pi executable is resolved at runtime." },
     { "path": "packages/nana-pack/tests/path-spelling.test.mjs", "reason": "Shell sources generated path-spelling commands." },

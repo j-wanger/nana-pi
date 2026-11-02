@@ -138,3 +138,7 @@
 - pi seat guide (pi-seat-guide, final review): the header of `packages/nana-setup/lib/steps.mjs` says the seat guide lives in `packages/nana-pack/rules`; it lives in `packages/nana-setup/claude/rules`.
 - pi seat guide (pi-seat-guide, final review): the stale-guide fixture in `packages/nana-pack/tests/rulings.test.mjs` writes a literal backslash-n, not a newline; the test still works.
 - pi seat guide (pi-seat-guide, land review): no guide-specific Windows re-install test covers a recorded copy after its source changes.
+- Builder lane limit (machine-lane-limits, review round 1): a rule line cannot prove a seat obeys its build-lane limit.
+- Builder lane limit (machine-lane-limits, review round 1): a pi seat's model sees the limit only by running the roster command, because pi shows the notice as a widget.
+- Builder lane limit (machine-lane-limits, review round 1): a machine prints the default limit of 4 until its owner writes its own value; a Windows checkout that pulls without running `nana-setup install` keeps the old "four lanes" ruling and seat guide.
+- Builder lane limit (machine-lane-limits, review round 1): a bad `lanes` value's warning prints before stdout in the plain roster command but after stdout, before `was:`, in `set`.

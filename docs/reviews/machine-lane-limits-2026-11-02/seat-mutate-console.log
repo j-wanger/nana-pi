@@ -1,0 +1,36 @@
+seat-mutate: lane machine-lane-limits, tip 3a904a9ca9ab6d395af7da185f77debf84c72ef9, table 25c1c81632a500306c8a69a912b052b9629bdf509ef7e3fc129fd2080d58e157, merge-base 0bd1df8996c5a8bbf946cb132e1c3a54315e9a8c, 12 pairs in 5 shards (3+3+2+2+2, round-robin, 4s apart), darwin, node v22.22.2, 2026-11-02T02:28:00.022Z
+[1/5] seat-mutate: lane machine-lane-limits, shard 1/5, tip 3a904a9ca9ab6d395af7da185f77debf84c72ef9, merge-base 0bd1df8996c5a8bbf946cb132e1c3a54315e9a8c, 3 pairs, darwin, node v22.22.2, 2026-11-02T02:28:01.030Z
+[1/5] BASELINE ok   packages/nana-pack/tests/nana-roster.test.mjs (exit 0, 23 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/rulings.test.mjs (exit 0, 23 PASS, 0 FAIL, )
+[1/5] BASELINE ok   packages/nana-pack/tests/roster-notice.test.mjs (exit 0, 19 PASS, 0 FAIL, )
+[1/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[2/5] seat-mutate: lane machine-lane-limits, shard 2/5, tip 3a904a9ca9ab6d395af7da185f77debf84c72ef9, merge-base 0bd1df8996c5a8bbf946cb132e1c3a54315e9a8c, 3 pairs, darwin, node v22.22.2, 2026-11-02T02:28:05.096Z
+[2/5] BASELINE ok   packages/nana-pack/tests/nana-roster.test.mjs (exit 0, 23 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-setup/tests/seat-rule.test.mjs (exit 0, 17 PASS, 0 FAIL, )
+[2/5] BASELINE ok   packages/nana-pack/tests/roster-notice.test.mjs (exit 0, 19 PASS, 0 FAIL, )
+[2/5] RESULT: 3/3 red (3 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[3/5] seat-mutate: lane machine-lane-limits, shard 3/5, tip 3a904a9ca9ab6d395af7da185f77debf84c72ef9, merge-base 0bd1df8996c5a8bbf946cb132e1c3a54315e9a8c, 2 pairs, darwin, node v22.22.2, 2026-11-02T02:28:09.086Z
+[3/5] BASELINE ok   packages/nana-pack/tests/nana-roster.test.mjs (exit 0, 23 PASS, 0 FAIL, )
+[3/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[4/5] seat-mutate: lane machine-lane-limits, shard 4/5, tip 3a904a9ca9ab6d395af7da185f77debf84c72ef9, merge-base 0bd1df8996c5a8bbf946cb132e1c3a54315e9a8c, 2 pairs, darwin, node v22.22.2, 2026-11-02T02:28:13.098Z
+[4/5] BASELINE ok   packages/nana-pack/tests/roster-notice.test.mjs (exit 0, 19 PASS, 0 FAIL, )
+[4/5] BASELINE ok   packages/nana-pack/tests/nana-roster.test.mjs (exit 0, 23 PASS, 0 FAIL, )
+[4/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+[5/5] seat-mutate: lane machine-lane-limits, shard 5/5, tip 3a904a9ca9ab6d395af7da185f77debf84c72ef9, merge-base 0bd1df8996c5a8bbf946cb132e1c3a54315e9a8c, 2 pairs, darwin, node v22.22.2, 2026-11-02T02:28:17.066Z
+[5/5] BASELINE ok   packages/nana-pack/tests/nana-roster-set.test.mjs (exit 0, 9 PASS, 0 FAIL, )
+[5/5] BASELINE ok   packages/nana-pack/tests/nana-roster.test.mjs (exit 0, 23 PASS, 0 FAIL, )
+[5/5] RESULT: 2/2 red (2 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived
+RED 1 use a wrong lane limit for an absent file — 1/1 named: R-3520: absent and null lane limits default, and lanes without a roster retain default source; also (declared): roster command prints one line per slot and the source; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 2 ignore the written machine limit — 3/3 named: R-3520: absent and null lane limits default, and lanes without a roster retain default source | R-3521: a written lane limit prints exactly, set agrees, and JSON stays slots only | R-3522: malformed lane values keep the roster and default limit with one warning; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 3 accept any numeric lane value — 1/1 named: R-3522: malformed lane values keep the roster and default limit with one warning; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 4 omit the lane segment from notices — 1/1 named: R-3523: notice shows lane limit after land, marks fallback, and omits it when unknown; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 5 drop the top-level limit on slot writes — 1/1 named: R-3524: lanes stays outside roster, set keeps a written limit and never adds an absent one; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 6 restore the fixed ruling — 1/1 named: R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED 7 restore the fixed seat-guide cap — 1/1 named: seat guide carries: no more lanes building than the roster command's lanes line, two in planning, e…; also (declared): seat guide holds no bullet beyond its sixteen rules; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED set-print set forgets the resolved limit when printing — 1/1 named: R-3521: a written lane limit prints exactly, set agrees, and JSON stays slots only; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED warning suppress the malformed-value warning — 1/1 named: R-3522: malformed lane values keep the roster and default limit with one warning; 1 FAIL total (1 file changed, 1 deletion(-))
+RED seal-default retune the sealed build limit — 1/1 named: seal: LANE_LIMIT_DEFAULT is 4; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED seal-label retune the notice label — 1/1 named: seal: lane notice label is lanes; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED seal-mark retune the ignored-value mark — 1/1 named: seal: ignored lane notice mark is (file value ignored); 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 12/12 red (12 exactly their named titles, 0 with a named title green, 0 with an unnamed red), 0 survived, across 5 shards
+seat-mutate: merged output docs/reviews/machine-lane-limits-2026-11-02/seat-mutate.log
