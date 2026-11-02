@@ -6,6 +6,7 @@
  * @effects disk (reads repository files and creates fixtures under the OS temp directory)
  * @errors A failed check prints its reason and exits non-zero.
  */
+import { deepStrictEqual } from "node:assert";
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,8 +25,22 @@ const actual = checkTree(ledger);
 const row = (id) => ledger.split("\n").find((line) => line.startsWith(`| ${id} |`)) ?? "";
 // req: R-287
 check("R-287: every real requirement row is in a feature or subgroup table", actual.problems.every((p) => !p.includes("not in a feature or subgroup table")) && row("R-287").startsWith("| R-287 | Every requirement row in REQUIREMENTS.md shall sit in a table"), actual.problems.join("; "));
-// req: R-288
-check("R-288: all real headings have non-empty purposes", actual.parsed.headings.length === 77 && actual.parsed.headings.every((h) => h.purpose.length > 0), `${actual.parsed.headings.length} headings`);
+// Deliberately broader than the parser: no fixed ID width, separator or label syntax.
+function ledgerHeadingLines(text) {
+  return text.replace(/^\ufeff/, "").split(/\r?\n/).flatMap((line, index) => {
+    const match = /^(#{1,3}) ((?:CAP|FEAT|SUB)-\d+)/.exec(line);
+    return match ? [{ id: match[2], line: index + 1, level: match[1].length }] : [];
+  });
+}
+function deeplyEqual(left, right) {
+  try { deepStrictEqual(left, right); return true; } catch { return false; }
+}
+const rawHeadings = ledgerHeadingLines(ledger);
+// req: R-288 R-3680
+check("R-288: all real headings have non-empty purposes",
+  [1, 2, 3].every((level) => rawHeadings.some((h) => h.level === level)) &&
+  deeplyEqual(actual.parsed.headings.map(({ id, line }) => ({ id, line })), rawHeadings.map(({ id, line }) => ({ id, line }))) &&
+  actual.parsed.headings.every((h) => h.purpose.length > 0), `${actual.parsed.headings.length} headings; raw ID/line order or purposes differ`);
 // req: R-288
 check("R-288: real ledger has no structural problems", actual.problems.length === 0, actual.problems.join("; "));
 // req: R-289
@@ -376,11 +391,13 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
 {
   const TWO = `${TREE1}\n## FEAT-002 · Second\nStatus: active\n\n| R-002 | Another thing shall work. | untested | — |\n`;
   const lf = checkTree(TWO), cr = checkTree(crlf(TWO));
-  const selfLedgerCrlf = checkTree(crlf(ledger));
-  // req: R-1158
+  const selfLedgerLf = checkTree(ledger.replace(/\r\n/g, "\n"));
+  const selfLedgerCrlf = checkTree(crlf(ledger.replace(/\r\n/g, "\n")));
+  // req: R-1158 R-3681
   check("R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy",
     JSON.stringify(lf.problems) === JSON.stringify(cr.problems) && lf.problems.length === 2 &&
-    selfLedgerCrlf.problems.length === 0 && selfLedgerCrlf.parsed.headings.length === 77,
+    selfLedgerCrlf.problems.length === 0 && deeplyEqual(selfLedgerCrlf.problems, selfLedgerLf.problems) &&
+    deeplyEqual(selfLedgerCrlf.parsed, selfLedgerLf.parsed),
     `${JSON.stringify(lf.problems)} vs ${JSON.stringify(cr.problems)}`);
 }
 

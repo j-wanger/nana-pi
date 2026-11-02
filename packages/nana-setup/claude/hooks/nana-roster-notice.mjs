@@ -54,7 +54,7 @@ export async function runRosterNoticeHook({ input = process.stdin, write = (text
 		const relative = piAgentDirIsCwdRelative();
 		const result = resolveRoster(agentDir);
 		const file = path.join(agentDir, 'nana-pack.json');
-		const notice = rosterNotice(result, file, relative);
+		const notice = rosterNotice(result, file, relative, 'claude-code');
 		const showAsMessage = source === null || SHOW_SOURCES.includes(source);
 		const payload = {
 			...(showAsMessage ? { systemMessage: notice } : {}),

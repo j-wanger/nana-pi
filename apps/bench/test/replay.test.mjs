@@ -16,8 +16,9 @@ import { segmentPart } from "../lib/anatomy-spans.mjs";
 import { distinctUnits } from "../lib/anatomy-measures.mjs";
 import { entriesIn } from "../../../packages/nana-pack/lib/claude-transcript.mjs";
 import { pidAlive } from "../../../packages/nana-pack/lib/process-tree.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), "builder-replay-test-"));
+const root = tmpDir(path.join(os.tmpdir(), "builder-replay-test-"));
 let serial = 0, partSerial = 0, passed = 0, failed = 0;
 const folder = () => { const p = path.join(root, String(++serial)); fs.mkdirSync(p); return p; };
 const put = (p, s) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, s); return p; };

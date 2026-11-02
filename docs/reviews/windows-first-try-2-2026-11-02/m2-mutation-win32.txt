@@ -1,0 +1,4 @@
+Mutation: HOOK_PRODUCER_TIMEOUT_MS=1 (restored afterward).
+Direct objective-golden run returned Windows status 427.
+BYTE-IDENTICAL retry-failure details with retry count 2: 125.
+T17 zero-retry details: 4.

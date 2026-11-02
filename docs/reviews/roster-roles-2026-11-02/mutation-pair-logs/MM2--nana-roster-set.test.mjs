@@ -1,0 +1,12 @@
+PASS R-1400: set given a printed line's tokens replaces only that slot and prints the new roster and the old line, from an absent file and from a file roster 
+PASS R-1401: set keeps objective, gate and every other top-level member, from a file saved with a byte-order mark and CRLF 
+PASS R-1402: set refuses no slot, an unknown slot and each malformed entry, naming the slot or field, and changes no byte 
+SKIP a dangling symlink: POSIX symlinks (win32)
+PASS R-1403: set refuses a path the resolver refuses and leaves it unchanged 
+PASS R-1404: set inside a pi model shell refuses naming PI_SESSION_ID before reading the file and writes nothing 
+PASS R-1405: set renames a temporary file from the target's folder, and a failed temporary write or rename leaves the file byte-identical with no temporary file behind 
+PASS R-1406: set through a symlinked nana-pack.json writes the target and keeps the link 
+PASS R-1407: set leaves the replaced bytes in nana-pack.json.bak 
+FAIL MM2: role slots and scout accept pi Claude and null tokens and name malformed slots 
+PASS MM3: set preserves four old shapes without adding unnamed role slots 
+1 FAILED

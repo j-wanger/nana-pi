@@ -19,3 +19,7 @@
 - Context shaping (context-anatomy, independent check): indented continuation lines and sub-headings in an over-cap known-bug file are dropped and not counted in the fold.
 - Context shaping (context-anatomy, independent check): on a Claude-only machine with no `~/.pi` the hook creates `~/.pi/agent` for its log.
 - Review ledger (context-anatomy, independent check): a hung `claude -p` reviewer has no stall timeout in review-ledger, so a review can hang until killed.
+- Context shaping (roster-roles, review round 1): by default the checker runs on the builder entry and shares the model family of the work it checks; the lineage warning compares the checker only with the reviewer, so this is never flagged.
+- Context shaping (roster-roles, review round 1): a role launch without `--out` is refused with only `pi-worker: slot refused: usage` and no usage line.
+- Context shaping (roster-roles, review round 1): a `--brief` value starting with a single `-` passes the role checks and is refused later by the lane check, after the role temp folder was made; the refusal removes it.
+- Context shaping (roster-roles, review round 1): older checkouts refuse new role keys or a Claude Code scout, as the owner accepted.

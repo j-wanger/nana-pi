@@ -1,0 +1,5 @@
+Unrelated changed files: 0
+Lane code, tests, FEAT-013 lines and session archive: byte-identical to pre-merge tip
+FEAT-031: four lane notes unchanged; all other lines match main including deletions
+Main session entries: byte-identical, whole and in original newest-first order
+Requirement difference: only unchanged R-3540 and R-3541

@@ -1,0 +1,2 @@
+requirements: 2445 total (2189 implemented · 7 planned · 54 retired · 190 untested · 5 violated); 2189 traced by tests
+ears: 0 rows off form (allowance 0)
