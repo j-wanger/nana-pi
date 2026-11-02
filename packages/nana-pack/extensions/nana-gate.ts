@@ -56,7 +56,7 @@ import { rmInsideCwd } from "../lib/gate-rm-inside.ts";
 import { rmOutsideTargets } from "../lib/gate-rm-outside.ts";
 import { acceptedTempRoots } from "../lib/gate-temp-roots.ts";
 import { type Danger, base, commandIndex, detectionSegments, dequote, segmentDanger, splitCommand, tokens } from "../lib/gate-shell.ts";
-import { CREDENTIAL_PATTERNS } from "../lib/credential-gate-config.mjs";
+import { CREDENTIAL_PATTERNS, CREDENTIAL_WORD_PLACEHOLDER } from "../lib/credential-gate-config.mjs";
 
 const PROTECTED_PATHS: RegExp[] = [
 	/\.pi[/\\]agent[/\\]auth\.json/i,
@@ -149,7 +149,10 @@ function commandHit(command: string, gate: Policy, cwd: string, tool: string): H
 		for (const segment of det) {
 			const words = tokens(segment.text, true);
 			const index = commandIndex(words, true);
-			const commandWords = [base(words[index] ?? ""), ...words.slice(index + 1)].join(" ");
+			// Shell wrappers can expose a whole quoted command as the command word.
+			// Seal only argument whitespace so quoted option values stay one word.
+			const commandWords = base(words[index] ?? "") + " " + words.slice(index + 1)
+				.map((word) => word.replace(/\s/g, CREDENTIAL_WORD_PLACEHOLDER)).join(" ");
 			if (credentialPatterns.some((pattern: RegExp) => pattern.test(commandWords)))
 				return { label: "credential rule", reason: "credential rule (floor): builder and reviewer credential access" };
 		}

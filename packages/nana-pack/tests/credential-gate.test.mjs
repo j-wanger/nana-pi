@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/credential-gate.test.mjs
- * @purpose Pin the M4 role-scoped credential floor and M7 pattern seal through the registered gate.
+ * @purpose Pin the role-scoped credential floor, helper variants and pattern seal through the registered gate.
  * @inputs Real gate extension, synthetic commands, temporary HOME and user policy.
  * @outputs Tagged PASS/FAIL lines.
  * @effects disk (OS temp fixtures), process (isolated environment variables)
@@ -45,6 +45,10 @@ const blocked = [
   'git credential-store get', 'git credential-wincred get',
   'git-credential-manager get', '/usr/bin/git-credential-osxkeychain get',
   '"C:\\tools\\git-credential-manager.exe" get',
+  'powershell "gh auth token"',
+  'powershell -NoProfile "gh auth token"',
+  'powershell -NoProfile "git credential fill"',
+  'pwsh -NoProfile "gh auth token"',
   'gh auth token', '/usr/bin/gh auth token', 'gh auth status --show-token',
   'security find-generic-password', 'security find-internet-password',
   'cmdkey /list', 'vaultcmd /list', 'Get-StoredCredential',
@@ -55,14 +59,66 @@ const blocked = [
   '& "Invoke-RestMethod" -Uri "https://api.github.com/repos"',
 ];
 const allowed = ['git credential-store --file x erase', 'gh auth status', 'git credential-cache exit', 'git push', 'curl https://example.com', 'echo "git credential fill"', 'printf "%s" "gh auth token"', 'echo "curl https://api.github.com"'];
+const helperReads = [
+  'git credential-store --file=x get',
+  'git -c a=b credential-cache get',
+  'git-credential-cache get',
+  'git credential-cache --timeout 5 get',
+  'git -c a=b credential-store --file=x get',
+  'git --no-pager credential-cache --socket /s get',
+  'git credential-libsecret get',
+  'git-credential-store --file=x get',
+  '"C:\\tools\\git-credential-cache.exe" --timeout 5 get',
+  '/usr/lib/git-core/git-credential-libsecret get',
+  'git -C "C:/work tree" credential-cache get',
+  'git -c "http.extraHeader=X Y" credential-cache get',
+];
+const helperNearMisses = [
+  'git credential-cache --timeout 5 exit',
+  'git credential-store --file=x erase',
+  'git credential-store --file=x store',
+  'git-credential-cache exit',
+  'git config credential.helper cache',
+  'git config --get credential.helper',
+  'echo "git credential-cache get"',
+  'git credential-cache --get',
+  'git credential-cache getx',
+  'git-credential-cache --get',
+  'git-credential-cache getx',
+  'git credential-store --file "get secrets" erase',
+];
+// req: R-3685
+await check('M1: helper read variants are a credential-rule floor', async () => {
+  const errors = [];
+  for (const role of ['worker', 'reviewer']) {
+    const run = await handler(role);
+    for (const tool of ['bash', 'powershell']) for (const command of helperReads) {
+      const result = await run(command, tool);
+      if (result?.block !== true || !/credential rule/.test(result.reason)) errors.push(`${role}/${tool}/${command}`);
+    }
+  }
+  assert.deepEqual(errors, [], `unrefused cases:\n${errors.join('\n')}`);
+});
+// req: R-3686
+await check('M2: helper near misses and unset-role forms stay allowed', async () => {
+  const errors = [];
+  for (const role of ['worker', 'reviewer', null]) {
+    const run = await handler(role);
+    const corpus = role === null ? [...helperReads, ...helperNearMisses, ...blocked, ...allowed] : [...helperNearMisses, ...allowed];
+    for (const tool of ['bash', 'powershell']) for (const command of corpus) {
+      if ((await run(command, tool))?.block !== undefined) errors.push(`${role ?? 'unset'}/${tool}/${command}`);
+    }
+  }
+  assert.deepEqual(errors, [], `refused cases:\n${errors.join('\n')}`);
+});
 // req: R-3663
 await check('M4: credential commands form a role-scoped non-exemptible floor', async () => {
+  const errors = [];
   for (const role of ['worker', 'reviewer']) {
     const run = await handler(role);
     for (const tool of ['bash', 'powershell']) for (const command of blocked) {
       const result = await run(command, tool);
-      assert.equal(result?.block, true, `${role}/${tool}/${command}`);
-      assert.match(result.reason, /credential rule/);
+      if (result?.block !== true || !/credential rule/.test(result.reason)) errors.push(`${role}/${tool}/${command}`);
     }
     for (const command of allowed) assert.equal((await run(command))?.block, undefined, command);
   }
@@ -70,19 +126,19 @@ await check('M4: credential commands form a role-scoped non-exemptible floor', a
   for (const command of [...blocked, ...allowed]) assert.equal((await run(command))?.block, undefined, `unset role: ${command}`);
   assert.equal((await run('git reset --hard'))?.block, undefined, 'configured existing git exception remains');
   assert.equal((await run('shutdown -h now'))?.block, true, 'existing unset-role deny remains');
+  assert.deepEqual(errors, [], `unrefused cases:\n${errors.join('\n')}`);
 });
 // req: R-3667
 await check('M7: credential gate pattern seal', async () => {
-  const { CREDENTIAL_PATTERNS } = await import('../lib/credential-gate-config.mjs');
+  const { CREDENTIAL_PATTERNS, CREDENTIAL_WORD_PLACEHOLDER } = await import('../lib/credential-gate-config.mjs');
   assert.equal(CASE_MS, 10_000);
+  assert.equal(CREDENTIAL_WORD_PLACEHOLDER, '\u0001');
   assert.deepEqual(CREDENTIAL_PATTERNS, [
     String.raw`^git(?:\s+(?:-c|-C|--git-dir|--work-tree|--namespace)\s+\S+|\s+-\S+)*\s+credential\s+(?:fill|get|approve|reject)(?:\s|$)`,
-    String.raw`^git(?:\s+(?:-c|-C|--git-dir|--work-tree|--namespace)\s+\S+|\s+-\S+)*\s+credential-(?:manager(?:-core)?|osxkeychain|store|wincred)\s+get(?:\s|$)`,
-    String.raw`^git-credential-(?:manager(?:-core)?|osxkeychain|store|wincred)\s+get(?:\s|$)`,
+    String.raw`^git(?:\s+(?:-c|-C|--git-dir|--work-tree|--namespace)\s+\S+|\s+-\S+)*\s+credential-[\w.-]+\s+(?:\S+\s+)*get(?:\s|$)`,
+    String.raw`^git-credential-[\w.-]+\s+(?:\S+\s+)*get(?:\s|$)`,
     String.raw`^gh\s+auth\s+token(?:\s|$)`,
     String.raw`^gh\s+auth\s+status\s+(?:\S+\s+)*--show-token(?:\s|$)`,
-    String.raw`^git\s+credential-store\s+--file\s+\S+\s+get(?:\s|$)`,
-    String.raw`^git\s+credential-cache\s+get(?:\s|$)`,
     String.raw`^gh\s+auth\s+status\s+(?:\S+\s+)*-t(?:\s|$)`,
     String.raw`^security\s+find-(?:generic|internet)-password(?:\s|$)`,
     String.raw`^(?:cmdkey\s+/list(?:\s|$)|vaultcmd(?:\s|$)|get-storedcredential(?:\s|$))`,

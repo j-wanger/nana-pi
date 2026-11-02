@@ -6,7 +6,10 @@ VERDICT: DONE
 
 - Branch: `feat/curation-merge-chain`.
 - First parent: `33b72899d631e11a47d6eb387c6d296d1ed3bf0e`.
-- Merged main: `a66c0602d027b79ca170d463e05fc46402128374`.
+- First merged main: `a66c0602d027b79ca170d463e05fc46402128374`.
+- First merge commit: `965d62f0d0d4b3c8eb321b650a75e63861ed3039`.
+- The shared origin/main ref advanced during final-tip checks to `99fd0d18dc68bc7282e56275efe1ea972e210070`. A second merge incorporates it; both merges applied without conflicts.
+- All thirteen named checks passed on the first merge. The final diff-stat equality check then failed (exit 1) because the main ref had advanced, not because lane files changed. The second merge repeats generators and checks against the newer main.
 - `git fetch origin`: exit 0. `git merge --no-commit --no-ff origin/main`: exit 0.
 - Conflicts: none. No overlapping main/lane change required manual reapplication.
 - All non-lane files match main, including main's deletions. The final diff stat is recorded separately.
@@ -30,6 +33,7 @@ Lane files: `REQUIREMENTS.md`, `docs/requirements-tree.md`, `docs/known-bugs/FEA
 ## Departures and limits
 
 - From the older merge precedent: no push and no archive edit, because this brief expressly forbids both. No heading-count test replacement was needed.
+- Two merge commits rather than one: the shared remote-tracking ref advanced during verification. The second merge restores the required diff against current origin/main.
 - From Revision 2: none. Its read-side chain implementation and separate absorbed set are preserved without new behavior.
 - Merge commits cannot use path-limited commit mode; paths are staged explicitly and the merge commits the resolved index with a message file under the shell temporary directory.
 - Two preservation-command attempts failed before a successful run: shell backslash parsing (exit 1), then the default Node child-process buffer (exit 1). Neither changed product files. The successful check used a larger buffer.

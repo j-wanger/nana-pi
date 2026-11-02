@@ -1,0 +1,3 @@
+summary files=6575 findings=0 totals=5,0,0,4
+
+exit: 0

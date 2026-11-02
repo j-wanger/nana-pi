@@ -3406,7 +3406,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/credential-gate.test.mjs`
 
-- **purpose** — Pin the M4 role-scoped credential floor and M7 pattern seal through the registered gate.
+- **purpose** — Pin the role-scoped credential floor, helper variants and pattern seal through the registered gate.
 - **inputs** — Real gate extension, synthetic commands, temporary HOME and user policy.
 - **outputs** — Tagged PASS/FAIL lines.
 - **effects** — disk (OS temp fixtures), process (isolated environment variables)
