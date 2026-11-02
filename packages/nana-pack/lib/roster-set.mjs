@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/roster-set.mjs
  * @purpose Replace one roster slot in the user-scope nana-pack.json by renaming a fully written temporary file over the real target, keeping every other member and a backup.
  * @inputs pi's active agent dir, the `set` command's slot and token arguments, and optionally an env object plus a writeTemp(fd, text) and a rename(from, to) seam for tests
- * @outputs setRosterSlot(agentDir, args, opts) -> {ok:true, file, roster, previousTokens} | {ok:false, problem}
+ * @outputs setRosterSlot(agentDir, args, opts) -> {ok:true, file, roster, lanes, previousTokens} | {ok:false, problem}
  * @effects disk (reads the user-scope nana-pack.json, writes a temporary file in the real target's folder, may write nana-pack.json.bak in the agent dir, and replaces the user-scope nana-pack.json)
  * @errors never throws; every failure, including a mid-write throw, is caught and returned as {ok:false, problem} naming the guard, the slot or field, or the file
  */
@@ -67,5 +67,5 @@ export function setRosterSlot(agentDir, args, {
 
   const result = writePackConfigMember(agentDir, 'roster', validated, { writeTemp, rename });
   if (!result.ok) return result;
-  return { ...result, roster: validated, previousTokens: slotTokens(base.roster, slot) };
+  return { ...result, roster: validated, lanes: base.lanes, previousTokens: slotTokens(base.roster, slot) };
 }
