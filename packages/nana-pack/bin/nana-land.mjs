@@ -9,7 +9,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { realpathSync } from "node:fs";
+import { realpathSync, readFileSync, lstatSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,6 +21,7 @@ import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
 import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
 import { CLEAN_MERGE_MESSAGE, CLEAN_MERGE_PREFIX, CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_GIT_CONFIG, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
+import { GENERATOR_CONTRACT, GENERATOR_TIMEOUT_MS, GENERATOR_REASONS } from "../lib/land-config.mjs";
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
 import { LAND_LEDGER_READ_MAX_BYTES, LAND_REASON_MAX_CHARS, LAND_RECORD_LINE_PREFIX, LAND_RECORD_SCHEMA } from "../lib/land-records-config.mjs";
@@ -52,11 +53,72 @@ const isAncestor = (runner, ancestor, descendent, cwd) => {
 	return r.status === 0;
 };
 
-const mergeRefusal = (reason, detail) => new Error(`${CLEAN_MERGE_REASONS[reason]}${detail ? `: ${detail}` : ""}; ${CLEAN_MERGE_REMEDY}`);
+const mergeRefusal = (reason, detail) => new Error(`${CLEAN_MERGE_REASONS[reason] ?? GENERATOR_REASONS[reason]}${detail ? `: ${detail}` : ""}; ${CLEAN_MERGE_REMEDY}`);
 const objectId = (value) => /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(value);
 
-/** Compute an eligible textual merge without touching a ref, index or checkout. */
-function cleanMergeTree(runGit, main, tip, capturedMain) {
+/** Guard generator configuration without loading or executing merged code. */
+function guardGeneratorConfiguration(folder) {
+ const inside = file => {
+  if (typeof file !== "string" || !file) throw new Error("invalid source root");
+  let resolved = path.resolve(folder, file);
+  // Resolve existing symlink ancestors even for a not-yet-created output or source root.
+  const suffix = [];
+  while (true) {
+   try { lstatSync(resolved); break; }
+   catch (error) { if (error.code !== "ENOENT") throw error; }
+   suffix.unshift(path.basename(resolved)); const parent = path.dirname(resolved); if (parent === resolved) break; resolved = parent;
+  }
+  resolved = path.resolve(realpathSync(resolved), ...suffix);
+  const relative = path.relative(realpathSync(folder), resolved);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) throw new Error(`outside temporary tree: ${file}`);
+ };
+ try {
+  const config = JSON.parse(readFileSync(path.join(folder, "code-map.config.json"), "utf8"));
+  if (config.mapPath !== GENERATOR_CONTRACT[0].path) throw new Error(`code-map mapPath: ${config.mapPath}`);
+  if (!Array.isArray(config.roots) || !config.roots.length) throw new Error("code-map roots missing");
+  for (const root of config.roots) inside(typeof root === "string" ? root : root?.path);
+  // requirements-tree has no external output configuration: its target is declared in its script.
+  const source = readFileSync(path.join(folder, GENERATOR_CONTRACT[1].write[0]), "utf8");
+  const target = /const\s+target\s*=\s*resolve\(REPO_ROOT,\s*["']([^"']+)["']\s*\)/.exec(source)?.[1];
+  if (target !== GENERATOR_CONTRACT[1].path) throw new Error(`requirements-tree target: ${target ?? "unrecognized"}`);
+  for (const entry of GENERATOR_CONTRACT) inside(entry.path);
+ } catch (error) { throw mergeRefusal("generatorScope", error.message); }
+}
+
+/** Rebuild a conflicted tree in an unregistered checkout and a private index; cleanup owns only this temp folder. */
+function regenerateTree(runGit, main, mergedTree, conflicts, { generatorContract, generatorTimeoutMs, runGenerator }) {
+ const folder = mkdtempSync(path.join(os.tmpdir(), "nana land generated-"));
+ const checkout = path.join(folder, "tree");
+ try {
+  mkdirSync(checkout);
+  const env = { ...process.env, GIT_DIR: git(runGit, main, "rev-parse", "--absolute-git-dir"), GIT_WORK_TREE: checkout, GIT_INDEX_FILE: path.join(folder, "index") };
+  const privateGit = (_cwd, args) => spawnSync("git", ["-c", "core.autocrlf=false", "-c", "core.bare=false", ...args], { cwd: checkout, env, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
+  const run = (...args) => git(privateGit, checkout, ...args);
+  run("read-tree", mergedTree); run("checkout-index", "--all", "--force");
+  guardGeneratorConfiguration(checkout);
+  const command = (argv, reason) => {
+   const result = runGenerator(argv, checkout, { env, shell: false, timeout: generatorTimeoutMs, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
+   // Diagnostics (including HEAD-based deliverable notes) do not validate the merged tree.
+   if (result.error || result.status !== 0) throw mergeRefusal(reason, `${argv.join(" ")}: exit ${result.status ?? result.signal ?? result.error?.code ?? "unknown"}${resultText(result) ? `: ${resultText(result).slice(0, LAND_REASON_MAX_CHARS).trim()}` : ""}`);
+  };
+  for (const entry of generatorContract) if (conflicts.includes(entry.path)) command(entry.write, "generatorFailed");
+  for (const entry of generatorContract) command(entry.check, "generatorCheck");
+  const allowed = new Set(generatorContract.map(entry => entry.path));
+  // Check worktree changes before staging: index-only changes are checked separately against mergedTree.
+  const changed = run("diff", "--name-only", "-z").split("\0").filter(Boolean);
+  const untracked = run("ls-files", "--others", "-z").split("\0").filter(Boolean); // includes ignored files
+  const outside = [...changed, ...untracked].filter(file => !allowed.has(file));
+  if (outside.length) throw mergeRefusal("generatorScope", `generator changed non-generated file: ${outside.join(", ")}`);
+  run("add", "--", ...generatorContract.map(entry => entry.path));
+  const finalTree = run("write-tree");
+  const treeChanges = run("diff", "--no-renames", "--name-only", "-z", mergedTree, finalTree).split("\0").filter(Boolean).filter(file => !allowed.has(file));
+  if (treeChanges.length) throw mergeRefusal("generatorScope", `generator changed non-generated file: ${treeChanges.join(", ")}`);
+  return finalTree;
+ } finally { rmSync(folder, { recursive: true, force: true }); }
+}
+
+/** Compute an eligible textual or regenerated merge without touching a ref, shared index or checkout. */
+function cleanMergeTree(runGit, main, tip, capturedMain, generators) {
 	const base = git(runGit, main, "merge-base", tip, capturedMain);
 	const changed = (from, to) => git(runGit, main, "diff", "--no-renames", "--name-only", "-z", from, to).split("\0").filter(Boolean);
 	const lanePaths = changed(base, tip), mainPaths = changed(base, capturedMain);
@@ -84,7 +146,11 @@ function cleanMergeTree(runGit, main, tip, capturedMain) {
 		(result.status === 0 ? lines.length !== 1 : lines.length < 2 || lines.slice(1).some((line) => !line))) {
 		throw mergeRefusal("git", `exit ${result.status ?? result.signal ?? "unknown"}: ${String(result.stderr ?? result.error?.message ?? "malformed output").trim()}`);
 	}
-	if (result.status === 1) throw mergeRefusal("conflict", `${lines.slice(1, 1 + CLEAN_MERGE_NAME_CAP).join(", ")}${lines.length - 1 > CLEAN_MERGE_NAME_CAP ? ", …" : ""}`);
+	if (result.status === 1) {
+  const conflicts = lines.slice(1);
+  if (conflicts.some(file => !GENERATOR_CONTRACT.some(entry => entry.path === file))) throw mergeRefusal("conflict", `${conflicts.slice(0, CLEAN_MERGE_NAME_CAP).join(", ")}${conflicts.length > CLEAN_MERGE_NAME_CAP ? ", …" : ""}`);
+  return { tree: regenerateTree(runGit, main, lines[0], conflicts, generators), base, regenerated: conflicts };
+ }
 	return { tree: lines[0], base };
 }
 
@@ -118,7 +184,7 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; process and state readers are injectable for controlled callers and tests. */
-function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, platform = process.platform, recordsNow = () => performance.now(), now = () => new Date(), lifecycle }) {
+function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, platform = process.platform, recordsNow = () => performance.now(), now = () => new Date(), generatorContract = GENERATOR_CONTRACT, generatorTimeoutMs = GENERATOR_TIMEOUT_MS, runGenerator = (argv, cwd, options) => spawnSync(process.execPath, argv, { ...options, cwd }), lifecycle }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
 		const repo = repoKeyOf(tree);
@@ -175,7 +241,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			const named = unreviewed.map((sha) => `${sha} ${git(runGit, tree, "show", "-s", "--format=%s", sha)}`);
 			throw new Error(`uncovered commits (get it reviewed with a new round on the tip or drop it): ${named.join("; ")}`);
 		}
-		const merge = needsMerge ? cleanMergeTree(runGit, main, tip, capturedMain) : null;
+		const merge = needsMerge ? cleanMergeTree(runGit, main, tip, capturedMain, { generatorContract, generatorTimeoutMs, runGenerator }) : null;
 		if (needsMerge) {
 			const laneProof = changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", merge.base, tip));
 			if (!laneProof.ok) throw mergeRefusal("proof", "lane contribution");
@@ -310,7 +376,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		}
 		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...(reviewEvidence?.notes ?? []), ...recordNotes];
 		const relied = [...new Set(reviewEvidence?.relied ?? [])].map((name) => `review text relied on: ${name}`);
-		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${needsMerge ? `${CLEAN_MERGE_PREFIX} ${capturedMain} into ${tip} as ${landedTip}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${needsMerge ? `${CLEAN_MERGE_PREFIX} ${capturedMain} into ${tip} as ${landedTip}\n` : ""}${merge?.regenerated ? `regenerated: ${merge.regenerated.join(", ")}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

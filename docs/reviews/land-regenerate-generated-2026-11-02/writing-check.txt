@@ -1,0 +1,68 @@
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:1: verdict: first sentence "VERDICT: DONE (builder scope; seat-owned mutation pairs and reviews remain)." carries no verdict word
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:7: identifier: `feat/land-regenerate-generated`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:7: identifier: `1af2d93a`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:9: identifier: `core.autocrlf=false`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:10: length: 36 words (cap 25)
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:11: identifier: `GENERATOR_TIMEOUT_MS`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:13: identifier: `refreshWorkingRegion`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:13: identifier: `packages/nana-setup/lib/project.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:17: identifier: `REQUIREMENTS.md`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:17: identifier: `file::title`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:18: identifier: `packages/nana-pack/bin/nana-land.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:19: identifier: `packages/nana-pack/lib/land-config.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:20: identifier: `packages/nana-pack/tests/land-regenerate.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:20: identifier: `land-clean-merge.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:21: identifier: `packages/nana-pack/tests/land-fixtures.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:22: identifier: `AGENTS.md`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:23: identifier: `docs/code-map.md`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:23: identifier: `docs/requirements-tree.md`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:33: identifier: `generatorFailed`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:33: identifier: `generatorCheck`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:33: identifier: `generatorScope`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:35: identifier: `read-tree`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:35: identifier: `checkout-index`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:35: identifier: `GIT_DIR`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:35: identifier: `GIT_WORK_TREE`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:35: identifier: `GIT_INDEX_FILE`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:35: identifier: `core.autocrlf=false`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:37: passive: passive candidate: "staged" in "Only contract outputs are staged."
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:37: passive: passive candidate: "checked" in "Both unstaged/untracked/ignored paths and the final index tree are checked against the contract."
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:39: passive: passive candidate: "claimed" in "No filesystem confinement is claimed."
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:39: identifier: `finally`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:46: identifier: `code-map.config.json`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:46: identifier: `mapPath`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:54: identifier: `wrong-code.txt`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:68: passive: passive candidate: "edited" in "Only one existing test was edited: `land-clean-merge.test.mjs` M9."
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:68: passive: passive candidate: "deleted" in "No other existing test assertion or title changed; none was deleted."
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:68: identifier: `land-clean-merge.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:70: identifier: `determinism.txt`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:70: identifier: `core.autocrlf=false`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:70: identifier: `true`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:74: identifier: `build-1-green.txt`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:76: identifier: `node packages/nana-pack/tests/land-regenerate.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:77: identifier: `node packages/nana-pack/tests/land-clean-merge.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:78: identifier: `node packages/nana-pack/tests/land-clean-merge-race.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:79: identifier: `node packages/nana-pack/tests/land.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:80: identifier: `node packages/nana-pack/tests/land-merge.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:81: identifier: `node packages/nana-pack/tests/land-records.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:82: identifier: `node packages/nana-pack/tests/test-runner.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:83: identifier: `land-merge.test.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:84: identifier: `npm run map`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:85: identifier: `node scripts/requirements-tree.mjs --write`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:86: identifier: `npm run map:check`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:87: identifier: `npm run readme:check`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:88: identifier: `node scripts/requirements-trace.mjs`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:89: identifier: `node scripts/requirements-tree.mjs --check`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:90: identifier: `node scripts/known-bugs.mjs --root .`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:91: identifier: `node scripts/identity-scan.mjs --root .`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:92: identifier: `git diff --check`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:92: identifier: `git -c core.whitespace=-blank-at-eol diff --cached --check`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:93: identifier: `node scripts/lane-class.mjs --root . --files packages/nana-pack/bin/nana-land.mjs,packages/nana-pack/lib/land-config.mjs,packages/nana-pack/tests/land-regenerate.test.mjs,REQUIREMENTS.md`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:93: identifier: `gate: packages/nana-pack/bin/nana-land.mjs — land tool`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:97: passive: passive candidate: "retained" in "The required `VERDICT:` prefix and technical evidence are retained."
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:97: identifier: `nana-writing --report`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:97: identifier: `VERDICT:`
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:101: passive: passive candidate: "needed" in "No private helper exports, copied private helpers or moved helpers were needed."
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:103: passive: passive candidate: "fixed" in "No unrelated known bug was fixed, and the known-bug file was not edited."
+docs/reviews/land-regenerate-generated-2026-11-02/build-report.md:103: identifier: `docs/known-bugs/FEAT-008.md`
+summary sentences=107 words=1058 over=1 passive=8 banned=0 verdict=0/1 identifiers=57

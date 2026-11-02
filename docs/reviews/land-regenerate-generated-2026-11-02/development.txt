@@ -1,0 +1,6 @@
+PASS M1: generated-only conflicts land actual generator bytes and preserve the merged sources
+PASS M2: non-contract and rename conflicts refuse while contract modify-delete regenerates
+PASS M3: failed timed-out and post-write checks refuse and remove only owned temporary state
+PASS M4: scope guard catches tracked index-only untracked ignored and configured escapes
+PASS M5: sealed Node argv ignores npm scripts and replaces decoys across line transports
+PASS M6: generator contract argv timeout and refusal vocabulary are sealed

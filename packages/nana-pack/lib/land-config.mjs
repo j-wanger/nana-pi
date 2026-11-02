@@ -58,6 +58,16 @@ export const CLEAN_MERGE_REASONS = Object.freeze({
 	proof: "clean merge proof path changed", ciChanged: "clean merge CI changed before lock",
 });
 
+// contract (R-3711, plan Revision 2), chosen 2026-11-02: only these generated outputs and direct Node argv qualify.
+export const GENERATOR_CONTRACT = Object.freeze([
+ Object.freeze({ path: "docs/code-map.md", write: Object.freeze(["scripts/code-map.mjs", "--write"]), check: Object.freeze(["scripts/code-map.mjs", "--check"]) }),
+ Object.freeze({ path: "docs/requirements-tree.md", write: Object.freeze(["scripts/requirements-tree.mjs", "--write"]), check: Object.freeze(["scripts/requirements-tree.mjs", "--check"]) }),
+]);
+// chosen 2026-11-02 (R-3711): thirty seconds bounds each local generator command, without a shell or npm.
+export const GENERATOR_TIMEOUT_MS = 30_000;
+// contract (R-3711): independent vocabulary preserves the existing clean-merge seal.
+export const GENERATOR_REASONS = Object.freeze({ generatorFailed: "generatorFailed", generatorCheck: "generatorCheck", generatorScope: "generatorScope" });
+
 // contract (R-3430, R-3431): one source line on a successful land.
 export const SUITE_LINE_PREFIX = "suite:";
 

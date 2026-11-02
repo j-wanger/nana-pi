@@ -7,8 +7,9 @@
  * @errors Git, review, and assertion failures escape to the calling test case.
  */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, writeFileSync, readFileSync, copyFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { readLandLedger, landRecordsPath } from "../lib/land-records.mjs";
 import os from "node:os";
 import path from "node:path";
@@ -17,8 +18,9 @@ import { runLand } from "../bin/nana-land.mjs";
 import { admit, complete } from "../bin/review-round.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { CI_ARTIFACT_PREFIX } from "../lib/suite-records-config.mjs";
+import * as landConfig from "../lib/land-config.mjs";
 
-export const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+export const git = (cwd, ...args) => execFileSync("git", args[0] === 'clone' ? ['clone', '--config', 'core.autocrlf=false', ...args.slice(1)] : args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 
 export const repo = (root, name) => {
 	const dir = path.join(root, name); mkdirSync(dir, { recursive: true });
@@ -122,6 +124,59 @@ export function executeCleanMerge(f, { records = true, runs = [workflowRun({ pat
 		runGh: (cwd, args, opts) => { calls.push(args); const result = gh(cwd, args, opts); return afterGh(args, calls, result) ?? result; } });
 	const common = path.resolve(f.main, git(f.main, "rev-parse", "--git-common-dir"));
 	return { ...out, suites, calls, end: readLandLedger(landRecordsPath(common)).records.at(-1) };
+}
+
+/** Copy the real generators and their literal relative-import closure, never seat scripts. */
+export function copyGenerators(destination) {
+ const root = fileURLToPath(new URL('../../../', import.meta.url)), copied = new Set();
+ const copy = rel => {
+  if (copied.has(rel)) return; copied.add(rel);
+  const source = readFileSync(path.join(root, rel), 'utf8');
+  mkdirSync(path.dirname(path.join(destination, rel)), {recursive:true});
+  copyFileSync(path.join(root, rel), path.join(destination, rel));
+  for (const match of source.matchAll(/(?:from\s*|import\s*\()\s*["'](\.[^"']+)["']/g)) {
+   const dep = path.normalize(path.join(path.dirname(rel), match[1]));
+   if (/\.(mjs|js|ts)$/.test(dep)) copy(dep);
+  }
+ };
+ copy('scripts/code-map.mjs'); copy('scripts/requirements-tree.mjs');
+}
+
+export const generatorRun = (cwd, argv, options = {}) => spawnSync(process.execPath, argv, {cwd, encoding:'utf8', timeout:landConfig.GENERATOR_TIMEOUT_MS, ...options});
+export const fixtureModule = name => `/**\n * @module src/${name}.mjs\n * @purpose Declare ${name}.\n * @inputs none\n * @outputs A named value.\n * @effects none\n * @errors none\n */\nexport const ${name} = 1;\n`;
+export const fixtureLedger = (main = false, lane = false) => `# CAP-01 · Fixture\nPurpose: Exercise merged rows.\n\n## FEAT-001 · Main\nPurpose: Hold main rows.\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | Base shall exist. | planned | |\n${main ? '| R-002 | Main shall exist. | planned | |\n' : ''}\n\n\n\n\n\n\n\n\n\n## FEAT-002 · Lane\nPurpose: Hold lane rows.\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-003 | Lane base shall exist. | planned | |\n${lane ? '| R-004 | Lane shall exist. | planned | |\n' : ''}`;
+
+/** Real-generator conflicts with main-only tracked content and independently rendered output oracles. */
+export function regenerateFixture(name, conflicts = ['docs/code-map.md', 'docs/requirements-tree.md']) {
+ const f = cleanMergeFixture(`regenerate-${name}`);
+ git(f.main, 'reset', '--hard', f.base); git(f.feature, 'reset', '--hard', f.base);
+ copyGenerators(f.main);
+ mkdirSync(path.join(f.main, 'src')); mkdirSync(path.join(f.main, 'docs'));
+ writeFileSync(path.join(f.main, 'src/base.mjs'), fixtureModule('base'));
+ writeFileSync(path.join(f.main, 'REQUIREMENTS.md'), fixtureLedger());
+ writeFileSync(path.join(f.main, 'code-map.config.json'), JSON.stringify({mapPath:'docs/code-map.md', roots:['src'], moduleExtensions:['.mjs'], packages:[{name:'fixture',prefix:''}], layers:[{id:'code', title:'Code', blurb:'Fixture', match:'.*'}]}));
+ writeFileSync(path.join(f.main, 'package.json'), JSON.stringify({scripts:{map:'node -e "process.exit(99)"'}}));
+ for (const script of ['code-map','requirements-tree']) assert.equal(generatorRun(f.main,[`scripts/${script}.mjs`,'--write']).status,0);
+ git(f.main,'add','.'); git(f.main,'commit','-m','generator base'); f.base=git(f.main,'rev-parse','HEAD');
+ git(f.feature,'reset','--hard', f.base);
+ // An ordinary clean merge supplies the independent non-contract tree and output oracle.
+ commit(f.feature,'src/lane.mjs',fixtureModule('lane'),'lane module');
+ commit(f.feature,'REQUIREMENTS.md',fixtureLedger(false,true),'lane row');
+ commit(f.main,'src/main.mjs',fixtureModule('main'),'main module');
+ commit(f.main,'REQUIREMENTS.md',fixtureLedger(true,false),'main row');
+ const oracle=path.join(f.root,'oracle'); git(f.root,'clone','--no-hardlinks',f.main,oracle);
+ git(oracle,'config','user.name','Synthetic'); git(oracle,'config','user.email','synthetic@example.invalid');
+ git(oracle,'checkout','--detach',git(f.feature,'rev-parse','HEAD')); git(oracle,'merge','--no-ff','--no-edit',git(f.main,'rev-parse','HEAD'));
+ f.expected = {};
+ for (const script of ['code-map','requirements-tree']) {
+  const r=generatorRun(oracle,[`scripts/${script}.mjs`,'--write']); assert.equal(r.status,0,r.stderr);
+ }
+ for (const file of ['docs/code-map.md','docs/requirements-tree.md']) {
+  f.expected[file]=readFileSync(path.join(oracle,file),'utf8');
+  for (const [dir, side] of [[f.feature,'lane'],[f.main,'main']]) commit(dir,file,conflicts.includes(file)?`${side} hand merge decoy\n`:f.expected[file],`${side} generated decoy`);
+ }
+ f.oracle=oracle; f.tip=git(f.feature,'rev-parse','HEAD'); f.capturedMain=git(f.main,'rev-parse','HEAD');
+ return f;
 }
 
 export const ensureCiReview = (fixture) => {

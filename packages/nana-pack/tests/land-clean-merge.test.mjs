@@ -150,7 +150,7 @@ await check('M8: accepted policy limit lands a textually clean but semantically 
  assert.notEqual(broken.status,0); assert.match(broken.stderr,/does not provide an export named 'oldName'/);
 });
 
-// req: R-3696
+// req: R-3696, R-3712
 await check('M9: shared guidance, rendered region, README and ruling agree on the exemption', () => {
  const read=rel=>fs.readFileSync(new URL(`../../../${rel}`,import.meta.url),'utf8');
  const shared=read('templates/_shared/working-under-nana-pi.md'), agents=read('AGENTS.md');
@@ -164,7 +164,9 @@ await check('M9: shared guidance, rendered region, README and ruling agree on th
  assert(shared.includes("When main's push run for a landed commit is red, land nothing else until the fix lands."));
  const readme=read('packages/nana-pack/README.md');
  for(const phrase of ['without new CI or review','merge.renormalize=false','check-attr --source','git ≥ 2.40','bors-ng']) assert(readme.includes(phrase),phrase);
- const ruling='- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land.';
+ const exception='a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict';
+ for(const text of [shared,readme])assert(text.includes(exception),exception);
+ const ruling='- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review; a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land.';
  const rulings=read('packages/nana-pack/rules/nana-rulings.md');
  assert.equal(rulings.split('\n').filter(line=>line===ruling).length,1);
  assert(!rulings.includes('- 2026-10-10: An independent reviewer'));
