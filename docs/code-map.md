@@ -952,7 +952,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — CI record and missing-input lines with a success code only when one record prints.
 - **effects** — process (runs git and gh through the pack reader), network (through gh), disk (temporary artifact downloads).
 - **errors** — Named revision, origin, gh, run, artifact, record, and cleanup failures return or retain the reader's code.
-- **callers** — `packages/nana-pack/tests/ci-records.test.mjs`
+- **callers** — `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`
 - **callees** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`
 
 ### `scripts/code-map-launch-config.mjs`
@@ -3220,7 +3220,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temp fixtures and a slow CPU-sampler shim), process (git, command subprocesses and the bounded shim)
 - **errors** — A failed comparison prints its cases and exits nonzero.
 - **callers** — —
-- **callees** — `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/ci-records.mjs`
 
 ### `packages/nana-pack/tests/build-records.test.mjs`
 

@@ -19,6 +19,7 @@ const tracked = git("ls-tree", "-rz", "--name-only", "main").split("\0").filter(
 const files = tracked.filter((file) => file.startsWith("docs/reviews/") && /[^/]*(?:brief|plan)[^/]*\.md$/.test(file));
 const counts = {};
 const changedOutcomes = [];
+const directions = { acceptedToRefused: 0, refusedToAccepted: 0 };
 const changedExtensionless = [];
 let sections = 0;
 for (const file of files) {
@@ -32,20 +33,24 @@ for (const file of files) {
 		const prior = before[index], next = after[index];
 		const bullet = entryText(raw.find((entry) => entry.line === prior.line));
 		const clean = bullet.replaceAll("**", "");
-		const first = clean.split(/\s+/, 1)[0];
+		const first = prior.value;
 		const kind = prior.kind.includes("none") ? "none" : clean.startsWith("`") ? "backticked-first" : first.includes("/") || /^[\w.-]+\.[A-Za-z0-9]+$/.test(first) ? "bare-path-first" : clean.includes("`") ? "prose-with-span" : "bare-word";
 		const oldPass = old.checkPrecedent([prior], tracked).length === 0;
 		const newPass = checkPrecedent([next], tracked).length === 0;
 		const changedValue = prior.value !== next.value;
 		const record = { file, line: prior.line, kind, bullet, oldValue: prior.value, newValue: next.value, oldPass, newPass };
 		console.log(JSON.stringify(record));
-		const count = counts[kind] ??= { bullets: 0, changedValues: 0, changedOutcomes: 0 };
+		const count = counts[kind] ??= { bullets: 0, changedValues: 0, changedOutcomes: 0, acceptedToRefused: 0, refusedToAccepted: 0 };
 		count.bullets++; count.changedValues += Number(changedValue); count.changedOutcomes += Number(oldPass !== newPass);
-		if (oldPass !== newPass) changedOutcomes.push(record);
+		if (oldPass !== newPass) {
+			changedOutcomes.push(record);
+			const direction = oldPass ? "acceptedToRefused" : "refusedToAccepted";
+			count[direction]++; directions[direction]++;
+		}
 		if (kind === "prose-with-span" && changedValue) changedExtensionless.push(record);
 	}
 }
-console.log("SUMMARY", JSON.stringify({ sections, counts }));
+console.log("SUMMARY", JSON.stringify({ sections, directions, counts }));
 console.log("CHANGED OUTCOMES", JSON.stringify(changedOutcomes));
 console.log("CHANGED EXTENSIONLESS FIRST WORD SELECTIONS", JSON.stringify(changedExtensionless));
-if (counts["bare-path-first"]?.changedOutcomes !== 0) process.exitCode = 1;
+if (directions.acceptedToRefused !== 0 || counts["bare-path-first"]?.changedOutcomes !== 0) process.exitCode = 1;

@@ -40,6 +40,12 @@ function firstCodeSpan(text) {
 	return null;
 }
 
+function normalizePath(value) {
+	while (value && PRECEDENT_TRAILING_PUNCTUATION.includes(value.at(-1))) value = value.slice(0, -1);
+	value = value.replace(LINE_SUFFIX, "").replaceAll("\\", "/");
+	return value.startsWith("./") ? value.slice(2) : value;
+}
+
 function normalizeEntry(entry) {
 	const bullet = entryText(entry);
 	const text = bullet.replaceAll("**", "");
@@ -49,14 +55,13 @@ function normalizeEntry(entry) {
 	}
 	const first = text.split(/\s+/, 1)[0] ?? "";
 	const span = firstCodeSpan(text);
-	const pathShaped = first.replaceAll("\\", "/").includes("/") || /^[\w.-]+\.[A-Za-z0-9]+$/.test(first);
-	let value = span && (span.index === 0 || !pathShaped) ? span.value : first.replaceAll("`", "");
+	const normalizedFirst = normalizePath(first);
+	const pathShaped = normalizedFirst.includes("/") || /^[\w.-]+\.[A-Za-z0-9]+$/.test(normalizedFirst);
+	let value = span && (span.index === 0 || !pathShaped) ? span.value.split(/\s+/, 1)[0] : first.replaceAll("`", "");
 	// Keep the historical suffix outside a leading span, too (`seed`:12).
 	if (span?.index === 0) value += /^(:\d+(?:-\d+)?)/.exec(text.slice(span.end))?.[1] ?? "";
 	const unsafeBeforeMarks = unsafePath(value.replaceAll("\\", "/"));
-	while (value && PRECEDENT_TRAILING_PUNCTUATION.includes(value.at(-1))) value = value.slice(0, -1);
-	value = value.replace(LINE_SUFFIX, "").replaceAll("\\", "/");
-	if (value.startsWith("./")) value = value.slice(2);
+	value = normalizePath(value);
 	const unsafe = unsafeBeforeMarks || unsafePath(value) || value.includes("://");
 	return { kind: unsafe ? "invalid-path" : "path", value, line: entry.line, bullet };
 }

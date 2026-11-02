@@ -148,6 +148,8 @@ check("R-2621: brief-check names the brief path it tried and the base a relative
 // Literal compatibility fixtures from anatomy-label-check, ci-suite,
 // ci-timing-records and build-records briefs/plans (copied, never read at runtime).
 const compatibility = [
+	["- `scripts/ci-records.mjs:19-30, :44-67`: `ghFromEnvironment`, the command seam that every OS can use, and `ghResult`, whose result classes these are. Both move into gh-runner.mjs, as named moves, and gain a timeout class.", "scripts/ci-records.mjs", "path"],
+	["- REQUIREMENTS.md:788-791 — R-2573, R-2574 and R-2576; R-2905 at `:727`; R-1460's lines at `:2217-2219`.", "REQUIREMENTS.md", "path"],
 	["- `apps/bench/lib/anatomy.mjs`", "apps/bench/lib/anatomy.mjs", "path"],
 	["- AGENTS.md — \"Shared-machine test runs\" is nana-pi's own section after the markers; \"CI covers this repository's suite\" goes there only (S7). \"Install check before a land\" is left alone.", "AGENTS.md", "path"],
 	["- packages/nana-pack/bin/review-ledger.mjs — the `report` subcommand's `--repo` handling, line shape and not-a-repository message.", "packages/nana-pack/bin/review-ledger.mjs", "path"],
@@ -163,18 +165,18 @@ check("R-3718: literal legacy subjects keep their values and membership outcomes
 }));
 
 const runnerPath = "packages/nana-pack/tests/test-runner.test.mjs";
-for (const name of [runnerPath, "space name.mjs"]) {
+for (const name of [runnerPath, "space"]) {
 	fs.mkdirSync(path.dirname(path.join(lane, name)), { recursive: true });
 	fs.writeFileSync(path.join(lane, name), "fixture\n");
 }
-git(lane, "add", runnerPath, "space name.mjs");
+git(lane, "add", runnerPath, "space");
 git(lane, "commit", "-qm", "selection fixtures");
 const selectionCases = [
 	[`- the runner's declared Windows skip list in \`${runnerPath}\` (case J)…`, runnerPath],
 	[`- the **runner** in \`${runnerPath}:12-30\`,`, runnerPath],
 	[`- the runner reads\n  \`${runnerPath}\``, runnerPath],
 	[`- the runner in \`\` ${runnerPath} \`\``, runnerPath],
-	["- the file `space name.mjs`", "space name.mjs"],
+	["- the file `space name.mjs`", "space"],
 	[`- the runner in \`${runnerPath}\` then \`missing.mjs\``, runnerPath],
 ];
 const selectionResults = [];
