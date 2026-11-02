@@ -1,0 +1,32 @@
+seat-mutate: lane builder-credential-strip, tip 33ec3542023c26efe86f0dfb4ea8aa20cd6b2a6b, table 2807c7a17fa44262a0cbde447a21c8096d6b42eff7b71a1503471edb76010caf, merge-base 816f63db6d3de3bb819c38660e1ac90c601bbc4e, 8 pairs in 2 shards (4+4, round-robin, 4s apart), win32, node v22.22.2, 2026-11-02T07:22:15.296Z
+DECLARED (plan) one or more pairs per must-meet row, from the plan's wrong versions and the adversary's five MUST findings
+DECLARED (attack MUST 5) R-3436/R-3437/R-3665 wording is pinned by literal checks; S8 covers the preamble, the rulings text rests on M6
+[1/2] seat-mutate: lane builder-credential-strip, shard 1/2, tip 33ec3542023c26efe86f0dfb4ea8aa20cd6b2a6b, merge-base 816f63db6d3de3bb819c38660e1ac90c601bbc4e, 4 pairs, win32, node v22.22.2, 2026-11-02T07:22:18.811Z
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] BASELINE ok   packages/nana-pack/tests/credential-strip.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] BASELINE ok   packages/nana-pack/tests/credential-gate.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[1/2] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+[2/2] seat-mutate: lane builder-credential-strip, shard 2/2, tip 33ec3542023c26efe86f0dfb4ea8aa20cd6b2a6b, merge-base 816f63db6d3de3bb819c38660e1ac90c601bbc4e, 4 pairs, win32, node v22.22.2, 2026-11-02T07:22:23.258Z
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] BASELINE ok   packages/nana-pack/tests/credential-strip.test.mjs (exit 0, 6 PASS, 0 FAIL, )
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] BASELINE ok   packages/nana-pack/tests/credential-gate.test.mjs (exit 0, 2 PASS, 0 FAIL, )
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] seat-mutate: npm could not give prefix, globalconfig, userconfig, global_prefix
+[2/2] RESULT: 4/4 red (3 exactly their named titles, 0 with a named title green, 1 with an unnamed red), 0 survived
+RED S1 the reset goes only into the counted form (attack MUST 1) — 2/2 named: /^M1: builder children suppress fixture credential dispatch/ | /^M2: reviewer entry points suppress fixture credential dispatch/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S2 askpass routes are left alone (attack MUST 2) — 2/2 named: /^M1: builder children suppress fixture credential dispatch/ | /^M7: credential strip configuration seal/; UNNAMED red: [credential-strip.test.mjs] M2: reviewer entry points suppress fixture credential dispatch pi-review/git-askpass/raw: password, invocatio…; 3 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S3 the Claude builder's settings env is not stripped (attack MUST 3) — 1/1 named: /^M1: builder children suppress fixture credential dispatch/; UNNAMED red: [credential-strip.test.mjs] M3: unrelated inherited git configuration keeps its effect claude-worker/global; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S4 a direct review-ledger run is not stripped (attack MUST 4) — 1/1 named: /^M2: reviewer entry points suppress fixture credential dispatch/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S5 the gate floor skips reviewers — 1/1 named: /^M4: credential commands form a role-scoped non-exemptible floor/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S6 the gate floor also blocks the seat (no role) — 1/1 named: /^M4: credential commands form a role-scoped non-exemptible floor/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S7 gh auth token slips past the gate — 2/2 named: /^M4: credential commands form a role-scoped non-exemptible floor/ | /^M7: credential gate pattern seal/; 2 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RED S8 the preamble tells builders to push again — 1/1 named: /^M5: shipped builder guidance assigns pushes to the seat/; 1 FAIL total (1 file changed, 1 insertion(+), 1 deletion(-))
+RESULT: 8/8 red (6 exactly their named titles, 0 with a named title green, 2 with an unnamed red), 0 survived, across 2 shards
