@@ -2,7 +2,7 @@
 
 Read every feature this names before you judge the change.
 
-tree movement 4eda88e..a423f8c: 19 rows in 3 features
+tree movement 4eda88e..3b9e4c7: 19 rows in 3 features
 FEAT-041 · Shape each agent's context by role
   R-3215 text changed
   R-3526 new (implemented)
