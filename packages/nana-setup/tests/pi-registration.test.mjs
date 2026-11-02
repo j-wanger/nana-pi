@@ -13,6 +13,7 @@
 // absolute path; git entries are the repo URL without a ref.
 import { tmpDir } from "./tmp-dir.mjs";
 import { withPiStub } from "./stub-pi.mjs";
+import { withPathPrepended } from "../../nana-pack/tests/env-path.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -375,11 +376,11 @@ if (process.platform === "win32") {
 		: { status: 1, stderr: "npm_execpath is not set" };
 	const fixtureInstalled = installed.status === 0;
 	check("Windows fixture npm installed the local shim", fixtureInstalled, installed.stderr);
-	const env = { ...process.env, PATH: `${prefix};${process.env.PATH ?? ""}` };
+	const env = withPathPrepended(process.env, prefix);
 	const expectedShim = path.join(prefix, "pi.cmd");
 	const selected = findPi({ env, cwd: prefix });
 	const selectedFixture = selected === expectedShim;
-	// req: R-1033
+	// req: R-1033 R-3453
 	check("Windows integration selected the prepended npm pi shim", selectedFixture, selected);
 	if (!fixtureInstalled || !selectedFixture) {
 		console.log("SKIP Windows npm-shim registration: fixture installation or exact findPi precondition failed");

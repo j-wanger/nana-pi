@@ -772,7 +772,7 @@ concurrent edit remains loud and is recorded unverified. Redirect checks do not 
 submodule contents, so logs redirected inside a submodule are not detected.
 `~/.local/bin/pi-review` symlinks this file, so the command works from any repo — not only the one
 it used to live in. `~/nana-agent-loop/app/scripts/pi-review.mjs` is now a forwarder onto this bin.
-Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs` (processes), `tests/review-launch.test.mjs` (command launch).
+Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs`, `tests/review-ledger-launch.test.mjs`, `tests/review-ledger-verdicts.test.mjs` and `tests/review-ledger-state.test.mjs` over `tests/review-ledger-fixture.mjs` (processes), `tests/review-launch.test.mjs` (command launch).
 
 ## Session-start frontier summary
 

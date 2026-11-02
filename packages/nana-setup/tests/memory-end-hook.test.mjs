@@ -23,6 +23,9 @@ const td = tmpDir(path.join(os.tmpdir(), 'memory-end-'));
 const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: td, USERPROFILE: td, PI_CODING_AGENT_DIR: td };
 const load = () => import('../claude/hooks/nana-memory-end.mjs');
 const config = () => import('../lib/memory-end-config.mjs');
+const DETACHED_FIXTURE_EXIT_WAIT_MS = 10_000;
+let detachedFixturePidFile;
+function isProcessRunning(pid) { try { process.kill(pid,0); return true; } catch (error) { return error.code !== 'ESRCH'; } }
 const raw = (extra={}) => JSON.stringify({transcript_path:'synthetic.jsonl',cwd:td,...extra});
 const runChild = (file, input, open=false) => new Promise((resolve,reject)=>{
  const started=Date.now(), child=spawn(process.execPath,[file],{env,detached:process.platform!=='win32',stdio:['pipe','pipe','pipe']});
@@ -66,15 +69,15 @@ try {
  await check('R-3355: run survives hook exit and timeout descendant kill',async()=>{
   const {MEMORY_END_TIMEOUT_SECONDS}=await config();const tree=path.join(td,'tree');
   for(const [source,target] of [[hook,'packages/nana-setup/claude/hooks/nana-memory-end.mjs'],[fileURLToPath(new URL('../lib/shared-memory-input.mjs',import.meta.url)),'packages/nana-setup/lib/shared-memory-input.mjs'],[fileURLToPath(new URL('../lib/memory-end-config.mjs',import.meta.url)),'packages/nana-setup/lib/memory-end-config.mjs'],[fileURLToPath(new URL('../../nana-pack/lib/memory-start.mjs',import.meta.url)),'packages/nana-pack/lib/memory-start.mjs']]){const dest=path.join(tree,target);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync(source,dest);}
-  const cli=path.join(tree,'packages/nana-pack/bin/nana-memory.mjs'),marker=path.join(td,'marker'),spawned=path.join(td,'spawned');fs.mkdirSync(path.dirname(cli),{recursive:true});
-  fs.writeFileSync(cli,`import fs from 'node:fs';fs.writeFileSync(${JSON.stringify(spawned)},String(Date.now()));setTimeout(()=>fs.writeFileSync(${JSON.stringify(marker)},'finished'),3000);`);
+  const cli=path.join(tree,'packages/nana-pack/bin/nana-memory.mjs'),marker=path.join(td,'marker'),spawned=path.join(td,'spawned');detachedFixturePidFile=path.join(td,'detached-pid');fs.mkdirSync(path.dirname(cli),{recursive:true});
+  fs.writeFileSync(cli,`import fs from 'node:fs';fs.writeFileSync(${JSON.stringify(spawned)},String(Date.now()));fs.writeFileSync(${JSON.stringify(detachedFixturePidFile)},String(process.pid));setTimeout(()=>fs.writeFileSync(${JSON.stringify(marker)},'finished'),3000);`);
   const child=spawn(process.execPath,[path.join(tree,'packages/nana-setup/claude/hooks/nana-memory-end.mjs')],{env,detached:process.platform!=='win32',stdio:['pipe','pipe','pipe']});
   let exit=null,stdout='',stderr='';child.on('exit',code=>{exit={code,at:Date.now()};});child.stdout.on('data',x=>stdout+=x);child.stderr.on('data',x=>stderr+=x);child.stdin.end(raw());
   await new Promise(r=>setTimeout(r,MEMORY_END_TIMEOUT_SECONDS*1000));
   if(process.platform==='win32')spawnSync('taskkill',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,timeout:3000});
   else {const ps=spawnSync('ps',['-A','-o','pid=,ppid='],{encoding:'utf8',timeout:3000});const rows=ps.stdout.trim().split(/\r?\n/).map(s=>s.trim().split(/\s+/).map(Number));const ids=new Set([child.pid]);let size;do{size=ids.size;for(const [pid,ppid]of rows)if(ids.has(ppid))ids.add(pid);}while(ids.size!==size);try{process.kill(-child.pid,'SIGKILL');}catch{}for(const pid of ids)try{process.kill(pid,'SIGKILL');}catch{}}
-  const deadline=Date.now()+10000;while(!fs.existsSync(marker)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,50));
-  assert.ok(fs.existsSync(spawned),'fixture must start even in CI');assert.ok(exit,'hook exited before timeout kill');assert.equal(exit.code,0);assert.ok(exit.at-Number(fs.readFileSync(spawned,'utf8'))<500,'spawn last, exit immediately');assert.equal(stdout,'');assert.equal(stderr,'');assert.ok(fs.existsSync(marker),'detached run finished');
+  const deadline=Date.now()+DETACHED_FIXTURE_EXIT_WAIT_MS;while((!fs.existsSync(marker)||!fs.existsSync(detachedFixturePidFile)||isProcessRunning(Number(fs.readFileSync(detachedFixturePidFile,'utf8'))))&&Date.now()<deadline)await new Promise(r=>setTimeout(r,50));
+  assert.ok(fs.existsSync(spawned),'fixture must start even in CI');assert.ok(exit,'hook exited before timeout kill');assert.equal(exit.code,0);assert.ok(exit.at-Number(fs.readFileSync(spawned,'utf8'))<500,'spawn last, exit immediately');assert.equal(stdout,'');assert.equal(stderr,'');assert.ok(fs.existsSync(marker),'detached run finished');assert.ok(fs.existsSync(detachedFixturePidFile),'detached fixture recorded its pid');assert.equal(isProcessRunning(Number(fs.readFileSync(detachedFixturePidFile,'utf8'))),false,'detached fixture exited');
  });
  // req: R-3358
  await check('R-3358: seal entry timeout',async()=>assert.equal((await config()).MEMORY_END_TIMEOUT_SECONDS,1.5));
@@ -82,5 +85,10 @@ try {
  await check('R-3359: seal stdin deadline',async()=>assert.equal((await config()).MEMORY_STDIN_DEADLINE_MS,300));
  // req: R-3360
  await check('R-3360: seal hook identity',async()=>assert.deepEqual((await config()).MEMORY_END_ENTRY,{event:'SessionEnd',file:'nana-memory-end.mjs',statusMessage:'nana: memory'}));
-// The detached fixture may still hold its cwd briefly after writing its marker on Windows.
-} finally {fs.rmSync(td,{recursive:true,force:true,maxRetries:TEMP_REMOVE_RETRIES,retryDelay:TEMP_REMOVE_RETRY_DELAY_MS});}
+} finally {
+ if(detachedFixturePidFile&&fs.existsSync(detachedFixturePidFile)){
+  const pid=Number(fs.readFileSync(detachedFixturePidFile,'utf8')),deadline=Date.now()+DETACHED_FIXTURE_EXIT_WAIT_MS;
+  while(isProcessRunning(pid)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,50));
+ }
+ fs.rmSync(td,{recursive:true,force:true,maxRetries:TEMP_REMOVE_RETRIES,retryDelay:TEMP_REMOVE_RETRY_DELAY_MS});
+}

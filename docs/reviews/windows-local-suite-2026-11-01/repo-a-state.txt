@@ -1,0 +1,44 @@
+# Repo A state at block entry, before and after the review-ledger split (reference Windows 11 laptop, 2026-11-01).
+# Label Lnnn is the block's opener line in the original review-ledger.test.mjs. HEAD is shown as the index into repo A's six commits, because a commit id differs per run.
+# Taken with a temporary print at each block's entry, removed before the commit. The ten blocks plan A3 names that the split moves (0, unread-rounds-left, redirect, shape, 13, 14, 15, 17, 20, 21); the first block, 0, stays first in its file.
+
+block 0
+  before: L127 head=shas[5] refs/heads/master ""
+  after:  L127 head=shas[5] refs/heads/master ""
+  equal
+block unread-rounds-left
+  before: L398 head=shas[0] detached ""
+  after:  L398 head=shas[0] detached ""
+  equal
+block redirect
+  before: L686 head=shas[0] detached ""
+  after:  L686 head=shas[0] detached ""
+  equal
+block shape
+  before: L712 head=shas[0] detached "?? redirect.log\n"
+  after:  L712 head=shas[0] detached "?? redirect.log\n"
+  equal
+block 13
+  before: L1030 head=shas[3] detached "?? redirect.log\n"
+  after:  L1030 head=shas[3] detached "?? redirect.log\n"
+  equal
+block 14
+  before: L1067 head=shas[3] detached "?? redirect.log\n"
+  after:  L1067 head=shas[3] detached "?? redirect.log\n"
+  equal
+block 15
+  before: L1088 head=shas[3] detached "?? redirect.log\n"
+  after:  L1088 head=shas[3] detached "?? redirect.log\n"
+  equal
+block 17
+  before: L1328 head=shas[3] detached "?? redirect.log\n"
+  after:  L1328 head=shas[3] detached "?? redirect.log\n"
+  equal
+block 20
+  before: L1418 head=shas[3] detached "?? redirect.log\n"
+  after:  L1418 head=shas[3] detached "?? redirect.log\n"
+  equal
+block 21
+  before: L1551 head=shas[3] detached "?? redirect.log\n"
+  after:  L1551 head=shas[3] detached "?? redirect.log\n"
+  equal
