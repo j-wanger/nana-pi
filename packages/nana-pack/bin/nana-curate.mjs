@@ -90,7 +90,7 @@ export async function runCurate(argv,{runModel,agentDir=piAgentDir(),env=process
     if(proposal.op==='merge')for(const id of proposal.drop)writeStateEvent(dir,states.find(r=>r.id===id),'supersede',{target:proposal.keep,quote:args.quote},{now});
     else {
      const target=states.find(r=>r.id===proposal.id);
-     for(const id of new Set([target.id,...target.supersedes]))writeStateEvent(dir,states.find(r=>r.id===id),'retract',{quote:args.quote},{now});
+     for(const id of new Set([target.id,...target.absorbed]))writeStateEvent(dir,states.find(r=>r.id===id),'retract',{quote:args.quote},{now});
     }
    }
    for(const proposal of selected)writeCuration(dir,LAYOUT.decisions,{key:proposal.key,action:args.command,proposal},{now});

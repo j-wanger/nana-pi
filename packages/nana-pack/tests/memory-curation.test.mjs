@@ -48,6 +48,33 @@ function snapshot(dir) {
  const walk=base=>!fs.existsSync(base)?[]:fs.readdirSync(base,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(base,e.name)):[path.join(base,e.name)]);
  return Object.fromEntries(walk(dir).filter(file=>!file.includes(`${path.sep}.git${path.sep}`)&&/(?:records|events)[/\\]/u.test(path.relative(dir,file))).map(file=>[path.relative(dir,file),fs.readFileSync(file).toString('hex')]));
 }
+// Immutable manifest includes curation files as well as every area-local record/event.
+function chainManifest(dir) {
+ const walk=base=>fs.readdirSync(base,{withFileTypes:true}).flatMap(e=>e.name==='.git'?[]:e.isDirectory()?walk(path.join(base,e.name)):[path.join(base,e.name)]);
+ return Object.fromEntries(walk(dir).filter(file=>/(?:^|[/\\])(?:records|events|proposals|decisions)[/\\]/u.test(path.relative(dir,file))).map(file=>[path.relative(dir,file),fs.readFileSync(file).toString('hex')]));
+}
+function preserves(dir,before) {
+ const after=chainManifest(dir);for(const [file,bytes] of Object.entries(before))assert.equal(after[file],bytes,'immutable manifest entry');return after;
+}
+async function persist(f,p) {
+ const L=await library(),C=await config();const proposal={...p,group:readMemoryStore(f.a.dir).filter(r=>r.live).map(r=>r.id).sort()};proposal.key=L.proposalKey(proposal);
+ L.writeCuration(f.a.dir,C.LAYOUT.proposals,proposal,{now});committed(f);return proposal;
+}
+async function acceptChain(f,p) {
+ const before=chainManifest(f.a.dir),result=await command(f,['accept',p.key,'--quote',quote()]);assert.equal(result.code,0,'chain accept');
+ const after=preserves(f.a.dir,before),added=Object.keys(after).filter(file=>!(file in before)&&/(?:^|[/\\])events[/\\]/u.test(file));
+ const states=readMemoryStore(f.a.dir);
+ const actual=added.map(file=>{const e=JSON.parse(Buffer.from(after[file],'hex'));return {id:e.id,action:e.action,...(e.target?{target:e.target}:{}),quote:e.quote};}).sort((a,b)=>a.id.localeCompare(b.id));
+ const ids=p.op==='merge'?p.drop:[p.id,...(states.find(r=>r.id===p.id)?.absorbed??[])];
+ // Retirement expectations are supplied before liveness changes by the caller.
+ const expected=(p.expectedIds??ids).map(id=>({id,action:p.op==='merge'?'supersede':'retract',...(p.op==='merge'?{target:p.keep}:{}),quote:quote()})).sort((a,b)=>a.id.localeCompare(b.id));
+ assert.deepEqual(actual,expected,'exact accepted event payloads');return after;
+}
+async function chain(f,n=4) {
+ const rows=Array.from({length:n},(_,i)=>seed(f,100+i));committed(f);
+ for(let i=1;i<n;i++){const p=await persist(f,merge(rows[i].id,[rows[i-1].id]));await acceptChain(f,p);}
+ return rows;
+}
 // req: R-3560
 await check('shared owner words reach the proposer together',()=>using(async f=>{
  const C=await config();const seen=[];
@@ -171,6 +198,76 @@ await check('all commands honor profile and seat refusals',()=>using(async f=>{
  const marker=path.join(f.a.dir,'.nana-profile');fs.renameSync(marker,marker+'.away');await run({},P.marker);fs.renameSync(marker+'.away',marker);
  const dir=path.join(f.a.dir,'records','broken');fs.mkdirSync(dir);fs.writeFileSync(path.join(dir,'broken.json'),'{');await run({},P.git);assert.equal(calls,0);
 }));
+// req: R-3698
+await check('merge chains keep earlier drops out of live queue and sizes',()=>using(async f=>{
+ const L=await library(),C=await config();let previous=chainManifest(f.a.dir);const rows=[];
+ for(let i=0;i<4;i++) {
+  rows.push(seed(f,100+i));committed(f);
+  if(i)await acceptChain(f,await persist(f,merge(rows[i].id,[rows[i-1].id])));
+  previous=preserves(f.a.dir,previous);
+  const states=readMemoryStore(f.a.dir);assert.deepEqual(states.filter(r=>r.live).map(r=>r.id),[rows[i].id],'only newest keep live');
+  const p=await persist(f,retire(rows[i].id));const queue=await command(f,['queue']);assert.equal(queue.code,0);
+  for(const old of rows.slice(0,-1))assert.equal(queue.output.includes(old.claim),false,'queue excludes earlier drops');
+  assert.equal(L.sizeLine(states,[p]),`${C.WORDS.size} profile 0 records 0 chars -> 0 records 0 chars; project 1 records 50 chars -> 0 records 0 chars`,'chain size forecast');
+ }
+}));
+// req: R-3699
+await check('retirement takes absorbed chains but stops at retractions',async()=>{
+ await using(async f=>{
+  const rows=await chain(f),p=await persist(f,retire(rows[3].id));
+  assert.ok((await command(f,['queue'])).output.includes('absorbed 3'),'transitive absorbed count');
+  await acceptChain(f,{...p,expectedIds:rows.map(r=>r.id)});assert.equal(readMemoryStore(f.a.dir).filter(r=>r.live).length,0,'whole chain retired');
+ });
+ await using(async f=>{
+  const {writeStateEvent}=await import('../lib/memory-store.mjs'),L=await library(),C=await config();const [a,b,c]=await chain(f,3);
+  writeStateEvent(f.a.dir,b,'retract',{quote:quote()},{now});committed(f);
+  const states=readMemoryStore(f.a.dir);assert.deepEqual(states.filter(r=>r.live).map(r=>r.id).sort(),[a.id,c.id].sort(),'retract cuts chain');
+  const p=await persist(f,retire(c.id));assert.ok((await command(f,['queue'])).output.includes('absorbed 0'),'cut absorbed count');
+  assert.equal(L.sizeLine(states,[p]),`${C.WORDS.size} profile 0 records 0 chars -> 0 records 0 chars; project 2 records 100 chars -> 1 records 50 chars`,'cut size forecast');
+  await acceptChain(f,{...p,expectedIds:[c.id]});assert.deepEqual(readMemoryStore(f.a.dir).filter(r=>r.live).map(r=>r.id),[a.id],'independent predecessor survives retirement');
+ });
+});
+// req: R-3701
+await check('accept manifests survive both clone sync orders',async()=>{
+ for(const reverse of [false,true])await using(async f=>{
+  const [a,b,c]=[seed(f,100),seed(f,101),seed(f,102)];committed(f);const ab=await persist(f,merge(b.id,[a.id])),bc=await persist(f,merge(c.id,[b.id]));
+  assert.equal(syncProfile({dir:f.a.dir,verifiedPushUrl:f.bare},{runGit:f.runGit}).ok,true);
+  const other=f.clone('other');delete other.env.CI;
+  assert.equal(f.profile(['init','--dir',other.dir,'--save','--unverified-remote'],{agentDir:other.agent,env:other.env}).code,0);
+  // Refuse transport only: both owners can honestly accept from their offline snapshots.
+  const offline=(cwd,args)=>['fetch','push'].includes(args[0])?{status:1,stdout:'',stderr:''}:f.runGit(cwd,args);
+  const baseline=chainManifest(f.a.dir);
+  assert.equal((await command(f,['accept',ab.key,'--quote',quote()],{runGit:offline})).code,0);
+  assert.equal((await command(f,['accept',bc.key,'--quote',quote()],{agentDir:other.agent,env:other.env,runGit:offline})).code,0);
+  const left=preserves(f.a.dir,baseline),right=preserves(other.dir,baseline);
+  for(const [manifest,id,target] of [[left,a.id,b.id],[right,b.id,c.id]]) {
+   const events=Object.keys(manifest).filter(file=>!(file in baseline)&&/(?:^|[/\\])events[/\\]/u.test(file)).map(file=>JSON.parse(Buffer.from(manifest[file],'hex')));
+   assert.deepEqual(events.map(e=>({id:e.id,action:e.action,target:e.target,quote:e.quote})),[{id,action:'supersede',target,quote:quote()}],'offline exact event payload');
+  }
+  const order=reverse?[other,f.a]:[f.a,other];
+  for(const clone of [...order,order[0]])assert.equal(syncProfile({dir:clone.dir,verifiedPushUrl:f.bare},{runGit:f.runGit}).ok,true,'clone sync');
+  const union={...left,...right};for(const clone of [f.a,other]){
+   assert.deepEqual(chainManifest(clone.dir),union,'synced manifest union');
+   assert.deepEqual(readMemoryStore(clone.dir).filter(r=>r.live).map(r=>r.id),[c.id],'synced chain survivor');
+  }
+ });
+});
+// req: R-3702
+await check('persisted stale chain endpoints refuse without writes',async()=>{
+ for(const scenario of ['keep','drop','retract','old-chain'])await using(async f=>{
+  const [a,b,c,d]=[seed(f,100),seed(f,101),seed(f,102),seed(f,103)];committed(f);
+  const p=await persist(f,scenario==='drop'?merge(d.id,[a.id]):scenario==='old-chain'?merge(a.id,[c.id]):merge(a.id,[d.id]));
+  if(scenario==='retract'){
+   const {writeStateEvent}=await import('../lib/memory-store.mjs');writeStateEvent(f.a.dir,a,'retract',{quote:quote()},{now});committed(f);
+  }else{
+   await acceptChain(f,await persist(f,merge(b.id,[a.id])));
+   await acceptChain(f,await persist(f,merge(c.id,[b.id])));
+  }
+  const before=chainManifest(f.a.dir),head=f.git(f.a.dir,'rev-parse','HEAD'),result=await command(f,['accept',p.key,'--quote',quote()]);
+  assert.equal(result.code,1,`stale ${scenario} refuses`);assert.equal(result.error.trim(),(await config()).WORDS.stale,`stale ${scenario} word`);
+  assert.deepEqual(chainManifest(f.a.dir),before,'stale writes nothing');assert.equal(f.git(f.a.dir,'rev-parse','HEAD'),head,'stale makes no commit');
+ });
+});
 // req: R-3568
 await check('seal: quote span and boundary',async()=>{const C=await config(),L=await library();assert.equal(C.QUOTE_SPAN_CHARS,30);const rows=n=>[{id:'a',live:true,quote:'X'.repeat(n)},{id:'b',live:true,quote:'x'.repeat(n)+' \t'}];assert.equal(L.groupRecords(rows(29)).length,2);assert.equal(L.groupRecords(rows(30)).length,1);});
 // req: R-3569

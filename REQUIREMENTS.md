@@ -621,6 +621,35 @@ Purpose: Make new enabled repository units once into a private, synchronized pro
 | R-3341 | The maker shall use the sealed fixed run, status, land and refusal vocabulary. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3341: seal fixed words` |
 | R-3342 | Trigger lane folders shall match the escaped anchored lane followed by an ISO day. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3342: seal anchored escaped lane folder pattern` |
 
+### SUB-027 · Curate memory through the owner's review
+Purpose: Let a model propose merges and retirements of live memory records, and change the store only through the owner's accept.
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3560 | The curator shall group shared owner-quote spans across areas, preserve groups in batches and split oversized groups in date order with a split count. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::shared owner words reach the proposer together` |
+| R-3561 | The propose command shall persist proposals without changing live records, trust, evidence or record bytes, leave a clean writable clone and print only counts and sizes. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::propose leaves live memory unchanged and writable` |
+| R-3562 | The queue shall lead with a privacy line and sizes, number proposals by characters freed then key, show capped claims, source, date, reason and absorbed counts, and fold to the shared profile budget except for its always-visible first entry. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::queue shows bounded numbered private decisions` |
+| R-3563 | The accept command shall require owner words, validate all prefixes and refuse overlapping selections after fetching before writing, and apply area-local immutable supersede or retract events including absorbed records in one clean commit. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::accept writes owner events atomically and refuses stale prefixes` |
+| R-3564 | The curator shall suppress rejected merge subsets and rejected retirements without new group members across synchronized clones. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::rejected subsets stay rejected across machines` |
+| R-3565 | The curator shall fail closed on unavailable or malformed replies, validate each proposal independently, prefer a saved survivor and bound calls through run and shared day caps. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::bad models fail closed and proposal validation is independent` |
+| R-3566 | Every curation command shall refuse roles, CI, linked worktrees, missing pointers or markers and damaged profile JSON before model work. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::all commands honor profile and seat refusals` |
+| R-3567 | The shared memory unit walk shall skip and count curation-review owner turns and ask answers while preserving later unrelated decisions. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::curation review turns never become new memory` |
+| R-3568 | The shared quote-span threshold shall be 30 normalized characters. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: quote span and boundary` |
+| R-3569 | The curation batch cap shall be 60 records. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: batch records` |
+| R-3570 | The curation run call cap shall be 2. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: call cap` |
+| R-3571 | The curation run token cap shall be 200000. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: token cap` |
+| R-3572 | The queue claim cap shall be 300 characters. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: queue claim cap` |
+| R-3573 | The proposal reason cap shall be 600 characters. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: reason cap` |
+| R-3574 | The retirement classes shall be one-off, dated, covered and superseded. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: retirement classes` |
+| R-3575 | The curator system prompt shall have SHA-256 bec06fa37683a2d468bd20dd143d690595b4b3830f615741d18bbc6c571d5dfa. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: system prompt hash` |
+| R-3576 | The curation command pattern shall match memory:curate and nana-curate.mjs command tokens. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: curation command pattern` |
+| R-3577 | Curation shall use projects/curation proposals and decisions with exclusive-create names and the sealed fields, privacy, counts, size, fold and refusal words. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: curation layout and words` |
+| R-3698 | Accepted merge chains shall keep every earlier drop hidden from live memory, queue entries and size counts. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::merge chains keep earlier drops out of live queue and sizes` |
+| R-3699 | Retiring a survivor shall retract exactly its transitive absorbed chain, stopping at explicit retractions and leaving restored records independent. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::retirement takes absorbed chains but stops at retractions` |
+| R-3700 | Profile retractions shall restore the direct predecessor while preserving direct conflict lines, deterministic newest-target cycle winners and hidden incoming tails regardless of file order. | implemented | `packages/nana-pack/tests/profile-store-guards.test.mjs::chain retractions preserve direct conflicts and deterministic cycles` |
+| R-3701 | Curation accepts and two-clone synchronization in either order shall preserve all immutable record, event, proposal and decision bytes and converge on the chain survivor. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::accept manifests survive both clone sync orders` |
+| R-3702 | Persisted proposals with merged-away or explicitly retracted endpoints shall refuse as stale without new events, decisions or commits. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::persisted stale chain endpoints refuse without writes` |
+
 ## FEAT-043 · Measure memory outcomes
 Purpose: Count, per window of owner interactions and pooled, owner corrections and decisions given again, review findings that recur and each role's logged context size, so memory changes are judged against a measured baseline.
 Status: active
@@ -687,30 +716,6 @@ Purpose: Replay past owner corrections from their recorded context with and with
 | R-3387 | Replay shall seal its replay preamble and judge prompt by SHA-256 7893c6547fd75757df56a1d8a92345e0f36445ff59c248d076cb5840b39c7e2c and 89b0101cc9ff07a9033007d6161aa7f77d183370bfec6625deeeadf1ee3f62c9 respectively. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: prompt hashes` |
 | R-3388 | Replay shall count citations at 8 shared words, time out calls at 900000 milliseconds and cap capture at 67108864 bytes. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: citation and capture` |
 | R-3389 | Replay shall use memory-replay.jsonl, plan.json, screen.jsonl, blind.jsonl and the runs and screen directories with the sealed attrition, sensitivity, confirmation, verdict and diagnostic vocabulary. | implemented | `packages/nana-pack/tests/memory-replay.test.mjs::seal: output and fixed words` |
-
-### SUB-027 · Curate memory through the owner's review
-Purpose: Let a model propose merges and retirements of live memory records, and change the store only through the owner's accept.
-
-| ID | Requirement | Status | Evidence |
-|---|---|---|---|
-| R-3560 | The curator shall group shared owner-quote spans across areas, preserve groups in batches and split oversized groups in date order with a split count. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::shared owner words reach the proposer together` |
-| R-3561 | The propose command shall persist proposals without changing live records, trust, evidence or record bytes, leave a clean writable clone and print only counts and sizes. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::propose leaves live memory unchanged and writable` |
-| R-3562 | The queue shall lead with a privacy line and sizes, number proposals by characters freed then key, show capped claims, source, date, reason and absorbed counts, and fold to the shared profile budget except for its always-visible first entry. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::queue shows bounded numbered private decisions` |
-| R-3563 | The accept command shall require owner words, validate all prefixes and refuse overlapping selections after fetching before writing, and apply area-local immutable supersede or retract events including absorbed records in one clean commit. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::accept writes owner events atomically and refuses stale prefixes` |
-| R-3564 | The curator shall suppress rejected merge subsets and rejected retirements without new group members across synchronized clones. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::rejected subsets stay rejected across machines` |
-| R-3565 | The curator shall fail closed on unavailable or malformed replies, validate each proposal independently, prefer a saved survivor and bound calls through run and shared day caps. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::bad models fail closed and proposal validation is independent` |
-| R-3566 | Every curation command shall refuse roles, CI, linked worktrees, missing pointers or markers and damaged profile JSON before model work. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::all commands honor profile and seat refusals` |
-| R-3567 | The shared memory unit walk shall skip and count curation-review owner turns and ask answers while preserving later unrelated decisions. | implemented | `packages/nana-pack/tests/memory-making.test.mjs::curation review turns never become new memory` |
-| R-3568 | The shared quote-span threshold shall be 30 normalized characters. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: quote span and boundary` |
-| R-3569 | The curation batch cap shall be 60 records. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: batch records` |
-| R-3570 | The curation run call cap shall be 2. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: call cap` |
-| R-3571 | The curation run token cap shall be 200000. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: token cap` |
-| R-3572 | The queue claim cap shall be 300 characters. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: queue claim cap` |
-| R-3573 | The proposal reason cap shall be 600 characters. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: reason cap` |
-| R-3574 | The retirement classes shall be one-off, dated, covered and superseded. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: retirement classes` |
-| R-3575 | The curator system prompt shall have SHA-256 bec06fa37683a2d468bd20dd143d690595b4b3830f615741d18bbc6c571d5dfa. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: system prompt hash` |
-| R-3576 | The curation command pattern shall match memory:curate and nana-curate.mjs command tokens. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: curation command pattern` |
-| R-3577 | Curation shall use projects/curation proposals and decisions with exclusive-create names and the sealed fields, privacy, counts, size, fold and refusal words. | implemented | `packages/nana-pack/tests/memory-curation.test.mjs::seal: curation layout and words` |
 
 ## FEAT-005 · Communicate decisions clearly
 Purpose: Deliver the preferred writing guidance and check report readability and structure.

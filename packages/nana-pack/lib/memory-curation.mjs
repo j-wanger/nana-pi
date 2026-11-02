@@ -135,7 +135,7 @@ export function countsLine(c) {
  return `${C.WORDS.counts} proposals ${c.proposals}; batches ${c.batches}; rejected ${c.rejected}; dropped ${c.dropped}; decided ${c.decided}; split ${c.split}; unsent ${c.unsent}; tokens ${c.tokens}; cost ${c.cost??'unknown'}; bad ${c.bad}`;
 }
 export function sizeLine(states,pending=[]) {
- const removed=new Set(pending.flatMap(p=>p.op==='merge'?p.drop:[p.id,...(states.find(r=>r.id===p.id)?.supersedes??[])]));
+ const removed=new Set(pending.flatMap(p=>p.op==='merge'?p.drop:[p.id,...(states.find(r=>r.id===p.id)?.absorbed??[])]));
  const part=(repository,after)=>{const rows=states.filter(r=>r.live&&Boolean(r.repository)===repository&&(!after||!removed.has(r.id)));return `${rows.length} records ${rows.reduce((n,r)=>n+r.claim.length,0)} chars`;};
  return `${C.WORDS.size} profile ${part(false,false)} -> ${part(false,true)}; project ${part(true,false)} -> ${part(true,true)}`;
 }
@@ -144,7 +144,7 @@ export function renderQueue(states,pending,{tail=''}={}) {
  const clean=s=>String(s).replace(/\s+/gu,' ').trim();
  const entry=(p,i)=>{
   const target=states.find(r=>r.id===p.id);
-  const lines=[`${i+1}. ${p.key.slice(0,12)} ${p.op}${p.op==='retire'?` ${p.class}; absorbed ${target?.supersedes.length??0}`:''}`];
+  const lines=[`${i+1}. ${p.key.slice(0,12)} ${p.op}${p.op==='retire'?` ${p.class}; absorbed ${target?.absorbed?.length??0}`:''}`];
   for(const id of proposalIds(p)) {
    const r=states.find(s=>s.id===id);if(!r)continue;
    const claim=clean(r.claim),capped=claim.length>C.QUEUE_CLAIM_CAP?claim.slice(0,C.QUEUE_CLAIM_CAP)+C.WORDS.cut:claim;

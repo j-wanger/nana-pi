@@ -90,6 +90,32 @@ await check('retract and supersede hide the right records',async()=>{
  } finally {t.close();}
 });
 
+// req: R-3700
+await check('chain retractions preserve direct conflicts and deterministic cycles',async()=>{
+ const S=await store(),C=await config();
+ const rows=['A','B','C','D','Tail'].map((claim,i)=>({id:claim,claim,quote:claim,date:'2026-11-01',evidence:`owner:pi:s${i}:2026-11-01`}));
+ const edge=(id,target,stamp='20261102t120000000z')=>({id,target,stamp,action:'supersede',quote:'Synthetic replacement'});
+ const chain=[edge('A','B'),edge('B','C')];
+ const restored=S.effectiveState(rows.slice(0,3),[...chain,{id:'C',action:'retract',quote:'Synthetic retract',stamp:'20261103t120000000z'}]);
+ assert.deepEqual(restored.filter(r=>r.live).map(r=>r.id),['B'],'only direct predecessor restored');
+ assert.deepEqual(restored.find(r=>r.id==='B').absorbed,['A'],'restored predecessor still absorbs earlier drops');
+ const fork=[...chain,edge('B','D')];
+ const expected=`${C.PROFILE_WORDS.conflict}B: C, D\n`;
+ for(const reverse of [false,true]){
+  const state=S.effectiveState(reverse?[...rows.slice(0,4)].reverse():rows.slice(0,4),reverse?[...fork].reverse():fork);
+  assert.equal(S.show(state).split('\n').filter(line=>line.startsWith(C.PROFILE_WORDS.conflict)).join('\n')+'\n',expected,'exact main direct conflict lines');
+  assert.deepEqual(state.find(r=>r.id==='C').supersedes,['B'],'supersedes remains direct');
+ }
+ for(const count of [2,3])for(const tied of [false,true])for(const reverse of [false,true]){
+  const nodes=rows.slice(0,count),events=nodes.map((r,i)=>edge(r.id,nodes[(i+1)%count].id,tied?'20261102t120000000z':`20261102t12000000${i}z`));
+  events.push(edge('Tail','A','20261101t120000000z'));
+  const input=[...nodes,rows[4]],state=S.effectiveState(reverse?input.reverse():input,reverse?events.reverse():events);
+  const winner=tied?nodes.at(-1).id:'A';
+  assert.deepEqual(state.filter(r=>r.live).map(r=>r.id),[winner],`cycle ${count} tied ${tied} winner and hidden tail`);
+  assert.deepEqual(new Set(state.find(r=>r.id===winner).absorbed),new Set([...nodes.map(r=>r.id).filter(id=>id!==winner),'Tail']),'cycle absorbed excludes itself');
+ }
+});
+
 // req: R-3234
 await check('the pointer is configuration and the push target stays verified private',async()=>{
  const C=await config(); const t=fixture();
