@@ -242,13 +242,14 @@ function deleteIndexFiles(): void {
 	}
 }
 
-async function assertRecoveryDeleteSafe(onRecoveryLocked?: () => void): Promise<void> {
+async function assertRecoveryDeleteSafe(onRecoveryLocked?: () => void, onRecoveryLocking?: () => void | Promise<void>): Promise<void> {
 	let db: Db | undefined;
 	let began = false;
 	let deleteAfterClose = false;
 	let failure: unknown;
 	try {
 		db = await openDb(paths.db, {});
+		await onRecoveryLocking?.();
 		db.exec("PRAGMA busy_timeout=0");
 		db.exec("BEGIN IMMEDIATE");
 		began = true;
@@ -292,6 +293,8 @@ export interface BuildOptions {
 	rebuild?: boolean;
 	/** Test seam for a writer arriving after recovery's lock check. */
 	onRecoveryLocked?: () => void;
+	/** Test seam after damage detection, immediately before recovery's lock attempt. */
+	onRecoveryLocking?: () => void | Promise<void>;
 }
 
 export async function build(opts: BuildOptions = {}): Promise<BuildStats> {
@@ -306,7 +309,7 @@ export async function build(opts: BuildOptions = {}): Promise<BuildStats> {
 			if (!reason) throw err;
 			if (sources.problem) return problemStats(sources.problem, started, reason);
 			if (opts.rebuild) throw err;
-			await assertRecoveryDeleteSafe(opts.onRecoveryLocked);
+			await assertRecoveryDeleteSafe(opts.onRecoveryLocked, opts.onRecoveryLocking);
 			const stats = await buildLocked({ rebuild: true, recoveryFilesDeleted: true }, sources);
 			stats.recovered = reason;
 			return stats;

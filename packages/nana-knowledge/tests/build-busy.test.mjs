@@ -120,6 +120,32 @@ await check("M1: transient write locks allow existing and first builds to advanc
  assert.equal(errors.length, 0, errors.join("\n"));
 });
 
+// req: R-3590
+await check("M1: sources-problem probe waits out a transient lock and keeps the index", async (s) => {
+ await seed(s);
+ const before = await builtAt(s);
+ const d = await dbLib.openDb(s.db);
+ let rows;
+ try {
+  rows = d.prepare("SELECT count(*) AS n FROM docs").get().n;
+  // An exclusive rollback-journal writer blocks the read-only problem probe too.
+  d.exec("PRAGMA journal_mode=DELETE");
+ } finally { d.close(); }
+ const inode = fs.statSync(s.db).ino;
+ fs.writeFileSync(path.join(s.home, "sources.json"), '{"roots":[],}');
+ const holder = await held(s, "barrier");
+ const build = child(s, [cli, "build"], "");
+ await waitFor(() => holder.out.includes("overlap"));
+ await build.done; await holder.done;
+ assert.equal(build.code, 0, build.err);
+ assert.doesNotMatch(build.err, /busy|locked/i);
+ assert.equal(fs.statSync(s.db).ino, inode);
+ assert.ok(await builtAt(s) > before);
+ const kept = await dbLib.openDb(s.db);
+ try { assert.equal(kept.prepare("SELECT count(*) AS n FROM docs").get().n, rows); }
+ finally { kept.close(); }
+});
+
 // req: R-3591
 await check("M2: ten stale hook pulls and background builds survive read-write churn", async (s) => {
  await seed(s);
@@ -169,6 +195,56 @@ await check("M3: locked hook stays bounded and connection defaults read back", a
  const h = await command(s, "hook", JSON.stringify({ prompt: "quasar nebula telescope horizon findings", session_id: "locked" }));
  assert.equal(h.code, 0); assert.equal(h.out, ""); assert.ok(h.ms < BUDGET_MS + 1000, `hook ms=${h.ms}`);
  await holder.done;
+});
+
+// req: R-3592
+await check("M3: recovery refuses a late writer without a build busy wait and keeps the index", async (s) => {
+ // The incomplete docs schema is the docs-shape damage used by recover.test.mjs.
+ const { DatabaseSync } = await dbLib.loadSqlite();
+ const damaged = new DatabaseSync(s.db);
+ try { damaged.exec("CREATE TABLE docs(id, txt)"); } finally { damaged.close(); }
+ const inode = fs.statSync(s.db).ino;
+ const buildUrl = new URL("../lib/build.ts", import.meta.url).href;
+ const build = child(s, ["--input-type=module", "-e", `
+ import { build } from ${JSON.stringify(buildUrl)};
+ let started;
+ try {
+  await build({ onRecoveryLocking: async () => {
+   process.stdout.write('damage-found');
+   await new Promise(resolve => process.stdin.once('data', resolve));
+   process.stdin.pause();
+   started = performance.now();
+  } });
+  console.log('\\nRESULT ' + JSON.stringify({ rejected: false }));
+ } catch (e) {
+  console.log('\\nRESULT ' + JSON.stringify({ rejected: true, busy: (e.errcode & 255) === 5 || (e.errcode & 255) === 6, ms: performance.now() - started }));
+ }
+ `]);
+ await waitFor(() => build.out.includes("damage-found"));
+ // The initial open may establish WAL; snapshot only after it has found the damage.
+ const before = fs.readFileSync(s.db);
+ const writer = child(s, ["-e", `
+ const { DatabaseSync } = require('node:sqlite');
+ const d = new DatabaseSync(process.env.NK_DB);
+ d.exec('BEGIN IMMEDIATE');
+ process.stdout.write('ready');
+ process.stdin.resume();
+ process.stdin.once('end', () => { d.exec('ROLLBACK'); d.close(); });
+ `]);
+ await waitFor(() => writer.out.includes("ready"));
+ build.c.stdin.end("locked");
+ await build.done;
+ // Keep the writer through the entire attempt, even if wrong code waits all 5000 ms.
+ assert.equal(writer.code, undefined, writer.err);
+ assert.equal(build.code, 0, build.err);
+ const result = JSON.parse(build.out.split("RESULT ")[1]);
+ assert.equal(result.rejected, true);
+ assert.equal(result.busy, true);
+ assert.ok(result.ms < dbLib.BUILD_BUSY_TIMEOUT_MS / 2, `recovery lock ms=${result.ms}`);
+ assert.equal(fs.statSync(s.db).ino, inode);
+ assert.deepEqual(fs.readFileSync(s.db), before);
+ writer.c.stdin.end();
+ await writer.done;
 });
 
 // req: R-3593
