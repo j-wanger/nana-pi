@@ -2874,6 +2874,8 @@ Reads: A-009 · packages/nana-pack/lib/suite-records.mjs, packages/nana-pack/lib
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-3680 | The real-ledger heading check shall compare parsed headings with raw ledger heading lines by ID and line in order, require all three levels and non-empty purposes, and accept added valid headings without a test edit. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-288: all real headings have non-empty purposes` |
+| R-3681 | The real-ledger CRLF check shall compare the complete parse and problem list of explicitly LF-normalized text with its CRLF copy without a literal heading count. | implemented | `packages/nana-pack/tests/requirements-tree.test.mjs::R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy` |
 | R-3178 | WHEN only documents change, the selector shall include every possible document reader. | planned | Parked: selection dropped; see `docs/reviews/selective-ci-2026-10-30/measure.mjs` and that folder's `measure-*.txt` measurements. |
 | R-3179 | The map shall require each listing module to be declared or exempted. | planned | Parked: selection dropped; see `docs/reviews/selective-ci-2026-10-30/measure.mjs` and that folder's `measure-*.txt` measurements. |
 | R-3180 | IF selection is uncertain or a changed path is not a document, THEN the selector shall choose the full suite. | planned | Parked: selection dropped; see `docs/reviews/selective-ci-2026-10-30/measure.mjs` and that folder's `measure-*.txt` measurements. |
