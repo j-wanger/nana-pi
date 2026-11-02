@@ -18,7 +18,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { indexAgeMs } from "./build.ts";
-import { openDb } from "./db.ts";
+import { openDb, QUERY_BUSY_TIMEOUT_MS } from "./db.ts";
 import { paths } from "./paths.ts";
 import { FIELD_SEP, renderFields, search, type Hit } from "./query.ts";
 import { promptText } from "../../nana-pack/lib/display.mjs";
@@ -26,9 +26,13 @@ import { frozenNotice, readSourcesFile } from "./sources-file.mjs";
 import { meaningfulTokens, PROMPT_MAX_CHARS, skipReason } from "./tokenize.ts";
 
 export const BUDGET_MS = 1500;
-// chosen: one short pause for transient open/close races, inside the prompt budget (R-3596).
+// chosen: short pauses let transient open/query contention clear inside the pull budget (R-3596).
 export const HOOK_QUERY_RETRY_DELAY_MS = 50;
-export const HOOK_QUERY_RETRY_COUNT = 1;
+// chosen (budget-bounded retry brief, 2026-11-02): cap even immediately failing attempts (R-3596).
+export const HOOK_QUERY_MAX_ATTEMPTS = 10;
+// chosen (round 3 budget review, 2026-11-02): leave 150 ms after a full SQLite busy wait
+// for dedup, rendering, shown-state writes and the pull record (R-3596).
+export const HOOK_QUERY_RESERVE_MS = 150;
 export const BLOCK_MAX_CHARS = 2000;
 export const TOP_K = 3;
 // 1 h, not 24 h: an incremental no-op rebuild is 0.1 s, and a doc written in the
@@ -139,12 +143,14 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 	const clock = opts.clock ?? Date.now;
 	const t0 = clock();
 	const budget = opts.budgetMs ?? BUDGET_MS;
-	const over = () => clock() - t0 > budget;
+	const over = () => clock() - t0 >= budget;
+	const hasQueryBudget = (pause = 0) => clock() - t0 + pause + QUERY_BUSY_TIMEOUT_MS + HOOK_QUERY_RESERVE_MS < budget;
 	let input: any = null;
 	let parsed = false;
 	let notice: string | null = null;
 	let retried: string | undefined;
 	let failure: string | undefined;
+	let attempts = 0;
 	const finish = (reason: string, output: string | null = null, hits: Hit[] = []): HookResult => {
 		const excluded = new Set(["reviewer-role", "worker-role", "all-shown", "not-a-string", "too-short", "slash-command", "harness-notification", "too-few-tokens"]);
 		if (!excluded.has(reason)) {
@@ -157,6 +163,7 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 				reason,
 				...(retried ? { retried } : {}),
 				...(failure ? { failure } : {}),
+				attempts,
 				tokens: valid && typeof input.prompt === "string" ? meaningfulTokens(input.prompt.slice(0, PROMPT_MAX_CHARS)).slice(0, 24) : [],
 				hits: output ? hits.map((h) => h.display) : [],
 				ms: clock() - t0,
@@ -181,15 +188,18 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 
 	const freshness = ensureFreshIndex(opts.now ?? Date.now(), opts.spawnFn);
 	if (!fs.existsSync(paths.db)) return none(`no-index(${freshness})`);
-	if (over()) return none("budget");
+	if (!hasQueryBudget()) return none("budget");
 
 	let hits: Hit[] = [];
-	for (let attempt = 0; attempt <= HOOK_QUERY_RETRY_COUNT; attempt++) {
+	for (; attempts < HOOK_QUERY_MAX_ATTEMPTS;) {
+		attempts++;
 		let db: Awaited<ReturnType<typeof openDb>> | undefined;
 		let reason = "db-open-failed";
 		let failed = false;
 		try {
 			db = await (opts.openDbFn ?? openDb)(paths.db, {});
+			// Opening is asynchronous; recheck before entering SQLite's synchronous busy wait.
+			if (!hasQueryBudget()) return none("budget");
 			reason = "query-failed";
 			hits = (opts.searchFn ?? search)(db, prompt, TOP_K, { excludeMonthlySessionArchives: true });
 		} catch (error) {
@@ -198,13 +208,13 @@ export async function runHook(raw: string, opts: { now?: number; budgetMs?: numb
 			const e = error as { code?: unknown; errcode?: unknown } | null;
 			const code = typeof e?.code === "string" && /^[A-Z][A-Z0-9_]{0,63}$/.test(e.code) ? e.code : "unknown-error";
 			const cause = `${reason}: ${code}${typeof e?.errcode === "number" && Number.isInteger(e.errcode) ? ` (${e.errcode})` : ""}`;
-			if (attempt === 0) retried = cause;
+			if (attempts === 1) retried = cause;
 			else failure = cause;
 		} finally { try { db?.close(); } catch { /* ignore */ } }
 		if (!failed) break;
-		if (attempt === HOOK_QUERY_RETRY_COUNT || over()) return none(reason);
+		if (attempts === HOOK_QUERY_MAX_ATTEMPTS || !hasQueryBudget(HOOK_QUERY_RETRY_DELAY_MS)) return none(reason);
 		await new Promise((resolve) => setTimeout(resolve, HOOK_QUERY_RETRY_DELAY_MS));
-		if (over()) return none(reason);
+		if (!hasQueryBudget()) return none(reason);
 	}
 	if (over()) return none("budget");
 	if (hits.length === 0) return none("no-hits");

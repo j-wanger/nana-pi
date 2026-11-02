@@ -1,0 +1,88 @@
+PASS R-3640: payload fields kinds delivery and coverage
+PASS R-3641: coalesced starts and turn phases
+PASS R-3641: realistic compact attachment order
+PASS R-3640: public hook labels and commandless attribution
+FAIL R-3682: real-shaped window attribution conserves characters
+assertion anatomy-seat.test.mjs:158:10
+FAIL R-3683: unresolved failed closed and competing producers never guess
+assertion anatomy-seat.test.mjs:172:10
+FAIL R-3684: labels not text and producer-only dedupe
+assertion anatomy-seat.test.mjs:190:10
+PASS R-3642: inherited sessions order invariance and skips
+PASS R-3643: hook invocation and queued owner identity
+PASS R-3644: seat tool classes conserve result characters
+PASS R-3645: complete kind totals and distinct repeat denominators
+PASS R-3646: correction joins distinguish all outcomes and sources
+PASS R-3647: every seat command keeps tripwires private
+PASS R-3648: reusable adapters labels and builder golden regression
+PASS R-3640: seal seat extraction policy
+PASS R-3644: seal seat class functions
+seat anatomy: 13/16 checks passed
+
+main implementation exit 1
+FAIL R-3640: payload fields kinds delivery and coverage
+assertion anatomy-seat.test.mjs:93:64
+PASS R-3641: coalesced starts and turn phases
+PASS R-3641: realistic compact attachment order
+FAIL R-3640: public hook labels and commandless attribution
+assertion anatomy-seat.test.mjs:141:10
+FAIL R-3682: real-shaped window attribution conserves characters
+assertion anatomy-seat.test.mjs:158:10
+FAIL R-3683: unresolved failed closed and competing producers never guess
+assertion anatomy-seat.test.mjs:172:10
+FAIL R-3684: labels not text and producer-only dedupe
+assertion anatomy-seat.test.mjs:190:10
+PASS R-3642: inherited sessions order invariance and skips
+FAIL R-3643: hook invocation and queued owner identity
+assertion anatomy-seat.test.mjs:227:9
+PASS R-3644: seat tool classes conserve result characters
+PASS R-3645: complete kind totals and distinct repeat denominators
+PASS R-3646: correction joins distinguish all outcomes and sources
+PASS R-3647: every seat command keeps tripwires private
+PASS R-3648: reusable adapters labels and builder golden regression
+FAIL R-3640: seal seat extraction policy
+assertion anatomy-seat.test.mjs:329:9
+PASS R-3644: seal seat class functions
+seat anatomy: 9/16 checks passed
+
+main implementation with updated seals exit 1
+FAIL R-3640: payload fields kinds delivery and coverage
+assertion anatomy-seat.test.mjs:93:64
+PASS R-3641: coalesced starts and turn phases
+PASS R-3641: realistic compact attachment order
+PASS R-3640: public hook labels and commandless attribution
+PASS R-3682: real-shaped window attribution conserves characters
+PASS R-3683: unresolved failed closed and competing producers never guess
+PASS R-3684: labels not text and producer-only dedupe
+PASS R-3642: inherited sessions order invariance and skips
+FAIL R-3643: hook invocation and queued owner identity
+assertion anatomy-seat.test.mjs:228:9
+PASS R-3644: seat tool classes conserve result characters
+PASS R-3645: complete kind totals and distinct repeat denominators
+PASS R-3646: correction joins distinguish all outcomes and sources
+PASS R-3647: every seat command keeps tripwires private
+PASS R-3648: reusable adapters labels and builder golden regression
+PASS R-3640: seal seat extraction policy
+PASS R-3644: seal seat class functions
+seat anatomy: 14/16 checks passed
+
+candidate implementation exit 1
+PASS R-3640: payload fields kinds delivery and coverage
+PASS R-3641: coalesced starts and turn phases
+PASS R-3641: realistic compact attachment order
+PASS R-3640: public hook labels and commandless attribution
+PASS R-3682: real-shaped window attribution conserves characters
+PASS R-3683: unresolved failed closed and competing producers never guess
+PASS R-3684: labels not text and producer-only dedupe
+PASS R-3642: inherited sessions order invariance and skips
+PASS R-3643: hook invocation and queued owner identity
+PASS R-3644: seat tool classes conserve result characters
+PASS R-3645: complete kind totals and distinct repeat denominators
+PASS R-3646: correction joins distinguish all outcomes and sources
+PASS R-3647: every seat command keeps tripwires private
+PASS R-3648: reusable adapters labels and builder golden regression
+PASS R-3640: seal seat extraction policy
+PASS R-3644: seal seat class functions
+seat anatomy: 16/16 checks passed
+
+candidate corrected existing expectations exit 0

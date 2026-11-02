@@ -18,6 +18,7 @@
 		"memory:meter-score": "node scripts/outcome-score.mjs",
 		"memory:meter-compare": "node scripts/outcome-compare.mjs",
 		"memory:replay": "node scripts/memory-replay.mjs",
+		"memory:curate": "node scripts/memory-curate.mjs",
 		"map:impact": "node scripts/code-map.mjs --impact",
 		"map:measure": "node scripts/runtime-measure.mjs",
 		"req:rows": "node scripts/requirement-rows.mjs",

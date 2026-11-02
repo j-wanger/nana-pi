@@ -1,0 +1,1172 @@
+docs/reviews/knowledge-busy-2026-11-02/build-9-red.txt:52: new blank line at EOF.
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:1: trailing whitespace.
++PASS collects every test file directly under a package tests dir 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:2: trailing whitespace.
++PASS collection does not recurse and takes only .test.mjs files 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:3: trailing whitespace.
++PASS a path segment named fixtures is never collected 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:4: trailing whitespace.
++PASS each file runs with --experimental-strip-types from its package dir 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:5: trailing whitespace.
++PASS each file gets a fresh temp HOME and USERPROFILE, not the real one 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:6: trailing whitespace.
++PASS the temp HOME is per file, not shared between files 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:7: trailing whitespace.
++PASS every child disables git auto gc without replacing caller git config entries 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:8: trailing whitespace.
++PASS a failing file's TMPDIR and leaked contents are removed 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:9: trailing whitespace.
++PASS a file that exits non-zero is FAIL and the run exits 1 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:10: trailing whitespace.
++PASS a file killed by a signal is FAIL, naming the signal 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:11: trailing whitespace.
++PASS a FAIL line from an exit-0 file is a WARN and does not flip the verdict 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:12: trailing whitespace.
++PASS an exit-0 file that printed only SKIP lines is FAIL without a declared precondition 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:13: trailing whitespace.
++PASS a silent exit-0 file is FAIL without a declared precondition 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:14: trailing whitespace.
++PASS without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:15: trailing whitespace.
++PASS in non-verbose mode a failing file prints its first 20 failing check lines 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:16: trailing whitespace.
++PASS one line per file, then a totals line with both tallies, exiting 1 on a failure 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:17: trailing whitespace.
++PASS each test gets a unique TMPDIR and the runner removes leaked temp contents 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:18: trailing whitespace.
++PASS ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:19: trailing whitespace.
++PASS PI_CODING_AGENT_DIR is scrubbed too and the rest of PI_ is left alone 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:20: trailing whitespace.
++PASS CLAUDE_CONFIG_DIR is scrubbed from the child env 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:21: trailing whitespace.
++PASS a file declared unrunnable on this platform SKIPs with its reason printed 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:22: trailing whitespace.
++PASS study tasks SKIP only when their declared extension prerequisite is absent 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:23: trailing whitespace.
++PASS study tasks run when their declared extension prerequisite exists 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:24: trailing whitespace.
++PASS R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:25: trailing whitespace.
++PASS a substring argument runs only the files whose repo-relative path contains it 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:26: trailing whitespace.
++PASS --verbose streams a passing file's own output 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:27: trailing whitespace.
++PASS no match says so, exits 1, and still removes its scratch dir 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:28: trailing whitespace.
++PASS NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:29: trailing whitespace.
++PASS the timeout kill takes the child's whole process tree with it 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:30: trailing whitespace.
++PASS the scratch dir is removed after the run 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:31: trailing whitespace.
++PASS a timed-out file's TMPDIR and leaked contents are removed 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:32: trailing whitespace.
++PASS tracked mutation fails naming the tracked file while untracked files do not appear 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:33: trailing whitespace.
++PASS tracked mutation is detected when the file was already dirty before the run 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:34: trailing whitespace.
++PASS staging an already-dirty tracked file is detected without a working-tree change 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:35: trailing whitespace.
++PASS after a child exits the runner waits only a bounded drain for stdio to close 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:36: trailing whitespace.
++PASS termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows) 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:37: trailing whitespace.
++PASS --self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:38: trailing whitespace.
++PASS NANA_TEST_SELFTEST=1 is the same as --self-test 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:39: trailing whitespace.
++PASS R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:40: trailing whitespace.
++PASS R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:41: trailing whitespace.
++PASS R-2753: the run record names the default per-file time limit the runner applied 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:42: trailing whitespace.
++PASS R-3433: whole-run records carry the actual path filters, empty for an unfiltered run 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:43: trailing whitespace.
++PASS R-2880: a record-fixture file that passes after 1 second is labelled PASS with no cause, and the file that outlives the record limit is labelled FAIL timed out, serial and parallel 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:44: trailing whitespace.
++PASS seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:45: trailing whitespace.
++PASS the source check detects direct mkdtemp calls while ignoring only generated leak fixtures 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:46: trailing whitespace.
++PASS the shared temp helper removes its registered root when the process exits 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:47: trailing whitespace.
++PASS R-2666: a finished file whose temp folder stays busy gets one FAIL line naming the file, the folder and the code, counts as one failure, and every other file still runs, serial and parallel 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:48: trailing whitespace.
++PASS seal: a finished file's temp folder removal retries 5 times on a 100 ms step 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:49: trailing whitespace.
++PASS R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:50: trailing whitespace.
++PASS R-1381: off win32 each file on the declared Windows skip list runs 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:51: trailing whitespace.
++PASS R-1382: win32 still runs each desk and bench file off the declared Windows skip list 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:52: trailing whitespace.
++PASS R-1383: the declared Windows skip list names only collected desk and bench test files 
+docs/reviews/knowledge-busy-2026-11-02/build-9-runner.txt:53: trailing whitespace.
++PASS R-1521: the declared Windows skip list names no bench test file 
+docs/reviews/knowledge-busy-2026-11-02/build-9-single-retry-red.txt:24: new blank line at EOF.
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:2: trailing whitespace.
++PASS R-287: every real requirement row is in a feature or subgroup table 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:3: trailing whitespace.
++PASS R-288: all real headings have non-empty purposes 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:4: trailing whitespace.
++PASS R-288: real ledger has no structural problems 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:5: trailing whitespace.
++PASS R-289: real capability, feature and subgroup IDs are unique 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:6: trailing whitespace.
++PASS R-290: real feature and subgroup headings have direct-level parents 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:7: trailing whitespace.
++PASS R-291: committed outline equals a fresh render 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:8: trailing whitespace.
++PASS R-291: committed outline fields and row IDs match the real ledger 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:9: trailing whitespace.
++PASS R-291: every real heading's committed IDs survive expansion and the tree reads every row line once 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:10: trailing whitespace.
++PASS R-1640: a row added to a real feature table passes the tree accounting with no test edit 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:11: trailing whitespace.
++PASS R-1641: a requirement row line the tree parser drops fails the accounting naming its ID 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:12: trailing whitespace.
++PASS R-1642: a row ID read under two headings fails the accounting naming its ID 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:13: trailing whitespace.
++PASS R-1643: a row on a feature that has subgroups is counted once by the accounting 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:14: trailing whitespace.
++PASS row reader returns text, G and four-digit rows in document order 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:15: trailing whitespace.
++PASS capability Outcome is recorded 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:16: trailing whitespace.
++PASS row reader returns its owning heading and descendant walk reaches it 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:17: trailing whitespace.
++PASS shared row reader retains its owning home heading 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:18: trailing whitespace.
++PASS R-291: FEAT-033 preserves G row IDs 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:19: trailing whitespace.
++PASS R-291: parent row counts aggregate descendants 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:20: trailing whitespace.
++PASS R-291: feature outline carries status and shared IDs 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:21: trailing whitespace.
++PASS R-291 fixture: outline field check rejects a missing shared-index row 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:22: trailing whitespace.
++PASS R-291 fixture: field check rejects one sharing feature removed from an index row 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:23: trailing whitespace.
++PASS R-292: real shared IDs exist once, are live, and belong to another feature 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:24: trailing whitespace.
++PASS R-293: every real feature has a valid status 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:25: trailing whitespace.
++PASS R-294: proposed and retired real features hold no rows 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:26: trailing whitespace.
++PASS R-287 fixture: row outside feature fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:27: trailing whitespace.
++PASS R-287 fixture: row under ordinary heading fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:28: trailing whitespace.
++PASS R-287 fixture: row after prose in feature fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:29: trailing whitespace.
++PASS R-287 fixture: row after blank after table fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:30: trailing whitespace.
++PASS R-287 fixture: header without delimiter fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:31: trailing whitespace.
++PASS R-287 fixture: row in fenced code fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:32: trailing whitespace.
++PASS R-287 fixture: setext heading closes feature table fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:33: trailing whitespace.
++PASS R-288 fixture: setext heading interrupts purpose fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:34: trailing whitespace.
++PASS R-290 fixture: setext level one closes capability fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:35: trailing whitespace.
++PASS R-287 fixture: ATX-looking line in fence is opaque fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:36: trailing whitespace.
++PASS R-290 fixture: thematic break after blank is not a heading fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:37: trailing whitespace.
++PASS R-288 fixture: heading between capability and purpose fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:38: trailing whitespace.
++PASS R-290 fixture: unrelated level-one heading closes capability fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:39: trailing whitespace.
++PASS R-288 fixture: deleted purpose fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:40: trailing whitespace.
++PASS R-288 fixture: empty purpose fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:41: trailing whitespace.
++PASS R-289 fixture: duplicate feature ID fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:42: trailing whitespace.
++PASS R-290 fixture: feature before capability fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:43: trailing whitespace.
++PASS R-290 fixture: subgroup before feature fails 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:44: trailing whitespace.
++PASS R-292 fixture: rejects unknown ID 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:45: trailing whitespace.
++PASS R-292 fixture: rejects duplicate ID 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:46: trailing whitespace.
++PASS R-292 fixture: rejects retired ID 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:47: trailing whitespace.
++PASS R-292 fixture: rejects same-home ID 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:48: trailing whitespace.
++PASS R-292 fixture: rejects duplicate share lines 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:49: trailing whitespace.
++PASS R-293 fixture: duplicate status lines are named and rejected 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:50: trailing whitespace.
++PASS R-293 fixture: status after a two-column Markdown table is rejected at its line 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:51: trailing whitespace.
++PASS R-292 fixture: duplicate Also applies lines validate each listed ID 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:52: trailing whitespace.
++PASS R-292: shared requirement clauses reject invalid IDs 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:53: trailing whitespace.
++PASS R-1000: tree counts four-digit rows and accepts their cross-feature share 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:54: trailing whitespace.
++PASS R-1000: row compression and range expansion cross R-999 to R-1000 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:55: trailing whitespace.
++PASS R-287 fixture: U+0085 and U+001F rows load only inside a feature 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:56: trailing whitespace.
++PASS R-287 fixture: whitespace-variant row outside a feature is refused 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:57: trailing whitespace.
++PASS R-287 fixture: malformed requirement candidates are omitted from the outline 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:58: trailing whitespace.
++PASS R-291 fixture: a leading BOM before the first heading is read 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:59: trailing whitespace.
++PASS R-293 fixture: rejects missing status 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:60: trailing whitespace.
++PASS R-293 fixture: rejects unknown status 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:61: trailing whitespace.
++PASS R-293 fixture: rejects empty frozen status 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:62: trailing whitespace.
++PASS R-293 fixture: rejects empty retired status 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:63: trailing whitespace.
++PASS R-293 fixture: rejects blank reason status 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:64: trailing whitespace.
++PASS R-293: feature lifecycle statuses are required and validated 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:65: trailing whitespace.
++PASS R-293 fixture: accepts four lifecycle forms 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:66: trailing whitespace.
++PASS R-294 fixture: proposed feature cannot hold rows 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:67: trailing whitespace.
++PASS R-294 fixture: retired (FEAT-002) feature cannot hold rows 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:68: trailing whitespace.
++PASS R-294: proposed and retired features have no rows 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:69: trailing whitespace.
++PASS R-291: row ID compression retains and separates prefixes 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:70: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:71: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-002 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:72: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-002 R-003 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:73: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-002 R-003 R-004 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:74: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-003 R-004 R-008 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:75: trailing whitespace.
++PASS R-291 property: compression round-trips R-004 R-002 R-003 G-001 G-003 G-002 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:76: trailing whitespace.
++PASS R-291 fixture: independent field check catches a broken renderer dropping status 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:77: trailing whitespace.
++PASS R-291 fixture: independent field check rejects missing shared index data 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:78: trailing whitespace.
++PASS R-2785: the outline lists each feature's artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:79: trailing whitespace.
++PASS R-2796: the outline lists each feature's read artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:80: trailing whitespace.
++PASS R-291 fixture field check rejects altered ID 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:81: trailing whitespace.
++PASS R-291 fixture field check rejects altered label 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:82: trailing whitespace.
++PASS R-291 fixture field check rejects altered purpose 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:83: trailing whitespace.
++PASS R-291 fixture field check rejects altered parent 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:84: trailing whitespace.
++PASS R-291 fixture field check rejects altered row count 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:85: trailing whitespace.
++PASS R-291 fixture field check rejects altered row IDs 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:86: trailing whitespace.
++PASS R-1157: --root checks another project's ledger, names its problems and writes no outline 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:87: trailing whitespace.
++PASS R-1157 fixture: a row outside its feature exits 1 naming it 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:88: trailing whitespace.
++PASS R-1157 fixture: --root <dir> --write exits 2 with usage 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:89: trailing whitespace.
++PASS R-1160: --root refuses a UTF-16 ledger and a ledger with no rows, naming the reason 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:90: trailing whitespace.
++PASS R-1160: a tree ledger with a padded table header is not refused as having no rows 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:91: trailing whitespace.
++PASS R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:92: trailing whitespace.
++PASS R-1159: a ledger with rows and no tree gets one line naming the row count and the next step 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:93: trailing whitespace.
++PASS R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:94: trailing whitespace.
++PASS R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:95: trailing whitespace.
++PASS R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:96: trailing whitespace.
++PASS R-1161: a tree heading typed with "-" for "·" is named with its line and the expected form, not taken for a flat ledger 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:97: trailing whitespace.
++PASS the tree checker prints deliverable notes in every mode and keeps its exit status and outline 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:98: trailing whitespace.
++PASS the tree checker counts the deliverables made and read by code in every mode 
+docs/reviews/memory-curation-2026-11-02/build-2-checks.txt:99: trailing whitespace.
++PASS R-2639: a parked deliverable leaves the count's total once and the line names the parked row count in every mode 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:1: trailing whitespace.
++PASS collects every test file directly under a package tests dir 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:2: trailing whitespace.
++PASS collection does not recurse and takes only .test.mjs files 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:3: trailing whitespace.
++PASS a path segment named fixtures is never collected 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:4: trailing whitespace.
++PASS each file runs with --experimental-strip-types from its package dir 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:5: trailing whitespace.
++PASS each file gets a fresh temp HOME and USERPROFILE, not the real one 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:6: trailing whitespace.
++PASS the temp HOME is per file, not shared between files 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:7: trailing whitespace.
++PASS every child disables git auto gc without replacing caller git config entries 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:8: trailing whitespace.
++PASS a failing file's TMPDIR and leaked contents are removed 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:9: trailing whitespace.
++PASS a file that exits non-zero is FAIL and the run exits 1 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:10: trailing whitespace.
++PASS a file killed by a signal is FAIL, naming the signal 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:11: trailing whitespace.
++PASS a FAIL line from an exit-0 file is a WARN and does not flip the verdict 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:12: trailing whitespace.
++PASS an exit-0 file that printed only SKIP lines is FAIL without a declared precondition 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:13: trailing whitespace.
++PASS a silent exit-0 file is FAIL without a declared precondition 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:14: trailing whitespace.
++PASS without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:15: trailing whitespace.
++PASS in non-verbose mode a failing file prints its first 20 failing check lines 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:16: trailing whitespace.
++PASS one line per file, then a totals line with both tallies, exiting 1 on a failure 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:17: trailing whitespace.
++PASS each test gets a unique TMPDIR and the runner removes leaked temp contents 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:18: trailing whitespace.
++PASS ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:19: trailing whitespace.
++PASS PI_CODING_AGENT_DIR is scrubbed too and the rest of PI_ is left alone 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:20: trailing whitespace.
++PASS CLAUDE_CONFIG_DIR is scrubbed from the child env 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:21: trailing whitespace.
++PASS a file declared unrunnable on this platform SKIPs with its reason printed 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:22: trailing whitespace.
++PASS study tasks SKIP only when their declared extension prerequisite is absent 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:23: trailing whitespace.
++PASS study tasks run when their declared extension prerequisite exists 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:24: trailing whitespace.
++PASS R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:25: trailing whitespace.
++PASS a substring argument runs only the files whose repo-relative path contains it 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:26: trailing whitespace.
++PASS --verbose streams a passing file's own output 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:27: trailing whitespace.
++PASS no match says so, exits 1, and still removes its scratch dir 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:28: trailing whitespace.
++PASS NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:29: trailing whitespace.
++PASS the timeout kill takes the child's whole process tree with it 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:30: trailing whitespace.
++PASS the scratch dir is removed after the run 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:31: trailing whitespace.
++PASS a timed-out file's TMPDIR and leaked contents are removed 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:32: trailing whitespace.
++PASS tracked mutation fails naming the tracked file while untracked files do not appear 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:33: trailing whitespace.
++PASS tracked mutation is detected when the file was already dirty before the run 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:34: trailing whitespace.
++PASS staging an already-dirty tracked file is detected without a working-tree change 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:35: trailing whitespace.
++PASS after a child exits the runner waits only a bounded drain for stdio to close 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:36: trailing whitespace.
++PASS termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows) 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:37: trailing whitespace.
++PASS --self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:38: trailing whitespace.
++PASS NANA_TEST_SELFTEST=1 is the same as --self-test 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:39: trailing whitespace.
++PASS R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:40: trailing whitespace.
++PASS R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:41: trailing whitespace.
++PASS R-2753: the run record names the default per-file time limit the runner applied 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:42: trailing whitespace.
++PASS R-3433: whole-run records carry the actual path filters, empty for an unfiltered run 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:43: trailing whitespace.
++PASS R-2880: a record-fixture file that passes after 1 second is labelled PASS with no cause, and the file that outlives the record limit is labelled FAIL timed out, serial and parallel 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:44: trailing whitespace.
++PASS seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:45: trailing whitespace.
++PASS the source check detects direct mkdtemp calls while ignoring only generated leak fixtures 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:46: trailing whitespace.
++PASS the shared temp helper removes its registered root when the process exits 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:47: trailing whitespace.
++PASS R-2666: a finished file whose temp folder stays busy gets one FAIL line naming the file, the folder and the code, counts as one failure, and every other file still runs, serial and parallel 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:48: trailing whitespace.
++PASS seal: a finished file's temp folder removal retries 5 times on a 100 ms step 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:49: trailing whitespace.
++PASS R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:50: trailing whitespace.
++PASS R-1381: off win32 each file on the declared Windows skip list runs 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:51: trailing whitespace.
++PASS R-1382: win32 still runs each desk and bench file off the declared Windows skip list 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:52: trailing whitespace.
++PASS R-1383: the declared Windows skip list names only collected desk and bench test files 
+docs/reviews/memory-curation-2026-11-02/merge-2-test-runner.txt:53: trailing whitespace.
++PASS R-1521: the declared Windows skip list names no bench test file 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:1: trailing whitespace.
++PASS R-287: every real requirement row is in a feature or subgroup table 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:2: trailing whitespace.
++PASS R-288: all real headings have non-empty purposes 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:3: trailing whitespace.
++PASS R-288: real ledger has no structural problems 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:4: trailing whitespace.
++PASS R-289: real capability, feature and subgroup IDs are unique 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:5: trailing whitespace.
++PASS R-290: real feature and subgroup headings have direct-level parents 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:6: trailing whitespace.
++PASS R-291: committed outline equals a fresh render 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:7: trailing whitespace.
++PASS R-291: committed outline fields and row IDs match the real ledger 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:8: trailing whitespace.
++PASS R-291: every real heading's committed IDs survive expansion and the tree reads every row line once 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:9: trailing whitespace.
++PASS R-1640: a row added to a real feature table passes the tree accounting with no test edit 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:10: trailing whitespace.
++PASS R-1641: a requirement row line the tree parser drops fails the accounting naming its ID 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:11: trailing whitespace.
++PASS R-1642: a row ID read under two headings fails the accounting naming its ID 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:12: trailing whitespace.
++PASS R-1643: a row on a feature that has subgroups is counted once by the accounting 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:13: trailing whitespace.
++PASS row reader returns text, G and four-digit rows in document order 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:14: trailing whitespace.
++PASS capability Outcome is recorded 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:15: trailing whitespace.
++PASS row reader returns its owning heading and descendant walk reaches it 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:16: trailing whitespace.
++PASS shared row reader retains its owning home heading 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:17: trailing whitespace.
++PASS R-291: FEAT-033 preserves G row IDs 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:18: trailing whitespace.
++PASS R-291: parent row counts aggregate descendants 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:19: trailing whitespace.
++PASS R-291: feature outline carries status and shared IDs 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:20: trailing whitespace.
++PASS R-291 fixture: outline field check rejects a missing shared-index row 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:21: trailing whitespace.
++PASS R-291 fixture: field check rejects one sharing feature removed from an index row 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:22: trailing whitespace.
++PASS R-292: real shared IDs exist once, are live, and belong to another feature 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:23: trailing whitespace.
++PASS R-293: every real feature has a valid status 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:24: trailing whitespace.
++PASS R-294: proposed and retired real features hold no rows 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:25: trailing whitespace.
++PASS R-287 fixture: row outside feature fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:26: trailing whitespace.
++PASS R-287 fixture: row under ordinary heading fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:27: trailing whitespace.
++PASS R-287 fixture: row after prose in feature fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:28: trailing whitespace.
++PASS R-287 fixture: row after blank after table fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:29: trailing whitespace.
++PASS R-287 fixture: header without delimiter fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:30: trailing whitespace.
++PASS R-287 fixture: row in fenced code fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:31: trailing whitespace.
++PASS R-287 fixture: setext heading closes feature table fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:32: trailing whitespace.
++PASS R-288 fixture: setext heading interrupts purpose fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:33: trailing whitespace.
++PASS R-290 fixture: setext level one closes capability fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:34: trailing whitespace.
++PASS R-287 fixture: ATX-looking line in fence is opaque fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:35: trailing whitespace.
++PASS R-290 fixture: thematic break after blank is not a heading fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:36: trailing whitespace.
++PASS R-288 fixture: heading between capability and purpose fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:37: trailing whitespace.
++PASS R-290 fixture: unrelated level-one heading closes capability fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:38: trailing whitespace.
++PASS R-288 fixture: deleted purpose fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:39: trailing whitespace.
++PASS R-288 fixture: empty purpose fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:40: trailing whitespace.
++PASS R-289 fixture: duplicate feature ID fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:41: trailing whitespace.
++PASS R-290 fixture: feature before capability fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:42: trailing whitespace.
++PASS R-290 fixture: subgroup before feature fails 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:43: trailing whitespace.
++PASS R-292 fixture: rejects unknown ID 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:44: trailing whitespace.
++PASS R-292 fixture: rejects duplicate ID 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:45: trailing whitespace.
++PASS R-292 fixture: rejects retired ID 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:46: trailing whitespace.
++PASS R-292 fixture: rejects same-home ID 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:47: trailing whitespace.
++PASS R-292 fixture: rejects duplicate share lines 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:48: trailing whitespace.
++PASS R-293 fixture: duplicate status lines are named and rejected 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:49: trailing whitespace.
++PASS R-293 fixture: status after a two-column Markdown table is rejected at its line 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:50: trailing whitespace.
++PASS R-292 fixture: duplicate Also applies lines validate each listed ID 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:51: trailing whitespace.
++PASS R-292: shared requirement clauses reject invalid IDs 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:52: trailing whitespace.
++PASS R-1000: tree counts four-digit rows and accepts their cross-feature share 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:53: trailing whitespace.
++PASS R-1000: row compression and range expansion cross R-999 to R-1000 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:54: trailing whitespace.
++PASS R-287 fixture: U+0085 and U+001F rows load only inside a feature 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:55: trailing whitespace.
++PASS R-287 fixture: whitespace-variant row outside a feature is refused 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:56: trailing whitespace.
++PASS R-287 fixture: malformed requirement candidates are omitted from the outline 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:57: trailing whitespace.
++PASS R-291 fixture: a leading BOM before the first heading is read 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:58: trailing whitespace.
++PASS R-293 fixture: rejects missing status 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:59: trailing whitespace.
++PASS R-293 fixture: rejects unknown status 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:60: trailing whitespace.
++PASS R-293 fixture: rejects empty frozen status 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:61: trailing whitespace.
++PASS R-293 fixture: rejects empty retired status 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:62: trailing whitespace.
++PASS R-293 fixture: rejects blank reason status 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:63: trailing whitespace.
++PASS R-293: feature lifecycle statuses are required and validated 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:64: trailing whitespace.
++PASS R-293 fixture: accepts four lifecycle forms 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:65: trailing whitespace.
++PASS R-294 fixture: proposed feature cannot hold rows 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:66: trailing whitespace.
++PASS R-294 fixture: retired (FEAT-002) feature cannot hold rows 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:67: trailing whitespace.
++PASS R-294: proposed and retired features have no rows 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:68: trailing whitespace.
++PASS R-291: row ID compression retains and separates prefixes 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:69: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:70: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-002 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:71: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-002 R-003 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:72: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-002 R-003 R-004 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:73: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-003 R-004 R-008 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:74: trailing whitespace.
++PASS R-291 property: compression round-trips R-004 R-002 R-003 G-001 G-003 G-002 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:75: trailing whitespace.
++PASS R-291 fixture: independent field check catches a broken renderer dropping status 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:76: trailing whitespace.
++PASS R-291 fixture: independent field check rejects missing shared index data 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:77: trailing whitespace.
++PASS R-2785: the outline lists each feature's artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:78: trailing whitespace.
++PASS R-2796: the outline lists each feature's read artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:79: trailing whitespace.
++PASS R-291 fixture field check rejects altered ID 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:80: trailing whitespace.
++PASS R-291 fixture field check rejects altered label 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:81: trailing whitespace.
++PASS R-291 fixture field check rejects altered purpose 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:82: trailing whitespace.
++PASS R-291 fixture field check rejects altered parent 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:83: trailing whitespace.
++PASS R-291 fixture field check rejects altered row count 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:84: trailing whitespace.
++PASS R-291 fixture field check rejects altered row IDs 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:85: trailing whitespace.
++PASS R-1157: --root checks another project's ledger, names its problems and writes no outline 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:86: trailing whitespace.
++PASS R-1157 fixture: a row outside its feature exits 1 naming it 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:87: trailing whitespace.
++PASS R-1157 fixture: --root <dir> --write exits 2 with usage 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:88: trailing whitespace.
++PASS R-1160: --root refuses a UTF-16 ledger and a ledger with no rows, naming the reason 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:89: trailing whitespace.
++PASS R-1160: a tree ledger with a padded table header is not refused as having no rows 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:90: trailing whitespace.
++PASS R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:91: trailing whitespace.
++PASS R-1159: a ledger with rows and no tree gets one line naming the row count and the next step 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:92: trailing whitespace.
++PASS R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:93: trailing whitespace.
++PASS R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:94: trailing whitespace.
++PASS R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:95: trailing whitespace.
++PASS R-1161: a tree heading typed with "-" for "·" is named with its line and the expected form, not taken for a flat ledger 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:96: trailing whitespace.
++PASS the tree checker prints deliverable notes in every mode and keeps its exit status and outline 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:97: trailing whitespace.
++PASS the tree checker counts the deliverables made and read by code in every mode 
+docs/reviews/memory-curation-2026-11-02/merge-2-tree-test.txt:98: trailing whitespace.
++PASS R-2639: a parked deliverable leaves the count's total once and the line names the parked row count in every mode 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:1: trailing whitespace.
++PASS collects every test file directly under a package tests dir 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:2: trailing whitespace.
++PASS collection does not recurse and takes only .test.mjs files 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:3: trailing whitespace.
++PASS a path segment named fixtures is never collected 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:4: trailing whitespace.
++PASS each file runs with --experimental-strip-types from its package dir 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:5: trailing whitespace.
++PASS each file gets a fresh temp HOME and USERPROFILE, not the real one 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:6: trailing whitespace.
++PASS the temp HOME is per file, not shared between files 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:7: trailing whitespace.
++PASS every child disables git auto gc without replacing caller git config entries 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:8: trailing whitespace.
++PASS a failing file's TMPDIR and leaked contents are removed 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:9: trailing whitespace.
++PASS a file that exits non-zero is FAIL and the run exits 1 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:10: trailing whitespace.
++PASS a file killed by a signal is FAIL, naming the signal 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:11: trailing whitespace.
++PASS a FAIL line from an exit-0 file is a WARN and does not flip the verdict 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:12: trailing whitespace.
++PASS an exit-0 file that printed only SKIP lines is FAIL without a declared precondition 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:13: trailing whitespace.
++PASS a silent exit-0 file is FAIL without a declared precondition 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:14: trailing whitespace.
++PASS without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:15: trailing whitespace.
++PASS in non-verbose mode a failing file prints its first 20 failing check lines 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:16: trailing whitespace.
++PASS one line per file, then a totals line with both tallies, exiting 1 on a failure 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:17: trailing whitespace.
++PASS each test gets a unique TMPDIR and the runner removes leaked temp contents 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:18: trailing whitespace.
++PASS ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:19: trailing whitespace.
++PASS PI_CODING_AGENT_DIR is scrubbed too and the rest of PI_ is left alone 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:20: trailing whitespace.
++PASS CLAUDE_CONFIG_DIR is scrubbed from the child env 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:21: trailing whitespace.
++PASS a file declared unrunnable on this platform SKIPs with its reason printed 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:22: trailing whitespace.
++PASS study tasks SKIP only when their declared extension prerequisite is absent 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:23: trailing whitespace.
++PASS study tasks run when their declared extension prerequisite exists 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:24: trailing whitespace.
++PASS R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:25: trailing whitespace.
++PASS a substring argument runs only the files whose repo-relative path contains it 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:26: trailing whitespace.
++PASS --verbose streams a passing file's own output 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:27: trailing whitespace.
++PASS no match says so, exits 1, and still removes its scratch dir 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:28: trailing whitespace.
++PASS NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:29: trailing whitespace.
++PASS the timeout kill takes the child's whole process tree with it 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:30: trailing whitespace.
++PASS the scratch dir is removed after the run 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:31: trailing whitespace.
++PASS a timed-out file's TMPDIR and leaked contents are removed 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:32: trailing whitespace.
++PASS tracked mutation fails naming the tracked file while untracked files do not appear 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:33: trailing whitespace.
++PASS tracked mutation is detected when the file was already dirty before the run 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:34: trailing whitespace.
++PASS staging an already-dirty tracked file is detected without a working-tree change 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:35: trailing whitespace.
++PASS after a child exits the runner waits only a bounded drain for stdio to close 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:36: trailing whitespace.
++PASS termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows) 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:37: trailing whitespace.
++PASS --self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:38: trailing whitespace.
++PASS NANA_TEST_SELFTEST=1 is the same as --self-test 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:39: trailing whitespace.
++PASS R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:40: trailing whitespace.
++PASS R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:41: trailing whitespace.
++PASS R-2753: the run record names the default per-file time limit the runner applied 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:42: trailing whitespace.
++PASS R-3433: whole-run records carry the actual path filters, empty for an unfiltered run 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:43: trailing whitespace.
++PASS R-2880: a record-fixture file that passes after 1 second is labelled PASS with no cause, and the file that outlives the record limit is labelled FAIL timed out, serial and parallel 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:44: trailing whitespace.
++PASS seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:45: trailing whitespace.
++PASS the source check detects direct mkdtemp calls while ignoring only generated leak fixtures 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:46: trailing whitespace.
++PASS the shared temp helper removes its registered root when the process exits 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:47: trailing whitespace.
++PASS R-2666: a finished file whose temp folder stays busy gets one FAIL line naming the file, the folder and the code, counts as one failure, and every other file still runs, serial and parallel 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:48: trailing whitespace.
++PASS seal: a finished file's temp folder removal retries 5 times on a 100 ms step 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:49: trailing whitespace.
++PASS R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:50: trailing whitespace.
++PASS R-1381: off win32 each file on the declared Windows skip list runs 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:51: trailing whitespace.
++PASS R-1382: win32 still runs each desk and bench file off the declared Windows skip list 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:52: trailing whitespace.
++PASS R-1383: the declared Windows skip list names only collected desk and bench test files 
+docs/reviews/memory-curation-2026-11-02/merge-test-runner.txt:53: trailing whitespace.
++PASS R-1521: the declared Windows skip list names no bench test file 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:1: trailing whitespace.
++PASS R-287: every real requirement row is in a feature or subgroup table 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:2: trailing whitespace.
++PASS R-288: all real headings have non-empty purposes 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:3: trailing whitespace.
++PASS R-288: real ledger has no structural problems 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:4: trailing whitespace.
++PASS R-289: real capability, feature and subgroup IDs are unique 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:5: trailing whitespace.
++PASS R-290: real feature and subgroup headings have direct-level parents 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:6: trailing whitespace.
++PASS R-291: committed outline equals a fresh render 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:7: trailing whitespace.
++PASS R-291: committed outline fields and row IDs match the real ledger 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:8: trailing whitespace.
++PASS R-291: every real heading's committed IDs survive expansion and the tree reads every row line once 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:9: trailing whitespace.
++PASS R-1640: a row added to a real feature table passes the tree accounting with no test edit 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:10: trailing whitespace.
++PASS R-1641: a requirement row line the tree parser drops fails the accounting naming its ID 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:11: trailing whitespace.
++PASS R-1642: a row ID read under two headings fails the accounting naming its ID 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:12: trailing whitespace.
++PASS R-1643: a row on a feature that has subgroups is counted once by the accounting 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:13: trailing whitespace.
++PASS row reader returns text, G and four-digit rows in document order 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:14: trailing whitespace.
++PASS capability Outcome is recorded 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:15: trailing whitespace.
++PASS row reader returns its owning heading and descendant walk reaches it 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:16: trailing whitespace.
++PASS shared row reader retains its owning home heading 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:17: trailing whitespace.
++PASS R-291: FEAT-033 preserves G row IDs 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:18: trailing whitespace.
++PASS R-291: parent row counts aggregate descendants 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:19: trailing whitespace.
++PASS R-291: feature outline carries status and shared IDs 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:20: trailing whitespace.
++PASS R-291 fixture: outline field check rejects a missing shared-index row 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:21: trailing whitespace.
++PASS R-291 fixture: field check rejects one sharing feature removed from an index row 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:22: trailing whitespace.
++PASS R-292: real shared IDs exist once, are live, and belong to another feature 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:23: trailing whitespace.
++PASS R-293: every real feature has a valid status 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:24: trailing whitespace.
++PASS R-294: proposed and retired real features hold no rows 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:25: trailing whitespace.
++PASS R-287 fixture: row outside feature fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:26: trailing whitespace.
++PASS R-287 fixture: row under ordinary heading fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:27: trailing whitespace.
++PASS R-287 fixture: row after prose in feature fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:28: trailing whitespace.
++PASS R-287 fixture: row after blank after table fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:29: trailing whitespace.
++PASS R-287 fixture: header without delimiter fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:30: trailing whitespace.
++PASS R-287 fixture: row in fenced code fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:31: trailing whitespace.
++PASS R-287 fixture: setext heading closes feature table fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:32: trailing whitespace.
++PASS R-288 fixture: setext heading interrupts purpose fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:33: trailing whitespace.
++PASS R-290 fixture: setext level one closes capability fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:34: trailing whitespace.
++PASS R-287 fixture: ATX-looking line in fence is opaque fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:35: trailing whitespace.
++PASS R-290 fixture: thematic break after blank is not a heading fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:36: trailing whitespace.
++PASS R-288 fixture: heading between capability and purpose fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:37: trailing whitespace.
++PASS R-290 fixture: unrelated level-one heading closes capability fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:38: trailing whitespace.
++PASS R-288 fixture: deleted purpose fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:39: trailing whitespace.
++PASS R-288 fixture: empty purpose fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:40: trailing whitespace.
++PASS R-289 fixture: duplicate feature ID fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:41: trailing whitespace.
++PASS R-290 fixture: feature before capability fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:42: trailing whitespace.
++PASS R-290 fixture: subgroup before feature fails 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:43: trailing whitespace.
++PASS R-292 fixture: rejects unknown ID 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:44: trailing whitespace.
++PASS R-292 fixture: rejects duplicate ID 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:45: trailing whitespace.
++PASS R-292 fixture: rejects retired ID 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:46: trailing whitespace.
++PASS R-292 fixture: rejects same-home ID 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:47: trailing whitespace.
++PASS R-292 fixture: rejects duplicate share lines 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:48: trailing whitespace.
++PASS R-293 fixture: duplicate status lines are named and rejected 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:49: trailing whitespace.
++PASS R-293 fixture: status after a two-column Markdown table is rejected at its line 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:50: trailing whitespace.
++PASS R-292 fixture: duplicate Also applies lines validate each listed ID 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:51: trailing whitespace.
++PASS R-292: shared requirement clauses reject invalid IDs 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:52: trailing whitespace.
++PASS R-1000: tree counts four-digit rows and accepts their cross-feature share 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:53: trailing whitespace.
++PASS R-1000: row compression and range expansion cross R-999 to R-1000 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:54: trailing whitespace.
++PASS R-287 fixture: U+0085 and U+001F rows load only inside a feature 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:55: trailing whitespace.
++PASS R-287 fixture: whitespace-variant row outside a feature is refused 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:56: trailing whitespace.
++PASS R-287 fixture: malformed requirement candidates are omitted from the outline 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:57: trailing whitespace.
++PASS R-291 fixture: a leading BOM before the first heading is read 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:58: trailing whitespace.
++PASS R-293 fixture: rejects missing status 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:59: trailing whitespace.
++PASS R-293 fixture: rejects unknown status 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:60: trailing whitespace.
++PASS R-293 fixture: rejects empty frozen status 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:61: trailing whitespace.
++PASS R-293 fixture: rejects empty retired status 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:62: trailing whitespace.
++PASS R-293 fixture: rejects blank reason status 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:63: trailing whitespace.
++PASS R-293: feature lifecycle statuses are required and validated 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:64: trailing whitespace.
++PASS R-293 fixture: accepts four lifecycle forms 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:65: trailing whitespace.
++PASS R-294 fixture: proposed feature cannot hold rows 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:66: trailing whitespace.
++PASS R-294 fixture: retired (FEAT-002) feature cannot hold rows 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:67: trailing whitespace.
++PASS R-294: proposed and retired features have no rows 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:68: trailing whitespace.
++PASS R-291: row ID compression retains and separates prefixes 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:69: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:70: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-002 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:71: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-002 R-003 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:72: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-002 R-003 R-004 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:73: trailing whitespace.
++PASS R-291 property: compression round-trips R-001 R-003 R-004 R-008 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:74: trailing whitespace.
++PASS R-291 property: compression round-trips R-004 R-002 R-003 G-001 G-003 G-002 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:75: trailing whitespace.
++PASS R-291 fixture: independent field check catches a broken renderer dropping status 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:76: trailing whitespace.
++PASS R-291 fixture: independent field check rejects missing shared index data 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:77: trailing whitespace.
++PASS R-2785: the outline lists each feature's artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:78: trailing whitespace.
++PASS R-2796: the outline lists each feature's read artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:79: trailing whitespace.
++PASS R-291 fixture field check rejects altered ID 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:80: trailing whitespace.
++PASS R-291 fixture field check rejects altered label 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:81: trailing whitespace.
++PASS R-291 fixture field check rejects altered purpose 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:82: trailing whitespace.
++PASS R-291 fixture field check rejects altered parent 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:83: trailing whitespace.
++PASS R-291 fixture field check rejects altered row count 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:84: trailing whitespace.
++PASS R-291 fixture field check rejects altered row IDs 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:85: trailing whitespace.
++PASS R-1157: --root checks another project's ledger, names its problems and writes no outline 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:86: trailing whitespace.
++PASS R-1157 fixture: a row outside its feature exits 1 naming it 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:87: trailing whitespace.
++PASS R-1157 fixture: --root <dir> --write exits 2 with usage 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:88: trailing whitespace.
++PASS R-1160: --root refuses a UTF-16 ledger and a ledger with no rows, naming the reason 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:89: trailing whitespace.
++PASS R-1160: a tree ledger with a padded table header is not refused as having no rows 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:90: trailing whitespace.
++PASS R-1158: a CRLF ledger gives the same problems and line numbers as its LF copy 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:91: trailing whitespace.
++PASS R-1159: a ledger with rows and no tree gets one line naming the row count and the next step 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:92: trailing whitespace.
++PASS R-1159: a flat ledger's one line counts every requirement row, padded tables and rows after a blank line included 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:93: trailing whitespace.
++PASS R-1159: a flat ledger's count includes a requirement row inside a code fence, as the rail counts it 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:94: trailing whitespace.
++PASS R-1159: a ledger with subgroup headings but no capability or feature heading still gets the one line 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:95: trailing whitespace.
++PASS R-1161: a tree heading typed with "-" for "·" is named with its line and the expected form, not taken for a flat ledger 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:96: trailing whitespace.
++PASS the tree checker prints deliverable notes in every mode and keeps its exit status and outline 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:97: trailing whitespace.
++PASS the tree checker counts the deliverables made and read by code in every mode 
+docs/reviews/memory-curation-2026-11-02/merge-tree-test.txt:98: trailing whitespace.
++PASS R-2639: a parked deliverable leaves the count's total once and the line names the parked row count in every mode 
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:3: trailing whitespace.
++1. **MUST — “Recorded chars” cannot establish what reached the model.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:4: trailing whitespace.
++   Evidence: `docs/reviews/seat-anatomy-2026-11-02/plan.md:73-75` claims one `/context` comparison bounds the gap; lines 227-228 describe category-level context usage. Neither establishes historical delivery across versions, nor makes token counts comparable to UTF-16 characters. Unknown attachments are nevertheless counted as supplied context at lines 65 and 168-170. `packages/nana-pack/lib/claude-transcript.mjs:16-21` recursively collects arbitrary string fields, including metadata, rather than selecting model-visible payloads.  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:7: trailing whitespace.
++2. **MUST — The segment rule can create phantom starts and misclassify post-compaction work.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:8: trailing whitespace.
++   Evidence: `plan.md:76-84` makes both `compact_boundary` and the SessionStart compact hook group starts. One compaction can contain both. “Before the first owner turn” also misclassifies continuing tool work after an automatic compaction, where no new owner turn is needed. T2 only pins the desired three contexts (`plan.md:240-244`), without specifying these event combinations.  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:11: trailing whitespace.
++3. **MUST — Global UUID dedupe does not define resumed or forked session accounting.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:12: trailing whitespace.
++   Evidence: `plan.md:80-81` totals by file, while lines 114-116 and 245-246 propose counting repeated UUIDs once across files. A fork legitimately inherits context; deleting inherited entries leaves its start incomplete. Assigning shared entries to whichever file sorts first also changes per-session correction denominators. The existing replay reader follows `parentUuid` ancestry (`packages/nana-pack/lib/memory-replay-context.mjs:56-67`); the plan specifies no equivalent branch selection.  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:15: trailing whitespace.
++4. **MUST — Hook and queued-prompt dedupe needs event identity, not text equality.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:16: trailing whitespace.
++   Evidence: `plan.md:58` suppresses additional context matching a counted hook’s text; lines 85-90 defer hook and queued-prompt semantics to one transcript. Identical output from separate hook invocations is a real repeat, while a JSON envelope and its extracted `additionalContext` can represent one delivery with different recorded strings. Repeated identical human prompts are also legitimate.  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:19: trailing whitespace.
++5. **MUST — Correction joins use the wrong evidence shape and an incompatible reader option.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:20: trailing whitespace.
++   Evidence: `plan.md:108-112` specifies `claude-code:<sessionId>#<uuid>`. Actual candidates append the paired assistant UUID (`packages/nana-pack/lib/memory-making.mjs:146-148`), and AskUserQuestion decisions use paired evidence too (`:103-111`). `ownerTurn` excludes tool-result answers (`:28-34`). The alternative `readOutcomeRows` reader discards `none` labels and rejects ordinary candidate rows in non-label mode (`packages/nana-pack/lib/outcome-score.mjs:15-34`).  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:23: trailing whitespace.
++6. **MUST — Existing reporting semantics would undercount the headline kind shares.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:24: trailing whitespace.
++   Evidence: the plan imports `reportContexts` for shares and duplicates (`plan.md:194-196`). That reporter excludes oversize units from shares, while its duplicate output contains occurrence counts but no repeated-character totals (`apps/bench/lib/anatomy-measures.mjs:45-75`). The plan’s approximately 24k tool listing is opaque (`plan.md:43,60`), exceeding the 3,000-character threshold (`apps/bench/lib/anatomy-config.mjs:10-11`). Thus existing function shares cannot serve as complete kind shares.  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:27: trailing whitespace.
++7. **MUST — Skip counts cannot come from the selected shared readers as written.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:28: trailing whitespace.
++   Evidence: T3 requires counted subagent files, worktree files and torn lines (`plan.md:245-254`). `sourceFiles` filters projects before returning files (`packages/nana-pack/lib/memory-making.mjs:40-43`); `transcriptFiles` does not descend into subagent folders (`packages/nana-pack/lib/claude-transcript.mjs:59-68`); `streamEntriesIn` silently discards malformed lines (`:32-43`). Those omissions are invisible to the adapter.  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:31: trailing whitespace.
++8. **MUST — The privacy test misses the real-transcript development path.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:32: trailing whitespace.
++   Evidence: A4 and A5 require the builder to inspect real transcripts (`plan.md:85-90`), but T7 only tests synthetic CLI stdout/stderr and checkout refusal (`:272-275`). Reading raw transcript content through the coding harness itself copies owner text into tool output and agent logs, outside that test. Existing reports also print context identifiers directly (`apps/bench/lib/anatomy-measures.mjs:76-78`), so safe ordinal identity must cover every reporter, not just the new one.  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:35: trailing whitespace.
++9. **SHOULD — The every-role attachment point confuses role with runtime and leaves copying unresolved.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:36: trailing whitespace.
++   Evidence: the proposed dispatch maps `seat` directly to Claude extraction (`plan.md:120-123`), yet the first B extension is another seat adapter for pi (`:95-98`). The pi system-section loop is private inside `extractContexts` (`apps/bench/lib/anatomy-sessions.mjs:117-133`). Following replay slot-reading code without extracting it likewise risks copying (`plan.md:202-205`).  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:39: trailing whitespace.
++10. **SHOULD — “Additive edits” do not resolve the builder-drop semantic overlap.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:40: trailing whitespace.
++    Evidence: `plan.md:18-20` treats merging main as sufficient. Shared `CLASS_FUNCTION` controls every report’s class vocabulary (`apps/bench/lib/anatomy-measures.mjs:72`); extending it can change builder report output even when builder extraction bytes remain unchanged. T6 checks extraction equality, not report equality (`plan.md:265-271`). Labelled reports also currently produce builder-oriented rows without role fields (`apps/bench/lib/anatomy-measures.mjs:76-78,199-211`).  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:43: trailing whitespace.
++11. **NOTE — No concrete renamed-heading test break surfaced; preserve that distinction.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:44: trailing whitespace.
++    Evidence: the literal heading is in `apps/bench/README.md:438`; feature labels appear in `REQUIREMENTS.md:3456`, generated trees and historical review records. The searched tests do not pin that feature label. Existing tests *do* pin oversize exclusion and duplicate output (`apps/bench/test/anatomy.test.mjs:123-138`), so changing shared reporting semantics is the actual regression risk.  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:47: trailing whitespace.
++12. **SHOULD — Finish the descriptive study without making optional labelling another delivery dependency.**  
+docs/reviews/seat-anatomy-2026-11-02/plan-attack.md:48: trailing whitespace.
++    Evidence: the lane’s findings are deterministic kinds (`plan.md:99-100`), yet it introduces two owner questions and a possible later prompt lane (`:135-147`). The actual counts artifact is deferred to another reviewed lane (`:309-320`).  
+docs/reviews/seat-anatomy-2026-11-02/r1-reviewer-a4e5f72d.md:13: trailing whitespace.
++  
+docs/reviews/seat-anatomy-2026-11-02/r1-reviewer-f9455ae4.md:13: trailing whitespace.
++  
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:1: trailing whitespace.
++PASS collects every test file directly under a package tests dir 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:2: trailing whitespace.
++PASS collection does not recurse and takes only .test.mjs files 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:3: trailing whitespace.
++PASS a path segment named fixtures is never collected 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:4: trailing whitespace.
++PASS each file runs with --experimental-strip-types from its package dir 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:5: trailing whitespace.
++PASS each file gets a fresh temp HOME and USERPROFILE, not the real one 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:6: trailing whitespace.
++PASS the temp HOME is per file, not shared between files 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:7: trailing whitespace.
++PASS every child disables git auto gc without replacing caller git config entries 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:8: trailing whitespace.
++PASS a failing file's TMPDIR and leaked contents are removed 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:9: trailing whitespace.
++PASS a file that exits non-zero is FAIL and the run exits 1 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:10: trailing whitespace.
++PASS a file killed by a signal is FAIL, naming the signal 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:11: trailing whitespace.
++PASS a FAIL line from an exit-0 file is a WARN and does not flip the verdict 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:12: trailing whitespace.
++PASS an exit-0 file that printed only SKIP lines is FAIL without a declared precondition 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:13: trailing whitespace.
++PASS a silent exit-0 file is FAIL without a declared precondition 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:14: trailing whitespace.
++PASS without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:15: trailing whitespace.
++PASS in non-verbose mode a failing file prints its first 20 failing check lines 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:16: trailing whitespace.
++PASS one line per file, then a totals line with both tallies, exiting 1 on a failure 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:17: trailing whitespace.
++PASS each test gets a unique TMPDIR and the runner removes leaked temp contents 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:18: trailing whitespace.
++PASS ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:19: trailing whitespace.
++PASS PI_CODING_AGENT_DIR is scrubbed too and the rest of PI_ is left alone 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:20: trailing whitespace.
++PASS CLAUDE_CONFIG_DIR is scrubbed from the child env 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:21: trailing whitespace.
++PASS a file declared unrunnable on this platform SKIPs with its reason printed 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:22: trailing whitespace.
++PASS study tasks SKIP only when their declared extension prerequisite is absent 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:23: trailing whitespace.
++PASS study tasks run when their declared extension prerequisite exists 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:24: trailing whitespace.
++PASS R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:25: trailing whitespace.
++PASS a substring argument runs only the files whose repo-relative path contains it 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:26: trailing whitespace.
++PASS --verbose streams a passing file's own output 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:27: trailing whitespace.
++PASS no match says so, exits 1, and still removes its scratch dir 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:28: trailing whitespace.
++PASS NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:29: trailing whitespace.
++PASS the timeout kill takes the child's whole process tree with it 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:30: trailing whitespace.
++PASS the scratch dir is removed after the run 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:31: trailing whitespace.
++PASS a timed-out file's TMPDIR and leaked contents are removed 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:32: trailing whitespace.
++PASS tracked mutation fails naming the tracked file while untracked files do not appear 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:33: trailing whitespace.
++PASS tracked mutation is detected when the file was already dirty before the run 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:34: trailing whitespace.
++PASS staging an already-dirty tracked file is detected without a working-tree change 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:35: trailing whitespace.
++PASS after a child exits the runner waits only a bounded drain for stdio to close 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:36: trailing whitespace.
++PASS termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows) 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:37: trailing whitespace.
++PASS --self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:38: trailing whitespace.
++PASS NANA_TEST_SELFTEST=1 is the same as --self-test 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:39: trailing whitespace.
++PASS R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:40: trailing whitespace.
++PASS R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:41: trailing whitespace.
++PASS R-2753: the run record names the default per-file time limit the runner applied 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:42: trailing whitespace.
++PASS R-3433: whole-run records carry the actual path filters, empty for an unfiltered run 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:43: trailing whitespace.
++PASS R-2880: a record-fixture file that passes after 1 second is labelled PASS with no cause, and the file that outlives the record limit is labelled FAIL timed out, serial and parallel 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:44: trailing whitespace.
++PASS seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:45: trailing whitespace.
++PASS the source check detects direct mkdtemp calls while ignoring only generated leak fixtures 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:46: trailing whitespace.
++PASS the shared temp helper removes its registered root when the process exits 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:47: trailing whitespace.
++PASS R-2666: a finished file whose temp folder stays busy gets one FAIL line naming the file, the folder and the code, counts as one failure, and every other file still runs, serial and parallel 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:48: trailing whitespace.
++PASS seal: a finished file's temp folder removal retries 5 times on a 100 ms step 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:49: trailing whitespace.
++PASS R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:50: trailing whitespace.
++PASS R-1381: off win32 each file on the declared Windows skip list runs 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:51: trailing whitespace.
++PASS R-1382: win32 still runs each desk and bench file off the declared Windows skip list 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:52: trailing whitespace.
++PASS R-1383: the declared Windows skip list names only collected desk and bench test files 
+docs/reviews/seat-anatomy-2026-11-02/r1-test-runner.txt:53: trailing whitespace.
++PASS R-1521: the declared Windows skip list names no bench test file 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:71: trailing whitespace.
++PASS collects every test file directly under a package tests dir 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:72: trailing whitespace.
++PASS collection does not recurse and takes only .test.mjs files 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:73: trailing whitespace.
++PASS a path segment named fixtures is never collected 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:74: trailing whitespace.
++PASS each file runs with --experimental-strip-types from its package dir 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:75: trailing whitespace.
++PASS each file gets a fresh temp HOME and USERPROFILE, not the real one 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:76: trailing whitespace.
++PASS the temp HOME is per file, not shared between files 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:77: trailing whitespace.
++PASS every child disables git auto gc without replacing caller git config entries 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:78: trailing whitespace.
++PASS a failing file's TMPDIR and leaked contents are removed 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:79: trailing whitespace.
++PASS a file that exits non-zero is FAIL and the run exits 1 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:80: trailing whitespace.
++PASS a file killed by a signal is FAIL, naming its exit code (win32 has no signal to report) 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:81: trailing whitespace.
++PASS a FAIL line from an exit-0 file is a WARN and does not flip the verdict 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:82: trailing whitespace.
++PASS an exit-0 file that printed only SKIP lines is FAIL without a declared precondition 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:83: trailing whitespace.
++PASS a silent exit-0 file is FAIL without a declared precondition 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:84: trailing whitespace.
++PASS without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:85: trailing whitespace.
++PASS in non-verbose mode a failing file prints its first 20 failing check lines 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:86: trailing whitespace.
++PASS one line per file, then a totals line with both tallies, exiting 1 on a failure 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:87: trailing whitespace.
++PASS each test gets a unique TMPDIR and the runner removes leaked temp contents 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:88: trailing whitespace.
++PASS ambient NANA_ vars are scrubbed from the child env and NANA_TEST_ knobs are kept 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:89: trailing whitespace.
++PASS PI_CODING_AGENT_DIR is scrubbed too and the rest of PI_ is left alone 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:90: trailing whitespace.
++PASS CLAUDE_CONFIG_DIR is scrubbed from the child env 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:91: trailing whitespace.
++PASS a file whose declared skip condition does not hold runs instead of skipping 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:92: trailing whitespace.
++PASS study tasks SKIP only when their declared extension prerequisite is absent 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:93: trailing whitespace.
++PASS study tasks run when their declared extension prerequisite exists 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:94: trailing whitespace.
++PASS R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:95: trailing whitespace.
++PASS a substring argument runs only the files whose repo-relative path contains it 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:96: trailing whitespace.
++PASS --verbose streams a passing file's own output 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:97: trailing whitespace.
++PASS no match says so, exits 1, and still removes its scratch dir 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:98: trailing whitespace.
++PASS NANA_TEST_TIMEOUT_MS sets the per-file timeout and a timed-out file is FAIL 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:99: trailing whitespace.
++PASS the timeout kill takes the child's whole process tree with it 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:100: trailing whitespace.
++PASS the scratch dir is removed after the run 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:101: trailing whitespace.
++PASS a timed-out file's TMPDIR and leaked contents are removed 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:102: trailing whitespace.
++PASS tracked mutation fails naming the tracked file while untracked files do not appear 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:103: trailing whitespace.
++PASS tracked mutation is detected when the file was already dirty before the run 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:104: trailing whitespace.
++PASS staging an already-dirty tracked file is detected without a working-tree change 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:105: trailing whitespace.
++PASS after a child exits the runner waits only a bounded drain for stdio to close 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:106: trailing whitespace.
++PASS termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows) 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:107: trailing whitespace.
++PASS --self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:108: trailing whitespace.
++PASS NANA_TEST_SELFTEST=1 is the same as --self-test 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:109: trailing whitespace.
++PASS R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:110: trailing whitespace.
++PASS R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:111: trailing whitespace.
++PASS R-2753: the run record names the default per-file time limit the runner applied 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:112: trailing whitespace.
++PASS R-3433: whole-run records carry the actual path filters, empty for an unfiltered run 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:113: trailing whitespace.
++PASS R-2880: a record-fixture file that passes after 1 second is labelled PASS with no cause, and the file that outlives the record limit is labelled FAIL timed out, serial and parallel 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:114: trailing whitespace.
++PASS seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:115: trailing whitespace.
++PASS the source check detects direct mkdtemp calls while ignoring only generated leak fixtures 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:116: trailing whitespace.
++PASS the shared temp helper removes its registered root when the process exits 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:117: trailing whitespace.
++PASS R-2666: a finished file whose temp folder stays busy gets one FAIL line naming the file, the folder and the code, counts as one failure, and every other file still runs, serial and parallel 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:118: trailing whitespace.
++PASS seal: a finished file's temp folder removal retries 5 times on a 100 ms step 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:119: trailing whitespace.
++PASS R-1380: win32 SKIPs each file on the declared Windows skip list with its reason and never starts it 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:120: trailing whitespace.
++PASS R-1381: off win32 each file on the declared Windows skip list runs 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:121: trailing whitespace.
++PASS R-1382: win32 still runs each desk and bench file off the declared Windows skip list 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:122: trailing whitespace.
++PASS R-1383: the declared Windows skip list names only collected desk and bench test files 
+docs/reviews/seat-anatomy-roster-notice-2026-11-02/build-1-green.txt:123: trailing whitespace.
++PASS R-1521: the declared Windows skip list names no bench test file 

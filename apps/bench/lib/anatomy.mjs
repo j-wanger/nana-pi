@@ -1,7 +1,7 @@
 /**
  * @module apps/bench/lib/anatomy.mjs
- * @purpose Run hand-operated builder anatomy subcommands with private writers and counts-only printers.
- * @inputs Explicit argv roots, injected runner, optional token cap and stdout/stderr callbacks.
+ * @purpose Run hand-operated role anatomy subcommands with private writers and counts-only printers.
+ * @inputs Explicit argv roots, runtime-role adapters, injected runner, optional token cap and stdout/stderr callbacks.
  * @outputs Private contexts, labels, blind sheets or replay parts; counts-only stdout.
  * @effects disk (explicit private folders), process (extractor's read-only git), network (injected label runner only)
  * @errors Returns 1 with fixed diagnostics on invalid inputs, unsafe output or malformed data.
@@ -13,9 +13,13 @@ import { CONTEXT_FILE, MANIFEST_FILE, SAMPLE_SIZE, SHEET_FILE, STAGED_FILE } fro
 import { extractContexts } from "./anatomy-sessions.mjs";
 import { agreement, agreementLabels, assembleParts, drawLabelSample, drawSample, reportContexts, reportLabels } from "./anatomy-measures.mjs";
 import { labelContexts, readLabels } from "./anatomy-labels.mjs";
+import { extractSeatContexts } from "./anatomy-seat.mjs";
+import { reportSlots } from "./anatomy-slots.mjs";
+
+export const ANATOMY_ADAPTERS = Object.freeze({ 'pi:builder': extractContexts, 'claude-code:seat': extractSeatContexts });
 
 const COMMANDS = ["segment", "report", "sample", "agree", "assemble", "label"];
-const OPTIONS = ["repo", "sessions", "out", "in", "seed", "n", "a", "b", "context", "drop", "stage", "resume", "labels", "model", "a2", "b2"];
+const OPTIONS = ["repo", "sessions", "out", "in", "seed", "n", "a", "b", "context", "drop", "stage", "resume", "labels", "model", "a2", "b2", "role", "runtime", "projects", "corrections"];
 const BOOLEAN_OPTIONS = ["heavy"];
 function argsIn(argv) {
  const [command, ...rest] = argv;
@@ -33,10 +37,11 @@ function argsIn(argv) {
 const write = (folder, name, text) => fs.writeFileSync(path.join(folder, name), text, { mode: 0o600, flag: "wx" });
 const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
 /** All paths and exception strings stay private; only fixed reasons and count fields print. */
-export async function runAnatomy(argv, { runModel, caps, stdout = (s) => process.stdout.write(s), stderr = (s) => process.stderr.write(s) } = {}) {
+export async function runAnatomy(argv, { runModel, caps, adapters = {}, stdout = (s) => process.stdout.write(s), stderr = (s) => process.stderr.write(s) } = {}) {
  try {
   const args = argsIn(argv), print = (o) => stdout(`${JSON.stringify(o)}\n`);
   if ((args.heavy && (args.command !== "sample" || !args.labels)) || (args.labels && !["report", "sample"].includes(args.command)) || (args.model && args.command !== "agree") || ((args.a2 || args.b2) && (args.command !== "agree" || !args.model || !args.a2 || !args.b2))) throw new Error("arguments");
+  if ((args.corrections && args.command !== 'report') || ((args.role || args.runtime || args.projects) && args.command !== 'segment')) throw new Error('arguments');
   let out;
   if (args.resume && args.command !== "label") throw new Error("arguments");
   if (args.command === "label") {
@@ -50,8 +55,10 @@ export async function runAnatomy(argv, { runModel, caps, stdout = (s) => process
    if (fs.readdirSync(out).length) { const error = new Error("output occupied"); error.code = "OUTPUT_OCCUPIED"; throw error; }
   }
   if (args.command === "segment") {
-   if (!args.repo || !args.sessions) throw new Error("arguments");
-   const result = extractContexts({ repo: args.repo, sessions: args.sessions });
+   const role = args.role ?? 'builder', runtime = args.runtime ?? (role === 'seat' ? 'claude-code' : 'pi');
+   const adapter = adapters[`${runtime}:${role}`] ?? ANATOMY_ADAPTERS[`${runtime}:${role}`];
+   if (!args.repo || !adapter || (adapter === extractContexts && !args.sessions) || (adapter === extractSeatContexts && !args.projects)) throw new Error('arguments');
+   const result = await adapter({ repo: args.repo, sessions: args.sessions, projects: args.projects });
    write(out, CONTEXT_FILE, jsonl(result.contexts));
    const reasons = [...new Set(result.skipped.map((s) => s.reason))].sort();
    print({ command: "segment", ...result.denominators, skipped: reasons.map((reason) => ({ reason, count: result.skipped.filter((s) => s.reason === reason).length })), excluded: reportContexts(result.contexts).excluded });
@@ -61,7 +68,10 @@ export async function runAnatomy(argv, { runModel, caps, stdout = (s) => process
   const contexts = entriesIn(path.join(args.in, CONTEXT_FILE));
   if (args.command === "label") await labelContexts(contexts, { out, resume: Boolean(args.resume), runModel, caps, stdout });
   const labelStore = args.labels || args.model ? await readLabels(args.labels ?? args.model, contexts) : null;
-  if (args.command === "report") print(labelStore ? reportLabels(contexts, labelStore) : reportContexts(contexts));
+  if (args.command === "report") {
+   const report = labelStore ? reportLabels(contexts, labelStore) : reportContexts(contexts);
+   print(contexts.some(c => c.role && c.role !== 'builder') ? { ...report, slots: reportSlots(contexts, { corrections: args.corrections }) } : report);
+  }
   if (args.command === "sample") {
    const options = { seed: args.seed, n: args.n === undefined ? SAMPLE_SIZE : Number(args.n), heavy: Boolean(args.heavy) };
    const result = labelStore ? drawLabelSample(labelStore, options) : { sheet: drawSample(contexts, options) };
@@ -85,7 +95,7 @@ export async function runAnatomy(argv, { runModel, caps, stdout = (s) => process
   }
   return 0;
  } catch (error) {
-  const reason = error.code === "OUTPUT_CHECKOUT" ? "output checkout refused" : error.code === "OUTPUT_SYMLINK" ? "output symlink refused" : error.code === "OUTPUT_OCCUPIED" ? "output not empty" : error.code === "LABEL_FINGERPRINT" ? "label fingerprint mismatch" : error.code === "INVALID_LABELS" ? "invalid labels" : error.code === "LABEL_STORE_MISMATCH" ? "label store mismatch" : error.code === "MODEL_LABELS_MISSING" && /^model labels missing: \d+$/u.test(error.message) ? error.message : /^ids differ: \d+$/u.test(error.message) ? error.message : "invalid inputs or read/write failure";
+  const reason = error.code === 'INVALID_CORRECTIONS' ? 'invalid corrections' : error.code === "OUTPUT_CHECKOUT" ? "output checkout refused" : error.code === "OUTPUT_SYMLINK" ? "output symlink refused" : error.code === "OUTPUT_OCCUPIED" ? "output not empty" : error.code === "LABEL_FINGERPRINT" ? "label fingerprint mismatch" : error.code === "INVALID_LABELS" ? "invalid labels" : error.code === "LABEL_STORE_MISMATCH" ? "label store mismatch" : error.code === "MODEL_LABELS_MISSING" && /^model labels missing: \d+$/u.test(error.message) ? error.message : /^ids differ: \d+$/u.test(error.message) ? error.message : "invalid inputs or read/write failure";
   stderr(`anatomy: ${reason}\n`); return 1;
  }
 }

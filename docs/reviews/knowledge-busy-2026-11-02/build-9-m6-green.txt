@@ -1,0 +1,4 @@
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: persistent failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and attempt ceiling is 10

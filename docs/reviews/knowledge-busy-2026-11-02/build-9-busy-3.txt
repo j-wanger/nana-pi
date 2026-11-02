@@ -1,0 +1,24 @@
+PASS M1: transient write locks allow existing and first builds to advance built_at
+PASS M1: sources-problem probe waits out a transient lock and keeps the index
+NOTE M2 run=1 ms=154 pull=true rebuild=true built_at=1793629661420->1793629661697 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=2 ms=73 pull=true rebuild=true built_at=1793629661697->1793629661878 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=3 ms=82 pull=true rebuild=true built_at=1793629661878->1793629662055 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=4 ms=75 pull=true rebuild=true built_at=1793629662055->1793629662254 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=5 ms=71 pull=true rebuild=true built_at=1793629662254->1793629662431 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=6 ms=72 pull=true rebuild=true built_at=1793629662431->1793629662610 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=7 ms=77 pull=true rebuild=true built_at=1793629662610->1793629662790 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=8 ms=72 pull=true rebuild=true built_at=1793629662790->1793629662970 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=9 ms=73 pull=true rebuild=true built_at=1793629662970->1793629663148 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+NOTE M2 run=10 ms=76 pull=true rebuild=true built_at=1793629663148->1793629663332 stdoutHead="[nana:knowledge] untrusted search pointers for this prompt —"
+PASS M2: ten stale hook pulls and background builds survive read-write churn
+PASS M3: locked hook stays bounded and connection defaults read back
+PASS M3: recovery refuses a late writer without a build busy wait and keeps the index
+PASS M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms
+PASS M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms
+PASS M6: first open failure retries and logs its cause
+PASS M6: first query failure retries and logs its cause
+PASS M6: persistent failures fail open within budget and log both causes
+PASS M6: seal: hook query retry delay is 50 ms and attempt ceiling is 10
+PASS M7: repeated BUSY failures return hits while budget allows
+PASS M7: persistent BUSY queries stop before budget with a query reserve
+PASS M7: seal: hook query reserve is 150 ms

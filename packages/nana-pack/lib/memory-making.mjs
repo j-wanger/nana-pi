@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { COMMAND_PATTERN } from './memory-curation-config.mjs';
 import { copiedEvidence } from './memory-store.mjs';
 import { projectKey } from "../../nana-setup/lib/project-key.mjs";
 import { assistantText, edtDay, privateFolder, streamEntriesIn, transcriptFiles } from "./claude-transcript.mjs";
@@ -20,11 +21,11 @@ import { CANDIDATES_FILE, CLAIM_CAP, CONTEXT_MIN_WORDS, CORRECTION_CUES, CORRECT
 
 const words = (text) => text.trim().split(/\s+/u).filter(Boolean).length;
 const partsOf = (entry) => entry.message?.content ?? entry.content;
-const textOnly = (entry) => {
+export const textOnly = (entry) => {
  const content = partsOf(entry);
  return typeof content === "string" ? content : Array.isArray(content) ? content.filter((p) => p?.type === "text" && typeof p.text === "string").map((p) => p.text).join("\n") : "";
 };
-function ownerTurn(entry) {
+export function ownerTurn(entry) {
  if (entry.type !== "user" || entry.isMeta || entry.isSidechain || entry.isCompactSummary) return false;
  const parts = partsOf(entry);
  if (Array.isArray(parts) && parts.some((p) => p?.type === "tool_result")) return false;
@@ -72,7 +73,7 @@ function askAnswer(entry, result, call) {
 }
 /** Shared unit walk; rule text stays sentence-sized while model context keeps the whole entry. */
 export async function* unitsIn(file, options, onEntry = options.onEntry) {
- let question = null, substantial = null, lastSeat = null;
+ let question = null, substantial = null, lastSeat = null, curation = false;
  const calls = new Map();
  for await (const entry of streamEntriesIn(file)) {
   onEntry?.(entry, { file });
@@ -82,7 +83,9 @@ export async function* unitsIn(file, options, onEntry = options.onEntry) {
   const sessionId = entry.sessionId ?? path.basename(file, ".jsonl");
   const day = edtDay(timestamp);
   const afterStart = !options.since || Date.parse(timestamp) >= Date.parse(options.since);
-  for (const call of askCalls(entry)) calls.set(call.id, { call, uuid: entry.uuid });
+  const toolParts = partsOf(entry);
+  if (entry.type === 'assistant' && Array.isArray(toolParts) && toolParts.some(p => p?.type === 'tool_use' && typeof p.input?.command === 'string' && COMMAND_PATTERN.test(p.input.command))) curation = true;
+  for (const call of askCalls(entry)) calls.set(call.id, { call, uuid: entry.uuid, curation });
   const seat = assistantText(entry).trim();
   if (seat) {
    const matches = [...seat.matchAll(new RegExp(QUESTION_PATTERN))];
@@ -97,13 +100,17 @@ export async function* unitsIn(file, options, onEntry = options.onEntry) {
     if (!pending) continue;
     calls.delete(result.tool_use_id);
     const answer = askAnswer(entry, result, pending.call);
-    if (answer && entry.uuid && pending.uuid && afterStart && inWindow(day, options)) yield { source: "ask", ...answer, evidence: `claude-code:${sessionId}#${entry.uuid}+${pending.uuid}`, date: day };
+    if (answer && entry.uuid && pending.uuid && afterStart && inWindow(day, options)) yield curation || pending.curation
+     ? { source: 'owner', skipped: true, lastSeat: null, evidence: `claude-code:${sessionId}#${entry.uuid}+${pending.uuid}`, date: day }
+     : { source: "ask", ...answer, evidence: `claude-code:${sessionId}#${entry.uuid}+${pending.uuid}`, date: day };
    }
   }
   if (!ownerTurn(entry)) continue;
   const quote = textOnly(entry).trim();
-  if (quote && entry.uuid && afterStart && inWindow(day, options)) yield { source: "owner", quote, substantial, question, lastSeat, evidence: `claude-code:${sessionId}#${entry.uuid}`, date: day };
-  question = null; substantial = null;
+  if (quote && entry.uuid && afterStart && inWindow(day, options)) yield curation
+   ? { source: 'owner', skipped: true, lastSeat: null, evidence: `claude-code:${sessionId}#${entry.uuid}`, date: day }
+   : { source: "owner", quote, substantial, question, lastSeat, evidence: `claude-code:${sessionId}#${entry.uuid}`, date: day };
+  question = null; substantial = null; curation = false;
  }
 }
 export async function* transcriptUnits(options, onEntry = options.onEntry) {
@@ -133,15 +140,16 @@ export function* reviewUnits(options) {
 }
 /** Roots are injected; the CLI alone chooses real-machine defaults. No model or delivery. */
 export async function extractMemory(options) {
- const records = []; let cappedClaims = 0;
+ const records = []; let cappedClaims = 0, skipped = 0;
  const emit = ({ record, capped }) => { records.push(record); cappedClaims += capped; };
  for await (const unit of transcriptUnits(options)) {
+  if (unit.skipped) { skipped++; continue; }
   if (unit.source === "ask") emit(shape("user", "decision", unit.quote, unit.context, unit.evidence, unit.date));
   else if (CORRECTION_CUES.test(unit.quote) && unit.substantial) emit(shape("user", "correction", unit.quote, unit.substantial.text, `${unit.evidence}+${unit.substantial.uuid}`, unit.date));
   else if (!CORRECTION_CUES.test(unit.quote) && unit.question && words(unit.quote) <= SHORT_ANSWER_WORD_CAP) emit(shape("user", "decision", unit.quote, unit.question.text, `${unit.evidence}+${unit.question.uuid}`, unit.date));
  }
  for (const unit of reviewUnits(options)) emit(shape("worker", "lesson", unit.quote, unit.context, unit.evidence, unit.date));
- return { records, cappedClaims };
+ return { records, cappedClaims, skipped };
 }
 /** Review indices resolve by the existing parser; removed indices are stale, absent files missing.
  * Pass expectedTitle when checking a retained record to detect replacement at the same index. */

@@ -302,7 +302,7 @@ async function retryCase(s, stage, twice = false, spent = false) {
  const elapsed = Date.now() - started;
  const row = JSON.parse(fs.readFileSync(path.join(process.env.NANA_KNOWLEDGE_HOME, 'pull.log'), 'utf8').trim());
  const reason = stage === 'open' ? 'db-open-failed' : 'query-failed';
- assert.equal(opens, spent ? 1 : 2);
+ assert.equal(opens, spent ? 1 : (twice ? hook.HOOK_QUERY_MAX_ATTEMPTS : 2));
  assert.equal(closes, stage === 'query' ? opens : (twice || spent ? 0 : 1));
  assert.equal(row.retried, reason + ': SQLITE_BUSY');
  assert.ok(elapsed < hook.BUDGET_MS, 'elapsed=' + elapsed);
@@ -331,7 +331,7 @@ await check("M6: first query failure retries and logs its cause", async (s) => {
  await retryCase(s, "query");
 });
 // req: R-3595
-await check("M6: two failures fail open within budget and log both causes", async (s) => {
+await check("M6: persistent failures fail open within budget and log both causes", async (s) => {
  for (const stage of ["open", "query"]) {
   await retryCase(s, stage, true);
   fs.rmSync(path.join(s.home, "pull.log"));
@@ -340,8 +340,83 @@ await check("M6: two failures fail open within budget and log both causes", asyn
  }
 });
 // req: R-3596
-await check("M6: seal: hook query retry delay is 50 ms and count is 1", async () => {
+await check("M6: seal: hook query retry delay is 50 ms and attempt ceiling is 10", async () => {
  assert.equal(hook.HOOK_QUERY_RETRY_DELAY_MS, 50);
- assert.equal(hook.HOOK_QUERY_RETRY_COUNT, 1);
+ assert.equal(hook.HOOK_QUERY_MAX_ATTEMPTS, 10);
+});
+
+async function budgetRetryCase(s, persistent) {
+ await seed(s);
+ const h = child(s, ["--input-type=module", "-e", `
+ import assert from 'node:assert/strict';
+ import fs from 'node:fs';
+ import path from 'node:path';
+ import * as hook from ${JSON.stringify(new URL("../lib/hook.ts", import.meta.url).href)};
+ import { QUERY_BUSY_TIMEOUT_MS } from ${JSON.stringify(new URL("../lib/db.ts", import.meta.url).href)};
+ const persistent = ${persistent};
+ const busy = () => Object.assign(new Error('private lock detail'), { code: 'ERR_SQLITE_ERROR', errcode: 5 });
+ const N = 4;
+ for (const stage of persistent ? ['query'] : ['open', 'query']) {
+  let opens = 0, queries = 0, closes = 0;
+  const started = Date.now();
+  const result = await hook.runHook(JSON.stringify({ prompt: 'quasar nebula telescope horizon findings', session_id: stage }), {
+   spawnFn: () => {},
+   openDbFn: async () => {
+    opens++;
+    if (stage === 'open' && opens <= N) throw busy();
+    return { close: () => { closes++; } };
+   },
+   searchFn: () => {
+    queries++;
+    // Model the synchronous SQLite busy wait, not an async timer that the CLI can interrupt.
+    if (persistent) {
+     assert.ok(Date.now() - started + QUERY_BUSY_TIMEOUT_MS + hook.HOOK_QUERY_RESERVE_MS < hook.BUDGET_MS);
+     const until = Date.now() + QUERY_BUSY_TIMEOUT_MS;
+     while (Date.now() < until) {}
+     throw busy();
+    }
+    if (stage === 'query' && queries <= N) throw busy();
+    return [{ key: stage, display: 'quasar.md', title: 'Quasar telemetry', snippet: 'nebula telescope' }];
+   },
+  });
+  const elapsed = Date.now() - started;
+  const rows = fs.readFileSync(path.join(process.env.NANA_KNOWLEDGE_HOME, 'pull.log'), 'utf8').trim().split('\\n').map(line => JSON.parse(line));
+  const row = rows.at(-1);
+  assert.ok(elapsed < hook.BUDGET_MS, 'elapsed=' + elapsed);
+  assert.equal(result.reason, persistent ? 'query-failed' : 'ok');
+  assert.equal(row.attempts, opens);
+  assert.equal(typeof row.attempts, 'number');
+  assert.equal(closes, stage === 'open' ? 1 : opens);
+  assert.equal(row.retried, (stage === 'open' ? 'db-open-failed' : 'query-failed') + ': ERR_SQLITE_ERROR (5)');
+  if (persistent) {
+   assert.equal(result.reason, 'query-failed');
+   assert.equal(result.output, null);
+   assert.ok(opens > 2);
+   assert.ok(opens <= hook.HOOK_QUERY_MAX_ATTEMPTS);
+   assert.equal(row.failure, 'query-failed: ERR_SQLITE_ERROR (5)');
+   assert.ok(elapsed + hook.HOOK_QUERY_RETRY_DELAY_MS + QUERY_BUSY_TIMEOUT_MS + hook.HOOK_QUERY_RESERVE_MS >= hook.BUDGET_MS);
+  } else {
+   assert.equal(result.reason, 'ok');
+   assert.equal(result.hits.length, 1);
+   assert.match(result.output, /Quasar telemetry/);
+   assert.equal(opens, N + 1);
+   assert.ok(elapsed >= N * hook.HOOK_QUERY_RETRY_DELAY_MS);
+  }
+ }
+ `], "");
+ await h.done;
+ assert.equal(h.code, 0, h.err);
+}
+// req: R-3595
+await check("M7: repeated BUSY failures return hits while budget allows", async (s) => {
+ await budgetRetryCase(s, false);
+});
+// req: R-3595
+await check("M7: persistent BUSY queries stop before budget with a query reserve", async (s) => {
+ await budgetRetryCase(s, true);
+});
+// req: R-3596
+await check("M7: seal: hook query reserve is 150 ms", async () => {
+ assert.equal(hook.HOOK_QUERY_RESERVE_MS, 150);
 });
 process.exitCode = fails ? 1 : 0;
