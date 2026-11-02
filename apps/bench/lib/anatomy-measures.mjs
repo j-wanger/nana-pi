@@ -6,8 +6,9 @@
  * @effects none
  * @errors Invalid labels, duplicate ids, unknown ids and differing sheet id sets throw fixed diagnostics.
  */
+import crypto from "node:crypto";
 import { cohensKappa, seededSample } from "./catch-stats.mjs";
-import { CLASS_FUNCTION, FUNCTIONS, KAPPA_MIN_COUNT, NORMALIZATION, NORMAL_TOKENS, OVERSIZE_UNIT_CHARS, REPORT_PARTS, RULE_TIERS, SAMPLE_MIN_FUNCTION, SAMPLE_MIN_TIER, SAMPLE_SIZE, SHARE_DIGITS, SIZE_QUANTILE, STAGE_POINTER } from "./anatomy-config.mjs";
+import { CLASS_FUNCTION, FUNCTIONS, KAPPA_MIN_COUNT, LABEL_HEAVY_MIN, LABEL_SAMPLE_MIN, LABEL_SHORT_CHARS, NORMALIZATION, NORMAL_TOKENS, OVERSIZE_UNIT_CHARS, REPORT_PARTS, RULE_TIERS, SAMPLE_MIN_FUNCTION, SAMPLE_MIN_TIER, SAMPLE_SIZE, SHARE_DIGITS, SIZE_QUANTILE, STAGE_POINTER } from "./anatomy-config.mjs";
 
 const labels = [...FUNCTIONS, "unsorted", "glue"];
 const safePart = (name) => REPORT_PARTS.includes(name) ? name : "extra-section";
@@ -16,9 +17,9 @@ const pct = (n, total) => total ? round(100 * n / total) : 0;
 const flat = (contexts) => contexts.flatMap((c) => c.parts.flatMap((p) => p.spans.map((s) => ({ c, p, s }))));
 const oversize = (s) => s.kind === "unit" && s.text.length > OVERSIZE_UNIT_CHARS;
 const functionOf = (s) => s.kind === "glue" ? "glue" : s.label;
-function counts(rows) {
+function counts(rows, vocabulary = labels) {
  const chars = rows.reduce((n, { s }) => n + s.text.length, 0), total = rows.length;
- return labels.map((label) => {
+ return vocabulary.map((label) => {
   const found = rows.filter(({ s }) => functionOf(s) === label);
   const size = found.reduce((n, { s }) => n + s.text.length, 0);
   return { function: label, units: found.length, unitShare: pct(found.length, total), chars: size, charShare: pct(size, chars) };
@@ -41,7 +42,7 @@ function pulled(rows, key, vocabulary) {
  });
 }
 /** Only the returned aggregate fields are printable; raw text never enters this object. */
-export function reportContexts(contexts) {
+export function reportContexts(contexts, vocabulary = labels) {
  const all = flat(contexts), small = all.filter(({ s }) => !oversize(s));
  const duplicates = new Map();
  for (const { c, p, s } of all.filter(({ s }) => s.kind === "unit")) {
@@ -51,7 +52,7 @@ export function reportContexts(contexts) {
  const duplicateRows = [...duplicates.values()].filter((d) => d.count > 1).sort((a, b) => b.count - a.count || [...a.parts].sort().join().localeCompare([...b.parts].sort().join()));
  const parts = [...new Set(all.map(({ p }) => safePart(p.name)))].sort().map((name) => {
   const rows = all.filter(({ p }) => safePart(p.name) === name), sizes = rows.filter(({ s }) => s.kind === "unit").map(({ s }) => s.text.length).sort((a, b) => a - b);
-  return { part: name, counts: counts(rows.filter(({ s }) => !oversize(s))), max: sizes.at(-1) ?? 0, p90: sizes[Math.max(0, Math.ceil(sizes.length * SIZE_QUANTILE) - 1)] ?? 0 };
+  return { part: name, counts: counts(rows.filter(({ s }) => !oversize(s)), vocabulary), max: sizes.at(-1) ?? 0, p90: sizes[Math.max(0, Math.ceil(sizes.length * SIZE_QUANTILE) - 1)] ?? 0 };
  });
  const zeroSupply = [];
  for (const group of ["1", "2+", "unknown"]) {
@@ -61,7 +62,7 @@ export function reportContexts(contexts) {
    zeroSupply.push({ function: f, group, builds: builds.length, zero, zeroShare: pct(zero, builds.length) });
   }
  }
- const pulls = contexts.flatMap((c) => c.pulls), overall = counts(small);
+ const pulls = contexts.flatMap((c) => c.pulls), overall = counts(small, vocabulary);
  return {
   overall, parts, oversize: all.filter(({ s }) => oversize(s)).map(({ p, s }) => ({ part: safePart(p.name), units: 1, chars: s.text.length })),
   zeroSupply, duplicates: duplicateRows.map((d, i) => ({ id: `dup-${i + 1}`, count: d.count, parts: [...d.parts].sort() })),
@@ -70,7 +71,7 @@ export function reportContexts(contexts) {
    const rows = contexts.flatMap((c) => c.excluded ?? []).filter((e) => e.reason === reason); return { reason, count: rows.length, chars: rows.reduce((n, e) => n + e.chars, 0) };
   }),
   builds: contexts.map((c) => ({ id: c.id, lane: c.lane, buildNumber: c.buildNumber, attempts: c.attempts ?? 1, model: c.model, verdict: c.verdict,
-   functions: Object.fromEntries(labels.map((label) => { const rows = small.filter((r) => r.c === c && functionOf(r.s) === label); return [label, { units: rows.filter((r) => r.s.kind === "unit").length, chars: rows.reduce((n, r) => n + r.s.text.length, 0) }]; })),
+   functions: Object.fromEntries(vocabulary.map((label) => { const rows = small.filter((r) => r.c === c && functionOf(r.s) === label); return [label, { units: rows.filter((r) => r.s.kind === "unit").length, chars: rows.reduce((n, r) => n + r.s.text.length, 0) }]; })),
    pulledChars: c.pulls.reduce((n, p) => n + p.chars, 0), tokens: c.tokens, wallMinutes: c.wallMinutes, landed: c.landed })),
  };
 }
@@ -121,6 +122,100 @@ export function agreement(contexts, aRows, bRows) {
  const consensusIds = ids.filter((id) => a.get(id) === b.get(id));
  return { pairs: [pair("rules:a", ids, rules, a, units), pair("rules:b", ids, rules, b, units), pair("a:b", ids, a, b, units)], consensus: consensusIds.length,
   rulesConsensus: consensusIds.length ? pair("rules:consensus", consensusIds, rules, a, units) : null };
+}
+
+function blindText(s, c) {
+ let text = s.text;
+ if (c.cwd) text = text.split(c.cwd).join(NORMAL_TOKENS.cwd);
+ if (c.branch) text = text.split(c.branch).join(NORMAL_TOKENS.branch);
+ return text;
+}
+/** Shared private keys and representatives; occurrences retain provenance only in memory. */
+export function distinctUnits(contexts) {
+ const units = new Map();
+ for (const { c, p, s } of flat(contexts)) {
+  if (s.kind !== "unit" || oversize(s)) continue;
+  const normalized = normalize(s.text, c), key = crypto.createHash("sha256").update(normalized).digest("hex");
+  if (!units.has(key)) units.set(key, { key, id: s.id, text: blindText(s, c), normalized, label: s.label, occurrences: [], parts: new Set() });
+  const u = units.get(key); u.occurrences.push({ c, p, s }); u.parts.add(safePart(p.name));
+ }
+ return units;
+}
+const modelVocabulary = [...FUNCTIONS, "unsorted", "unlabelled"];
+const nonempty = (store) => [...store.units.values()].filter((u) => u.normalized);
+function storedText(u, store) {
+ const id = store.labels.get(u.key)?.id ?? u.id;
+ const { c, s } = u.occurrences.find(({ s }) => s.id === id);
+ return blindText(s, c);
+}
+const emptyCount = (store) => [...store.units.values()].filter((u) => !u.normalized).reduce((n, u) => n + u.occurrences.length, 0);
+/** Dual independent minima, then seed-order fill over stored representative ids, never keys. */
+export function drawLabelSample(store, { seed, n = SAMPLE_SIZE, heavy = false } = {}) {
+ if (!heavy && (typeof seed !== "string" || !seed || !Number.isSafeInteger(n) || n < 1)) throw new Error("invalid sample options");
+ const available = nonempty(store), rows = available.filter((u) => store.labels.has(u.key)).map((u) => {
+  const row = store.labels.get(u.key);
+  return { id: row.id, text: storedText(u, store), model: row.label, rule: u.label, count: u.occurrences.length };
+ });
+ const selected = new Set();
+ if (heavy) for (const u of rows) { if (u.count >= LABEL_HEAVY_MIN) selected.add(u.id); }
+ else {
+  for (const source of ["model", "rule"]) for (const label of [...FUNCTIONS, "unsorted"]) for (const id of seededSample(rows.filter((u) => u[source] === label).map((u) => u.id), LABEL_SAMPLE_MIN, seed)) selected.add(id);
+  for (const id of seededSample(rows.filter((u) => !selected.has(u.id)).map((u) => u.id), rows.length, seed, { seedOrder: true })) { if (selected.size >= n) break; selected.add(id); }
+ }
+ return { sheet: rows.filter((u) => selected.has(u.id)).sort((a, b) => a.id.localeCompare(b.id)).map(({ id, text }) => ({ id, text })), unlabelledKeys: available.length - rows.length, emptyNormalized: emptyCount(store) };
+}
+const denominator = (rows, basis) => ({ basis, units: rows.reduce((n, r) => n + r.units, 0), chars: rows.reduce((n, r) => n + r.chars, 0) });
+/** Transform labels once before every existing report consumer; distinct views use blind chars. */
+export function reportLabels(contexts, store) {
+ const transformed = contexts.map((c) => ({ ...c, parts: c.parts.map((p) => ({ ...p, spans: p.spans.filter((s) => s.kind !== "unit" || oversize(s) || store.units.get(store.byId.get(s.id))?.normalized).map((s) => s.kind !== "unit" || oversize(s) ? s : { ...s, label: store.labels.get(store.byId.get(s.id))?.label ?? "unlabelled" }) })) }));
+ const report = reportContexts(transformed, [...modelVocabulary, "glue"]), units = nonempty(store);
+ const distinctRows = units.map((u) => ({ s: { kind: "unit", label: store.labels.get(u.key)?.label ?? "unlabelled", text: storedText(u, store) }, u }));
+ const distinct = counts(distinctRows, modelVocabulary);
+ const summary = (rows) => ({ keys: rows.length, occurrences: rows.reduce((n, u) => n + u.occurrences.length, 0), rawChars: rows.reduce((n, u) => n + u.occurrences.reduce((m, { s }) => m + s.text.length, 0), 0) });
+ const short = units.map((u) => ({ ...u, occurrences: u.occurrences.filter(({ s }) => s.text.length < LABEL_SHORT_CHARS) })).filter((u) => u.occurrences.length);
+ return { ...report, provenance: store.provenance, interpretation: "blind-text model labels; not findings until the pre-registered bars pass",
+  pulls: { ...report.pulls, functionProvenance: "target-rule functions; model-labelled pushed chars" },
+  perOccurrence: { counts: report.overall, denominator: denominator(report.overall, "non-oversize occurrences including glue"), parts: report.parts.map((p) => ({ part: p.part, counts: p.counts, denominator: denominator(p.counts, "non-oversize occurrences including glue in part") })) },
+  perDistinct: { counts: distinct, denominator: denominator(distinct, "distinct nonempty non-oversize texts; representative blind chars"), parts: report.parts.map((p) => { const rows = counts(distinctRows.filter(({ u }) => u.parts.has(p.part)), modelVocabulary); return { part: p.part, counts: rows, denominator: denominator(rows, "distinct keys present in part; representative blind chars") }; }) },
+  contextDependent: { spanningParts: summary(units.filter((u) => u.parts.size > 1)), short: summary(short) }, emptyNormalized: emptyCount(store) };
+}
+function modelRows(contexts, aRows, bRows, store) {
+ // Reuse sheet validation and the legacy id-set contract, including oversize ids.
+ agreement(contexts, aRows, bRows);
+ const a = sheet(aRows), b = sheet(bRows), all = new Map(flat(contexts).filter(({ s }) => s.kind === "unit").map(({ s }) => [s.id, s]));
+ const ids = [...a.keys()].sort().filter((id) => !oversize(all.get(id)));
+ const missing = new Set(ids.map((id) => store.byId.get(id)).filter((key) => !store.labels.has(key)));
+ if (missing.size) throw Object.assign(new Error(`model labels missing: ${missing.size}`), { code: "MODEL_LABELS_MISSING" });
+ return { rows: ids.map((id) => { const key = store.byId.get(id), u = store.units.get(key); return { id, key, a: a.get(id), b: b.get(id), model: store.labels.get(key).label, u: { ...u, text: storedText(u, store) } }; }), excluded: a.size - ids.length, all };
+}
+const kappaOrNull = (a, b) => a.length ? cohensKappa(a, b) : null;
+function modelPair(name, rows, target, units) {
+ const ids = rows.map((r) => r.id), a = new Map(rows.map((r) => [r.id, r.model])), b = new Map(rows.map((r) => [r.id, r[target]]));
+ const result = rows.length ? pair(name, ids, a, b, units) : { pair: name, kappa: null, charAgreement: 0, confusions: [] };
+ return { ...result, rows: rows.length, distinctKeys: new Set(rows.map((r) => r.key)).size, perFunction: [...FUNCTIONS, "unsorted"].map((f) => ({ function: f, count: rows.filter((r) => r.model === f || r[target] === f).length, kappa: kappaOrNull(rows.map((r) => r.model === f), rows.map((r) => r[target] === f)) })) };
+}
+const weights = (rows) => ({ occurrences: rows.reduce((n, r) => n + r.u.occurrences.length, 0), occurrenceChars: rows.reduce((n, r) => n + r.u.occurrences.length * r.u.text.length, 0) });
+const uniqueRows = (rows) => [...new Map([...rows].reverse().map((r) => [r.key, r])).values()];
+/** κ remains per row; weighted proportions and pooling count each nonempty key once. */
+export function agreementLabels(contexts, a, b, store, a2, b2) {
+ const legacy = agreement(contexts, a, b), first = modelRows(contexts, a, b, store), rows = first.rows;
+ const unique = uniqueRows(rows).filter((r) => r.u.normalized), consensus = rows.filter((r) => r.a === r.b);
+ const weighted = {};
+ for (const [name, selected] of [["model:b", unique], ["model:consensus", unique.filter((r) => r.a === r.b)]]) {
+  const total = weights(selected), same = weights(selected.filter((r) => r.model === r.b));
+  weighted[name] = { occurrences: total.occurrences ? same.occurrences / total.occurrences : null, occurrenceChars: total.occurrenceChars ? same.occurrenceChars / total.occurrenceChars : null, denominator: total };
+ }
+ const result = { ...legacy, provenance: store.provenance, oversizeExcluded: first.excluded, modelPairs: [modelPair("model:a", rows, "a", first.all), modelPair("model:b", rows, "b", first.all), modelPair("model:consensus", consensus, "a", first.all)], weighted,
+  disputed: [...FUNCTIONS, "unsorted"].map((f) => ({ function: f, aVsB: weights(unique.filter((r) => r.a !== r.b && [r.a, r.b].includes(f))), modelVsB: weights(unique.filter((r) => r.model !== r.b && [r.model, r.b].includes(f))) })),
+  consensusLeftOut: weights(unique.filter((r) => r.a !== r.b)), emptyNormalized: emptyCount(store) };
+ if (a2 && b2) {
+  const second = modelRows(contexts, a2, b2, store), firstKeys = new Set(unique.map((r) => r.key)), secondUnique = uniqueRows(second.rows).filter((r) => r.u.normalized), pooled = [...unique, ...secondUnique.filter((r) => !firstKeys.has(r.key))];
+  result.pooled = { distinctKeys: pooled.length, overlap: secondUnique.filter((r) => firstKeys.has(r.key)).length, perFunction: [...FUNCTIONS, "unsorted"].map((f) => {
+   const consensus = pooled.filter((r) => r.a === r.b);
+   return { function: f, count: pooled.filter((r) => [r.model, r.a, r.b].includes(f)).length, modelB: kappaOrNull(pooled.map((r) => r.model === f), pooled.map((r) => r.b === f)), modelConsensus: kappaOrNull(consensus.map((r) => r.model === f), consensus.map((r) => r.a === f)) };
+  }) };
+ }
+ return result;
 }
 
 /** Replay is derived only from spans: raw is retained for audits, never used for assembly. */

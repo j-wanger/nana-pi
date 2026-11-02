@@ -1,0 +1,4 @@
+PASS roster notice hook: one JSON object with the notice as SessionStart context on every source and with no source, and exit 0 
+PASS roster notice hook: the notice is a user message for startup, resume, clear and fork, for a missing or unreadable source and for an input that fails on read, and not for compact 
+PASS roster notice hook: a copy that cannot load its modules prints the unavailable notice in both fields with no path, and exits 0 
+PASS roster notice hook: a throw after its modules have loaded also fails open with the unavailable notice 

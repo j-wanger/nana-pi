@@ -29,6 +29,8 @@ import {
 	SHOW_SOURCES,
 } from "../lib/roster-notice-config.mjs";
 import { ROSTER_DEFAULTS } from "../bin/worker-config.mjs";
+import * as workerConfig from "../bin/worker-config.mjs";
+import * as noticeConfig from "../lib/roster-notice-config.mjs";
 import { resolveRoster } from "../bin/nana-roster.mjs";
 import { tildeify } from "../../nana-setup/lib/paths.mjs";
 
@@ -453,6 +455,33 @@ async function runExtensionOnce(agentDir, { cwd } = {}) {
 	})();
 	// req: R-1215
 	check("relative agent dir: the hook and the extension each show the unknown line and the change pointer, naming no lineup, for a file and a refused roster", l16.pass, JSON.stringify(l16.results));
+}
+
+// req: R-3523
+check("seal: lane notice label is lanes", noticeConfig.LANES_LABEL === "lanes");
+// req: R-3523
+check("seal: ignored lane notice mark is (file value ignored)", noticeConfig.LANES_IGNORED_MARK === "(file value ignored)");
+{
+	const results = [];
+	for (const [label, raw, limit, ignored] of [
+		["default", undefined, workerConfig.LANE_LIMIT_DEFAULT, false],
+		["written", { roster: sampleRoster(), lanes: 2 }, 2, false],
+		["malformed", { roster: sampleRoster(), lanes: "2" }, workerConfig.LANE_LIMIT_DEFAULT, true],
+	]) {
+		const dir = freshAgentDir(`lane-notice-${label}`), file = fileAt(dir);
+		if (raw !== undefined) fs.writeFileSync(file, JSON.stringify(raw));
+		const resolved = resolveRoster(dir), line = rosterNotice(resolved, file, false);
+		const expected = `, ${noticeConfig.LANES_LABEL} ${limit}${ignored ? ` ${noticeConfig.LANES_IGNORED_MARK}` : ""} · `;
+		results.push([label, !/[\r\n]/.test(line) && line.includes(expected) &&
+			line.indexOf(expected) > line.indexOf(", land ") && (ignored || !line.includes(noticeConfig.LANES_IGNORED_MARK))]);
+		results.push([`${label}-relative`, !rosterNotice(resolved, file, true).includes("lanes ")]);
+	}
+	const file = fileAt(freshAgentDir("lane-notice-old"));
+	const old = rosterNotice({ ok: true, roster: sampleRoster(), source: file }, file, false);
+	results.push(["older result", old.includes(`, ${noticeConfig.LANES_LABEL} ${workerConfig.LANE_LIMIT_DEFAULT} · `) && !old.includes(noticeConfig.LANES_IGNORED_MARK)]);
+	results.push(["refused", !rosterNotice({ ok: false, problem: "invalid JSON", file }, file, false).includes("lanes ")]);
+	// req: R-3523
+	check("R-3523: notice shows lane limit after land, marks fallback, and omits it when unknown", results.every(([, ok]) => ok), JSON.stringify(results));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

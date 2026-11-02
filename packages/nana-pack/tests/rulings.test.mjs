@@ -382,6 +382,18 @@ function containsWholeWord(text, word) {
 		"CI ruling, checklist or rendered shared source differs");
 }
 
+{
+	const expected = "- 2026-11-01: Each machine sets how many lanes build there in its roster file; the roster command's lanes line prints the limit, default included. At most two more lanes are planned.";
+	const variants = [SHIPPED_TEXT, SHIPPED_TEXT.replace(/\r?\n/g, "\r\n"), SHIPPED_TEXT.trimEnd(), SHIPPED_TEXT.split("\n").map((line) => `${line} \t`).join("\n")];
+	const results = variants.map((text) => {
+		const bullets = text.split(/\r?\n/).map((line) => line.trimEnd()).filter((line) => line.startsWith("- "));
+		return bullets.filter((line) => line === expected).length === 1 && bullets.at(-1) === expected &&
+			!bullets.some((line) => line.startsWith("- 2026-10-31: At most four lanes build"));
+	});
+	// req: R-3525
+	check("R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap", results.every(Boolean), JSON.stringify(results));
+}
+
 for (const td of tmps) {
 	try {
 		fs.rmSync(td, { recursive: true, force: true });

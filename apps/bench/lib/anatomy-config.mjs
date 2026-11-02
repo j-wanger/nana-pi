@@ -97,10 +97,10 @@ export const RULE_TIERS = Object.freeze(["part", "heading", "lead", "keyword", "
 // Chosen O3: only named known parts leave the private store; unknown sections aggregate here.
 export const REPORT_PARTS = Object.freeze(["preamble", "tools", "rules", "docs", "addendum", "brief", "known-bugs", "project_context", "skills", "cwd", "nana-objective", "nana-writing", "nana-rulings", "toolsAdded", "instruction", "knowledge-pull"]);
 
-// Chosen 2026-11-01, anatomy-labeller question 1 / R-3397: cheapest Claude,
-// the family that met the agreement bar as labeller A; low effort bounds overhead.
-export const LABEL_MODEL = "claude-sonnet-5";
-export const LABEL_EFFORT = "low";
+// Chosen by the owner on 2026-11-01 after Sonnet low-effort labels missed both
+// agreement bars on the fixed check set (R-3397).
+export const LABEL_MODEL = "claude-opus-5-5";
+export const LABEL_EFFORT = "medium";
 // Chosen 2026-11-01, plan O1 / R-3391: small blind calls, bounded by both limits.
 export const LABEL_BATCH_UNITS = 40;
 export const LABEL_BATCH_CHARS = 24000;
@@ -115,6 +115,12 @@ export const LABEL_FAIL_STREAK = 3;
 export const LABEL_ORDER_SEED = "anatomy-labeller-2026-11-01";
 // Chosen 2026-11-01, O4 / R-3394, R-3395: private append log and fingerprint.
 export const LABEL_FILE = "labels.jsonl";
+// Chosen 2026-11-01, Part 1 O7 / R-3401: independent model/rule rare strata.
+export const LABEL_SAMPLE_MIN = 15;
+// Chosen 2026-11-01, Part 1 O7 / R-3401: pre-registered heavy occurrence set.
+export const LABEL_HEAVY_MIN = 60;
+// Chosen 2026-11-01, Part 1 T13 / R-3404: raw short-text residual boundary.
+export const LABEL_SHORT_CHARS = 40;
 export const LABEL_MANIFEST_FILE = "manifest.json";
 // Contract 2026-11-01, R-3398: definitions from the blind labelling guide;
 // surrounding wording registered at build 1. SHA-256 is sealed in the tagged test.

@@ -40,7 +40,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `apps/bench/anatomy.mjs`
 
 - **purpose** — Expose the builder anatomy CLI with an isolated model runner for labelling.
-- **inputs** — argv: segment --repo --sessions --out; report --in; sample --in --seed --n --out; agree --in --a --b; assemble --in --context --drop --stage --out; label --in --out or --resume.
+- **inputs** — argv: segment --repo --sessions --out; report --in [--labels]; sample --in --seed --n --out [--labels --heavy]; agree --in --a --b [--model --a2 --b2]; assemble --in --context --drop --stage --out; label --in --out or --resume.
 - **outputs** — Counts-only stdout and private files through runAnatomy.
 - **effects** — disk, process (read-only git and isolated Claude), network (label only)
 - **errors** — Exit 1 on unsafe output, invalid arguments or failed reads/writes.
@@ -85,7 +85,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/bench/lib/anatomy-labels.mjs`
 
-- **purpose** — Label distinct blind builder texts through an injected capped runner with durable private resume.
+- **purpose** — Own the private model-label format, its capped writer, resume and read-only validation.
 - **inputs** — Segmented contexts, guarded private output folder, injected runner, optional caps and counts-only stdout.
 - **outputs** — Private manifest and appended key/id/label rows; counts-only progress and spend lines.
 - **effects** — disk (private label store); network (only through injected runner)
@@ -100,7 +100,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Counts-only reports and agreement, blind samples, or assembled private text.
 - **effects** — none
 - **errors** — Invalid labels, duplicate ids, unknown ids and differing sheet id sets throw fixed diagnostics.
-- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/catch-stats.mjs`
 
 ### `apps/bench/lib/anatomy-pulls.mjs`
@@ -171,7 +171,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports cohensKappa/seededSample/canonSegments/samePath/sameBase/stageHints/matchGraph/components/buildLedger/componentSizes/table/claims/matchConfidence; returns plain objects and markdown strings
 - **effects** — none
 - **errors** — throws Error when kappa is given empty or unequal-length label vectors
-- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`
+- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`
 - **callees** — —
 
 ### `apps/bench/lib/checkers.mjs`
@@ -280,14 +280,14 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/bench/test/anatomy-labels.test.mjs`
 
-- **purpose** — Pin private capped anatomy labelling and resume with synthetic stores and fake runners.
+- **purpose** — Pin private capped anatomy labelling, resume and read-only measurement on synthetic stores.
 - **inputs** — Synthetic OS-temp contexts, injected runners and sealed configuration.
 - **outputs** — Awaited bounded PASS/FAIL cases and a check total; never fixture text or keys.
 - **effects** — disk (OS-temp fixtures), process (synthetic killed-run child)
 - **errors** — Assertion failures set exit code 1 without printing private values.
 - **callers** — —
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/tmp-dir.mjs`
-- **unresolved launches** — line 114: spawnSync
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/test/tmp-dir.mjs`
+- **unresolved launches** — line 116: spawnSync
 
 ### `apps/bench/test/anatomy.test.mjs`
 
@@ -1752,7 +1752,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Resolve and print this machine's roster from the user-scope nana-pack.json.
 - **inputs** — an agent dir (the CLI reads pi's active one) and its nana-pack.json, when present
-- **outputs** — resolveRoster(agentDir) -> {ok:true, roster, source} | {ok:false, file, problem}; orderedRoster(roster) -> the roster with every slot in SLOT_PRINT_ORDER; the CLI prints one line per slot and a source line on stdout, or with --json one JSON object {roster: ...}, or the refusal on stderr
+- **outputs** — resolveRoster(agentDir) -> {ok:true, roster, source, lanes:{limit, warning}} | {ok:false, file, problem}; orderedRoster(roster) -> the roster with every slot in SLOT_PRINT_ORDER; the CLI prints one line per slot, a lanes line and a source line on stdout, or with --json one JSON object {roster: ...}, or the refusal on stderr
 - **effects** — disk (reads the user-scope nana-pack.json; the CLI's `set` subcommand, dynamically loaded, replaces it and may write nana-pack.json.bak)
 - **errors** — resolveRoster never throws; the CLI exits 1 on a refused roster or a refused `set`
 - **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-roster-notice.ts`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/claude/hooks/nana-roster-notice.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
@@ -2843,7 +2843,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Define the sealed literals the roster notice composes from and the sources that show it.
 - **inputs** — none
-- **outputs** — NOTICE_PREFIX, DEFAULT_MARK, REFUSED_HEAD, REFUSAL_CUT, SIZE_LABELS, CLAUDE_CODE_MARK, WIDGET_KEY, CHANGE_POINTER, RELATIVE_DIR_TEXT, SHOW_SOURCES
+- **outputs** — NOTICE_PREFIX, DEFAULT_MARK, REFUSED_HEAD, REFUSAL_CUT, SIZE_LABELS, CLAUDE_CODE_MARK, WIDGET_KEY, CHANGE_POINTER, RELATIVE_DIR_TEXT, SHOW_SOURCES, LANES_LABEL, LANES_IGNORED_MARK
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/extensions/nana-roster-notice.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/claude/hooks/nana-roster-notice.mjs`, `packages/nana-setup/tests/roster-notice-hook.test.mjs`
@@ -2852,7 +2852,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/lib/roster-notice.mjs`
 
 - **purpose** — Compose the one-line session-start roster notice from a roster result and the roster file.
-- **inputs** — a roster resolver result ({ok:true, roster, source} | {ok:false, file, problem}), the roster file's path, and whether PI_CODING_AGENT_DIR stays cwd-relative for this process
+- **inputs** — a roster resolver result ({ok:true, roster, source, lanes?} | {ok:false, file, problem}), the roster file's path, and whether PI_CODING_AGENT_DIR stays cwd-relative for this process
 - **outputs** — rosterNotice(result, file, relative) -> one line of display text
 - **effects** — none
 - **errors** — none — every branch returns a string; rosterNotice never throws
@@ -2863,7 +2863,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Replace one roster slot in the user-scope nana-pack.json by renaming a fully written temporary file over the real target, keeping every other member and a backup.
 - **inputs** — pi's active agent dir, the `set` command's slot and token arguments, and optionally an env object plus a writeTemp(fd, text) and a rename(from, to) seam for tests
-- **outputs** — setRosterSlot(agentDir, args, opts) -> {ok:true, file, roster, previousTokens} | {ok:false, problem}
+- **outputs** — setRosterSlot(agentDir, args, opts) -> {ok:true, file, roster, lanes, previousTokens} | {ok:false, problem}
 - **effects** — disk (reads the user-scope nana-pack.json, writes a temporary file in the real target's folder, may write nana-pack.json.bak in the agent dir, and replaces the user-scope nana-pack.json)
 - **errors** — never throws; every failure, including a mid-write throw, is caught and returned as {ok:false, problem} naming the guard, the slot or field, or the file
 - **callers** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`
@@ -3953,7 +3953,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed assertions exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
-- **unresolved launches** — line 364: spawnSync · line 365: spawnSync
+- **unresolved launches** — line 365: spawnSync · line 366: spawnSync
 
 ### `packages/nana-pack/tests/notify-dispatch.test.mjs`
 

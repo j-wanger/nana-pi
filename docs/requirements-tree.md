@@ -90,14 +90,14 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Reads: A-011
 - **CAP-02 · Deliver controlled changes**
   Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
-  Parent: — · Rows: 324 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992, R-1002–R-1011, R-1105–R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1350–R-1356, R-1370–R-1378, R-1390–R-1395, R-1400–R-1407, R-1430–R-1433, R-1560–R-1565, R-1620–R-1623, R-1634, R-1636, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2270–R-2273, R-2430–R-2432, R-2560–R-2576, R-2578–R-2583, R-2585–R-2592, R-2596–R-2603, R-2616–R-2621, R-2646–R-2651, R-2653–R-2655, R-2660, R-2662, R-2664, R-2665, R-2691–R-2694, R-2720–R-2728, R-2750–R-2752, R-2754–R-2756, R-2803, R-2810–R-2816, R-2900–R-2908, R-2910–R-2913, R-2950–R-2956, R-3010–R-3013, R-3020–R-3026, R-3030, R-3031, R-3070, R-3430–R-3432, R-3434–R-3436, R-3490, R-3491
+  Parent: — · Rows: 329 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992, R-1002–R-1011, R-1105–R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1350–R-1356, R-1370–R-1378, R-1390–R-1395, R-1400–R-1407, R-1430–R-1433, R-1560–R-1565, R-1620–R-1623, R-1634, R-1636, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2270–R-2273, R-2430–R-2432, R-2560–R-2576, R-2578–R-2583, R-2585–R-2592, R-2596–R-2603, R-2616–R-2621, R-2646–R-2651, R-2653–R-2655, R-2660, R-2662, R-2664, R-2665, R-2691–R-2694, R-2720–R-2728, R-2750–R-2752, R-2754–R-2756, R-2803, R-2810–R-2816, R-2900–R-2908, R-2910–R-2913, R-2950–R-2956, R-3010–R-3013, R-3020–R-3026, R-3030, R-3031, R-3070, R-3430–R-3432, R-3434–R-3436, R-3490, R-3491, R-3520–R-3522, R-3524, R-3525
   Kind: product
   Deliverables: R-1400, R-1008, R-1560, R-977, R-2597, R-2811
   - **FEAT-006 · Launch builders with execution limits**
     Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits, and keep one record of each build; semantic change scope is a separate proposed feature.
     Status: active
     Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846, R-1890, R-1891, R-1892, R-1893, R-2584, R-2652
-    Parent: CAP-02 · Rows: 114 · IDs: R-285, R-286, R-628, R-732–R-735, R-847, R-960–R-963, R-965, R-966, R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1400–R-1407, R-1430–R-1433, R-1634, R-1636, R-2270–R-2273, R-2578–R-2583, R-2585, R-2596–R-2603, R-2616–R-2621, R-2646–R-2651, R-2653–R-2655, R-2662, R-2664, R-2665, R-2691–R-2694, R-2720–R-2728, R-2803, R-2950–R-2956, R-3010–R-3013, R-3020–R-3026, R-3030, R-3031, R-3070, R-3436
+    Parent: CAP-02 · Rows: 119 · IDs: R-285, R-286, R-628, R-732–R-735, R-847, R-960–R-963, R-965, R-966, R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1400–R-1407, R-1430–R-1433, R-1634, R-1636, R-2270–R-2273, R-2578–R-2583, R-2585, R-2596–R-2603, R-2616–R-2621, R-2646–R-2651, R-2653–R-2655, R-2662, R-2664, R-2665, R-2691–R-2694, R-2720–R-2728, R-2803, R-2950–R-2956, R-3010–R-3013, R-3020–R-3026, R-3030, R-3031, R-3070, R-3436, R-3520–R-3522, R-3524, R-3525
     Artifacts: A-006, A-079, A-080, A-083
     Reads: A-010, A-011, A-023, A-051, A-061
   - **FEAT-007 · Review a specific revision independently**
@@ -246,7 +246,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Reads: A-009, A-022
 - **CAP-05 · Follow and steer development**
   Purpose: Let the developer understand ongoing and historical work and interact with the correct live session.
-  Parent: — · Rows: 108 · IDs: R-159–R-173, R-198, R-405–R-431, R-433–R-436, R-455–R-457, R-460, R-461, R-463, R-466, R-467, R-470–R-490, R-642, R-643, R-685, R-689, R-814–R-818, R-867, R-869, R-941, R-942, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141, R-2380–R-2382
+  Parent: — · Rows: 109 · IDs: R-159–R-173, R-198, R-405–R-431, R-433–R-436, R-455–R-457, R-460, R-461, R-463, R-466, R-467, R-470–R-490, R-642, R-643, R-685, R-689, R-814–R-818, R-867, R-869, R-941, R-942, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141, R-2380–R-2382, R-3523
   Kind: product
   Deliverables: R-406, R-422, R-159, R-1194, R-457
   - **FEAT-020 · Find and read previous sessions**
@@ -270,7 +270,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Show working-tree changes, readable activity and bounded output, and notify the developer when attention is needed.
     Status: active
     Also applies: R-458, R-484, R-781, R-810
-    Parent: CAP-05 · Rows: 50 · IDs: R-159–R-163, R-166–R-173, R-421–R-426, R-428, R-474, R-482, R-483, R-488, R-642, R-643, R-814–R-818, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141, R-2380–R-2382
+    Parent: CAP-05 · Rows: 51 · IDs: R-159–R-163, R-166–R-173, R-421–R-426, R-428, R-474, R-482, R-483, R-488, R-642, R-643, R-814–R-818, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141, R-2380–R-2382, R-3523
     Artifacts: A-025
     Reads: A-011, A-069
   - **FEAT-024 · Edit session and project settings safely**
@@ -357,7 +357,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Reads: A-003, A-015, A-046, A-006, A-030, A-032, A-033
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 115 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3398
+  Parent: — · Rows: 123 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3406
   Kind: product
   Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270, R-3390
   - **FEAT-034 · Define reproducible comparisons**
@@ -397,7 +397,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Split real builder contexts into units labelled by function, report their cost and builder fetches, and keep spans for later cut or staged replay.
     Status: active
     Also applies: —
-    Parent: CAP-08 · Rows: 18 · IDs: R-3270–R-3278, R-3390–R-3398
+    Parent: CAP-08 · Rows: 26 · IDs: R-3270–R-3278, R-3390–R-3406
     Artifacts: A-092, A-098
 
 | ID | Home | Also applies to | Count |
