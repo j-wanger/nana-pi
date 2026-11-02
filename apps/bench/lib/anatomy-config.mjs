@@ -111,8 +111,11 @@ export const SEAT_POLICY = Object.freeze({
  rules: ['nana-soul', 'nana-standards', 'nana-writing', 'nana-rulings'], splitters: { tools: 'toolsAdded' },
  instructions: { User: 'user-rules-other', Project: 'project-instructions', AutoMem: 'auto-memory' },
  hooks: [['nana-objective', 'objective'], ['nana-adoption', 'adoption'], ['nana-roster-notice', 'roster-notice']],
+ // Contract 2026-11-02, roster-notice plan / R-3682..R-3684:
+ // nana-roster-notice emits hookSpecificOutput.additionalContext; other starts print text.
+ contextHooks: ['roster-notice'],
  starts: ['startup', 'resume', 'clear', 'compact'], standing: ['system-prompt', 'project-instructions', 'auto-memory', 'user-rules-other', 'tools', 'environment'],
- correlation: { invocation: 'toolUseID', envelope: 'additionalContext', human: 'humanTurn' },
+ correlation: { invocation: 'toolUseID', envelope: 'additionalContext', nestedEnvelope: 'hookSpecificOutput.additionalContext', human: 'humanTurn' },
  tools: { read: 'Read', grep: 'Grep', find: 'Glob', bash: 'Bash', delegation: ['Agent', 'Task'], web: ['WebFetch', 'WebSearch'], skill: ['Skill'], write: ['Edit', 'Write', 'NotebookEdit'] },
 });
 // Chosen 2026-11-02, O3 / R-3644: seat-only classes never widen builder rows.

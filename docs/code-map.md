@@ -120,7 +120,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Segmented contexts, private evidence aliases and counts-only skip denominators.
 - **effects** — disk (explicit transcript roots only)
 - **errors** — Read failures propagate to the sanitized CLI boundary.
-- **callers** — `apps/bench/lib/anatomy.mjs`
+- **callers** — `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-seat.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-replay-config.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/settings.mjs`
 
 ### `apps/bench/lib/anatomy-sessions.mjs`
@@ -317,7 +317,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (OS-temp fixtures), process (bounded synthetic git)
 - **errors** — Assertions set exit 1 and print only source locations.
 - **callers** — —
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/settings.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/settings.mjs`
 
 ### `apps/bench/test/anatomy.test.mjs`
 

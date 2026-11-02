@@ -357,7 +357,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Reads: A-003, A-015, A-046, A-006, A-030, A-032, A-033
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 132 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3406, R-3640–R-3648
+  Parent: — · Rows: 135 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3406, R-3640–R-3648, R-3682–R-3684
   Kind: product
   Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270, R-3390
   - **FEAT-034 · Define reproducible comparisons**
@@ -397,7 +397,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Split real builder and seat contexts into units labelled by function, report recorded kinds and fetches, and keep spans for later cut or staged replay.
     Status: active
     Also applies: —
-    Parent: CAP-08 · Rows: 35 · IDs: R-3270–R-3278, R-3390–R-3406, R-3640–R-3648
+    Parent: CAP-08 · Rows: 38 · IDs: R-3270–R-3278, R-3390–R-3406, R-3640–R-3648, R-3682–R-3684
     Artifacts: A-092, A-098
 
 | ID | Home | Also applies to | Count |
