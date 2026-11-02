@@ -1,6 +1,6 @@
 Feature: FEAT-006 · Launch builders with execution limits
 
-Lane machine-lane-limits. Class: hook (`packages/nana-pack/bin/nana-roster.mjs`, imported by the pi roster-notice extension). Builder: pi-worker (small lane). Build session 1, on main 0bd1df89. The plan of record is `plan.md` in this folder (revision 2, after `plan-attack.md`). Build it as written: its Design, Assumptions and Open choices (take its defaults), the must-meets and the forecast of changed tests. The owner's words and pick are quoted in the plan's Purpose.
+Lane machine-lane-limits. Class: hook (`packages/nana-pack/bin/nana-roster.mjs`, imported by the pi roster-notice extension). Builder: pi-worker (larger lane). Build session 1, on main 0bd1df89. A first attempt with the small builder stopped after one minute with no changes; finish the whole brief in this session. The plan of record is `plan.md` in this folder (revision 2, after `plan-attack.md`). Build it as written: its Design, Assumptions and Open choices (take its defaults), the must-meets and the forecast of changed tests. The owner's words and pick are quoted in the plan's Purpose.
 
 Threat model: honest variation in our tools' output is in scope (no roster file, no `lanes` member, a malformed, zero, negative or non-integer value, an older checkout, Windows copies of the rules); deliberate forgery is out.
 
