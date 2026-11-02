@@ -1,0 +1,21 @@
+Seat run on the merged tip 873b94af (origin/main 0bd1df89 merged), reference Windows 11 laptop, 2026-11-01.
+Command: npm run test:locked from PowerShell, default four jobs. The seat's fan logger held an ES_DISPLAY_REQUIRED request (SetThreadExecutionState 0x80000003) for the whole run.
+
+Land files and the one new failure:
+PASS  packages/nana-pack/tests/land-ci-read.test.mjs                  6 pass  63.5s
+PASS  packages/nana-pack/tests/land-ci-edge.test.mjs                  2 pass  84.6s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs               7 pass  58.0s
+PASS  packages/nana-pack/tests/land-records.test.mjs                  7 pass  76.9s
+PASS  packages/nana-pack/tests/land-merge.test.mjs                    26 pass, 1 skip  108.7s
+PASS  packages/nana-pack/tests/land-ci-suite.test.mjs                 6 pass  131.9s
+PASS  packages/nana-pack/tests/land.test.mjs                          31 pass  101.2s
+FAIL  packages/nana-pack/tests/profile-store-guards.test.mjs          5 pass  300.3s  — timed out after 300s
+
+Summary:
+267 files: 246 PASS, 3 FAIL, 18 SKIP, 0 WARN · checks: 7721 pass, 3 fail, 157 skip · 1358.7s
+failed: packages/nana-pack/tests/post-edit-utf8.test.mjs, packages/nana-pack/tests/profile-store-guards.test.mjs, packages/nana-pack/tests/template-acceptance.test.mjs
+suite record: baseline b9102d80 age 5h coverage no wall 1158.4s -> 1358.7s; slower: packages/nana-pack/tests/profile-store-guards.test.mjs +112.6s x1.6
+suite record: 246 PASS, 3 FAIL; failed: packages/nana-pack/tests/post-edit-utf8.test.mjs [failing at baseline too; exit 2], packages/nana-pack/tests/profile-store-guards.test.mjs [new; timed out], packages/nana-pack/tests/template-acceptance.test.mjs [failing at baseline too; exit 1]; passed only without coverage: none; this lane: 7 full runs, 152.2 min
+
+profile-store-guards.test.mjs is not touched by this lane (same as main). Re-run alone through node scripts/test.mjs: 6 pass, 249.5 s.
+Known unrelated failures: post-edit-utf8 (no Python), template-acceptance (no uv).
