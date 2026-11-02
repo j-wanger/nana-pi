@@ -1,6 +1,6 @@
 Feature: FEAT-041 · Shape each agent's context by role
 
-Lane roster-roles. Class: hook. Builder: pi-worker (small lane). Merge build, on branch tip c25fa3ab. Every reviewer said LAND at the previous round (kept in this folder), but main moved to 6dc5953c before the land. This build merges main.
+Lane roster-roles. Class: hook. Builder: pi-worker (small lane). Merge build, on branch tip bc09648a. Every reviewer said LAND at the previous round (kept in this folder), but main moved to 7d0fdb02 before the land. This build merges main.
 
 ## Precedent
 

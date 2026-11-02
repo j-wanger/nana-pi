@@ -1,0 +1,3 @@
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs  11 pass  27.1s
+
+[runner] SIGTERM: killing the active test's process tree, removing scratch
