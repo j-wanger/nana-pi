@@ -5,7 +5,6 @@ Lane memory-curation. Class: ordinary. Builder: pi-worker (small lane). Build se
 ## Precedent
 
 - `packages/nana-pack/tests/requirements-tree.test.mjs`
-- `docs/reviews/seat-memory-push-2026-11-01/build-brief-b2.md`
 
 Report each departure.
 
