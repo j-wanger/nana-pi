@@ -450,6 +450,11 @@ node apps/bench/anatomy.mjs agree --in <private-folder> --a <filled-sheet-a> --b
 node apps/bench/anatomy.mjs assemble --in <private-folder> --context <build-id> --out <private-replay-folder>
 node apps/bench/anatomy.mjs label --in <private-folder> --out <private-labels-folder>
 node apps/bench/anatomy.mjs label --in <private-folder> --resume <private-labels-folder>
+node apps/bench/anatomy.mjs agree --in <private-folder> --a <filled-sheet-a> --b <filled-sheet-b> --model <private-labels-folder>
+node apps/bench/anatomy.mjs agree --in <private-folder> --a <filled-sheet-a> --b <filled-sheet-b> --a2 <filled-sheet-a2> --b2 <filled-sheet-b2> --model <private-labels-folder>
+node apps/bench/anatomy.mjs sample --in <private-folder> --seed <printed-seed> --labels <private-labels-folder> --out <private-sheet-folder>
+node apps/bench/anatomy.mjs sample --in <private-folder> --labels <private-labels-folder> --heavy --out <private-sheet-folder>
+node apps/bench/anatomy.mjs report --in <private-folder> --labels <private-labels-folder>
 node apps/bench/test/anatomy.test.mjs
 node apps/bench/test/anatomy-labels.test.mjs
 ```
@@ -483,7 +488,8 @@ confusions and the count of units where both labellers agree. It also compares r
 Definitions and rules were written before corpus labelling; the seat measures reliability before interpreting shares.
 These results describe supply, not causal effects or slice-2 target choices.
 
-`label` hashes the report's existing duplicate normalization and sends one representative per non-oversize key.
+`label` uses claude-opus-5-5 at medium effort, as chosen by the owner after Sonnet low-effort labels missed both agreement bars on the fixed check set.
+It hashes the report's existing duplicate normalization and sends one representative per non-oversize key.
 The representative keeps its Markdown; only its cwd and branch become `<WORKTREE>` and `<BRANCH>`.
 Seed-shuffled batches are blind to headings, parts and rule labels, with at most 40 units and 24,000 text chars per call.
 Replies must cover each call's `u1..un` ids exactly once using the definitions or `unsorted`; a bad reply rejects its whole batch.
@@ -496,7 +502,40 @@ Progress prints every ten calls. Final counts include distinct units, labelled, 
 With missing usage, `tokens >=` shows only known tokens; charged tokens include the conservative unknown-call charge and cost is `unknown`.
 The model and prompt hash print, but never unit text, keys, replies or runner errors.
 A capped or interrupted run continues with `--resume`; rejected keys are eligible again.
-The current report and agreement commands still use rule labels, not this store; model-label readers come in a later slice.
+Without new flags, report, sample and agreement keep their original rule-label output.
+`--model` on agreement and `--labels` on report/sample name the same private labels folder.
+Readers never repair or chmod files. They refuse missing, symlinked or nonregular files, damaged JSONL,
+duplicate or off-vocabulary rows, foreign keys, stale ids and manifest input-count mismatches.
+Every reader prints `provenance` with `model`, `promptSha256` and `labelsSha256` (SHA-256 of the whole labels file).
+
+Model agreement adds `modelPairs` for model:a, model:b and model:consensus, each with `rows`, `distinctKeys`,
+`kappa`, `perFunction`, `charAgreement` and `confusions`; `oversizeExcluded` counts skipped sheet rows.
+A missing non-oversize key refuses with its count. Normalized variants inherit their key's model label.
+`weighted` prints `model:b` and `model:consensus` proportions as `occurrences` and `occurrenceChars`, with a `denominator`.
+Weights count each nonempty key once using the lowest sheet id: occurrence count and occurrence×representative-blind-text chars.
+`disputed` prints each function's `aVsB` and `modelVsB` weights; `consensusLeftOut` prints excluded weights.
+The optional second pair (`--a2` and `--b2` together) adds `pooled`: `distinctKeys`, `overlap`, and every label's
+`perFunction` entry with `count`, `modelB` and `modelConsensus` binary κ objects (null for empty vectors).
+Pooling counts each nonempty key once, preferring the first pair. Counts use the union of the three labels.
+κ stays per row for individual pairs; no command decides whether a measurement bar passes.
+
+Model sampling selects stored representative ids, one per nonempty labelled key, not the label run's key order.
+It takes 15 per function independently by model and representative rule label (or all available), then seed-order fills to `--n`.
+Minima may exceed `--n`. `--heavy` instead selects all labelled keys with at least 60 non-oversize occurrences; no seed is needed.
+Rows contain only `id` and blind `text` from the stored id's unit, replacing only its own cwd and branch.
+Other paths inside that text stay private-sheet content. The summary prints `units`, `chars`, `unlabelledKeys` and `emptyNormalized`.
+Partial folders omit unlabelled keys from sheets and print their count.
+
+Model reports replace every non-oversize occurrence's rule label before computing `overall`, `parts`, `builds`,
+`zeroSupply` and `pulls.byFunction[].pushedChars`. Missing keys become `unlabelled`.
+`pulls.functionProvenance` marks target-rule functions paired with model-labelled pushed chars.
+`perOccurrence` and `perDistinct` hold `counts`, `denominator` and `parts`; each part also names its denominator.
+Occurrence counts include glue; distinct counts omit glue and use representative blind-text chars.
+Per-part distinct counts include keys present in that part, so their sum can exceed the overall distinct count.
+`contextDependent.spanningParts` counts keys across known parts; `contextDependent.short` counts occurrences below 40 raw chars.
+Both print only `keys`, `occurrences` and `rawChars`. Empty-normalized keys leave sheets, weights and share views;
+`emptyNormalized` prints their occurrence count. Unknown parts retain the original `extra-section` aggregation.
+`interpretation` states these are blind-text model labels, not findings until the pre-registered bars pass.
 
 Assembly writes numbered part files plus a parts.json manifest with each part's zero-based attempt.
 Omit `--context` only for a store with one build.
@@ -525,7 +564,7 @@ lib/anatomy-sessions.mjs  committed brief matching and multi-attempt pi context 
 lib/anatomy-spans.mjs  lossless Markdown units and glue with deterministic labels
 lib/anatomy-pulls.mjs  dedicated and wrapped shell reads by function
 lib/anatomy-measures.mjs  counts, shared normalization, agreement, blind sampling and span-based assembly
-lib/anatomy-labels.mjs  private capped model labelling, per-batch append and fingerprinted resume
+lib/anatomy-labels.mjs  private capped model labelling, append, fingerprinted resume and shared read-only reader
 catch-ledger.mjs    the catch ledger CLI: extract, label, match, stats over review findings
 lib/catch-extract.mjs  pull candidate findings out of a review corpus
 lib/catch-judge.mjs    the ONLY model call in apps/bench: label + match prompts, schemas, validation
