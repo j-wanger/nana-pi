@@ -27,7 +27,17 @@ export const ROSTER_NOTICE_UNAVAILABLE_PREFIX = "nana active · roster notice un
 export const ALLOWED_HOOK_KEYS = ["type", "command", "args", "timeout", "statusMessage"];
 // Contract values: environment readers in nana-pack, nana-knowledge and nana-setup, audited 2026-10-12;
 // PI_CODING_AGENT_SESSION_DIR contract: pi 1.0.2 environment-variables.md and build-records.mjs:44, read 2026-10-23.
-export const OVERRIDE_ENV = ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF"];
+// NANA_WORKTREE_ROOT: worker-config.mjs builderChildEnv and nana-gate.ts laneWriteHit,
+// audited 2026-11-02 (R-3713): the fresh sandbox must not inherit its caller's lane boundary.
+export const OVERRIDE_ENV = ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF", "NANA_WORKTREE_ROOT"];
+// Contract: R-3715, Revision 2 audit, 2026-11-02. Anchored patterns classify counted git slots.
+// Keep credential resets (no credentials needed), auto-memory off (hooks run directly),
+// and Claude shell timeouts (no affected sandbox consumer). See the lane's env-audit.md.
+export const KEPT_CALLER_ENV = Object.freeze([
+  'CLAUDE_CODE_DISABLE_AUTO_MEMORY', 'BASH_DEFAULT_TIMEOUT_MS', 'BASH_MAX_TIMEOUT_MS',
+  'GIT_CONFIG_PARAMETERS', 'GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_\\d+', 'GIT_CONFIG_VALUE_\\d+',
+  'GIT_ASKPASS', 'SSH_ASKPASS', 'GIT_TERMINAL_PROMPT', 'GCM_INTERACTIVE',
+]);
 // Contract path: nana-knowledge/lib/paths.ts, read 2026-10-13.
 export const PULL_LOG_PATH = [".pi", "agent", "nana-knowledge", "pull.log"];
 // Provenance: Windows install-check run 38393751564 after main merge; every hook passed, 2026-10-13.
