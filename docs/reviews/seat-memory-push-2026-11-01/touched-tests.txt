@@ -1,0 +1,12 @@
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs        11 pass  30.2s
+PASS  packages/nana-pack/tests/memory-bundle.test.mjs          7 pass  0.0s
+PASS  packages/nana-pack/tests/memory-run-recovery.test.mjs    7 pass  21.4s
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs       16 pass  1.2s
+PASS  packages/nana-pack/tests/memory-run.test.mjs             8 pass  38.6s
+PASS  packages/nana-pack/tests/profile-sync.test.mjs           2 pass  32.0s
+PASS  packages/nana-setup/tests/shared-memory-budget.test.mjs  7 pass  0.5s
+PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs    43 pass  0.9s
+PASS  packages/nana-setup/tests/shared-memory-input.test.mjs   3 pass  0.1s
+PASS  packages/nana-setup/tests/shared-memory-push.test.mjs    5 pass  5.6s
+
+10 files: 10 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 109 pass, 0 fail, 0 skip · 130.8s

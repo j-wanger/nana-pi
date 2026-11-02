@@ -603,6 +603,25 @@ Purpose: Make new enabled repository units once into a private, synchronized pro
 | R-3341 | The maker shall use the sealed fixed run, status, land and refusal vocabulary. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3341: seal fixed words` |
 | R-3342 | Trigger lane folders shall match the escaped anchored lane followed by an ISO day. | implemented | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3342: seal anchored escaped lane folder pattern` |
 
+## FEAT-044 · Deliver memory to each role
+Purpose: Deliver each role a bounded, ranked bundle of its memory in the context slot it already has, and record what was delivered.
+Status: active
+Reads: A-090 · packages/nana-pack/lib/memory-push.mjs
+Reads: A-093 · packages/nana-pack/lib/memory-push.mjs
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3412 | The seat memory hook shall print matching live profile and project records beside the index within the shared output budget, with privacy and owner-directed retract guidance and 12-hex id prefixes. | implemented | `packages/nana-setup/tests/shared-memory-push.test.mjs::B1: matching records print beside all index titles including an empty store`; `packages/nana-pack/tests/memory-bundle.test.mjs::seal printed id length` |
+| R-3413 | The bundle shall select whole ranked record lines within its exact record-line budget, profile before project, reporting omitted counts by part. | implemented | `packages/nana-pack/tests/memory-bundle.test.mjs::B2: parts ranking exact record budget and decimal header boundaries` |
+| R-3414 | The hook shall preserve index bytes on push skips and append a fixed note on a valid store's profile read failure when the index leaves room for the note. | implemented | `packages/nana-setup/tests/shared-memory-push.test.mjs::B3: skips preserve bytes and a damaged profile adds only the fixed note` |
+| R-3415 | The hook shall retain its index under slow git within the shared deadline plus a 1500 millisecond test margin, using one worktree probe. | implemented | `packages/nana-setup/tests/shared-memory-push.test.mjs::B4: slow git retains index under the deadline with one worktree probe`; `packages/nana-pack/tests/memory-bundle.test.mjs::seal deadline test margin` |
+| R-3416 | The pure bundle maker and shared renderer shall give store and replay adapters identical day-cut delivery keyed on evidence date. | implemented | `packages/nana-setup/tests/shared-memory-push.test.mjs::B5: one pure date-cut maker and renderer serve store and replay inputs` |
+| R-3417 | The hook shall append one A-089 load line with actual output length, push line characters, delivered and omitted ids, skipped damaged project count and fixed reason without record text. | implemented | `packages/nana-setup/tests/shared-memory-push.test.mjs::B6: one load line measures ids and characters without claim or quote text` |
+| R-3418 | The push record-line budget shall be 4000 characters. | implemented | `packages/nana-pack/tests/memory-bundle.test.mjs::B7: seal push budget` |
+| R-3419 | The bundle part and source order shall be profile then project and saved then extracted. | implemented | `packages/nana-pack/tests/memory-bundle.test.mjs::B7: seal part and source order` |
+| R-3420 | The bundle kind order shall be correction, decision, preference, lesson, fact, thinking, then other kinds. | implemented | `packages/nana-pack/tests/memory-bundle.test.mjs::B7: seal kind order` |
+| R-3421 | Each push git call shall have a timeout of at most 1000 milliseconds and the remaining shared deadline. | implemented | `packages/nana-pack/tests/memory-bundle.test.mjs::B7: seal per-call git timeout`; `packages/nana-setup/tests/shared-memory-push.test.mjs::B4: slow git retains index under the deadline with one worktree probe` |
+
 ## FEAT-043 · Measure memory outcomes
 Purpose: Count, per window of owner interactions and pooled, owner corrections and decisions given again, review findings that recur and each role's logged context size, so memory changes are judged against a measured baseline.
 Status: active

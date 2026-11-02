@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/claude/hooks/nana-shared-memory.mjs
- * @purpose Print the shared-memory index and self-heal the current Claude project memory link.
- * @inputs Claude Code environment, bounded hook JSON stdin, and the shared MEMORY.md file.
+ * @purpose Deliver the bounded seat memory push beside the shared index and self-heal its project link.
+ * @inputs Claude Code environment, bounded hook JSON stdin, shared MEMORY.md and optional private memory store.
  * @outputs a bounded shared-memory header, optional note, index entries, and a fold line when entries are shortened or omitted.
  * @effects disk, process (reads stdin, creates directories and a link, writes stdout).
  * @errors all failures, including a stdout error such as a reader that closed it, are ignored and the hook exits 0.
@@ -12,13 +12,12 @@ import * as path from "node:path";
 import { claudeConfigHome } from "../../lib/claude-config-home.mjs";
 import { projectKey } from "../../lib/project-key.mjs";
 import { readHookInput } from "../../lib/shared-memory-input.mjs";
-import { SHARED_MEMORY_OUTPUT_BUDGET, SHARED_MEMORY_TRIM_MARK } from "../../lib/shared-memory-config.mjs";
+import { SHARED_MEMORY_OUTPUT_BUDGET } from "../../lib/shared-memory-config.mjs";
+import { HOOK_DEADLINE_MS } from "../../lib/hook-producer.mjs";
+import { HEADER, seatMemoryLayout } from '../../../nana-pack/lib/memory-render.mjs';
 
 // R-1942: Ignore every stdout error so a closed hook reader cannot fail the hook.
 process.stdout.on("error", () => {});
-
-const HEADER = (idx) => `[nana:shared-memory] ${idx} — general feedback/user/reference memories are written HERE (symlinked as shared/ in this project's memory dir); project facts go in the project's own memory dir.`;
-const FOLD_LINE = (shortened, total, leftOut, idx) => `[nana:shared-memory] index shortened to fit the hook output cap: ${shortened} of ${total} entries shortened, ${leftOut} left out; full index: ${idx}`;
 
 function hasSymlinkedComponent(root, target) {
 	const relative = path.relative(root, target);
@@ -92,56 +91,27 @@ try {
 	}
 	const fixed = `${HEADER(idx)}\n${note ? `[nana:shared-memory] ${note}\n` : ""}`;
 	const entries = text.split(/\r?\n/).filter((line) => /^- \[/.test(line));
-	const full = fixed + entries.map((line) => `${line}\n`).join("");
-	let output = full;
-	let whole = entries;
-	let shortenedEntries = [];
-	let omitted = [];
-	if (full.length <= SHARED_MEMORY_OUTPUT_BUDGET) {
-		// Full entries retain their original text and order.
-	} else {
-		const parts = entries.map((line) => {
-			const head = line.match(/^- \[[^\]]*\]\([^)]*\)/)?.[0] ?? line;
-			return { head, description: line.slice(head.length) };
-		});
-		const total = parts.length;
-		const reservedFold = `${FOLD_LINE(total, total, total, idx)}\n`;
-		const shorten = ({ head, description }, limit) => {
-			if (description.length <= limit) return `${head}${description}`;
-			let end = limit;
-			if (end > 0 && /[\uD800-\uDBFF]/.test(description[end - 1])) end--;
-			return `${head}${description.slice(0, end)}${SHARED_MEMORY_TRIM_MARK}`;
-		};
-		const render = (selected, limit) => selected.map((part) => `${shorten(part, limit)}\n`).join("");
-		let limit = 0;
-		let selected = parts;
-		if ((fixed + render(parts, 0) + reservedFold).length <= SHARED_MEMORY_OUTPUT_BUDGET) {
-			let low = 0;
-			let high = Math.max(0, ...parts.map(({ description }) => description.length));
-			while (low < high) {
-				const mid = Math.ceil((low + high) / 2);
-				if ((fixed + render(parts, mid) + reservedFold).length <= SHARED_MEMORY_OUTPUT_BUDGET) low = mid;
-				else high = mid - 1;
-			}
-			limit = low;
-		} else {
-			let kept = 0;
-			let renderedLength = 0;
-			for (const part of parts) {
-				const lineLength = shorten(part, 0).length + 1;
-				if (fixed.length + renderedLength + lineLength + reservedFold.length > SHARED_MEMORY_OUTPUT_BUDGET) break;
-				renderedLength += lineLength;
-				kept++;
-			}
-			selected = parts.slice(0, kept);
+	const options = { header: fixed, entries, indexPath: idx, budget: SHARED_MEMORY_OUTPUT_BUDGET };
+	// Prepare fallback before any private-store or git work. The deadline is Node's
+	// process clock, not time since this point (including stdin and imports).
+	const baseline = seatMemoryLayout(options);
+	let layout = baseline;
+	let push = { reason: 'unavailable', unparseable: 0 };
+	try {
+		const { seatPush } = await import('../../../nana-pack/lib/memory-push.mjs');
+		push = seatPush({ cwd: typeof input.cwd === 'string' ? input.cwd : process.env.CLAUDE_PROJECT_DIR || process.cwd(), deadline: HOOK_DEADLINE_MS });
+		if (push.bundle) {
+			layout = seatMemoryLayout({ ...options, bundle: push.bundle });
+			if (layout.bundleDelivered === false) push = { reason: 'budget', unparseable: push.unparseable };
+			if (performance.now() >= HOOK_DEADLINE_MS) { layout = baseline; push = { reason: 'deadline', unparseable: push.unparseable }; }
 		}
-		const shortened = selected.filter(({ description }) => description.length > limit).length;
-		const leftOut = total - selected.length;
-		output = fixed + render(selected, limit) + `${FOLD_LINE(shortened, total, leftOut, idx)}\n`;
-		whole = selected.filter(({ description }) => description.length <= limit).map(({ head }) => head);
-		shortenedEntries = selected.filter(({ description }) => description.length > limit).map(({ head }) => head);
-		omitted = parts.slice(selected.length).map(({ head }) => head);
-	}
+		else if (push.reason === 'store-error') {
+			const { PUSH_WORDS } = await import('../../../nana-pack/lib/memory-bundle-config.mjs');
+			layout = seatMemoryLayout({ ...options, budget: SHARED_MEMORY_OUTPUT_BUDGET - PUSH_WORDS.storeError.length });
+			layout.output += PUSH_WORDS.storeError;
+		}
+	} catch { /* Prepared index remains independent of the optional push. */ }
+	const { output, full, whole, shortenedEntries, omitted } = layout;
 	process.stdout.write(output);
 	try {
 		const { appendContextLoad } = await import('../../../nana-pack/lib/context-load-log.mjs');
@@ -149,7 +119,8 @@ try {
 		const files = list => list.map(line => line.match(/^- \[[^\]]*\]\(([^)]*)\)/)?.[1] ?? null);
 		appendContextLoad({ launcher: 'nana-shared-memory', role: 'seat', runtime: 'claude-code', sessionId: typeof input.session_id === 'string' ? input.session_id : null,
 			cwd: typeof input.cwd === 'string' ? input.cwd : process.env.CLAUDE_PROJECT_DIR || process.cwd(),
-			source: idx, fullChars: full.length, printedChars: output.length, whole: files(whole), shortened: files(shortenedEntries), omitted: files(omitted) });
+			source: idx, fullChars: full.length, printedChars: output.length, whole: files(whole), shortened: files(shortenedEntries), omitted: files(omitted),
+			push: { reason: push.reason, unparseable: push.unparseable, chars: push.bundle?.chars ?? 0, delivered: push.bundle?.delivered ?? [], omitted: push.bundle?.omitted ?? [] } });
 	} catch (error) {
 		try { process.stderr.write(`nana context load skipped: ${String(error?.code ?? 'module unavailable').replace(/[\r\n]/g, ' ')}\n`); } catch {}
 	}

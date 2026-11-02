@@ -1,0 +1,132 @@
+FAIL B1: matching records print beside all index titles including an empty store AssertionError [ERR_ASSERTION]: The input did not match the regular expression /push 5 of 5/. Input:
+
+"[nana:shared-memory] /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/profile-fixture-fbJ39P/shared/MEMORY.md — general feedback/user/reference memories are written HERE (symlinked as shared/ in this project's memory dir); project facts go in the project's own memory dir.\n" +
+  '- [Synthetic title 000](synthetic-long-filename-0-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 001](synthetic-long-filename-1-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 002](synthetic-long-filename-2-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 003](synthetic-long-filename-3-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 004](synthetic-long-filename-4-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 005](synthetic-long-filename-5-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 006](synthetic-long-filename-6-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 007](synthetic-long-filename-7-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 008](synthetic-long-filename-8-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 009](synthetic-long-filename-9-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 010](synthetic-long-filename-10-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 011](synthetic-long-filename-11-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 012](synthetic-long-filename-12-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 013](synthetic-long-filename-13-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 014](synthetic-long-filename-14-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 015](synthetic-long-filename-15-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 016](synthetic-long-filename-16-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 017](synthetic-long-filename-17-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 018](synthetic-long-filename-18-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 019](synthetic-long-filename-19-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 020](synthetic-long-filename-20-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 021](synthetic-long-filename-21-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 022](synthetic-long-filename-22-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 023](synthetic-long-filename-23-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 024](synthetic-long-filename-24-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 025](synthetic-long-filename-25-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 026](synthetic-long-filename-26-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 027](synthetic-long-filename-27-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 028](synthetic-long-filename-28-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 029](synthetic-long-filename-29-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 030](synthetic-long-filename-30-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 031](synthetic-long-filename-31-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 032](synthetic-long-filename-32-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 033](synthetic-long-filename-33-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 034](synthetic-long-filename-34-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 035](synthetic-long-filename-35-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 036](synthetic-long-filename-36-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 037](synthetic-long-filename-37-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 038](synthetic-long-filename-38-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 039](synthetic-long-filename-39-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 040](synthetic-long-filename-40-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 041](synthetic-long-filename-41-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 042](synthetic-long-filename-42-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 043](synthetic-long-filename-43-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 044](synthetic-long-filename-44-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 045](synthetic-long-filename-45-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 046](synthetic-long-filename-46-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 047](synthetic-long-filename-47-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 048](synthetic-long-filename-48-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 049](synthetic-long-filename-49-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 050](synthetic-long-filename-50-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 051](synthetic-long-filename-51-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 052](synthetic-long-filename-52-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 053](synthetic-long-filename-53-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 054](synthetic-long-filename-54-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 055](synthetic-long-filename-55-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 056](synthetic-long-filename-56-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 057](synthetic-long-filename-57-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 058](synthetic-long-filename-58-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 059](synthetic-long-filename-59-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 060](synthetic-long-filename-60-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 061](synthetic-long-filename-61-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 062](synthetic-long-filename-62-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 063](synthetic-long-filename-63-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 064](synthetic-long-filename-64-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 065](synthetic-long-filename-65-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 066](synthetic-long-filename-66-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 067](synthetic-long-filename-67-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 068](synthetic-long-filename-68-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 069](synthetic-long-filename-69-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 070](synthetic-long-filename-70-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 071](synthetic-long-filename-71-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 072](synthetic-long-filename-72-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 073](synthetic-long-filename-73-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 074](synthetic-long-filename-74-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 075](synthetic-long-filename-75-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 076](synthetic-long-filename-76-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 077](synthetic-long-filename-77-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 078](synthetic-long-filename-78-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 079](synthetic-long-filename-79-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 080](synthetic-long-filename-80-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 081](synthetic-long-filename-81-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 082](synthetic-long-filename-82-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 083](synthetic-long-filename-83-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 084](synthetic-long-filename-84-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 085](synthetic-long-filename-85-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 086](synthetic-long-filename-86-padding-for-head.md) — description descript…\n' +
+  '- [Synthetic title 087](synthetic-long-filename-87-padding-for-head.md) — description descript…\n' +
+  '[nana:shared-memory] index shortened to fit the hook output cap: 88 of 88 entries shortened, 0 left out; full index: /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/profile-fixture-fbJ39P/shared/MEMORY.md\n'
+
+    at file://<lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs:46:89
+    at using (file://<lane-root>/packages/nana-pack/tests/memory-run-fixture.mjs:39:75)
+    at file://<lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs:42:95
+    at async check (file://<lane-root>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs:42:1
+FAIL B3: skips preserve bytes and a damaged profile adds only the fixed note TypeError: Cannot read properties of undefined (reading 'reason')
+    at file://<lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs:59:166
+    at using (file://<lane-root>/packages/nana-pack/tests/memory-run-fixture.mjs:39:75)
+    at file://<lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs:55:91
+    at async check (file://<lane-root>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs:55:1
+FAIL B4: slow git retains index under the deadline with one worktree probe Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<lane-root>/packages/nana-pack/lib/memory-bundle-config.mjs' imported from <lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL B5: one pure date-cut maker and renderer serve store and replay inputs Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<lane-root>/packages/nana-pack/lib/memory-bundle.mjs' imported from <lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+FAIL B6: one load line measures ids and characters without claim or quote text TypeError: Cannot read properties of undefined (reading 'reason')
+    at file://<lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs:90:160
+    at using (file://<lane-root>/packages/nana-pack/tests/memory-run-fixture.mjs:39:75)
+    at file://<lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs:87:93
+    at async check (file://<lane-root>/packages/nana-pack/tests/profile-fixture.mjs:62:8)
+    at async file://<lane-root>/packages/nana-setup/tests/shared-memory-push.test.mjs:87:1

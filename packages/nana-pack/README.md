@@ -85,11 +85,39 @@ neither does an **untrusted** project — reload preserves the session's trust d
 added to a trusted project's `.pi/skills` after startup goes from absent to present across one
 `/reload-runtime`.
 
+## Seat memory delivery
+
+The Claude Code shared-memory startup hook delivers up to 4,000 record-line characters from the
+private store, inside its unchanged 9,000-character total. The shared index stays beside it.
+Profile records precede this repository's records. Within each part, trust, saved source,
+kind (corrections first), evidence day, file stamp and id decide order. All trust levels and
+roles are eligible; retracted, superseded, invalid, future and other-repository records stay out.
+Only repositories enabled for making receive project records; the profile still loads elsewhere.
+The push shows whole lines and omitted counts, never partial claims. If index link heads do not
+fit beside it, title-only entries retain discovery and the fold line points at the full index.
+
+The hook reads `ownerProfile` and `memoryPush` from pi's active agent directory. Set
+`"memoryPush": false` there to restore the old index bytes. Any defined `NANA_ROLE` (even empty),
+CI, a linked worktree, missing pointer or missing marker skips the push. Git calls get at most
+1,000 ms each and the remaining shared 4,000 ms process-clock deadline. A stall keeps the prepared
+index. A damaged profile adds a fixed store-error note; damaged project files are skipped and counted.
+When the note needs room, the existing index shortener keeps the total capped.
+
+Claims are private context: never quote them in issues, commits, PRs or HANDOFF. Retract only
+when the owner says a record is wrong, using the printed id and the owner's quoted words.
+The private load log records delivered and omitted ids, record-line characters, skipped-file
+counts and a fixed reason, not claims or quotes. This is startup-only: `/clear` and compaction
+do not refresh the push or index. Claude's project auto-memory stays outside this hook's budget.
+No planner, builder, reviewer, pi delivery or per-prompt pull ships in this lane.
+
+The pure `lib/memory-bundle.mjs` maker and `lib/memory-render.mjs` renderer are shared attach
+points for replay and later pull; the current replay adapter is unchanged.
+
 ## Owner profile
 
 `node packages/nana-pack/bin/nana-profile.mjs` keeps quoted owner learning in a private,
 append-only git clone. It needs Node, git and signed-in `gh` for private-target verification.
-No model, network search, hook, PATH shim or startup delivery is added here.
+The profile CLI needs no model or network search. The Claude Code seat hook now reads it at startup.
 The seat creates the private `nana-profile` repo with the owner after the land and clones it
 into `nana-profile` in the home folder. This public repository holds no owner records.
 
@@ -106,7 +134,7 @@ node packages/nana-pack/bin/nana-profile.mjs sync
 
 Saving stays off on each machine until that machine's `init --save`. Every profile command
 refuses when `NANA_ROLE` is set; writers also refuse from linked worktrees. The seat saves automatically without approval, shows the
-`Saved:` line for veto, and writes to both this profile and today's shared memory until delivery.
+`Saved:` line for veto, and keeps the shared index beside the new delivery until replay supports removing it.
 Confirm only an explicit owner yes, using new owner words. Decisions go to rulings; open threads
 belong in GitHub issues. Supported kinds are preference, correction, fact and thinking.
 
@@ -123,7 +151,7 @@ Records and events are exclusive-created JSON files; git history keeps retracted
 Retract hides a record, not its history. Every save starts low. Three distinct sessions with
 new quotes earn medium; explicit confirmation with new owner words earns high.
 `confirm`, `retract` and `supersede` accept a unique prefix of at least 12 hexadecimal characters
-across profile and project records. Profile ids hash the claim; project ids hash evidence plus claim.
+across profile and project records. Printed push ids are 12-hex SHA-256 prefixes: profile ids hash the claim; extracted project ids hash evidence plus claim.
 Events
 for project records stay in that project's own event area.
 `effectiveState` in `lib/profile-store.mjs` is the sole reader of effective trust and liveness;
@@ -206,7 +234,7 @@ loads, excluded from context statistics. Missing, malformed and outside-window l
 Unknown role, launcher and part names receive distinct numbered aliases instead of exposing log text.
 Only logged parts can support a no-growth claim: planners and adversaries launched through the
 Agent tool are not logged, standing rules and AGENTS files are outside the log, and the seat
-line covers only the shared-memory index. Known limit: one machine and Claude Code transcripts
+line covers the shared-memory hook's index and push. Known limit: one machine and Claude Code transcripts
 only; pi sessions and cross-machine repeats are invisible. Recurring findings are a later lane.
 
 ## Paired memory replay
@@ -680,7 +708,7 @@ Both review launchers add feature known bugs after movement; Claude puts them be
 
 The shared Claude carry allowlist in `bin/worker-config.mjs` includes the five helper keys, network/login env (including settings-only Bedrock bearer/access/session credentials, cloud endpoints, auth-skip switches, Google credential file and the Foundry switch), `CLAUDE_CODE_GIT_BASH_PATH`, Bedrock and Vertex switches, `AWS_REGION`, `AWS_PROFILE`, `CLOUD_ML_REGION`, `ANTHROPIC_VERTEX_PROJECT_ID`, `ANTHROPIC_MODEL`, and the default Opus, Sonnet and Haiku model names. No hooks, permissions, MCP servers or arbitrary env keys are carried.
 
-Lane builders and both review launchers append a versioned line to `nana-context-loads.jsonl` in pi's active agent dir at launch, even for a failing child. Parts record source names and full/delivered character counts, never contents or credential values. Plain non-lane workers log nothing. Logging skips cwd-relative agent dirs, paths inside any git worktree and append failures, printing one stderr reason without changing delivery. The shared-memory hook uses the same file after stdout. Different `PI_CODING_AGENT_DIR` settings in shell and hook environments split the log. No reader or rotation ships yet.
+Lane builders and both review launchers append a versioned line to `nana-context-loads.jsonl` in pi's active agent dir at launch, even for a failing child. Parts record source names and full/delivered character counts, never contents or credential values. Plain non-lane workers log nothing. Logging skips cwd-relative agent dirs, paths inside any git worktree and append failures, printing one stderr reason without changing delivery. The shared-memory hook uses the same file after stdout, adding push ids, record-line characters, skipped damaged-project count and the fixed reason. Different `PI_CODING_AGENT_DIR` settings in shell and hook environments split the log. No reader or rotation ships yet.
 
 #### Build records
 

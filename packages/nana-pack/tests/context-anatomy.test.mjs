@@ -258,6 +258,10 @@ test('R-3216: failed unsafe and unavailable logging cannot alter launcher or hoo
   const f=fixture(), notes=[]; const result=appendContextLoad({launcher:'test'},{file:path.join(f.lane,'log.jsonl'),relative:false,warn:t=>notes.push(t)}); assert.equal(result.ok,false); assert.equal(notes.length,1); assert.ok(!fs.existsSync(path.join(f.lane,'log.jsonl')));
   const h=hookFixture(); const a=runHook(h); assert.equal(a.status,0,a.stderr); fs.rmSync(h.log); fs.mkdirSync(h.log); const b=runHook(h); assert.equal(b.status,0); assert.equal(b.stdout,a.stdout); assert.match(b.stderr,/nana context load skipped:/);
   const copy=path.join(h.dir,'copy'); fs.cpSync(path.join(root,'packages/nana-setup'),path.join(copy,'packages/nana-setup'),{recursive:true});
+  // The index renderer moved into pack lib; keep its required files while logging stays absent.
+  for (const name of ['memory-render.mjs','frontier-summary-config.mjs']) {
+    const target=path.join(copy,'packages/nana-pack/lib',name); fs.mkdirSync(path.dirname(target),{recursive:true}); fs.copyFileSync(path.join(pack,'lib',name),target);
+  }
   const missing=runHook(h,path.join(copy,'packages/nana-setup/claude/hooks/nana-shared-memory.mjs')); assert.equal(missing.status,0); assert.equal(missing.stdout,a.stdout); assert.match(missing.stderr,/nana context load skipped:/);
 });
 function hookFixture() {
