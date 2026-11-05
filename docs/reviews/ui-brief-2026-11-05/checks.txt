@@ -1,0 +1,536 @@
+Local home paths below are normalized to $HOME.
+PAIR R-3161: omitted rule: wrong exit=1
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+FAIL seat guide holds only its original rules and the role-launch rule ["- In Claude Code, launch each builder, reviewer or role child as a background task and end your turn. In pi, run it as one foreground command with no timeout.","- Start scout (code scouting and research gathering), planner, adversary and checker through `pi-worker --slot <slot> --brief <file> --out <file>`. Node form: `node \"$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs\" --slot <slot> --brief <file> --out <file>`; PowerShell: `node \"$env:USERPROFILE\\nana-pi\\packages\\nana-pack\\bin\\pi-worker.mjs\" --slot <slot> --brief <file> --out <file>`. A role whose roster line reads `seat` or `none` runs in the seat. Scout and planner launches are the seat's choice; use an adversary once per plan and a checker once per install, hook or gate lane. Read lineage warnings; change a shared or unverified slot rather than silently substituting another model.","- While a builder or reviewer runs, do not read or judge its partial output, transcript, diffs or test results. Do not re-run its checks before it ends.","- Leave a running builder or reviewer alone until its completion notification arrives or a monitor reports a failure or a stall. Then act in that turn.","- Verify once, when the build ends. Re-run the seat checks your brief names, read the builder's report, and look at every page or command output the change produces.","- On a lane that produces or changes a page a person looks at, run first-look after build 1 and save the shots outside git: `npm run first-look -- --page product --out <folder>`, `--page desk --before <url> --after <url>`, or, for a new page or one with a reference, `--page url --after <url> --reference <folder> --spec <file> --out <folder>`. Point the owner to the shots with one question: is this the shape?","- On a lane that changes the product page, after first-look run `npm run outside-reader -- --from <first-look folder> --out <folder>` outside git, show the owner its top new finding in your report, and write a known-bug line only for a finding that is a real defect.","- On a lane whose page has a reference, run `npm run visual-reader -- --from <first-look folder> --out <folder>` outside git before you point the owner to the shots. Point the owner to them only after it prints a pass, or after you have judged them side by side with the reference yourself and say so in your report.","- In an install, hook or gate lane, re-run the lane's mutation runner after any change of your own to code or tests, before the review.","- Send findings on a build back in the next brief instead of fixing the builder's work yourself.","- Before you end your turn, name and start what waits on nothing else: another lane's build, a long mutation run in parts, separate research agents. Each lane's own steps stay in order.","- Post a plan's questions as one `ask` issue before the build. This is the one exception to one issue per question. Label it `blocking` when any question is `hard to undo`, else `optional`. A blocking issue's title ends with \"(default: go)\", meaning build on the listed defaults.","- A blocking build waits for the owner's answer; meanwhile the seat reports YOUR CALL and starts other lanes. An optional build starts on the defaults, and a differing answer goes in the next brief. A plan whose questions read `None.` posts nothing.","- Run the full suite whole, never in parts. Never split a long run while a full suite runs on the same machine. If a check fails on a time limit, re-run it alone before you call it a failure.","- Keep no more lanes building than the lanes line of this machine's roster command allows, `node \"$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs\"`, and at most two more in planning. A lane in planning has no build yet and no builder working in it. A lane counts as building from its first build until it lands or closes.","- The builder preamble holds the builder's rules and the review standard holds the reviewer's. Judge review findings by the review standard, and restate neither in a brief.","- On an enabled personal machine, automatically save quoted preferences, corrections, facts and thinking about the owner to both the private profile and today's shared memory until delivery lands. Run `node \"$HOME/nana-pi/packages/nana-pack/bin/nana-profile.mjs\" save`; never enable saving on a machine without the owner's choice. Show each Saved: line in your reply so the owner can retract it; confirm only on an explicit owner yes with new owner words. Never save as a builder or reviewer, from a linked worktree, or from a disabled machine. Decisions belong in nana-rulings.md and open threads in GitHub issues."]
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+FAIL R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+PAIR R-3161: omitted rule: restored exit=0
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+PAIR R-3162: text-only handoff: wrong exit=1
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+FAIL R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+PAIR R-3162: text-only handoff: restored exit=0
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+PAIR R-3163: unbounded source gates: wrong exit=1
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+FAIL R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+PAIR R-3163: unbounded source gates: restored exit=0
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+FORMAT CRLF: exit=0
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+FORMAT trailing space and tab: exit=0
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+FORMAT no final newline: exit=0
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+
+COMMAND: node packages/nana-setup/tests/seat-rule.test.mjs
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+EXIT: 0
+
+COMMAND: node packages/nana-pack/tests/rulings.test.mjs
+PASS pi seat receives the complete installed guide under its fixed heading 
+PASS stale guide installation notice names the pi seat guide and nana-setup install 
+PASS pi builder and reviewer omit the guide while retaining the rulings section 
+PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+PASS seat guide unavailable prefix is distinct from the rulings prefix 
+PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+PASS seal: RULINGS_READ_CAP is 8192 
+PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+PASS no fixture text leaks into the unavailable marker 
+PASS planner prompt names no owner or work project 
+PASS the rulings file names no owner and no work project 
+PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+PASS every ruling is one bullet that opens with its date 
+PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+PASS planner prompt names no model id 
+PASS the rulings file names no model, leaving the lineup to the roster 
+PASS the rulings file opens with the scope sentence for builders and reviewers 
+PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+PASS R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap 
+EXIT: 0
+
+COMMAND: node packages/nana-pack/tests/planner-prompt.test.mjs
+PASS R-2950: planner prompt names its sources in conflict order and resolves pack paths 
+PASS R-2951: planner prompt requests Questions for the owner in plan-section order 
+PASS R-3030: planner prompt makes Outside precedent part of the required section order 
+PASS R-3031: planner prompt requires a licensed outside project or a located none 
+PASS R-3070: planner prompt specifies the five-line owner-question form, ranking and overflow 
+PASS R-3011: readings put the top questions for each reading in the same message 
+PASS R-2952: without an agreed reading the planner returns readings and no plan 
+PASS R-2953: planner prompt pins its planning and forecast rules without scratch-plan pointers 
+PASS R-2954: a plan in the prompt form passes brief parsing and precedent checking 
+PASS R-3012: seat guide posts one plan-question issue with the build label and default title 
+PASS R-3013: seat guide distinguishes blocking waits, optional defaults and None 
+EXIT: 0
+
+COMMAND: npm run -s map:check
+code map: 613 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+EXIT: 0
+
+COMMAND: npm run -s readme:check
+readme: 1090 claims checked; 0 problem(s)
+EXIT: 0
+
+COMMAND: node --experimental-strip-types packages/nana-pack/tests/requirements-trace.test.mjs
+requirements: 2534 total (2277 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2277 traced by tests
+ears: 0 rows off form (allowance 0)
+PASS ears: the CLI prints the report line right after the summary line, naming the count and the allowance 
+FAIL REQUIREMENTS.md and the markers the suite carries agree 
+  R-1140 cites 'packages/nana-setup/tests/seat-rule.test.mjs::R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults' but no test with that title carries '// req: R-1140'
+PASS rail roots equal the package test roots and two app roots collected by npm test 
+PASS no collected test root has nested test files outside fixture directories 
+PASS the rail read the whole file and traced something 
+PASS ears: a two-shall row and a no-shall row are counted, a retired one is not 
+PASS ears: over the allowance each off-form row is a problem, at the allowance none 
+PASS seal: EARS_ALLOWANCE is 0 (G-015) 
+PASS this repo: zero rows off form 
+PASS seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom) 
+PASS R-1000: CRLF ledger and general rows are read and clean 
+PASS R-1000: spaces and tab after closing pipes are read and clean 
+PASS R-1001: CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+PASS R-1000: CRLF test-file marker traces its four-digit row 
+PASS R-1000: both four-digit row prefixes load 
+PASS R-1000: TS markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+PASS R-1000: invalid row ID R-0123 is rejected 
+PASS R-1000: invalid row ID R-10000 is rejected 
+PASS R-1000: invalid row ID R-１２３ is rejected 
+PASS R-1001: missing closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: missing closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: zero-width space after closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: fenced example names REQUIREMENTS.md:6 
+PASS R-1001: fenced example names REQUIREMENTS-general.md:6 
+PASS R-1001: R candidate names REQUIREMENTS.md:5 
+PASS R-1001: R candidate names REQUIREMENTS-general.md:5 
+PASS R-1001: G candidate names REQUIREMENTS.md:5 
+PASS R-1001: G candidate names REQUIREMENTS-general.md:5 
+PASS R-1001: U+2028 inside a cell is read and clean 
+PASS R-1001: U+0085 inside a cell is read and clean 
+PASS R-1001: U+200B after closing pipe names REQUIREMENTS.md:4 
+PASS R-1000: both rails remove exactly one BOM from a double-BOM first-line row 
+PASS R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe read 
+PASS R-1001: a leading BOM before the first row is ignored 
+PASS R-1000: a BOM and comma or U+2028 separated first-line marker list traces 
+PASS R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4 
+PASS R-1000: Python rail reads four-digit R/G rows 
+PASS R-1000: Python row grammar rejects leading-zero, five-digit and non-ASCII IDs 
+PASS R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+PASS R-1001: Python reads U+0085, U+FEFF and U+00A0 around row cells and after the pipe 
+PASS R-1001: Python ignores a leading BOM before the first row 
+PASS R-1000: Python leaves the second BOM before a double-BOM first-line row 
+PASS R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators 
+PASS R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4 
+PASS R-1001: Python U+2028 inside a cell is read and clean 
+PASS R-1001: Python U+0085 inside a cell is read and clean 
+PASS R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4 
+PASS R-1001: Python CRLF ledger and general rows are read and clean 
+PASS R-1001: Python spaces and tab after closing pipes are read and clean 
+PASS R-1001: Python CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+PASS R-1001: Python missing closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: Python missing closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: Python fenced example names REQUIREMENTS.md:6 
+PASS R-1001: Python fenced example names REQUIREMENTS-general.md:6 
+PASS R-1001: Python R candidate names REQUIREMENTS.md:5 
+PASS R-1001: Python R candidate names REQUIREMENTS-general.md:5 
+PASS R-1001: Python G candidate names REQUIREMENTS.md:5 
+PASS R-1001: Python G candidate names REQUIREMENTS-general.md:5 
+
+1 FAILED
+EXIT: 1
+
+COMMAND: nana-writing docs/ui-brief-template.md
+summary sentences=42 words=458 over=0 passive=0 banned=0 verdict=n/a identifiers=0
+EXIT: 0
+
+COMMAND: node packages/nana-setup/bin/install-check.mjs
+pi: $HOME/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: $HOME/.hermes/node/bin/node
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi post-edit
+PASS pi-review
+PASS hook set
+PASS hook memory making
+PASS hook shared memory
+PASS hook roster notice
+PASS hook verifier pipe (Bash)
+PASS hook knowledge pull
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
+EXIT: 0
+
+COMMAND: node packages/nana-setup/tests/seat-rule.test.mjs
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only its original rules and the role-launch rule 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: re-run the mutation runner only in an install, hook or gate lane, after the seat's own change, before the review 
+PASS R-1140: the seat guide reruns the mutation runner only in an install, hook or gate lane 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+EXIT: 0
+
+COMMAND: node packages/nana-pack/tests/rulings.test.mjs
+PASS pi seat receives the complete installed guide under its fixed heading 
+PASS stale guide installation notice names the pi seat guide and nana-setup install 
+PASS pi builder and reviewer omit the guide while retaining the rulings section 
+PASS missing, empty, oversized and invalid-UTF-8 seat guides yield one user-facing install marker without throwing 
+PASS seat guide unavailable prefix is distinct from the rulings prefix 
+PASS seal: SEAT_GUIDE_READ_CAP is 8192 
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+PASS an installed rulings file reaches the nana-rulings section on every session_start reason 
+PASS seal: RULINGS_READ_CAP is 8192 
+PASS a missing, empty, directory, FIFO, over-cap or invalid-UTF-8 rulings file yields the one-line unavailable marker, never a throw or a hang 
+PASS boundary: a file of exactly RULINGS_READ_CAP bytes injects whole and RULINGS_READ_CAP + 1 bytes gets the marker 
+PASS no fixture text leaks into the unavailable marker 
+PASS planner prompt names no owner or work project 
+PASS the rulings file names no owner and no work project 
+PASS R-2969: nana-pi project section gives planners the lane-class command and build instruction 
+PASS every ruling is one bullet that opens with its date 
+PASS R-2956: the rulings file carries the 2026-10-28 readings ruling 
+PASS R-2663: the rulings file carries one dated ruling that a helper's second caller imports it and the plan names any move 
+PASS planner prompt names no model id 
+PASS the rulings file names no model, leaving the lineup to the roster 
+PASS the rulings file opens with the scope sentence for builders and reviewers 
+PASS R-3437: the CI ruling and project-specific coverage govern the shared land checklist 
+PASS R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap 
+EXIT: 0
+
+COMMAND: node packages/nana-pack/tests/planner-prompt.test.mjs
+PASS R-2950: planner prompt names its sources in conflict order and resolves pack paths 
+PASS R-2951: planner prompt requests Questions for the owner in plan-section order 
+PASS R-3030: planner prompt makes Outside precedent part of the required section order 
+PASS R-3031: planner prompt requires a licensed outside project or a located none 
+PASS R-3070: planner prompt specifies the five-line owner-question form, ranking and overflow 
+PASS R-3011: readings put the top questions for each reading in the same message 
+PASS R-2952: without an agreed reading the planner returns readings and no plan 
+PASS R-2953: planner prompt pins its planning and forecast rules without scratch-plan pointers 
+PASS R-2954: a plan in the prompt form passes brief parsing and precedent checking 
+PASS R-3012: seat guide posts one plan-question issue with the build label and default title 
+PASS R-3013: seat guide distinguishes blocking waits, optional defaults and None 
+EXIT: 0
+
+COMMAND: npm run -s map:check
+code map: 613 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+EXIT: 0
+
+COMMAND: npm run -s readme:check
+readme: 1090 claims checked; 0 problem(s)
+EXIT: 0
+
+COMMAND: node --experimental-strip-types packages/nana-pack/tests/requirements-trace.test.mjs
+requirements: 2534 total (2277 implemented · 7 planned · 55 retired · 190 untested · 5 violated); 2277 traced by tests
+ears: 0 rows off form (allowance 0)
+PASS ears: the CLI prints the report line right after the summary line, naming the count and the allowance 
+PASS REQUIREMENTS.md and the markers the suite carries agree 
+PASS rail roots equal the package test roots and two app roots collected by npm test 
+PASS no collected test root has nested test files outside fixture directories 
+PASS the rail read the whole file and traced something 
+PASS ears: a two-shall row and a no-shall row are counted, a retired one is not 
+PASS ears: over the allowance each off-form row is a problem, at the allowance none 
+PASS seal: EARS_ALLOWANCE is 0 (G-015) 
+PASS this repo: zero rows off form 
+PASS seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom) 
+PASS R-1000: CRLF ledger and general rows are read and clean 
+PASS R-1000: spaces and tab after closing pipes are read and clean 
+PASS R-1001: CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+PASS R-1000: CRLF test-file marker traces its four-digit row 
+PASS R-1000: both four-digit row prefixes load 
+PASS R-1000: TS markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+PASS R-1000: invalid row ID R-0123 is rejected 
+PASS R-1000: invalid row ID R-10000 is rejected 
+PASS R-1000: invalid row ID R-１２３ is rejected 
+PASS R-1001: missing closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: missing closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: zero-width space after closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: fenced example names REQUIREMENTS.md:6 
+PASS R-1001: fenced example names REQUIREMENTS-general.md:6 
+PASS R-1001: R candidate names REQUIREMENTS.md:5 
+PASS R-1001: R candidate names REQUIREMENTS-general.md:5 
+PASS R-1001: G candidate names REQUIREMENTS.md:5 
+PASS R-1001: G candidate names REQUIREMENTS-general.md:5 
+PASS R-1001: U+2028 inside a cell is read and clean 
+PASS R-1001: U+0085 inside a cell is read and clean 
+PASS R-1001: U+200B after closing pipe names REQUIREMENTS.md:4 
+PASS R-1000: both rails remove exactly one BOM from a double-BOM first-line row 
+PASS R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe read 
+PASS R-1001: a leading BOM before the first row is ignored 
+PASS R-1000: a BOM and comma or U+2028 separated first-line marker list traces 
+PASS R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4 
+PASS R-1000: Python rail reads four-digit R/G rows 
+PASS R-1000: Python row grammar rejects leading-zero, five-digit and non-ASCII IDs 
+PASS R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+PASS R-1001: Python reads U+0085, U+FEFF and U+00A0 around row cells and after the pipe 
+PASS R-1001: Python ignores a leading BOM before the first row 
+PASS R-1000: Python leaves the second BOM before a double-BOM first-line row 
+PASS R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators 
+PASS R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4 
+PASS R-1001: Python U+2028 inside a cell is read and clean 
+PASS R-1001: Python U+0085 inside a cell is read and clean 
+PASS R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4 
+PASS R-1001: Python CRLF ledger and general rows are read and clean 
+PASS R-1001: Python spaces and tab after closing pipes are read and clean 
+PASS R-1001: Python CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+PASS R-1001: Python missing closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: Python missing closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: Python fenced example names REQUIREMENTS.md:6 
+PASS R-1001: Python fenced example names REQUIREMENTS-general.md:6 
+PASS R-1001: Python R candidate names REQUIREMENTS.md:5 
+PASS R-1001: Python R candidate names REQUIREMENTS-general.md:5 
+PASS R-1001: Python G candidate names REQUIREMENTS.md:5 
+PASS R-1001: Python G candidate names REQUIREMENTS-general.md:5 
+
+all passed
+EXIT: 0
+
+COMMAND: nana-writing docs/ui-brief-template.md
+summary sentences=42 words=458 over=0 passive=0 banned=0 verdict=n/a identifiers=0
+EXIT: 0
+
+COMMAND: node packages/nana-setup/bin/install-check.mjs
+pi: $HOME/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: $HOME/.hermes/node/bin/node
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi post-edit
+PASS pi-review
+PASS hook set
+PASS hook memory making
+PASS hook roster notice
+PASS hook shared memory
+PASS hook verifier pipe (Bash)
+PASS hook knowledge pull
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
+EXIT: 0

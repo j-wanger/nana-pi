@@ -24,7 +24,7 @@ const check = (n, ok, extra = "") => {
 // The canonical scope sentence (CHANGE §3, R-1141's draft).
 const SCOPE = "This rule is for the seat, the session that launches builders and reviewers; a session started as a builder or reviewer skips it.";
 
-// The sixteen bullets, each exactly once (R-1140; owner-profile adds automatic saving).
+// The seventeen bullets, each exactly once (R-1140; owner-profile adds automatic saving).
 // RULE_7 follows the owner's 2026-11-02 per-machine roster pick; planning stays two.
 const RULE_1 = "- In Claude Code, launch each builder, reviewer or role child as a background task and end your turn. In pi, run it as one foreground command with no timeout.";
 const RULE_2 = "- While a builder or reviewer runs, do not read or judge its partial output, transcript, diffs or test results. Do not re-run its checks before it ends.";
@@ -42,8 +42,9 @@ const RULE_13 = "- On a lane that produces or changes a page a person looks at, 
 const RULE_14 = "- On a lane that changes the product page, after first-look run `npm run outside-reader -- --from <first-look folder> --out <folder>` outside git, show the owner its top new finding in your report, and write a known-bug line only for a finding that is a real defect.";
 const RULE_15 = "- On a lane whose page has a reference, run `npm run visual-reader -- --from <first-look folder> --out <folder>` outside git before you point the owner to the shots. Point the owner to them only after it prints a pass, or after you have judged them side by side with the reference yourself and say so in your report.";
 const RULE_16 = "- On an enabled personal machine, automatically save quoted preferences, corrections, facts and thinking about the owner to both the private profile and today's shared memory until delivery lands. Run `node \"$HOME/nana-pi/packages/nana-pack/bin/nana-profile.mjs\" save`; never enable saving on a machine without the owner's choice. Show each Saved: line in your reply so the owner can retract it; confirm only on an explicit owner yes with new owner words. Never save as a builder or reviewer, from a linked worktree, or from a disabled machine. Decisions belong in nana-rulings.md and open threads in GitHub issues.";
+const RULE_17 = "- On a lane that builds or reshapes a page a person looks at, write the build brief from `$HOME/nana-pi/docs/ui-brief-template.md`. The seat picks references by default. The owner's starred references from the library replace those picks when the owner wants a say.";
 const ROLE_RULE = fs.readFileSync(GUIDE, 'utf8').split(/\r?\n/).find(line => line.startsWith('- Start scout '));
-const RULES = [ROLE_RULE, RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_5, RULE_6, RULE_9, RULE_11, RULE_12, RULE_10, RULE_7, RULE_8, RULE_16];
+const RULES = [ROLE_RULE, RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_17, RULE_5, RULE_6, RULE_9, RULE_11, RULE_12, RULE_10, RULE_7, RULE_8, RULE_16];
 
 const raw = (() => { try { return fs.readFileSync(GUIDE, "utf8"); } catch { return ""; } })();
 const text = raw.replace(/\r/g, "");
@@ -77,6 +78,27 @@ check("R-1140: the seat guide reruns the mutation runner only in an install, hoo
 check("R-3140: first-look covers any page the owner sees with usable mode commands", lines.filter((l) => l === RULE_13).length === 1, JSON.stringify(lines.filter((l) => l === RULE_13)));
 // req: R-3141
 check("R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them", lines.filter((l) => l === RULE_15).length === 1 && lines.indexOf(RULE_15) === lines.indexOf(RULE_14) + 1, JSON.stringify(lines.filter((l) => l === RULE_15)));
+// req: R-1140
+// req: R-3161
+check("R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults", lines.filter((l) => l === RULE_17).length === 1 && lines.indexOf(RULE_17) === lines.indexOf(RULE_15) + 1);
+
+const templatePath = RULE_17.match(/`\$HOME\/nana-pi\/([^`]+)`/)?.[1];
+const template = (() => { try { return fs.readFileSync(path.join(ROOT, templatePath), "utf8"); } catch { return ""; } })();
+// req: R-3162
+check("R-3162: linked template carries reference picking and the image handoff", [
+	/seat picks/i, /owner picks/i, /captur/i, /look/i,
+	/capture[^\n]*1440/i, /densest relevant view/i, /cookie dialogs dismissed/i,
+	/reference images/i, /ref-1\.jpg/i, /ref-2\.jpg/i,
+	/open both[^\n]*before you design/i, /for the captured page/i, /out of git/i,
+].every((phrase) => phrase.test(template)) && template.includes("https://claude.ai/artifact/TqVYBrbms8gRvnS5sqtzce"));
+// req: R-3163
+check("R-3163: template gates follow the lane spec and recommend anchored ratings", [
+	/defect gate[^\n]*lane.s spec checks/i,
+	/horizontal scroll[^\n]*phone width/i, /contrast/i,
+	/no network[^\n]*only where[^\n]*spec[^\n]*offline/i,
+	/recommend[^\n]*anchor/i, /not a land requirement/i,
+].every((phrase) => phrase.test(template)));
+
 // req: R-3067
 check("R-3067: seat guide carries the outside-reader timing, output and defect rule", lines.filter((l) => l === RULE_14).length === 1, JSON.stringify(lines.filter((l) => l === RULE_14)));
 // req: R-1140
