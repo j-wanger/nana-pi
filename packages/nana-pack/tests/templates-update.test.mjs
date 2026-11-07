@@ -250,22 +250,34 @@ if (!haveCopier || !hasOldTag || !havePytest) {
    checkOutput += mapCheck.stdout ?? "";
    mapExit = mapCheck.status ?? 1;
   } else if (generalExists) {
-   spawnSync("python3", ["scripts/code_map.py"], { encoding: "utf8", env, cwd: dest });
-   const mapCheck = spawnSync("python3", ["scripts/code_map.py", "--check"], { encoding: "utf8", env, cwd: dest });
-   checkOutput += mapCheck.stdout ?? "";
-   mapExit = mapCheck.status ?? 1;
+   // Use pytest's uvx Python, not an unrelated (or absent) Windows python3.
+   const generated = spawnSync("uvx", ["--with", "pytest", "python", "scripts/code_map.py"], { encoding: "utf8", env, cwd: dest });
+   const mapCheck = spawnSync("uvx", ["--with", "pytest", "python", "scripts/code_map.py", "--check"], { encoding: "utf8", env, cwd: dest });
+   checkOutput += `${generated.stdout ?? ""}${generated.stderr ?? ""}${mapCheck.stdout ?? ""}${mapCheck.stderr ?? ""}`;
+   mapExit = generated.status === 0 ? (mapCheck.status ?? 1) : (generated.status ?? 1);
   }
+  // A failed regeneration is a fixture failure, not a reason to skip retained tests.
   let pythonPytestOutput = "";
   let pythonPytestExit = 0;
   if (generalExists && language === "python") {
    const pytestRun = spawnSync("uvx", ["--with", "pytest", "pytest", "-o", "addopts="], { encoding: "utf8", env: { ...env, PYTHONPATH: join(dest, "src") }, cwd: dest });
    pythonPytestOutput = `${pytestRun.stdout ?? ""}${pytestRun.stderr ?? ""}`;
    pythonPytestExit = pytestRun.status ?? 1;
-   // req: R-583
+   // req: R-583 R-3811 R-3812 R-3814
    check("Python earlier-tag update prints Part G drift", pythonPytestExit === 0 && pythonPytestOutput.includes("part g: 6 cells in REQUIREMENTS.md differ from REQUIREMENTS-general.md (the file governs): G-001, G-003, G-005, G-007, G-008, G-012"), `exit ${pythonPytestExit}; ${pythonPytestOutput.slice(-600)}`);
   }
+  if (generalExists && language === "python") {
+   const mapPath = join(dest, "docs", "code-map.md");
+   const originalMap = readFileSync(mapPath, "utf8");
+   writeFileSync(mapPath, originalMap + "\ncorrupted map\n");
+   const corrupt = spawnSync("uvx", ["--with", "pytest", "pytest", "-o", "addopts=", "tests/test_code_map.py::test_this_project_headers_and_map_are_current"], { encoding: "utf8", env: { ...env, PYTHONPATH: join(dest, "src") }, cwd: dest });
+   writeFileSync(mapPath, originalMap);
+   const corruptOutput = `${corrupt.stdout ?? ""}${corrupt.stderr ?? ""}`;
+   // req: R-3814 R-3812
+   check("R-3814: retained Python map test rejects a corrupted regenerated map", mapExit === 0 && pythonPytestExit === 0 && corrupt.status === 1 && corruptOutput.includes("docs/code-map.md is stale") && corruptOutput.includes("FAILED tests/test_code_map.py::test_this_project_headers_and_map_are_current"), `map ${mapExit}; suite ${pythonPytestExit}; corrupt ${corrupt.status}: ${corruptOutput.slice(-1200)}`);
+  }
   const clean = copy.status === 0 && init.status === 0 && commit.status === 0 && update.status === 0 && railExit === 0 && mapExit === 0 && rejects.length === 0 && copiedRequirements === readFileSync(join(dest, "REQUIREMENTS.md"), "utf8") && generalExists && checkOutput.includes("ears: 0 rows off form (allowance 0)") && checkOutput.includes("problems: 0") && checkOutput.endsWith("\n");
-  // req: R-582
+  // req: R-582 R-3811 R-3812
   check(`${language} earlier-tag copier update leaves REQUIREMENTS.md unchanged and its rail clean`, clean, `${copy.stderr}\n${update.stderr}\n${checkOutput}\n${pythonPytestOutput.slice(-3000)}`);
  }
 }
