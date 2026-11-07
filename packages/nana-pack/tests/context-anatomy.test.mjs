@@ -400,15 +400,23 @@ test('R-3732: stalled measurement is killed and both launchers proceed within th
   const { pidAlive } = await import('../lib/process-tree.mjs');
   for (const [launcher, stall] of [['pi-worker', 'await new Promise(() => {});'], ['pi-review', 'export async function loadProjectContextFiles() { await new Promise(() => {}); }']]) {
     const f = fixture(), pidFile = path.join(f.dir, 'measurement.json');
-    stubContext(f, `import {writeFileSync} from 'node:fs'; writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({pid:process.pid})); setInterval(()=>{},1000); ${stall}`);
-    const started = Date.now();
-    const child = spawn(process.execPath, [path.join(pack,'bin',`${launcher}.mjs`), ...args(f,launcher)], {cwd:f.lane,env:f.env,stdio:['ignore','ignore','pipe'],timeout:10_000,killSignal:'SIGKILL'});
-    let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk; });
-    const status = await new Promise((resolve, reject) => { child.once('error',reject); child.once('close',resolve); });
-    good({status,stderr});
-    assert.ok(rows(f.record).at(-1), 'launch must proceed');
-    assert.ok(Date.now() - started <= PI_CONTEXT_TIMEOUT_MS + 1500, 'launch exceeded deadline plus 1500 ms margin');
-    assert.deepEqual(rows(f.log)[0].parts.filter(p => p.name.startsWith('context file')), [{name:'context files: unavailable (timed out)',source:'pi',fullChars:0,deliveredChars:0}]);
+    const pkg = stubContext(f);
+    const timedLaunch = async () => {
+      const started = performance.now();
+      const child = spawn(process.execPath, [path.join(pack,'bin',`${launcher}.mjs`), ...args(f,launcher)], {cwd:f.lane,env:f.env,stdio:['ignore','ignore','pipe'],timeout:20_000,killSignal:'SIGKILL'});
+      let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk; });
+      const status = await new Promise((resolve, reject) => { child.once('error',reject); child.once('close',resolve); });
+      good({status,stderr});
+      return performance.now() - started;
+    };
+    // Pair identical launcher work so runner speed is not charged to measurement.
+    const baselineMs = await timedLaunch();
+    write(path.join(pkg,'dist/index.js'), `import {writeFileSync} from 'node:fs'; writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({pid:process.pid})); setInterval(()=>{},1000); ${stall}`);
+    const stalledMs = await timedLaunch();
+    assert.equal(rows(f.record).length, 2, 'both launches must proceed');
+    console.log(`TIMING ${launcher}: baseline ${Math.round(baselineMs)} ms, stalled ${Math.round(stalledMs)} ms, added ${Math.round(stalledMs - baselineMs)} ms`);
+    assert.ok(stalledMs - baselineMs <= PI_CONTEXT_TIMEOUT_MS + 1500, 'launch exceeded baseline plus deadline and 1500 ms margin');
+    assert.deepEqual(rows(f.log).at(-1).parts.filter(p => p.name.startsWith('context file')), [{name:'context files: unavailable (timed out)',source:'pi',fullChars:0,deliveredChars:0}]);
     const {pid} = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
     const stoppedBy = Date.now() + 1000;
     while (pidAlive(pid) && Date.now() < stoppedBy) await new Promise(resolve => setTimeout(resolve, 20));
