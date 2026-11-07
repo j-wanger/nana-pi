@@ -301,7 +301,7 @@ const samplerDir2883 = path.join(temp, "r2883-sampler");
 const samplerMarker2883 = path.join(temp, "r2883-sampler-started");
 const holdRecord2883 = path.join(temp, "r2883-hold.json");
 const { samplerName: samplerName2883, samplerShim: samplerShim2883 } = writeSlowSampler(samplerDir2883);
-const holdBody2883 = `const fs = require("node:fs");\nconst started = Date.now();\nsetTimeout(() => { fs.writeFileSync(${JSON.stringify(holdRecord2883)}, JSON.stringify({ heldMs: Date.now() - started })); process.stdout.write("worker output\\n"); }, ${FAKE_PI_HOLD_MS});\n`;
+const holdBody2883 = `const fs = require("node:fs");\nconst started = Date.now();\nsetTimeout(() => { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000); fs.writeFileSync(${JSON.stringify(holdRecord2883)}, JSON.stringify({ timerFired: true, heldMs: Date.now() - started })); process.stdout.write("worker output\\n"); }, ${FAKE_PI_HOLD_MS});\n`;
 const holdScript2883 = path.join(stubDir, "r2883-hold.cjs");
 fs.writeFileSync(holdScript2883, holdBody2883);
 writeStub(`#!/bin/sh\nexec "${process.execPath}" "${holdScript2883}" "$@"\n`, holdBody2883);
@@ -313,6 +313,7 @@ const launchEnv2883 = {
 	SLOW_SAMPLER_MS: String(SLOW_SAMPLER_MS),
 };
 const resolvedLaunchSampler2883 = resolveSampler({ ...process.env, ...launchEnv2883 }, CHILD_LIMIT_MS);
+// The timer callback itself injects one second of scheduling delay.
 const launch2883 = run(lane, ["--lane", "alpha", "--brief", brief], launchEnv2883);
 writeStub(mainPosixScript(true), mainNodeBody(true));
 const defaultSamplerEnv2883 = { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}` };
@@ -320,10 +321,10 @@ const resolvedDefaultSampler2883 = resolveSampler(defaultSamplerEnv2883, CHILD_L
 const hold2883 = fs.existsSync(holdRecord2883) ? JSON.parse(fs.readFileSync(holdRecord2883, "utf8")) : null;
 const samplerStarted2883 = fs.existsSync(samplerMarker2883);
 const stubHasSampler2883 = fs.existsSync(path.join(stubDir, path.basename(samplerShim2883)));
-// req: R-2883
+// req: R-2883 R-3810 R-3812
 check("R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler",
 	launch2883.status === 0 && samplerIsFirst(resolvedLaunchSampler2883, samplerShim2883)
-		&& hold2883?.heldMs >= FAKE_PI_HOLD_MS && !samplerStarted2883
+		&& hold2883?.timerFired === true && !samplerStarted2883
 		&& !samplerIsFirst(resolvedDefaultSampler2883, samplerShim2883) && !stubHasSampler2883,
 	JSON.stringify({ status: launch2883.status, signal: launch2883.signal, elapsedMs: launch2883.elapsedMs, stderrTail: launch2883.stderr?.trim().split(/\r?\n/).slice(-3).join(" | "), samplerName: samplerName2883, resolvedLaunchSampler: resolvedLaunchSampler2883, resolvedDefaultSampler: resolvedDefaultSampler2883, hold: hold2883, samplerStarted: samplerStarted2883, stubHasSampler: stubHasSampler2883 }));
 if (samplerStarted2883) {

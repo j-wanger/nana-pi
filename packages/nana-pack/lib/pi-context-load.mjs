@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/lib/pi-context-load.mjs
  * @purpose Bound pi context measurement in a disposable child without changing launch delivery.
- * @inputs Actual child cwd, environment and pi arguments, plus an optional process spawner.
+ * @inputs Actual child cwd, environment and pi arguments, plus optional process and timer boundaries.
  * @outputs Ordered contextPart measurements and piVersion, one disabled/unavailable part, or a cancellation signal.
  * @effects process (spawns Node, discards diagnostics, kills measurement on deadline)
  * @errors Never throws; process, protocol and deadline failures become content-free unavailable parts.
@@ -12,7 +12,7 @@ import { contextPart } from './context-load-log.mjs';
 import { killProcessTreeNoWait } from './process-tree.mjs';
 import { PI_CONTEXT_TIMEOUT_MS, PI_CONTEXT_OUTPUT_MAX_BYTES } from '../bin/worker-config.mjs';
 
-export async function piContextLoad({ cwd, env, args, start = spawn }) {
+export async function piContextLoad({ cwd, env, args, start = spawn, schedule = setTimeout, cancel = clearTimeout }) {
   const unavailable = reason => ({ piVersion: null, parts: [contextPart(`context files: unavailable (${reason})`, 'pi', '')] });
   try {
     return await new Promise(resolve => {
@@ -22,7 +22,7 @@ export async function piContextLoad({ cwd, env, args, start = spawn }) {
       const finish = result => {
         if (settled) return;
         settled = true;
-        clearTimeout(timer);
+        cancel(timer);
         for (const [name, handler] of handlers) process.removeListener(name, handler);
         resolve(result);
       };
@@ -35,7 +35,7 @@ export async function piContextLoad({ cwd, env, args, start = spawn }) {
         finish(result);
       };
       const handlers = ['SIGINT', 'SIGTERM', 'SIGHUP'].map(signal => [signal, () => stop({ piVersion: null, parts: [], signal })]);
-      const timer = setTimeout(() => stop(unavailable('timed out')), PI_CONTEXT_TIMEOUT_MS);
+      const timer = schedule(() => stop(unavailable('timed out')), PI_CONTEXT_TIMEOUT_MS);
       for (const [name, handler] of handlers) process.on(name, handler);
       child.stdout.on('data', chunk => {
         if (settled) return;
