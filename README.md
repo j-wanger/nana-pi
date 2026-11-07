@@ -36,9 +36,9 @@ Sibling repo to `~/nana-agent-loop`.
   ✓/✗ instrument for a fresh machine. See `packages/nana-setup/README.md`.
 - `apps/desk/` — nana code, a local browser dashboard over pi sessions: no npm dependencies
   of its own, but it requires the installed pi (spawned AND imported — see `apps/desk/README.md`).
-- `apps/bench/` — a reusable benchmark for pi itself: run the same tasks through different
-  tool/prompt profiles and record tokens, wall time, tool-call mix and deterministic
-  correctness. Studies live in `apps/bench/studies/`; see `apps/bench/README.md`.
+- `scripts/glob-match.mjs` — the shared minimal glob matcher for artifact paths in report consumers.
+- `apps/bench/` — builder and seat context anatomy, plus preserved study records in
+  `apps/bench/studies/`. Study execution is retired; see `apps/bench/README.md`.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.
 
@@ -127,7 +127,7 @@ the pi-hosted ones. nana supports pi 1.0.3 through 1.4.0. For pi 1.0.3 through 1
 | `packages/nana-setup/` (the bootstrap) | Node ≥ 22.18 only (the installed objective hook's CLI imports `.ts` via Node's built-in type stripping; older Node → a named `OBJECTIVE UNAVAILABLE` marker and a doctor ✗); no npm dependencies. Shells out to `pi` (registration), `node` (the knowledge build) and `launchctl` (`--desk`, macOS) — each optional, each reported as skipped when missing. | Zero-dep `node packages/nana-setup/tests/*.test.mjs`; every test installs into `os.tmpdir()` via `--home` and never touches the real `~/.claude`, `~/.pi` or LaunchAgents. |
 | `packages/nana-knowledge/` (the knowledge pull) | Node ≥ 22.18 only — `node:sqlite` (bundled SQLite, FTS5) and Node's TypeScript type stripping; no build step, no npm dependencies, no model calls. pi is an optional peerDependency — the index and the `nana-knowledge` CLI run without it; the Claude Code `UserPromptSubmit` hook is retired (#342) — but the package also ships a live pi extension (`packages/nana-knowledge/extensions/nana-knowledge.ts`, manifested in the root `package.json`) that pi loads when the pack is installed. | Zero-dep `node packages/nana-knowledge/tests/*.test.mjs`; no fixtures outside `os.tmpdir()`. Details: `packages/nana-knowledge/README.md`. |
 | `templates/` (copier scaffolds) | `uv` (which ships `uvx`, how copier runs) for both languages; `pnpm` for the TypeScript template. Generated projects carry their own pinned stacks. | — |
-| `apps/bench/` (the pi benchmark) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally (unit tests on 1.0.3 and 1.4.0, 2026-10-23)** — spawned as `pi --mode json` per measured run AND imported in-process for token/cost arithmetic (`calculateCost` + the `Usage` type from its bundled `@earendil-works/pi-ai` root export; `ModelRuntime` from the pi root, for offline model pricing). `pi-web-access` 0.28.0 under `apps/bench/.ext/` for profile C only — reviewed, content-pinned in `study.json`, not vendored, installed with `npm i --prefix apps/bench/.ext/pi-web-access pi-web-access@0.28.0`. No npm dependencies of its own. | No Playwright, nothing from npm: all ten `test/*.test.mjs` are zero-dep `node <file>` runs with no model calls. Details: `apps/bench/README.md`. |
+| `apps/bench/` (context anatomy) | Node ≥ 22.19 and git; authenticated Claude CLI on PATH for optional paid labelling. No npm dependencies of its own. Study runners are retired; records remain frozen. | Synthetic `test/*.test.mjs` fixtures use OS temp and make no model calls. Details: `apps/bench/README.md`. |
 
 ## Install — the whole experience ships from this repo
 

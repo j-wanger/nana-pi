@@ -16,7 +16,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { runAnatomy } from "../lib/anatomy.mjs";
 import * as C from "../lib/anatomy-config.mjs";
 import * as M from "../lib/anatomy-measures.mjs";
-import { cohensKappa, seededSample } from "../lib/catch-stats.mjs";
+import { cohensKappa, seededSample } from "../lib/anatomy-stats.mjs";
 
 const root = tmpDir(path.join(os.tmpdir(), "anatomy-labels-"));
 let serial = 0, passed = 0, failed = 0;
