@@ -17,6 +17,7 @@ import { stepSettings, readClaudeSettings } from '../lib/steps.mjs';
 import { resolveLayout, repoRoot } from '../lib/paths.mjs';
 import { diagnose } from '../lib/doctor.mjs';
 import { withPiStub } from './stub-pi.mjs';
+import { tmpDir } from "./tmp-dir.mjs";
 import { HOOKS, PI_TURN } from '../lib/install-check-config.mjs';
 import { mapHookEntries, judgePiTurn } from '../lib/install-check.mjs';
 
@@ -33,7 +34,7 @@ async function test(title, { timeout }, body) {
 const cli = fileURLToPath(new URL('../bin/nana-setup.mjs', import.meta.url));
 const knowledge = `${repoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`;
 function fixture(body) {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'nana-pull-off-'));
+  const home = tmpDir(path.join(os.tmpdir(), 'nana-pull-off-'));
   const layout = resolveLayout({ home });
   fs.mkdirSync(layout.claudeHome, { recursive: true });
   try { return body(layout); } finally { fs.rmSync(home, { recursive: true, force: true }); }
