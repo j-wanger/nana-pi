@@ -5422,12 +5422,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Prove install, its dry run and doctor bound pi launches and end every process those launches start.
 - **inputs** — steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
-- **outputs** — PASS/FAIL/SKIP lines for twenty-four requirement checks and exit 1 when any check fails
-- **effects** — disk (temporary fixtures only), process (starts and signals fake pi process trees), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
+- **outputs** — PASS/FAIL/SKIP lines for twenty-six requirement checks and exit 1 when any check fails
+- **effects** — disk (temporary fixtures only), process (starts and signals fake pi process trees), network (private loopback identity endpoints), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
 - **errors** — a failed or over-time check prints FAIL and makes the file exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/tests/env-path.mjs`, `packages/nana-setup/lib/bounded-spawn.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
-- **unresolved launches** — line 211: spawn; binding line 220; binding line 233; binding line 535; binding line 554; binding line 591 · line 337: spawn
+- **unresolved launches** — line 226: spawn; binding line 235; binding line 248; binding line 574; binding line 593; binding line 630 · line 376: spawn
 
 ### `packages/nana-setup/tests/pi-registration.test.mjs`
 

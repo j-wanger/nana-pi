@@ -3,11 +3,12 @@
  * @module packages/nana-setup/tests/pi-launch-limits.test.mjs
  * @purpose Prove install, its dry run and doctor bound pi launches and end every process those launches start.
  * @inputs steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
- * @outputs PASS/FAIL/SKIP lines for twenty-four requirement checks and exit 1 when any check fails
- * @effects disk (temporary fixtures only), process (starts and signals fake pi process trees), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
+ * @outputs PASS/FAIL/SKIP lines for twenty-six requirement checks and exit 1 when any check fails
+ * @effects disk (temporary fixtures only), process (starts and signals fake pi process trees), network (private loopback identity endpoints), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
  * @errors a failed or over-time check prints FAIL and makes the file exit nonzero
  */
 import { spawn, spawnSync } from "node:child_process";
+import { connect } from "node:net";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -46,16 +47,12 @@ const expectedPack = path.join(repoRoot, "packages", "nana-pack");
 const cases = [];
 let fails = 0;
 
-function check(title, run) {
-	cases.push({ title, run });
+function check(title, run, limit = CASE_LIMIT_MS) {
+	cases.push({ title, run, limit });
 }
 
 function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function sleepSync(ms) {
-	Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 function probeProcess(pid, kill = process.kill) {
@@ -76,40 +73,58 @@ function readPids(file) {
 	return [...new Set(readPidRecords(file).flatMap(({ pid, ppid }) => [pid, ppid]).filter((pid) => Number.isInteger(pid) && pid > 0))];
 }
 
-function judgeRun(records, { kill = process.kill } = {}) {
-	const judgeStartedAt = Date.now();
+// The fixture's private endpoint identifies its lifetime, unlike a reusable PID.
+function readIdentity(record) {
+	return new Promise(resolve => {
+		const socket = connect({ host: "127.0.0.1", port: record.port });
+		let text = "";
+		const done = value => { socket.destroy(); resolve(value); };
+		socket.setTimeout(PID_POLL_MS, () => done("probe timeout"));
+		socket.on("data", chunk => { text += chunk; });
+		socket.on("end", () => done(text));
+		socket.on("error", error => done(error.code === "ECONNREFUSED" ? null : `probe ${error.code}`));
+	});
+}
+
+async function judgeRun(records, { kill = process.kill, identity = readIdentity, now: clock = Date.now, pause = sleep } = {}) {
+	const judgeStartedAt = clock();
 	const valid = records.map((record) => ({
 		record,
 		problem: !Number.isInteger(record?.pid) || record.pid <= 0 || !Number.isInteger(record?.ppid) || record.ppid <= 0 || !Number.isFinite(record?.at)
 			? `invalid record ${JSON.stringify(record)}` : null,
 	}));
 	const starts = valid.filter(({ problem }) => !problem).map(({ record }) => record.at);
-	const deadline = starts.length ? Math.min(...starts) + HANG_MS - SELF_EXIT_MARGIN_MS : Date.now();
-	const waitEnd = Math.min(Date.now() + PID_POLL_MS, deadline);
+	const deadline = starts.length ? Math.min(...starts) + HANG_MS - SELF_EXIT_MARGIN_MS : clock();
+	const waitEnd = Math.min(clock() + PID_POLL_MS, deadline);
 	const seen = valid.map(({ record, problem }) => ({ record, problem, ended: false, first: null, last: null, firstAt: null }));
 	let judgedTooLate = false;
 	for (;;) {
-		const now = Date.now();
+		const now = clock();
 		if (now >= deadline) { judgedTooLate = !seen.some((item) => item.first !== null); break; }
 		if (now >= waitEnd) break;
 		for (const item of seen) {
 			if (item.problem || item.ended) continue;
-			const result = probeProcess(item.record.pid, kill);
+			const current = item.record.identity ? await identity(item.record) : undefined;
+			// An async probe must not turn the fixture's eventual self-exit into cleanup proof.
+			if (clock() >= deadline) { judgedTooLate = true; break; }
+			const result = current === undefined ? probeProcess(item.record.pid, kill)
+				: current === null || (current !== item.record.identity && !current.startsWith("probe ")) ? "gone"
+					: current === item.record.identity ? "alive" : current;
 			item.first ??= result;
 			item.firstAt ??= now;
 			item.last = result;
 			if (result === "gone") item.ended = true;
 		}
-		if (seen.every((item) => item.ended || item.problem)) break;
-		if (Date.now() >= deadline) { judgedTooLate = !seen.some((item) => item.first !== null); break; }
-		if (Date.now() >= waitEnd) break;
-		sleepSync(Math.min(25, Math.max(1, waitEnd - Date.now())));
+		if (judgedTooLate || seen.every((item) => item.ended || item.problem)) break;
+		if (clock() >= deadline) { judgedTooLate = !seen.some((item) => item.first !== null); break; }
+		if (clock() >= waitEnd) break;
+		await pause(Math.min(25, Math.max(1, waitEnd - clock())));
 	}
 	const invalid = seen.find((item) => item.problem)?.problem;
 	const reason = invalid ?? (judgedTooLate ? "judged too late" : seen.find((item) => !item.ended)?.last ?? "stopped");
 	const ended = !judgedTooLate && seen.length > 0 && seen.every((item) => item.ended && !item.problem);
 	const distinct = new Set(valid.flatMap(({ record }) => [record?.pid, record?.ppid]).filter((pid) => Number.isInteger(pid) && pid > 0));
-	return { started: distinct.size >= 3, ended, reason, judgedAt: Date.now(), waitMs: Date.now() - judgeStartedAt, details: seen.map(({ record, problem, first, last }) => ({ pid: record?.pid, args: record?.args, atOffset: record?.at - (starts.length ? Math.min(...starts) : judgeStartedAt), first: problem ?? first, last: problem ?? last })) };
+	return { started: distinct.size >= 3, ended, reason, judgedAt: clock(), waitMs: clock() - judgeStartedAt, details: seen.map(({ record, problem, first, last }) => ({ pid: record?.pid, args: record?.args, atOffset: record?.at - (starts.length ? Math.min(...starts) : judgeStartedAt), first: problem ?? first, last: problem ?? last })) };
 }
 
 async function waitFor(predicate, limit = PID_POLL_MS) {
@@ -128,7 +143,7 @@ function makeFixture(target, { registerKnowledge = false, npm = false } = {}) {
 	const pids = path.join(home, "pids.jsonl");
 	fs.mkdirSync(bin);
 	const hang = path.join(bin, "hang.cjs");
-	const hangBody = `const fs = require("node:fs");\nconst { spawn } = require("node:child_process");\nfs.appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid, args: process.argv.slice(2), agentDir: process.env.PI_CODING_AGENT_DIR ?? null, at: Date.now() }) + "\\n");\nif (process.env.IGNORE_SIGINT) process.on("SIGINT", () => {});\nif (process.argv[2] === "child") { setTimeout(() => process.exit(0), Number(process.env.HANG_MS)); return; }\nconst args = process.argv.slice(2);\nconst target = process.env.HANG_TARGET;\nif (args[0] === "--version" && target !== "version") { process.stdout.write("1.0.2\\n"); process.exit(0); }\nif (args[0] === "install" && target !== "install") process.exit(0);\nconst delay = Number(process.env.CHILD_DELAY_MS);\nsetTimeout(() => spawn(process.execPath, [__filename, "child"], { stdio: "inherit", env: process.env }), Number.isFinite(delay) && delay > 0 ? delay : 0);\nsetTimeout(() => process.exit(0), Number(process.env.HANG_MS));\n`;
+	const hangBody = `const fs = require("node:fs");\nconst { spawn } = require("node:child_process");\nconst identity = require("node:crypto").randomUUID();\nconst endpoint = require("node:net").createServer(socket => { socket.on("error", () => {}); socket.end(identity); });\nendpoint.listen(0, "127.0.0.1", () => { fs.appendFileSync(process.env.PIDS_FILE, JSON.stringify({ pid: process.pid, ppid: process.ppid, port: endpoint.address().port, identity, args: process.argv.slice(2), agentDir: process.env.PI_CODING_AGENT_DIR ?? null, at: Date.now() }) + "\\n"); run(); });\nfunction run() {\nif (process.env.IGNORE_SIGINT) process.on("SIGINT", () => {});\nif (process.argv[2] === "child") { setTimeout(() => process.exit(0), Number(process.env.HANG_MS)); return; }\nconst args = process.argv.slice(2);\nconst target = process.env.HANG_TARGET;\nif (args[0] === "--version" && target !== "version") { process.stdout.write("1.0.2\\n"); process.exit(0); }\nif (args[0] === "install" && target !== "install") process.exit(0);\nconst delay = Number(process.env.CHILD_DELAY_MS);\nsetTimeout(() => spawn(process.execPath, [__filename, "child"], { stdio: "inherit", env: process.env }), Number.isFinite(delay) && delay > 0 ? delay : 0);\nsetTimeout(() => process.exit(0), Number(process.env.HANG_MS));\n}\n`;
 	fs.writeFileSync(hang, hangBody);
 	if (process.platform === "win32") {
 		if (npm) {
@@ -258,15 +273,15 @@ function withFixtureEnv(fixture, run) {
 	}
 }
 
-function timedStep(target, dryRun = false, runLimit = LIMIT_MS) {
-	const fixture = makeFixture(target, { registerKnowledge: target === "install" });
+function timedStep(target, dryRun = false, runLimit = LIMIT_MS, npm = false) {
+	const fixture = makeFixture(target, { registerKnowledge: target === "install", npm });
 	const start = Date.now();
 	const rows = withFixtureEnv(fixture, () => stepPiRegister(fixture.layout, { dryRun }, { env: fixture.env, limits: { version: runLimit, install: runLimit }, platform: () => process.platform }));
 	return { ...fixture, elapsed: Date.now() - start, rows, row: rows.find(({ label }) => label === "pi packages") };
 }
 
-function timedDoctor(runLimit = LIMIT_MS) {
-	const fixture = makeFixture("version");
+function timedDoctor(runLimit = LIMIT_MS, npm = false) {
+	const fixture = makeFixture("version", { npm });
 	const start = Date.now();
 	const rows = withFixtureEnv(fixture, () => diagnose(fixture.layout, { projectDir: fixture.home, pi: { env: fixture.env, limits: { version: runLimit, install: runLimit }, platform: () => process.platform } }));
 	return { ...fixture, elapsed: Date.now() - start, rows, row: rows.find(({ label }) => label === "pi executable") };
@@ -310,26 +325,50 @@ check("R-2022: a pi install that hangs makes install stop at the limit, report p
 	return { ok: run.elapsed >= LIMIT_MS && run.elapsed < RELAY_ELAPSED_BOUND_MS && run.row?.status === "problem" && detail.includes(`pi install ${expectedPack}`) && detail.includes(`${LIMIT_MS / 1_000} s`) && detail.includes("stopped") && installExitCode(run.rows) === 1, detail: JSON.stringify({ elapsed: run.elapsed, row: run.row }) };
 });
 
-// req: R-2023
-check("R-2023: every process a timed-out pi --version or pi install started, pi's own child included, has ended when install, the dry run and doctor report", () => {
+// req: R-2023 R-3837 R-3839
+check("R-2023: every process a timed-out pi --version or pi install started, pi's own child included, has ended when install, the dry run and doctor report", async () => {
 	const startedAt = Date.now();
-	const runCases = [() => timedStep("version", false, START_ALLOWANCE_MS), () => timedStep("version", true, START_ALLOWANCE_MS), () => timedDoctor(START_ALLOWANCE_MS), () => timedStep("install", false, START_ALLOWANCE_MS)];
+	const runCases = (process.platform === "win32" ? [false, true] : [false]).flatMap(npm => [() => timedStep("version", false, START_ALLOWANCE_MS, npm), () => timedStep("version", true, START_ALLOWANCE_MS, npm), () => timedDoctor(START_ALLOWANCE_MS, npm), () => timedStep("install", false, START_ALLOWANCE_MS, npm)]);
 	const observed = [];
 	for (const runCase of runCases) {
 		const run = runCase();
 		const records = readPidRecords(run.pids);
 		const returnedAt = Date.now();
-		const judgment = judgeRun(records);
-		observed.push({ records, returnedAt, judgment, stopped: run.row?.detail.includes("stopped") && run.row.detail.includes(`${START_ALLOWANCE_MS / 1_000} s`) });
+		const judgment = await judgeRun(records);
+		observed.push({ records, returnedAt, judgment,
+			identified: records.every(record => typeof record.identity === "string" && Number.isInteger(record.port)),
+			childStarted: records.some(record => record.args?.[0] === "child"),
+			stopped: run.row?.detail.includes("stopped") && run.row.detail.includes(`${START_ALLOWANCE_MS / 1_000} s`) });
 	}
 	const unended = observed.flatMap(({ judgment, records }) => judgment.ended ? [] : records.filter((record) => record?.pid));
 	let afterSelfExit = [];
 	if (unended.length) {
 		const until = Math.max(...unended.map(({ at }) => at + HANG_MS + SELF_EXIT_MARGIN_MS));
-		while (Date.now() < until) sleepSync(Math.min(25, until - Date.now()));
+		while (Date.now() < until) await sleep(Math.min(25, until - Date.now()));
 		afterSelfExit = unended.map(({ pid }) => ({ pid, result: probeProcess(pid) === "gone" ? "after self-exit: gone" : "after self-exit: alive" }));
 	}
-	return { ok: observed.every(({ judgment, stopped }) => judgment.started && judgment.ended && stopped), detail: JSON.stringify({ elapsed: Date.now() - startedAt, runs: observed, afterSelfExit }) };
+	return { ok: observed.every(({ judgment, stopped, identified, childStarted }) => judgment.started && judgment.ended && stopped && identified && childStarted), detail: JSON.stringify({ elapsed: Date.now() - startedAt, runs: observed, afterSelfExit }) };
+}, CASE_LIMIT_MS * (process.platform === "win32" ? 8 : 4));
+
+// req: R-3836
+check("M2: controlled slow exit passes inside the wait but a surviving child fails", async () => {
+	let now = Date.now();
+	const record = { pid: process.pid, ppid: process.ppid, at: now, identity: "launch" };
+	const options = { now: () => now, pause: async ms => { now += ms; }, identity: async () => now - record.at < PID_POLL_MS / 2 ? "launch" : null };
+	const slow = await judgeRun([record], options);
+	now = record.at;
+	const alive = await judgeRun([record], { ...options, identity: async () => "launch" });
+	return { ok: slow.ended && slow.waitMs >= PID_POLL_MS / 2 && !alive.ended, detail: JSON.stringify({ slow, alive }) };
+});
+
+// req: R-3838
+check("M4: reused PID is ended but the original live identity is not", async () => {
+	let now = Date.now();
+	const record = { pid: process.pid, ppid: process.ppid, at: now, identity: "original" };
+	const options = { now: () => now, pause: async ms => { now += ms; } };
+	const reused = await judgeRun([record], { ...options, identity: async () => "replacement" });
+	const original = await judgeRun([record], { ...options, identity: async () => "original" });
+	return { ok: reused.ended && !original.ended, detail: JSON.stringify({ reused, original }) };
 });
 
 // req: R-2890
@@ -337,7 +376,7 @@ check("R-2890: a recorded pid still alive when the judge's wait ends makes the r
 	const bystander = spawn(process.execPath, ["-e", `process.on("message", (m) => { if (m === "ping") process.send("pong"); }); setTimeout(() => process.exit(0), ${HANG_MS});`], { stdio: ["ignore", "ignore", "ignore", "ipc"] });
 	try {
 		const record = { pid: bystander.pid, ppid: process.pid, args: ["bystander"], at: Date.now() };
-		const result = judgeRun([record]);
+		const result = await judgeRun([record]);
 		const answered = new Promise((resolve) => {
 			bystander.once("message", (message) => resolve(message === "pong"));
 			bystander.once("error", () => resolve(false));
@@ -351,17 +390,17 @@ check("R-2890: a recorded pid still alive when the judge's wait ends makes the r
 });
 
 // req: R-2891
-check("R-2891: a run judged after its fixture could have ended by itself, or holding a record with no start time, reads not ended with the reason named", () => {
-	const late = judgeRun([{ pid: 1, ppid: 2, args: ["late"], at: Date.now() - HANG_MS + SELF_EXIT_MARGIN_MS / 2 }]);
-	const missing = judgeRun([{ pid: 1, ppid: 2, args: ["missing"] }]);
+check("R-2891: a run judged after its fixture could have ended by itself, or holding a record with no start time, reads not ended with the reason named", async () => {
+	const late = await judgeRun([{ pid: 1, ppid: 2, args: ["late"], at: Date.now() - HANG_MS + SELF_EXIT_MARGIN_MS / 2 }]);
+	const missing = await judgeRun([{ pid: 1, ppid: 2, args: ["missing"] }]);
 	return { ok: !late.ended && late.reason.includes("judged too late") && !missing.ended && missing.reason.includes("invalid record"), detail: JSON.stringify({ late, missing }) };
 });
 
 // req: R-2892
-check("R-2892: a probe error other than ESRCH, or a record without a positive integer pid and ppid, makes the judge report its run not ended and name it", () => {
-	const e = judgeRun([{ pid: process.pid, ppid: process.ppid, at: Date.now(), args: [] }], { kill: () => { const error = new Error("invalid"); error.code = "EINVAL"; throw error; } });
-	const p = judgeRun([{ pid: process.pid, ppid: 1, at: Date.now(), args: [] }], { kill: () => { const error = new Error("denied"); error.code = "EPERM"; throw error; } });
-	const invalid = [judgeRun([{ pid: 0, ppid: 1, at: Date.now() }]), judgeRun([{ pid: "123", ppid: 1, at: Date.now() }]), judgeRun([{ pid: 1, at: Date.now() }])];
+check("R-2892: a probe error other than ESRCH, or a record without a positive integer pid and ppid, makes the judge report its run not ended and name it", async () => {
+	const e = await judgeRun([{ pid: process.pid, ppid: process.ppid, at: Date.now(), args: [] }], { kill: () => { const error = new Error("invalid"); error.code = "EINVAL"; throw error; } });
+	const p = await judgeRun([{ pid: process.pid, ppid: 1, at: Date.now(), args: [] }], { kill: () => { const error = new Error("denied"); error.code = "EPERM"; throw error; } });
+	const invalid = await Promise.all([judgeRun([{ pid: 0, ppid: 1, at: Date.now() }]), judgeRun([{ pid: "123", ppid: 1, at: Date.now() }]), judgeRun([{ pid: 1, at: Date.now() }])]);
 	return { ok: !e.ended && e.reason.includes("EINVAL") && !p.ended && p.reason.includes("EPERM") && invalid.every((item) => !item.ended && item.reason.includes("invalid record")), detail: JSON.stringify({ e, p, invalid }) };
 });
 
@@ -626,7 +665,7 @@ for (const testCase of cases) {
 	try {
 		const result = await Promise.race([
 			Promise.resolve().then(testCase.run),
-			new Promise((resolve) => { timer = setTimeout(() => resolve({ ok: false, detail: `case exceeded ${CASE_LIMIT_MS} ms` }), CASE_LIMIT_MS); }),
+			new Promise((resolve) => { timer = setTimeout(() => resolve({ ok: false, detail: `case exceeded ${testCase.limit} ms` }), testCase.limit); }),
 		]);
 		if (result?.skip) console.log("SKIP", testCase.title, result.skip);
 		else console.log(result?.ok ? "PASS" : "FAIL", testCase.title, result?.ok ? "" : result?.detail ?? "");
