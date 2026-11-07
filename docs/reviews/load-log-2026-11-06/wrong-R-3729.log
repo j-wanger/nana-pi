@@ -1,0 +1,8 @@
+FAIL R-3729: pi review logs the child checkout context and land or reviewer slot AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+
+'/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-NmF0gK/1/lane'
+    at Object.fn (file://<worktree>/packages/nana-pack/tests/context-anatomy.test.mjs:354:12)
+    at file://<worktree>/packages/nana-pack/tests/context-anatomy.test.mjs:397:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)

@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/agent-dir.mjs
  * @purpose Resolve pi's ACTIVE agent dir exactly as pi does, and flag a PI_CODING_AGENT_DIR that stays
  *  cwd-relative.
- * @inputs env PI_CODING_AGENT_DIR, os.homedir(), process.platform, process.cwd()
+ * @inputs Optional child env/cwd/home, otherwise env PI_CODING_AGENT_DIR, os.homedir(), process.platform and process.cwd()
  * @outputs the resolved agent dir, pi's normalizePath result for any input (win32 shell path, `~`,
  *  file://), and whether the configured value resolves per-process
  * @effects none
@@ -36,10 +36,9 @@ function normalizeWindowsShellPath(filePath) {
 }
 
 /** pi's `normalizePath` with its defaults (dist/utils/paths.js): win32 shell path, `~` / `~/`, file://. */
-export function piNormalizePath(input) {
+export function piNormalizePath(input, home = os.homedir()) {
 	let normalized = input;
 	if (process.platform === "win32") normalized = normalizeWindowsShellPath(normalized);
-	const home = os.homedir();
 	if (normalized === "~") return home;
 	if (normalized.startsWith("~/") || (process.platform === "win32" && normalized.startsWith("~\\"))) {
 		return path.join(home, normalized.slice(2));
@@ -55,25 +54,25 @@ export function piNormalizePath(input) {
 }
 
 /** `path.resolve` that cannot throw: a relative input under a deleted cwd comes back normalized, unresolved. */
-function safeResolve(p) {
+function safeResolve(p, cwd) {
 	try {
-		return path.resolve(p);
+		return cwd === undefined ? path.resolve(p) : path.resolve(cwd, p);
 	} catch {
 		return path.isAbsolute(p) ? path.normalize(p) : p;
 	}
 }
 
 /** pi's ACTIVE agent dir. Never throws. */
-export function piAgentDir() {
-	const env = process.env.PI_CODING_AGENT_DIR;
-	if (!env) return path.join(os.homedir(), ".pi", "agent");
-	let normalized = env;
+export function piAgentDir({ env = process.env, cwd, home = (process.platform === 'win32' ? env.USERPROFILE : env.HOME) || os.homedir() } = {}) {
+	const configured = env.PI_CODING_AGENT_DIR;
+	if (!configured) return path.join(home, ".pi", "agent");
+	let normalized = configured;
 	try {
-		normalized = piNormalizePath(env);
+		normalized = piNormalizePath(configured, home);
 	} catch {
 		// keep the raw value
 	}
-	return safeResolve(normalized);
+	return safeResolve(normalized, cwd);
 }
 
 /**

@@ -36,7 +36,8 @@ import { dirname, join } from 'node:path';
 import * as path from 'node:path';
 import { killProcessTree } from '../lib/process-tree.mjs';
 import { findPi } from '../lib/win-command.mjs';
-import { PI_PACKAGE, PI_BIN_NAME, NPM_DIRS, WIN_CPU_TICKS_PER_SECOND } from './worker-config.mjs';
+import { PI_PACKAGE, PI_BIN_NAME, WIN_CPU_TICKS_PER_SECOND } from './worker-config.mjs';
+import { locatePiPackage } from '../lib/pi-package.mjs';
 
 /**
  * Resolve how to launch pi on this platform (R-1125). Not win32: pi by name, argv unchanged —
@@ -56,29 +57,9 @@ export function piLaunch(piArgs, { platform = process.platform, env = process.en
   if (!found) return { refused: 'pi is not on PATH' };
   const ext = win.extname(found).toLowerCase();
   if (ext === '.exe' || ext === '.com') return { command: found, args: piArgs };
-  // A .cmd/.bat npm shim: the package sits beside it (the global layout) or one level up through
-  // node_modules/.bin (the local layout, matched case-insensitively — NTFS folder names fold case).
-  const shimDir = win.dirname(found);
-  const lastTwo = shimDir.split(/[\\/]/).filter(Boolean).slice(-2).map((p) => p.toLowerCase());
-  const isDotBinLayout = lastTwo.length === 2 && lastTwo[0] === NPM_DIRS[0] && lastTwo[1] === NPM_DIRS[1];
-  const packageRoot = isDotBinLayout ? win.dirname(shimDir) : win.join(shimDir, NPM_DIRS[0]);
-  const packageDir = win.join(packageRoot, ...PI_PACKAGE.split('/'));
-  const packageJsonPath = win.join(packageDir, 'package.json');
-  let packageJsonText;
-  try {
-    packageJsonText = readText(packageJsonPath);
-  } catch {
-    return { refused: `pi at ${found} is not an npm global install: no ${PI_PACKAGE} package beside it; install pi with npm (pnpm, Volta and the pi.dev installer are not supported by the launchers)` };
-  }
-  let packageJson;
-  try {
-    packageJson = JSON.parse(packageJsonText);
-  } catch {
-    return { refused: `${packageJsonPath} is not valid JSON` };
-  }
-  if (typeof packageJson !== 'object' || packageJson === null || packageJson.name !== PI_PACKAGE) {
-    return { refused: `${packageJsonPath} is not the ${PI_PACKAGE} package` };
-  }
+  const located = locatePiPackage({ platform, env, cwd, found, exists, readText });
+  if (located.refused) return located;
+  const { packageDir, packageJson } = located;
   const bin = typeof packageJson.bin === 'string'
     ? packageJson.bin
     : (packageJson.bin !== null && typeof packageJson.bin === 'object' && typeof packageJson.bin[PI_BIN_NAME] === 'string' ? packageJson.bin[PI_BIN_NAME] : undefined);

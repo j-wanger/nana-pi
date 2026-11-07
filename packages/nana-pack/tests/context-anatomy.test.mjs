@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/context-anatomy.test.mjs
  * @purpose Pin role-shaped context delivery and its private load baseline.
  * @inputs Temporary homes, linked repositories, fake children and delivery modules.
- * @outputs Eleven bounded, awaited requirement checks.
+ * @outputs Bounded, awaited requirement checks for shaped delivery and pi context measurements.
  * @effects disk (OS temporary fixtures), process (git, launchers and hooks)
  * @errors Failed assertions set a nonzero exit status.
  */
@@ -278,6 +278,122 @@ test('R-3217: seat memory log names whole shortened and omitted entries without 
 });
 // req: R-3218
 test('R-3218: known-bug digest seal is 6000 UTF-16 units', async()=>assert.equal(await cap(),6000));
+// A real package layout, but only a recording executable: no test starts a model session.
+function stubContext(f, source = `export function loadProjectContextFiles() { return [{path:'/SENTINEL/A/AGENTS.md',content:'A'.repeat(1234)},{path:'/SENTINEL/B/AGENTS.md',content:'B'.repeat(56)}]; }`) {
+  // Match Node's spawned Windows environment: no duplicate Path/PATH keys in direct loader calls.
+  for (const key of Object.keys(f.env)) if (key !== 'PATH' && key.toLowerCase() === 'path') delete f.env[key];
+  const pkg = path.join(f.bin, 'node_modules/@earendil-works/pi-coding-agent');
+  const metadata = { name: '@earendil-works/pi-coding-agent', version: '9.9.9-stub', bin: { pi: 'cli.cjs' }, type: 'module' };
+  const body = fs.readFileSync(path.join(f.bin, 'fake.cjs'), 'utf8');
+  write(path.join(pkg, 'package.json'), JSON.stringify(metadata));
+  write(path.join(pkg, 'cli.cjs'), `#!${process.execPath}\n${body}`);
+  write(path.join(pkg, 'dist/index.js'), source);
+  if (process.platform !== 'win32') {
+    fs.rmSync(path.join(f.bin, 'pi'));
+    fs.chmodSync(path.join(pkg, 'cli.cjs'), 0o755);
+    fs.symlinkSync(path.join(pkg, 'cli.cjs'), path.join(f.bin, 'pi'));
+  }
+  return pkg;
+}
+function alteredWorker(f, oldText, newText) {
+  const copy=path.join(f.dir,'pack');
+  for(const dir of ['lib','prompts']) fs.cpSync(path.join(pack,dir),path.join(copy,dir),{recursive:true});
+  for(const file of ['pi-worker.mjs','pi-watchdog.mjs','worker-config.mjs','nana-roster.mjs','review-launch.mjs']) write(path.join(copy,'bin',file),fs.readFileSync(path.join(pack,'bin',file)));
+  const script=path.join(copy,'bin/pi-worker.mjs'), source=fs.readFileSync(script,'utf8');
+  assert.ok(source.includes(oldText)); write(script,source.replace(oldText,newText));
+  return script;
+}
+function launchWorkerScript(f, script) {
+  return spawnSync(process.execPath,[script,...args(f,'pi-worker')],{cwd:f.lane,env:f.env,encoding:'utf8',timeout:20_000});
+}
+const fileParts = e => e.parts.filter(p => p.name === 'context file');
+const normalizeCall = c => JSON.parse(JSON.stringify(c).replace(/nana-lane-preamble-[^/\\\\]+/g,'TEMP').replace(/pi-worker-a\d+-\d+/g,'SESSION'));
+// req: R-3726
+test('R-3726: lane load delegates to the located package export in order without content', async () => {
+  const f=fixture(); stubContext(f); good(launch(f,'pi-worker'));
+  const e=rows(f.log)[0]; assert.equal(e.piVersion,'9.9.9-stub');
+  assert.deepEqual(fileParts(e), [
+    {name:'context file',source:'/SENTINEL/A/AGENTS.md',fullChars:1234,deliveredChars:1234},
+    {name:'context file',source:'/SENTINEL/B/AGENTS.md',fullChars:56,deliveredChars:56},
+  ]);
+  const text=fs.readFileSync(f.log,'utf8'); assert.ok(!text.includes('A'.repeat(1234))); assert.ok(!text.includes('B'.repeat(56)));
+});
+// req: R-3727
+test('R-3727: installed pi chooses AGENTS over CLAUDE in the same directory', async () => {
+  const { locatePiPackage }=await import('../lib/pi-package.mjs');
+  const found=locatePiPackage();
+  if(found.refused) { console.log(`SKIP R-3727: installed pi unavailable: ${found.refused}`); return; }
+  const { piContextLoad }=await import('../lib/pi-context-load.mjs');
+  const f=fixture(); const text='# Instructions\r\nKeep spaces. \t\r\nNo final newline \t';
+  write(path.join(f.lane,'AGENTS.md'),text); write(path.join(f.lane,'CLAUDE.md'),'not selected');
+  const result=await piContextLoad({cwd:f.lane,env:{...f.env,PATH:process.env.PATH},args:[]});
+  assert.equal(result.piVersion,found.packageJson.version);
+  assert.deepEqual(result.parts.filter(p=>path.dirname(p.source)===f.lane),[{name:'context file',source:path.join(f.lane,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
+  assert.ok(!result.parts.some(p=>p.name.startsWith('context files: unavailable')));
+});
+// req: R-3728
+test('R-3728: context measurement resolves the child agent dir and relative cwd', async () => {
+  const { piContextLoad }=await import('../lib/pi-context-load.mjs');
+  const f=fixture(); stubContext(f, `import {readFileSync} from 'node:fs'; import {join} from 'node:path'; export function loadProjectContextFiles({cwd,agentDir}) { return [{path:join(agentDir,'AGENTS.md'),content:readFileSync(join(agentDir,'AGENTS.md'),'utf8')}]; }`);
+  const agent=path.join(f.lane,'child-agent'), text='# child\r\nOnly child. \t'; write(path.join(agent,'AGENTS.md'),text);
+  assert.ok(!fs.existsSync(path.join(f.agent,'AGENTS.md')));
+  // Inject only the sealed child env at the launch boundary; keep the parent on f.agent.
+  const script=alteredWorker(f,'childEnv = spec.env;',`childEnv = {...spec.env, PI_CODING_AGENT_DIR:${JSON.stringify(agent)}};`);
+  good(launchWorkerScript(f,script));
+  assert.deepEqual(fileParts(rows(f.log)[0]),[{name:'context file',source:path.join(agent,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
+  for(const childDir of [agent,'child-agent']) {
+    const result=await piContextLoad({cwd:f.lane,env:{...f.env,PI_CODING_AGENT_DIR:childDir},args:[]});
+    assert.deepEqual(result.parts,[{name:'context file',source:path.join(agent,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
+  }
+});
+// req: R-3729
+test('R-3729: pi review logs the child checkout context and land or reviewer slot', async () => {
+  for(const role of ['land','sol']) {
+    const f=fixture(); stubContext(f, `import {readFileSync} from 'node:fs'; import {join} from 'node:path'; export function loadProjectContextFiles({cwd}) { return [{path:join(cwd,'AGENTS.md'),content:readFileSync(join(cwd,'AGENTS.md'),'utf8')}]; }`);
+    const text='# Checkout\r\nRead here. \t'; write(path.join(f.lane,'AGENTS.md'),text);
+    const a=args(f,'pi-review'); a.splice(a.indexOf('--'),0,'--role',role);
+    const result=spawnSync(process.execPath,[path.join(pack,'bin/pi-review.mjs'),...a],{cwd:f.lane,env:f.env,encoding:'utf8',timeout:20_000}); good(result);
+    const call=rows(f.record).at(-1), e=rows(f.log)[0];
+    assert.notEqual(e.cwd,f.lane); assert.equal(e.cwd,call.cwd); assert.equal(e.slot,role==='land'?'land':'reviewer');
+    assert.deepEqual(fileParts(e),[{name:'context file',source:path.join(call.cwd,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
+  }
+});
+// req: R-3730
+test('R-3730: both pi lane sizes log the selected roster slot', async () => {
+  for(const [size,slot] of [['small','builder'],['larger','largerBuilder']]) {
+    const f=fixture(); stubContext(f);
+    const config=JSON.parse(fs.readFileSync(path.join(f.agent,'nana-pack.json'),'utf8')); config.roster.largerBuilder={provider:'fake',model:'large',thinking:null}; write(path.join(f.agent,'nana-pack.json'),JSON.stringify(config));
+    good(launch(f,'pi-worker',['--lane-size',size])); assert.equal(rows(f.log)[0].slot,slot);
+  }
+});
+// req: R-3731
+test('R-3731: disabled context is measured without files for worker and review args', async () => {
+  const { piContextLoad }=await import('../lib/pi-context-load.mjs');
+  for(const flag of ['--no-context-files','-nc']) {
+    const f=fixture(); stubContext(f, `export function loadProjectContextFiles() { throw new Error('disabled loader must not run'); }`);
+    const args=['--provider','fake',flag,'-p','work'], before=[...args];
+    const result=await piContextLoad({cwd:f.lane,env:f.env,args});
+    assert.deepEqual(args,before); assert.deepEqual(result.parts,[{name:'context files: disabled (-nc)',source:'argv',fullChars:0,deliveredChars:0}]);
+    // Worker args are sealed: inject the flag at preparation, not through a new delivery option.
+    const script=alteredWorker(f,"if (entry.runtime !== CLAUDE_CODE_RUNTIME) return [",`if (entry.runtime !== CLAUDE_CODE_RUNTIME) return [${JSON.stringify(flag)},`);
+    good(launchWorkerScript(f,script));
+    const worker=rows(f.log)[0]; assert.deepEqual(worker.parts.filter(p=>p.name.startsWith('context file')),result.parts); assert.ok(rows(f.record)[0].argv.includes(flag));
+    good(launch(f,'pi-review',[flag])); const e=rows(f.log).at(-1); assert.deepEqual(e.parts.filter(p=>p.name.startsWith('context file')),result.parts); assert.ok(rows(f.record).at(-1).argv.includes(flag));
+  }
+});
+// req: R-3732
+test('R-3732: unavailable pi context preserves launch delivery and other parts', async () => {
+  const f=fixture(), pkg=stubContext(f); const first=launch(f,'pi-worker'); good(first);
+  write(path.join(pkg,'dist/index.js'),'export const noLoader = true;');
+  const missing=launch(f,'pi-worker'); good(missing);
+  assert.deepEqual(normalizeCall(missing.call),normalizeCall(first.call));
+  const e=rows(f.log).at(-1); assert.ok(e.parts.some(p=>p.name==='brief')); assert.ok(e.parts.some(p=>p.name==='preamble'));
+  assert.deepEqual(e.parts.filter(p=>p.name.startsWith('context file')),[{name:'context files: unavailable (missing loadProjectContextFiles export)',source:'pi',fullChars:0,deliveredChars:0}]);
+  const {piContextLoad}=await import('../lib/pi-context-load.mjs');
+  const absent=await piContextLoad({cwd:f.lane,env:{...f.env,PATH:path.join(f.dir,'absent')},args:[]}); assert.match(absent.parts[0].name,/^context files: unavailable \(.+\)$/);
+  write(path.join(pkg,'dist/index.js'),`export function loadProjectContextFiles() { throw new Error('PRIVATE-CONTENT'); }`);
+  const thrown=launch(f,'pi-worker'); good(thrown); const line=rows(f.log).at(-1); assert.match(line.parts.at(-1).name,/^context files: unavailable \(.+\)$/); assert.ok(!JSON.stringify(line).includes('PRIVATE-CONTENT'));
+});
 for (const c of cases) {
   if(process.env.CONTEXT_CASE && !c.title.startsWith(process.env.CONTEXT_CASE))continue;
   let timer;
