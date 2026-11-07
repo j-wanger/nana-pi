@@ -34,9 +34,7 @@ const ORIGINAL_CWD = process.cwd(); // win32 will not rmdir a live process cwd â
 process.chdir(HOME); // the relative case resolves against the process cwd; every child starts here too
 
 const { piAgentDir } = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
-const { resolvePiBin, resolvePiPackage } = await import(new URL("../../../apps/desk/pi-session.mjs", import.meta.url).href);
-// lazy: resolvePiPackage(resolvePiBin()) throws on win32 (the desk's resolver, frozen there); only the desk leg needs it
-const piRoot = () => process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
+// The app host no longer imports the transcript parser.
 const DESK_CWD = path.join(HOME, "desk-cwd"); // the desk's own start folder
 const PROJECT = path.join(HOME, "project"); // where the desk starts a session
 const BIN = path.join(HOME, "bin");
@@ -48,6 +46,7 @@ fs.writeFileSync(path.join(BIN, "pi"), `#!/usr/bin/env node
 import(${JSON.stringify(path.join(REPO, "packages", "nana-pack", "lib", "agent-dir.mjs"))}).then(({ piAgentDir }) => {
 	require("node:fs").appendFileSync(process.env.STUB_OUT, JSON.stringify({ cwd: process.cwd(), raw: process.env.PI_CODING_AGENT_DIR ?? null, dir: piAgentDir() }) + "\\n");
 });
+setTimeout(() => process.stdout.write(JSON.stringify({type:'extension_ui_request',method:'setStatus',statusKey:'nana-tools',statusText:'ready'}) + "\\n"), 20);
 let buf = "";
 process.stdin.on("data", (c) => {
 	buf += c;
@@ -80,7 +79,9 @@ function post(port, p, body) {
 // The desk runs in DESK_CWD; it starts one session in PROJECT and returns /api/settings + what that session resolved.
 async function deskSettings(env) {
 	fs.rmSync(STUB_OUT, { force: true });
-	const child = spawn(process.execPath, [SERVER], { cwd: DESK_CWD, env: { ...process.env, ...env, HOME, DESK_PORT: "0", DESK_APPS_DIR: path.join(HOME, "no-apps"), DESK_PI_ROOT: piRoot(), STUB_OUT, PATH: `${BIN}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+	const apps = path.join(HOME, 'apps'); fs.mkdirSync(apps, { recursive: true });
+	fs.writeFileSync(path.join(apps, 'parity.json'), JSON.stringify({ port: 0, cwd: PROJECT, tools: ['read'] }));
+	const child = spawn(process.execPath, [SERVER], { cwd: DESK_CWD, env: { ...process.env, ...env, HOME, DESK_PORT: "0", DESK_APPS_DIR: apps, STUB_OUT, PATH: `${BIN}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
 	let log = "";
 	child.stdout.on("data", (c) => (log += c));
 	child.stderr.on("data", (c) => (log += c));
@@ -92,13 +93,14 @@ async function deskSettings(env) {
 			if (!port) await new Promise((r) => setTimeout(r, 50));
 		}
 		if (!port) throw new Error(`desk did not start: ${log}`);
-		const settings = await get(port, "/api/settings");
-		const sp = await post(port, "/api/spawn", { cwd: PROJECT });
+		const registry = await get(port, '/api/apps');
+		const appPort = registry.find(a => a.name === 'parity').port;
+		const sp = await post(appPort, '/api/session', {});
 		let session = null;
 		for (const t0 = Date.now(); !session && Date.now() - t0 < 10000; await new Promise((r) => setTimeout(r, 50)))
 			session = fs.existsSync(STUB_OUT) ? JSON.parse(fs.readFileSync(STUB_OUT, "utf-8").split("\n")[0] || "null") : null;
 		if (!session) throw new Error(`spawned session never reported: ${JSON.stringify(sp)} ${log}`);
-		return { settings, session };
+		return { session };
 	} finally {
 		child.kill();
 	}
@@ -133,20 +135,14 @@ for (const [name, value] of FORMS) {
 		console.log(`SKIP [${name}] desk leg: the desk's pi resolver is frozen on win32`);
 	} else {
 		const deskWant = value === "rel-agent" ? path.join(DESK_CWD, "rel-agent") : want;
-		const { settings: s, session } = await deskSettings(value === undefined ? {} : { PI_CODING_AGENT_DIR: value });
-		check(`[${name}] desk nanaPath === <desk's active dir>/nana-pack.json`, s.nanaPath === path.join(deskWant, "nana-pack.json"), s.nanaPath);
-		check(`[${name}] desk settingsPath / mcpPath / agentsDir / piDir follow it`, s.settingsPath === path.join(deskWant, "settings.json") && s.mcpPath === path.join(deskWant, "mcp.json") && s.agentsDir === path.join(deskWant, "agents") && s.piDir === deskWant, JSON.stringify(s));
+		const { session } = await deskSettings(value === undefined ? {} : { PI_CODING_AGENT_DIR: value });
 		check(`[${name}] the spawned session really ran in a DIFFERENT cwd than the desk`, session.cwd === PROJECT, session.cwd);
-		// req: R-198
-		check(`[${name}] a session spawned in another cwd resolves the SAME dir the desk shows`, session.dir === s.piDir, `${session.dir} vs desk ${s.piDir}`);
+		check(`[${name}] a manifest app child resolves the desk's active dir`, session.dir === deskWant, `${session.dir} vs ${deskWant}`);
 		if (value === "rel-agent") {
-			// req: R-198
 			check("[relative] the desk pinned the absolute dir into the child env", session.raw === deskWant, session.raw);
-			// req: R-198
-			check("[relative] /api/settings tells the user it pinned, naming the dir", typeof s.agentDirNote === "string" && s.agentDirNote.includes("relative") && s.agentDirNote.includes(deskWant), String(s.agentDirNote));
 		} else {
 			check(`[${name}] the value reaches the child untouched`, session.raw === (value ?? null), String(session.raw));
-			check(`[${name}] no pin note`, s.agentDirNote === null, String(s.agentDirNote));
+
 		}
 	}
 }

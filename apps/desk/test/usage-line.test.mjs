@@ -11,7 +11,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
+import { fileURLToPath } from 'node:url';
 
 const tmp = tmpDir(path.join(os.tmpdir(), "desk-usage-"));
 const home = path.join(tmp, "home");
@@ -24,7 +24,7 @@ for (const dir of [sessions, apps, bin, cwd]) fs.mkdirSync(dir, { recursive: tru
 const sessionId = "usage-session-id";
 const sessionFile = path.join(sessions, `${sessionId}.jsonl`);
 fs.writeFileSync(sessionFile, JSON.stringify({ type: "session", version: 3, id: sessionId, timestamp: new Date().toISOString(), cwd }) + "\n");
-const piRoot = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
+// No transcript parser is loaded by the app host.
 const stub = `#!/usr/bin/env node
 const say = (o) => process.stdout.write(JSON.stringify(o) + "\\n");
 const sessionFile = process.argv.includes("--session") ? process.argv[process.argv.indexOf("--session") + 1] : ${JSON.stringify(sessionFile)};
@@ -32,10 +32,13 @@ setTimeout(() => say({type:"extension_ui_request", method:"setStatus", statusKey
 let buf = "";
 process.stdin.on("data", c => { buf += c; let n; while ((n=buf.indexOf("\\n")) >= 0) { const line=buf.slice(0,n); buf=buf.slice(n+1); let cmd; try { cmd=JSON.parse(line); } catch { continue; } const ok=data=>say({type:"response",id:cmd.id,command:cmd.type,success:true,data}); if(cmd.type==="get_state") ok({isStreaming:false,isCompacting:false,sessionName:"stub",sessionFile,model:{provider:"stub",id:"stub"},thinkingLevel:"off"}); else if(cmd.type==="prompt") { ok({}); say({type:"agent_end",messages:[]}); say({type:"agent_settled"}); } else ok({}); }});
 `;
-fs.writeFileSync(path.join(bin, "pi"), stub, { mode: 0o755 });
+const stubFile = path.join(bin, 'pi.cjs');
+fs.writeFileSync(stubFile, stub, { mode: 0o755 });
+if (process.platform === 'win32') fs.writeFileSync(path.join(bin, 'pi.cmd'), `@echo off\r\n"${process.execPath}" "${stubFile}" %*\r\n`);
+else fs.writeFileSync(path.join(bin, 'pi'), stub, { mode: 0o755 });
 fs.writeFileSync(path.join(apps, "uapp.json"), JSON.stringify({ port: 0, cwd, tools: ["read"] }));
-const serverPath = new URL("../server.mjs", import.meta.url).pathname;
-const server = spawn("node", [serverPath], { env: { ...process.env, HOME: home, PI_CODING_AGENT_DIR: agent, DESK_PI_ROOT: piRoot, DESK_PORT: "0", DESK_APPS_DIR: apps, PATH: `${bin}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+const serverPath = fileURLToPath(new URL("../server.mjs", import.meta.url));
+const server = spawn("node", [serverPath], { env: { ...process.env, HOME: home, PI_CODING_AGENT_DIR: agent, DESK_PORT: "0", DESK_APPS_DIR: apps, PATH: `${bin}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
 let stdout = "";
 let stderr = "";
 server.stdout.on("data", c => { stdout += c; });
@@ -68,9 +71,7 @@ try {
 	await get(D, "/api/sessions");
 	await get(D, "/api/live");
 	await get(D, `/api/transcript?file=${encodeURIComponent(sessionFile)}`);
-	const spawned = await post(D, "/api/spawn", { cwd }).then(r => r.json());
-	if (!spawned.id) throw new Error(`desk spawn failed: ${JSON.stringify(spawned)}`);
-	await post(D, `/api/session/${encodeURIComponent(spawned.id)}/prompt`, { message: "MSGMARK" });
+
 	await get(A, "/");
 	await get(A, "/stage.js");
 	const appSession = await post(A, "/api/session", {}).then(r => r.json());
@@ -84,7 +85,7 @@ try {
 	sse.abort();
 	const entriesResponse = await get(A, "/api/entries");
 	const dataResponse = await post(A, "/api/data/nope", {});
-	const rpcResponse = await post(D, `/api/session/${encodeURIComponent(spawned.id)}/rpc`, { command: { type: "not_a_real_rpc_command" } });
+	const rpcResponse = await post(D, '/api/session/1/rpc', { command: { type: "not_a_real_rpc_command" } });
 	const rejectedResponse = await post(D, "/api/spawn", { cwd: "/definitely/not/a/desk/cwd" });
 	await pause(100);
 	const afterNegatives = usageCount(stdout);
@@ -92,18 +93,18 @@ try {
 	const records = lines.map(line => JSON.parse(line));
 	const actual = records.map(({ surface, action }) => `${surface}:${action}`).sort();
 	// req: R-699
-	check("usage triggers are exactly desk open/view/prompt and app open/prompt", JSON.stringify(actual) === JSON.stringify(["app:uapp:open", "app:uapp:prompt", "desk:open", "desk:prompt", "desk:view"].sort()), JSON.stringify(actual));
+	check("usage triggers are exactly app open/prompt", JSON.stringify(actual) === JSON.stringify(["app:uapp:open", "app:uapp:prompt"].sort()), JSON.stringify(actual));
 	// req: R-699
-	check("each usage record carries exactly the four permitted keys", records.length === 5 && records.every(record => JSON.stringify(Object.keys(record).sort()) === JSON.stringify(["action", "event", "surface", "ts"])), JSON.stringify(records));
+	check("each usage record carries exactly the four permitted keys", records.length === 2 && records.every(record => JSON.stringify(Object.keys(record).sort()) === JSON.stringify(["action", "event", "surface", "ts"])), JSON.stringify(records));
 	const start = Date.now() - 15000, end = Date.now() + 1000;
 	// req: R-699
-	check("usage timestamps parse and fall within the request window", records.length === 5 && records.every(({ ts }) => Number.isFinite(Date.parse(ts)) && Date.parse(ts) >= start && Date.parse(ts) <= end), JSON.stringify(records.map(r => r.ts)));
+	check("usage timestamps parse and fall within the request window", records.length === 2 && records.every(({ ts }) => Number.isFinite(Date.parse(ts)) && Date.parse(ts) >= start && Date.parse(ts) <= end), JSON.stringify(records.map(r => r.ts)));
 	// req: R-699
-	check("usage records expose no request, prompt, cwd or session markers", records.length === 5 && !lines.join("\n").includes("MSGMARK") && !lines.join("\n").includes("APPMARK") && !lines.join("\n").includes("CWDMARK") && !lines.join("\n").includes(sessionId) && !lines.join("\n").includes(sessionFile), lines.join(" | "));
+	check("usage records expose no request, prompt, cwd or session markers", records.length === 2 && !lines.join("\n").includes("MSGMARK") && !lines.join("\n").includes("APPMARK") && !lines.join("\n").includes("CWDMARK") && !lines.join("\n").includes(sessionId) && !lines.join("\n").includes(sessionFile), lines.join(" | "));
 	// req: R-699
-	check("usage lines are written to stdout only", lines.length === 5 && !stderr.includes('"event":"desk_usage"'), `stdout=${lines.length}, stderr=${stderr}`);
+	check("usage lines are written to stdout only", lines.length === 2 && !stderr.includes('"event":"desk_usage"'), `stdout=${lines.length}, stderr=${stderr}`);
 	// req: R-699
-	check("SSE attach, entries, data, RPC and rejected requests add no usage line", beforeNegatives === 5 && afterNegatives === beforeNegatives && sseResponse.status === 200 && entriesResponse.status === 200 && dataResponse.status === 404 && rpcResponse.status >= 400 && rejectedResponse.status >= 400, `before=${beforeNegatives}, after=${afterNegatives}; statuses=${sseResponse.status}/${entriesResponse.status}/${dataResponse.status}/${rpcResponse.status}/${rejectedResponse.status}`);
+	check("SSE attach, entries, data, RPC and rejected requests add no usage line", beforeNegatives === 2 && afterNegatives === beforeNegatives && sseResponse.status === 200 && entriesResponse.status === 200 && dataResponse.status === 404 && rpcResponse.status >= 400 && rejectedResponse.status >= 400, `before=${beforeNegatives}, after=${afterNegatives}; statuses=${sseResponse.status}/${entriesResponse.status}/${dataResponse.status}/${rpcResponse.status}/${rejectedResponse.status}`);
 } catch (error) {
 	failures++;
 	console.log("FAIL usage line fixture", error.stack || error);

@@ -2,8 +2,8 @@
  * @module apps/desk/public/md.js
  * @purpose Escape-first minimal markdown to HTML for agent replies: fences, headings, lists,
  *  blockquotes, rules and inline code, bold, italic and links.
- * @inputs mdToHtml(text) — one markdown string
- * @outputs an HTML string in which every character was escaped before any transform and inline
+ * @inputs mdToHtml(text) or escapeHtml(text) — one string
+ * @outputs exports escapeHtml/mdToHtml; an HTML string escaped before any transform and inline
  *  code is carved out first so no other pattern fires inside it
  * @effects none
  * @errors none
@@ -15,12 +15,12 @@
  * first so other inline patterns never fire inside it.
  */
 
-const esc = (s) =>
+export const escapeHtml = (s) =>
 	s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function inline(s) {
 	const codes = [];
-	let out = esc(s).replace(/`([^`]+)`/g, (_, c) => {
+	let out = escapeHtml(s).replace(/`([^`]+)`/g, (_, c) => {
 		codes.push(c);
 		return `\u0000${codes.length - 1}\u0000`;
 	});
@@ -51,8 +51,8 @@ export function mdToHtml(text) {
 			i++;
 			while (i < lines.length && !/^\s*```/.test(lines[i])) body.push(lines[i++]);
 			i++; // closing fence
-			const cls = fence[1] ? ` class="lang-${esc(fence[1])}"` : "";
-			out.push(`<pre><code${cls}>${esc(body.join("\n"))}</code></pre>`);
+			const cls = fence[1] ? ` class="lang-${escapeHtml(fence[1])}"` : "";
+			out.push(`<pre><code${cls}>${escapeHtml(body.join("\n"))}</code></pre>`);
 			continue;
 		}
 		const h = line.match(/^(#{1,6})\s+(.*)/);

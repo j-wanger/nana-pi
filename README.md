@@ -34,8 +34,8 @@ Sibling repo to `~/nana-agent-loop`.
   the Claude Code half (hooks, rules, skills, `settings.json` wiring, the two-tier auto-memory), the
   user-scope pi config, `pi-review` on PATH, and the desk service. `nana-setup doctor` is the
   ✓/✗ instrument for a fresh machine. See `packages/nana-setup/README.md`.
-- `apps/desk/` — nana code, a local browser dashboard over pi sessions: no npm dependencies
-  of its own, but it requires the installed pi (spawned AND imported — see `apps/desk/README.md`).
+- `apps/desk/` — the local manifest app host; the desk page is retired. It has no npm
+  dependencies of its own, but requires the installed pi for RPC children (see `apps/desk/README.md`).
 - `apps/bench/` — a reusable benchmark for pi itself: run the same tasks through different
   tool/prompt profiles and record tokens, wall time, tool-call mix and deterministic
   correctness. Studies live in `apps/bench/studies/`; see `apps/bench/README.md`.
@@ -121,7 +121,7 @@ the pi-hosted ones. nana supports pi 1.0.3 through 1.4.0. For pi 1.0.3 through 1
 
 | Component | Runtime | Dev / test |
 |---|---|---|
-| `apps/desk/` (nana code) | Node ≥ 22.19; **`@earendil-works/pi-coding-agent` ≥ 0.84.4 installed globally (unit tests on 1.0.3 and 1.4.0, 2026-10-23; no browser or service run)** — spawned as `pi --mode rpc` per live session AND imported in-process for session parsing (`parseSessionEntries`, `migrateSessionEntries`, `CURRENT_SESSION_VERSION`). Enforced at startup: below 0.84.4, or when the package cannot be tied to the `pi` the desk spawns, it refuses to start. No npm dependencies of its own. | Playwright 1.61.1 (`playwright`/`playwright-core`, root `node_modules`) for the `test/*.e2e.mjs` browser tests only; `PW_ROOT` points at it if it lives elsewhere. `test/*.test.mjs` are zero-dep `node <file>` runs. Details: `apps/desk/README.md`. |
+| `apps/desk/` (app host) | Node ≥ 22.19; globally installed **`@earendil-works/pi-coding-agent`**, spawned as `pi --mode rpc` per manifest app. No in-process transcript parser or npm dependencies of its own. | Playwright (`playwright`/`playwright-core`) and Chromium for browser cases; `PW_ROOT` points at their project. HTTP and persistence tests use deterministic stubs. Details: `apps/desk/README.md`. |
 | `packages/nana-pack/` (the extensions + skills) | pi itself, as an **optional peerDependency** (`@earendil-works/pi-coding-agent: "*"`) — the extensions run inside pi, so pi is the host, not a package they install. No runtime npm dependencies. | Zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests FAIL naming the locations tried when pi is absent. Set `DESK_PI_ROOT` to point pack tests at another install (`DESK_PI_BIN` selects the executable for desk tests). |
 | `packages/nana-stage/` (the stage ledger) | Same: pi as an optional peerDependency, no runtime npm dependencies. | Zero-dep node tests. |
 | `packages/nana-setup/` (the bootstrap) | Node ≥ 22.18 only (the installed objective hook's CLI imports `.ts` via Node's built-in type stripping; older Node → a named `OBJECTIVE UNAVAILABLE` marker and a doctor ✗); no npm dependencies. Shells out to `pi` (registration), `node` (the knowledge build) and `launchctl` (`--desk`, macOS) — each optional, each reported as skipped when missing. | Zero-dep `node packages/nana-setup/tests/*.test.mjs`; every test installs into `os.tmpdir()` via `--home` and never touches the real `~/.claude`, `~/.pi` or LaunchAgents. |
