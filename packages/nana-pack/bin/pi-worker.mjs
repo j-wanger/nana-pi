@@ -39,7 +39,6 @@ import { releaseLaneLock } from '../lib/lane-lock.mjs';
 import { startLaneWatcher } from '../lib/lane-watcher.mjs';
 import { errorText } from '../lib/record-ledger.mjs';
 import { scanCommitRange, leakScanLines } from '../lib/leak-scan.mjs';
-import { LANE_CLASS_MAX_BUFFER_BYTES, LANE_CLASS_TIMEOUT_MS } from '../lib/lane-class-config.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N] [--lane-size <small|larger>]\n';
@@ -113,7 +112,7 @@ if (roleMode) {
 	if (lanePresent || laneSizePresent) refuse('--slot conflicts with --lane and --lane-size');
 	if (separator >= 0 && all.slice(separator + 1).length) refuse('caller pi arguments are refused in slot mode');
 	for (let i = 2; i < own.length; i += 2) if (!ownOptionNames.has(own[i]) || !own[i + 1] || own[i + 1].startsWith('--')) refuse(`invalid option ${own[i]}`);
-	if (!Object.hasOwn(ROLE_FALLBACKS, role)) refuse(`${role ?? '--slot'}: use ${['builder','largerBuilder'].includes(role) ? 'pi-worker --lane' : role === 'reviewer' ? 'pi-review or claude-review' : role === 'land' ? 'nana-land' : 'scout, planner, adversary or checker'}`);
+	if (!Object.hasOwn(ROLE_FALLBACKS, role)) refuse(`${role ?? '--slot'}: use ${['builder','largerBuilder'].includes(role) ? 'pi-worker --lane' : role === 'reviewer' ? 'pi-review or claude-review' : 'scout, planner or adversary'}`);
 	if (!Number.isSafeInteger(maxSecs) || maxSecs < 1) refuse('--max-secs must be a positive whole number');
 	const preflight = parseWatchdogArgv([...filteredOwn, '--', 'placeholder'], { defaultRetries: 0 });
 	if (preflight.error) refuse(preflight.error);
@@ -390,22 +389,6 @@ else process.stderr.write(r.ok
 if (buildEndKept) {
 	process.stderr.write(`${buildEndLine()}\n`);
 	for (const line of leakScanLines(buildEnd.leaks)) process.stderr.write(`pi-worker: ${line}\n`);
-}
-if (laneMode && buildEndKept) {
-	try {
-		const present = spawnSync('git', ['cat-file', '-e', 'HEAD:scripts/lane-class.mjs'], { cwd: process.cwd(), encoding: 'utf8', timeout: LANE_CLASS_TIMEOUT_MS });
-		if (present.status === 0) {
-			const script = fileURLToPath(new URL('../../../scripts/lane-class.mjs', import.meta.url));
-			const result = spawnSync(process.execPath, ['--no-warnings', script, '--root', process.cwd()], { cwd: process.cwd(), encoding: 'utf8', timeout: LANE_CLASS_TIMEOUT_MS, maxBuffer: LANE_CLASS_MAX_BUFFER_BYTES });
-			if (result.status === 0) process.stderr.write(`${String(result.stdout ?? '').replace(/[\r\n]+$/, '')}\n`);
-			else {
-				const reason = String(result.stderr ?? '').split(/\r?\n/).find((line) => line.trim()) || result.error?.code || (result.signal ? `signal ${result.signal}` : `exit ${result.status}`);
-				process.stderr.write(`pi-worker: lane class unavailable: ${reason}\n`);
-			}
-		}
-	} catch (error) {
-		process.stderr.write(`pi-worker: lane class unavailable: ${error?.code ?? error?.message ?? 'unknown error'}\n`);
-	}
 }
 process.exit(exit);
 

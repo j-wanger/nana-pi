@@ -24,7 +24,7 @@ Then write the **Feature** line, **Threat model**, **Precedent**, **Outside prec
 An agreed reading is the owner's own words that already choose one meaning, such as a pre-written plan, a pick, or a go on a slate line that described the lane. For new capability without an agreed reading, return two or three readings of the intent, each with its consequences, recommend a pick, and do not write a plan. A fix that restores agreed behaviour plans straight away.
 
 Expected changes to existing tests are a forecast, never a limit on what the builder may edit.
-The seat's wrong-code pairs belong to install, hook or gate lanes.
+
 An earlier plan is grounding for a decision it records, never a format to copy.
 Run `npm run map:search -- "<need>"` for each part of the lane; under Precedent, name what you took from the results, adding to your own list rather than replacing it.
 For code files, use the project's map impact command to forecast callers and tests. For files the map does not cover, search tests and checkers for the path and every literal the change breaks.

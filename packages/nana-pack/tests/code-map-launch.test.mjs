@@ -160,12 +160,23 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 		["packages/nana-setup/lib/hook-producer.mjs -> packages/nana-pack/bin/nana-objective.mjs", "Only a sealed wrapper definition, not a launch call; injected run is outside the sealed call vocabulary."],
 		["packages/nana-setup/lib/hook-producer.mjs -> packages/nana-setup/bin/stale-copies.mjs", "Only a sealed wrapper definition, not a launch call; injected run is outside the sealed call vocabulary."],
 	]);
+	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
+	const retiredSources = new Map([
+		['scripts/lane-class.mjs', 'Lane classification is retired by R-3761.'],
+		['packages/nana-pack/lib/mutation-runner-config.mjs', 'Seat mutation runner is retired by R-3761.'],
+		['packages/nana-pack/lib/mutation-runner.mjs', 'Seat mutation runner is retired by R-3761.'],
+		['packages/nana-pack/tests/lane-class.test.mjs', 'Classifier tests retired with their code by R-3761.'],
+		['packages/nana-pack/tests/mutation-runner.test.mjs', 'Seat runner tests retired with their code by R-3761.'],
+		['packages/nana-pack/tests/mutation-runner-takeover.test.mjs', 'Seat runner tests retired with their code by R-3761.'],
+	]);
+	losses.set('packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/lane-class-config.mjs', 'R-3761 removes lane classification from build output.');
+	losses.set('packages/nana-pack/bin/pi-worker.mjs -> scripts/lane-class.mjs', 'R-3761 removes lane classification from build output.');
 	const graph = checkRepo().graph;
 	for (const entry of gitShow("57167e92", "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];
 		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
 			const edge = `${path} -> ${match[1]}`;
-			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge), `lost edge: ${edge}`);
+			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
 		}
 	}
 });

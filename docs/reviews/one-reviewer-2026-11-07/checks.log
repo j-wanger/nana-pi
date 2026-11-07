@@ -1,0 +1,318 @@
+one-reviewer: macOS build checks; absolute machine paths normalized
+
+=== Initial wrong implementation: node scripts/test.mjs one-reviewer.test.mjs outside-reader.test.mjs --verbose (exit 1) ===
+FAIL M1: legacy keys are ignored and writes remain readable by the pre-lane resolver roster is missing land
+FAIL M2: roster notice names only the surviving roles and lanes The input was expected to not match the regular expression /\b(?:land|checker)\b/. Input:
+
+'nana active · roster (default): builder builder high, reviewer reviewer, land old-land high, planner seat, adversary builder high, checker old-checker high, lineage: adversary versus planner unverified, lineage: checker shares openai with reviewer, lanes 4 · change: "roster" in nana-pack.json'
+
+FAIL M3: both Node review launchers refuse land before children or reservations and retain plain reviews [{"name":"pi-review","status":0,"stderr":"pi-review: item \"pi-review\" (git:$TMPDIR/nana-test-64961-TxbZ3k/one-reviewer-JEM3It/repo/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (land @ 5c599e01bd5a+snap:5b6a71152f179ae0fa7a0030ec825b82707ce3a4b25b4f174f2ac1db08fd4358)\n[pi-review] attempt 1/3\n[pi-review] SUCCESS on attempt 1 (31 chars → $TMPDIR/nana-test-64961-TxbZ3k/one-reviewer-JEM3It/pi-review.md; round 1)\n"},{"name":"claude-review","status":0,"stderr":"claude-review: claude settings carry: none; not found; source: $TMPDIR/nana-test-64961-TxbZ3k/one-reviewer-JEM3It/.claude/settings.json\nreview-ledger: item \"claude-review\" (git:$TMPDIR/nana-test-64961-TxbZ3k/one-reviewer-JEM3It/repo/.git): 0 round(s) used (0 completed, 0 review(s) in flight); admitted as round 1/3 (land @ 5c599e01bd5a+snap:5b6a71152f179ae0fa7a0030ec825b82707ce3a4b25b4f174f2ac1db08fd4358)\nreview-ledger: verdict recorded for item claude-review (round 1; $TMPDIR/nana-test-64961-TxbZ3k/one-reviewer-JEM3It/claude-review.md)\n"}]
+FAIL M4: checker is refused naming surviving slots and adversary still launches Expected "actual" to be strictly unequal to: 0
+FAIL M5: lane class and seat mutation runner modules are absent scripts/lane-class.mjs
+
+true !== false
+
+FAIL M7: all role guidance states one reviewer plus CI and the shared marker stays identical The input did not match the regular expression /[Ee]very lane gets one reviewer plus CI/. Input:
+
+'## Working under nana-pi\n' +
+  '\n' +
+  'The bullets below describe pi sessions; other runtimes receive only the surfaces listed here. At startup, read `HANDOFF.md`, look up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill), and read the landscape doc only for pi API questions.\n' +
+  '\n' +
+  '| Runtime | Objective | Shared memory | nana-soul / nana-standards | Writing rule / rulings | Knowledge pull | Gate | Verifier pipe | Post-edit | Compaction summary | Notify |\n' +
+  '|---|---|---|---|---|---|---|---|---|---|---|\n' +
+  '| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |\n' +
+  '| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension; `nana-roster-notice` extension shows the roster notice as a widget |\n' +
+  '| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension; `nana-roster-notice` extension runs but shows nothing (no UI) |\n' +
+  '| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |\n' +
+  '\n' +
+  'pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul are Claude-only. Requirements-first practice is shared through project `AGENTS.md` and the requirements skill. The separate nana-knowledge extension serves pi; Claude Code uses explicit `nana-knowledge query` search.\n' +
+  '\n' +
+  '### pi-session guidance\n' +
+  '\n' +
+  '- **Objective:** nana-objective supplies the nearest project objective unless disabled by user configuration; the shared rules above describe pi-only behavior.\n' +
+  '- **Compaction summary:** compaction summaries are pi-owned background state, not the project frontier. Persist carry before a final report or session boundary. Where the HANDOFF points to its issues, the seat posts each unresolved item and open question as one issue, never a HANDOFF line. Otherwise the seat writes each on one HANDOFF line under Next or Open for the owner. Only the seat posts, from the owner\'s gh account. The seat starts each issue comment it writes with `Seat:`. If posting fails, the report lists the item and the reason. Builders and reviewers put open questions in their report. Issues and the replies on them are public. Label an ask `ask` plus one of `blocking`, `optional` or `parked`, or label a next item `next`. A blocking ask\'s title ends with "(default: <word>)". First pass each title and body through `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`. Post only when the scan exits 0. Then hand-check names, handles, hostnames, work references and project names. The scan knows only four words. Delete a wrong post, never edit it. Before acting on an open ask, read its replies with `gh issue view <number> --comments`.\n' +
+  '- **Journal and notify:** journal records session events; notify is a pi extension and may be disabled or silent headlessly.\n' +
+  '- **Gate:** Advisory pi gate inspects selected shell commands and protected edit/write targets. It is not a security boundary; see the pack README for exact scope and limits, including the interpreter code-operand path gap for floored settings, auth, MCP and extension files.\n' +
+  '- **Post-edit:** configured checks run after successful edits only in pi; absent commands mean no checks. Claude Code has no nana per-edit checks.\n' +
+  '\n' +
+  '### Working pattern\n' +
+  '\n' +
+  '- Builder pushes: builders do not push. They report the branch, the full tip and the seat checks run on it. The seat pushes after verifying, then waits for CI where the project uses it.\n' +
+  '- Default worktree root: `~/<repo>-wt/<lane>`; branch: `feat/<lane>`, based on main. One writer per worktree.\n' +
+  '- Review corpus: `docs/reviews/<lane>-<date>/`. Builder launcher: `pi-worker --lane <name> --brief <file> --out <file>`. Reviewer launcher: `pi-review` for a pi roster entry; `node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs"` for a Claude Code entry.\n' +
+  "- Review ladder: an ordinary lane gets one final reviewer, the roster's reviewer. An install, hook or gate lane also gets the land reviewer, the seat's wrong-code pairs and one independent check. An install, hook or gate lane changes nana-setup install, uninstall or doctor; a Claude Code hook or a pi extension; the nana-gate policy; or the land and review tools (`nana-land`, `pi-review`, `claude-review`, `review-round`). Every other lane is ordinary. Maximum three rounds per item; a different model lineage reviews the work. The final review must cover the exact tip that will land, or the accepted tip that `nana-land` merges current main into without conflict (a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict); every later commit the lane authors needs its own accepted review coverage.\n" +
+  "- Plans: a lane is one feature. The seat and one adversarial agent write its must-meet tests, about three to eight, one requirement row each, and the builder builds to them. The seat gives the planner the request and its grounding; an earlier plan is grounding for a decision it records, never a format to copy. Read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`. Every plan names its threat model: honest variation in our tools' output is in scope, deliberate forgery is out, and a finding outside the model is a residual. Every plan names its precedent, the nearest existing code for each part by path, or none with a reason. Plans get no review round. Urgent fixes ship alone and are hardened in a later lane. Once every reviewer says LAND, nothing more is edited.\n" +
+  '- Review bar: `pi-review` appends the review standard to every review it runs; `claude-review` appends the same standard. Their briefs state the threat model and lane class but not the bar. A reviewer sends back only for a bug that blocks the feature or a harm the standard lists; every other finding is a known bug, recorded as one line in the known-bug file of the feature it concerns, `docs/known-bugs/<feature>.md` (or the unplaced file in that folder when no feature fits or the project has no tree), and fixed when someone hits it or next works on its feature. A review with no MUST finding says LAND; LAND-WITH-FIXES is retired because `nana-land` accepts only LAND. A confirmation round reviews only the change since the last round, and its brief names that revision.\n' +
+  "- Land checklist: resolve review findings or record them as known bugs in their feature's file; run `review-ledger keep --item <slug> --into <lane-review-folder> --repo <path>` with each fix commit and once before the final round, never during a live review of that worktree; use `nana-land` with a clean `main` checkout and clean source, verified review rounds, and CI or the local suite on the reviewed tip; where the project's `AGENTS.md` says CI covers its suite, on the fast-forward path, `nana-land` runs the suite only when the tip's CI cannot stand in; the clean-merge path refuses instead. Revalidate if either checkout changes, and rely on the helper's immediate pre-merge checks, ff-only merge, and containment verification. Where origin is on github.com and the tip tracks a workflow, `nana-land` also refuses until the newest CI run of each workflow for the tip has passed, so push the tip to its open pull request, do not cancel its run, and wait for CI. When main has moved since the accepted tip, `nana-land` merges current main into it; a merge with no conflict lands without new CI or review, and a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict; every other conflicting merge refuses, so merge main in the lane and get that tip reviewed and through CI. When main's push run for a landed commit is red, land nothing else until the fix lands. Every commit reaching main must be covered by a revision every reviewer accepted; the one exemption is that conflict-free merge, including generated-file conflicts resolved by their own generators; there are no others, and never commit directly to main. Put HANDOFF and session notes in the reviewed change before its final round; nothing is written after a land. For a confirmation round over cap, use the standard reason: `confirmation round on the final tip after fixes to named findings or a merge of current main`. Cleanup is a separate operation, only for a clean `feat/<lane>` worktree contained in `main`. Then run map and README checks and the suite check this project's AGENTS.md names; commit explicit paths and report evidence.\n" +
+  '- Default pattern: a change that touches code with tests goes through the pattern; questions and one-line fixes get a direct answer. The builde'... 1895 more characters
+
+FAIL M8: dated one-reviewer ruling replaces independent check and checker-slot rulings The input did not match the regular expression /2026-11-07: Every lane gets one reviewer plus CI/. Input:
+
+'# Nana — Standing rulings\n' +
+  '\n' +
+  'These rulings guide the seat, the session that plans lanes and launches builders and reviewers; a builder or reviewer acts only within its brief and reads them as background.\n' +
+  '\n' +
+  '- 2026-09-16: Each session says which objective or current-priority line its spend serves, or proposes updating them.\n' +
+  "- 2026-09-18: Memory has two tiers: shared rules for every project, and project facts in the project. Start a session in the product's own folder.\n" +
+  '- 2026-10-09: Builder sessions get no automatic knowledge pull.\n' +
+  '- 2026-10-10: rm runs freely only inside the working directory.\n' +
+  '- 2026-10-10: In nana-pi, Windows testing is required.\n' +
+  '- 2026-10-10: In nana-pi, the desk stays frozen until the owner reopens it.\n' +
+  '- 2026-10-11: Every plan names its threat model: honest variation in scope, deliberate forgery out.\n' +
+  '- 2026-10-11: After every reviewer says LAND, nothing more is edited. Urgent fixes ship alone and are hardened later.\n' +
+  '- 2026-10-11: In nana-pi, push main right after each reviewed land. Pushing another branch or opening a draft PR needs no approval.\n' +
+  '- 2026-10-12: In nana-pi, a setup or hook lane runs the install check locally on macOS before the land.\n' +
+  '- 2026-10-13: A review blocks only on a material problem. A confirmation round reviews only the change since the last round.\n' +
+  '- 2026-10-13: A change to code with tests goes through the builder and reviewer pattern. The roster names the models, and the session-start line shows it.\n' +
+  '- 2026-10-14: Turning a repo into a feature tree is core: lift, an approved regroup, then feature-oriented work.\n' +
+  '- 2026-10-15: Every builder and long background run gets a failure watcher and a heartbeat at launch.\n' +
+  "- 2026-10-16: The public repo carries no owner name and nothing about the owner's work.\n" +
+  '- 2026-10-16: Each install, hook or gate lane gets one independent check. A blocking question carries a one-word default.\n' +
+  '- 2026-10-16: Rulings live in this file. A new ruling lands in the reviewed change of the lane that records it, and removes any ruling it replaces.\n' +
+  "- 2026-10-17: Development is feature-first. Plans get no review round; the seat and one adversary write each lane's must-meet tests.\n" +
+  '- 2026-10-20: In nana-pi, the seat lands a lane once every reviewer says LAND. The owner gives no separate Land.\n' +
+  '- 2026-10-21: A capability is a product stage with deliverables, or a constraint that names the stages it binds. Every capability field stays optional, and existing trees gain the fields in place.\n' +
+  "- 2026-10-21: The owner adopted the writing rule. Every report runs the check before it is sent, and HANDOFF's live sections must pass it.\n" +
+  "- 2026-10-21: Known bugs live one line each in their feature's file, not in HANDOFF.\n" +
+  '- 2026-10-22: A produced artifact is a feature to maintain. Each deliverable names the run that makes it and the code that reads it. Closing a hand-made maker or a rule-only reader comes first.\n' +
+  '- 2026-10-22: Every plan and brief names its precedent, the nearest existing code for each part. Builders follow it and report each departure. A `Card: fix` brief may omit the section (owner, 2026-11-06, #338); plans and other briefs still require it. pi-worker refuses an unmarked brief without it.\n' +
+  "- 2026-10-22: A helper's second caller imports it rather than copying it. A plan's Precedent section names any move of a private helper to a shared module.\n" +
+  '- 2026-10-28: Before the seat plans new capability, it brings the owner two or three readings of the intent, once per request; a fix that restores agreed behaviour plans straight away.\n' +
+  '- 2026-11-02: The roster names a slot for the scout, planner, adversary and checker; a seat starts each through its slot.\n' +
+  "- 2026-11-02: In nana-pi, a tip's passing GitHub CI stands in for the local full suite for builders, seats and lands. Builders do not push; the seat pushes after verifying, then waits for CI. The local locked suite runs only when CI cannot stand in.\n" +
+  '- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review; a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land.\n' +
+  "- 2026-11-01: Each machine sets how many lanes build there in its roster file; the roster command's lanes line prints the limit, default included. At most two more lanes are planned.\n"
+
+FAIL  packages/nana-pack/tests/one-reviewer.test.mjs    0 pass, 7 fail  2.5s  — exit 1
+PASS R-3060: prompt orders bounded purpose, bugs, diff and both-width page views
+FAIL R-3061: pi runs once cold through the sealed watchdog in an empty external cwd Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  [
+    '-p',
+    '--no-tools',
+    '--no-session',
+    '-ne',
+...
+    '--provider',
++   'wrong',
+-   'fake-provider',
+    '--model',
++   'wrong',
+-   'fake-model',
+    '--thinking',
++   'low',
+-   'high',
+    '@$TMPDIR/nana-test-64961-TCdZdy/nana-reader-test-NQCcSh/out/prompt.md',
+    'go'
+  ]
+
+PASS R-3062: recorded honest quotes pass and an invented finding is marked
+PASS R-3063: none prints only zero findings and asks for nothing
+PASS R-3064: missing browser, model or objective degrades without a launch
+PASS R-3065: failed, empty and timed-out attempts keep only the prompt and fail in one line
+FAIL M6: outside reader chooses exact scout or builder and never legacy land Expected values to be strictly equal:
++ actual - expected
+
++ 'land-provider'
+- 'builder-provider'
+
+FAIL R-3066: outside-reader values retain their sealed provenance Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'scout',
++   'land',
+    'builder'
+  ]
+
+FAIL  packages/nana-pack/tests/outside-reader.test.mjs  5 pass, 3 fail  0.1s  — exit 1
+
+2 files: 0 PASS, 2 FAIL, 0 SKIP, 0 WARN · checks: 5 pass, 10 fail, 0 skip · 2.9s
+failed: packages/nana-pack/tests/one-reviewer.test.mjs, packages/nana-pack/tests/outside-reader.test.mjs
+
+=== Wrong CODE vocabulary seal: node scripts/test.mjs one-reviewer.test.mjs --verbose (exit 1) ===
+FAIL seal: legacy roster keys are land and checker Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'land',
+-   'checker'
+  ]
+
+FAIL M1: legacy keys are ignored and writes remain readable by the pre-lane resolver roster has an unexpected field checker
+FAIL M2: roster notice names only the surviving roles and lanes roster has an unexpected field checker
+PASS M3: both Node review launchers refuse land before children or reservations and retain plain reviews
+FAIL M4: checker is refused naming surviving slots and adversary still launches pi-worker: slot refused: roster refused: $TMPDIR/nana-test-11976-sqBYuc/one-reviewer-KsDHvH/nana-pack.json: roster has an unexpected field checker
+
+
+1 !== 0
+
+PASS M5: lane class and seat mutation runner modules are absent
+PASS M7: all role guidance states one reviewer plus CI and the shared marker stays identical
+PASS M8: dated one-reviewer ruling replaces independent check and checker-slot rulings
+FAIL  packages/nana-pack/tests/one-reviewer.test.mjs  4 pass, 4 fail  2.2s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 4 pass, 4 fail, 0 skip · 2.6s
+failed: packages/nana-pack/tests/one-reviewer.test.mjs
+
+=== Wrong optional-slot injection: node scripts/test.mjs one-reviewer.test.mjs --verbose (exit 1) ===
+PASS seal: legacy roster keys are land and checker
+FAIL M1: legacy keys are ignored and writes remain readable by the pre-lane resolver Expected values to be strictly equal:
+
+true !== false
+
+PASS M2: roster notice names only the surviving roles and lanes
+PASS M3: both Node review launchers refuse land before children or reservations and retain plain reviews
+PASS M4: checker is refused naming surviving slots and adversary still launches
+PASS M5: lane class and seat mutation runner modules are absent
+PASS M7: all role guidance states one reviewer plus CI and the shared marker stays identical
+PASS M8: dated one-reviewer ruling replaces independent check and checker-slot rulings
+FAIL  packages/nana-pack/tests/one-reviewer.test.mjs  7 pass, 1 fail  2.7s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 7 pass, 1 fail, 0 skip · 3.1s
+failed: packages/nana-pack/tests/one-reviewer.test.mjs
+
+=== npm run map (exit 0) ===
+
+> nana-pi@0.5.0 map
+> node scripts/code-map.mjs --write
+
+docs/code-map.md: 616 modules
+
+=== npm run map:check (exit 0) ===
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 616 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+
+=== npm run req:tree (exit 0) ===
+
+> nana-pi@0.5.0 req:tree
+> node scripts/requirements-tree.mjs --write
+
+requirements tree: 0 problems; rows 2573; features 43
+deliverables: 21 of 23 made and read by code, 20 more parked
+
+=== npm run readme:check (exit 0) ===
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 1084 claims checked; 0 problem(s)
+
+=== node scripts/requirements-tree.mjs --root . (exit 0) ===
+requirements tree: 0 problems; rows 2573; features 43
+deliverables: 21 of 23 made and read by code, 20 more parked
+
+=== node scripts/component-audit.mjs --check (exit 0) ===
+stale: compass 26 commits since a2ad3f21
+stale: setup 26 commits since a2ad3f21
+stale: key-cabinet 661 commits since a2ad3f21
+stale: night-shift 661 commits since a2ad3f21
+stale: requirement-contract 175 commits since a2ad3f21
+stale: command-gate 75 commits since a2ad3f21
+unclaimed: apps/hive/assets/bee.mjs
+unclaimed: apps/hive/assets/cell.mjs
+unclaimed: apps/hive/assets/district.mjs
+unclaimed: apps/hive/assets/hive.mjs
+unclaimed: apps/hive/assets/materials.mjs
+unclaimed: apps/hive/assets/parts.mjs
+unclaimed: apps/hive/assets/residents.mjs
+unclaimed: apps/hive/assets/road.mjs
+unclaimed: apps/hive/camera.mjs
+unclaimed: apps/hive/city.mjs
+unclaimed: apps/hive/config.mjs
+unclaimed: apps/hive/explore.mjs
+unclaimed: apps/hive/labels.mjs
+unclaimed: apps/hive/layout.mjs
+unclaimed: apps/hive/main.mjs
+unclaimed: apps/hive/pixel.mjs
+unclaimed: apps/hive/runtime.mjs
+unclaimed: apps/hive/text-layer.mjs
+unclaimed: apps/hive/tour.mjs
+unclaimed: packages/nana-pack/bin/leak-scan.mjs
+unclaimed: packages/nana-pack/bin/nana-ci-wait.mjs
+unclaimed: packages/nana-pack/bin/nana-curate.mjs
+unclaimed: packages/nana-pack/bin/nana-main-ci.mjs
+unclaimed: packages/nana-pack/bin/nana-memory.mjs
+unclaimed: packages/nana-pack/bin/nana-profile.mjs
+unclaimed: scripts/code-map-launch-config.mjs
+unclaimed: scripts/hive-gesture-check.mjs
+unclaimed: scripts/hive-page-config.mjs
+unclaimed: scripts/hive-page.mjs
+unclaimed: scripts/memory-curate.mjs
+unclaimed: scripts/memory-make.mjs
+unclaimed: scripts/memory-replay.mjs
+unclaimed: scripts/memory-run.mjs
+unclaimed: scripts/memory-score.mjs
+unclaimed: scripts/memory-shape-runners.mjs
+unclaimed: scripts/memory-shape.mjs
+unclaimed: scripts/outcome-compare.mjs
+unclaimed: scripts/outcome-meter.mjs
+unclaimed: scripts/outcome-score.mjs
+unclaimed: scripts/reader-common.mjs
+unclaimed: scripts/visual-reader-config.mjs
+unclaimed: scripts/visual-reader.mjs
+unclaimed: 42 of 309 mapped modules
+(node:60807) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://./templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to ./package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+=== node scripts/requirements-trace.mjs (exit 0) ===
+requirements: 2573 total (2262 implemented · 7 planned · 109 retired · 190 untested · 5 violated); 2269 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:62600) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://./templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to ./package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+=== Filtered precommit run: full command in evidence.md (exit 0) ===
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs          12 pass  1.9s
+PASS  packages/nana-pack/tests/code-search.test.mjs              9 pass  0.6s
+PASS  packages/nana-pack/tests/code-map.test.mjs                 48 pass  3.4s
+PASS  packages/nana-pack/tests/claude-review.test.mjs            10 pass, 1 skip  12.6s
+PASS  packages/nana-pack/tests/build-records.test.mjs            7 pass  13.6s
+PASS  packages/nana-pack/tests/nana-roster-set.test.mjs          11 pass  2.2s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs              27 pass  1.4s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs             8 pass  2.8s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs           8 pass  0.1s
+PASS  packages/nana-pack/tests/pack-config-utf16.test.mjs        5 pass, 1 skip  1.2s
+PASS  packages/nana-pack/tests/immutable-review.test.mjs         22 pass  18.2s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs           11 pass  0.0s
+PASS  packages/nana-pack/tests/readme-check.test.mjs             11 pass  0.3s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs       61 pass  4.7s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs        98 pass  2.7s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs            21 pass  0.4s
+PASS  packages/nana-pack/tests/rulings.test.mjs                  23 pass  0.1s
+PASS  packages/nana-pack/tests/component-audit.test.mjs          11 pass  45.8s
+PASS  packages/nana-pack/tests/path-spelling.test.mjs            11 pass  30.7s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs          23 pass  53.8s
+PASS  packages/nana-pack/tests/win32-launch.test.mjs             5 pass, 8 skip  0.1s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs     11 pass  32.6s
+PASS  packages/nana-pack/tests/test-runner.test.mjs              53 pass  31.1s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs  28 pass  0.2s
+PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs      4 pass  0.6s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs         12 pass  3.5s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs               21 pass  0.0s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs            24 pass, 3 skip  32.0s
+PASS  packages/nana-pack/tests/templates-render.test.mjs         173 pass  65.5s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs              68 pass  31.8s
+
+30 files: 30 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 836 pass, 0 fail, 13 skip · 113.1s
+
+=== Latest must-meet launch cases: node scripts/test.mjs one-reviewer.test.mjs --verbose (exit 0) ===
+PASS seal: legacy roster keys are land and checker
+PASS M1: legacy keys are ignored and writes remain readable by the pre-lane resolver
+PASS M2: roster notice names only the surviving roles and lanes
+PASS M3: both Node review launchers refuse land before children or reservations and retain plain reviews
+PASS M4: checker is refused naming surviving slots and adversary still launches
+PASS M5: lane class and seat mutation runner modules are absent
+PASS M7: all role guidance states one reviewer plus CI and the shared marker stays identical
+PASS M8: dated one-reviewer ruling replaces independent check and checker-slot rulings
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs  8 pass  2.8s
+
+1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 8 pass, 0 fail, 0 skip · 3.2s

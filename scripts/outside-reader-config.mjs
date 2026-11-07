@@ -24,7 +24,7 @@ export const KNOWN_BUG_CAP = 6_000;
 export const PROMPT_PATH = "packages/nana-pack/prompts/outside-reader.md";
 export const KNOWN_BUG_FEATURE = "FEAT-039";
 // chosen 2026-10-29 (plan Q3 default): first pi entry, skipping Claude Code entries.
-export const ROSTER_SLOT_ORDER = Object.freeze(["scout", "land", "builder"]);
+export const ROSTER_SLOT_ORDER = Object.freeze(["scout", "builder"]);
 // measured one-off working rerun, 2026-10-29: ceiling 600s, one attempt; server thinking may be flat.
 // Infinity follows worker-config.mjs's CLAUDE_BUILDER_STALL_SECS precedent.
 export const STALL_SECS = Infinity;

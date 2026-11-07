@@ -48,8 +48,6 @@ the fix is to narrow the row.
   is left. A `violated` row with an empty Evidence cell is a dead row; nobody can close it.
 - A test that asserts *near* a clause does not pin it. Value-relative assertions
   (`threshold ± 1`, "some rows came back") pin nothing a retune could break.
-- In an install, hook or gate lane the seat also breaks the code and watches the cited test go
-  red.
 
 Workers write honest code and an optimistic ledger. That asymmetry is why §6 exists.
 
