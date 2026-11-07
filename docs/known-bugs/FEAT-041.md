@@ -29,3 +29,10 @@
 - Context shaping (load-log, plan assumption A1): Claude Code children (claude-review, the Claude Code builder) log no context-file parts; their CLAUDE.md discovery is Claude Code's own walk.
 - Context shaping (load-log, review round 2): if the launcher is out of file handles (EMFILE or ENFILE), spawning the measuring child leaves `child.stdout` null and the launcher crashes on an unhandled error; the real child launch would fail in that state anyway.
 - Context shaping (load-log, review round 2): a SIGKILLed launcher can leave a stuck measuring child, which is detached and never cleaned up; with a normal pi it exits on its own in about 0.4 s.
+- Context shaping (leak-guard, plan): the identity scan's tokenizer gaps (FEAT-032: %2F, \n, word plus year, UTF-16, gzip) apply to leak-scan too.
+- Context shaping (leak-guard, plan): file:// URLs and JSON-escaped Windows paths (`C:\\Users\\x`) of the home or temp root aren't matched.
+- Context shaping (leak-guard, plan): the seat-rule bullet reaches a machine's installed rule copy only after the next `nana-setup install`, and no hook enforces the chained scan before a push.
+- Context shaping (leak-guard, review round 1): a hit line prints the file's repo path, so a file whose name holds an identity word echoes it on the seat's terminal (local only).
+- Context shaping (leak-guard, review round 1): on Linux the temp root is `/tmp`, so any committed `/tmp/...` mention is flagged; 362 tracked files mention it, and no Linux seat is recorded.
+- Context shaping (leak-guard, review round 1): a home or temp root followed directly by a backtick, comma or parenthesis isn't matched; only a separator, quote, whitespace or end of text closes a match.
+- Context shaping (leak-guard, review round 1): a submodule entry in the range makes the scan exit 2 (loud, not silent), and Windows PowerShell 5.1 lacks the `&&` the seat-rule bullet uses.
