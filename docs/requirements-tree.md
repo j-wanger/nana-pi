@@ -306,7 +306,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Artifacts: A-029
 - **CAP-07 · Keep code and promises checkable**
   Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
-  Parent: — · Rows: 596 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1470–R-1477, R-1480, R-1510–R-1515, R-1521, R-1550–R-1557, R-1570, R-1571, R-1630–R-1633, R-1640–R-1643, R-1650–R-1655, R-1660–R-1665, R-1700–R-1703, R-1740–R-1743, R-1770–R-1779, R-1820, R-1920–R-1924, R-1950–R-1957, R-1960, R-1986, R-2150, R-2151, R-2170–R-2172, R-2210–R-2215, R-2396, R-2440–R-2447, R-2450–R-2454, R-2460, R-2480–R-2486, R-2511–R-2516, R-2518–R-2555, R-2631–R-2635, R-2637–R-2643, R-2656–R-2659, R-2661, R-2663, R-2666–R-2670, R-2730, R-2740–R-2745, R-2753, R-2780–R-2787, R-2790–R-2802, R-2820–R-2823, R-2830–R-2834, R-2837, R-2880–R-2885, R-2920–R-2925, R-2927, R-2930–R-2933, R-2960–R-2969, R-2978, R-2980–R-2986, R-3000–R-3008, R-3040–R-3043, R-3050–R-3055, R-3060–R-3067, R-3071–R-3074, R-3080–R-3082, R-3100–R-3110, R-3120–R-3134, R-3139–R-3150, R-3152–R-3163, R-3170–R-3187, R-3433, R-3450–R-3455, R-3530, R-3531, R-3540, R-3541, R-3680, R-3681, G-001–G-022
+  Parent: — · Rows: 604 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1470–R-1477, R-1480, R-1510–R-1515, R-1521, R-1550–R-1557, R-1570, R-1571, R-1630–R-1633, R-1640–R-1643, R-1650–R-1655, R-1660–R-1665, R-1700–R-1703, R-1740–R-1743, R-1770–R-1779, R-1820, R-1920–R-1924, R-1950–R-1957, R-1960, R-1986, R-2150, R-2151, R-2170–R-2172, R-2210–R-2215, R-2396, R-2440–R-2447, R-2450–R-2454, R-2460, R-2480–R-2486, R-2511–R-2516, R-2518–R-2555, R-2631–R-2635, R-2637–R-2643, R-2656–R-2659, R-2661, R-2663, R-2666–R-2670, R-2730, R-2740–R-2745, R-2753, R-2780–R-2787, R-2790–R-2802, R-2820–R-2823, R-2830–R-2834, R-2837, R-2880–R-2885, R-2920–R-2925, R-2927, R-2930–R-2933, R-2960–R-2969, R-2978, R-2980–R-2986, R-3000–R-3008, R-3040–R-3043, R-3050–R-3055, R-3060–R-3067, R-3071–R-3074, R-3080–R-3082, R-3100–R-3110, R-3120–R-3134, R-3139–R-3150, R-3152–R-3163, R-3170–R-3187, R-3433, R-3450–R-3455, R-3530, R-3531, R-3540, R-3541, R-3680, R-3681, R-3775–R-3782, G-001–G-022
   Kind: product
   Deliverables: R-291, R-1460, R-1014, R-1272, R-616, R-2547, R-2632
   - **FEAT-028 · Maintain requirement identity and trace links**
@@ -352,38 +352,35 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Rebuild one report of the product, its features, their requirements and the decisions waiting on the owner, from the repo at any commit from its first build on.
     Status: active
     Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
-    Parent: CAP-07 · Rows: 154 · IDs: R-1012–R-1030, R-1040–R-1043, R-1510–R-1515, R-1570, R-1571, R-1633, R-1650–R-1655, R-2450–R-2454, R-2542–R-2545, R-2642, R-2740–R-2745, R-2790–R-2794, R-2799–R-2802, R-2920–R-2925, R-2927, R-2930–R-2933, R-2980–R-2986, R-3040–R-3043, R-3050–R-3055, R-3060–R-3067, R-3071–R-3074, R-3080–R-3082, R-3100–R-3110, R-3120–R-3134, R-3139–R-3148, R-3161–R-3163, R-3170–R-3177, R-3187
-    Artifacts: A-045, A-073, A-085, A-087, A-086
+    Parent: CAP-07 · Rows: 162 · IDs: R-1012–R-1030, R-1040–R-1043, R-1510–R-1515, R-1570, R-1571, R-1633, R-1650–R-1655, R-2450–R-2454, R-2542–R-2545, R-2642, R-2740–R-2745, R-2790–R-2794, R-2799–R-2802, R-2920–R-2925, R-2927, R-2930–R-2933, R-2980–R-2986, R-3040–R-3043, R-3050–R-3055, R-3060–R-3067, R-3071–R-3074, R-3080–R-3082, R-3100–R-3110, R-3120–R-3134, R-3139–R-3148, R-3161–R-3163, R-3170–R-3177, R-3187, R-3775–R-3782
+    Artifacts: A-045, A-073, A-085, A-086
     Reads: A-003, A-015, A-046, A-006, A-030, A-032, A-033
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 135 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3406, R-3640–R-3648, R-3682–R-3684
+  Parent: — · Rows: 143 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3406, R-3640–R-3648, R-3682–R-3684, R-3783–R-3790
   Kind: product
-  Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270, R-3390
+  Deliverables: R-694, R-3270, R-3390
   - **FEAT-034 · Define reproducible comparisons**
     Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
     Status: active
     Also applies: —
-    Parent: CAP-08 · Rows: 21 · IDs: R-501, R-502, R-508–R-514, R-532–R-534, R-551–R-554, R-573, R-1095, R-2770–R-2772
+    Parent: CAP-08 · Rows: 29 · IDs: R-501, R-502, R-508–R-514, R-532–R-534, R-551–R-554, R-573, R-1095, R-2770–R-2772, R-3783–R-3790
     Artifacts: A-039, A-074
-    Reads: A-042
   - **FEAT-035 · Account for cost and uncertainty**
     Purpose: Measure direct and nested work with consistent usage semantics and report unknown or partially priced spend explicitly.
-    Status: active
+    Status: frozen (study accounting retired 2026-11-07; recorded summary preserved)
     Also applies: —
     Parent: CAP-08 · Rows: 11 · IDs: R-503–R-506, R-535, R-546–R-550, R-557
     Artifacts: A-040
-    Reads: A-042
   - **FEAT-036 · Bound study execution and paid work**
     Purpose: Preflight paid work, apply budgets and stop conditions and preserve exactly-once records during interruption.
-    Status: active
+    Status: frozen (study execution retired 2026-11-07; probe ledger preserved)
     Also applies: —
     Parent: CAP-08 · Rows: 21 · IDs: R-500, R-515–R-521, R-541, R-542, R-545, R-555, R-556, R-558–R-560, R-1500–R-1504
     Artifacts: A-041
-    Reads: A-042
   - **FEAT-037 · Grade behavior with trustworthy checks**
     Purpose: Separate behavioral grading from the code under evaluation and report failures and grader errors honestly.
-    Status: active
+    Status: frozen (study grading retired 2026-11-07; results and oracle keys preserved)
     Also applies: —
     Parent: CAP-08 · Rows: 24 · IDs: R-507, R-522–R-531, R-543, R-561–R-572
     Artifacts: A-042, A-075

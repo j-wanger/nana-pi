@@ -117,42 +117,9 @@ await test("R-3043: sealed page-shaping paths name renderer, template and report
     "packages/nana-pack/lib/land-config.mjs", "packages/nana-pack/lib/runtime-map.mjs",
     "packages/nana-pack/lib/runtime-map-config.mjs", "packages/nana-pack/lib/land-ci.mjs",
     "packages/nana-pack/lib/suite-records.mjs", "packages/nana-pack/lib/build-records.mjs",
-    "apps/bench/lib/checkers.mjs",
+    "scripts/glob-match.mjs",
   ]);
   assert.deepEqual(VIEWPORT_WIDTHS, [380, 1280]);
-});
-
-// req: R-3133
-await test('R-3133: hive URL capture waits for drawing, reduces motion and names empty or timed-out canvases', async () => {
-  const { HIVE_READY_TIMEOUT_MS, HIVE_BACKGROUND, HIVE_PROBE_FRACTION } = await import('../../../scripts/first-look-config.mjs');
-  assert.equal(HIVE_READY_TIMEOUT_MS, 15000); assert.equal(HIVE_BACKGROUND, '#d7d9d5'); assert.equal(HIVE_PROBE_FRACTION, 0.5);
-  for (const mode of ['drawn', 'empty', 'timeout']) {
-    const dir = await temp(); const events = []; const lines = [];
-    try {
-      const browser = { async newPage({ viewport }) { events.push(['width', viewport.width]); return {
-        async emulateMedia(value) { events.push(['motion', value]); },
-        async goto() { events.push(['goto']); },
-        async waitForSelector(selector, options) { events.push(['ready', selector, options]); if (mode === 'timeout') throw new Error('timeout'); },
-        async evaluate() { events.push(['pixels']); return mode !== 'empty'; },
-        async setViewportSize({ width }) { events.push(['width', width]); },
-        async screenshot() { assert(['pixels', 'shot'].includes(events.at(-1)[0])); events.push(['shot']); },
-        async close() {},
-      }; }, async close() {} };
-      const code = await runFirstLook(['--page', 'url', '--hive', '--before', 'http://127.0.0.1:1', '--after', 'http://127.0.0.1:1', '--out', path.join(dir, 'out')], { root: path.join(dir, 'repo'), browser: async () => browser, readTree: async () => 'Renderer: webgl', stdout: line => lines.push(line) });
-      assert.equal(code, mode === 'drawn' ? 0 : 1);
-      if (mode === 'drawn') {
-        assert.deepEqual(events.filter(e => e[0] === 'width').map(e => e[1]), [380, 1280, 380, 1280]); assert.equal(events.filter(e => e[0] === 'shot').length, 8);
-        assert.equal(events.filter(e => e[0] === 'pixels').length, 4);
-        assert(events.filter(e => e[0] === 'motion').every(e => e[1].reducedMotion === 'reduce')); assert.equal(events.filter(e => e[0] === 'motion').length, 4);
-        assert(events.filter(e => e[0] === 'ready').every(e => e[1] === 'html[data-hive-ready]' && e[2].timeout === HIVE_READY_TIMEOUT_MS));
-      } else assert.deepEqual(lines, [mode === 'empty' ? 'first-look: the hive canvas is empty' : 'first-look: the hive ready wait timed out']);
-    } finally { await fs.rm(dir, { recursive: true, force: true }); }
-  }
-  const dir = await temp(); try {
-    const calls = { viewports: [], urls: [], shots: [] };
-    assert.equal(await runFirstLook(['--page', 'desk', '--before', 'http://localhost:1', '--after', 'http://localhost:2'], { outputDir: dir, browser: async () => fakeBrowser(calls), stdout: () => {} }), 0);
-    assert.equal(calls.shots.length, 4);
-  } finally { await fs.rm(dir, { recursive: true, force: true }); }
 });
 
 // req: R-3142

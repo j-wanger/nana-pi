@@ -14,7 +14,7 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PAGE_SHAPING_PATHS, PRODUCT_VIEWS, VIEWPORT_WIDTHS, VIEWPORT_HEIGHT, REFERENCE_FRAME_CAP, ACCEPTED_IMAGE_EXTENSIONS, MAX_SPEC_LINES, HIVE_READY_TIMEOUT_MS, HIVE_PROBE_FRACTION, HIVE_BACKGROUND } from "./first-look-config.mjs";
+import { PAGE_SHAPING_PATHS, PRODUCT_VIEWS, VIEWPORT_WIDTHS, VIEWPORT_HEIGHT, REFERENCE_FRAME_CAP, ACCEPTED_IMAGE_EXTENSIONS, MAX_SPEC_LINES } from "./first-look-config.mjs";
 import { outsideRepo } from "./reader-common.mjs";
 
 import { resolvePlaywright } from "./playwright-resolve.mjs";
@@ -29,15 +29,13 @@ function parseArgs(argv) {
   const values = new Set(["--page", "--out", "--before", "--after", "--reference", "--spec"]);
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
-    if (flag === "--hive") { if (result[flag]) return null; result[flag] = true; continue; }
     if (!values.has(flag) || !argv[i + 1] || argv[i + 1].startsWith("--") || Object.hasOwn(result, flag)) return null;
     result[flag] = argv[++i];
   }
   if (!result["--page"] || !["product", "desk", "url"].includes(result["--page"])) return null;
-  if (result["--page"] === "product" && (!result["--out"] || result["--before"] || result["--after"] || result["--hive"] || result["--reference"] || result["--spec"])) return null;
-  if (result["--page"] === "desk" && (!result["--before"] || !result["--after"] || result["--out"] || result["--hive"] || result["--reference"] || result["--spec"])) return null;
+  if (result["--page"] === "product" && (!result["--out"] || result["--before"] || result["--after"] || result["--reference"] || result["--spec"])) return null;
+  if (result["--page"] === "desk" && (!result["--before"] || !result["--after"] || result["--out"] || result["--reference"] || result["--spec"])) return null;
   if (result["--page"] === "url" && (!result["--after"] || !result["--out"])) return null;
-  if (result["--hive"] && result["--page"] !== "url") return null;
   return result;
 }
 function changedPagePath(file) {
@@ -149,35 +147,16 @@ async function prepareUrlInputs(args, root, stdout) {
   }
   return { text: "", lines: [], entries: [] };
 }
-export async function waitForHive(page, hive) {
-  if (!hive) return;
-  try { await page.waitForSelector("html[data-hive-ready]", { timeout: HIVE_READY_TIMEOUT_MS }); }
-  catch { throw new Error("first-look: the hive ready wait timed out"); }
-  const drawn = await page.evaluate(({ background, fraction }) => {
-    const canvas = document.querySelector("canvas");
-    if (!canvas || !canvas.width || !canvas.height) return false;
-    const probe = document.createElement("canvas"); probe.width = canvas.width; probe.height = canvas.height;
-    const context = probe.getContext("2d"); context.drawImage(canvas, 0, 0);
-    const width = Math.max(1, Math.floor(canvas.width * fraction)); const height = Math.max(1, Math.floor(canvas.height * fraction));
-    const data = context.getImageData(Math.floor((canvas.width - width) / 2), Math.floor((canvas.height - height) / 2), width, height).data;
-    const rgb = background.slice(1).match(/../g).map((part) => parseInt(part, 16));
-    for (let i = 0; i < data.length; i += 4) if (data[i + 3] && rgb.some((value, j) => data[i + j] !== value)) return true;
-    return false;
-  }, { background: HIVE_BACKGROUND, fraction: HIVE_PROBE_FRACTION });
-  if (!drawn) throw new Error("first-look: the hive canvas is empty");
-}
-async function captureUrlPage(browser, url, output, side, hive) {
+async function captureUrlPage(browser, url, output, side) {
   const frames = [];
   for (const width of VIEWPORT_WIDTHS) {
     const page = await browser.newPage({ viewport: { width, height: VIEWPORT_HEIGHT } });
     try {
       await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.goto(url, { waitUntil: "load" }); await waitForHive(page, hive);
+      await page.goto(url, { waitUntil: "load" });
       const viewport = `${side}-${width}.png`; const full = `${side}-${width}-full.png`;
-      // A full-page capture temporarily resizes a scroll tour; preserve the linked pose first.
-      if (hive) await page.screenshot({ path: path.join(output, viewport), fullPage: false });
       await page.screenshot({ path: path.join(output, full), fullPage: true });
-      if (!hive) await page.screenshot({ path: path.join(output, viewport), fullPage: false });
+      await page.screenshot({ path: path.join(output, viewport), fullPage: false });
       frames.push({ width, file: viewport });
     } finally { await page.close(); }
   }
@@ -191,7 +170,7 @@ async function referenceHtml(output, pageFrames, referenceFrames) {
 }
 async function runUrlMode(args, root, browser, stdout, prepared) {
   const output = path.resolve(root, args["--out"]); await mkdir(output, { recursive: true });
-  const capture = async (url, side) => captureUrlPage(browser, url, output, side, Boolean(args["--hive"]));
+  const capture = async (url, side) => captureUrlPage(browser, url, output, side);
   if (args["--reference"]) {
     const pageFrames = await capture(args["--after"], "page");
     const referenceFrames = [];
@@ -210,7 +189,7 @@ async function runUrlMode(args, root, browser, stdout, prepared) {
 
 export async function runFirstLook(argv = [], injected = {}) {
   const args = parseArgs(argv);
-  if (!args) { (injected.stdout ?? console.log)("Usage: first-look --page product --out <dir> | --page desk --before <url> --after <url> | --page url --after <url> (--before <url> | --reference <folder> --spec <file>) [--hive] --out <folder>"); return 2; }
+  if (!args) { (injected.stdout ?? console.log)("Usage: first-look --page product --out <dir> | --page desk --before <url> --after <url> | --page url --after <url> (--before <url> | --reference <folder> --spec <file>) --out <folder>"); return 2; }
   const root = path.resolve(injected.root ?? process.cwd());
   const stdout = injected.stdout ?? console.log;
   let base = injected.mergeBase;
@@ -258,10 +237,8 @@ export async function runFirstLook(argv = [], injected = {}) {
     await (injected.writeDiff ? injected.writeDiff(output, diff) : import("node:fs/promises").then(({ writeFile }) => writeFile(path.join(output, "accessibility-diff.txt"), diff, "utf8")));
     stdout(`first-look: saved screenshots and accessibility diff in ${output}`);
     return 0;
-  } catch (error) {
-    const message = ["first-look: the hive canvas is empty", "first-look: the hive ready wait timed out"].includes(error?.message)
-      ? error.message : "first-look: report or page capture failed";
-    stdout(message);
+  } catch {
+    stdout("first-look: report or page capture failed");
     return 1;
   } finally {
     if (browser) await browser.close().catch(() => {});

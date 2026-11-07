@@ -18,7 +18,7 @@ import { segmentPart } from "../lib/anatomy-spans.mjs";
 import { pullsOf } from "../lib/anatomy-pulls.mjs";
 import { reportContexts, drawSample, agreement, assembleParts } from "../lib/anatomy-measures.mjs";
 import { FUNCTIONS, RULES, OVERSIZE_UNIT_CHARS, SHARE_DIGITS, STAGE_POINTER, SAMPLE_MIN_FUNCTION, SAMPLE_SIZE, KAPPA_MIN_COUNT } from "../lib/anatomy-config.mjs";
-import { cohensKappa, seededSample } from "../lib/catch-stats.mjs";
+import { cohensKappa, seededSample } from "../lib/anatomy-stats.mjs";
 import { collectBuildUsage } from "../../../packages/nana-pack/lib/build-records.mjs";
 import { totalTokens } from "../../../packages/nana-pack/lib/pi-usage.mjs";
 import { entriesIn } from "../../../packages/nana-pack/lib/claude-transcript.mjs";

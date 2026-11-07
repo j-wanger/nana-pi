@@ -1,0 +1,30 @@
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs           56 pass  3.1s
+PASS  packages/nana-pack/tests/claude-launch.test.mjs              6 pass, 2 skip  0.0s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs            12 pass  1.8s
+PASS  packages/nana-pack/tests/code-map.test.mjs                   48 pass  3.2s
+PASS  packages/nana-pack/tests/component-audit.test.mjs            11 pass  42.2s
+PASS  packages/nana-pack/tests/first-look.test.mjs                 8 pass  0.0s
+PASS  packages/nana-pack/tests/memory-replay.test.mjs              20 pass  0.5s
+PASS  packages/nana-pack/tests/memory-shaping.test.mjs             20 pass  0.3s
+PASS  packages/nana-pack/tests/outcome-meter.test.mjs              27 pass  0.6s
+PASS  packages/nana-pack/tests/product-detail.test.mjs             4 pass  1.4s
+PASS  packages/nana-pack/tests/product-overview.test.mjs           15 pass  4.3s
+PASS  packages/nana-pack/tests/product-report.test.mjs             97 pass  59.0s
+PASS  packages/nana-pack/tests/readme-check.test.mjs               11 pass  0.2s
+PASS  packages/nana-pack/tests/requirement-rows.test.mjs           5 pass  0.6s
+PASS  packages/nana-pack/tests/requirements-cap-kinds.test.mjs     9 pass  0.6s
+PASS  packages/nana-pack/tests/requirements-deliverables.test.mjs  21 pass  0.6s
+PASS  packages/nana-pack/tests/requirements-lift.test.mjs          65 pass  35.7s
+PASS  packages/nana-pack/tests/requirements-moved.test.mjs         10 pass  0.4s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs       63 pass  26.2s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs         61 pass  4.3s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs          98 pass  2.5s
+PASS  packages/nana-pack/tests/requirements-unclaimed.test.mjs     6 pass  2.2s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs       11 pass  33.4s
+PASS  packages/nana-pack/tests/test-runner.test.mjs                53 pass  30.2s
+PASS  apps/bench/test/anatomy-labels.test.mjs                      30 pass  1.3s
+PASS  apps/bench/test/anatomy-seat.test.mjs                        16 pass  0.4s
+PASS  apps/bench/test/anatomy.test.mjs                             9 pass  1.0s
+PASS  apps/bench/test/retire.test.mjs                              8 pass  39.0s
+
+28 files: 28 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 800 pass, 0 fail, 2 skip · 295.7s
