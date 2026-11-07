@@ -7,6 +7,8 @@
  * @errors Failed assertions set a nonzero exit status.
  */
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -325,7 +327,7 @@ test('R-3726: lane load delegates to the located package export in order without
   stubContext(f, `import {writeSync} from 'node:fs'; writeSync(1, ${JSON.stringify(JSON.stringify({...checked, signal:'SIGTERM', content:'PRIVATE', parts:checked.parts.map(p=>({...p,content:'PRIVATE',extra:true}))}))}); process.exit(0);`);
   assert.deepEqual(await piContextLoad({cwd:f.lane,env:f.env,args:[]}), checked, 'discard child extras at both levels');
 });
-// req: R-3727
+// req: R-3727 R-3808 R-3812
 test('R-3727: installed pi chooses AGENTS over CLAUDE in the same directory', async () => {
   const { locatePiPackage }=await import('../lib/pi-package.mjs');
   const found=locatePiPackage();
@@ -333,7 +335,11 @@ test('R-3727: installed pi chooses AGENTS over CLAUDE in the same directory', as
   const { piContextLoad }=await import('../lib/pi-context-load.mjs');
   const f=fixture(); const text='# Instructions\r\nKeep spaces. \t\r\nNo final newline \t';
   write(path.join(f.lane,'AGENTS.md'),text); write(path.join(f.lane,'CLAUDE.md'),'not selected');
-  const result=await piContextLoad({cwd:f.lane,env:{...f.env,PATH:process.env.PATH},args:[]});
+  // Choice is semantic, not a test of the production deadline (pinned separately).
+  const result=await piContextLoad({cwd:f.lane,env:{...f.env,PATH:process.env.PATH},args:[],
+    schedule: () => null, cancel: () => {},
+    start: (_command, argv, options) => spawn(process.execPath, ['--import', 'data:text/javascript,await new Promise(r=>setTimeout(r,3500))', fileURLToPath(new URL('../lib/pi-context-measure.mjs', import.meta.url)), argv[1]], options),
+  });
   assert.equal(result.piVersion,found.packageJson.version);
   assert.deepEqual(result.parts.filter(p=>path.dirname(p.source)===f.lane),[{name:'context file',source:path.join(f.lane,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
   assert.ok(!result.parts.some(p=>p.name.startsWith('context files: unavailable')));
@@ -401,9 +407,8 @@ test('R-3732: unavailable pi context preserves launch delivery and other parts',
   write(path.join(pkg,'dist/index.js'),`export function loadProjectContextFiles() { throw new Error('PRIVATE-CONTENT'); }`);
   const thrown=launch(f,'pi-worker'); good(thrown); const line=rows(f.log).at(-1); assert.match(line.parts.at(-1).name,/^context files: unavailable \(.+\)$/); assert.ok(!JSON.stringify(line).includes('PRIVATE-CONTENT'));
 });
-// req: R-3732
+// req: R-3732 R-3809 R-3812
 test('R-3732: stalled measurement is killed and both launchers proceed within the deadline', async () => {
-  const { PI_CONTEXT_TIMEOUT_MS } = await import('../bin/worker-config.mjs');
   const { pidAlive } = await import('../lib/process-tree.mjs');
   for (const [launcher, stall] of [['pi-worker', 'await new Promise(() => {});'], ['pi-review', 'export async function loadProjectContextFiles() { await new Promise(() => {}); }']]) {
     const f = fixture(), pidFile = path.join(f.dir, 'measurement.json');
@@ -416,13 +421,19 @@ test('R-3732: stalled measurement is killed and both launchers proceed within th
       good({status,stderr});
       return performance.now() - started;
     };
-    // Pair identical launcher work so runner speed is not charged to measurement.
+    // Compare delivery, not elapsed time; the controlled-timer case pins the deadline.
     const baselineMs = await timedLaunch();
+    // An unrelated child scheduling delay must not count against the measurement deadline.
+    const body = fs.readFileSync(path.join(f.bin, 'fake.cjs'), 'utf8');
+    write(path.join(f.bin, 'fake.cjs'), `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,3000);\n${body}`);
+    // Windows fake pi has its own installed body.
+    write(path.join(pkg, 'cli.cjs'), `#!${process.execPath}\nAtomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,3000);\n${body}`);
     write(path.join(pkg,'dist/index.js'), `import {writeFileSync} from 'node:fs'; writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({pid:process.pid})); setInterval(()=>{},1000); ${stall}`);
     const stalledMs = await timedLaunch();
     assert.equal(rows(f.record).length, 2, 'both launches must proceed');
     console.log(`TIMING ${launcher}: baseline ${Math.round(baselineMs)} ms, stalled ${Math.round(stalledMs)} ms, added ${Math.round(stalledMs - baselineMs)} ms`);
-    assert.ok(stalledMs - baselineMs <= PI_CONTEXT_TIMEOUT_MS + 1500, 'launch exceeded baseline plus deadline and 1500 ms margin');
+    const delivery = call => JSON.parse(JSON.stringify(normalizeCall(call)).replace(/nana-review-\d+-[A-Za-z0-9]+/g, 'CHECKOUT').replace(/pi-review-a\d+-\d+/g, 'SESSION'));
+    assert.deepEqual(delivery(rows(f.record)[1]), delivery(rows(f.record)[0]), 'timeout must preserve child delivery');
     assert.deepEqual(rows(f.log).at(-1).parts.filter(p => p.name.startsWith('context file')), [{name:'context files: unavailable (timed out)',source:'pi',fullChars:0,deliveredChars:0}]);
     const {pid} = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
     const stoppedBy = Date.now() + 1000;
@@ -458,6 +469,22 @@ setInterval(()=>{},1000); export function loadProjectContextFiles(){return [];}`
 // req: R-3732
 test('R-3732: context measurement output seal is 1 MiB', async () => {
   assert.equal((await import('../bin/worker-config.mjs')).PI_CONTEXT_OUTPUT_MAX_BYTES, 1_048_576);
+});
+// req: R-3813 R-3812
+test('R-3813: controlled deadline kills at 3000 ms but not at 2999 ms', async () => {
+  const { piContextLoad } = await import('../lib/pi-context-load.mjs');
+  let now = 0, due, callback, killed = false, settled = false;
+  const child = new EventEmitter();
+  child.stdout = new PassThrough(); child.unref = () => {};
+  child.kill = signal => { assert.equal(signal, 'SIGKILL'); killed = true; };
+  const result = piContextLoad({ cwd: temp, env: {}, args: [], start: () => child,
+    schedule: (fn, ms) => { callback = fn; due = now + ms; return 1; }, cancel: () => {},
+  }).then(value => { settled = true; return value; });
+  const advance = async ms => { now += ms; if (due <= now) callback(); await Promise.resolve(); };
+  await advance(2999); assert.equal(killed, false); assert.equal(settled, false);
+  await advance(1); assert.equal(killed, true); assert.equal(settled, true);
+  assert.deepEqual((await result).parts, [{name:'context files: unavailable (timed out)',source:'pi',fullChars:0,deliveredChars:0}]);
+  assert.equal(child.stdout.destroyed, true);
 });
 // req: R-3732
 test('R-3732: context measurement deadline seal is 3000 ms', async () => {

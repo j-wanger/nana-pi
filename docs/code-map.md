@@ -2230,7 +2230,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/lib/pi-context-load.mjs`
 
 - **purpose** — Bound pi context measurement in a disposable child without changing launch delivery.
-- **inputs** — Actual child cwd, environment and pi arguments, plus an optional process spawner.
+- **inputs** — Actual child cwd, environment and pi arguments, plus optional process and timer boundaries.
 - **outputs** — Ordered contextPart measurements and piVersion, one disabled/unavailable part, or a cancellation signal.
 - **effects** — process (spawns Node, discards diagnostics, kills measurement on deadline)
 - **errors** — Never throws; process, protocol and deadline failures become content-free unavailable parts.
@@ -2244,7 +2244,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — One JSON result containing only version, paths, status names and character counts.
 - **effects** — disk (locates pi and calls its exported loader), process (imports pi only here and exits)
 - **errors** — Lookup, import, export and loader failures become content-free unavailable parts.
-- **callers** — —
+- **callers** — `packages/nana-pack/tests/context-anatomy.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/pi-package.mjs`
 
 ### `packages/nana-pack/lib/pi-package.mjs`
@@ -2931,8 +2931,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temporary fixtures), process (git, launchers and hooks)
 - **errors** — Failed assertions set a nonzero exit status.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/known-bug-digest-config.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/lib/outcome-meter.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/pi-package.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`, `scripts/identity-scan.mjs`
-- **unresolved launches** — line 62: spawnSync; binding line 79; binding line 95; binding line 117; binding line 133; binding line 156; binding line 171; binding line 172; binding line 198; binding line 199; binding line 210; binding line 213; binding line 223; binding line 232; binding line 242; binding line 249; binding line 250; binding line 254; binding line 316; binding line 373; binding line 388; binding line 393; binding line 395; binding line 402; binding line 446; binding line 471 · line 270: spawnSync; binding line 260; binding line 262; binding line 273 · line 310: spawnSync; binding line 349; binding line 386 · line 413: spawn
+- **callees** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/known-bug-digest-config.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/lib/outcome-meter.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/pi-context-measure.mjs`, `packages/nana-pack/lib/pi-package.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`, `scripts/identity-scan.mjs`
+- **unresolved launches** — line 64: spawnSync; binding line 81; binding line 97; binding line 119; binding line 135; binding line 158; binding line 173; binding line 174; binding line 200; binding line 201; binding line 212; binding line 215; binding line 225; binding line 234; binding line 244; binding line 251; binding line 252; binding line 256; binding line 318; binding line 379; binding line 394; binding line 399; binding line 401; binding line 408; binding line 457; binding line 498 · line 272: spawnSync; binding line 262; binding line 264; binding line 275 · line 312: spawnSync; binding line 355; binding line 392 · line 418: spawn
 
 ### `packages/nana-pack/tests/credential-gate.test.mjs`
 
@@ -4478,7 +4478,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed assertions exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/known-bugs.mjs`
-- **unresolved launches** — line 380: spawnSync
+- **unresolved launches** — line 381: spawnSync
 
 ### `packages/nana-pack/tests/writing-check.test.mjs`
 

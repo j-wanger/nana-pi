@@ -1,0 +1,18 @@
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs  44 pass  2.2s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs   12 pass  1.8s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs   24 pass  62.3s
+PASS  packages/nana-pack/tests/templates-render.test.mjs  173 pass  73.1s
+PASS  packages/nana-pack/tests/templates-update.test.mjs  35 pass  157.8s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs       68 pass  33.4s
+PASS  packages/nana-setup/tests/desk-service.test.mjs     46 pass  9.0s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs    72 pass  12.9s
+PASS  packages/nana-setup/tests/uninstall.test.mjs        31 pass  2.4s
+PASS  apps/desk/test/app-listener.test.mjs                76 pass  6.1s
+PASS  apps/desk/test/buffer-caps.test.mjs                 1 pass  0.3s
+PASS  apps/desk/test/host-rule.test.mjs                   30 pass  0.8s
+PASS  apps/desk/test/origin-rule.test.mjs                 11 pass  0.3s
+PASS  apps/desk/test/page-retire.test.mjs                 4 pass, 2 skip  7.0s
+PASS  apps/desk/test/stage-key-persistence.test.mjs       2 pass  1.2s
+PASS  apps/desk/test/usage-line.test.mjs                  6 pass  2.7s
+
+16 files: 16 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 635 pass, 0 fail, 2 skip · 374.2s
