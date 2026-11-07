@@ -11,6 +11,8 @@
 export const LANE_MAX_SECS = 28_800;
 // chosen 2026-11-06, R-3732: 3000 ms is well above the measured 0.4 s pi import; measurement must not block launch.
 export const PI_CONTEXT_TIMEOUT_MS = 3_000;
+// chosen 2026-11-06, R-3732: honest output is a few paths and lengths, under 10 KiB; 1 MiB bounds noisy children.
+export const PI_CONTEXT_OUTPUT_MAX_BYTES = 1_048_576;
 // contract: R-3520 — the owner's 2026-10-31 answer, carried as the default by the owner's 2026-11-02 pick.
 export const LANE_LIMIT_DEFAULT = 4;
 // chosen 2026-10-23: matches the detached install relay's poll; measured hard-kill cleanup ended within 305 ms.

@@ -317,6 +317,10 @@ test('R-3726: lane load delegates to the located package export in order without
     {name:'context file',source:'/SENTINEL/B/AGENTS.md',fullChars:56,deliveredChars:56},
   ]);
   const text=fs.readFileSync(f.log,'utf8'); assert.ok(!text.includes('A'.repeat(1234))); assert.ok(!text.includes('B'.repeat(56)));
+  const { piContextLoad } = await import('../lib/pi-context-load.mjs');
+  const checked = { piVersion: '9.9.9-stub', parts: fileParts(e) };
+  stubContext(f, `import {writeSync} from 'node:fs'; writeSync(1, ${JSON.stringify(JSON.stringify({...checked, signal:'SIGTERM', content:'PRIVATE', parts:checked.parts.map(p=>({...p,content:'PRIVATE',extra:true}))}))}); process.exit(0);`);
+  assert.deepEqual(await piContextLoad({cwd:f.lane,env:f.env,args:[]}), checked, 'discard child extras at both levels');
 });
 // req: R-3727
 test('R-3727: installed pi chooses AGENTS over CLAUDE in the same directory', async () => {
@@ -422,6 +426,35 @@ test('R-3732: stalled measurement is killed and both launchers proceed within th
     while (pidAlive(pid) && Date.now() < stoppedBy) await new Promise(resolve => setTimeout(resolve, 20));
     assert.equal(pidAlive(pid), false, 'measurement child survived timeout');
   }
+});
+// req: R-3732
+test('R-3732: oversized measurement is killed and both launchers proceed without exhausting memory', async () => {
+  const { PI_CONTEXT_OUTPUT_MAX_BYTES } = await import('../bin/worker-config.mjs');
+  const { pidAlive } = await import('../lib/process-tree.mjs');
+  for (const launcher of ['pi-worker', 'pi-review']) {
+    const f = fixture(), pidFile = path.join(f.dir, 'measurement.json');
+    stubContext(f, `import {writeSync,writeFileSync} from 'node:fs';
+writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({pid:process.pid}));
+const chunk=Buffer.alloc(${PI_CONTEXT_OUTPUT_MAX_BYTES}, 120);
+for(let sent=0;sent<128*1024*1024;) {
+  try { sent+=writeSync(1,chunk); } catch(e) { if(e.code!=='EAGAIN')throw e; await new Promise(r=>setTimeout(r,1)); }
+}
+setInterval(()=>{},1000); export function loadProjectContextFiles(){return [];}`);
+    const r = launch(f, launcher, [], {...f.env, NODE_OPTIONS:'--max-old-space-size=64'});
+    good(r);
+    assert.ok(r.call, 'real child must launch despite oversized measurement');
+    const e = rows(f.log).at(-1);
+    assert.ok(e.parts.some(p=>p.name==='brief'));
+    assert.deepEqual(e.parts.filter(p=>p.name.startsWith('context file')), [{name:'context files: unavailable (output too large)',source:'pi',fullChars:0,deliveredChars:0}]);
+    const {pid} = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
+    const stoppedBy = Date.now() + 1000;
+    while (pidAlive(pid) && Date.now() < stoppedBy) await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(pidAlive(pid), false, 'measurement child survived overflow');
+  }
+});
+// req: R-3732
+test('R-3732: context measurement output seal is 1 MiB', async () => {
+  assert.equal((await import('../bin/worker-config.mjs')).PI_CONTEXT_OUTPUT_MAX_BYTES, 1_048_576);
 });
 // req: R-3732
 test('R-3732: context measurement deadline seal is 3000 ms', async () => {

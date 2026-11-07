@@ -10,13 +10,14 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { contextPart } from './context-load-log.mjs';
 import { killProcessTreeNoWait } from './process-tree.mjs';
-import { PI_CONTEXT_TIMEOUT_MS } from '../bin/worker-config.mjs';
+import { PI_CONTEXT_TIMEOUT_MS, PI_CONTEXT_OUTPUT_MAX_BYTES } from '../bin/worker-config.mjs';
 
 export async function piContextLoad({ cwd, env, args, start = spawn }) {
   const unavailable = reason => ({ piVersion: null, parts: [contextPart(`context files: unavailable (${reason})`, 'pi', '')] });
   try {
     return await new Promise(resolve => {
-      let settled = false, text = '';
+      let settled = false, bytes = 0;
+      const chunks = [];
       const child = start(process.execPath, [fileURLToPath(new URL('./pi-context-measure.mjs', import.meta.url)), JSON.stringify(args)], { cwd, env, detached: true, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
       const finish = result => {
         if (settled) return;
@@ -36,16 +37,20 @@ export async function piContextLoad({ cwd, env, args, start = spawn }) {
       const handlers = ['SIGINT', 'SIGTERM', 'SIGHUP'].map(signal => [signal, () => stop({ piVersion: null, parts: [], signal })]);
       const timer = setTimeout(() => stop(unavailable('timed out')), PI_CONTEXT_TIMEOUT_MS);
       for (const [name, handler] of handlers) process.on(name, handler);
-      child.stdout.setEncoding('utf8');
-      child.stdout.on('data', chunk => { text += chunk; });
+      child.stdout.on('data', chunk => {
+        if (settled) return;
+        bytes += chunk.length;
+        if (bytes > PI_CONTEXT_OUTPUT_MAX_BYTES) return stop(unavailable('output too large'));
+        chunks.push(chunk);
+      });
       child.once('error', () => finish(unavailable('pi context process failed')));
       child.once('close', code => {
         if (settled) return;
         try {
           if (code !== 0) throw new Error('child failed');
-          const result = JSON.parse(text);
-          if (!Array.isArray(result.parts) || !result.parts.every(part => typeof part.name === 'string' && typeof part.source === 'string' && Number.isInteger(part.fullChars) && part.fullChars >= 0 && part.deliveredChars === part.fullChars)) throw new Error('bad metadata');
-          finish(result);
+          const result = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          if (!(result.piVersion === null || typeof result.piVersion === 'string') || !Array.isArray(result.parts) || !result.parts.every(part => typeof part.name === 'string' && typeof part.source === 'string' && Number.isInteger(part.fullChars) && part.fullChars >= 0 && part.deliveredChars === part.fullChars)) throw new Error('bad metadata');
+          finish({ piVersion: result.piVersion, parts: result.parts.map(({ name, source, fullChars, deliveredChars }) => ({ name, source, fullChars, deliveredChars })) });
         } catch { finish(unavailable('pi context process failed')); }
       });
     });
