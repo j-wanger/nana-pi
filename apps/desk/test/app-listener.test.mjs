@@ -10,7 +10,8 @@
 // Drives the REAL desk server with two app manifests against a STUB `pi`
 // that records its argv + cwd and speaks just enough RPC. Zero-dep.
 // Run: node apps/desk/test/app-listener.test.mjs   (exit 0 = all PASS)
-import { tmpDir, removeTmpDir } from "./tmp-dir.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
+import { removeTmpDir } from "./tmp-dir.mjs";
 import { spawn, execFile } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
