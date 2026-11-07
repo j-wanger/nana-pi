@@ -1,0 +1,9 @@
+FAIL  packages/nana-pack/tests/land-clean-merge.test.mjs  10 pass, 2 fail  43.9s  — exit 1
+      | FAIL M11: separate-hunk generated changes land exact real-generator bytes AssertionError [ERR_ASSERTION]: refused: unsupported merge semantics: generated path docs/code-map.md changed on both sides; merge main into the lane, then review and CI that tip
+      | FAIL M9: shared guidance, rendered region, README and ruling agree on the exemption AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+FAIL  packages/nana-pack/tests/land-regenerate.test.mjs   6 pass, 2 fail  74.6s  — exit 1
+      | FAIL both-sides clean generator failures timeout and scope changes refuse unchanged AssertionError [ERR_ASSERTION]: The input did not match the regular expression /generatorFailed/. Input:
+      | FAIL mixed conflict and clean both-sides outputs land both generator oracles AssertionError [ERR_ASSERTION]: refused: generatorCheck: scripts/requirements-tree.mjs --check: exit 1: docs/requirements-tree.md:1: differs from rendered outline; merge main into the lane, then review and CI that tip
+
+2 files: 0 PASS, 2 FAIL, 0 SKIP, 0 WARN · checks: 16 pass, 4 fail, 0 skip · 119.0s
+failed: packages/nana-pack/tests/land-clean-merge.test.mjs, packages/nana-pack/tests/land-regenerate.test.mjs

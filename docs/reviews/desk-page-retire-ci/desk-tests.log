@@ -1,0 +1,12 @@
+PASS  apps/desk/test/app-listener.test.mjs              76 pass  6.4s
+PASS  apps/desk/test/buffer-caps.test.mjs               1 pass  0.3s
+PASS  apps/desk/test/host-rule.test.mjs                 30 pass  0.9s
+PASS  apps/desk/test/knowledge-home-isolation.test.mjs  1 pass  0.1s
+PASS  apps/desk/test/origin-rule.test.mjs               11 pass  0.4s
+PASS  apps/desk/test/page-retire.test.mjs               4 pass, 2 skip  5.7s
+PASS  apps/desk/test/pi-resolution.test.mjs             43 pass  1.3s
+PASS  apps/desk/test/pi-rpc-contract.test.mjs           10 pass  0.4s
+PASS  apps/desk/test/stage-key-persistence.test.mjs     2 pass  1.4s
+PASS  apps/desk/test/usage-line.test.mjs                6 pass  2.8s
+
+10 files: 10 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 184 pass, 0 fail, 2 skip · 20.0s

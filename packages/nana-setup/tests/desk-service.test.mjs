@@ -90,6 +90,7 @@ process.env.PATH = `${nodeLinkDir}${path.delimiter}${savedPath || ""}`;
 let r;
 try { r = run(["install", "--home", home, "--desk"]); } finally { process.env.PATH = savedPath; }
 check("--desk exits 0", r.status === 0, r.stderr);
+// req: R-3794
 check("--desk writes the plist", fs.existsSync(plist));
 const body = fs.readFileSync(plist, "utf8");
 // req: R-651

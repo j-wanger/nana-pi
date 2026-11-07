@@ -249,7 +249,7 @@
     {
       "id": "desk",
       "name": "Desk",
-      "metaphor": "A control room over sessions",
+      "metaphor": "A local host for focused apps",
       "kind": "workflow",
       "parts": [
         "apps/desk/"
@@ -263,7 +263,7 @@
         "FEAT-024"
       ],
       "status": "partial",
-      "gap": "Frozen by the owner; its session-control rows still include violated behavior.",
+      "gap": "The desk page is retired; app-host child bookkeeping remains unbounded.",
       "ask": null,
       "evidence": [
         "apps/desk/",

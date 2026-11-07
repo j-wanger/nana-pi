@@ -1,0 +1,32 @@
+stale: compass 26 commits since a2ad3f21
+stale: setup 30 commits since a2ad3f21
+stale: key-cabinet 674 commits since a2ad3f21
+stale: night-shift 674 commits since a2ad3f21
+stale: requirement-contract 179 commits since a2ad3f21
+stale: command-gate 78 commits since a2ad3f21
+unclaimed: packages/nana-pack/bin/leak-scan.mjs
+unclaimed: packages/nana-pack/bin/nana-ci-wait.mjs
+unclaimed: packages/nana-pack/bin/nana-curate.mjs
+unclaimed: packages/nana-pack/bin/nana-main-ci.mjs
+unclaimed: packages/nana-pack/bin/nana-memory.mjs
+unclaimed: packages/nana-pack/bin/nana-profile.mjs
+unclaimed: scripts/code-map-launch-config.mjs
+unclaimed: scripts/glob-match.mjs
+unclaimed: scripts/memory-curate.mjs
+unclaimed: scripts/memory-make.mjs
+unclaimed: scripts/memory-replay.mjs
+unclaimed: scripts/memory-run.mjs
+unclaimed: scripts/memory-score.mjs
+unclaimed: scripts/memory-shape-runners.mjs
+unclaimed: scripts/memory-shape.mjs
+unclaimed: scripts/outcome-compare.mjs
+unclaimed: scripts/outcome-meter.mjs
+unclaimed: scripts/outcome-score.mjs
+unclaimed: scripts/reader-common.mjs
+unclaimed: scripts/visual-reader-config.mjs
+unclaimed: scripts/visual-reader.mjs
+unclaimed: 21 of 273 mapped modules
+(node:39280) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://./templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to ./package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
