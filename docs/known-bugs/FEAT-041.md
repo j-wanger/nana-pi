@@ -23,3 +23,6 @@
 - Context shaping (roster-roles, review round 1): a role launch without `--out` is refused with only `pi-worker: slot refused: usage` and no usage line.
 - Context shaping (roster-roles, review round 1): a `--brief` value starting with a single `-` passes the role checks and is refused later by the lane check, after the role temp folder was made; the refusal removes it.
 - Context shaping (roster-roles, review round 1): older checkouts refuse new role keys or a Claude Code scout, as the owner accepted.
+- Context shaping (builder-context, review round 1): the frozen lessons line "Run the README's checks … before you commit" can read as permission to run the full suite unlocked on a shared machine, against the preamble's CI and lock rules.
+- Context shaping (builder-context, review round 1): the `Card: fix` marker is read anywhere in the brief, including inside a fenced code block, like the Feature line.
+- Context shaping (builder-context, review round 1): "drop the leading underscore" is Python wording; for JS the rule doesn't say that a private function is one that isn't exported.

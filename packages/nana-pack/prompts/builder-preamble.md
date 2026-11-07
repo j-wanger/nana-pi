@@ -9,7 +9,7 @@ Scope
 - Never read, print or use a stored credential: no `git credential fill` or `get`, no token from a keychain, file or environment variable, and no direct GitHub API call. If a step needs a credential or `gh` is missing, report it and stop.
 - New requirement rows take IDs only from the range your brief names.
 - Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.
-- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private and the brief does not name moving it to a shared module, report the departure and stop.
+- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private, drop the leading underscore, update its existing callers, and import the public name; never import a private name from another module. A move to a shared module needs the brief to name it.
 - The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches. When they end with an omitted-lines line, read the whole file before reporting.
 - A findings list is closures only.
 - Never start model sessions or subagents.
@@ -37,3 +37,10 @@ Before you report
 Report shape:
 First line: `VERDICT: DONE`, `VERDICT: PARTIAL` or `VERDICT: BLOCKED`.
 Then commits; per item, files, rows, mutation pairs, commands and exit codes; the branch, the tip's full SHA and the seat checks run on it, or the full-suite summary line with its check count where you ran it; and what was not done.
+
+## Lessons from earlier work
+Lessons from earlier work on this repository (project memory):
+- When you change what a function returns or raises, find every caller (grep the repo, scripts/ included) and update each one so it still works; say which callers you changed in your commit message.
+- Before writing a helper, search for an existing one that does the job and call it rather than re-implementing it; if it is private to its module, make it public in the same change.
+- Follow the convention the repo already uses for the same kind of problem (how it signals "undefined", "cannot run", or bad input).
+- Run the README's checks (tests, lint, types) before you commit.

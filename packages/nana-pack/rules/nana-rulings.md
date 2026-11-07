@@ -25,7 +25,7 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-21: The owner adopted the writing rule. Every report runs the check before it is sent, and HANDOFF's live sections must pass it.
 - 2026-10-21: Known bugs live one line each in their feature's file, not in HANDOFF.
 - 2026-10-22: A produced artifact is a feature to maintain. Each deliverable names the run that makes it and the code that reads it. Closing a hand-made maker or a rule-only reader comes first.
-- 2026-10-22: Every plan and brief names its precedent, the nearest existing code for each part. Builders follow it and report each departure. pi-worker refuses a brief without it.
+- 2026-10-22: Every plan and brief names its precedent, the nearest existing code for each part. Builders follow it and report each departure. A `Card: fix` brief may omit the section (owner, 2026-11-06, #338); plans and other briefs still require it. pi-worker refuses an unmarked brief without it.
 - 2026-10-22: A helper's second caller imports it rather than copying it. A plan's Precedent section names any move of a private helper to a shared module.
 - 2026-10-28: Before the seat plans new capability, it brings the owner two or three readings of the intent, once per request; a fix that restores agreed behaviour plans straight away.
 - 2026-11-02: The roster names a slot for the scout, planner, adversary and checker; a seat starts each through its slot.
