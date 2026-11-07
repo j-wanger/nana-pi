@@ -13,24 +13,13 @@
  *  working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing
  *  heartbeat interval)
  * @errors canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control
- *  character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, an over-cap
- *  revision, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or
+ *  character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, a retired option, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or
  *  a lost reservation
  */
-// review-round.mjs — the review ROUND CAP (OBJECTIVE.md rule, 2026-09-16): three review rounds
-// per item, then land with residuals, subtract, or instrument/implement before any further round.
-//
-// T2b (2026-09-28, fix round after sol r1): the cap binds to the ITEM, counted in a user-scope
-// ledger that every review launcher (pi-review, review-ledger run) consults through admit().
-//
-//   ~/.pi/agent/review-ledger.rounds.jsonl   THE TALLY — permanent, never rotated. One line per round
-//                                            earned: {v,kind:"round",ts,repo,item,revision,role,…}.
-//                                            The cap reads ONLY this (plus live reservations).
-//   ~/.pi/agent/review-ledger.jsonl (+ .1)   the verbose AUDIT log (every verdict and override);
-//                                            rotated past 1 MiB before EVERY append; never consulted by the cap.
-//   ~/.pi/agent/review-ledger.reservations/  one <id>.json per in-flight review holding its round
-//   ~/.pi/agent/review-ledger.texts/         captured UTF-8 review text, named by its full sha256
-//   ~/.pi/agent/review-ledger.lock           O_EXCL lock around every read-decide-write
+// The store retains its existing names so old histories remain readable.
+// Every completed verdict appends to the permanent tally and bounded audit.
+// Reservations and the ledger lock coordinate reviewers with land's final recheck.
+// The captured-text store remains available to the hand-run timeline.
 //
 // Rules:
 //  - ITEM = {repo, slug}. The slug is canonicalized (canonicalItem); repo = realpath of the git
@@ -71,7 +60,6 @@ import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 import { renameWithRetry } from '../lib/rename-retry.mjs';
 export { reviewShaped } from './review-shape.mjs';
 
-export const REVIEW_ROUND_CAP = 3;
 export const LEDGER_MAX_BYTES = 1024 * 1024; // audit log rotation threshold (the tally never rotates)
 export const SLUG_MAX = 128; // characters, after canonicalization
 const REVISION_MAX = 128;
@@ -82,10 +70,6 @@ export const REVIEW_TEXT_EXTENSION = '.md';
 // contract (R-2568): the captured UTF-8 bytes use the snapshot hash family and its full digest.
 export const REVIEW_TEXT_HASH = 'sha256';
 export const REVIEW_TEXT_HASH_HEX_CHARS = 64;
-// chosen 2026-10-22: eight digest characters keep committed review names readable and distinct per item (R-2573).
-export const KEEP_NAME_HASH_CHARS = 8;
-// chosen 2026-10-25 (keep-movement): one fixed name per lane folder, so each keep replaces the last kept tip's movement and a reader finds it without a hash (R-2910).
-export const KEEP_MOVEMENT_FILE_NAME = 'tree-movement.md';
 // chosen, measured 2026-10-22: no size cap; observed p95 8.5 KB and maximum 17.8 KB.
 // chosen: names the throwaway scratch index+object folder workingState borrows the repo's objects into
 // (W7c amend, 2026-10-18), so a leftover from a crashed derivation is recognizable in the OS temp dir.
@@ -102,7 +86,7 @@ export function reservationStaleMs() {
 const CLOCK_SKEW_MS = 60_000; // a reservation dated further in the future than this is stale
 
 export function ledgerPaths(home = homedir()) {
-  // Deliberately ~/.pi/agent, NOT pi's active agent dir: the round cap is user-scope self-governance, and keying it to PI_CODING_AGENT_DIR would let one shell variable reset the tally.
+  // Deliberately ~/.pi/agent, NOT pi's active agent dir: the review store is user-scope history, and keying it to PI_CODING_AGENT_DIR would let one shell variable reset the tally.
   const dir = join(home, '.pi', 'agent');
   return {
     dir,
@@ -131,15 +115,9 @@ export function roundsUsed(entries) {
   return new Set(entries.map((e) => e.revision)).size;
 }
 
-/** 'allow' | 'refuse' | 'override' for a projected round (pure). A blank reason is no reason. */
-export function roundCapVerdict(projected, overCap) {
-  if (projected === null || projected === undefined || projected <= REVIEW_ROUND_CAP) return 'allow';
-  return overCap && String(overCap).trim() ? 'override' : 'refuse';
-}
-
-/** @deprecated T2b: the cap no longer reads file names (a basename parse was bypassed). Kept, pure
+/** @deprecated T2b: the store does not read file names (a basename parse was bypassed). Kept, pure
  *  and unchanged, only so ~/nana-agent-loop's review-round.mjs forwarder still links. Nothing in
- *  the cap consumes it. */
+ *  the store consumes it. */
 export function roundFromOutPath(p) {
   const m = /(?:^|[^a-z0-9])(?:r|round[-_ ]?)(\d{1,2})(?![a-z0-9])/i.exec(basename(p));
   return m ? Number(m[1]) : null;
@@ -176,7 +154,7 @@ function gitOut(cwd, args, { okStatus = [0], env } = {}) {
  *  main checkout, where the plain flag gives only a relative `.git` (SHOULD 1); falls back to the
  *  relative form (older git) resolved against `tree` (prior art: nana-setup/lib/steps.mjs:841). This
  *  is the ONE repo-key builder: the ledger key here, nana-land's key and common-dir check, and
- *  review-ledger report `--repo` all call it, so they cannot drift apart (R2/N1/N2/L1). */
+ *  review-store readers all call it, so they cannot drift apart (R2/N1/N2/L1). */
 export function repoKeyOf(tree) {
   for (const args of [['--path-format=absolute', '--git-common-dir'], ['--git-common-dir']]) {
     const r = spawnSync('git', ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', 'rev-parse', ...args], { cwd: tree, encoding: 'utf8' });
@@ -617,9 +595,9 @@ function readVerdict(text) {
 }
 const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
 
-/** The cap decision for {repo, item, revision}. Call under the lock. Every ledger path is
+/** The admission accounting for {repo, item, revision}. Call under the lock. Every ledger path is
  *  checked here, so a symlinked audit log is refused BEFORE a review is spent, not after. */
-function decide(p, key, revision, overCap, prune) {
+function decide(p, key, revision, prune) {
   for (const f of [p.audit, p.rotated]) refuseNonRegular(f);
   const textStore = lstatOrNull(p.texts);
   if (textStore && !textStore.isDirectory()) throw new Error(`${p.texts} is not a directory — refused`);
@@ -632,23 +610,22 @@ function decide(p, key, revision, overCap, prune) {
   const where = `item "${key.item}" (${key.repo}): ${used} round(s) used (${completedRevisions.length} completed, ` +
     `${reserved.length} review(s) in flight)`;
   if (revs.includes(revision)) {
-    return { verdict: 'allow', round: revs.indexOf(revision) + 1, used, where, again: true };
+    return { round: revs.indexOf(revision) + 1, used, where, again: true };
   }
   const round = used + 1;
-  return { verdict: roundCapVerdict(round, overCap), round, used, where, again: false };
+  return { round, used, where, again: false };
 }
 
 function parseReview(args, cwd) {
   if (args.includes('--worker')) {
-    throw new Error('--worker was removed: a review cannot opt out of the cap. A worker launch uses pi-worker ' +
-      '(same watchdog, records nothing, see README)');
+    throw new Error('--worker was removed: a worker launch uses pi-worker (same watchdog, records nothing, see README)');
   }
+  if (args.some(arg => arg === '--over-cap' || arg.startsWith('--over-cap='))) throw new Error('--over-cap is retired: round caps were removed.');
   const rawItem = optValue(args, '--item');
   const treeArg = optValue(args, '--tree');
   const tree = resolve(cwd, treeArg ?? '.');
   const revArg = optValue(args, '--revision');
   const role = optValue(args, '--role') ?? 'reviewer';
-  const overCap = optValue(args, '--over-cap');
   const out = optValue(args, '--out');
   if (rawItem === undefined) return { missing: true };
   const item = canonicalItem(rawItem);
@@ -658,7 +635,7 @@ function parseReview(args, cwd) {
   const warning = out ? outInTree(revision.root, outAbs) : null; // throws on a tracked --out, symlinked or not
   const redirect = inTreeRedirect(revision.root);
   if (redirect) throw new Error(`redirect the review log outside the reviewed tree (${redirect})`);
-  return { key: { repo: revision.repo, item }, revision: revision.id, role, overCap, out, cwd: tree, revArg, exclude, warning };
+  return { key: { repo: revision.repo, item }, revision: revision.id, role, out, cwd: tree, revArg, exclude, warning };
 }
 function deriveRevision(revArg, tree, exclude) {
   const scope = treeScope(tree, { exclude });
@@ -733,8 +710,7 @@ export function revisionParts(revision) {
   return { head, snapshot: snapshot ?? null };
 }
 
-/** Rotate the verbose audit log past LEDGER_MAX_BYTES. Runs before EVERY audit append (T2b r5:
- *  a failed over-cap launch appends too), so the audit is bounded to ~2 × LEDGER_MAX_BYTES. The
+/** Rotate the verbose audit log past LEDGER_MAX_BYTES before every append, bounded to ~2 × LEDGER_MAX_BYTES. The
  *  tally is separate and NEVER rotates. Call under the lock. */
 function rotateAudit(p) {
   const st = lstatOrNull(p.audit);
@@ -746,10 +722,7 @@ function appendAudit(p, rec) { rotateAudit(p); appendChecked(p.audit, rec); }
 const failMessage = (e) => `review ledger: ${e.message}` +
   (['EACCES', 'EPERM', 'EROFS'].includes(e.code) ? ' — the ledger directory (~/.pi/agent) must be writable by this user' : '');
 
-const REQUIRED = (p) => '--item <slug> is REQUIRED: the review round cap counts rounds per item ' +
-  `(${p.tally}); an unnamed review is refused, never uncapped. Add --item <slug> [--role sol|astra|…].`;
-const REFUSE = (d) => `${d.where}; revision would be round ${d.round}, over the cap of ${REVIEW_ROUND_CAP} (OBJECTIVE.md). ` +
-  'Land with residuals, subtract, or instrument/implement first. To run anyway: --over-cap "<what changed>"';
+const REQUIRED = (p) => `--item <slug> is REQUIRED: the review store records named items (${p.tally}). Add --item <slug>.`;
 
 /**
  * Admission for one review launch. `args` = the launcher's OWN argv (never the child's).
@@ -762,18 +735,15 @@ export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd
     const q = parseReview(args, cwd);
     if (q.missing) return { ok: false, message: REQUIRED(p) };
     return withLock(p, () => {
-      const d = decide(p, q.key, q.revision, q.overCap, true);
-      if (d.verdict === 'refuse') return { ok: false, message: REFUSE(d) };
-      const override = d.verdict === 'override' ? q.overCap : undefined;
-      if (override) appendAudit(p, { kind: 'override', ...q.key, revision: q.revision, role: q.role, reason: override, round: d.round, launcher });
+      const d = decide(p, q.key, q.revision, true);
       ensureDir(p.resDir);
       const id = `${Date.now()}-${pid}-${randomBytes(6).toString('hex')}`;
-      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, override, cwd: q.cwd, revArg: q.revArg, exclude: q.exclude, provider: provider ?? null, model: model ?? null, overCapReason: override ?? null, attempts, startedAt: new Date().toISOString() };
+      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, cwd: q.cwd, revArg: q.revArg, exclude: q.exclude, provider: provider ?? null, model: model ?? null, attempts, startedAt: new Date().toISOString() };
       const fd = openSync(join(p.resDir, `${id}.json`), C.O_WRONLY | C.O_CREAT | C.O_EXCL | C.O_NOFOLLOW, 0o600);
       try { writeSync(fd, JSON.stringify(res)); } finally { closeSync(fd); }
-      const note = `${d.where}; admitted as round ${d.round}/${REVIEW_ROUND_CAP}` +
+      const note = `${d.where}; admitted as round ${d.round}` +
         (d.again ? ' (revision already counted — no new round)' : '') +
-        ` (${q.role} @ ${shortRev(q.revision)})` + (override ? ` — OVER CAP, override recorded: ${override}` : '');
+        ` (${q.role} @ ${shortRev(q.revision)})`;
       return { ok: true, id, res, note, warning: q.warning };
     });
   } catch (e) {
@@ -787,10 +757,9 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
   try {
     const q = parseReview(args, cwd);
     if (q.missing) return { ok: false, message: REQUIRED(p) };
-    const run = () => decide(p, q.key, q.revision, undefined, false);
+    const run = () => decide(p, q.key, q.revision, false);
     const d = lstatOrNull(p.dir) ? withLock(p, run) : run(); // no ledger dir: nothing to read, nothing created
-    if (d.verdict === 'refuse') return { ok: false, message: REFUSE(d) };
-    return { ok: true, note: `${d.where}; next review of ${shortRev(q.revision)} would be round ${d.round}/${REVIEW_ROUND_CAP}` +
+    return { ok: true, note: `${d.where}; next review of ${shortRev(q.revision)} would be round ${d.round}` +
       (d.again ? ' (revision already counted — no new round)' : ''), warning: q.warning };
   } catch (e) {
     return { ok: false, message: failMessage(e) };
@@ -844,21 +813,20 @@ export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1
         throw new Error(`${e.message} (output kept at ${out ?? held.out})`);
       }
       const textRecord = { text: kept };
-      appendChecked(p.tally, { v: 2, kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: parsed.verdict, ...metadata, ...drift, ...textRecord });
-      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, override: held.override, overCap: held.overCapReason ?? held.override ?? null, verdict: parsed.verdict, ...metadata, ...drift, ...textRecord });
+      appendChecked(p.tally, { v: 2, kind: 'round', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, launcher: held.launcher, verdict: parsed.verdict, ...metadata, ...drift, ...textRecord });
+      appendAudit(p, { kind: stable ? 'verdict' : 'verdict-unverified', repo: held.repo, item: held.item, revision: held.revision, ...revisionParts(held.revision), role: held.role, out: out ?? held.out, launcher: held.launcher, verdict: parsed.verdict, ...metadata, ...drift, ...textRecord });
       unlinkSync(f);
       if (!stable) {
         return { ok: false, round, message: `review ledger: the reviewed tree changed during the review (admitted ${shortRev(held.revision)}, ` +
           `now ${why ? `underivable: ${why}` : shortRev(now)}) — the verdict is NOT recorded as valid for either state; round ${round} ` +
           `was consumed for the admitted revision. Re-review the current state (output kept at ${out ?? held.out})` };
       }
-      const used = decide(p, held, held.revision, undefined, false).used;
       const selected = parsed.selected ?? { number: 1, text: '' };
       const trigger = parsed.trigger ? `; line ${parsed.trigger.number} ${JSON.stringify(parsed.trigger.text)}` : '';
       const unread = parsed.verdict === null ? `verdict unread for item ${held.item} at ${shortRev(held.revision)} (round ${round}): ` +
         `selected line ${selected.number} ${JSON.stringify(selected.text)} — ${parsed.condition}${trigger}; ` +
         `nana-land will refuse this revision for good — make a new commit and review it; ` +
-        `${Math.max(0, REVIEW_ROUND_CAP - used)} of ${REVIEW_ROUND_CAP} rounds remain for the item; review kept at ${out ?? held.out}` : null;
+        `review kept at ${out ?? held.out}` : null;
       return { ok: true, round, verdict: parsed.verdict, unread };
     });
   } catch (e) {

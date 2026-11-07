@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/review-launch.test.mjs
  * @purpose Pin review-ledger command-start failures and the injected Windows reviewer launch resolver.
- * @inputs review-launch.mjs, review-ledger.mjs, injected Windows files and environment, and temporary git repositories.
+ * @inputs review-launch.mjs, review-run.mjs, injected Windows files and environment, and temporary git repositories.
  * @outputs named PASS/FAIL/SKIP lines.
  * @effects disk (OS-temp fixtures), process (git and review-ledger child runs).
  * @errors failed assertions or fixture setup exit nonzero; a missing reviewLaunch export fails each resolver title.
@@ -12,9 +12,9 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
+import { reviewRunHarness } from './review-run-harness.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const ledgerBin = path.join(root, "bin", "review-ledger.mjs");
 let reviewLaunch;
 let loadError = "";
 try { ({ reviewLaunch } = await import(pathToFileURL(path.join(root, "bin", "review-launch.mjs")).href)); } catch (error) { loadError = error.message; }
@@ -23,6 +23,7 @@ const { PI_BIN_NAME, PI_PACKAGE } = await import(pathToFileURL(path.join(root, "
 let fails = 0;
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) fails++; };
 const temp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "review-launch-")));
+const ledgerBin = reviewRunHarness(temp);
 const git = (cwd, ...args) => spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.invalid", ...args], { cwd, encoding: "utf8", timeout: 10000 });
 const makeRepo = (name) => {
 	const repo = path.join(temp, name);
@@ -47,7 +48,7 @@ const startFailureResult = (() => {
 		fs.mkdirSync(home, { recursive: true });
 		const env = { ...process.env, HOME: home, USERPROFILE: home, PATH: process.env.PATH ?? "" };
 		const run = spawnSync(process.execPath, [ledgerBin, "run", "--item", entry.item, "--tree", repo, "--out", entry.out, "--", entry.word, ...(entry.args ?? [])], { cwd: temp, env, encoding: "utf8", timeout: 30000 });
-		const carried = run.stderr.match(/^review-ledger: (cannot start \S+: \S[^\r\n]*)/m)?.[1];
+		const carried = run.stderr.match(/^claude-review: (cannot start \S+: \S[^\r\n]*)/m)?.[1];
 		let outText = null;
 		try { outText = fs.readFileSync(entry.out, "utf8"); } catch { /* reported below */ }
 		let reservationNames = [];
@@ -59,7 +60,7 @@ const startFailureResult = (() => {
 	return { ok, detail: JSON.stringify({ runs }) };
 })();
 // req: R-2250
-check("review-ledger run with an empty or a missing command exits 1 naming what it cannot start, with no stack trace, no reservation or round, and the reason in --out", startFailureResult.ok, startFailureResult.detail);
+check("shared review runner with an empty or a missing command exits 1 naming what it cannot start, with no stack trace, no reservation or round, and the reason in --out", startFailureResult.ok, startFailureResult.detail);
 
 const files = new Map();
 const winKey = (file) => path.win32.resolve("C:\\work", file).toLowerCase();
@@ -129,7 +130,7 @@ const relativePresent = typeof reviewLaunch === "function"
 // req: R-2431
 check("on win32 a relative .cmd path present only in the given folder starts through ComSpec as written", matchesShape(relativePresent, cmdShape("tools\\review.cmd", ["-p"])), JSON.stringify(relativePresent));
 
-const relativeTreeTitle = "Windows: review-ledger run resolves a relative .cmd reviewer path against --tree, starting one present only there and refusing one present only in the launcher's folder, with the cannot-start line in --out and no round";
+const relativeTreeTitle = "Windows: shared review runner resolves a relative .cmd reviewer path against --tree, starting one present only there and refusing one present only in the launcher's folder, with the cannot-start line in --out and no round";
 if (process.platform !== "win32") console.log(`SKIP ${relativeTreeTitle} — Windows leg only`); else {
 	const home = path.join(temp, "relative-tree-home");
 	const repo = makeRepo("relative-tree-repo");
@@ -157,13 +158,13 @@ if (process.platform !== "win32") console.log(`SKIP ${relativeTreeTitle} — Win
 	const treeRounds = allRounds.filter((row) => row.item === "relative-tree-present");
 	const cwdRounds = allRounds.filter((row) => row.item === "relative-cwd-only");
 	const expectedMissing = path.join(repo, "other dir", "review.cmd");
-	const ok = treeRun.status === 0 && treeRounds.length === 1 && cwdRun.status === 1 && cwdRun.stderr.includes("review-ledger: cannot start other dir\\review.cmd: ") && cwdOutText?.startsWith("cannot start other dir\\review.cmd: ") && cwdOutText.toLowerCase().includes(expectedMissing.toLowerCase()) && reservationNames.length === 0 && cwdRounds.length === 0;
+	const ok = treeRun.status === 0 && treeRounds.length === 1 && cwdRun.status === 1 && cwdRun.stderr.includes("claude-review: cannot start other dir\\review.cmd: ") && cwdOutText?.startsWith("cannot start other dir\\review.cmd: ") && cwdOutText.toLowerCase().includes(expectedMissing.toLowerCase()) && reservationNames.length === 0 && cwdRounds.length === 0;
 	// Windows only; the Windows CI leg passed it in run 39496386067.
 	// req: R-2432
-	check("Windows: review-ledger run resolves a relative .cmd reviewer path against --tree, starting one present only there and refusing one present only in the launcher's folder, with the cannot-start line in --out and no round", ok, JSON.stringify({ treeRun, cwdRun, cwdOutText, reservationNames, treeRounds, cwdRounds }));
+	check("Windows: shared review runner resolves a relative .cmd reviewer path against --tree, starting one present only there and refusing one present only in the launcher's folder, with the cannot-start line in --out and no round", ok, JSON.stringify({ treeRun, cwdRun, cwdOutText, reservationNames, treeRounds, cwdRounds }));
 }
 
-const windowsTitle = "Windows: review-ledger run starts an npm-style .cmd reviewer found on PATH with its arguments and stdin unchanged and records a round";
+const windowsTitle = "Windows: shared review runner starts an npm-style .cmd reviewer found on PATH with its arguments and stdin unchanged and records a round";
 if (process.platform !== "win32") console.log(`SKIP ${windowsTitle} — Windows leg only`); else {
 	const home = path.join(temp, "windows-home");
 	const repo = makeRepo("windows-repo");
@@ -182,10 +183,10 @@ if (process.platform !== "win32") console.log(`SKIP ${windowsTitle} — Windows 
 	const records = rows(record);
 	const rounds = rows(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl")).filter((row) => row.kind === "round" && row.item === "windows-shim");
 	// req: R-2254
-	check("Windows: review-ledger run starts an npm-style .cmd reviewer found on PATH with its arguments and stdin unchanged and records a round", run.status === 0 && records.length === 1 && JSON.stringify(records[0].argv) === JSON.stringify(["-p", "review this & that (now)", "--model", "m-1"]) && records[0].stdin === input && rounds.length === 1, JSON.stringify({ run, records, rounds }));
+	check("Windows: shared review runner starts an npm-style .cmd reviewer found on PATH with its arguments and stdin unchanged and records a round", run.status === 0 && records.length === 1 && JSON.stringify(records[0].argv) === JSON.stringify(["-p", "review this & that (now)", "--model", "m-1"]) && records[0].stdin === input && rounds.length === 1, JSON.stringify({ run, records, rounds }));
 }
 
-const bareNameTitle = "off win32 review-ledger run starts a bare reviewer name found on PATH and records its LAND round";
+const bareNameTitle = "off win32 shared review runner starts a bare reviewer name found on PATH and records its LAND round";
 if (process.platform === "win32") console.log(`SKIP ${bareNameTitle} — non-Windows only`); else {
 	const home = path.join(temp, "bare-name-home");
 	const repo = makeRepo("bare-name-repo");
@@ -204,7 +205,7 @@ if (process.platform === "win32") console.log(`SKIP ${bareNameTitle} — non-Win
 	try { outText = fs.readFileSync(out, "utf8"); } catch { /* reported below */ }
 	const rounds = rows(path.join(home, ".pi", "agent", "review-ledger.rounds.jsonl")).filter((row) => row.kind === "round" && row.item === "bare-name");
 	// req: R-2255
-	check("off win32 review-ledger run starts a bare reviewer name found on PATH and records its LAND round", run.status === 0 && outText === answer && rounds.length === 1 && rounds[0].verdict === "LAND", JSON.stringify({ run, outText, rounds }));
+	check("off win32 shared review runner starts a bare reviewer name found on PATH and records its LAND round", run.status === 0 && outText === answer && rounds.length === 1 && rounds[0].verdict === "LAND", JSON.stringify({ run, outText, rounds }));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

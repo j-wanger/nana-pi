@@ -1,23 +1,21 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-pack/bin/claude-review.mjs
- * @purpose Launch the roster's Claude Code reviewer through review-ledger with the shared review prompt on standard input.
- * @inputs argv (--item, --tree, --brief relative to --tree, --out, optional --role and --over-cap), the user roster, the brief, review standard and HEAD's tree movement.
- * @outputs the review-ledger run stderr and output file, one recorded round on success, and review-ledger's exit status.
- * @effects disk (reads roster, brief and standard; review-ledger writes its output and records), process (computes movement with git and scripts/requirements-moved.mjs, then spawns review-ledger and its Claude Code child).
- * @errors exit 1 for bad arguments, a refused roster or non-Claude reviewer, an unreadable or blank input, or review-ledger failure; no stack is printed.
+ * @purpose Launch and record the roster's Claude Code reviewer with the shared prompt on standard input.
+ * @inputs Review argv, user roster, brief, known bugs, review standard and carried Claude settings.
+ * @outputs Review bytes, a version-2 verdict, diagnostics and the reviewer status.
+ * @effects disk (settings, output and review store), process (Claude child and reservation heartbeat).
+ * @errors Nonzero for bad inputs, launch or recording failure; preserves a nonzero reviewer status.
  */
 import { readFileSync, statSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { spawn } from 'node:child_process';
 import { resolve, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { readReviewStandard } from '../lib/review-standard.mjs';
-import { reviewMovementSection } from '../lib/review-movement.mjs';
+import { runReview } from '../lib/review-run.mjs';
 import { resolveRoster } from './nana-roster.mjs';
-import { project } from './review-round.mjs';
+import { admit, release } from './review-round.mjs';
 import { startLaneWatcher } from '../lib/lane-watcher.mjs';
 import { CLAUDE_CODE_RUNTIME, DEFAULT_THINKING_TOKEN, CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_BUILDER_SETTING_SOURCES, CLAUDE_SETTINGS_FLAG, CLAUDE_STRICT_MCP_FLAG, CLAUDE_EFFORT_FLAG, CLAUDE_BUILDER_CHILD_ENV, REVIEWER_CHILD_ENV } from './worker-config.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
@@ -36,10 +34,9 @@ import {
   renderReviewerSentence,
 } from '../lib/claude-review-config.mjs';
 
-const USAGE = 'usage: claude-review.mjs --item <slug> --tree <path> --brief <file-relative-to-tree> --out <file> [--role R] [--over-cap WHY]\n';
-const LEDGER = fileURLToPath(new URL('./review-ledger.mjs', import.meta.url));
+const USAGE = 'usage: claude-review.mjs --item <slug> --tree <path> --brief <file-relative-to-tree> --out <file> [--role R]\n';
 const REQUIRED = ['--item', '--tree', '--brief', '--out'];
-const OPTIONAL = ['--role', '--over-cap'];
+const OPTIONAL = ['--role'];
 const ALLOWED = new Set([...REQUIRED, ...OPTIONAL]);
 const die = (message) => {
   process.stderr.write(`claude-review: ${message}\n`);
@@ -71,6 +68,7 @@ function readRequiredFile(path, label) {
   }
 }
 
+if (process.argv.slice(2).some(arg => arg === '--over-cap' || arg.startsWith('--over-cap='))) die('--over-cap is retired: round caps were removed.');
 const parsed = parseArgs(process.argv.slice(2));
 if (parsed.problem) die(`${parsed.problem}\n${USAGE.trimEnd()}`);
 const value = (name) => parsed.values.get(name);
@@ -92,16 +90,14 @@ const brief = readRequiredFile(briefPath, 'brief');
 if (brief.problem) die(brief.problem);
 const standard = readReviewStandard();
 if (standard.problem) die(`review standard refused: ${standard.problem}`);
-const movement = reviewMovementSection(tree);
-const knownBugs = reviewKnownBugSection(tree, movement, brief.text);
-const prompt = `${brief.text}\n\n${movement === null ? '' : `${movement}\n\n`}${knownBugs.text === null ? '' : `${knownBugs.text}\n\n`}${STANDARD_HEADING}\n\n${standard.text}\n\n${renderReviewerSentence(value('--item'), tree)}\n`;
-
-const ledgerArgs = [LEDGER, 'run', '--item', value('--item'), '--out', value('--out'), '--tree', tree];
-for (const name of OPTIONAL) if (parsed.values.has(name)) ledgerArgs.push(name, value(name));
-// Reuse the ledger's non-mutating refusal checks before creating credential-bearing flag settings.
-// The actual admission remains authoritative, including an explicit over-cap override.
-const preflight = project(ledgerArgs.slice(2));
-if (!preflight.ok && !(parsed.values.has('--over-cap') && preflight.message.includes('over the cap'))) die(preflight.message);
+const knownBugs = reviewKnownBugSection(tree, null, brief.text);
+const prompt = `${brief.text}\n\n${knownBugs.text === null ? '' : `${knownBugs.text}\n\n`}${STANDARD_HEADING}\n\n${standard.text}\n\n${renderReviewerSentence(value('--item'), tree)}\n`;
+const ownArgs = ['--item', value('--item'), '--out', resolve(value('--out')), '--tree', tree];
+for (const name of OPTIONAL) if (parsed.values.has(name)) ownArgs.push(name, value(name));
+// Admission precedes settings reads; the reservation belongs to this launcher, not an intermediary.
+const admission = admit(ownArgs, { launcher: 'claude-review', model: reviewer.model, attempts: 1 });
+if (!admission.ok) die(admission.message);
+process.once('exit', () => release(admission.id));
 const carry = readClaudeBuilderSettings({ ...CLAUDE_BUILDER_CHILD_ENV, ...REVIEWER_CHILD_ENV, ...credentialStripEnv(process.env) }, 'claude-review', reviewer.model, tree);
 process.stderr.write(`${carry.line}\n`);
 const folder = mkdtempSync(join(tmpdir(), 'nana-claude-review-'));
@@ -114,17 +110,13 @@ const cleanup = () => { try { rmSync(folder, { recursive: true, force: true }); 
 process.once('exit', cleanup);
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.once(signal, () => { cleanup(); process.exit({ SIGINT: 130, SIGTERM: 143, SIGHUP: 129 }[signal]); });
 writeClaudeBuilderSettings(settingsFile, carry);
-ledgerArgs.push('--', CLAUDE_BIN, CLAUDE_PRINT_FLAG, CLAUDE_MODEL_FLAG, reviewer.model, CLAUDE_ALLOW_FLAG, REVIEWER_ALLOWED_TOOLS, CLAUDE_DENY_FLAG, REVIEWER_DENIED_TOOLS,
+const command = [CLAUDE_BIN, CLAUDE_PRINT_FLAG, CLAUDE_MODEL_FLAG, reviewer.model, CLAUDE_ALLOW_FLAG, REVIEWER_ALLOWED_TOOLS, CLAUDE_DENY_FLAG, REVIEWER_DENIED_TOOLS,
   CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_BUILDER_SETTING_SOURCES, CLAUDE_SETTINGS_FLAG, settingsFile, CLAUDE_STRICT_MCP_FLAG,
-  ...(carry.effort ? [CLAUDE_EFFORT_FLAG, carry.effort] : []));
+  ...(carry.effort ? [CLAUDE_EFFORT_FLAG, carry.effort] : [])];
 const parts = [contextPart('brief', briefPath, brief.text), ...knownBugs.parts,
   contextPart('standard', standard.path, standard.text),
   { name: 'settings', source: carry.source, fullChars: carry.fullChars, deliveredChars: JSON.stringify(carry.settings).length }];
-if (movement !== null) parts.push(contextPart('movement', tree, movement));
-const child = spawn(process.execPath, ledgerArgs, { stdio: ['pipe', 'inherit', 'inherit'], env: { ...process.env, ...credentialStripEnv(process.env) } });
-child.once('spawn', () => appendContextLoad({ launcher: 'claude-review', role: 'reviewer', runtime: CLAUDE_CODE_RUNTIME, model: reviewer.model, effort: carry.effort, cwd: tree, item: value('--item'), parts }));
-child.stdin.on('error', () => { /* review-ledger may refuse or fail before reading the prompt */ });
-child.on('error', (error) => die(`cannot start review-ledger: ${error.code ?? error.message}`));
-child.stdin.end(prompt);
-const status = await new Promise((done) => child.on('close', (code) => done(code)));
-process.exit(status ?? 1);
+const status = await runReview(ownArgs, command, { admission, input: prompt,
+  onSpawn: () => appendContextLoad({ launcher: 'claude-review', role: 'reviewer', runtime: CLAUDE_CODE_RUNTIME, model: reviewer.model, effort: carry.effort, cwd: tree, item: value('--item'), parts }) });
+process.exitCode = status;
+cleanup();

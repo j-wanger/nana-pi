@@ -10,7 +10,7 @@
 // slug is canonical; roundCapVerdict keeps its pre-T2b contract; roundFromOutPath survives only as
 // a deprecated export for ~/nana-agent-loop's forwarder (its test's assertions are mirrored here).
 // Process-level proofs: review-ledger.test.mjs. Run: node packages/nana-pack/tests/review-round.test.mjs
-const { REVIEW_ROUND_CAP, SLUG_MAX, roundsUsed, roundCapVerdict, optValue, canonicalItem, roundFromOutPath } =
+const { SLUG_MAX, roundsUsed, optValue, canonicalItem, roundFromOutPath } =
 	await import(new URL("../bin/review-round.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -18,20 +18,12 @@ const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails+
 const v = (revision, role) => ({ revision, role });
 const throws = (f) => { try { f(); return false; } catch { return true; } };
 
-check("cap is 3", REVIEW_ROUND_CAP === 3);
 check("no verdicts, no rounds", roundsUsed([]) === 0);
 check("sol + astra on one revision = ONE round", roundsUsed([v("a", "sol"), v("a", "astra")]) === 1);
 check("ten roles on one revision = ONE round", roundsUsed(Array.from({ length: 10 }, (_, i) => v("a", "r" + i))) === 1);
 check("the same role twice on one revision = ONE round (a revision, not a role count)", roundsUsed([v("a", "sol"), v("a", "sol")]) === 1);
 // req: R-707
 check("three revisions = three rounds", roundsUsed([v("a", "sol"), v("b", "sol"), v("c", "astra")]) === 3);
-
-check("at the cap allowed", roundCapVerdict(REVIEW_ROUND_CAP, undefined) === "allow");
-check("null round allowed (pre-T2b contract)", roundCapVerdict(null, "") === "allow");
-check("over cap without a reason refused", roundCapVerdict(REVIEW_ROUND_CAP + 1, undefined) === "refuse");
-check("over cap with '' refused", roundCapVerdict(REVIEW_ROUND_CAP + 1, "") === "refuse");
-check("over cap with '   ' refused (blank is no reason)", roundCapVerdict(REVIEW_ROUND_CAP + 1, "   ") === "refuse");
-check("override only with a stated reason", roundCapVerdict(4, "worker rewrote the buffer path") === "override");
 
 // req: R-704
 check("slug: trim + casefold + collapse whitespace", canonicalItem("  Scope \t  ONE ") === "scope one");

@@ -140,6 +140,8 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		['packages/nana-pack/tests/claude-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes the movement-only repository fixtures from launcher tests.'],
+		['packages/nana-pack/tests/immutable-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes movement-only repository fixtures; immutable snapshot checks remain.'],
 		["packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/json-text.mjs", "FEAT-041 moves settings carry into claude-settings-carry.mjs, which imports the JSON helpers."],
 		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/bounded-read.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
 		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/json-text.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
@@ -163,6 +165,13 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
 	const retiredSources = new Map([
 		['scripts/lane-class.mjs', 'Lane classification is retired by R-3761.'],
+		['scripts/requirements-moved.mjs', 'R-3770 removes the movement command; git-runner preserves its git helpers.'],
+		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves review execution into review-run and claude-review.'],
+		['packages/nana-pack/lib/review-movement.mjs', 'R-3770 removes movement context.'],
+		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3770 removes movement context configuration.'],
+		['packages/nana-pack/tests/requirements-moved.test.mjs', 'R-3770 removes movement-only tests with the command.'],
+		['packages/nana-pack/tests/review-movement.test.mjs', 'R-3770 removes movement-only tests with the prompt producer.'],
+		['packages/nana-pack/tests/keep-movement.test.mjs', 'R-3770 removes keep-only tests with the command.'],
 		['packages/nana-pack/lib/mutation-runner-config.mjs', 'Seat mutation runner is retired by R-3761.'],
 		['packages/nana-pack/lib/mutation-runner.mjs', 'Seat mutation runner is retired by R-3761.'],
 		['packages/nana-pack/tests/lane-class.test.mjs', 'Classifier tests retired with their code by R-3761.'],
@@ -171,12 +180,18 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	]);
 	losses.set('packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/lane-class-config.mjs', 'R-3761 removes lane classification from build output.');
 	losses.set('packages/nana-pack/bin/pi-worker.mjs -> scripts/lane-class.mjs', 'R-3761 removes lane classification from build output.');
+	const retiredTargets = new Map([
+		['scripts/requirements-moved.mjs', 'R-3770 rehomes the shared runner in git-runner.mjs and removes movement.'],
+		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves execution into review-run.mjs, shared with the test harness.'],
+		['packages/nana-pack/lib/review-movement.mjs', 'R-3766 removes movement from reviewer prompts.'],
+		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3766 removes movement configuration and its test imports.'],
+	]);
 	const graph = checkRepo().graph;
-	for (const entry of gitShow("57167e92", "docs/code-map.md").split(/^### `/m).slice(1)) {
+	for (const entry of gitShow("57167e92",  "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];
 		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
 			const edge = `${path} -> ${match[1]}`;
-			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
+			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || (!graph.modules.has(match[1]) && retiredTargets.get(match[1])) || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
 		}
 	}
 });

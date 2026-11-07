@@ -18,6 +18,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { reviewRunHarness } from './review-run-harness.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const watchdogUrl = pathToFileURL(path.join(root, "bin", "pi-watchdog.mjs")).href;
@@ -27,7 +28,7 @@ const { findPi } = await import(pathToFileURL(path.join(root, "lib", "win-comman
 const { PI_PACKAGE, PI_BIN_NAME, LANE_DEFAULTS } = await import(pathToFileURL(path.join(root, "bin", "worker-config.mjs")).href);
 const workerBin = path.join(root, "bin", "pi-worker.mjs");
 const reviewBin = path.join(root, "bin", "pi-review.mjs");
-const reviewLedgerBin = path.join(root, "bin", "review-ledger.mjs");
+const reviewLedgerBin = reviewRunHarness(fs.realpathSync(tmpDir(path.join(os.tmpdir(), 'review-command-test-'))));
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
@@ -161,8 +162,8 @@ const WINDOWS_TITLES = [
 	"Windows: pi-review hands the review standard to pi as text",
 	"Windows: a busy pi is not stopped as stalled",
 	"Windows: a pi.cmd with no npm package beside it starts nothing and leaves no capture directory",
-	"Windows: review-ledger run -- pi starts the npm-installed pi entry with node and the arguments unchanged",
-	"Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round",
+	"Windows: shared review runner -- pi starts the npm-installed pi entry with node and the arguments unchanged",
+	"Windows: shared review runner -- pi with a pi.cmd that has no npm package starts nothing and consumes no round",
 	"Windows: lane pi-worker starts pi from a short or differently cased worktree path",
 ];
 
@@ -314,13 +315,13 @@ console.log("VERDICT: LAND");
 			noPkgOutText !== null && noPkgOutText.startsWith("pi launch refused:") && noPkgRun.stderr.includes(noPkgOutText.trim()),
 			JSON.stringify({ noPkgOutText, noPkgRun }));
 
-		// -- review-ledger run starts pi through its npm package --
+		// -- shared review runner starts pi through its npm package --
 		fs.rmSync(record, { force: true });
 		const ledgerOut = path.join(temp, "ledger-out.md");
 		const ledgerRun = spawnSync(process.execPath, [reviewLedgerBin, "run", "--item", "winledger", "--tree", reviewTree, "--out", ledgerOut, "--", "pi", ...rawArgs], { cwd: temp, encoding: "utf8", timeout: 60000, env });
 		const ledgerCalls = readRecord();
 		// req: R-1722
-		check("Windows: review-ledger run -- pi starts the npm-installed pi entry with node and the arguments unchanged",
+		check("Windows: shared review runner -- pi starts the npm-installed pi entry with node and the arguments unchanged",
 			ledgerRun.status === 0 && ledgerCalls.length === 1 &&
 			ledgerCalls[0].execPath.toLowerCase() === process.execPath.toLowerCase() &&
 			ledgerCalls[0].entry.toLowerCase() === installedEntry.toLowerCase() &&
@@ -338,7 +339,7 @@ console.log("VERDICT: LAND");
 		try { refusedRounds = fs.readFileSync(path.join(temp, ".pi", "agent", "review-ledger.rounds.jsonl"), "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.kind === "round" && row.item === "winledger-refused"); } catch { /* no ledger is also no round */ }
 		const refusedLedgerOutText = fs.existsSync(refusedLedgerOut) ? fs.readFileSync(refusedLedgerOut, "utf8") : "";
 		// req: R-1723 R-2250
-		check("Windows: review-ledger run -- pi with a pi.cmd that has no npm package starts nothing and consumes no round",
+		check("Windows: shared review runner -- pi with a pi.cmd that has no npm package starts nothing and consumes no round",
 			refusedLedgerRun.status === 1 && /pi launch refused: pi at .* is not an npm global install/.test(refusedLedgerRun.stderr) &&
 			refusedLedgerOutText.startsWith("cannot start pi: pi launch refused:") &&
 			readRecord().length === 0 && refusedRounds.length === 0 &&

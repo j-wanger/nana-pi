@@ -46,7 +46,7 @@ const LANE_ONLY_FLAGS = ['--lane', '--brief', '--max-secs', '--lane-size', '--sl
 const all = process.argv;
 const separator = all.indexOf('--');
 const own = separator < 0 ? all : all.slice(0, separator);
-const reviewFlag = ['--item', '--role', '--revision', '--over-cap', '--worker'].find((flag) => own.includes(flag));
+const reviewFlag = ['--item', '--role', '--revision', '--worker'].find((flag) => own.includes(flag));
 if (reviewFlag) {
 	process.stderr.write(`pi-worker: ${reviewFlag} is a review option — pi-worker records nothing. A review goes through pi-review --item <slug>.\n`);
 	process.exit(1);

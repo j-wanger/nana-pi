@@ -221,9 +221,9 @@ test('R-3214: both reviewers share known bugs with a lead fallback ordered share
   write(path.join(m.lane,'REQUIREMENTS.md'),ledger.replace('One.','One changed.').replace('Two.','Two changed.')); git(m.lane,'add','REQUIREMENTS.md'); git(m.lane,'commit','-qm','movement');
   write(m.bug,short); write(path.join(m.lane,'docs/known-bugs/FEAT-007.md'),big);
   const mc=launch(m,'claude-review');good(mc);const mp=launch(m,'pi-review');good(mp);
-  const movementText=mp.call.prompts.find(p=>p.text.startsWith('## Tree movement'))?.text; assert.ok(movementText);
-  const moved=reviewKnownBugSection(m.lane,movementText,m.briefText).text;
-  assert.equal(mp.call.prompts.at(-1).text,moved);assert.ok(mc.call.stdin.includes(moved)); assert.ok(mc.call.stdin.indexOf('## Tree movement')<mc.call.stdin.indexOf(moved));
+  assert.ok(!mp.call.prompts.some(p=>p.text.startsWith('## Tree movement')));
+  const briefOnly=reviewKnownBugSection(m.lane,null,m.briefText).text;
+  assert.equal(mp.call.prompts.at(-1).text,briefOnly);assert.ok(mc.call.stdin.includes(briefOnly));assert.ok(!mc.call.stdin.includes('## Tree movement'));
 });
 // req: R-3215
 test('R-3215: launchers log once before outcomes with exact part counts and default-home resolution', async () => {

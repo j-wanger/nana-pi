@@ -112,7 +112,7 @@ await test("R-3042: absent browser and launch failure each degrade with one inst
 await test("R-3043: sealed page-shaping paths name renderer, template and report model modules", async () => {
   assert.deepEqual(PAGE_SHAPING_PATHS, [
     "scripts/product-report.mjs", "scripts/product-report/", "scripts/deliverables.mjs",
-    "scripts/requirements-tree.mjs", "scripts/requirements-trace.mjs", "scripts/requirements-moved.mjs",
+    "scripts/requirements-tree.mjs", "scripts/requirements-trace.mjs", "scripts/git-runner.mjs",
     "packages/nana-pack/lib/handoff-asks.mjs", "packages/nana-pack/lib/handoff-issues.mjs",
     "packages/nana-pack/lib/land-config.mjs", "packages/nana-pack/lib/runtime-map.mjs",
     "packages/nana-pack/lib/runtime-map-config.mjs", "packages/nana-pack/lib/land-ci.mjs",
