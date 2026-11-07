@@ -31,7 +31,7 @@ Honest variation in local requests, manifests and Windows paths is in scope; the
 
 - `apps/desk/apps.mjs` and `apps/desk/server.mjs` (the deps passed at about line 2474): the app host and what it needs from the server.
 - `apps/desk/test/app-listener.test.mjs`, `origin-rule.test.mjs`, `host-rule.test.mjs`: the tests that must keep passing.
-- `docs/plan/one-reviewer.md`: the retirement shape.
+- `packages/nana-setup/tests/seat-pull-off.test.mjs`: the latest retirement in this repo, for the shape (rows retired, checks green); the one-reviewer plan on branch feat/one-reviewer is a further example.
 
 ## Outside precedent
 
