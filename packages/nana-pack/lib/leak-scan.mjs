@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/lib/leak-scan.mjs
  * @purpose Scan changed tip blobs and their repository-relative names for identity words and literal machine paths.
- * @inputs Repository cwd, base/tip commit refs, optional digest config, home, real temp root and platform.
+ * @inputs Repository cwd, base/tip commit refs, optional digest config, home, temp root, platform and real-path resolver.
  * @outputs Counts-only hits, visible skips, and shared diagnostic lines without matched text.
- * @effects disk (checkout-relative config and temp realpath), process (git diff and bounded blob reads)
+ * @effects disk (checkout-relative config and machine-folder realpath), process (git diff and bounded blob reads)
  * @errors Throws fixed unavailable reasons for config, refs or git failures without echoing inputs.
  */
 import { execFileSync } from 'node:child_process';
@@ -11,6 +11,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { countIdentityWords, validateConfig } from '../../../scripts/identity-scan.mjs';
 import { LEAK_FILE_MAX_BYTES } from './leak-scan-config.mjs';
+import { realPath } from './real-path.mjs';
 
 function machineForms(value, platform) {
   if (!value) return [];
@@ -19,21 +20,22 @@ function machineForms(value, platform) {
   if (platform === 'win32' && /^[a-z]:\//i.test(slash)) forms.push(`/${slash[0]}/${slash.slice(3)}`);
   return [...new Set(forms)].filter(Boolean);
 }
-function machineCount(text, value, platform) {
-  const forms = machineForms(value, platform);
+function machineCount(text, value, platform, resolveRealPath) {
+  const spellings = platform === 'win32' && value ? [value, resolveRealPath(value)] : [value];
+  const forms = [...new Set(spellings.flatMap(spelling=>machineForms(spelling, platform)))];
   if (!forms.length) return 0;
   const escaped = forms.sort((a,b)=>b.length-a.length).map(form=>form.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
   const pattern = new RegExp(`(?:${escaped.join('|')})(?=[\\\\/"'\\s]|$)`, platform === 'win32' ? 'gi' : 'g');
   return [...text.matchAll(pattern)].length;
 }
 
-export function scanCommitRange({ cwd = process.cwd(), base, tip, config, home = homedir(), tmp, platform = process.platform } = {}) {
+export function scanCommitRange({ cwd = process.cwd(), base, tip, config, home = homedir(), tmp, platform = process.platform, realPath: resolveRealPath = realPath } = {}) {
   try {
     config ??= JSON.parse(readFileSync(new URL('../../../identity-scan.config.json', import.meta.url), 'utf8'));
     validateConfig(config);
   } catch { throw new Error('identity config unavailable'); }
   if (tmp === undefined) {
-    try { tmp = realpathSync.native(tmpdir()); }
+    try { tmp = platform === 'win32' ? tmpdir() : realpathSync.native(tmpdir()); }
     catch { throw new Error('temp root unavailable'); }
   }
   const git = (args, maxBuffer = Infinity) => {
@@ -58,7 +60,7 @@ export function scanCommitRange({ cwd = process.cwd(), base, tip, config, home =
     counts.forEach((count,wordIndex)=> {if(count) hits.push({path:file,kind:'identity',wordIndex,count});});
     const text = `${file}\n${content}`;
     for (const [kind,value] of [['home',home],['temp',tmp]]) {
-      const count = machineCount(text,value,platform);
+      const count = machineCount(text,value,platform,resolveRealPath);
       if (count) hits.push({path:file,kind,count});
     }
   }

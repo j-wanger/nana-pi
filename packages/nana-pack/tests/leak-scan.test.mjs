@@ -22,19 +22,33 @@ const root = fileURLToPath(new URL('../../../', import.meta.url));
 const temp = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'leak-guard-')));
 const word = 'quux';
 const config = { wordDigests: [createHash('sha256').update(word).digest('hex')], wordLengths: [4], allowlist: [{path:'outside.log',counts:[1],reason:'byte-pinned'}] };
-let failures = 0, serial = 0;
+let failures = 0, serial = 0, detail;
+// Never print assertion messages or child output: either can contain matched text.
+function safeDetail(value) {
+  if (typeof value === 'string') {
+    for (const secret of [word, temp, os.homedir(), os.tmpdir(), process.env.HOME, process.env.USERPROFILE].filter(Boolean)) value=value.replaceAll(secret,'<redacted>');
+    return value.replace(/[A-Za-z]:[\\/][^\s"']*/g,'<machine-path>').replace(/\/(?:[^\s/"']+\/)+[^\s"']*/g,'<machine-path>');
+  }
+  if (Array.isArray(value)) return value.map(safeDetail);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,safeDetail(item)]));
+  return value;
+}
 async function check(title, fn) {
   let timer;
-  const started=Date.now();
+  const started=Date.now(); detail={};
   try {
     await Promise.race([Promise.resolve().then(fn), new Promise((_, reject) => {timer=setTimeout(()=>reject(Error('case limit')), 60000);})]);
     assert.ok(Date.now()-started<=60000,'case exceeded limit');
     console.log('PASS', title);
-  } catch (error) { failures++; console.log('FAIL', title, error.code ?? error.name); }
+  } catch (error) {
+    failures++;
+    console.log('FAIL', title, JSON.stringify(safeDetail({error:error.code ?? error.name,operator:error.operator,actual:error.actual,expected:error.expected,detail,at:error.stack?.split('\n').filter(line=>line.trimStart().startsWith('at ')).slice(0,2)})));
+  }
   finally { clearTimeout(timer); }
 }
 function run(command, args, cwd, options={}) {
   const r=spawnSync(command,args,{cwd,encoding:'utf8',timeout:20000,...options});
+  detail={...detail,child:{exit:r.status,signal:r.signal,error:r.error?.code}};
   assert.equal(r.error,undefined); return r;
 }
 function git(cwd,...args) {
@@ -85,6 +99,23 @@ await check('M4: literal home and temp forms honor suffix boundaries',async()=>{
   const f=fixture();put(f.cwd,'negative.log','/home/abc/x ~/x $HOME/x');put(f.cwd,'temp.log','/scratch/fixture/x');commit(f.cwd);
   assert.deepEqual(scanCommitRange(options(f)).hits,[{path:'temp.log',kind:'temp',count:1}]);
 });
+// req: R-3751
+await check('M4: Windows given and real spellings each count once',async()=>{
+  const {scanCommitRange}=await api();
+  const short='C:\\Users\\FIXTUR~1', long='C:\\Users\\fixture-user';
+  for (const [given,real] of [[short,long],[long,short]]) {
+    for (const kind of ['home','temp']) {
+      for (const spelling of [given,real]) {
+        for (const text of [spelling+'\\log',spelling.replaceAll('\\','/')+'/log',`/c/${spelling.slice(3).replaceAll('\\','/')}/log \t\r\n`]) {
+          const f=fixture();put(f.cwd,'alias.log',text);commit(f.cwd);
+          detail={kind,given:given===short?'short':'long',real:real===short?'short':'long',normalized:text.replaceAll('\\','/').replaceAll(short.replaceAll('\\','/'),'<short>').replaceAll(long.replaceAll('\\','/'),'<long>').replaceAll('/c/Users/','<msys>/')};
+          const opts={...options(f),platform:'win32',[kind==='home'?'home':'tmp']:given,realPath:value=>value===given?real:value};
+          assert.deepEqual(scanCommitRange(opts),{hits:[{path:'alias.log',kind,count:1}],skipped:[]});
+        }
+      }
+    }
+  }
+});
 // req: R-3753
 await check('M6: CLI blocks hits and unread skips and rejects unknown refs',async()=>{
   const {LEAK_FILE_MAX_BYTES}=await import('../lib/leak-scan-config.mjs');
@@ -117,10 +148,12 @@ await check('M7: lane end warns after build line without changing outcome or exi
     const env={...process.env,HOME:home,USERPROFILE:home,PI_CODING_AGENT_DIR:agent,PI_CODING_AGENT_SESSION_DIR:path.join(temp,'sessions'),PATH:bin+path.delimiter+process.env.PATH,FIXTURE_LEAK:mode==='leak'?'yes':'no'};
     const r=run(process.execPath,[...(mode==='failure'?['--import',preload]:[]),path.join(root,'packages/nana-pack/bin/pi-worker.mjs'),'--poll','60','--out',path.join(temp,'out.md'),'--lane','fixture','--brief',brief],lane,{env});
     const end=fs.readFileSync(ledger,'utf8').trim().split('\n').map(JSON.parse).at(-1);workerRuns.push({r,end,home});
+    detail={mode,exit:r.status,outcome:end.outcome,recordExit:end.exit,leaks:end.leaks};
     assert.equal(r.status,0);assert.equal(end.outcome,'ok');assert.equal(end.exit,0);
   }
   const [clean,leak,failure]=workerRuns;
-  assert.deepEqual(clean.end.leaks,{hits:[],skipped:[]});assert.equal(leak.end.leaks.hits[0].kind,'home');
+  detail={runs:workerRuns.map(({r,end})=>({exit:r.status,outcome:end.outcome,leaks:end.leaks}))};
+  assert.deepEqual(clean.end.leaks,{hits:[],skipped:[]});assert.deepEqual(leak.end.leaks.hits.filter(hit=>hit.kind==='home').map(hit=>({kind:hit.kind,count:hit.count})),[{kind:'home',count:1}]);
   const line='pi-worker: leak: build.log: home path ×1';assert.ok(leak.r.stderr.includes(line));const endIndex=leak.r.stderr.indexOf('pi-worker: build record:');assert.ok(endIndex>=0);assert.ok(leak.r.stderr.indexOf(line)>endIndex);
   assert.equal(typeof failure.end.leaks.unavailable,'string');assert.equal(failure.r.stderr.split('pi-worker: leak scan unavailable:').length,2);
 });
