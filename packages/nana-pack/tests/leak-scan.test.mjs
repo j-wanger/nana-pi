@@ -12,7 +12,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
 import { buildRecordsPath, buildReportLines, buildEndRecord } from '../lib/build-records.mjs';
@@ -122,14 +122,14 @@ await check('M6: CLI blocks hits and unread skips and rejects unknown refs',asyn
   const f=fixture();const env={...process.env,HOME:path.join(temp,'synthetic-home'),USERPROFILE:path.join(temp,'synthetic-home')};
   const command=path.join(root,'packages/nana-pack/bin/leak-scan.mjs');
   const invoke=(base,extra={})=>run(process.execPath,[command,'--base',base,'--tip','HEAD'],f.cwd,{env,...extra});
-  assert.equal(invoke(f.base).status,0);
-  put(f.cwd,'home.log',env.HOME+'/log');commit(f.cwd);let r=invoke(f.base);assert.equal(r.status,1);assert.ok(r.stdout.includes('leak: home.log: home path ×1'));
+  let r=invoke(f.base);detail={subcase:'clean range',expectedExit:0,actualExit:r.status};assert.equal(r.status,0);
+  put(f.cwd,'home.log',env.HOME+'/log');commit(f.cwd);r=invoke(f.base);detail={subcase:'home hit',expectedExit:1,actualExit:r.status};assert.equal(r.status,1);assert.ok(r.stdout.includes('leak: home.log: home path ×1'));
   const base=git(f.cwd,'rev-parse','HEAD');put(f.cwd,'large.log',Buffer.alloc(LEAK_FILE_MAX_BYTES+1,120));commit(f.cwd);
   const marker=path.join(temp,'blob-reads');const preload=path.join(temp,'read-probe.mjs');
   fs.writeFileSync(preload,`import cp from 'node:child_process';import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';const original=cp.execFileSync;cp.execFileSync=(cmd,args,opts)=>{if(args.includes('cat-file')&&(args.includes('blob')||args.includes('-p')))fs.appendFileSync(${JSON.stringify(marker)},JSON.stringify(args)+'\\n');return original(cmd,args,opts)};syncBuiltinESMExports();`);
-  r=run(process.execPath,['--import',preload,command,'--base',base,'--tip','HEAD'],f.cwd,{env});
-  assert.equal(r.status,1);assert.ok(r.stdout.includes('leak scan skipped: large.log:'));assert.equal(fs.existsSync(marker),false);
-  r=invoke('unknown-fixture-ref');assert.equal(r.status,2);assert.ok(r.stderr.includes('unavailable'));
+  r=run(process.execPath,['--import',pathToFileURL(preload).href,command,'--base',base,'--tip','HEAD'],f.cwd,{env});
+  detail={subcase:'unread over-cap skip',expectedExit:1,actualExit:r.status};assert.equal(r.status,1);assert.ok(r.stdout.includes('leak scan skipped: large.log:'));assert.equal(fs.existsSync(marker),false);
+  r=invoke('unknown-fixture-ref');detail={subcase:'unknown ref',expectedExit:2,actualExit:r.status};assert.equal(r.status,2);assert.ok(r.stderr.includes('unavailable'));
 });
 // req: R-3754
 await check('M7: lane end warns after build line without changing outcome or exit',async()=>{
@@ -146,7 +146,7 @@ await check('M7: lane end warns after build line without changing outcome or exi
   const ledger=buildRecordsPath(path.resolve(lane,git(lane,'rev-parse','--git-common-dir')));
   for(const mode of ['clean','leak','failure']) {
     const env={...process.env,HOME:home,USERPROFILE:home,PI_CODING_AGENT_DIR:agent,PI_CODING_AGENT_SESSION_DIR:path.join(temp,'sessions'),PATH:bin+path.delimiter+process.env.PATH,FIXTURE_LEAK:mode==='leak'?'yes':'no'};
-    const r=run(process.execPath,[...(mode==='failure'?['--import',preload]:[]),path.join(root,'packages/nana-pack/bin/pi-worker.mjs'),'--poll','60','--out',path.join(temp,'out.md'),'--lane','fixture','--brief',brief],lane,{env});
+    const r=run(process.execPath,[...(mode==='failure'?['--import',pathToFileURL(preload).href]:[]),path.join(root,'packages/nana-pack/bin/pi-worker.mjs'),'--poll','60','--out',path.join(temp,'out.md'),'--lane','fixture','--brief',brief],lane,{env});
     const end=fs.readFileSync(ledger,'utf8').trim().split('\n').map(JSON.parse).at(-1);workerRuns.push({r,end,home});
     detail={mode,exit:r.status,outcome:end.outcome,recordExit:end.exit,leaks:end.leaks};
     assert.equal(r.status,0);assert.equal(end.outcome,'ok');assert.equal(end.exit,0);
