@@ -1,0 +1,3 @@
+R-3732: silently omit missing export; wrong exit 1; restored exit 0
+FAIL R-3732: unavailable pi context preserves launch delivery and other parts AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+PASS R-3732: unavailable pi context preserves launch delivery and other parts

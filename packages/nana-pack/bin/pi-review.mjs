@@ -41,6 +41,7 @@ import { MOVEMENT_HEADING, MOVEMENT_LEAD, MOVEMENT_NOT_COMPUTED, MOVEMENT_FOLDER
 import { readBrief } from '../lib/brief-precedent.mjs';
 import { reviewKnownBugSection } from '../lib/known-bug-digest.mjs';
 import { appendContextLoad, contextPart } from '../lib/context-load-log.mjs';
+import { piContextLoad } from '../lib/pi-context-load.mjs';
 
 function piOption(args, ...names) {
   for (const name of names) {
@@ -238,11 +239,14 @@ try {
   }
   const parts = [...suppliedParts, ...knownBugs.parts, contextPart('standard', reviewStandard.path, reviewStandardText)];
   if (movement !== null) parts.push(contextPart('movement', sourceRoot, movement));
-  const onSpawn = () => appendContextLoad({ launcher: 'pi-review', role: 'reviewer', runtime: 'pi', model: piOption(w.piArgs,'--model','-m'), cwd: sourceRoot, item: optionValue('--item'), parts });
+  const childEnv = { ...process.env, ...REVIEWER_CHILD_ENV, NANA_REVIEW_ROOT: tempRoot, ...credentialStripEnv(process.env) };
+  const measured = await piContextLoad({ cwd: tempRootReal, env: childEnv, args: w.piArgs });
+  parts.push(...measured.parts);
+  const onSpawn = () => appendContextLoad({ launcher: 'pi-review', role: 'reviewer', slot: optionValue('--role') === 'land' ? 'land' : 'reviewer', runtime: 'pi', piVersion: measured.piVersion, model: piOption(w.piArgs,'--model','-m'), cwd: sourceRoot, childCwd: tempRootReal, item: optionValue('--item'), parts });
   const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
   let r;
   try {
-    r = await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`, '--append-system-prompt', reviewStandardText, ...(movementPrompt === null ? [] : ['--append-system-prompt', movementPrompt]), ...(knownBugPrompt === null ? [] : ['--append-system-prompt', knownBugPrompt])], onSpawn, childEnv: { ...REVIEWER_CHILD_ENV, NANA_REVIEW_ROOT: tempRoot, ...credentialStripEnv(process.env) }, accept: reviewShaped });
+    r = measured.signal ? { ok: false, text: '', attempt: 0, signal: measured.signal } : await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`, '--append-system-prompt', reviewStandardText, ...(movementPrompt === null ? [] : ['--append-system-prompt', movementPrompt]), ...(knownBugPrompt === null ? [] : ['--append-system-prompt', knownBugPrompt])], onSpawn, childEnv, accept: reviewShaped });
   } finally {
     stopHeartbeat();
     if (!r?.ok) release(adm.id);

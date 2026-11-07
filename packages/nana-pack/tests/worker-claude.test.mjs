@@ -980,7 +980,7 @@ check('MM4: role slots launch exact models tools brief and worker env or refuse 
 const loadObservations=[];
 for(const [slot,slots,fail] of [['adversary',{},false],['adversary',{},true],['checker',{checker:{runtime:'claude-code',model:'opus'}},false]]) {
 	resetRole(slots);const r=runRole(slot,[],{ROLE_EXIT:fail?'1':'0'});const e=readRows(roleLog)[0];
-	loadObservations.push({slot,ok:r.status===(fail?1:0)&&readRows(roleLog).length===1&&e.v===1&&e.launcher==='pi-worker'&&e.role===slot&&e.slot===(slot==='adversary'?'builder':'checker')&&e.runtime===(slot==='adversary'?'pi':'claude-code')&&e.model===(slot==='adversary'?'gpt-6.1-sol':'opus')&&e.cwd===real(roleRoot)&&e.parts.length===(slot==='adversary'?1:2)&&e.parts[0].name==='brief'&&e.parts[0].source===real(BRIEF)&&e.parts[0].deliveredChars===fs.readFileSync(BRIEF,'utf8').length,stderr:r.stderr,e});
+	loadObservations.push({slot,ok:r.status===(fail?1:0)&&readRows(roleLog).length===1&&e.v===1&&e.launcher==='pi-worker'&&e.role===slot&&e.slot===(slot==='adversary'?'builder':'checker')&&e.runtime===(slot==='adversary'?'pi':'claude-code')&&e.model===(slot==='adversary'?'gpt-6.1-sol':'opus')&&e.cwd===real(roleRoot)&&e.parts.length===2&&(slot!=='adversary'||e.parts[1].name.startsWith('context files: unavailable ('))&&e.parts[0].name==='brief'&&e.parts[0].source===real(BRIEF)&&e.parts[0].deliveredChars===fs.readFileSync(BRIEF,'utf8').length,stderr:r.stderr,e});
 }
 resetRole({checker:{runtime:'claude-code',model:'opus'}});
 const missing=runRole('checker',[],{PATH:roleAgent});

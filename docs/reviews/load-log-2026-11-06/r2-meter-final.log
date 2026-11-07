@@ -1,0 +1,4 @@
+PASS  packages/nana-pack/tests/memory-replay.test.mjs  20 pass  0.5s
+PASS  packages/nana-pack/tests/outcome-meter.test.mjs  27 pass  0.7s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 47 pass, 0 fail, 0 skip · 1.6s

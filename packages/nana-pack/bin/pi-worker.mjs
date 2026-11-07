@@ -30,6 +30,7 @@ import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
 import { digestKnownBugs } from '../lib/known-bug-digest.mjs';
 import { appendContextLoad, contextPart } from '../lib/context-load-log.mjs';
+import { piContextLoad } from '../lib/pi-context-load.mjs';
 import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from '../lib/claude-review-config.mjs';
 import { reviewLaunch } from './review-launch.mjs';
 import { appendBuildRecord, buildBriefPath, buildEndRecord, buildRecordsPath, buildSessionDir, collectBuildUsage, readBuildLedger, renderLaneLine } from '../lib/build-records.mjs';
@@ -245,7 +246,7 @@ if (laneMode) {
 		promptPaths: [preambleFile, briefPath, ...(deliveredBugPath ? [deliveredBugPath] : [])],
 		promptBytes: [Buffer.from(preamble), Buffer.from('\n\n'), readFileSync(briefPath), ...(digest ? [Buffer.from('\n\n'), Buffer.from(digest.text)] : [])],
 	});
-	contextLoad = { launcher: 'pi-worker', role: 'worker', runtime: isClaudeBuilder ? CLAUDE_CODE_RUNTIME : 'pi', model: builder.model, cwd, lane, parts };
+	contextLoad = { launcher: 'pi-worker', role: 'worker', slot: selectedSlot, runtime: isClaudeBuilder ? CLAUDE_CODE_RUNTIME : 'pi', model: builder.model, cwd, lane, parts };
 	const argvSeparator = argv.indexOf('--');
 	if (argvSeparator >= 0) argv.splice(argvSeparator + 1, argv.length, ...builderArgs);
 	else argv.push('--', ...builderArgs);
@@ -350,13 +351,19 @@ try {
 	if (laneMode || roleMode) {
 		const preambleDir = path.dirname(preambleFile);
 		const builderPidFile = path.join(preambleDir, LANE_BUILDER_PID_FILE);
+		if (contextLoad.runtime === 'pi') {
+			const measured = await piContextLoad({ cwd: contextLoad.cwd, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv }, args: w.piArgs });
+			contextLoad.piVersion = measured.piVersion;
+			contextLoad.parts.push(...measured.parts);
+			if (measured.signal) r = { ok: false, text: '', attempt: 0, signal: measured.signal };
+		}
 		const onSpawn = (child) => {
 			child.once('spawn', () => appendContextLoad(contextLoad));
 			if (!laneMode) return;
 			try { writeFileSync(builderPidFile, JSON.stringify({ pid: child.pid, launch: builderLaunchKind })); } catch { /* watcher falls back to cleanup without a builder identity */ }
 			child.once('exit', () => { try { rmSync(builderPidFile, { force: true }); } catch {} });
 		};
-		try { r = await runWatchdog(WORKER_TAG, { ...w, maxSecs: maxArg, childEnv, captureRoot: preambleDir, onSpawn, validateAttempt: validateLaneAttempt, ...(claudeLaunch ? { launch: claudeLaunch, stallSecs: CLAUDE_BUILDER_STALL_SECS } : {}) }); }
+		try { r ??= await runWatchdog(WORKER_TAG, { ...w, maxSecs: maxArg, childEnv, captureRoot: preambleDir, onSpawn, validateAttempt: validateLaneAttempt, ...(claudeLaunch ? { launch: claudeLaunch, stallSecs: CLAUDE_BUILDER_STALL_SECS } : {}) }); }
 		finally { rmSync(preambleDir, { recursive: true, force: true }); }
 	} else r = await runWatchdog('pi-worker', { ...w, childEnv });
 } catch (error) { if (laneLock) releaseLaneLock(laneLock); throw error; }

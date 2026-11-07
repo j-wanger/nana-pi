@@ -11,6 +11,7 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - On a lane that changes the product page, after first-look run `npm run outside-reader -- --from <first-look folder> --out <folder>` outside git, show the owner its top new finding in your report, and write a known-bug line only for a finding that is a real defect.
 - On a lane whose page has a reference, run `npm run visual-reader -- --from <first-look folder> --out <folder>` outside git before you point the owner to the shots. Point the owner to them only after it prints a pass, or after you have judged them side by side with the reference yourself and say so in your report.
 - On a lane that builds or reshapes a page a person looks at, write the build brief from `$HOME/nana-pi/docs/ui-brief-template.md`. The seat picks references by default. The owner's starred references from the library replace those picks when the owner wants a say.
+- Land reviews through `pi-review` pass `--role land` before the pi argument separator.
 - In an install, hook or gate lane, re-run the lane's mutation runner after any change of your own to code or tests, before the review.
 - Send findings on a build back in the next brief instead of fixing the builder's work yourself.
 - Before you end your turn, name and start what waits on nothing else: another lane's build, a long mutation run in parts, separate research agents. Each lane's own steps stay in order.

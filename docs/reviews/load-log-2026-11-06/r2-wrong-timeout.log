@@ -1,0 +1,11 @@
+FAIL R-3732: stalled measurement is killed and both launchers proceed within the deadline AssertionError [ERR_ASSERTION]: pi-worker: builder: fake small default; source: $TMPDIR/context-anatomy-TdGsj3/1/home/.pi/agent/nana-pack.json
+pi-worker: precedent: 1 checked at HEAD df03782; known bugs: none
+trust: none for $TMPDIR/context-anatomy-TdGsj3/1/lane — project post-edit checks are inert (nana-setup trust $TMPDIR/context-anatomy-TdGsj3/1/lane)
+
+
+null !== 0
+
+    at good (file://~/nana-pi-wt/load-log/packages/nana-pack/tests/context-anatomy.test.mjs:65:28)
+    at Object.fn (file://~/nana-pi-wt/load-log/packages/nana-pack/tests/context-anatomy.test.mjs:408:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file://~/nana-pi-wt/load-log/packages/nana-pack/tests/context-anatomy.test.mjs:444:9
