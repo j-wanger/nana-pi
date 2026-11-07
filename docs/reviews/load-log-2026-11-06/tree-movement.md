@@ -2,7 +2,7 @@
 
 Read every feature this names before you judge the change.
 
-tree movement 2c0a3e4..24d6569: 8 rows in 2 features
+tree movement 2124b25..8314a2f: 8 rows in 2 features
 FEAT-041 · Shape each agent's context by role
   R-3726 new (implemented)
   R-3727 new (implemented)
