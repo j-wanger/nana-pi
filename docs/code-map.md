@@ -4534,7 +4534,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Assertion failures set exit code 1.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/test.mjs`
-- **unresolved launches** — line 58: spawnSync; binding line 104; binding line 181 · line 137: spawnSync
+- **unresolved launches** — line 58: spawnSync; binding line 104; binding line 183 · line 137: spawnSync
 
 ### `packages/nana-pack/tests/win32-launch.test.mjs`
 

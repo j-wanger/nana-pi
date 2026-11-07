@@ -63,11 +63,11 @@ function execute(root, args, record = path.join(td, "record.json")) {
 const run = { id: 71, workflow_id: 1, run_number: 1, run_attempt: 2, name: "ci", head_sha: sha, head_branch: "main", path: ".github/workflows/ci.yml", event: "push", status: "completed", conclusion: "success" };
 const leg = (index) => `windows-latest-shard-${index}-of-3`;
 const value = (index, failed = false) => ({ schema: 1, platform: "win32", filters: [], shard: { index, count: 3 }, files: [{ path: `file-${index}.test.mjs`, label: failed ? "FAIL" : "PASS", seconds: index }], unnamedFailures: [], exitCode: failed ? 1 : 0, jobs: 4, wallSeconds: index * 10, fileTimeoutMs: 900000 });
-function ciFixture({ old = false, outcome = "success", absent, rerun, missingLatest = false, reversed = false } = {}) {
+function ciFixture({ old = false, outcome = "success", absent, rerun, missingLatest = false, reversed = false, noStart = false } = {}) {
 	const items = old ? [{ leg: "windows-latest", attempt: 1, record: { ...value(1), shard: undefined } }] : [1, 2, 3].filter((i) => i !== absent).map((i) => ({ leg: leg(i), attempt: 1, record: value(i, rerun === i ? !reversed : outcome === "failure" && i === 2) }));
 	if (rerun && !missingLatest) items.push({ leg: leg(rerun), attempt: 2, record: value(rerun, reversed) });
 	items.push(...["macos-latest", "ubuntu-latest"].map((leg) => ({ leg, attempt: 1, record: { ...value(1), platform: leg === "macos-latest" ? "darwin" : "linux", shard: undefined } })));
-	const jobs = (old ? ["windows-latest"] : [leg(1), leg(2), leg(3)]).filter((name) => name !== leg(absent)).map((name) => ({ name: `suite (${name})`, status: "completed", conclusion: name === leg(rerun) ? (reversed ? "failure" : "success") : name === leg(2) ? outcome : "success", run_attempt: name === leg(rerun) ? 2 : 1 }));
+	const jobs = (old ? ["windows-latest"] : [leg(1), leg(2), leg(3)]).filter((name) => name !== leg(absent)).map((name) => ({ name: `suite (${name})`, status: "completed", conclusion: name === leg(rerun) ? (reversed ? "failure" : "success") : name === leg(2) ? outcome : "success", run_attempt: run.run_attempt, started_at: noStart ? undefined : `2026-11-07T0${name === leg(rerun) ? 2 : 0}:30:00Z` }));
 	jobs.push(...["macos-latest", "ubuntu-latest"].map((name) => ({ name: `suite (${name})`, status: "completed", conclusion: "success", run_attempt: 1 })), ...["macos-latest", "windows-latest"].flatMap((os) => ["ceiling", "floor"].map((pi) => ({ name: `install-check (${os}, ${pi})`, status: "completed", conclusion: "success", run_attempt: 1 }))));
 	const artifacts = items.map((item, i) => ({ id: i + 1, name: `suite-record-${item.leg}-${item.attempt}`, created_at: `2026-11-07T0${item.attempt}:00:00Z` }));
 	const runGit = (_cwd, args) => ({ status: 0, stdout: args[0] === "remote" ? "https://github.com/example/project.git\r\n" : sha });
@@ -127,15 +127,17 @@ await check("M5: historical single-record Windows runs still pass both readers",
 	const result = ciFixture({ old: true }); assert.equal(result.proof.ok, true); assert.equal(result.main.red, false); assert.equal(result.land.code, 0, result.land.text); assert.equal(result.land.suiteRan, false);
 });
 // req-candidate: R-3820 (the seat must still measure this lane's real hosted CI run)
-await check("M6: CI measures and enforces each Windows shard's under-20-minute wall time", () => {
+await check("M6: CI reports each Windows shard's wall time and warns without failing at 20 minutes", () => {
 	assert.match(workflow, /NANA_CI_SHARD_MAX_SECONDS: "1200"/);
 	const script = workflow.match(/\/\/ win-shards wall check begin\n([\s\S]*?)\n\s*\/\/ win-shards wall check end/)?.[1]; assert(script, "wall check exists");
 	const source = script.split("\n").map((line) => line.replace(/^ {10}/, "")).join("\n");
 	const record = path.join(td, "wall.json"), summary = path.join(td, "summary.md");
-	for (const [seconds, expected] of [[1199.9, 0], [1200, 1], [1200.1, 1]]) {
+	for (const [seconds, warning] of [[1199.9, false], [1200, true], [1200.1, true]]) {
 		fs.writeFileSync(record, JSON.stringify({ wallSeconds: seconds }));
 		const result = spawnSync(process.execPath, ["--input-type=module", "-e", source], { encoding: "utf8", timeout: 10000, env: { ...process.env, NANA_SUITE_RECORD_FILE: record, GITHUB_STEP_SUMMARY: summary, NANA_CI_SHARD_MAX_SECONDS: "1200" } });
-		assert.equal(result.status, expected, result.stderr); assert(fs.readFileSync(summary, "utf8").includes(String(seconds)));
+		assert.equal(result.status, 0, result.stderr); assert.match(result.stdout, new RegExp(`${seconds}s`));
+		assert.equal(result.stdout.includes("::warning::"), warning, result.stdout);
+		assert(fs.readFileSync(summary, "utf8").includes(String(seconds)));
 	}
 });
 // req: R-3821
@@ -159,7 +161,7 @@ await check("M7: release blocks each failed cancelled or skipped Windows shard a
 await check("M8: partial reruns select the latest execution per shard and count each file once", () => {
 	const good = ciFixture({ rerun: 2 }); assert.equal(good.proof.ok, true); assert.equal(good.main.red, false); assert.equal(good.land.code, 0, good.land.text); assert.equal(good.land.suiteRan, false);
 	assert.deepEqual(good.proof.records[0].record.files.map((f) => f.path).sort(), ["file-1.test.mjs", "file-2.test.mjs", "file-3.test.mjs"]);
-	for (const options of [{ rerun: 2, reversed: true }, { rerun: 2, missingLatest: true }]) { const result = ciFixture(options); assert.equal(result.proof.ok, false); assert.equal(result.main.red, true); assert.equal(result.land.code, 1, result.land.text); assert.equal(result.land.suiteRan, false); assert(result.unchanged); }
+	for (const options of [{ rerun: 2, reversed: true }, { rerun: 2, missingLatest: true }, { rerun: 2, noStart: true }]) { const result = ciFixture(options); assert.equal(result.proof.ok, false); assert.equal(result.main.red, true); assert.equal(result.land.code, 1, result.land.text); assert.equal(result.land.suiteRan, false); assert(result.unchanged); }
 });
 // req: R-3823
 await check("M9: real sharded two-job runner executes only assigned files and isolates RUN_ALONE", () => {

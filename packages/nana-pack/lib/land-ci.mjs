@@ -109,10 +109,10 @@ export function ciSuiteLegs(result) {
 		for (const [index, item] of members) {
 			const job = jobs.get(index), record = item.record;
 			if (!job || job.status !== CI_DONE_STATUS || job.conclusion !== CI_PASS_CONCLUSION) problems.push(`${item.leg}: shard job did not pass`);
-			// A carried job keeps its own run_attempt. With absent attempt metadata, only an
-			// older started_at proves carry-forward; no timestamp must fail closed.
+			// GitHub can report the newest run_attempt even for carried jobs.
+			// Only an older started_at proves carry-forward; no timestamp fails closed.
 			const latestAttempt = Number(job?.run_attempt ?? run.run_attempt);
-			const carried = job?.run_attempt === undefined && Date.parse(job?.started_at) < Date.parse(item.artifact?.created_at);
+			const carried = Date.parse(job?.started_at) < Date.parse(item.artifact?.created_at);
 			if (latestAttempt > item.attempt && !carried) problems.push(`${item.leg}: attempt ${latestAttempt} left no record`);
 			if (record.shard?.index !== index || record.shard?.count !== count) problems.push(`${item.leg}: record shard identity differs`);
 			if (record.platform !== members[0][1].record.platform || !Array.isArray(record.filters) || record.filters.length || !finalFiles(record).length || record.exitCode !== 0 || record.unnamedFailures?.length || finalFiles(record).some((file) => file.label === "FAIL")) problems.push(`${item.leg}: shard record did not pass an unfiltered suite`);
