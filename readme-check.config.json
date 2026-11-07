@@ -7,8 +7,7 @@
     "packages/nana-stage/README.md",
     "packages/nana-setup/README.md",
     "apps/desk/README.md",
-    "apps/bench/README.md",
-    "apps/hive/README.md"
+    "apps/bench/README.md"
   ],
   "undocumented": [],
   "externalPaths": [

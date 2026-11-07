@@ -145,7 +145,6 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 		["packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/json-text.mjs", "FEAT-041 moves settings carry into claude-settings-carry.mjs, which imports the JSON helpers."],
 		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/bounded-read.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
 		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/json-text.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
-		["apps/hive/assets/hive.mjs -> apps/hive/assets/bee.mjs", "City residents replace flying bees; hive imports the shared residents builder instead."],
 		["packages/nana-pack/tests/objective-golden.test.mjs -> packages/nana-pack/bin/nana-objective.mjs", "Wrong basename guess: the hook runs instead."],
 		["packages/nana-setup/tests/stale-copies.test.mjs -> packages/nana-pack/bin/nana-adoption.mjs", "Wrong basename guess: the hook runs instead."],
 		["packages/nana-setup/tests/hooks-win32-exec.test.mjs -> packages/nana-knowledge/bin/nana-knowledge.ts", "Command text for a deleted checkout."],
@@ -199,7 +198,9 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
 			const edge = `${path} -> ${match[1]}`;
 			if (retiredStudyModules.has(path)) losses.set(edge, `FEAT-034 retired study module ${path} and its runner-only tests; frozen records remain.`);
-			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || (!graph.modules.has(match[1]) && retiredTargets.get(match[1])) || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
+			// Owner retirement (2026-11-07): the preview and all of its consumers left together.
+			const retiredPreview = [path, match[1]].some(file => file.startsWith(['apps', 'hive', ''].join('/')) || /^hive-/.test(file.split('/').at(-1)));
+			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || retiredPreview || (!graph.modules.has(match[1]) && retiredTargets.get(match[1])) || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
 		}
 	}
 });
