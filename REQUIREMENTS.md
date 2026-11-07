@@ -1560,6 +1560,15 @@ Reads: A-080 · packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/fsops
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-3799 | WHEN install finds released verifier wiring, it shall remove that wiring and stop installing the hook, while doctor reports remaining verifier wiring as retired with nana-setup install as its fix. | planned | M1; setup-retire |
+| R-3800 | The pack shall contain no handoff, post-edit or notify extension and complete the install-check pi turn on macOS and Windows. | planned | M2; setup-retire |
+| R-3801 | Through real pi discovery and the SessionStart hook, adoption shall report one canonical unadopted root only in the user journal per day, report it again after 25 hours, and omit adopted roots. | planned | M3; setup-retire |
+| R-3802 | The existing pi gate and pipe-guard tests shall pass unchanged after setup retirement. | planned | M4; setup-retire |
+| R-3803 | Install shall stop seeding subagent configuration and reviewer definitions, remove unchanged historical seeds, and omit pi-subagents doctor rows and install-check retries. | planned | M5; setup-retire |
+| R-3804 | User and trusted project configuration shall ignore legacy postEdit and handoff sections without errors, warnings or gate fallback. | planned | M6; setup-retire |
+| R-3805 | The runtime table and pack and setup READMEs shall omit removed surfaces, with removed contracts retired and map, README, tree and component checks passing. | planned | M7; setup-retire |
+| R-3806 | Retirement shall preserve edited marked seeds, foreign files and symlinks with their targets byte-identical, including dry runs. | planned | M8; setup-retire |
+| R-3807 | Uninstall directly after updating an old home shall remove owned verifier wiring and unchanged retired seeds without missing-source errors, while install removes released shell and exec verifier entries without changing siblings. | planned | M9; setup-retire |
 | R-3739 | WHEN install runs on POSIX or win32, it shall write every other nana hook as before and no UserPromptSubmit knowledge entry, including settings with no hooks. | implemented | `packages/nana-setup/tests/seat-pull-off.test.mjs::R-3739: fresh POSIX and win32 installs omit only the knowledge entry` |
 | R-3740 | WHEN install finds an installer-shaped knowledge entry in shell or exec form, including a quoted path with spaces, it shall remove it and preserve foreign UserPromptSubmit entries byte for byte. | implemented | `packages/nana-setup/tests/seat-pull-off.test.mjs::R-3740: install removes shell and exec knowledge entries and preserves foreign entries` |
 | R-3741 | WHEN doctor finds a still-wired knowledge hook, it shall report a retired-hook FAIL naming the command and nana-setup install, and report no knowledge-hook row when absent. | implemented | `packages/nana-setup/tests/seat-pull-off.test.mjs::R-3741: doctor names retired knowledge commands and install repair, but not absence`, `packages/nana-setup/tests/doctor-detail.test.mjs::doctor reports missing and out-of-repo knowledge hooks as retired` |
