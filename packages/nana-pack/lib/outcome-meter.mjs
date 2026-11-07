@@ -139,7 +139,7 @@ function loadContext(windows, file, tempRoot) {
   group.totals.push(row.parts.reduce((sum, part) => sum + part.deliveredChars, 0));
   // Each part is measured once per load, including repeated part names.
   const parts = new Map();
-  for (const part of row.parts) { const name = safePart(part.name); parts.set(name, (parts.get(name) ?? 0) + part.deliveredChars); }
+  for (const part of row.parts) { const name = safePart(part.name.startsWith('context files: unavailable (') && part.name.endsWith(')') ? 'context files: unavailable' : part.name); parts.set(name, (parts.get(name) ?? 0) + part.deliveredChars); }
   for (const [name, chars] of parts) (group.parts[name] ??= []).push(chars);
  }
  const describe = values => {

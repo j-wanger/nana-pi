@@ -12,7 +12,7 @@ FAIL R-3732: unavailable pi context preserves launch delivery and other parts As
 +     '/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-lane-preamble-IEQZNh/preamble.md',
 -     '/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-lane-preamble-QDla17/preamble.md',
       '--append-system-prompt',
-      '/private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-BTOXMd/1/lane/brief.md',
+      '$TMPDIR/context-anatomy-BTOXMd/1/lane/brief.md',
       '-p',
       'Do the work in your brief for lane alpha. Your cwd is the lane worktree. Finish with the report shape the brief gives.',
       '--name',
@@ -22,7 +22,7 @@ FAIL R-3732: unavailable pi context preserves launch delivery and other parts As
 -       source: '/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/nana-lane-preamble-QDla17/preamble.md',
         text: '# nana lane builder\n' +
           '\n' +
-          'You are a builder running in the verified lane worktree: /private/var/folders/lg/h9m6nvvd2_9d7s3hyjvdlqxr0000gn/T/context-anatomy-BTOXMd/1/lane on branch feat/alpha.\n' +
+          'You are a builder running in the verified lane worktree: $TMPDIR/context-anatomy-BTOXMd/1/lane on branch feat/alpha.\n' +
           '\n' +
           'Scope\n' +
 

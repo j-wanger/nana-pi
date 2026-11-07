@@ -354,7 +354,7 @@ test('R-3729: pi review logs the child checkout context and land or reviewer slo
     const a=args(f,'pi-review'); a.splice(a.indexOf('--'),0,'--role',role);
     const result=spawnSync(process.execPath,[path.join(pack,'bin/pi-review.mjs'),...a],{cwd:f.lane,env:f.env,encoding:'utf8',timeout:20_000}); good(result);
     const call=rows(f.record).at(-1), e=rows(f.log)[0];
-    assert.notEqual(e.cwd,f.lane); assert.equal(e.cwd,realPath(call.cwd)); assert.equal(e.slot,role==='land'?'land':'reviewer');
+    assert.equal(e.cwd,f.lane); assert.equal(e.childCwd,realPath(call.cwd)); assert.notEqual(e.childCwd,e.cwd); assert.equal(e.slot,role==='land'?'land':'reviewer');
     assert.deepEqual(fileParts(e),[{name:'context file',source:path.join(realPath(call.cwd),'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
   }
 });
@@ -393,6 +393,50 @@ test('R-3732: unavailable pi context preserves launch delivery and other parts',
   const absent=await piContextLoad({cwd:f.lane,env:{...f.env,PATH:path.join(f.dir,'absent')},args:[]}); assert.match(absent.parts[0].name,/^context files: unavailable \(.+\)$/);
   write(path.join(pkg,'dist/index.js'),`export function loadProjectContextFiles() { throw new Error('PRIVATE-CONTENT'); }`);
   const thrown=launch(f,'pi-worker'); good(thrown); const line=rows(f.log).at(-1); assert.match(line.parts.at(-1).name,/^context files: unavailable \(.+\)$/); assert.ok(!JSON.stringify(line).includes('PRIVATE-CONTENT'));
+});
+// req: R-3732
+test('R-3732: stalled measurement is killed and both launchers proceed within the deadline', async () => {
+  const { PI_CONTEXT_TIMEOUT_MS } = await import('../bin/worker-config.mjs');
+  const { pidAlive } = await import('../lib/process-tree.mjs');
+  for (const [launcher, stall] of [['pi-worker', 'await new Promise(() => {});'], ['pi-review', 'export async function loadProjectContextFiles() { await new Promise(() => {}); }']]) {
+    const f = fixture(), pidFile = path.join(f.dir, 'measurement.json');
+    stubContext(f, `import {writeFileSync} from 'node:fs'; writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({pid:process.pid})); setInterval(()=>{},1000); ${stall}`);
+    const started = Date.now();
+    const child = spawn(process.execPath, [path.join(pack,'bin',`${launcher}.mjs`), ...args(f,launcher)], {cwd:f.lane,env:f.env,stdio:['ignore','ignore','pipe'],timeout:10_000,killSignal:'SIGKILL'});
+    let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk; });
+    const status = await new Promise((resolve, reject) => { child.once('error',reject); child.once('close',resolve); });
+    good({status,stderr});
+    assert.ok(rows(f.record).at(-1), 'launch must proceed');
+    assert.ok(Date.now() - started <= PI_CONTEXT_TIMEOUT_MS + 1500, 'launch exceeded deadline plus 1500 ms margin');
+    assert.deepEqual(rows(f.log)[0].parts.filter(p => p.name.startsWith('context file')), [{name:'context files: unavailable (timed out)',source:'pi',fullChars:0,deliveredChars:0}]);
+    const {pid} = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
+    const stoppedBy = Date.now() + 1000;
+    while (pidAlive(pid) && Date.now() < stoppedBy) await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(pidAlive(pid), false, 'measurement child survived timeout');
+  }
+});
+// req: R-3732
+test('R-3732: context measurement deadline seal is 3000 ms', async () => {
+  assert.equal((await import('../bin/worker-config.mjs')).PI_CONTEXT_TIMEOUT_MS, 3000);
+});
+// req: R-3729 R-3315 R-3336
+test('R-3729: real review loads count by source cwd and name context statuses', async () => {
+  const { measureOutcomes } = await import('../lib/outcome-meter.mjs');
+  const { projectKey } = await import('../../nana-setup/lib/project-key.mjs');
+  const f = fixture(), reviewTemp = path.join(f.dir, 'review-temp'); fs.mkdirSync(reviewTemp);
+  stubContext(f); good(launch(f, 'pi-review', [], {...f.env, TMPDIR:reviewTemp, TMP:reviewTemp, TEMP:reviewTemp}));
+  const e = rows(f.log)[0];
+  const projectsRoot = path.join(f.dir, 'projects'), session = 'fixture';
+  const at = offset => new Date(Date.parse(e.at) + offset).toISOString();
+  write(path.join(projectsRoot, projectKey(f.lane), `${session}.jsonl`), [
+    {type:'assistant',uuid:'seat',sessionId:session,isSidechain:false,timestamp:at(-2000),message:{role:'assistant',content:'Which fixture?'}},
+    {type:'user',uuid:'owner',sessionId:session,isSidechain:false,timestamp:at(-1000),message:{role:'user',content:'Fixture answer.'}},
+  ].map(JSON.stringify).join('\n'));
+  for (const name of ['context files: disabled (-nc)', 'context files: unavailable (timed out)', 'context files: unavailable (pi entry import failed)']) fs.appendFileSync(f.log, JSON.stringify({...e,parts:[{name,deliveredChars:0}]})+'\n');
+  const result = await measureOutcomes({repoRoot:f.lane,projectsRoot,candidates:[],loadFile:f.log,tempRoot:reviewTemp,runModel:()=>assert.fail('no model call')});
+  assert.ok(result.lines.includes('test loads 0'), result.lines.join('\n'));
+  for (const [part, count] of [['context file',1],['context files: disabled (-nc)',1],['context files: unavailable',2]]) assert.ok(result.lines.includes(`1 context reviewer pi-review part ${part} too few loads ${count}`), result.lines.join('\n'));
+  assert.ok(!result.lines.some(line => line.includes('other-')));
 });
 for (const c of cases) {
   if(process.env.CONTEXT_CASE && !c.title.startsWith(process.env.CONTEXT_CASE))continue;

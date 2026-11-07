@@ -1,0 +1,27 @@
+FAIL R-3729: real review loads count by source cwd and name context statuses AssertionError [ERR_ASSERTION]: interactions 1
+1 warm-up
+1 corrections 0 repeated 0 exact 0 parallel 0 unjudged 0
+1 decisions 0 asked again 0 re-decided 0 unprompted 0 exact 0 parallel 0 unjudged 0
+1 pasted 0
+pooled correction 0/0 Wilson 0.0000 1.0000 halving needs unavailable interactions each side
+pooled decision 0/0 Wilson 0.0000 1.0000 halving needs unavailable interactions each side
+Window rows are not a verdict.
+1 context reviewer pi-review too few loads 4
+1 context reviewer pi-review part brief too few loads 1
+1 context reviewer pi-review part context file too few loads 1
+1 context reviewer pi-review part context files: disabled (-nc) too few loads 1
+1 context reviewer pi-review part other-1 too few loads 1
+1 context reviewer pi-review part other-2 too few loads 1
+1 context reviewer pi-review part standard too few loads 1
+test loads 0
+outside 0
+bad load lines 0
+skipped 0
+unresolved 0
+calls 0
+calls with unknown usage 0
+tokens 0
+cost 0
+    at Object.fn (file://~/nana-pi-wt/load-log/packages/nana-pack/tests/context-anatomy.test.mjs:438:129)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file://~/nana-pi-wt/load-log/packages/nana-pack/tests/context-anatomy.test.mjs:444:9

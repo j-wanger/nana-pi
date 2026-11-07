@@ -1,32 +1,53 @@
 /**
  * @module packages/nana-pack/lib/pi-context-load.mjs
- * @purpose Measure the context files pi would load for a child without changing its delivery.
- * @inputs Actual child cwd, environment and pi arguments, plus an optional package locator and module importer.
- * @outputs Ordered contextPart measurements and piVersion, or one disabled/unavailable part.
- * @effects disk (locates pi, imports its public entry and calls its context file loader)
- * @errors Never throws; lookup, import, export and loader failures become content-free unavailable parts.
+ * @purpose Bound pi context measurement in a disposable child without changing launch delivery.
+ * @inputs Actual child cwd, environment and pi arguments, plus an optional process spawner.
+ * @outputs Ordered contextPart measurements and piVersion, one disabled/unavailable part, or a cancellation signal.
+ * @effects process (spawns Node, discards diagnostics, kills measurement on deadline)
+ * @errors Never throws; process, protocol and deadline failures become content-free unavailable parts.
  */
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { piAgentDir } from './agent-dir.mjs';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { contextPart } from './context-load-log.mjs';
-import { locatePiPackage } from './pi-package.mjs';
+import { killProcessTreeNoWait } from './process-tree.mjs';
+import { PI_CONTEXT_TIMEOUT_MS } from '../bin/worker-config.mjs';
 
-export async function piContextLoad({ cwd, env, args, locate = locatePiPackage, importModule = url => import(url) }) {
-  let piVersion = null;
-  const unavailable = reason => ({ piVersion, parts: [contextPart(`context files: unavailable (${reason})`, 'pi', '')] });
+export async function piContextLoad({ cwd, env, args, start = spawn }) {
+  const unavailable = reason => ({ piVersion: null, parts: [contextPart(`context files: unavailable (${reason})`, 'pi', '')] });
   try {
-    const located = locate({ env, cwd });
-    piVersion = located.packageJson?.version ?? null;
-    if (args.some(arg => arg === '--no-context-files' || arg === '-nc')) return { piVersion, parts: [contextPart('context files: disabled (-nc)', 'argv', '')] };
-    if (located.refused) return unavailable(located.refused);
-    let pi;
-    try { pi = await importModule(pathToFileURL(join(located.packageDir, 'dist', 'index.js')).href); }
-    catch { return unavailable('pi entry import failed'); }
-    if (typeof pi.loadProjectContextFiles !== 'function') return unavailable('missing loadProjectContextFiles export');
-    try {
-      const files = await pi.loadProjectContextFiles({ cwd, agentDir: piAgentDir({ env, cwd }) });
-      return { piVersion, parts: files.map(file => contextPart('context file', file.path, file.content)) };
-    } catch { return unavailable('loadProjectContextFiles failed'); }
+    return await new Promise(resolve => {
+      let settled = false, text = '';
+      const child = start(process.execPath, [fileURLToPath(new URL('./pi-context-measure.mjs', import.meta.url)), JSON.stringify(args)], { cwd, env, detached: true, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
+      const finish = result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        for (const [name, handler] of handlers) process.removeListener(name, handler);
+        resolve(result);
+      };
+      const stop = result => {
+        killProcessTreeNoWait(child.pid, { fallback: signal => child.kill(signal) });
+        // Direct kill also covers Windows without waiting for taskkill to finish.
+        try { child.kill('SIGKILL'); } catch { /* already dead */ }
+        child.stdout.destroy();
+        child.unref();
+        finish(result);
+      };
+      const handlers = ['SIGINT', 'SIGTERM', 'SIGHUP'].map(signal => [signal, () => stop({ piVersion: null, parts: [], signal })]);
+      const timer = setTimeout(() => stop(unavailable('timed out')), PI_CONTEXT_TIMEOUT_MS);
+      for (const [name, handler] of handlers) process.on(name, handler);
+      child.stdout.setEncoding('utf8');
+      child.stdout.on('data', chunk => { text += chunk; });
+      child.once('error', () => finish(unavailable('pi context process failed')));
+      child.once('close', code => {
+        if (settled) return;
+        try {
+          if (code !== 0) throw new Error('child failed');
+          const result = JSON.parse(text);
+          if (!Array.isArray(result.parts) || !result.parts.every(part => typeof part.name === 'string' && typeof part.source === 'string' && Number.isInteger(part.fullChars) && part.fullChars >= 0 && part.deliveredChars === part.fullChars)) throw new Error('bad metadata');
+          finish(result);
+        } catch { finish(unavailable('pi context process failed')); }
+      });
+    });
   } catch { return unavailable('pi context lookup failed'); }
 }

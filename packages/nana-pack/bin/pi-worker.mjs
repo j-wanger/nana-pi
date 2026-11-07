@@ -355,6 +355,7 @@ try {
 			const measured = await piContextLoad({ cwd: contextLoad.cwd, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv }, args: w.piArgs });
 			contextLoad.piVersion = measured.piVersion;
 			contextLoad.parts.push(...measured.parts);
+			if (measured.signal) r = { ok: false, text: '', attempt: 0, signal: measured.signal };
 		}
 		const onSpawn = (child) => {
 			child.once('spawn', () => appendContextLoad(contextLoad));
@@ -362,7 +363,7 @@ try {
 			try { writeFileSync(builderPidFile, JSON.stringify({ pid: child.pid, launch: builderLaunchKind })); } catch { /* watcher falls back to cleanup without a builder identity */ }
 			child.once('exit', () => { try { rmSync(builderPidFile, { force: true }); } catch {} });
 		};
-		try { r = await runWatchdog(WORKER_TAG, { ...w, maxSecs: maxArg, childEnv, captureRoot: preambleDir, onSpawn, validateAttempt: validateLaneAttempt, ...(claudeLaunch ? { launch: claudeLaunch, stallSecs: CLAUDE_BUILDER_STALL_SECS } : {}) }); }
+		try { r ??= await runWatchdog(WORKER_TAG, { ...w, maxSecs: maxArg, childEnv, captureRoot: preambleDir, onSpawn, validateAttempt: validateLaneAttempt, ...(claudeLaunch ? { launch: claudeLaunch, stallSecs: CLAUDE_BUILDER_STALL_SECS } : {}) }); }
 		finally { rmSync(preambleDir, { recursive: true, force: true }); }
 	} else r = await runWatchdog('pi-worker', { ...w, childEnv });
 } catch (error) { if (laneLock) releaseLaneLock(laneLock); throw error; }
