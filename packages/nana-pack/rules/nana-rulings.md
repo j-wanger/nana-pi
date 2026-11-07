@@ -17,7 +17,7 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-14: Turning a repo into a feature tree is core: lift, an approved regroup, then feature-oriented work.
 - 2026-10-15: Every builder and long background run gets a failure watcher and a heartbeat at launch.
 - 2026-10-16: The public repo carries no owner name and nothing about the owner's work.
-- 2026-10-16: Each install, hook or gate lane gets one independent check. A blocking question carries a one-word default.
+- 2026-10-16: A blocking question carries a one-word default.
 - 2026-10-16: Rulings live in this file. A new ruling lands in the reviewed change of the lane that records it, and removes any ruling it replaces.
 - 2026-10-17: Development is feature-first. Plans get no review round; the seat and one adversary write each lane's must-meet tests.
 - 2026-10-20: In nana-pi, the seat lands a lane once every reviewer says LAND. The owner gives no separate Land.
@@ -28,7 +28,8 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-22: Every plan and brief names its precedent, the nearest existing code for each part. Builders follow it and report each departure. A `Card: fix` brief may omit the section (owner, 2026-11-06, #338); plans and other briefs still require it. pi-worker refuses an unmarked brief without it.
 - 2026-10-22: A helper's second caller imports it rather than copying it. A plan's Precedent section names any move of a private helper to a shared module.
 - 2026-10-28: Before the seat plans new capability, it brings the owner two or three readings of the intent, once per request; a fix that restores agreed behaviour plans straight away.
-- 2026-11-02: The roster names a slot for the scout, planner, adversary and checker; a seat starts each through its slot.
+- 2026-11-07: Every lane gets one reviewer plus CI.
+- 2026-11-07: The roster names a slot for the scout, planner and adversary; a seat starts each through its slot.
 - 2026-11-02: In nana-pi, a tip's passing GitHub CI stands in for the local full suite for builders, seats and lands. Builders do not push; the seat pushes after verifying, then waits for CI. The local locked suite runs only when CI cannot stand in.
 - 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review; a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land.
 - 2026-11-01: Each machine sets how many lanes build there in its roster file; the roster command's lanes line prints the limit, default included. At most two more lanes are planned.

@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { parseJsonBytes } from './json-text.mjs';
 import { writePackConfigMember } from './pack-config-write.mjs';
 import { resolveRoster, validateRosterShape, orderedRoster, formatRosterLines } from '../bin/nana-roster.mjs';
-import { PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN, CLAUDE_CODE_RUNTIME, SLOT_PRINT_ORDER } from '../bin/worker-config.mjs';
+import { PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN, CLAUDE_CODE_RUNTIME, SLOT_PRINT_ORDER, ROSTER_SLOTS, LEGACY_ROSTER_SLOTS } from '../bin/worker-config.mjs';
 
 /** The value `set`'s tokens describe for one already-known slot, or a problem naming it. */
 function parseEntry(slot, tokens) {
@@ -68,13 +68,14 @@ export function setRosterSlot(agentDir, args, {
   const { roster: validated, problem } = validateRosterShape(nextRoster);
   if (problem) return { ok: false, problem };
 
-  // Preserve the old five-slot write shape, plus only explicitly present/named roles.
-  // A normalized read must not opt another checkout into the new schema.
+  // Preserve the old write shape and raw legacy values; normalization must not opt
+  // another checkout into new optional roles or remove its required land member.
   let raw;
   try { raw = parseJsonBytes(readFileSync(join(agentDir, 'nana-pack.json'))); }
   catch (error) { if (error?.code !== 'ENOENT') return { ok: false, problem: `${join(agentDir, 'nana-pack.json')}: ${error.message}` }; }
-  const writeSlots = new Set(['scout', 'builder', 'largerBuilder', 'reviewer', 'land', ...Object.keys(raw?.roster ?? {}), slot]);
-  const written = Object.fromEntries(Object.entries(validated).filter(([key]) => writeSlots.has(key)));
+  const writeSlots = new Set([...ROSTER_SLOTS, ...Object.keys(raw?.roster ?? {}), slot]);
+  const written = { ...Object.fromEntries(Object.entries(validated).filter(([key]) => writeSlots.has(key))), land: raw?.roster?.land ?? null };
+  for (const legacy of LEGACY_ROSTER_SLOTS) if (Object.hasOwn(raw?.roster ?? {}, legacy)) written[legacy] = raw.roster[legacy];
   const result = writePackConfigMember(agentDir, 'roster', written, { writeTemp, rename });
   if (!result.ok) return result;
   return { ...result, roster: validated, lanes: base.lanes, previousTokens: slotTokens(base.roster, slot) };

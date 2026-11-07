@@ -39,28 +39,29 @@ export const LANE_DEFAULTS = Object.freeze({
   tools: 'read,grep,find,bash,edit,write',
 });
 
-// contract: R-1122 — the roster object's four mandatory slots; scout and land may be null
-// (NULLABLE_SLOTS); builder and reviewer are mandatory entries.
-export const ROSTER_SLOTS = Object.freeze(['scout', 'builder', 'reviewer', 'land']);
-export const NULLABLE_SLOTS = Object.freeze(['scout', 'land']);
+// contract: R-1122 — three mandatory slots; scout may be null, builder and reviewer are entries.
+export const ROSTER_SLOTS = Object.freeze(['scout', 'builder', 'reviewer']);
+export const NULLABLE_SLOTS = Object.freeze(['scout']);
+// contract: R-3757 — accepted without validation or use; writes preserve older checkouts' values.
+export const LEGACY_ROSTER_SLOTS = Object.freeze(['land', 'checker']);
 // contract: R-1121, R-1122 — a slot that may be ABSENT from the file's roster object entirely; an
 // absent one reads back as null (R-1121). Role slots joined the larger-lane builder on 2026-11-02.
-export const OPTIONAL_SLOTS = Object.freeze(['largerBuilder', 'planner', 'adversary', 'checker']);
+export const OPTIONAL_SLOTS = Object.freeze(['largerBuilder', 'planner', 'adversary']);
 // contract: R-1122, R-2563 — the slots that may hold a Claude Code entry ({runtime, model}) instead
 // of a pi entry. The larger-lane builder was added by the roster lane on 2026-10-16; the reviewer
 // was added for the Claude Code review launcher under the owner's fleet ruling on 2026-10-22.
-export const CLAUDE_CODE_SLOTS = Object.freeze(['largerBuilder', 'reviewer', 'scout', 'planner', 'adversary', 'checker']);
+export const CLAUDE_CODE_SLOTS = Object.freeze(['largerBuilder', 'reviewer', 'scout', 'planner', 'adversary']);
 // contract: R-1122 — chosen name: it says which runtime starts the entry.
 export const CLAUDE_CODE_RUNTIME = 'claude-code';
 // contract: R-1122 — Claude Code 2.1.299's Agent tool input schema, its `model` field, read from
 // the installed binary's strings on 2026-10-16 (`cc-strings.txt:337100`): model:U(["sonnet","opus","haiku","fable"]).
 export const CLAUDE_CODE_SUBAGENT_MODELS = Object.freeze(['sonnet', 'opus', 'haiku', 'fable']);
 // contract: R-1123, R-1192 — the print order every roster-reading surface agrees on.
-export const SLOT_PRINT_ORDER = Object.freeze(['scout', 'builder', 'largerBuilder', 'reviewer', 'land', 'planner', 'adversary', 'checker']);
+export const SLOT_PRINT_ORDER = Object.freeze(['scout', 'builder', 'largerBuilder', 'reviewer', 'planner', 'adversary']);
 // contract: roster-roles plan revision 2, owner defaults 2026-11-02 (R-3537).
-export const ROLE_FALLBACKS = Object.freeze({ scout: 'none', planner: 'seat', adversary: 'builder', checker: 'builder' });
+export const ROLE_FALLBACKS = Object.freeze({ scout: 'none', planner: 'seat', adversary: 'builder' });
 // contract: R-1123 — null tokens for nullable/optional slots; required entries have none.
-export const SLOT_NULL_TOKENS = Object.freeze({ largerBuilder: 'none', land: 'seat', ...ROLE_FALLBACKS });
+export const SLOT_NULL_TOKENS = Object.freeze({ largerBuilder: 'none', ...ROLE_FALLBACKS });
 // contract: R-3533; pi 1.4.0 pi-ai/dist/types.d.ts KnownProvider, read 2026-11-02.
 // Only direct Anthropic/OpenAI providers identify lineage; gateways remain unknown.
 export const LINEAGE_ALIASES = Object.freeze({ 'claude-code': 'anthropic', anthropic: 'anthropic', openai: 'openai', 'openai-codex': 'openai' });
@@ -136,7 +137,7 @@ export const CLAUDE_CARRY_ENV_NAMES = Object.freeze([
 
 // provenance: R-1120 — roles: the owner, 2026-10-06; provider and model ids: the seat's. The builder
 // slot reads LANE_DEFAULTS by name so the two definitions cannot drift; this Mac runs no pi scout
-// (chosen); reviewer and land carry no thinking (INFERRED: the ledger records no thinking).
+// (chosen); reviewer carries no thinking (INFERRED: the ledger records no thinking).
 // chosen (D1, 2026-10-16): largerBuilder defaults to null — every machine's lineup stays as it is
 // until its own file names a larger-lane builder.
 export const ROSTER_DEFAULTS = Object.freeze({
@@ -144,10 +145,8 @@ export const ROSTER_DEFAULTS = Object.freeze({
   builder: Object.freeze({ provider: LANE_DEFAULTS.provider, model: LANE_DEFAULTS.model, thinking: LANE_DEFAULTS.thinking }),
   largerBuilder: null,
   reviewer: Object.freeze({ provider: 'openai-codex', model: 'gpt-5.6-sol', thinking: null }),
-  land: Object.freeze({ provider: 'openai-codex', model: 'gpt-6-astra', thinking: null }),
   planner: null,
   adversary: null,
-  checker: null,
 });
 
 // contract: pi 1.0.2 package.json name and bin {"pi": "dist/bundle/cli.js"}, read 2026-10-13.

@@ -25,7 +25,7 @@ const { runLand, runCleanup } = await import(pathToFileURL(path.join(bin, "nana-
 const { admit, complete, readRounds } = await import(pathToFileURL(path.join(bin, "review-round.mjs")).href);
 
 const win32 = process.platform === "win32";
-// chosen: the impossible owner used by mutation-runner-takeover.test.mjs, outside the platform pid range.
+// chosen: an impossible owner outside the platform pid range.
 const IMPOSSIBLE_PID = 2_147_483_647;
 // MUST 4 (brief 2): do NOT resolve this to its long/native form. On Windows CI the runner's own
 // os.tmpdir() is already a short 8.3-style path (e.g. under `RUNNER~1`) — the natural second

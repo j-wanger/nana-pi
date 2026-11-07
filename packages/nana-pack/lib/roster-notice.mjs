@@ -43,9 +43,8 @@ function rosterSegment({ roster, source, lanes }, seatRuntime) {
 		? `builders ${entryText(roster.largerBuilder)} ${SIZE_LABELS.larger} and ${entryText(roster.builder)} ${SIZE_LABELS.small}`
 		: `builder ${entryText(roster.builder)}`);
 	parts.push(`reviewer ${entryText(roster.reviewer)}`);
-	parts.push(`land ${roster.land === null ? 'seat' : entryText(roster.land)}`);
 	if (roster.scout != null) parts.push(`scout ${entryText(roster.scout)}`);
-	for (const role of ['planner', 'adversary', 'checker']) {
+	for (const role of ['planner', 'adversary']) {
 		const resolved = resolveRole(roster, role);
 		parts.push(`${role} ${resolved.entry ? entryText(resolved.entry) : resolved.slot}`);
 	}

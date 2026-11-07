@@ -354,14 +354,14 @@ test('R-3728: context measurement resolves the child agent dir and relative cwd'
   }
 });
 // req: R-3729
-test('R-3729: pi review logs the child checkout context and land or reviewer slot', async () => {
-  for(const role of ['land','sol']) {
+test('R-3729: pi review logs the child checkout context and reviewer slot', async () => {
+  for(const role of ['final','sol']) {
     const f=fixture(); stubContext(f, `import {readFileSync} from 'node:fs'; import {join} from 'node:path'; export function loadProjectContextFiles({cwd}) { return [{path:join(cwd,'AGENTS.md'),content:readFileSync(join(cwd,'AGENTS.md'),'utf8')}]; }`);
     const text='# Checkout\r\nRead here. \t'; write(path.join(f.lane,'AGENTS.md'),text);
     const a=args(f,'pi-review'); a.splice(a.indexOf('--'),0,'--role',role);
     const result=spawnSync(process.execPath,[path.join(pack,'bin/pi-review.mjs'),...a],{cwd:f.lane,env:f.env,encoding:'utf8',timeout:20_000}); good(result);
     const call=rows(f.record).at(-1), e=rows(f.log)[0];
-    assert.equal(e.cwd,f.lane); assert.equal(e.childCwd,realPath(call.cwd)); assert.notEqual(e.childCwd,e.cwd); assert.equal(e.slot,role==='land'?'land':'reviewer');
+    assert.equal(e.cwd,f.lane); assert.equal(e.childCwd,realPath(call.cwd)); assert.notEqual(e.childCwd,e.cwd); assert.equal(e.slot,'reviewer');
     assert.deepEqual(fileParts(e),[{name:'context file',source:path.join(realPath(call.cwd),'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
   }
 });

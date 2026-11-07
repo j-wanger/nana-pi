@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
-import { LANE_LIMIT_DEFAULT, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN } from './worker-config.mjs';
+import { LANE_LIMIT_DEFAULT, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, LEGACY_ROSTER_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN } from './worker-config.mjs';
 
 const ENTRY_FIELDS = Object.freeze(['provider', 'model', 'thinking']);
 
@@ -113,7 +113,7 @@ export function validateRosterShape(value) {
   const missing = ROSTER_SLOTS.filter((s) => !(s in value));
   if (missing.length) return { problem: `roster is missing ${missing.join(', ')}` };
   const allowedSlots = [...ROSTER_SLOTS, ...OPTIONAL_SLOTS];
-  const extra = keys.filter((k) => !allowedSlots.includes(k));
+  const extra = keys.filter((k) => !allowedSlots.includes(k) && !LEGACY_ROSTER_SLOTS.includes(k));
   if (extra.length) return { problem: `roster has an unexpected field ${extra.join(', ')}` };
   for (const slot of allowedSlots) {
     if (!(slot in value)) continue;

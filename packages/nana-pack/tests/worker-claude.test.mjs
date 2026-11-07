@@ -963,31 +963,31 @@ writeBrief('Role brief "quoted" 100% bang!\r\nsecond line \t');
 const roleObservations=[];
 for(const [slot,slots,expected,tools] of [
 	['planner',{planner:{provider:'openai',model:'plan-model',thinking:'high'}},'plan-model',null],
-	['checker',{checker:{runtime:'claude-code',model:'opus'}},'opus',CLAUDE_BUILDER_TOOLS],
+	['adversary',{adversary:{runtime:'claude-code',model:'opus'}},'opus',CLAUDE_BUILDER_TOOLS],
 	['scout',{scout:{runtime:'claude-code',model:'sonnet'}},'sonnet',config.CLAUDE_SCOUT_TOOLS],
 	['adversary',{},'gpt-6.1-sol',null],
 ]) {
 	resetRole(slots);const r=runRole(slot);const call=readRows(RECORD)[0];const a=call?.argv??[];
 	roleObservations.push({slot,status:r.status,stderr:r.stderr,call,ok:r.status===0&&readRows(RECORD).length===1&&a[a.indexOf('--model')+1]===expected&&call.env.NANA_ROLE==='worker'&&call.env.NANA_WORKTREE_ROOT===real(roleRoot)&&fs.readFileSync(OUT,'utf8')==='fake Claude builder report\n'&&
 		(tools ? a.includes('-p')&&a[a.indexOf('--tools')+1]===tools&&a[a.indexOf('--allowedTools')+1]===tools&&fs.readFileSync(PROMPT_COPY,'utf8')===fs.readFileSync(BRIEF,'utf8') : a[a.indexOf('--provider')+1]===(slot==='planner'?'openai':'openai-codex')&&a[a.indexOf('--thinking')+1]===(slot==='planner'?'high':'medium')&&a[a.indexOf('-t')+1]===config.LANE_DEFAULTS.tools&&a[a.indexOf('--append-system-prompt')+1]===real(BRIEF)&&a.filter(x=>x==='--append-system-prompt').length===1)&&
-		(slot!=='adversary'||r.stderr.includes('adversary (builder)'))});
+		(slot!=='adversary'||tools||r.stderr.includes('adversary (builder)'))});
 }
-for(const [slot,extra,word] of [['planner',[],'seat'],['scout',[],'none'],['builder',[],'--lane'],['largerBuilder',[],'--lane'],['reviewer',[],'pi-review'],['land',[],'nana-land'],['adversary',['--lane','alpha'],'--lane'],['adversary',['--lane-size','small'],'--lane-size'],['adversary',['--','-p','override'],'caller'],['adversary',['--retries','1'],'--retries']]) {
+for(const [slot,extra,word] of [['planner',[],'seat'],['scout',[],'none'],['builder',[],'--lane'],['largerBuilder',[],'--lane'],['reviewer',[],'pi-review'],['land',[],'scout, planner or adversary'],['checker',[],'scout, planner or adversary'],['adversary',['--lane','alpha'],'--lane'],['adversary',['--lane-size','small'],'--lane-size'],['adversary',['--','-p','override'],'caller'],['adversary',['--retries','1'],'--retries']]) {
 	resetRole();const r=runRole(slot,extra);roleObservations.push({slot,extra,ok:r.status===1&&r.stderr.trim().split(/\r?\n/).length===1&&r.stderr.includes(word)&&readRows(RECORD).length===0&&tempEmpty(roleTmp)&&readRows(roleLog).length===0,stderr:r.stderr});
 }
 // req: R-3535
 check('MM4: role slots launch exact models tools brief and worker env or refuse before side effects',roleObservations.every(o=>o.ok),JSON.stringify(roleObservations));
 const loadObservations=[];
-for(const [slot,slots,fail] of [['adversary',{},false],['adversary',{},true],['checker',{checker:{runtime:'claude-code',model:'opus'}},false]]) {
+for(const [slot,slots,fail] of [['adversary',{},false],['adversary',{},true],['planner',{planner:{runtime:'claude-code',model:'opus'}},false]]) {
 	resetRole(slots);const r=runRole(slot,[],{ROLE_EXIT:fail?'1':'0'});const e=readRows(roleLog)[0];
-	loadObservations.push({slot,ok:r.status===(fail?1:0)&&readRows(roleLog).length===1&&e.v===1&&e.launcher==='pi-worker'&&e.role===slot&&e.slot===(slot==='adversary'?'builder':'checker')&&e.runtime===(slot==='adversary'?'pi':'claude-code')&&e.model===(slot==='adversary'?'gpt-6.1-sol':'opus')&&e.cwd===real(roleRoot)&&e.parts.length===2&&(slot!=='adversary'||e.parts[1].name.startsWith('context files: unavailable ('))&&e.parts[0].name==='brief'&&e.parts[0].source===real(BRIEF)&&e.parts[0].deliveredChars===fs.readFileSync(BRIEF,'utf8').length,stderr:r.stderr,e});
+	loadObservations.push({slot,ok:r.status===(fail?1:0)&&readRows(roleLog).length===1&&e.v===1&&e.launcher==='pi-worker'&&e.role===slot&&e.slot===(slot==='adversary'?'builder':'planner')&&e.runtime===(slot==='adversary'?'pi':'claude-code')&&e.model===(slot==='adversary'?'gpt-6.1-sol':'opus')&&e.cwd===real(roleRoot)&&e.parts.length===2&&(slot!=='adversary'||e.parts[1].name.startsWith('context files: unavailable ('))&&e.parts[0].name==='brief'&&e.parts[0].source===real(BRIEF)&&e.parts[0].deliveredChars===fs.readFileSync(BRIEF,'utf8').length,stderr:r.stderr,e});
 }
-resetRole({checker:{runtime:'claude-code',model:'opus'}});
-const missing=runRole('checker',[],{PATH:roleAgent});
+resetRole({planner:{runtime:'claude-code',model:'opus'}});
+const missing=runRole('planner',[],{PATH:roleAgent});
 loadObservations.push({name:'missing',ok:missing.status===1&&readRows(roleLog).length===0,stderr:missing.stderr});
 if(process.platform==='win32') {
-	resetRole({checker:{runtime:'claude-code',model:'opus'}});
-	const noExecutable=runRole('checker',[],{ComSpec:path.join(roleRoot,'missing-cmd.exe')});
+	resetRole({planner:{runtime:'claude-code',model:'opus'}});
+	const noExecutable=runRole('planner',[],{ComSpec:path.join(roleRoot,'missing-cmd.exe')});
 	loadObservations.push({name:'ENOENT',ok:noExecutable.status===1&&noExecutable.stderr.includes('attempt 1/1')&&readRows(roleLog).length===0&&readRows(RECORD).length===0&&fs.readFileSync(OUT,'utf8').includes('ENOENT'),stderr:noExecutable.stderr});
 }
 for(const unsafe of [false,true]) {
@@ -1000,9 +1000,9 @@ check('MM5: role logs once on spawn including failed children and skips absent o
 // req: R-3529
 check('MM8: role launch lines report resolved pair lineage without swapping entries',(()=>{
 	const seen=[];
-	for(const [slots,env,slot,warning] of [[{}, {NANA_ROLE:''},'adversary','unverified'],[{}, {CLAUDECODE:'1',PI_SESSION_ID:'pi-seat'},'adversary','unverified'],[{}, {NANA_ROLE:'seat',CLAUDECODE:'1'},'adversary',null],[{reviewer:{provider:'openai',model:'review-model',thinking:null}}, {},'checker','openai']]) {
+	for(const [slots,env,slot,warning] of [[{}, {NANA_ROLE:''},'adversary','unverified'],[{}, {CLAUDECODE:'1',PI_SESSION_ID:'pi-seat'},'adversary','unverified'],[{}, {NANA_ROLE:'seat',CLAUDECODE:'1'},'adversary',null],[{planner:{provider:'openai',model:'plan-model',thinking:null}}, {},'adversary','openai']]) {
 		resetRole(slots);const r=runRole(slot,[],env);const line=r.stderr.split(/\r?\n/).find(l=>l.startsWith(`pi-worker: ${slot}`))??'';const call=readRows(RECORD)[0];
-		seen.push(r.status===0&&call?.argv.includes('gpt-6.1-sol')&&(warning?line.includes('lineage')&&line.includes(warning)&&line.includes(slot==='adversary'?'planner':'reviewer'):!line.includes('lineage')));
+		seen.push(r.status===0&&call?.argv.includes('gpt-6.1-sol')&&(warning?line.includes('lineage')&&line.includes(warning)&&line.includes('planner'):!line.includes('lineage')));
 	}
 	return seen.every(Boolean);
 })());
@@ -1010,15 +1010,15 @@ let roleCleanup={skip:true};
 if(process.platform==='win32') {
 	const seen=[];
 	for(const mode of ['normal','ceiling','forced']) {
-		resetRole({checker:{runtime:'claude-code',model:'opus'}});
+		resetRole({planner:{runtime:'claude-code',model:'opus'}});
 		let stderr='',ended;
 		if(mode==='forced') {
-			const child=spawn(process.execPath,roleArgs('checker',['--max-secs','30']),{cwd:roleRoot,env:roleEnv({WC_SLEEP_MS:'30000'}),stdio:['ignore','ignore','pipe']});child.stderr.on('data',c=>stderr+=c);
+			const child=spawn(process.execPath,roleArgs('planner',['--max-secs','30']),{cwd:roleRoot,env:roleEnv({WC_SLEEP_MS:'30000'}),stdio:['ignore','ignore','pipe']});child.stderr.on('data',c=>stderr+=c);
 			const closed=new Promise(resolve=>child.once('close',(code,signal)=>resolve({code,signal})));
 			const ready=await waitUntil(()=>readRows(RECORD).length===1&&windowsLaneWatchers(roleTmp,{timeout:5000}).some(w=>w.line.includes('--watch')),8000);
 			child.kill('SIGKILL');ended=await Promise.race([closed,delay(2000).then(()=>({timeout:true}))]);
 			if(!ready) ended.ready=false;
-		} else {const r=runRole('checker',mode==='ceiling'?['--max-secs','1']:[],mode==='ceiling'?{WC_SLEEP_MS:'10000'}:{});stderr=r.stderr;ended={code:r.status};}
+		} else {const r=runRole('planner',mode==='ceiling'?['--max-secs','1']:[],mode==='ceiling'?{WC_SLEEP_MS:'10000'}:{});stderr=r.stderr;ended={code:r.status};}
 		const call=readRows(RECORD)[0];const removed=await waitUntil(()=>tempEmpty(roleTmp),10000);
 		const prefix=['-p','--model','opus','--permission-mode',CLAUDE_BUILDER_PERMISSION_MODE,'--setting-sources',CLAUDE_BUILDER_SETTING_SOURCES,'--settings',call?.settings,'--strict-mcp-config','--tools',CLAUDE_BUILDER_TOOLS,'--allowedTools',CLAUDE_BUILDER_TOOLS,'--append-system-prompt-file',call?.prompt];
 		seen.push({mode,ended,removed,call,ok:removed&&readRows(RECORD).length===1&&JSON.stringify(call?.argv.slice(0,prefix.length))===JSON.stringify(prefix)&&!fs.existsSync(call.settings)&&!fs.existsSync(call.prompt)&&!stderr.includes('lane class')&&!stderr.includes('build record')&&!call.lock&&(mode==='normal'?ended.code===0:mode==='ceiling'?ended.code===1:!ended.timeout&&ended.ready!==false)});

@@ -1,0 +1,65 @@
+=== red ===
+FAIL  packages/nana-pack/tests/review-ledger-state.test.mjs    95 pass, 1 fail  37.4s  — exit 1
+      | FAIL Trust model declares wrapper-only formal rounds, supplemental reviews and revision-based counting 
+FAIL  packages/nana-setup/tests/skills-and-standards.test.mjs  87 pass, 1 fail  6.5s  — exit 1
+      | FAIL R-1301: the coding standards and the requirements skill write one row per must-meet test no wider than the test, and drop clause-by-clause pinning RULE:# Nana — Coding standards
+
+2 files: 0 PASS, 2 FAIL, 0 SKIP, 0 WARN · checks: 182 pass, 2 fail, 0 skip · 44.3s
+failed: packages/nana-pack/tests/review-ledger-state.test.mjs, packages/nana-setup/tests/skills-and-standards.test.mjs
+
+=== test-first ===
+FAIL  packages/nana-pack/tests/review-ledger-state.test.mjs    95 pass, 1 fail  37.0s  — exit 1
+      | FAIL Trust model declares wrapper-only formal rounds, supplemental reviews and revision-based counting 
+PASS  packages/nana-setup/tests/skills-and-standards.test.mjs  88 pass  6.4s
+
+2 files: 1 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 183 pass, 1 fail, 0 skip · 43.8s
+failed: packages/nana-pack/tests/review-ledger-state.test.mjs
+
+=== green ===
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs        23 pass  51.1s
+PASS  packages/nana-pack/tests/land-clean-merge.test.mjs       12 pass  34.8s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs           8 pass  2.7s
+PASS  packages/nana-pack/tests/outcome-meter.test.mjs          27 pass  0.6s
+PASS  packages/nana-pack/tests/review-ledger-launch.test.mjs   32 pass  35.6s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs    96 pass  37.0s
+PASS  packages/nana-pack/tests/templates-render.test.mjs       173 pass  63.1s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs             21 pass  0.0s
+PASS  packages/nana-setup/tests/skills-and-standards.test.mjs  88 pass  6.5s
+
+9 files: 9 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 480 pass, 0 fail, 0 skip · 231.8s
+
+=== map ===
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 616 modules over scripts, apps/desk, apps/bench, apps/hive, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 3 exempt; 0 problem(s)
+
+=== readme ===
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 1084 claims checked; 0 problem(s)
+
+=== install ===
+pi: ~/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: ~/.hermes/node/bin/node
+PASS install
+PASS pi-subagents
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi post-edit
+PASS pi-review
+PASS hook set
+PASS hook memory making
+PASS hook roster notice
+PASS hook shared memory
+PASS hook verifier pipe (Bash)
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
