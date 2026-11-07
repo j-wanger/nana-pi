@@ -8,7 +8,7 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
-import { FEATURE_LINE_PREFIX, PRECEDENT_LIST_MAX_BYTES, PRECEDENT_NONE, PRECEDENT_QUOTE_CAP, PRECEDENT_SECTION, PRECEDENT_TRAILING_PUNCTUATION } from "./brief-config.mjs";
+import { FEATURE_LINE_PREFIX, FIX_CARD_LINE, PRECEDENT_LIST_MAX_BYTES, PRECEDENT_NONE, PRECEDENT_QUOTE_CAP, PRECEDENT_SECTION, PRECEDENT_TRAILING_PUNCTUATION } from "./brief-config.mjs";
 import { isNamed } from "./frontier-config.mjs";
 import { KNOWN_BUGS_DIR } from "./known-bugs-config.mjs";
 import { scanListSections } from "./markdown-list-sections.mjs";
@@ -66,7 +66,7 @@ function normalizeEntry(entry) {
 	return { kind: unsafe ? "invalid-path" : "path", value, line: entry.line, bullet };
 }
 
-/** Parse the first Precedent section and the first Feature line from brief text. */
+/** Parse the first Precedent section, first Feature line and explicit fix-card marker. */
 export function readBrief(text) {
 	const source = text.startsWith("\uFEFF") ? text.slice(1) : text;
 	const section = scanListSections(source, {
@@ -79,11 +79,14 @@ export function readBrief(text) {
 	})[0] ?? null;
 	const featurePattern = new RegExp(`^${FEATURE_LINE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(FEAT-\\d{3})\\b`);
 	let feature = null;
+	let fixCard = false;
 	for (const line of source.split(/\r\n|\r|\n/)) {
-		const match = featurePattern.exec(line.replace(/[ \t]+$/u, ""));
-		if (match) { feature = match[1]; break; }
+		const trimmed = line.replace(/[ \t]+$/u, "");
+		if (trimmed === FIX_CARD_LINE) fixCard = true;
+		const match = featurePattern.exec(trimmed);
+		if (match && feature === null) feature = match[1];
 	}
-	return { precedent: section ? section.entries.map(normalizeEntry) : null, feature };
+	return { precedent: section ? section.entries.map(normalizeEntry) : null, feature, fixCard };
 }
 
 /** Folder-aware membership against paths returned by git ls-tree. */
@@ -108,11 +111,12 @@ export function checkBriefForLaunch({ briefPath, worktreeRoot, gitRunner }) {
 	let parsedBrief;
 	try { parsedBrief = readBrief(readFileSync(briefPath, "utf8")); }
 	catch { return refusal(`cannot read ${PRECEDENT_SECTION} section from brief`); }
-	const precedent = parsedBrief.precedent;
+	const omittedForFix = parsedBrief.precedent === null && parsedBrief.fixCard;
+	const precedent = omittedForFix ? [] : parsedBrief.precedent;
 	if (precedent === null) {
 		return refusal(`${PRECEDENT_SECTION} section needs a ${PRECEDENT_SECTION} heading, or a line holding only ${PRECEDENT_SECTION}:, then one entry in either form: - <path> or - ${PRECEDENT_NONE} <reason>`);
 	}
-	if (precedent.length === 0 || precedent.some((entry) => entry.kind === "invalid-none")) {
+	if ((!omittedForFix && precedent.length === 0) || precedent.some((entry) => entry.kind === "invalid-none")) {
 		return refusal(`${PRECEDENT_SECTION} section needs one entry in either form: - <path> or - ${PRECEDENT_NONE} <reason>`);
 	}
 	let head;
@@ -148,7 +152,9 @@ export function checkBriefForLaunch({ briefPath, worktreeRoot, gitRunner }) {
 	}
 	return {
 		ok: true,
-		line: `pi-worker: precedent: ${precedent.length} checked at HEAD ${head}; known bugs: ${knownBugRelative}`,
+		line: omittedForFix
+			? `pi-worker: precedent: ${FIX_CARD_LINE} exception; Precedent section omitted; known bugs: ${knownBugRelative}`
+			: `pi-worker: precedent: ${precedent.length} checked at HEAD ${head}; known bugs: ${knownBugRelative}`,
 		knownBugPath,
 		feature: parsedBrief.feature,
 	};

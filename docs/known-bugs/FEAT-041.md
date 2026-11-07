@@ -23,6 +23,9 @@
 - Context shaping (roster-roles, review round 1): a role launch without `--out` is refused with only `pi-worker: slot refused: usage` and no usage line.
 - Context shaping (roster-roles, review round 1): a `--brief` value starting with a single `-` passes the role checks and is refused later by the lane check, after the role temp folder was made; the refusal removes it.
 - Context shaping (roster-roles, review round 1): older checkouts refuse new role keys or a Claude Code scout, as the owner accepted.
+- Context shaping (builder-context, review round 1): the frozen lessons line "Run the README's checks … before you commit" can read as permission to run the full suite unlocked on a shared machine, against the preamble's CI and lock rules.
+- Context shaping (builder-context, review round 1): the `Card: fix` marker is read anywhere in the brief, including inside a fenced code block, like the Feature line.
+- Context shaping (builder-context, review round 1): "drop the leading underscore" is Python wording; for JS the rule doesn't say that a private function is one that isn't exported.
 - Context shaping (load-log, plan assumption A1): Claude Code children (claude-review, the Claude Code builder) log no context-file parts; their CLAUDE.md discovery is Claude Code's own walk.
 - Context shaping (load-log, review round 2): if the launcher is out of file handles (EMFILE or ENFILE), spawning the measuring child leaves `child.stdout` null and the launcher crashes on an unhandled error; the real child launch would fail in that state anyway.
 - Context shaping (load-log, review round 2): a SIGKILLed launcher can leave a stuck measuring child, which is detached and never cleaned up; with a normal pi it exits on its own in about 0.4 s.
