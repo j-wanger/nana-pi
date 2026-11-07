@@ -16,12 +16,14 @@ let failures = 0;
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const workflow = readFileSync(process.env.CI_WORKFLOW_PATH ?? path.join(repoRoot, ".github/workflows/ci.yml"), "utf8");
+const pushSuiteMatrix = (text) => JSON.parse(text.match(/^        include: \$\{\{ fromJSON\(github.event_name == 'push' && '(\[[^']+\])'/m)?.[1] ?? "[]");
+const pushInstallOs = (text) => JSON.parse(text.match(/^        os: \$\{\{ fromJSON\(github.event_name == 'push' && '(\[[^']+\])'/m)?.[1] ?? "[]");
 // req: R-597
 check("root CI runs the suite on macOS, Linux, and Windows and gates tag release", () => {
   assert(workflow.includes("on:\n  push:\n    branches: [main]\n  pull_request:"));
   assert.match(workflow, /^permissions:\n  contents: read/m);
   assert.match(workflow, /^  suite:\n[\s\S]*?^    strategy:/m);
-  for (const os of ["macos-latest", "ubuntu-latest", "windows-latest"]) assert(workflow.includes(`- os: ${os}`));
+  for (const os of ["macos-latest", "ubuntu-latest", "windows-latest"]) assert(pushSuiteMatrix(workflow).some(item => item.os === os));
   assert.match(workflow, /^      - run: npm test/m);
   assert.match(workflow, /^  release:\n    needs: \[suite, install-check\]\n    if: github.event_name == 'push' && github.ref == 'refs\/heads\/main'/m);
   assert.match(workflow, /^    permissions:\n      contents: write/m);
@@ -176,7 +178,7 @@ function suiteBlocksOn(workflowText) {
 // req: R-1530
 check("R-1530: a failing macOS or Windows suite leg stops the release job", () => {
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
-  const matrixLine = [...suite.matchAll(/^ {10}- os: (.+)$/gm)].map((match) => match[1]).join(",");
+  const matrixLine = pushSuiteMatrix(suite).map(item => item.os).join(",");
   assert(matrixLine.includes("macos-latest"), "suite matrix must include a macOS leg");
   assert(matrixLine.includes("windows-latest"), "suite matrix must include a Windows leg");
   const needsLine = workflow.match(/^  release:\n {4}needs: \[(.+)\]$/m)?.[1] ?? "";
@@ -297,7 +299,7 @@ check("R-2577: the suite job warms the copier cache before its first suite step"
 // req: R-2711
 check("R-2711: the install check runs on macOS and Windows at the ceiling and the floor pi, every leg installing and checking only its own version, then running the one ungated check step", () => {
   const job = workflow.match(/^  install-check:\r?\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";
-  assert.match(job, /^ {8}os: \[macos-latest, windows-latest\]$/m);
+  assert.deepEqual(pushInstallOs(job), ["macos-latest", "windows-latest"]);
   assert.match(job, /^ {8}pi: \[ceiling, floor\]$/m);
   assert.match(job, /^ {6}fail-fast: false$/m);
   const matrix = job.match(/^ {6}matrix:\r?\n([\s\S]*?)(?=^ {4}\S)/m)?.[1] ?? "";
@@ -335,7 +337,7 @@ check("install check is a blocking macOS and Windows job", () => {
   const job = workflow.match(/^  install-check:\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";
   assert(job.length > 0);
   assert(workflow.indexOf("  install-check:") < workflow.indexOf("  suite:"));
-  assert.match(job, /os: \[macos-latest, windows-latest\]/);
+  assert.deepEqual(pushInstallOs(job), ["macos-latest", "windows-latest"]);
   assert.match(job, /^    timeout-minutes: 20$/m);
   assert.doesNotMatch(job, /continue-on-error/);
   assert.match(job, /^        run: node packages\/nana-setup\/bin\/install-check\.mjs$/m);
@@ -385,7 +387,7 @@ check("main pushes run the full suite on all systems without path filters or iss
   assert.match(normalized, /^on:\n  push:\n    branches: \[main\]\n  pull_request:/m);
   assert.doesNotMatch(normalized, /^\s*(paths|paths-ignore|issues):/m);
   const suite = normalized.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
-  for (const os of ["macos-latest", "ubuntu-latest", "windows-latest"]) assert(suite.includes(`- os: ${os}`));
+  for (const os of ["macos-latest", "ubuntu-latest", "windows-latest"]) assert(pushSuiteMatrix(suite).some(item => item.os === os));
   assert.doesNotMatch(suite, /^    if:/m);
   const commands = [...suite.matchAll(/^      - run: (npm test[^\n]*)\n        if: ([^\n]*)/gm)];
   assert.deepEqual(commands.map((m) => [m[1], m[2]]), [

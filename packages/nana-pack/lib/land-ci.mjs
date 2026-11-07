@@ -18,6 +18,7 @@ import {
 	TIP_DIGITS,
 	SUITE_FALLBACK_PATHS,
 	SUITE_CHANGED_REASON,
+	CI_TOOLKIT_NAME, CI_LANE_JOBS, CI_WINDOWS_JOBS, CI_LEGACY_WINDOWS_JOB,
 } from "./land-config.mjs";
 
 // contract (R-1511): strict GitHub origin spellings, with no credentials and an optional .git suffix.
@@ -49,6 +50,25 @@ export function ciScope({ remoteNames = "", originUrl = "", workflowPaths = "" }
 export function changedSuitePaths(changedPaths) {
 	const changed = linesOf(changedPaths).some((file) => SUITE_FALLBACK_PATHS.some((entry) => entry.endsWith("/") ? file.startsWith(entry) : file === entry));
 	return changed ? { ok: false, reason: SUITE_CHANGED_REASON } : { ok: true };
+}
+
+/** Keep the toolkit's named-job contract out of adopted projects. */
+export function toolkitCi(manifest) {
+	try { return JSON.parse(manifest).name === CI_TOOLKIT_NAME; } catch { return false; }
+}
+
+/** Require named jobs independently of a workflow's aggregate conclusion; Linux remains advisory. */
+export function requiredCiJobs(jobs, { main = false } = {}) {
+	const historical = main && jobs.some((job) => job.name === CI_LEGACY_WINDOWS_JOB);
+	const windows = historical ? [CI_LEGACY_WINDOWS_JOB, ...CI_WINDOWS_JOBS.filter((name) => !name.startsWith("suite ("))] : CI_WINDOWS_JOBS;
+	const required = [...CI_LANE_JOBS, ...(main ? windows : [])];
+	const problems = [];
+	for (const name of required) {
+		const job = jobs.find((item) => item.name === name);
+		if (!job) problems.push(`${name}: missing`);
+		else if (job.status !== CI_DONE_STATUS || job.conclusion !== CI_PASS_CONCLUSION) problems.push(`${name}: ${job.status === CI_DONE_STATUS ? job.conclusion : job.status}`);
+	}
+	return { ok: problems.length === 0, problems };
 }
 
 /** Select each leg's newest record, then combine complete shard groups without counting old attempts. */

@@ -24,7 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        # contract (R-3824): Windows runs only after a land, on main pushes.
+        os: ${{ fromJSON(github.event_name == 'push' && '["macos-latest","windows-latest"]' || '["macos-latest"]') }}
         pi: [ceiling, floor]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
@@ -63,22 +64,8 @@ jobs:
       matrix:
         # chosen 2026-11-07 (R-3817): three shards from the plan's measured Windows
         # 1,790–1,860 s at four jobs; ideal 597–620 s leaves room below 20 min for skew.
-        include:
-          - os: macos-latest
-            leg: macos-latest
-            shard: ""
-          - os: ubuntu-latest
-            leg: ubuntu-latest
-            shard: ""
-          - os: windows-latest
-            leg: windows-latest-shard-1-of-3
-            shard: 1/3
-          - os: windows-latest
-            leg: windows-latest-shard-2-of-3
-            shard: 2/3
-          - os: windows-latest
-            leg: windows-latest-shard-3-of-3
-            shard: 3/3
+        # contract (R-3824): select jobs, not steps, so PRs allocate no Windows runner.
+        include: ${{ fromJSON(github.event_name == 'push' && '[{"os":"macos-latest","leg":"macos-latest","shard":""},{"os":"ubuntu-latest","leg":"ubuntu-latest","shard":""},{"os":"windows-latest","leg":"windows-latest-shard-1-of-3","shard":"1/3"},{"os":"windows-latest","leg":"windows-latest-shard-2-of-3","shard":"2/3"},{"os":"windows-latest","leg":"windows-latest-shard-3-of-3","shard":"3/3"}]' || '[{"os":"macos-latest","leg":"macos-latest","shard":""},{"os":"ubuntu-latest","leg":"ubuntu-latest","shard":""}]') }}
     runs-on: ${{ matrix.os }}
     # chosen 2026-10-20 (R-2061): 90 minutes, not GitHub's 360-minute default, so a hung leg stops
     # within 90 minutes. Measured job wall times, every CI run from 2026-10-16 to 2026-10-20: slowest

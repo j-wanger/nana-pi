@@ -66,7 +66,9 @@ const value = (index, failed = false) => ({ schema: 1, platform: "win32", filter
 function ciFixture({ old = false, outcome = "success", absent, rerun, missingLatest = false, reversed = false } = {}) {
 	const items = old ? [{ leg: "windows-latest", attempt: 1, record: { ...value(1), shard: undefined } }] : [1, 2, 3].filter((i) => i !== absent).map((i) => ({ leg: leg(i), attempt: 1, record: value(i, rerun === i ? !reversed : outcome === "failure" && i === 2) }));
 	if (rerun && !missingLatest) items.push({ leg: leg(rerun), attempt: 2, record: value(rerun, reversed) });
+	items.push(...["macos-latest", "ubuntu-latest"].map((leg) => ({ leg, attempt: 1, record: { ...value(1), platform: leg === "macos-latest" ? "darwin" : "linux", shard: undefined } })));
 	const jobs = (old ? ["windows-latest"] : [leg(1), leg(2), leg(3)]).filter((name) => name !== leg(absent)).map((name) => ({ name: `suite (${name})`, status: "completed", conclusion: name === leg(rerun) ? (reversed ? "failure" : "success") : name === leg(2) ? outcome : "success", run_attempt: name === leg(rerun) ? 2 : 1 }));
+	jobs.push(...["macos-latest", "ubuntu-latest"].map((name) => ({ name: `suite (${name})`, status: "completed", conclusion: "success", run_attempt: 1 })), ...["macos-latest", "windows-latest"].flatMap((os) => ["ceiling", "floor"].map((pi) => ({ name: `install-check (${os}, ${pi})`, status: "completed", conclusion: "success", run_attempt: 1 }))));
 	const artifacts = items.map((item, i) => ({ id: i + 1, name: `suite-record-${item.leg}-${item.attempt}`, created_at: `2026-11-07T0${item.attempt}:00:00Z` }));
 	const runGit = (_cwd, args) => ({ status: 0, stdout: args[0] === "remote" ? "https://github.com/example/project.git\r\n" : sha });
 	const runGh = (_cwd, args) => {
@@ -104,9 +106,9 @@ await check("M2: bad shards refuse before any file executes", () => {
 });
 // req: R-3817
 await check("M3: CI runs three Windows shards with distinct artifacts and unchanged other legs", () => {
-	for (let i = 1; i <= 3; i++) assert(workflow.includes(`leg: ${leg(i)}\n            shard: ${i}/3`));
-	assert.equal((workflow.match(/os: windows-latest/g) ?? []).length, 3);
-	for (const os of ["macos-latest", "ubuntu-latest"]) assert(workflow.includes(`leg: ${os}\n            shard: ""`));
+	for (let i = 1; i <= 3; i++) assert(workflow.includes(`"leg":"${leg(i)}","shard":"${i}/3"`));
+	assert.equal((workflow.match(/"os":"windows-latest"/g) ?? []).length, 3);
+	for (const os of ["macos-latest", "ubuntu-latest"]) assert(workflow.includes(`"leg":"${os}","shard":""`));
 	assert(workflow.includes("--shard=${{ matrix.shard }}"));
 	assert(workflow.includes("name: suite (${{ matrix.leg }})"));
 	assert(workflow.includes("name: suite-record-${{ matrix.leg }}-${{ github.run_attempt }}"));
@@ -142,7 +144,7 @@ await check("M7: release blocks each failed cancelled or skipped Windows shard a
 	assert.match(release, /needs: \[suite, install-check\]/);
 	assert.match(release, /if: github.event_name == 'push' && github.ref == 'refs\/heads\/main' && needs.suite.result == 'success' && needs.install-check.result == 'success'/);
 	assert(!/always\(\)|!cancelled\(\)/.test(release.split("steps:")[0]));
-	const matrix = [...workflow.matchAll(/leg: (windows-latest-shard-\d-of-3)/g)].map((m) => m[1]); assert.equal(matrix.length, 3);
+	const matrix = [...workflow.matchAll(/"leg":"(windows-latest-shard-\d-of-3)"/g)].map((m) => m[1]); assert.equal(matrix.length, 3);
 	const required = [...release.match(/^    if: (.+)$/m)[1].matchAll(/needs.suite.outputs.shard(\d+) == 'success'/g)].map((m) => Number(m[1]));
 	assert.deepEqual(required, [1, 2, 3]);
 	assert(workflow.includes('run: echo "shard${SHARD%%/*}=success" >> "$GITHUB_OUTPUT"'));

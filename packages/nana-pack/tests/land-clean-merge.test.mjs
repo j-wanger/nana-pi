@@ -198,7 +198,7 @@ await check('M9: shared guidance, rendered region, README and ruling agree on th
   assert.match(bullet,/without conflict|conflict-free/); assert(!bullet.includes('there are no exemptions'));
  }
  for(const sentence of shared.split(/(?<=\.)\s+/).filter(s=>/every later commit/i.test(s))) assert.match(sentence,/lane authors/);
- assert(shared.includes("When main's push run for a landed commit is red, land nothing else until the fix lands."));
+ assert(shared.includes("In nana-pi, lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands."));
  const readme=read('packages/nana-pack/README.md');
  for(const phrase of ['without new CI or review','merge.renormalize=false','check-attr --source','git ≥ 2.40','bors-ng']) assert(readme.includes(phrase),phrase);
  const exception='a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict';
