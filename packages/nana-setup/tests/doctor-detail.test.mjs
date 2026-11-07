@@ -54,16 +54,17 @@ const personalCheck = (layout) => diagnoseWithPi(layout, { projectDir: layout.ba
 	fs.mkdirSync(layout.claudeHome, { recursive: true });
 	fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: "NODE_NO_WARNINGS=1 node /missing-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook" }] }] } }));
 	const c = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit retired hook");
-	const outside = path.join(home, "outside", "nana-knowledge.ts");
+	// Shell-form hook targets use forward-slash script suffixes, as the installer writes.
+	const outside = path.join(home, "outside", "nana-knowledge.ts").replaceAll("\\", "/");
 	fs.mkdirSync(path.dirname(outside), { recursive: true });
 	fs.writeFileSync(outside, "// test target\n");
-	const validTarget = path.resolve(pkgRoot, "..", "nana-knowledge", "bin", "nana-knowledge.ts");
+	const validTarget = path.resolve(pkgRoot, "..", "nana-knowledge", "bin", "nana-knowledge.ts").replaceAll("\\", "/");
 	fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
 		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${validTarget}' hook` },
 		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${outside}' hook` },
 	] }] } }));
 	const outsideCheck = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit retired hook");
-	// req: R-393
+	// req: R-3741
 	check("doctor reports missing and out-of-repo knowledge hooks as retired", c?.status === "fail" && /retired hook/.test(c.detail) && outsideCheck?.status === "fail" && /nana-setup install/.test(outsideCheck.detail), `${JSON.stringify(c)} ${JSON.stringify(outsideCheck)}`);
 }
 
