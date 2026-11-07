@@ -212,3 +212,4 @@
 - Knowledge churn detail (knowledge-busy, review round 3): M2's failure path parses `pull.log` with no `try`. A torn line throws a parse error in place of the detail; the check still fails.
 - Mutation comment (knowledge-busy, review round 3): the comment on pair P9 in `docs/reviews/knowledge-busy-2026-11-02/seat-mutate.mjs` overstates what no check can tell apart.
 - Knowledge churn (knowledge-busy, CI round 6): M2 still missed one stale hook pull (noPull=1) on the macOS CI leg at tip ed4a399d after the bounded retry, and passed on re-run; the summary-mode CI log does not show its reason or retried detail.
+- Install and connect (seat-pull-off, plan A1): pi seat sessions still run the per-prompt knowledge pull through the nana-knowledge extension. Its 686 pull-log entries were unmatched to transcripts, not measured useful, so keeping it is not a validation.
