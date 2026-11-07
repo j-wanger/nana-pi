@@ -1,0 +1,12 @@
+packages/nana-pack/tests/code-map-launch.test.mjs:168:		['scripts/requirements-moved.mjs', 'R-3770 removes the movement command; git-runner preserves its git helpers.'],
+packages/nana-pack/tests/code-map-launch.test.mjs:169:		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves review execution into review-run and claude-review.'],
+packages/nana-pack/tests/code-map-launch.test.mjs:170:		['packages/nana-pack/lib/review-movement.mjs', 'R-3770 removes movement context.'],
+packages/nana-pack/tests/code-map-launch.test.mjs:171:		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3770 removes movement context configuration.'],
+packages/nana-pack/tests/code-map-launch.test.mjs:184:		['scripts/requirements-moved.mjs', 'R-3770 rehomes the shared runner in git-runner.mjs and removes movement.'],
+packages/nana-pack/tests/code-map-launch.test.mjs:185:		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves execution into review-run.mjs, shared with the test harness.'],
+packages/nana-pack/tests/code-map-launch.test.mjs:186:		['packages/nana-pack/lib/review-movement.mjs', 'R-3766 removes movement from reviewer prompts.'],
+packages/nana-pack/tests/code-map-launch.test.mjs:187:		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3766 removes movement configuration and its test imports.'],
+packages/nana-pack/tests/review-paperwork.test.mjs:79:  assert.equal(fs.existsSync(path.join(pack, 'bin/review-ledger.mjs')), false);
+packages/nana-pack/tests/review-paperwork.test.mjs:133:  for (const p of ['bin/review-ledger.mjs', 'lib/review-movement.mjs', 'lib/review-movement-config.mjs']) assert.equal(fs.existsSync(path.join(pack, p)), false, p);
+packages/nana-pack/tests/review-paperwork.test.mjs:134:  assert.equal(fs.existsSync(path.join(root, 'scripts/requirements-moved.mjs')), false);
+packages/nana-pack/tests/review-paperwork.test.mjs:144:    assert.doesNotMatch(read(path.join(root, rel)), /review-ledger keep|tree[ -]movement|three rounds|capped at three|over.cap reason|confirmation round over cap|Review corpus:/i, rel);

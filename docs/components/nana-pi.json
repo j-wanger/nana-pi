@@ -390,6 +390,7 @@
         "packages/nana-pack/bin/review-round.mjs",
         "packages/nana-pack/prompts/review-standard.md",
         "packages/nana-pack/bin/review-launch.mjs",
+        "packages/nana-pack/lib/review-run.mjs",
         "packages/nana-pack/bin/review-shape.mjs",
         "packages/nana-pack/bin/review-timeline.mjs"
       ],
@@ -439,6 +440,7 @@
         "scripts/component-contract.mjs",
         "scripts/deliverables.mjs",
         "scripts/known-bugs.mjs",
+        "scripts/git-runner.mjs",
         "scripts/requirements-regroup.mjs",
         "scripts/requirements-lift.mjs",
         "scripts/requirements-lift-proof.mjs",
