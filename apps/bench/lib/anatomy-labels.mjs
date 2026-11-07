@@ -10,8 +10,8 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { distinctUnits } from "./anatomy-measures.mjs";
-import { seededSample } from "./catch-stats.mjs";
-import { readJsonl } from "./plan.mjs";
+import { seededSample } from "./anatomy-stats.mjs";
+import { readJsonl } from "./jsonl.mjs";
 import { FUNCTIONS, LABEL_BATCH_CHARS, LABEL_BATCH_UNITS, LABEL_EFFORT, LABEL_FAIL_STREAK, LABEL_FILE, LABEL_MANIFEST_FILE, LABEL_MODEL, LABEL_ORDER_SEED, LABEL_PROGRESS_EVERY, LABEL_SYSTEM_PROMPT, LABEL_TOKEN_CAP, LABEL_UNKNOWN_CHARGE } from "./anatomy-config.mjs";
 
 const sha256 = (text) => crypto.createHash("sha256").update(text).digest("hex");

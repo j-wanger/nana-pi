@@ -7,7 +7,7 @@
  * @errors Invalid labels, duplicate ids, unknown ids and differing sheet id sets throw fixed diagnostics.
  */
 import crypto from "node:crypto";
-import { cohensKappa, seededSample } from "./catch-stats.mjs";
+import { cohensKappa, seededSample } from "./anatomy-stats.mjs";
 import { CLASS_FUNCTION, FUNCTIONS, KAPPA_MIN_COUNT, LABEL_HEAVY_MIN, LABEL_SAMPLE_MIN, LABEL_SHORT_CHARS, NORMALIZATION, NORMAL_TOKENS, OVERSIZE_UNIT_CHARS, REPORT_PARTS, RULE_TIERS, SAMPLE_MIN_FUNCTION, SAMPLE_MIN_TIER, SAMPLE_SIZE, SHARE_DIGITS, SIZE_QUANTILE, STAGE_POINTER } from "./anatomy-config.mjs";
 
 const labels = [...FUNCTIONS, "unsorted", "glue"];

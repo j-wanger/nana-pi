@@ -1,0 +1,12 @@
+PASS R-3783: runner modules are gone without live imports
+(node:19672) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://$TMPDIR/bench-retire-pairs.JrOy4W/repo/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to $TMPDIR/bench-retire-pairs.JrOy4W/repo/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS R-3784: report consumers keep byte-identical output
+PASS R-3785: memory shaping and anatomy labeller retain behavior
+PASS R-3786: every anatomy CLI subcommand preserves fixture output
+PASS R-3787: records contracts and repository checks stay valid
+PASS R-3788: tree and regroup fixture copies use relocated helper
+PASS R-3789: first-look captures a helper-only change
+PASS R-3790: all tracked study paths retain their base bytes

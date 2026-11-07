@@ -1,0 +1,23 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs apps/bench/test/anatomy-labels.test.mjs apps/bench/test/anatomy.test.mjs apps/bench/test/retire.test.mjs packages/nana-pack/tests/agent-dir-parity.test.mjs packages/nana-pack/tests/code-map-launch.test.mjs packages/nana-pack/tests/code-map.test.mjs packages/nana-pack/tests/context-anatomy.test.mjs packages/nana-pack/tests/first-look.test.mjs packages/nana-pack/tests/pages-workflow.test.mjs packages/nana-pack/tests/preview-retirement.test.mjs packages/nana-pack/tests/readme-check.test.mjs packages/nana-pack/tests/requirements-regroup.test.mjs packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-pack/tests/templates-update.test.mjs packages/nana-pack/tests/test-runner-parallel.test.mjs packages/nana-pack/tests/test-runner.test.mjs packages/nana-pack/tests/worker-lane.test.mjs
+
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs      56 pass  3.0s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs       12 pass  1.8s
+PASS  packages/nana-pack/tests/code-map.test.mjs              48 pass  3.1s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs       24 pass  62.0s
+PASS  packages/nana-pack/tests/first-look.test.mjs            7 pass  0.1s
+PASS  packages/nana-pack/tests/pages-workflow.test.mjs        2 pass  0.0s
+PASS  packages/nana-pack/tests/preview-retirement.test.mjs    8 pass  9.1s
+PASS  packages/nana-pack/tests/readme-check.test.mjs          11 pass  0.3s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs  63 pass  28.1s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs     98 pass  2.7s
+PASS  packages/nana-pack/tests/templates-update.test.mjs      35 pass  151.3s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  32.6s
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  30.2s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs           68 pass  34.5s
+PASS  apps/bench/test/anatomy-labels.test.mjs                 30 pass  1.4s
+PASS  apps/bench/test/anatomy.test.mjs                        9 pass  1.2s
+PASS  apps/bench/test/retire.test.mjs                         8 pass  42.9s
+
+17 files: 17 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 543 pass, 0 fail, 0 skip · 404.9s

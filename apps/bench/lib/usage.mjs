@@ -1,20 +1,15 @@
 /**
  * @module apps/bench/lib/usage.mjs
- * @purpose Parse a pi `--mode json` event stream into deterministic per-run metrics, keeping the
- *  run's own model spend strictly apart from what its tools spent.
+ * @purpose Parse pi JSON event streams for isolated memory-shaping runners.
  * @inputs the raw stream text of one run plus an optional pricer; pi-ai Usage objects carried on
  *  message_end and tool results
- * @outputs exports
- *  emptyUsage/addUsage/totalTokens/costTotal/costOfRecord/observedCostOfRecord/costUnknownReason/parseStream/incompleteReason;
- *  parseStream returns {tokens, nested, cost, finalText, settled, toolCalls, retries,
- *  compactions, errors}
+ * @outputs parseStream returns own and nested usage, completeness, final text, tool counts and stream diagnostics.
  * @effects none
  * @errors none thrown — an unterminated or malformed stream is reported through `settled: false`
- *  and incompleteReason(), and an unpriceable run through costUnknownReason()
+ *  and an unpriceable nested call through nestedCostReason.
  */
 // Parse a pi `--mode json` event stream into deterministic per-run metrics.
-import { addUsage, costTotal, emptyUsage, totalTokens } from "../../../packages/nana-pack/lib/pi-usage.mjs";
-export { addUsage, costTotal, emptyUsage, totalTokens } from "../../../packages/nana-pack/lib/pi-usage.mjs";
+import { addUsage, emptyUsage } from "../../../packages/nana-pack/lib/pi-usage.mjs";
 //
 // TOKENS AND COST ARE PI'S ARITHMETIC, NOT OURS. Verified against pi 0.84.4 (2026-09-09):
 //   · Every usage object in the stream is a pi-ai `Usage` — {input, output, cacheRead, cacheWrite,
@@ -24,7 +19,7 @@ export { addUsage, costTotal, emptyUsage, totalTokens } from "../../../packages/
 //     recomputing either. pi computed that cost with `calculateCost(model, usage)` — also a public
 //     root export — using the real model pricing.
 //   · The only arithmetic still ours is `addUsage`, a field-wise sum, because pi exports no
-//     "add two Usage objects" helper. See lib/pi-exports.mjs for the full public/not-public list.
+//     "add two Usage objects" helper.
 //
 // STREAM CONTRACT (docs/, not internals):
 //   · `--mode json` writes one event per line; `message_end` carries the full authoritative
@@ -42,54 +37,12 @@ export { addUsage, costTotal, emptyUsage, totalTokens } from "../../../packages/
 const num = (value) => typeof value === "number" && Number.isFinite(value) ? value : 0;
 const ZERO_COST = () => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 });
 
-/**
- * THE one cost helper. Both the runner and the aggregator call this, so they cannot disagree about
- * what a record cost — they used to: the runner wrote a numeric `cost` of 0 for an unpriceable
- * nested call, and the aggregator trusted that number and reported money for a record the runner
- * itself considered unpriced.
- *
- * Returns `null` when ANY part of the run went unpriced. A number means the whole run is priced —
- * never a total that quietly omits a piece.
- */
-export function costOfRecord(r) {
-	if (!r) return null;
-	// UNKNOWN nested spend means the run's cost is unknown, full stop. Returning the priced part
-	// would be a total that silently omits a piece — the helper promises the opposite.
-	if (r.nestedUnknown) return null;
-	if (r.cost === null) return null; // the writer already said it could not price this
-	if (totalTokens(r.nestedTokens) > 0 && r.nestedCost == null) return null;
-	if (typeof r.cost === "number") return r.cost;
-	return costTotal(r.tokens) + (r.nestedCost?.total ?? 0);
-}
-
-/**
- * The priced part of a run, as an explicit LOWER BOUND. Separately named so nobody can mistake it
- * for a total: it is what `costOfRecord` would have returned had nothing been unknown.
- *
- * MIXED PRICING. When one nested model bucket cannot be priced, `nestedCost` is null for the whole
- * run — correctly, because a partial total would understate it. The buckets that DID price are kept
- * separately as `pricedNestedCost`, and the lower bound uses them: dropping known dollars because a
- * DIFFERENT model was unpriceable understates the bound too (astra round 5, C).
- */
-export function observedCostOfRecord(r) {
-	if (!r) return 0;
-	if (typeof r.cost === "number") return r.cost;
-	return costTotal(r.tokens) + (r.nestedCost?.total ?? r.pricedNestedCost?.total ?? 0);
-}
-
-/** Why a record has no cost, for the reader who wants to know. */
-export function costUnknownReason(r) {
-	if (!r || costOfRecord(r) != null) return null;
-	if (r.nestedUnknown) return r.nestedUnknownReason ? `unmeasured nested spend (${r.nestedUnknownReason})` : "unmeasured nested spend";
-	return r.nestedCostReason ?? r.costReason ?? "not priced";
-}
-
 const textOf = (m) => (Array.isArray(m?.content) ? m.content.filter((c) => c?.type === "text" && typeof c.text === "string").map((c) => c.text).join("") : "");
 const toolCallsOf = (m) => (Array.isArray(m?.content) ? m.content.filter((c) => c?.type === "toolCall") : []);
 
 /**
  * Parse a full `--mode json` stdout capture. Never throws; malformed lines are counted.
- * `pricer` (from lib/pi-exports.mjs) prices nested usage pi did not price for us — the sidecar
+ * An optional injected `pricer` prices nested usage pi did not price for us — the sidecar
  * cannot know the search model's rates, so it reports zeros and we price them here with pi's
  * `calculateCost`. Without a pricer, nested cost is `null` with a reason: never a guessed 0.
  */
@@ -306,14 +259,4 @@ export function parseStream(text, { pricer = null } = {}) {
 		unresolvedFinal,
 		errors,
 	};
-}
-
-/** Why a parsed stream is not a completed run — for the record's `error` field. */
-export function incompleteReason(p) {
-	if (p.errors.length) return p.errors[0].slice(0, 300);
-	if (!p.settled) return "stream never reached agent_settled (truncated, killed, or still retrying)";
-	if (!p.finalText && !p.stopReason) return "no assistant message in the stream";
-	if (p.dangling.length) return `dangling tool call(s): ${p.dangling.slice(0, 4).join(", ")}`;
-	if (p.unresolvedFinal.length) return `final assistant message left tool call(s) unresolved: ${p.unresolvedFinal.join(", ")}`;
-	return null;
 }
