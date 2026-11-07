@@ -160,11 +160,19 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 		["packages/nana-setup/lib/hook-producer.mjs -> packages/nana-pack/bin/nana-objective.mjs", "Only a sealed wrapper definition, not a launch call; injected run is outside the sealed call vocabulary."],
 		["packages/nana-setup/lib/hook-producer.mjs -> packages/nana-setup/bin/stale-copies.mjs", "Only a sealed wrapper definition, not a launch call; injected run is outside the sealed call vocabulary."],
 	]);
+	const retiredStudyModules = new Set([
+		"aggregate.mjs", "catch-ledger.mjs", "run.mjs", "ext/bench-nested-usage.ts",
+		...["agentdir", "catch-extract", "catch-stats", "checkers", "eval-module", "fixture", "nested", "pi-exports", "plan", "profiles"].map(n => `lib/${n}.mjs`),
+		...["agentdir", "aggregate", "argv", "catch-ledger", "checkers", "evaluator-hardening", "integration", "nested", "ops", "orchestration-paths", "plan", "study-tasks", "timeout", "usage"].map(n => `test/${n}.test.mjs`),
+	].map(p => `apps/bench/${p}`));
+	losses.set("scripts/deliverables.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
+	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
 	const graph = checkRepo().graph;
 	for (const entry of gitShow("57167e92", "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];
 		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
 			const edge = `${path} -> ${match[1]}`;
+			if (retiredStudyModules.has(path)) losses.set(edge, `FEAT-034 retired study module ${path} and its runner-only tests; frozen records remain.`);
 			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge), `lost edge: ${edge}`);
 		}
 	}

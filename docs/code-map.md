@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 622 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 598 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -27,16 +27,6 @@ browser `localStorage` and `sessionStorage` count as `disk`.
 
 The desk, the bench and this repo's own scripts — the entry points. They may import the packages; a package may not import them.
 
-### `apps/bench/aggregate.mjs`
-
-- **purpose** — Turn a study's recorded runs into per-family, per-profile summary statistics and a markdown report, without re-running or judging anything.
-- **inputs** — argv[2] = study dir; that dir's study.json, schedule.json (optional) and results.jsonl
-- **outputs** — exports stats/aggregate/toMarkdown/spendOf/costOf; as a CLI writes summary.json and summary.md into the study dir and prints one confirmation line
-- **effects** — disk (reads the study dir, writes summary.json + summary.md), process (exits non-zero as a CLI)
-- **errors** — throws Error when results.jsonl holds no parsable runs; CLI exit 1 with the message on stderr
-- **callers** — `apps/bench/test/aggregate.test.mjs`
-- **callees** — `apps/bench/lib/usage.mjs`
-
 ### `apps/bench/anatomy.mjs`
 
 - **purpose** — Expose the role anatomy CLI with an isolated model runner for labelling.
@@ -44,34 +34,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Counts-only stdout and private files through runAnatomy.
 - **effects** — disk, process (read-only git and isolated Claude), network (label only)
 - **errors** — Exit 1 on unsafe output, invalid arguments or failed reads/writes.
-- **callers** — —
+- **callers** — `apps/bench/test/retire.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `scripts/memory-shape-runners.mjs`
-
-### `apps/bench/catch-ledger.mjs`
-
-- **purpose** — CLI for the retroactive catch ledger — extract reviewer findings, label and match them with judge models, then build the kappa table and the pre-registered claims.
-- **inputs** — argv subcommand (extract | label a|b|c [lane..] | match a|b [lane..] | build); env CATCH_REVIEWS (default docs/reviews) and CATCH_OUT (default apps/bench/studies/catch-ledger-2026-09-28); the review markdown corpus and any cached label/match jsonl under CATCH_OUT
-- **outputs** — under CATCH_OUT: rows.jsonl, skipped.jsonl, reports.json, per-pass label-*.jsonl and match-*.jsonl caches, kappa-pairs.json, results.json, table.md; progress and claims JSON on stdout
-- **effects** — disk (reads the corpus, writes and appends the ledger files), process (spawns the judge CLI, exits non-zero), network (judge model calls made by that child)
-- **errors** — exit 2 on an unknown subcommand; exit 1 on any judge failure or a missing label (fail-closed); build writes the refusal instead of table.md when kappa(top-level class) < 0.6
-- **callers** — `apps/bench/test/catch-ledger.test.mjs`
-- **callees** — `apps/bench/lib/catch-extract.mjs`, `apps/bench/lib/catch-judge.mjs`, `apps/bench/lib/catch-stats.mjs`
-
-### `apps/bench/ext/bench-nested-usage.ts`
-
-- **exempt** — content-pinned by study tool-profiles-2026-09-08 (pinnedSha ext:sidecar); a header would change a closed study's fingerprint
-- **callers** — —
-- **callees** — `apps/bench/lib/nested.mjs`
-
-### `apps/bench/lib/agentdir.mjs`
-
-- **purpose** — Prepare and verify the pi config directory the bench runs against, so a study never inherits the operator's agent settings.
-- **inputs** — optional {dir, sourceDir, settings}; defaults ~/.pi/bench-agent and ~/.pi/agent; the operator's auth.json
-- **outputs** — exports defaultSourceDir/defaultBenchDir/PINNED_SETTINGS/prepareAgentDir/verifyAuth/settingsFingerprintInput; creates the bench dir with pinned settings.json and an auth.json SYMLINK to the operator's credential file
-- **effects** — disk (mkdir, writes settings.json, symlinks auth.json)
-- **errors** — throws Error when the source auth.json is missing or the bench auth.json is not the expected symlink
-- **callers** — `apps/bench/lib/plan.mjs`, `apps/bench/run.mjs`, `apps/bench/test/agentdir.test.mjs`
-- **callees** — —
 
 ### `apps/bench/lib/anatomy-config.mjs`
 
@@ -91,7 +55,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (private label store); network (only through injected runner)
 - **errors** — Fixed fingerprint diagnostics or filesystem errors propagate to the CLI's sanitized boundary; bad calls reject batches.
 - **callers** — `apps/bench/lib/anatomy.mjs`
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/lib/plan.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-stats.mjs`, `apps/bench/lib/jsonl.mjs`
 
 ### `apps/bench/lib/anatomy-measures.mjs`
 
@@ -101,7 +65,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — none
 - **errors** — Invalid labels, duplicate ids, unknown ids and differing sheet id sets throw fixed diagnostics.
 - **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-slots.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/catch-stats.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-stats.mjs`
 
 ### `apps/bench/lib/anatomy-pulls.mjs`
 
@@ -150,8 +114,18 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Ordered contiguous unit/glue spans with offsets, heading ancestry and rule tiers.
 - **effects** — none
 - **errors** — none; unrecognized prose receives a fixed unsorted reason.
-- **callers** — `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/retire.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`
+
+### `apps/bench/lib/anatomy-stats.mjs`
+
+- **purpose** — Compute deterministic agreement and seeded samples for anatomy.
+- **inputs** — Nominal label vectors or ids, sample size, seed and seed-order option.
+- **outputs** — cohensKappa returns kappa, po, pe and n; seededSample returns ids.
+- **effects** — none
+- **errors** — Throws Error on empty or unequal-length label vectors.
+- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`
+- **callees** — —
 
 ### `apps/bench/lib/anatomy.mjs`
 
@@ -160,143 +134,39 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Private contexts, labels, blind sheets or replay parts; counts-only stdout.
 - **effects** — disk (explicit private folders), process (extractor's read-only git), network (injected label runner only)
 - **errors** — Returns 1 with fixed diagnostics on invalid inputs, unsafe output or malformed data.
-- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`
+- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-slots.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
-
-### `apps/bench/lib/catch-extract.mjs`
-
-- **purpose** — Structurally extract reviewer findings from the markdown review corpus into rows, recording a reason for every item it does not turn into a row.
-- **inputs** — a reviews root directory of tranche<N>-2026-09-28 dirs holding reviewer reports and fix briefs
-- **outputs** — exports REPORT_RE/FIX_RE/listCorpus/answeredReport/splitOutsideTicks/refsOf/firstSentence/parseReport/extractCorpus; returns {rows, skipped, stats, fixBriefs} in memory
-- **effects** — disk (reads the review markdown only)
-- **errors** — none — unparsable items are returned in `skipped` with a reason; a missing reviews root surfaces as the underlying fs error
-- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/test/catch-ledger.test.mjs`
-- **callees** — —
 
 ### `apps/bench/lib/catch-judge.mjs`
 
-- **purpose** — The only place the catch ledger uses a model: the label and match prompts, their JSON schemas, the judge invocation and the validation of what comes back.
-- **inputs** — {model, system, prompt, schema, budgetUsd, spawn} per call (spawn optional, default node:child_process spawnSync); env CATCH_JUDGE_BIN (default `claude`); row/report/fix-brief texts for prompt building
-- **outputs** — exports MODELS and the label vocabularies (TOP/SUB/DISP/ORIGIN/RELATION/SURFACE/VALIDITY), GUIDE/MATCH_GUIDE, labelSchema/matchSchema, sha, callJudge, labelPrompt, validateLabels; callJudge returns {out, cost}
-- **effects** — process (spawns the judge CLI with cwd the OS temp folder, 15 min timeout), network (the model call that child makes)
-- **errors** — throws Error on judge unavailable, non-zero exit, non-JSON output, missing structured output, or a model other than the one requested; validateLabels throws on a bad or incomplete label set
-- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/test/catch-ledger.test.mjs`, `scripts/memory-shape-runners.mjs`
+- **purpose** — Invoke the isolated structured-output judge shared by memory shaping and anatomy.
+- **inputs** — Model, system prompt, prompt, schema, optional budget and injected spawn; CATCH_JUDGE_BIN.
+- **outputs** — callJudge returns structured out and cost.
+- **effects** — process (bounded judge CLI in OS temp), network (the judge call)
+- **errors** — Throws Error on unavailable judge, failed exit, bad JSON, missing output or wrong model.
+- **callers** — `scripts/memory-shape-runners.mjs`
 - **callees** — —
-- **repo-code launches** — line 118: spawn
+- **repo-code launches** — line 16: spawn
 
-### `apps/bench/lib/catch-stats.mjs`
+### `apps/bench/lib/jsonl.mjs`
 
-- **purpose** — Pure deterministic arithmetic over the ledger's rows and stored labels: Cohen's kappa, seeded sampling, finding-equivalence graphs, the table and the pre-registered claims.
-- **inputs** — in-memory rows, label objects, match records and stage hints — no files, no model
-- **outputs** — exports cohensKappa/seededSample/canonSegments/samePath/sameBase/stageHints/matchGraph/components/buildLedger/componentSizes/table/claims/matchConfidence; returns plain objects and markdown strings
-- **effects** — none
-- **errors** — throws Error when kappa is given empty or unequal-length label vectors
-- **callers** — `apps/bench/catch-ledger.mjs`, `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`
-- **callees** — —
-
-### `apps/bench/lib/checkers.mjs`
-
-- **purpose** — Deterministic bench checkers — every verdict is a regex, a string compare, a JSON walk, a filesystem predicate or a child-process exit code, never an LLM judge.
-- **inputs** — a check spec {type: regex|exact|command|suite|file|all, ...} plus a run ctx (finalText, workspace dir, fixture paths); for `suite`, the signed verdict line the trusted evaluator wrote to fd 3
-- **outputs** — exports stripComments/extractJson/hashTree/globMatch/fetchKey/selectSignedVerdict/judgeVerdict/runCheck/liveKeyOf/CHECKER_TYPES; runCheck returns {pass, detail, graderError?} and never throws
-- **effects** — disk (reads the workspace, writes the nonce fd file it unlinks before spawning), process (spawnSync of the command under test and of the trusted evaluator)
-- **errors** — none thrown — an oracle failure is reported as {graderError: true} so an infrastructure fault is never recorded as a wrong answer
-- **callers** — `apps/bench/run.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/study-tasks.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`
-- **callees** — `apps/bench/lib/eval-module.mjs`, `apps/bench/lib/fixture.mjs`
-- **repo-code launches** — line 63: spawnSync; binding line 104; binding line 274; binding line 294; binding line 415
-
-### `apps/bench/lib/eval-module.mjs`
-
-- **exempt** — content-pinned by study tool-profiles-2026-09-08 (pinnedSha trusted-evaluator)
-- **callers** — `apps/bench/lib/checkers.mjs`
-- **callees** — —
-
-### `apps/bench/lib/fixture.mjs`
-
-- **purpose** — Build, hash, verify and materialize the frozen directories a bench task runs in, pinned by a sha256 manifest.
-- **inputs** — CLI `build <src> <dest> [--exclude a,b,c]` or `hash <dir>`; as a library a source dir, a destination dir, mutation specs, study asset lists and before/after text
-- **outputs** — exports listFiles/hashDir/verifyFixture/materialize/applyMutations/copyAssets/unifiedDiff/lineDiff; writes the materialized fixture tree and prints the manifest sha as a CLI
-- **effects** — disk (reads the source tree, copies and mutates the destination tree)
-- **errors** — verifyFixture rejects on a manifest sha mismatch naming the drifted file; CLI exit 1 on a failed command and exit 2 on a bad invocation
-- **callers** — `apps/bench/lib/checkers.mjs`, `apps/bench/run.mjs`, `apps/bench/test/orchestration-paths.test.mjs`, `apps/bench/test/study-tasks.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`
-- **callees** — —
-
-### `apps/bench/lib/nested.mjs`
-
-- **exempt** — content-pinned by study tool-profiles-2026-09-08 (pinnedSha ext:sidecar-lib)
-- **callers** — `apps/bench/ext/bench-nested-usage.ts`, `apps/bench/test/nested.test.mjs`
-- **callees** — —
-
-### `apps/bench/lib/pi-exports.mjs`
-
-- **purpose** — Resolve the installed pi packages and borrow pi's own public Usage and cost arithmetic instead of re-deriving it.
-- **inputs** — env PI_BENCH_ENTRY, BENCH_PI_ROOT and PI_CODING_AGENT_DIR; root CI workflow pin and the pi binary path and package.json files found walking up from it
-- **outputs** — exports PI_PACKAGE/PI_AI_PACKAGE/PI_MIN_VERSION/REQUIRED_PI_AI/REQUIRED_PI/compareVersions/piRootCandidates/loadPiExports/createPricer; returns {calculateCost, Usage-shaped helpers} and a pricer closure
-- **effects** — disk (reads package.json while resolving, dynamic-imports the pi packages)
-- **errors** — throws Error when pi cannot be resolved, is older than PI_MIN_VERSION, or is missing a required root export
-- **callers** — `apps/bench/run.mjs`, `apps/bench/test/usage.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`
-- **callees** — `packages/nana-setup/lib/pi-pin.mjs`
-
-### `apps/bench/lib/plan.mjs`
-
-- **purpose** — Decide what to run in what order and refuse to mix measurements: the study fingerprint, the seeded block schedule and resume over an existing results file.
-- **inputs** — a study dir with study.json, tasks, fixture and extension contents, the pi version and pinned settings; an existing schedule.json and results.jsonl when resuming
-- **outputs** — exports tupleKey/rng/shuffle/profilesFor/buildSchedule/filterPlan/loadOrCreateSchedule/OPERATIONAL_KEYS/studyFingerprint/fileSha/readJsonl/readResults/assertFingerprint; persists schedule.json and quarantines a torn results tail
-- **effects** — disk (reads the study dir and results.jsonl, writes schedule.json and the quarantined tail)
-- **errors** — assertFingerprint throws when a results file was written under a different fingerprint; readJsonl reports a torn tail rather than parsing it
-- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/run.mjs`, `apps/bench/test/plan.test.mjs`
-- **callees** — `apps/bench/lib/agentdir.mjs`
-
-### `apps/bench/lib/profiles.mjs`
-
-- **purpose** — Validate one pi tool/prompt profile and render it to the exact argv and env a measured run executes with.
-- **inputs** — a profile object {name, tools, thinking, extensions, skills, ...}, the study, and a run ctx (fixture dir, agent dir, task prompt)
-- **outputs** — exports ISOLATION_FLAGS/validateProfile/isPlaceholder/renderRun; renderRun returns {args, env} for the pi child
-- **effects** — disk (existsSync checks on the extension and skill paths a profile names)
-- **errors** — validateProfile throws Error naming the profile and the offending field; renderRun throws on an unsubstituted <placeholder> or an unknown tool or thinking level
-- **callers** — `apps/bench/run.mjs`, `apps/bench/test/argv.test.mjs`
+- **purpose** — Read anatomy's append logs with optional torn-tail repair.
+- **inputs** — A file path and optional repair flag (default true).
+- **outputs** — readJsonl returns rows and the quarantined tail count.
+- **effects** — disk (reads the log; repair may quarantine a torn tail and restore the newline boundary)
+- **errors** — Unreadable input returns no rows; repair write errors propagate.
+- **callers** — `apps/bench/lib/anatomy-labels.mjs`, `apps/bench/test/retire.test.mjs`
 - **callees** — —
 
 ### `apps/bench/lib/usage.mjs`
 
-- **purpose** — Parse a pi `--mode json` event stream into deterministic per-run metrics, keeping the run's own model spend strictly apart from what its tools spent.
+- **purpose** — Parse pi JSON event streams for isolated memory-shaping runners.
 - **inputs** — the raw stream text of one run plus an optional pricer; pi-ai Usage objects carried on message_end and tool results
-- **outputs** — exports emptyUsage/addUsage/totalTokens/costTotal/costOfRecord/observedCostOfRecord/costUnknownReason/parseStream/incompleteReason; parseStream returns {tokens, nested, cost, finalText, settled, toolCalls, retries, compactions, errors}
+- **outputs** — parseStream returns own and nested usage, completeness, final text, tool counts and stream diagnostics.
 - **effects** — none
-- **errors** — none thrown — an unterminated or malformed stream is reported through `settled: false` and incompleteReason(), and an unpriceable run through costUnknownReason()
-- **callers** — `apps/bench/aggregate.mjs`, `apps/bench/run.mjs`, `apps/bench/test/aggregate.test.mjs`, `apps/bench/test/nested.test.mjs`, `apps/bench/test/usage.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `scripts/memory-shape-runners.mjs`
+- **errors** — none thrown — an unterminated or malformed stream is reported through `settled: false` and an unpriceable nested call through nestedCostReason.
+- **callers** — `packages/nana-pack/tests/brief-check.test.mjs`, `scripts/memory-shape-runners.mjs`
 - **callees** — `packages/nana-pack/lib/pi-usage.mjs`
-
-### `apps/bench/run.mjs`
-
-- **purpose** — Execute a pre-registered study — spawn each pi run, grade it, and append exactly one JSON line per run with no retries.
-- **inputs** — argv `<study-dir> [--smoke|--go] [--task id] [--profile name] [--rep n] [--keep]`; study.json, tasks, fixtures and schedule.json in that dir; env PI_BENCH_ENTRY and PATH; the prepared pi agent dir
-- **outputs** — appends records to results.jsonl; writes each run's raw stream, stderr and workspace diff under the study dir; exports parseArgs/loadStudy/runChild/executeRun/registrationProbe/runPlan and the interrupt and budget helpers; progress on stdout
-- **effects** — disk (study dir reads, evidence and results writes), process (spawns pi children, installs SIGINT handling, exits non-zero), network (the model calls those children make)
-- **errors** — exit 1 on a bad invocation or a study that fails to load; a run failure is recorded as data (state fail | harness | grader) rather than thrown; the plan stops on the cumulative budget, on 3 consecutive systemic failures, on a child that did not die cleanly, or — once that run's record is on disk — on a graded run whose evidence could not be written
-- **callers** — `apps/bench/test/integration.test.mjs`, `apps/bench/test/ops.test.mjs`, `apps/bench/test/orchestration-paths.test.mjs`, `apps/bench/test/plan.test.mjs`, `apps/bench/test/study-tasks.test.mjs`, `apps/bench/test/timeout.test.mjs`
-- **callees** — `apps/bench/lib/agentdir.mjs`, `apps/bench/lib/checkers.mjs`, `apps/bench/lib/fixture.mjs`, `apps/bench/lib/pi-exports.mjs`, `apps/bench/lib/plan.mjs`, `apps/bench/lib/profiles.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/lib/process-tree.mjs`
-- **repo-code launches** — line 141: spawn · line 659: spawn
-
-### `apps/bench/test/agentdir.test.mjs`
-
-- **purpose** — Pins the prepared agent dir — the study never runs against the operator's own settings, and it never runs without credentials
-- **inputs** — lib/agentdir.mjs and a temp fake source agent dir
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp agent dirs and settings files; the real ~/.pi is never touched)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/lib/agentdir.mjs`
-
-### `apps/bench/test/aggregate.test.mjs`
-
-- **purpose** — Pins the aggregate arithmetic on a fixed results file by hand — the medians, the denominators and the shared-task restriction every number in the summary rests on
-- **inputs** — aggregate.mjs, lib/usage.mjs, and the fixed results and schedule fixtures under test/fixtures
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (reads the fixtures)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/aggregate.mjs`, `apps/bench/lib/usage.mjs`
 
 ### `apps/bench/test/anatomy-labels.test.mjs`
 
@@ -305,8 +175,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Awaited bounded PASS/FAIL cases and a check total; never fixture text or keys.
 - **effects** — disk (OS-temp fixtures), process (synthetic killed-run child)
 - **errors** — Assertion failures set exit code 1 without printing private values.
-- **callers** — —
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/test/tmp-dir.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-stats.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/tmp-dir.mjs`
 - **unresolved launches** — line 116: spawnSync
 
 ### `apps/bench/test/anatomy-seat.test.mjs`
@@ -327,118 +197,18 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (OS-temp fixtures), process (bounded git commands)
 - **errors** — Assertion failures set a nonzero exit; no private fixture text is printed.
 - **callers** — —
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/pi-usage.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-measures.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy-stats.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/pi-usage.mjs`
 
-### `apps/bench/test/argv.test.mjs`
+### `apps/bench/test/retire.test.mjs`
 
-- **purpose** — Pins the rendered argv and profile validation flag by flag, because the argv IS the experiment
-- **inputs** — lib/profiles.mjs and the shipped study's study.json
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (reads the study definition)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **purpose** — Pin the eight study-runner retirement contracts while preserving live anatomy and report consumers.
+- **inputs** — This checkout, its pre-retirement git revision and synthetic OS-temp fixtures.
+- **outputs** — Eight bounded PASS/FAIL cases and a failing exit code on regression.
+- **effects** — disk (OS-temp fixtures only), process (offline git and tested CLIs; no model calls)
+- **errors** — Assertion failures set exit 1.
 - **callers** — —
-- **callees** — `apps/bench/lib/profiles.mjs`
-
-### `apps/bench/test/catch-ledger.test.mjs`
-
-- **purpose** — Pins the catch ledger — structural extraction over the real review corpus, the kappa arithmetic, the matcher's stages, ledger uniqueness, and the judge's fail-closed contract with zero model calls
-- **inputs** — lib/catch-extract.mjs, lib/catch-judge.mjs, lib/catch-stats.mjs, the docs/reviews corpus, and stub judge scripts run through node
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp dirs, ledger files, reads the review corpus), process (runs the stub judge scripts through node)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/catch-ledger.mjs`, `apps/bench/lib/catch-extract.mjs`, `apps/bench/lib/catch-judge.mjs`, `apps/bench/lib/catch-stats.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`
-- **unresolved launches** — line 241: spawnSync
-
-### `apps/bench/test/checkers.test.mjs`
-
-- **purpose** — Pins every checker type positive and negative, plus the grader-error boundary that keeps an oracle outage from being recorded as a wrong answer
-- **inputs** — lib/checkers.mjs and temp workspaces and fixture trees
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp workspaces and fixture trees), process (spawns the commands a checker runs)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/lib/checkers.mjs`, `apps/bench/test/tmp-dir.mjs`
-
-### `apps/bench/test/evaluator-hardening.test.mjs`
-
-- **purpose** — Every known way an untrusted module could manufacture a signed PASS for a wrong answer, each pinned as not-a-pass
-- **inputs** — lib/checkers.mjs and untrusted modules written into temp dirs, each applying one attack patch
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp dirs, module sources and verdict files), process (spawns the evaluator and the untrusted module in their own processes)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/lib/checkers.mjs`, `apps/bench/test/tmp-dir.mjs`
-
-### `apps/bench/test/integration.test.mjs`
-
-- **purpose** — Drives the integrated runner paths against stub children with no model calls — probe to evidence to ledger, and run to parse to evidence, including what survives when post-processing throws
-- **inputs** — run.mjs, stub child executables, and temp run directories
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp run dirs, evidence and ledger files), process (spawns the stub children)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/run.mjs`
-
-### `apps/bench/test/nested.test.mjs`
-
-- **purpose** — Pins nested-LLM-spend accounting against the four defects it had — own-call contamination, lost late usage, double counting, and a suppressed unmeasurable call
-- **inputs** — lib/nested.mjs, lib/usage.mjs, and captured event-stream fixtures
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (reads the fixtures)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/lib/nested.mjs`, `apps/bench/lib/usage.mjs`
-
-### `apps/bench/test/ops.test.mjs`
-
-- **purpose** — Pins the operational safety rails — when the runner stops on a non-model failure streak, and what it believes it has spent across a resume
-- **inputs** — run.mjs, ledger fixtures in temp dirs, and a stub process tree
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp dirs and ledger files), process (spawns the stub process tree)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/run.mjs`
-
-### `apps/bench/test/orchestration-paths.test.mjs`
-
-- **purpose** — Drives EVERY orchestration path at least once against stubs, so an undeclared identifier on a rarely-entered path fails here instead of after a paid call
-- **inputs** — run.mjs, stub children, and temp study and run directories
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp run dirs, evidence, ledger and results files), process (spawns the stub children and signals the salvage path)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/lib/fixture.mjs`, `apps/bench/run.mjs`
-
-### `apps/bench/test/plan.test.mjs`
-
-- **purpose** — Pins the schedule, the study fingerprint and resume — the three ways a study silently corrupts itself
-- **inputs** — lib/plan.mjs, run.mjs loadStudy, and temp schedule and results files
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp dirs, schedule and results files)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/lib/plan.mjs`, `apps/bench/run.mjs`
-
-### `apps/bench/test/study-tasks.test.mjs`
-
-- **purpose** — Pre-flight for the shipped study with no model calls — the fixture still matches its pin, every mutation applies, and the edit tasks discriminate against the known ways to game them
-- **inputs** — lib/checkers.mjs, lib/fixture.mjs, run.mjs, and the shipped study dir with its pinned fixture
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp materialized workspaces; reads the study and fixture)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/test.mjs`
-- **callees** — `apps/bench/lib/checkers.mjs`, `apps/bench/lib/fixture.mjs`, `apps/bench/run.mjs`
-
-### `apps/bench/test/timeout.test.mjs`
-
-- **purpose** — Pins that the per-run timeout actually KILLS rather than merely stopping waiting, including a SIGTERM-ignoring child and its grandchild
-- **inputs** — run.mjs runChild and a stub that ignores SIGTERM and spawns a grandchild
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp dirs and stub scripts), process (spawns the stub tree and signals it)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/run.mjs`, `apps/bench/test/tmp-dir.mjs`
+- **callees** — `apps/bench/anatomy.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/jsonl.mjs`, `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/tmp-dir.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `scripts/code-map.mjs`, `scripts/component-audit.mjs`, `scripts/deliverables.mjs`, `scripts/first-look-config.mjs`, `scripts/first-look.mjs`, `scripts/glob-match.mjs`, `scripts/product-report.mjs`, `scripts/readme-check.mjs`, `scripts/requirements-tree.mjs`
+- **unresolved launches** — line 22: spawnSync; binding line 39; binding line 150
 
 ### `apps/bench/test/tmp-dir.mjs`
 
@@ -447,18 +217,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/catch-ledger.test.mjs`, `apps/bench/test/checkers.test.mjs`, `apps/bench/test/evaluator-hardening.test.mjs`, `apps/bench/test/timeout.test.mjs`, `apps/bench/test/usage.test.mjs`
+- **callers** — `apps/bench/test/anatomy-labels.test.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `apps/bench/test/retire.test.mjs`
 - **callees** — —
-
-### `apps/bench/test/usage.test.mjs`
-
-- **purpose** — Pins stream parsing — tokens, nested tokens, turns, per-tool counts, retries, terminal completion, dangling tool calls, final text and error detection
-- **inputs** — lib/usage.mjs, lib/pi-exports.mjs, and captured or constructed event-stream fixtures
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (reads the fixtures)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/bench/lib/pi-exports.mjs`, `apps/bench/lib/usage.mjs`, `apps/bench/test/tmp-dir.mjs`
 
 ### `apps/desk/apps.mjs`
 
@@ -982,7 +742,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — docs/code-map.md on --write, check findings, ranked precedent suggestions with callees, or marked impact callers, blind-reach tests, callees, artifact writers and readers, freshness and measured test files
 - **effects** — disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
 - **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, the map is stale, or a repo-code/untraced program lacks a reasoned launchAlwaysRun entry; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
-- **callers** — `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `scripts/blast-radius.mjs`, `scripts/component-audit.mjs`, `scripts/lane-class.mjs`, `scripts/requirement-rows.mjs`, `scripts/template-acceptance.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `scripts/blast-radius.mjs`, `scripts/component-audit.mjs`, `scripts/lane-class.mjs`, `scripts/requirement-rows.mjs`, `scripts/template-acceptance.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/code-map-launch-config.mjs`, `scripts/code-map-launch.mjs`, `scripts/code-search.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/code-search-config.mjs`
@@ -1022,7 +782,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Check diagnostics, report-only staleness and coverage lines, contract-shaped JSON, or planner-shaped ask blocks.
 - **effects** — disk (reads repository data and optionally writes --out), process (read-only bounded git queries and CLI output).
 - **errors** — Invalid source, paths, IDs, anchors or contract data exit 1; malformed CLI options exit 2.
-- **callers** — `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `packages/nana-pack/tests/hive-page.test.mjs`
 - **callees** — `packages/nana-pack/lib/ask-shape.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `scripts/code-map.mjs`, `scripts/component-audit-config.mjs`, `scripts/component-contract.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/component-contract.mjs`
@@ -1042,8 +802,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Registry entries by A-ID, reads by feature, per-row claims with each claim's reader kind, code predicates, clone-store age bindings, deliverable notes, per-capability counts and gap rows, and the exact tree-checker lines with their check result from deliverableReport.
 - **effects** — process (the shared line function may query the ledger folder's HEAD tree through injected git)
 - **errors** — Returns report-only notes for malformed claims, missing reasons, git failures, or paths not tracked at HEAD; never throws for a claim.
-- **callers** — `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
-- **callees** — `apps/bench/lib/checkers.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/requirements-moved.mjs`, `scripts/runtime-measure.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-tree.mjs`
+- **callees** — `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/glob-match.mjs`, `scripts/requirements-moved.mjs`, `scripts/runtime-measure.mjs`
 
 ### `scripts/first-look-config.mjs`
 
@@ -1052,7 +812,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Frozen page-shaping paths, viewport widths, screenshot dimensions and reference limits.
 - **effects** — none
 - **errors** — None.
-- **callers** — `packages/nana-pack/tests/first-look.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `scripts/first-look.mjs`, `scripts/hive-gesture-check.mjs`, `scripts/outside-reader-config.mjs`, `scripts/visual-reader-config.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/first-look.test.mjs`, `packages/nana-pack/tests/hive-city.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `scripts/first-look.mjs`, `scripts/hive-gesture-check.mjs`, `scripts/outside-reader-config.mjs`, `scripts/visual-reader-config.mjs`
 - **callees** — `apps/hive/config.mjs`
 
 ### `scripts/first-look.mjs`
@@ -1062,9 +822,19 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Screenshots and a report diff, reference manifest and side-by-side page, or one bounded note.
 - **effects** — disk (temporary reports/worktree and requested output), process (git, report children and browser).
 - **errors** — Usage errors exit 2; report/browser setup failures are bounded and never expose raw errors.
-- **callers** — `packages/nana-pack/tests/first-look.test.mjs`, `scripts/hive-gesture-check.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/first-look.test.mjs`, `scripts/hive-gesture-check.mjs`
 - **callees** — `scripts/first-look-config.mjs`, `scripts/playwright-resolve.mjs`, `scripts/product-report.mjs`, `scripts/reader-common.mjs`
 - **unresolved launches** — line 47: spawnSync; binding line 249; binding line 251
+
+### `scripts/glob-match.mjs`
+
+- **purpose** — Match report artifact paths against minimal dependency-free globs.
+- **inputs** — A glob pattern and a slash-separated path.
+- **outputs** — Boolean match result from globMatch.
+- **effects** — none
+- **errors** — None.
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`
+- **callees** — —
 
 ### `scripts/hive-gesture-check.mjs`
 
@@ -1254,8 +1024,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — A complete product ledger HTML file with Overview maker links, one-line Product deliverables, feature-detail deliverable blocks and artifact cards with class-bound ages, two Artifacts lists with maker links, feature artifact index lines, ordered stage and constraint metadata, deterministic assessment packets, an exported report model and renderer, or assessment-store problem strings.
 - **effects** — disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
 - **errors** — Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
-- **callers** — `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/first-look.mjs`, `scripts/test-locked.mjs`
-- **callees** — `apps/bench/lib/checkers.mjs`, `packages/nana-pack/lib/ask-shape.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`, `scripts/runtime-measure.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `scripts/first-look.mjs`, `scripts/test-locked.mjs`
+- **callees** — `packages/nana-pack/lib/ask-shape.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `scripts/deliverables.mjs`, `scripts/glob-match.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`, `scripts/runtime-measure.mjs`
 
 ### `scripts/reader-common.mjs`
 
@@ -1274,7 +1044,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — the claim list on --list, the summary line plus problem list on either mode
 - **effects** — disk (reads the READMEs, the files they name and the package metadata), process (exits non-zero when a README claim does not hold)
 - **errors** — exit 1 with the problem list naming each README line whose claim fails; bad CLI arguments print usage to stderr and return status 2; a thrown Error for a bad config
-- **callers** — `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`
 - **callees** — —
 
 ### `scripts/requirement-rows.mjs`
@@ -1344,7 +1114,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Parsed headings and tables, structural problem lists, rendered outline Markdown with artifact and read IDs, and shared deliverable report lines.
 - **effects** — disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
 - **errors** — Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
-- **callers** — `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/code-map.mjs`, `scripts/component-audit.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `scripts/code-map.mjs`, `scripts/component-audit.mjs`, `scripts/known-bugs.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`
 - **callees** — `scripts/deliverables.mjs`, `scripts/requirements-trace.mjs`
 
 ### `scripts/runtime-measure.mjs`
@@ -1398,8 +1168,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — process (spawns each file as `node --experimental-strip-types` in its own group with a child env scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test fixtures, with each finished file's removals retried and all removed on every exit path when possible; while NANA_COVERAGE_DIR is set, a record and a completion file under that folder, never removed by this runner; while NANA_SUITE_RECORD_FILE is set, its run record)
 - **errors** — exit 1 when any file failed, timed out, died on a signal, matched nothing, left a temporary folder that survived its retries, or a self-test fixture missed its expected verdict; exit 130 on SIGINT and 143 on SIGTERM; exit 0 otherwise
 - **callers** — `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/lane-class.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`
-- **callees** — `apps/bench/test/study-tasks.test.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`
-- **unresolved launches** — line 261: spawn; binding line 485; binding line 543
+- **callees** — `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`
+- **unresolved launches** — line 259: spawn; binding line 483; binding line 541
 
 ### `scripts/ts-syntax-check.mjs`
 
@@ -2211,7 +1981,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — a NanaPackConfig (gate, postEdit, notify, journal, handoff, objective, writing, legacy receipts) with gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled allow/extra/protected regexes, user-only objective and writing blocks, and safe shared parse-failure detail in a gate stop or the user-scope objective block
 - **effects** — disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the journal), process (dynamically imports pi's trust module; keeps the per-session dedupe, trust decisions and last-valid gate on globalThis)
 - **errors** — never throws — a malformed leaf falls back and is surfaced once per session as a `config_invalid` or `config_agent_dir_mismatch` journal line plus one UI warning, and a malformed gate block with no last-good policy yields gate.stopReason, which blocks every gated tool
-- **callers** — `apps/bench/test/catch-ledger.test.mjs`, `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-lifecycle.ts`, `packages/nana-pack/extensions/nana-notify.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-setup/lib/project.mjs`
+- **callers** — `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-lifecycle.ts`, `packages/nana-pack/extensions/nana-notify.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-setup/lib/project.mjs`
 - **callees** — `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/objective.ts`
 
 ### `packages/nana-pack/lib/context-load-log.mjs`
@@ -2756,7 +2526,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — ObjectiveResult {text, unavailable, events, notices} — the heading, an optional safe config-failure line, the **Objective and **Current priority lines (one physical line each, ≤ LINE_CAP), the provenance label, the precedence note and remedy, or an `OBJECTIVE UNAVAILABLE` marker; the whole text is ≤ OUTPUT_CAP and ends in exactly one newline
 - **effects** — disk (bounded sync reads of at most FILE_READ_MAX bytes per file, plus lstat / stat / access of the objective files, the trust store, its folder and its lock)
 - **errors** — none — produceObjective never throws; an unreadable or symlink-reached file, a missing line, invalid UTF-8 or an internal error each become a named marker plus a journal event and a UI notice
-- **callers** — `apps/bench/test/catch-ledger.test.mjs`, `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/requirement-rows.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`
 - **callees** — `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/objective-path.mjs`
 
 ### `packages/nana-pack/lib/outcome-meter-config.mjs`
@@ -2866,7 +2636,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — pidAlive, killProcessTree's boolean outcome, killProcessTreeNoWait, and sealed taskkill/default constants
 - **effects** — process (signals a process group or starts taskkill)
 - **errors** — never throws
-- **callers** — `apps/bench/run.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/mutation-runner-config.mjs`, `packages/nana-pack/lib/mutation-runner.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
+- **callers** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/mutation-runner-config.mjs`, `packages/nana-pack/lib/mutation-runner.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
 - **callees** — —
 - **repo-code launches** — line 37: spawnSync · line 63: spawn
 
@@ -3252,7 +3022,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and install targets), network (HTTP to the desk it binds on an ephemeral port), process (sets HOME and PI_CODING_AGENT_DIR, spawns the desk, the installer and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/bench/lib/pi-exports.mjs`, `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`
+- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`
 
 ### `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`
 
@@ -4203,7 +3973,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Awaited PASS/FAIL lines with per-case deadlines.
 - **effects** — disk (OS temporary fixtures only)
 - **errors** — Assertion failures set exit code 1.
-- **callers** — —
+- **callers** — `apps/bench/test/retire.test.mjs`
 - **callees** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-score.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/project-key.mjs`, `scripts/memory-shape-runners.mjs`
 
 ### `packages/nana-pack/tests/mutation-runner-takeover.test.mjs`
@@ -4679,8 +4449,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
 - **effects** — disk (creates fixtures and scratch files under the OS temp directory; never touches a real project), process (spawns node as a child)
 - **errors** — A failed check prints its reason and exits non-zero.
-- **callers** — —
-- **callees** — `apps/bench/lib/checkers.mjs`, `apps/bench/lib/fixture.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`
+- **callees** — `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/glob-match.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-moved.mjs`, `scripts/requirements-regroup.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
 - **unresolved launches** — line 30: spawnSync
 
 ### `packages/nana-pack/tests/requirements-trace.test.mjs`
@@ -4701,9 +4471,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
 - **effects** — disk (reads repository files and creates fixtures under the OS temp directory)
 - **errors** — A failed check prints its reason and exits non-zero.
-- **callers** — —
+- **callers** — `apps/bench/test/retire.test.mjs`
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
-- **unresolved launches** — line 492: spawnSync · line 493: spawnSync · line 495: spawnSync · line 503: spawnSync · line 507: spawnSync · line 508: spawnSync · line 509: spawnSync · line 514: spawnSync · line 515: spawnSync · line 516: spawnSync · line 525: spawnSync · line 526: spawnSync · line 527: spawnSync · line 537: spawnSync · line 538: spawnSync · line 539: spawnSync · line 548: spawnSync
+- **unresolved launches** — line 488: spawnSync · line 489: spawnSync · line 491: spawnSync · line 499: spawnSync · line 503: spawnSync · line 504: spawnSync · line 505: spawnSync · line 510: spawnSync · line 511: spawnSync · line 512: spawnSync · line 521: spawnSync · line 522: spawnSync · line 523: spawnSync · line 533: spawnSync · line 534: spawnSync · line 535: spawnSync · line 544: spawnSync
 
 ### `packages/nana-pack/tests/requirements-unclaimed.test.mjs`
 
@@ -4974,7 +4744,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (runs the copied runner as a child per case; two cases leave a running process tree the runner must kill on signal, reaped here if it does not), disk (one mkdtemp tree holding every fixture root, removed at exit)
 - **errors** — a FAIL line naming the broken runner behaviour; a non-zero exit code
 - **callers** — —
-- **callees** — `apps/bench/test/study-tasks.test.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `scripts/test.mjs`
+- **callees** — `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `scripts/test.mjs`
 - **unresolved launches** — line 79: spawnSync; binding line 146; binding line 154; binding line 236; binding line 237; binding line 343; binding line 356; binding line 478; binding line 587 · line 412: spawn; binding line 433 · line 538: spawn
 
 ### `packages/nana-pack/tests/test-runner.test.mjs`
@@ -4985,8 +4755,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — process (runs the copied runner as a child per case, including one with a runtime preload; one case leaves a detached grandchild, reaped here), disk (one mkdtemp tree holding every fixture root and the preload, removed at exit)
 - **errors** — a FAIL line naming the broken runner behaviour; a non-zero exit code
 - **callers** — `packages/nana-pack/tests/brief-check.test.mjs`
-- **callees** — `apps/bench/test/study-tasks.test.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `scripts/test.mjs`
-- **unresolved launches** — line 95: spawnSync; binding line 211; binding line 290; binding line 303; binding line 310; binding line 318; binding line 339; binding line 364; binding line 381; binding line 400; binding line 419; binding line 472; binding line 474; binding line 496; binding line 497; binding line 498; binding line 547; binding line 593; binding line 595; binding line 629 · line 444: spawn · line 674: spawnSync · line 725: spawnSync; binding line 761; binding line 762; binding line 767; binding line 788; binding line 789
+- **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `scripts/test.mjs`
+- **unresolved launches** — line 95: spawnSync; binding line 211; binding line 291; binding line 304; binding line 311; binding line 319; binding line 340; binding line 365; binding line 382; binding line 401; binding line 420; binding line 473; binding line 475; binding line 497; binding line 498; binding line 499; binding line 548; binding line 594; binding line 596; binding line 630 · line 445: spawn · line 675: spawnSync · line 723: spawnSync; binding line 759; binding line 760; binding line 765; binding line 786; binding line 787
 
 ### `packages/nana-pack/tests/tmp-dir.mjs`
 
@@ -5397,7 +5167,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — CI_WORKFLOW, parsePiPin, readPiPin and pinPiInstall.
 - **effects** — disk (readPiPin only)
 - **errors** — Missing or malformed workflow data returns null; file read errors return null.
-- **callers** — `apps/bench/lib/pi-exports.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/pi-install-pin.test.mjs`
+- **callers** — `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/pi-install-pin.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/project-key.mjs`
@@ -5833,7 +5603,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (a detached worktree, a throwaway home and project, both removed at the end), process (spawns the installer, doctor and every hook entry with `shell: false`)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; this file is SKIPped on every leg but the Windows one (scripts/test.mjs SKIPS)
-- **callers** — `scripts/test.mjs`
+- **callers** — `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `scripts/test.mjs`
 - **callees** — `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/tests/knowledge-state.mjs`, `packages/nana-setup/tests/stub-pi.mjs`
 - **unresolved launches** — line 107: spawnSync · line 281: spawnSync
 - **repo-code launches** — line 132: spawnSync; binding line 143; binding line 150; binding line 157; binding line 181; binding line 187; binding line 191; binding line 197; binding line 226; binding line 235; binding line 245; binding line 272; binding line 273 · line 224: spawnSync

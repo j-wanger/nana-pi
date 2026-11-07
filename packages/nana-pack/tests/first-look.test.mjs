@@ -117,7 +117,7 @@ await test("R-3043: sealed page-shaping paths name renderer, template and report
     "packages/nana-pack/lib/land-config.mjs", "packages/nana-pack/lib/runtime-map.mjs",
     "packages/nana-pack/lib/runtime-map-config.mjs", "packages/nana-pack/lib/land-ci.mjs",
     "packages/nana-pack/lib/suite-records.mjs", "packages/nana-pack/lib/build-records.mjs",
-    "apps/bench/lib/checkers.mjs",
+    "scripts/glob-match.mjs",
   ]);
   assert.deepEqual(VIEWPORT_WIDTHS, [380, 1280]);
 });

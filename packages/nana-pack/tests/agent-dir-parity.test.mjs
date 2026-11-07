@@ -204,8 +204,7 @@ for (const [name, value] of FORMS) {
 {
 	const hits = spawnSync("git", ["grep", "-n", "-E", "PI_CODING_AGENT_DIR;?$|process\\.env\\.PI_CODING_AGENT_DIR", "--", "*.ts", "*.mjs", "*.js", ":!**/tests/**", ":!**/test/**"], { cwd: REPO, encoding: "utf-8" }).stdout.trim().split("\n").filter(Boolean);
 	const files = [...new Set(hits.map((h) => h.split(":")[0]))];
-	// apps/bench hands the raw value to pi's own pricer API (pi resolves it) — not a second resolver.
-	const allowed = new Set(["packages/nana-pack/lib/agent-dir.mjs", "apps/bench/lib/pi-exports.mjs"]);
+	const allowed = new Set(["packages/nana-pack/lib/agent-dir.mjs"]);
 	// req: R-190
 	check("PI_CODING_AGENT_DIR is resolved only by agent-dir.mjs", files.every((f) => allowed.has(f)), hits.join("\n"));
 }

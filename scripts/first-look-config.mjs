@@ -22,7 +22,7 @@ export const PAGE_SHAPING_PATHS = Object.freeze([
   "packages/nana-pack/lib/land-ci.mjs",
   "packages/nana-pack/lib/suite-records.mjs",
   "packages/nana-pack/lib/build-records.mjs",
-  "apps/bench/lib/checkers.mjs",
+  "scripts/glob-match.mjs",
 ]);
 // chosen (FEAT-039): 40 lines leaves room for one compact contextual hunk and view summary.
 export const ACCESSIBILITY_DIFF_MAX_LINES = 40;

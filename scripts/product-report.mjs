@@ -27,7 +27,7 @@ import { TIP_DIGITS } from "../packages/nana-pack/lib/land-config.mjs";
 import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
 import { gitCommonDir, readSuiteRecords } from "../packages/nana-pack/lib/suite-records.mjs";
 import { buildRecordsPath, readBuildLedger } from "../packages/nana-pack/lib/build-records.mjs";
-import { globMatch } from "../apps/bench/lib/checkers.mjs";
+import { globMatch } from "./glob-match.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEMPLATE = path.join(path.dirname(fileURLToPath(import.meta.url)), "product-report/template.html");

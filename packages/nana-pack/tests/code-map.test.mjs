@@ -44,8 +44,8 @@ check("AGENTS package map omits receipt production", !fs.readFileSync(path.join(
 const config = loadConfig(REPO_ROOT);
 const exempt = graph.order.filter((p) => graph.modules.get(p).exemptReason);
 // req: G-004
-check("only the three content-pinned bench modules are excused a header, each with a reason",
-	exempt.length === 3 && exempt.every((p) => /study tool-profiles-2026-09-08/.test(graph.modules.get(p).exemptReason)),
+check("no live module is excused a contract header after study retirement",
+	exempt.length === 0,
 	`exempt: ${exempt.join(", ")}`,
 );
 
