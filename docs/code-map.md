@@ -2549,10 +2549,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/leak-scan.mjs`
 
-- **purpose** — Scan changed tip blobs and their repository-relative names for identity words and literal machine paths.
+- **purpose** — Scan each range commit's changed blobs and repository-relative names for identity words and literal machine paths.
 - **inputs** — Repository cwd, base/tip commit refs, optional digest config, home, temp root, platform and real-path resolver.
 - **outputs** — Counts-only hits, visible skips, and shared diagnostic lines without matched text.
-- **effects** — disk (checkout-relative config and machine-folder realpath), process (git diff and bounded blob reads)
+- **effects** — disk (checkout-relative config and machine-folder realpath), process (git history and bounded blob reads)
 - **errors** — Throws fixed unavailable reasons for config, refs or git failures without echoing inputs.
 - **callers** — `packages/nana-pack/bin/leak-scan.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/tests/leak-scan.test.mjs`
 - **callees** — `packages/nana-pack/lib/leak-scan-config.mjs`, `packages/nana-pack/lib/real-path.mjs`, `scripts/identity-scan.mjs`
@@ -4046,7 +4046,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/leak-scan.test.mjs`
 
-- **purpose** — Pin the leak guard's eight must-meet cases and per-file byte seal.
+- **purpose** — Pin the leak guard's must-meet cases, round-one fixes and per-file byte seal.
 - **inputs** — Injected digests and machine paths, shipped guidance, and OS-temp git ranges and fake builders.
 - **outputs** — Awaited bounded PASS/FAIL cases with no matched text in diagnostics.
 - **effects** — disk (OS-temp fixtures only), process (bounded git, CLI and fake worker children)

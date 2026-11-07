@@ -12,15 +12,16 @@ import { fileURLToPath } from 'node:url';
 import { scanCommitRange, leakScanLines } from '../lib/leak-scan.mjs';
 
 export function runLeakScan(argv, {stdout = process.stdout, stderr = process.stderr, ...options} = {}) {
+  const usage = 'usage: leak-scan.mjs --base <ref> --tip <ref> (scans from merge-base of base and tip)\n';
   const refs = {};
   for (let i=0; i<argv.length; i+=2) {
     const flag=argv[i], value=argv[i+1];
     if (!['--base','--tip'].includes(flag) || !value || value.startsWith('-') || refs[flag.slice(2)]) {
-      stderr.write('usage: leak-scan.mjs --base <ref> --tip <ref>\n'); return 2;
+      stderr.write(usage); return 2;
     }
     refs[flag.slice(2)] = value;
   }
-  if (!refs.base || !refs.tip) {stderr.write('usage: leak-scan.mjs --base <ref> --tip <ref>\n');return 2;}
+  if (!refs.base || !refs.tip) {stderr.write(usage);return 2;}
   try {
     const result = scanCommitRange({...options,...refs});
     for (const line of leakScanLines(result)) stdout.write(`${line}\n`);

@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/leak-scan.test.mjs
- * @purpose Pin the leak guard's eight must-meet cases and per-file byte seal.
+ * @purpose Pin the leak guard's must-meet cases, round-one fixes and per-file byte seal.
  * @inputs Injected digests and machine paths, shipped guidance, and OS-temp git ranges and fake builders.
  * @outputs Awaited bounded PASS/FAIL cases with no matched text in diagnostics.
  * @effects disk (OS-temp fixtures only), process (bounded git, CLI and fake worker children)
@@ -74,7 +74,7 @@ await check('M1: exact preamble sentence and chained seat bullet',()=>{
 await check('M2: identity range has no outside allowlist bleed',async()=>{
   const f=fixture();put(f.cwd,'r2-a.log',`${word} \t\r\n${word} \t`);const tip=commit(f.cwd);
   identity={...options(f),tip};
-  assert.deepEqual((await api()).scanCommitRange(identity),{hits:[{path:'r2-a.log',kind:'identity',wordIndex:0,count:2}],skipped:[]});
+  assert.deepEqual((await api()).scanCommitRange(identity),{hits:[{path:'r2-a.log',commit:git(f.cwd,'rev-parse','--short',tip),kind:'identity',wordIndex:0,count:2}],skipped:[]});
 });
 // req: R-3750
 await check('M3: tip blobs range deletions and new rename paths',async()=>{
@@ -82,7 +82,7 @@ await check('M3: tip blobs range deletions and new rename paths',async()=>{
   put(f.cwd,'deleted.log',word);put(f.cwd,'old.log',word);const base=commit(f.cwd);
   put(f.cwd,'committed.log',word);put(f.cwd,'clean.log','clean');fs.unlinkSync(path.join(f.cwd,'deleted.log'));git(f.cwd,'mv','old.log','new.log');
   const tip=commit(f.cwd);put(f.cwd,'committed.log','fixed');put(f.cwd,'clean.log',word);
-  assert.deepEqual(scanCommitRange({...options(f),base,tip}).hits,[{path:'committed.log',kind:'identity',wordIndex:0,count:1},{path:'new.log',kind:'identity',wordIndex:0,count:1}]);
+  assert.deepEqual(scanCommitRange({...options(f),base,tip}).hits,[{path:'committed.log',commit:git(f.cwd,'rev-parse','--short',tip),kind:'identity',wordIndex:0,count:1},{path:'new.log',commit:git(f.cwd,'rev-parse','--short',tip),kind:'identity',wordIndex:0,count:1}]);
 });
 // req: R-3751
 await check('M4: literal home and temp forms honor suffix boundaries',async()=>{
@@ -94,10 +94,10 @@ await check('M4: literal home and temp forms honor suffix boundaries',async()=>{
     ['win32','C:\\Users\\ab','/c/Users/ab/x'],['win32','C:\\Users\\ab','c:\\uSERS\\AB\\x'],
   ]) {
     const f=fixture();put(f.cwd,'forms.log',text);const tip=commit(f.cwd);const opts={...options(f),tip,platform,home};forms.push(opts);
-    assert.deepEqual(scanCommitRange(opts),{hits:[{path:'forms.log',kind:'home',count:1}],skipped:[]});
+    assert.deepEqual(scanCommitRange(opts),{hits:[{path:'forms.log',commit:git(f.cwd,'rev-parse','--short',tip),kind:'home',count:1}],skipped:[]});
   }
   const f=fixture();put(f.cwd,'negative.log','/home/abc/x ~/x $HOME/x');put(f.cwd,'temp.log','/scratch/fixture/x');commit(f.cwd);
-  assert.deepEqual(scanCommitRange(options(f)).hits,[{path:'temp.log',kind:'temp',count:1}]);
+  assert.deepEqual(scanCommitRange(options(f)).hits,[{path:'temp.log',commit:git(f.cwd,'rev-parse','--short','HEAD'),kind:'temp',count:1}]);
 });
 // req: R-3751
 await check('M4: Windows given and real spellings each count once',async()=>{
@@ -110,11 +110,50 @@ await check('M4: Windows given and real spellings each count once',async()=>{
           const f=fixture();put(f.cwd,'alias.log',text);commit(f.cwd);
           detail={kind,given:given===short?'short':'long',real:real===short?'short':'long',normalized:text.replaceAll('\\','/').replaceAll(short.replaceAll('\\','/'),'<short>').replaceAll(long.replaceAll('\\','/'),'<long>').replaceAll('/c/Users/','<msys>/')};
           const opts={...options(f),platform:'win32',[kind==='home'?'home':'tmp']:given,realPath:value=>value===given?real:value};
-          assert.deepEqual(scanCommitRange(opts),{hits:[{path:'alias.log',kind,count:1}],skipped:[]});
+          assert.deepEqual(scanCommitRange(opts),{hits:[{path:'alias.log',commit:git(f.cwd,'rev-parse','--short','HEAD'),kind,count:1}],skipped:[]});
         }
       }
     }
   }
+});
+// req: R-3751
+await check('M4: every platform matches given and real machine roots once',async()=>{
+  const {scanCommitRange}=await api();
+  for (const platform of ['darwin','linux','win32']) {
+    for (const kind of ['home','temp']) {
+      for (const [given,real] of [['/var/folders/fixture/T','/private/var/folders/fixture/T'],['/private/var/folders/fixture/T','/var/folders/fixture/T']]) {
+        for (const spelling of [given,real]) {
+          for (const ending of ['',' \t\r\n']) {
+            const f=fixture();put(f.cwd,'alias.log',spelling+'/log'+ending);commit(f.cwd);
+            const opts={...options(f),platform,[kind==='home'?'home':'tmp']:given,realPath:value=>value===given?real:value};
+            const result=scanCommitRange(opts);
+            assert.equal(result.hits.length,1);assert.equal(result.hits[0].kind,kind);assert.equal(result.hits[0].count,1);
+          }
+        }
+      }
+    }
+    // Keep the default's given spelling too, rather than canonicalizing it before matching.
+    for (const spelling of [os.tmpdir(),'/resolved/temp-fixture']) {
+      const f=fixture();put(f.cwd,'default.log',spelling+'/log');commit(f.cwd);
+      const result=scanCommitRange({...options(f),platform,home:'',tmp:undefined,realPath:value=>value===os.tmpdir()?'/resolved/temp-fixture':value});
+      assert.equal(result.hits.length,1);assert.equal(result.hits[0].kind,'temp');assert.equal(result.hits[0].count,1);
+    }
+  }
+});
+// req: R-3750
+await check('M3: history retains removed leaks from the merge-base',async()=>{
+  const {scanCommitRange,leakScanLines}=await api();const f=fixture();
+  put(f.cwd,'old-public.log',word);commit(f.cwd);
+  git(f.cwd,'checkout','-qb','lane');
+  put(f.cwd,'cleaned.log',word+' \t\r\n');put(f.cwd,'deleted.log',word);const leaking=commit(f.cwd);
+  put(f.cwd,'cleaned.log','clean');fs.unlinkSync(path.join(f.cwd,'deleted.log'));const tip=commit(f.cwd);
+  git(f.cwd,'checkout','main');put(f.cwd,'old-public.log','clean');commit(f.cwd);
+  const result=scanCommitRange({...options(f),base:'main',tip});
+  const short=git(f.cwd,'rev-parse','--short',leaking);
+  assert.deepEqual(result,{hits:[{path:'cleaned.log',commit:short,kind:'identity',wordIndex:0,count:1},{path:'deleted.log',commit:short,kind:'identity',wordIndex:0,count:1}],skipped:[]});
+  assert.ok(leakScanLines(result).includes(`leak: cleaned.log (${short}): identity word 0 ×1`));
+  let usage='';assert.equal((await cli()).runLeakScan([],{stderr:{write:s=>usage+=s}}),2);
+  assert.ok(usage.includes('merge-base'));
 });
 // req: R-3753
 await check('M6: CLI blocks hits and unread skips and rejects unknown refs',async()=>{
@@ -123,12 +162,12 @@ await check('M6: CLI blocks hits and unread skips and rejects unknown refs',asyn
   const command=path.join(root,'packages/nana-pack/bin/leak-scan.mjs');
   const invoke=(base,extra={})=>run(process.execPath,[command,'--base',base,'--tip','HEAD'],f.cwd,{env,...extra});
   let r=invoke(f.base);detail={subcase:'clean range',expectedExit:0,actualExit:r.status};assert.equal(r.status,0);
-  put(f.cwd,'home.log',env.HOME+'/log');commit(f.cwd);r=invoke(f.base);detail={subcase:'home hit',expectedExit:1,actualExit:r.status};assert.equal(r.status,1);assert.ok(r.stdout.includes('leak: home.log: home path ×1'));
+  put(f.cwd,'home.log',env.HOME+'/log');commit(f.cwd);r=invoke(f.base);detail={subcase:'home hit',expectedExit:1,actualExit:r.status};assert.equal(r.status,1);assert.ok(r.stdout.includes(`leak: home.log (${git(f.cwd,'rev-parse','--short','HEAD')}): home path ×1`));
   const base=git(f.cwd,'rev-parse','HEAD');put(f.cwd,'large.log',Buffer.alloc(LEAK_FILE_MAX_BYTES+1,120));commit(f.cwd);
   const marker=path.join(temp,'blob-reads');const preload=path.join(temp,'read-probe.mjs');
   fs.writeFileSync(preload,`import cp from 'node:child_process';import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';const original=cp.execFileSync;cp.execFileSync=(cmd,args,opts)=>{if(args.includes('cat-file')&&(args.includes('blob')||args.includes('-p')))fs.appendFileSync(${JSON.stringify(marker)},JSON.stringify(args)+'\\n');return original(cmd,args,opts)};syncBuiltinESMExports();`);
   r=run(process.execPath,['--import',pathToFileURL(preload).href,command,'--base',base,'--tip','HEAD'],f.cwd,{env});
-  detail={subcase:'unread over-cap skip',expectedExit:1,actualExit:r.status};assert.equal(r.status,1);assert.ok(r.stdout.includes('leak scan skipped: large.log:'));assert.equal(fs.existsSync(marker),false);
+  detail={subcase:'unread over-cap skip',expectedExit:1,actualExit:r.status};assert.equal(r.status,1);assert.ok(r.stdout.includes(`leak scan skipped: large.log (${git(f.cwd,'rev-parse','--short','HEAD')}):`));assert.equal(fs.existsSync(marker),false);
   r=invoke('unknown-fixture-ref');detail={subcase:'unknown ref',expectedExit:2,actualExit:r.status};assert.equal(r.status,2);assert.ok(r.stderr.includes('unavailable'));
 });
 // req: R-3754
@@ -141,7 +180,7 @@ await check('M7: lane end warns after build line without changing outcome or exi
   const body=`const fs=require('node:fs'),cp=require('node:child_process');fs.writeFileSync('build.log',process.env.FIXTURE_LEAK==='yes'?(process.platform==='win32'?process.env.USERPROFILE:process.env.HOME)+'/log ${word}':'clean');for(const args of [['add','build.log'],['-c','user.name=Fixture','-c','user.email=fixture@example.invalid','-c','commit.gpgsign=false','commit','--allow-empty','-qm','build']]){if(cp.spawnSync('git',args).status!==0)process.exit(2)}console.log('built');`;
   if(process.platform==='win32')writeFakePi(bin,body);else fs.writeFileSync(path.join(bin,'pi'),`#!${process.execPath}\n${body}`,{mode:0o755});
   const preload=path.join(temp,'scan-failure.mjs');
-  fs.writeFileSync(preload,`import cp from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';const original=cp.execFileSync;cp.execFileSync=(cmd,args,opts)=>{if(args[0]==='diff')throw Error('fixture failure');return original(cmd,args,opts)};syncBuiltinESMExports();`);
+  fs.writeFileSync(preload,`import cp from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';const original=cp.execFileSync;cp.execFileSync=(cmd,args,opts)=>{if(args[0]==='diff-tree')throw Error('fixture failure');return original(cmd,args,opts)};syncBuiltinESMExports();`);
   workerRuns=[];
   const ledger=buildRecordsPath(path.resolve(lane,git(lane,'rev-parse','--git-common-dir')));
   for(const mode of ['clean','leak','failure']) {
@@ -154,7 +193,7 @@ await check('M7: lane end warns after build line without changing outcome or exi
   const [clean,leak,failure]=workerRuns;
   detail={runs:workerRuns.map(({r,end})=>({exit:r.status,outcome:end.outcome,leaks:end.leaks}))};
   assert.deepEqual(clean.end.leaks,{hits:[],skipped:[]});assert.deepEqual(leak.end.leaks.hits.filter(hit=>hit.kind==='home').map(hit=>({kind:hit.kind,count:hit.count})),[{kind:'home',count:1}]);
-  const line='pi-worker: leak: build.log: home path ×1';assert.ok(leak.r.stderr.includes(line));const endIndex=leak.r.stderr.indexOf('pi-worker: build record:');assert.ok(endIndex>=0);assert.ok(leak.r.stderr.indexOf(line)>endIndex);
+  const line=`pi-worker: leak: build.log (${leak.end.leaks.hits.find(hit=>hit.kind==='home').commit}): home path ×1`;assert.ok(leak.r.stderr.includes(line));const endIndex=leak.r.stderr.indexOf('pi-worker: build record:');assert.ok(endIndex>=0);assert.ok(leak.r.stderr.indexOf(line)>endIndex);
   assert.equal(typeof failure.end.leaks.unavailable,'string');assert.equal(failure.r.stderr.split('pi-worker: leak scan unavailable:').length,2);
 });
 // req: R-3752
