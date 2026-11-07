@@ -23,3 +23,4 @@
 - Context shaping (roster-roles, review round 1): a role launch without `--out` is refused with only `pi-worker: slot refused: usage` and no usage line.
 - Context shaping (roster-roles, review round 1): a `--brief` value starting with a single `-` passes the role checks and is refused later by the lane check, after the role temp folder was made; the refusal removes it.
 - Context shaping (roster-roles, review round 1): older checkouts refuse new role keys or a Claude Code scout, as the owner accepted.
+- Context shaping (load-log, plan assumption A1): Claude Code children (claude-review, the Claude Code builder) log no context-file parts; their CLAUDE.md discovery is Claude Code's own walk.
