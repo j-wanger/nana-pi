@@ -12,7 +12,7 @@ import { trackedAtHead } from "../packages/nana-pack/lib/brief-precedent.mjs";
 import { DATA_SUBPATH } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { STORE_SUBPATH } from "../packages/nana-pack/lib/suite-records-config.mjs";
 import { BUILD_RECORDS_SUBPATH } from "../packages/nana-pack/lib/build-records-config.mjs";
-import { globMatch } from "../apps/bench/lib/checkers.mjs";
+import { globMatch } from "./glob-match.mjs";
 import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
 
 // Contract: the owner's 2026-10-22 approval; R-2537.

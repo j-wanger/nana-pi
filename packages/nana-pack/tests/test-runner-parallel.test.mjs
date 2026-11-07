@@ -230,8 +230,8 @@ const root1471 = mkRoot("r1471", {
 	"packages/probe/tests/allskip.test.mjs": ALLSKIP_1471,
 	"packages/probe/tests/silent.test.mjs": SILENT_1471,
 	"packages/probe/tests/signal.test.mjs": SIGNAL_1471,
-	// a declared SKIP on every platform: the fixture root never has apps/bench/.ext/pi-web-access
-	"apps/bench/test/study-tasks.test.mjs": 'console.log("FAIL the declared study-tasks prerequisite skip did not skip");\nprocess.exit(1);\n',
+	// A live declared platform precondition: skipped off Windows, run on Windows.
+	"packages/nana-setup/tests/hooks-win32-exec.test.mjs": 'console.log("PASS Windows-only fixture ran");\n',
 });
 const serial1471 = run(root1471, ["--self-test"]);
 const parallel1471 = run(root1471, ["--self-test", "--jobs=3"]);

@@ -39,7 +39,7 @@ check("the READMEs make checkable claims at all", claims.length > 100, `${claims
 const readmes = loadConfig(REPO_ROOT).readmes;
 check(
 	"every package and app README is in the checked set",
-	readmes.length === 8 && readmes.includes("packages/nana-stage/README.md") && readmes.includes("apps/hive/README.md"),
+	readmes.length === 7 && readmes.includes("packages/nana-stage/README.md"),
 	readmes.join(", "),
 );
 
@@ -52,7 +52,7 @@ check("scripts/readme-check.mjs --check exits 0", cli.status === 0, `${cli.stdou
 const config = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "readme-check.config.json"), "utf-8"));
 const external = new Map(config.externalPaths.map((entry) => [entry.path, entry.reason]));
 // req: R-655
-check("install-produced README paths are declared external with reasons", ["node_modules", "apps/bench/.ext", "apps/bench/.ext/pi-web-access"].every((item) => external.get(item)?.trim().length > 0));
+check("install-produced README paths are declared external with reasons", ["node_modules"].every((item) => external.get(item)?.trim().length > 0));
 
 const invalidModes = [["--check", "--list"], ["--bogus"]].map((args) => {
 	const result = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "readme-check.mjs"), ...args], { cwd: REPO_ROOT, encoding: "utf-8" });

@@ -32,8 +32,7 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
 - `apps/desk/` — "nana code": the local browser dashboard over pi sessions (rail, live
   transcripts, spawn/fork/rename, the wire). Its README carries the Contract notes and
   Known limits — read them before changing its surface.
-- `apps/bench/` — the reusable pi benchmark (study/profile/task/checker; costed with pi-ai's
-  own `Usage`/`calculateCost`); `studies/` holds recorded verdicts.
+- `apps/bench/` — builder and seat context anatomy; `studies/` holds preserved verdicts and frozen fixtures from retired study runners.
 - `templates/` — copier templates behind `scaffold-py`/`scaffold-ts` and `adopt-py`/`adopt-ts`.
   The copier src is the REPO ROOT (root `copier.yml`, `language` question); tags ship only through
   `npm run release`, which runs acceptance first; CI releases after green suite and install-check jobs on main. `templates/_shared/` is the SINGLE source of everything more than

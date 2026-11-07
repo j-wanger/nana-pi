@@ -230,8 +230,6 @@ const SKIPS = {
 	// not use pgrep (it guards its own POSIX cases), so it always runs there.
 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": () =>
 		posix && !onPath("pgrep") ? "needs `pgrep` on POSIX (not on PATH)" : null,
-	"apps/bench/test/study-tasks.test.mjs": () =>
-		fs.existsSync(path.join(root, "apps", "bench", ".ext", "pi-web-access")) ? null : "needs apps/bench/.ext/pi-web-access (not present)",
 	// Windows-leg-only (R-1058): spawns exec-form hook entries exactly as the real platform would;
 	// every other leg never reaches process.platform === "win32", so it would assert the POSIX
 	// shell-form entries never exist and fail for the wrong reason.

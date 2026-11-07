@@ -22,7 +22,7 @@ export const PAGE_SHAPING_PATHS = Object.freeze([
   "packages/nana-pack/lib/land-ci.mjs",
   "packages/nana-pack/lib/suite-records.mjs",
   "packages/nana-pack/lib/build-records.mjs",
-  "apps/bench/lib/checkers.mjs",
+  "scripts/glob-match.mjs",
 ]);
 // chosen (FEAT-039): 40 lines leaves room for one compact contextual hunk and view summary.
 export const ACCESSIBILITY_DIFF_MAX_LINES = 40;
@@ -35,9 +35,4 @@ export const REFERENCE_FRAME_CAP = 5;
 export const ACCEPTED_IMAGE_EXTENSIONS = Object.freeze([".png", ".jpg", ".jpeg"]);
 // chosen (R-3143): twelve numbered lines allow a short visual checklist while bounding judge input.
 export const MAX_SPEC_LINES = 12;
-// chosen (R-3133): bounds module loading and the first frame on a slow browser.
-export const HIVE_READY_TIMEOUT_MS = 15_000;
-// chosen (R-3133): sample the middle half, not a single pixel in a gap between cells.
-export const HIVE_PROBE_FRACTION = 0.5;
-export { HIVE_BACKGROUND } from '../apps/hive/config.mjs';
 export const PRODUCT_VIEWS = Object.freeze(["overview", "decisions", "product", "artifacts", "features", "issues", "requirements"]);
