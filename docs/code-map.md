@@ -1317,7 +1317,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Invalid arguments, missing review evidence, failed preconditions, unreadable or red CI, suite failures, and git failures return a named refusal.
 - **callers** — `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/ci-wait.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/record-ledger.mjs`, `packages/nana-pack/lib/release-status.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`
-- **unresolved launches** — line 192: spawnSync
+- **unresolved launches** — line 188: spawnSync
 - **repo-code launches** — line 37: spawnSync
 
 ### `packages/nana-pack/bin/nana-main-ci.mjs`
@@ -3428,7 +3428,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Assertion failures set exit code one.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `scripts/test.mjs`
-- **unresolved launches** — line 184: spawnSync · line 186: spawnSync
+- **unresolved launches** — line 187: spawnSync · line 189: spawnSync
 
 ### `packages/nana-pack/tests/land-fixtures.mjs`
 
