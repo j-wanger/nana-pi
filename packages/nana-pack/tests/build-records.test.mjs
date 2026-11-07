@@ -304,7 +304,7 @@ const betaEnd = { ...seedEnd, build: "beta", durationMs: 1000, outcome: "failed"
 fs.mkdirSync(path.dirname(LEDGER), { recursive: true });
 fs.writeFileSync(LEDGER, [seedStart, seedEnd, noEnd, beta, betaEnd].map((row) => JSON.stringify(row)).join("\n") + "\n");
 const lineRun = runWorker();
-const lastLine = lineRun.stderr.trimEnd().split(/\r?\n/).at(-1);
+const lastLine = lineRun.stderr.trimEnd().split(/\r?\n/).find((line) => line.startsWith(BUILD_RECORD_LINE_PREFIX));
 const report = spawnSync(process.execPath, [REPORT, "--repo", LANE, "--lane", "alpha"], { encoding: "utf8" });
 const alphaLine = report.stdout.trimEnd().split(/\r?\n/).find((line) => line.startsWith("lane alpha"));
 const workerEnd = lines().filter((row) => row.kind === "end").at(-1);

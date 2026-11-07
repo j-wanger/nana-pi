@@ -21,7 +21,7 @@ function hashToken(token) {
 	return createHash("sha256").update(token.toLowerCase()).digest("hex");
 }
 
-function validateConfig(config) {
+export function validateConfig(config) {
 	if (!config || !Array.isArray(config.wordDigests) || config.wordDigests.length === 0 ||
 		config.wordDigests.some((digest) => !/^[a-f0-9]{64}$/.test(digest))) {
 		throw new Error("identity scan config needs a non-empty wordDigests array of sha256 hex digests");

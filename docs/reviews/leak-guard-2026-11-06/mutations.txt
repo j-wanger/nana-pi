@@ -1,0 +1,90 @@
+M1: code mutant exit=1; named test red=true
+FAIL M1: exact preamble sentence and chained seat bullet ERR_ASSERTION
+PASS M2: identity range has no outside allowlist bleed
+PASS M3: tip blobs range deletions and new rename paths
+PASS M4: literal home and temp forms honor suffix boundaries
+PASS M6: CLI blocks hits and unread skips and rejects unknown refs
+PASS M7: lane end warns after build line without changing outcome or exit
+PASS M5: CLI worker and record never echo matched text
+PASS M8: build report lines ignore optional leak metadata
+PASS seal: leak file cap is 1048576 bytes
+M2: code mutant exit=1; named test red=true
+PASS M1: exact preamble sentence and chained seat bullet
+FAIL M2: identity range has no outside allowlist bleed ERR_ASSERTION
+FAIL M3: tip blobs range deletions and new rename paths ERR_ASSERTION
+FAIL M4: literal home and temp forms honor suffix boundaries ERR_ASSERTION
+FAIL M6: CLI blocks hits and unread skips and rejects unknown refs ERR_ASSERTION
+FAIL M7: lane end warns after build line without changing outcome or exit ERR_ASSERTION
+PASS M5: CLI worker and record never echo matched text
+PASS M8: build report lines ignore optional leak metadata
+PASS seal: leak file cap is 1048576 bytes
+M3: code mutant exit=1; named test red=true
+PASS M1: exact preamble sentence and chained seat bullet
+PASS M2: identity range has no outside allowlist bleed
+FAIL M3: tip blobs range deletions and new rename paths ERR_ASSERTION
+PASS M4: literal home and temp forms honor suffix boundaries
+PASS M6: CLI blocks hits and unread skips and rejects unknown refs
+PASS M7: lane end warns after build line without changing outcome or exit
+PASS M5: CLI worker and record never echo matched text
+PASS M8: build report lines ignore optional leak metadata
+PASS seal: leak file cap is 1048576 bytes
+M4: code mutant exit=1; named test red=true
+PASS M1: exact preamble sentence and chained seat bullet
+PASS M2: identity range has no outside allowlist bleed
+PASS M3: tip blobs range deletions and new rename paths
+FAIL M4: literal home and temp forms honor suffix boundaries ERR_ASSERTION
+PASS M6: CLI blocks hits and unread skips and rejects unknown refs
+PASS M7: lane end warns after build line without changing outcome or exit
+FAIL M5: CLI worker and record never echo matched text ERR_ASSERTION
+PASS M8: build report lines ignore optional leak metadata
+PASS seal: leak file cap is 1048576 bytes
+M5: code mutant exit=1; named test red=true
+PASS M1: exact preamble sentence and chained seat bullet
+FAIL M2: identity range has no outside allowlist bleed ERR_ASSERTION
+FAIL M3: tip blobs range deletions and new rename paths ERR_ASSERTION
+PASS M4: literal home and temp forms honor suffix boundaries
+PASS M6: CLI blocks hits and unread skips and rejects unknown refs
+PASS M7: lane end warns after build line without changing outcome or exit
+FAIL M5: CLI worker and record never echo matched text ERR_ASSERTION
+PASS M8: build report lines ignore optional leak metadata
+PASS seal: leak file cap is 1048576 bytes
+M6: code mutant exit=1; named test red=true
+PASS M1: exact preamble sentence and chained seat bullet
+PASS M2: identity range has no outside allowlist bleed
+PASS M3: tip blobs range deletions and new rename paths
+PASS M4: literal home and temp forms honor suffix boundaries
+FAIL M6: CLI blocks hits and unread skips and rejects unknown refs ERR_ASSERTION
+PASS M7: lane end warns after build line without changing outcome or exit
+FAIL M5: CLI worker and record never echo matched text ERR_ASSERTION
+PASS M8: build report lines ignore optional leak metadata
+PASS seal: leak file cap is 1048576 bytes
+M7: code mutant exit=1; named test red=true
+PASS M1: exact preamble sentence and chained seat bullet
+PASS M2: identity range has no outside allowlist bleed
+PASS M3: tip blobs range deletions and new rename paths
+PASS M4: literal home and temp forms honor suffix boundaries
+PASS M6: CLI blocks hits and unread skips and rejects unknown refs
+FAIL M7: lane end warns after build line without changing outcome or exit TypeError
+PASS M5: CLI worker and record never echo matched text
+PASS M8: build report lines ignore optional leak metadata
+PASS seal: leak file cap is 1048576 bytes
+M8: code mutant exit=1; named test red=true
+PASS M1: exact preamble sentence and chained seat bullet
+PASS M2: identity range has no outside allowlist bleed
+PASS M3: tip blobs range deletions and new rename paths
+PASS M4: literal home and temp forms honor suffix boundaries
+PASS M6: CLI blocks hits and unread skips and rejects unknown refs
+PASS M7: lane end warns after build line without changing outcome or exit
+PASS M5: CLI worker and record never echo matched text
+FAIL M8: build report lines ignore optional leak metadata ERR_ASSERTION
+PASS seal: leak file cap is 1048576 bytes
+seal: code mutant exit=1; named test red=true
+PASS M1: exact preamble sentence and chained seat bullet
+FAIL M2: identity range has no outside allowlist bleed ERR_ASSERTION
+FAIL M3: tip blobs range deletions and new rename paths ERR_ASSERTION
+FAIL M4: literal home and temp forms honor suffix boundaries ERR_ASSERTION
+FAIL M6: CLI blocks hits and unread skips and rejects unknown refs ERR_ASSERTION
+FAIL M7: lane end warns after build line without changing outcome or exit ERR_ASSERTION
+PASS M5: CLI worker and record never echo matched text
+PASS M8: build report lines ignore optional leak metadata
+FAIL seal: leak file cap is 1048576 bytes ERR_ASSERTION

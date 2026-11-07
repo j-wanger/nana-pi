@@ -111,13 +111,13 @@
       "id": "apps",
       "title": "Apps and scripts",
       "blurb": "The desk, the bench and this repo's own scripts — the entry points. They may import the packages; a package may not import them.",
-      "match": "^(apps/|scripts/)"
+      "match": "^(apps/|scripts/(?!identity-scan\\.mjs$))"
     },
     {
       "id": "packages",
       "title": "Packages",
-      "blurb": "The pi extension pack, the knowledge pull, the staged-block layer and the setup bootstrap — the installable units. Within the layer imports are free (nana-pi ships as one package); nothing here may reach up into an app.",
-      "match": "^packages/"
+      "blurb": "The pi extension pack, the knowledge pull, the staged-block layer and the setup bootstrap, plus scripts/identity-scan.mjs's shared pure counting API. Within the layer imports are free (nana-pi ships as one package); nothing here may reach up into an app.",
+      "match": "^(packages/|scripts/identity-scan\\.mjs$)"
     }
   ],
   "exempt": [

@@ -38,6 +38,7 @@ import { BUILD_LEDGER_READ_MAX_BYTES, BUILD_RECORD_LINE_PREFIX, BUILD_RECORD_SCH
 import { releaseLaneLock } from '../lib/lane-lock.mjs';
 import { startLaneWatcher } from '../lib/lane-watcher.mjs';
 import { errorText } from '../lib/record-ledger.mjs';
+import { scanCommitRange, leakScanLines } from '../lib/leak-scan.mjs';
 import { LANE_CLASS_MAX_BUFFER_BYTES, LANE_CLASS_TIMEOUT_MS } from '../lib/lane-class-config.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
@@ -310,7 +311,11 @@ function keepBuildEnd(result, outputError) {
 	const outcome = outputError ? 'failed' : result.signal ? 'stopped' : result.ceiling ? 'ceiling' : result.ok ? 'ok' : 'failed';
 	let tip = null, tipError = null;
 	try { tip = git('rev-parse', 'HEAD'); } catch (error) { tipError = errorText(error); }
+	let leaks;
+	try { leaks = scanCommitRange({ cwd: laneRoot, base: buildStart.tip, tip }); }
+	catch { leaks = { unavailable: 'cannot scan commit range' }; }
 	buildEnd = buildEndRecord(buildStart, {
+		leaks,
 		attempts: result.attempt,
 		exit,
 		outcome,
@@ -382,7 +387,10 @@ else if (outputError) process.stderr.write(`[pi-worker] FAILED: cannot write ${w
 else process.stderr.write(r.ok
 	? `[pi-worker] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath})\n`
 	: r.ceiling ? `[pi-worker] FAILED: wall-clock ceiling ${maxArg}s reached\n` : `[pi-worker] FAILED after ${w.retries + 1} attempt(s) (endpoint likely in a bad stretch)\n`);
-if (buildEndKept) process.stderr.write(`${buildEndLine()}\n`);
+if (buildEndKept) {
+	process.stderr.write(`${buildEndLine()}\n`);
+	for (const line of leakScanLines(buildEnd.leaks)) process.stderr.write(`pi-worker: ${line}\n`);
+}
 if (laneMode && buildEndKept) {
 	try {
 		const present = spawnSync('git', ['cat-file', '-e', 'HEAD:scripts/lane-class.mjs'], { cwd: process.cwd(), encoding: 'utf8', timeout: LANE_CLASS_TIMEOUT_MS });

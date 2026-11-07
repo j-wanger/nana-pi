@@ -73,6 +73,7 @@ export function buildEndRecord(start, {
 	tipError = null,
 	found = collectBuildUsage(start),
 	outputError = null,
+	leaks,
 } = {}) {
 	return {
 		v: BUILD_RECORD_SCHEMA,
@@ -92,6 +93,7 @@ export function buildEndRecord(start, {
 		sessions: found.sessions,
 		sessionBadLines: found.sessionBadLines,
 		outputError,
+		...(leaks === undefined ? {} : { leaks }),
 	};
 }
 

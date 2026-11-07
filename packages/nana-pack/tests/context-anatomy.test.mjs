@@ -296,7 +296,10 @@ function stubContext(f, source = `export function loadProjectContextFiles() { re
   return pkg;
 }
 function alteredWorker(f, oldText, newText) {
-  const copy=path.join(f.dir,'pack');
+  const checkout=path.join(f.dir,'checkout'), copy=path.join(checkout,'packages','nana-pack');
+  // Preserve the checkout-relative scanner dependency used by the lane-end warning.
+  write(path.join(checkout,'scripts','identity-scan.mjs'),fs.readFileSync(path.join(root,'scripts','identity-scan.mjs')));
+  write(path.join(checkout,'identity-scan.config.json'),fs.readFileSync(path.join(root,'identity-scan.config.json')));
   for(const dir of ['lib','prompts']) fs.cpSync(path.join(pack,dir),path.join(copy,dir),{recursive:true});
   for(const file of ['pi-worker.mjs','pi-watchdog.mjs','worker-config.mjs','nana-roster.mjs','review-launch.mjs']) write(path.join(copy,'bin',file),fs.readFileSync(path.join(pack,'bin',file)));
   const script=path.join(copy,'bin/pi-worker.mjs'), source=fs.readFileSync(script,'utf8');
