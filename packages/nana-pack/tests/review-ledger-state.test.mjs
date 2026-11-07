@@ -708,7 +708,7 @@ const trustText = fs.readFileSync(path.join(bin, "..", "README.md"), "utf8").rep
 check("Trust model declares wrapper-only formal rounds, supplemental reviews and revision-based counting",
 	trustText.includes("Formal review rounds are admitted only through `pi-review` or `review-ledger run`. Agent-tool and hand-run reviews are supplemental and earn no round") &&
 	trustText.includes("Any number of reviews, by any roles, on one revision is one round") &&
-	trustText.includes("A land ruling on the revision the last round reviewed consumes nothing; a land review of a new revision is a round like any other"));
+	trustText.includes("A review of a new revision is a round regardless of role"));
 
 // 21. --retries contract notice (sol r3 LOW): printed only when the flag is explicit
 {

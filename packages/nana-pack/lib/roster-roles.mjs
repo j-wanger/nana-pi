@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/lib/roster-roles.mjs
- * @purpose Resolve role fallbacks and diagnose the two roster lineage pairs for seats and launchers.
+ * @purpose Resolve role fallbacks and diagnose the adversary/planner lineage pair for seats and launchers.
  * @inputs Validated roster, requested role and seat runtime.
  * @outputs Resolved role/slot/entry and shared or unverified lineage diagnostics.
  * @effects none
@@ -21,7 +21,6 @@ export function lineageWarnings(roster, seatRuntime = 'pi') {
   const planner = resolveRole(roster, 'planner');
   const pairs = [
     ['adversary', 'planner', lineage(resolveRole(roster, 'adversary').entry), planner.slot === 'seat' ? lineage({ runtime: seatRuntime }) : lineage(planner.entry)],
-    ['checker', 'reviewer', lineage(resolveRole(roster, 'checker').entry), lineage(roster.reviewer)],
   ];
   return pairs.flatMap(([role, other, left, right]) => !left || !right
     ? [`lineage: ${role} versus ${other} unverified`]

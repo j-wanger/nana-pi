@@ -74,7 +74,6 @@ check("R-2952: without an agreed reading the planner returns readings and no pla
 // req: R-2953
 check("R-2953: planner prompt pins its planning and forecast rules without scratch-plan pointers", [
 	"Expected changes to existing tests are a forecast, never a limit on what the builder may edit.",
-	"The seat's wrong-code pairs belong to install, hook or gate lanes.",
 	"An earlier plan is grounding for a decision it records, never a format to copy.",
 	"For code files, use the project's map impact command to forecast callers and tests.",
 	"For files the map does not cover, search tests and checkers for the path and every literal the change breaks.",

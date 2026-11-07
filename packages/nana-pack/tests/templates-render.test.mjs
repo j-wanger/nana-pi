@@ -568,22 +568,19 @@ function checkInstructionContracts() {
 		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"') &&
 		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs"') &&
 		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"'));
-	// req: R-1127
-	check("R-1127: the shared seat land review applies in an install, hook or gate lane when the roster sets no land model",
-		shared.includes("in an install, hook or gate lane, when the roster sets no land model") &&
-		shared.includes("docs/reviews/<lane>-<date>/seat-land.md") &&
-		shared.includes("before the final round") &&
-		shared.includes("the independent slice review still covers every land"));
+	// req: R-3763
+	check("the shared working pattern omits the retired seat land review",
+		!shared.includes("Seat land review") && !shared.includes("seat-land.md"));
 	// R-1128 reads the two bullets from the shared file itself (not a literal copy in this test), so
-	// an edit to the shared file's bullet text that the R-1126/R-1127 title checks do not cover still
+	// an edit to the shared file's bullet text that the R-1126/R-1300 title checks do not cover still
 	// shows nana-soul stale: the extracted bullet changes while nana-soul's copy does not.
 	const sharedBullet = (label) => { const m = new RegExp(`^- ${label}:.*$`, "m").exec(shared); return m ? m[0] : null; };
 	const defaultPatternBullet = sharedBullet("Default pattern");
-	const seatLandBullet = sharedBullet("Seat land review");
+	const reviewLadderBullet = sharedBullet("Review ladder");
 	// req: R-1128
-	check("nana-soul carries the shared default-pattern and seat land review bullets",
-		Boolean(defaultPatternBullet) && Boolean(seatLandBullet) &&
-		soul.replace(/\r/g, "").includes(defaultPatternBullet) && soul.replace(/\r/g, "").includes(seatLandBullet));
+	check("nana-soul carries the shared default-pattern and review-ladder bullets",
+		Boolean(defaultPatternBullet) && Boolean(reviewLadderBullet) &&
+		soul.replace(/\r/g, "").includes(defaultPatternBullet) && soul.replace(/\r/g, "").includes(reviewLadderBullet));
 	const SEAT_GUIDE_POINTER = "- Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions.";
 	const seatGuideBullets = [...shared.matchAll(/^- Seat guide:.*$/gm)].map((m) => m[0]);
 	// req: R-1142
@@ -638,10 +635,8 @@ function checkInstructionContracts() {
 		JSON.stringify(plansBullets));
 	// req: R-1101
 	// req: R-1300
-	check("R-1300: the shared working pattern gives an ordinary lane one final reviewer, defines install, hook and gate lanes, and says plans get no review round",
-		shared.includes("Review ladder: an ordinary lane gets one final reviewer, the roster's reviewer.") &&
-		shared.includes("An install, hook or gate lane also gets the land reviewer, the seat's wrong-code pairs and one independent check.") &&
-		shared.includes("An install, hook or gate lane changes nana-setup install, uninstall or doctor") &&
+	check("R-1300: the shared working pattern gives every lane one reviewer plus CI and says plans get no review round",
+		shared.includes("Every lane gets one reviewer plus CI") &&
 		shared.includes("Plans get no review round") && !shared.includes("plan-review round") && !shared.includes("only a named fail-open bug reopens the plan"));
 	// req: R-1102
 	check("shared working pattern freezes edits after an all-LAND review",

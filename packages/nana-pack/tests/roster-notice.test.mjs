@@ -64,11 +64,10 @@ const writeRoster = (dir, roster) => { const f = path.join(dir, "nana-pack.json"
 const fileAt = (dir) => path.join(dir, "nana-pack.json");
 
 // req: R-1194
-check("roster notice: one line that starts with the prefix and names the builders, reviewer and land by model and thinking",
+check("roster notice: one line that starts with the prefix and names the builders and reviewer by model and thinking",
 	(() => {
 		const dir = freshAgentDir("l1");
-		// reviewer and land each carry a thinking level too, not just the builder — a one-line
-		// notice must show all three, and no line break anywhere in it.
+		// The notice must show both builder and reviewer thinking on one line.
 		const roster = { ...sampleRoster(), reviewer: entry("zz-reviewer-model", "high"), land: entry("zz-land-model", "low") };
 		const file = writeRoster(dir, roster);
 		const n = rosterNotice({ ok: true, roster, source: file }, file, false);
@@ -76,7 +75,7 @@ check("roster notice: one line that starts with the prefix and names the builder
 			!n.includes("\n") &&
 			n.includes("zz-builder-model medium") &&
 			n.includes("zz-reviewer-model high") &&
-			n.includes("zz-land-model low");
+			!n.includes("zz-land-model low");
 	})());
 
 // req: R-1195
@@ -146,13 +145,13 @@ check("roster notice: a Claude Code entry's model is followed by the Claude Code
 			!n.includes(`zz-land-model ${CLAUDE_CODE_MARK}`);
 	})());
 
-// req: R-1198
-check("roster notice: a null land reads land seat",
+// req: R-3758
+check("roster notice: a null legacy land is omitted",
 	(() => {
 		const roster = { ...sampleRoster(), land: null };
 		const file = fileAt(freshAgentDir("l6"));
 		const n = rosterNotice({ ok: true, roster, source: "x" }, file, false);
-		return n.includes("land seat") && !n.includes("zz-land-model");
+		return !n.includes("land seat") && !n.includes("zz-land-model");
 	})());
 
 // req: R-3528
@@ -161,7 +160,7 @@ check("MM7: roster notice shows a set scout and omits a null scout",
 		const withScout = rosterNotice({ ok: true, roster: sampleRoster(), source: "x" }, fileAt(freshAgentDir("l7-set")), false);
 		const noScout = rosterNotice({ ok: true, roster: { ...sampleRoster(), scout: null }, source: "x" }, fileAt(freshAgentDir("l7-null")), false);
 		const claudeScout = rosterNotice({ ok: true, roster: { ...sampleRoster(), scout: claudeEntry('sonnet') }, source: 'x' }, fileAt(freshAgentDir('l7-claude')), false);
-		return withScout.includes('scout zz-scout-model-l7') && withScout.indexOf('scout zz-scout-model-l7') > withScout.indexOf('land zz-land-model') && claudeScout.includes(`scout sonnet ${CLAUDE_CODE_MARK}`) && !noScout.toLowerCase().includes('scout');
+		return withScout.includes('scout zz-scout-model-l7') && withScout.indexOf('scout zz-scout-model-l7') > withScout.indexOf('reviewer zz-reviewer-model') && claudeScout.includes(`scout sonnet ${CLAUDE_CODE_MARK}`) && !noScout.toLowerCase().includes('scout');
 	})());
 
 // req: R-1200
@@ -465,13 +464,13 @@ const roleNoticeCase = async fn => {
 	finally { clearTimeout(timer); }
 };
 // req: R-1194
-check('MM7: both seats show resolved roles after land', await roleNoticeCase(async () => {
+check('MM7: both seats show resolved roles after reviewer', await roleNoticeCase(async () => {
 	const dir = freshAgentDir('roles-parity');
 	const roster = {...sampleRoster(), scout:null, builder:{provider:'openai-codex',model:'gpt-6.1-sol',thinking:'medium'},reviewer:claudeEntry('opus')};
 	writeRoster(dir,roster);
 	const hook = runHookOnce(dir), extension = await runExtensionOnce(dir);
 	for (const text of [hook,extension]) {
-		const at = ['land zz-land-model','planner seat','adversary gpt-6.1-sol medium','checker gpt-6.1-sol medium', `lanes ${workerConfig.LANE_LIMIT_DEFAULT}`].map(s => text.indexOf(s));
+		const at = ['reviewer opus','planner seat','adversary gpt-6.1-sol medium', `lanes ${workerConfig.LANE_LIMIT_DEFAULT}`].map(s => text.indexOf(s));
 		if (!at.every((n,i) => n >= 0 && (i === 0 || n > at[i-1]))) return false;
 	}
 	return true;
@@ -484,7 +483,7 @@ check('MM8: resolved lineage pairs warn on shared and unknown sides in both seat
 	const joined=notice({...mac,planner:{provider:'anthropic',model:'x',thinking:null},adversary:claudeEntry('opus'),checker:{provider:'openai',model:'x',thinking:null},reviewer:{provider:'openai-codex',model:'y',thinking:null}},'pi');
 	const dir=freshAgentDir('roles-written-default'); const env={...process.env,PI_CODING_AGENT_DIR:dir}; delete env.PI_SESSION_ID;
 	const set=spawnSync(process.execPath,[path.resolve(path.dirname(hookPath),'../../../nana-pack/bin/nana-roster.mjs'),'set','builder','openai-codex','gpt-6-luna','high'],{env,encoding:'utf8',timeout:5000});
-	return !cc.includes('lineage') && /lineage.*adversary.*planner.*unverified/.test(pi) && /lineage.*checker.*openai.*reviewer/.test(def) && /adversary.*anthropic.*planner/.test(joined) && /checker.*openai.*reviewer/.test(joined) && set.status===0 && /checker.*openai.*reviewer/.test(notice(resolveRoster(dir).roster,'claude-code'));
+	return !cc.includes('lineage') && /lineage.*adversary.*planner.*unverified/.test(pi) && !def.includes('checker') && /adversary.*anthropic.*planner/.test(joined) && !joined.includes('checker') && set.status===0 && !notice(resolveRoster(dir).roster,'claude-code').includes('checker');
 })());
 
 // req: R-3523
@@ -503,7 +502,7 @@ check("seal: ignored lane notice mark is (file value ignored)", noticeConfig.LAN
 		const resolved = resolveRoster(dir), line = rosterNotice(resolved, file, false);
 		const expected = `, ${noticeConfig.LANES_LABEL} ${limit}${ignored ? ` ${noticeConfig.LANES_IGNORED_MARK}` : ""} · `;
 		results.push([label, !/[\r\n]/.test(line) && line.includes(expected) &&
-			line.indexOf(expected) > line.indexOf(", land ") && (ignored || !line.includes(noticeConfig.LANES_IGNORED_MARK))]);
+			line.indexOf(expected) > line.indexOf(", reviewer ") && (ignored || !line.includes(noticeConfig.LANES_IGNORED_MARK))]);
 		results.push([`${label}-relative`, !rosterNotice(resolved, file, true).includes("lanes ")]);
 	}
 	const file = fileAt(freshAgentDir("lane-notice-old"));
@@ -511,7 +510,7 @@ check("seal: ignored lane notice mark is (file value ignored)", noticeConfig.LAN
 	results.push(["older result", old.includes(`, ${noticeConfig.LANES_LABEL} ${workerConfig.LANE_LIMIT_DEFAULT} · `) && !old.includes(noticeConfig.LANES_IGNORED_MARK)]);
 	results.push(["refused", !rosterNotice({ ok: false, problem: "invalid JSON", file }, file, false).includes("lanes ")]);
 	// req: R-3523
-	check("R-3523: notice shows lane limit after land, marks fallback, and omits it when unknown", results.every(([, ok]) => ok), JSON.stringify(results));
+	check("R-3523: notice shows lane limit after reviewer, marks fallback, and omits it when unknown", results.every(([, ok]) => ok), JSON.stringify(results));
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");
