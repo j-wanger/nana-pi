@@ -35,7 +35,7 @@ async function fixture(fn) {
   const urls = []; const launches = []; const lines = []; const widths = [];
   const seams = {
     root, stdout: (line) => lines.push(line), objective: async () => "bounded objective",
-    roster: () => ({ ok: true, roster: { scout: { runtime: "claude-code", model: "skip" }, land: { provider: "fake-provider", model: "fake-model", thinking: "high" }, builder: { provider: "wrong", model: "wrong" } } }),
+    roster: () => ({ ok: true, roster: { scout: { runtime: "claude-code", model: "skip" }, land: { provider: "wrong", model: "wrong", thinking: "low" }, builder: { provider: "fake-provider", model: "fake-model", thinking: "high" } } }),
     browser: async () => ({ async newPage({ viewport }) { widths.push(viewport.width); return {
       async goto(url) { urls.push(url); }, async evaluate() { return `landing text\r\nacross elements\t ${"x".repeat(C.PHONE_LANDING_TEXT_CAP + 20)}`; }, async close() {},
     }; }, async close() {} }),
@@ -147,6 +147,21 @@ await test("R-3065: failed, empty and timed-out attempts keep only the prompt an
   });
 });
 
+// req: R-3762
+await test("M6: outside reader chooses exact scout or builder and never legacy land", async () => {
+  for (const scout of [{ provider: "scout-provider", model: "scout-model", thinking: "low" }, null, { runtime: "claude-code", model: "opus" }]) await fixture(async ({ seams, args, launches }) => {
+    const builder = { provider: "builder-provider", model: "builder-model", thinking: "medium" };
+    const land = { provider: "land-provider", model: "land-model", thinking: "max" };
+    seams.roster = () => ({ ok: true, roster: { scout, builder, land } });
+    assert.equal(await runOutsideReader(args, seams), 0);
+    assert.equal(launches.length, 1);
+    const selected = scout?.provider ? scout : builder;
+    const argv = launches[0].piArgs;
+    for (const key of ["provider", "model", "thinking"]) assert.equal(argv[argv.indexOf(`--${key}`) + 1], selected[key]);
+    assert.ok(!argv.includes(land.model));
+  });
+});
+
 // req: R-3066
 await test("R-3066: outside-reader values retain their sealed provenance", async () => {
   assert.equal(C.MAX_FINDINGS, 3); assert.deepEqual(C.READER_VIEWS, ["", "overview", "product", "decisions", "issues"]);
@@ -154,7 +169,7 @@ await test("R-3066: outside-reader values retain their sealed provenance", async
   assert.equal(C.VIEW_TEXT_CAP, 4000); assert.equal(C.PHONE_LANDING_TEXT_CAP, 6000);
   assert.equal(C.DIFF_CAP, 4000); assert.equal(C.KNOWN_BUG_CAP, 6000);
   assert.equal(C.PROMPT_PATH, "packages/nana-pack/prompts/outside-reader.md"); assert.equal(C.KNOWN_BUG_FEATURE, "FEAT-039");
-  assert.deepEqual(C.ROSTER_SLOT_ORDER, ["scout", "land", "builder"]);
+  assert.deepEqual(C.ROSTER_SLOT_ORDER, ["scout", "builder"]);
   assert.equal(C.STALL_SECS, Infinity); assert.equal(C.RETRIES, 0); assert.equal(C.MAX_SECS, 600); assert.equal(C.VIEWPORT_HEIGHT, 1000); assert.equal(C.POLL_SECS, 15);
   assert.equal(C.VIEWPORT_WIDTHS, VIEWPORT_WIDTHS);
 });

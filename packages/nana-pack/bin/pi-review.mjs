@@ -77,6 +77,10 @@ const optionValue = (name, fallback = null) => {
   const i = w.ownArgs.indexOf(name);
   return i >= 0 ? w.ownArgs[i + 1] : fallback;
 };
+if (optionValue('--role') === 'land') {
+  process.stderr.write('pi-review: --role land is retired; every lane has one reviewer plus CI.\n');
+  process.exit(1);
+}
 const sourceTree = resolve(process.cwd(), optionValue('--tree', '.'));
 const outPath = resolve(process.cwd(), w.outPath);
 const sourceScope = treeScope(sourceTree, { exclude: [outPath] });
@@ -242,7 +246,7 @@ try {
   const childEnv = { ...process.env, ...REVIEWER_CHILD_ENV, NANA_REVIEW_ROOT: tempRoot, ...credentialStripEnv(process.env) };
   const measured = await piContextLoad({ cwd: tempRootReal, env: childEnv, args: w.piArgs });
   parts.push(...measured.parts);
-  const onSpawn = () => appendContextLoad({ launcher: 'pi-review', role: 'reviewer', slot: optionValue('--role') === 'land' ? 'land' : 'reviewer', runtime: 'pi', piVersion: measured.piVersion, model: piOption(w.piArgs,'--model','-m'), cwd: sourceRoot, childCwd: tempRootReal, item: optionValue('--item'), parts });
+  const onSpawn = () => appendContextLoad({ launcher: 'pi-review', role: 'reviewer', slot: 'reviewer', runtime: 'pi', piVersion: measured.piVersion, model: piOption(w.piArgs,'--model','-m'), cwd: sourceRoot, childCwd: tempRootReal, item: optionValue('--item'), parts });
   const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
   let r;
   try {

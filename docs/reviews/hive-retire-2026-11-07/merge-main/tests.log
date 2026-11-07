@@ -1,0 +1,26 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs packages/nana-pack/tests/build-records.test.mjs packages/nana-pack/tests/code-map-launch.test.mjs packages/nana-pack/tests/context-anatomy.test.mjs packages/nana-pack/tests/first-look.test.mjs packages/nana-pack/tests/nana-roster-set.test.mjs packages/nana-pack/tests/nana-roster.test.mjs packages/nana-pack/tests/one-reviewer.test.mjs packages/nana-pack/tests/outside-reader.test.mjs packages/nana-pack/tests/pages-workflow.test.mjs packages/nana-pack/tests/path-spelling.test.mjs packages/nana-pack/tests/planner-prompt.test.mjs packages/nana-pack/tests/preview-retirement.test.mjs packages/nana-pack/tests/readme-check.test.mjs packages/nana-pack/tests/review-ledger-state.test.mjs packages/nana-pack/tests/roster-notice.test.mjs packages/nana-pack/tests/rulings.test.mjs packages/nana-pack/tests/templates-render.test.mjs packages/nana-pack/tests/worker-claude.test.mjs packages/nana-setup/tests/seat-rule.test.mjs packages/nana-setup/tests/skills-and-standards.test.mjs
+
+PASS  packages/nana-pack/tests/build-records.test.mjs          7 pass  12.8s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs        12 pass  1.8s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs        23 pass  52.5s
+PASS  packages/nana-pack/tests/first-look.test.mjs             7 pass  0.1s
+PASS  packages/nana-pack/tests/nana-roster-set.test.mjs        11 pass  2.1s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs            27 pass  1.4s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs           8 pass  2.7s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs         8 pass  0.1s
+PASS  packages/nana-pack/tests/pages-workflow.test.mjs         2 pass  0.0s
+PASS  packages/nana-pack/tests/path-spelling.test.mjs          11 pass  29.6s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs         11 pass  0.0s
+PASS  packages/nana-pack/tests/preview-retirement.test.mjs     8 pass  7.9s
+PASS  packages/nana-pack/tests/readme-check.test.mjs           11 pass  0.3s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs    96 pass  41.1s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs          21 pass  0.3s
+PASS  packages/nana-pack/tests/rulings.test.mjs                23 pass  0.1s
+PASS  packages/nana-pack/tests/templates-render.test.mjs       173 pass  71.7s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs          24 pass, 3 skip  31.9s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs             21 pass  0.0s
+PASS  packages/nana-setup/tests/skills-and-standards.test.mjs  88 pass  6.7s
+
+20 files: 20 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 592 pass, 0 fail, 3 skip · 263.5s

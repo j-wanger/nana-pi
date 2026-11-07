@@ -68,7 +68,6 @@ const statesEqual = (a, b) => a.type === b.type && (a.type !== "file" || a.bytes
 		["builder default thinking", sampleRoster(), "builder", ["example-gateway", "gpt-9", DEFAULT_THINKING_TOKEN], entry("example-gateway", "gpt-9", null)],
 		["largerBuilder claude-code", sampleRoster(), "largerBuilder", [CLAUDE_CODE_RUNTIME, "sonnet"], { runtime: CLAUDE_CODE_RUNTIME, model: "sonnet" }],
 		["scout null token", sampleRoster(), "scout", [SLOT_NULL_TOKENS.scout], null],
-		["land null token", sampleRoster(), "land", [SLOT_NULL_TOKENS.land], null],
 		["largerBuilder null token", { ...sampleRoster(), largerBuilder: entry("example-gateway", "x", "low") }, "largerBuilder", [SLOT_NULL_TOKENS.largerBuilder], null],
 		["pasted printed line with its colon", sampleRoster(), "builder:", ["example-gateway", "gpt-7", "high"], entry("example-gateway", "gpt-7", "high")],
 	];
@@ -278,13 +277,13 @@ const statesEqual = (a, b) => a.type === b.type && (a.type !== "file" || a.bytes
 // req: R-1122
 check('MM2: role slots and scout accept pi Claude and null tokens and name malformed slots', (() => {
 	const observations = [];
-	for (const slot of ['planner','adversary','checker','scout']) {
-		for (const tokens of [['openai-codex','gpt-6.1-sol','high'], ['claude-code', slot === 'scout' ? 'sonnet' : 'opus'], [({planner:'seat',adversary:'builder',checker:'builder',scout:'none'})[slot]]]) {
+	for (const slot of ['planner','adversary','scout']) {
+		for (const tokens of [['openai-codex','gpt-6.1-sol','high'], ['claude-code', slot === 'scout' ? 'sonnet' : 'opus'], [({planner:'seat',adversary:'builder',scout:'none'})[slot]]]) {
 			const dir = freshAgentDir('roles-set'); const r = runSet(dir, [slot, ...tokens]);
 			observations.push(r.status === 0 && r.stdout.includes(`${slot}: ${tokens.join(' ')}\n`));
 		}
 	}
-	for (const [slot, bad, token] of [['checker',{runtime:'claude-code',model:'gpt-6'},'roster.checker.model'],['planner','opus','roster.planner'],['adversary',{provider:'openai',model:'x',thinking:'bad'},'roster.adversary.thinking']]) {
+	for (const [slot, bad, token] of [['adversary',{runtime:'claude-code',model:'gpt-6'},'roster.adversary.model'],['planner','opus','roster.planner'],['adversary',{provider:'openai',model:'x',thinking:'bad'},'roster.adversary.thinking']]) {
 		const dir = freshAgentDir('roles-bad'); writeRoster(dir, {...sampleRoster(),[slot]:bad});
 		const r = runPlain(dir); observations.push(r.status === 1 && r.stderr.includes(token));
 	}
@@ -298,7 +297,7 @@ check('MM3: set preserves four old shapes without adding unnamed role slots', ((
 		const dir = freshAgentDir('roles-compatible'); if (raw) writeRosterRaw(dir, JSON.stringify(raw));
 		const r = runSet(dir, ['builder','openai-codex','gpt-6.1-sol','medium']);
 		const after = JSON.parse(fs.readFileSync(path.join(dir,'nana-pack.json'),'utf8'));
-		if (r.status !== 0 || !acceptsMain(after.roster) || after.roster.largerBuilder !== null) return false;
+		if (r.status !== 0 || !acceptsMain(after.roster) || Object.hasOwn(after.roster, 'largerBuilder') !== Object.hasOwn(raw?.roster ?? {}, 'largerBuilder')) return false;
 		for (const [k,v] of Object.entries(raw ?? {})) if (k !== 'roster' && JSON.stringify(after[k]) !== JSON.stringify(v)) return false;
 		return ['planner','adversary','checker'].every(s => !Object.hasOwn(after.roster,s));
 	}) && (() => {
@@ -318,7 +317,7 @@ check('MM3: set preserves four old shapes without adding unnamed role slots', ((
 		const changed = runSet(dir, ["builder", "example-gateway", "changed-model", "high"]);
 		const after = JSON.parse(fs.readFileSync(path.join(dir, "nana-pack.json"), "utf8"));
 		return [i, before.ok && before.lanes?.limit !== undefined && !Object.hasOwn(before.roster, "lanes") &&
-			(i !== 0 || JSON.stringify(before.roster) === JSON.stringify({ ...raw.roster, planner: null, adversary: null, checker: null })) &&
+			(i !== 0 || JSON.stringify(before.roster) === JSON.stringify({ ...raw.roster, planner: null, adversary: null })) &&
 			changed.status === 0 && (i === 0 ? after.lanes === 2 : !Object.hasOwn(after, "lanes")) && !Object.hasOwn(after.roster, "lanes")];
 	});
 	// req: R-3524

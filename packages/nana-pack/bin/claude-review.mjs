@@ -74,6 +74,7 @@ function readRequiredFile(path, label) {
 const parsed = parseArgs(process.argv.slice(2));
 if (parsed.problem) die(`${parsed.problem}\n${USAGE.trimEnd()}`);
 const value = (name) => parsed.values.get(name);
+if (value('--role') === 'land') die('--role land is retired; every lane has one reviewer plus CI.');
 const tree = resolve(process.cwd(), value('--tree'));
 const briefPath = resolve(tree, value('--brief'));
 
