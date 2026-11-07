@@ -354,8 +354,8 @@ test('R-3729: pi review logs the child checkout context and land or reviewer slo
     const a=args(f,'pi-review'); a.splice(a.indexOf('--'),0,'--role',role);
     const result=spawnSync(process.execPath,[path.join(pack,'bin/pi-review.mjs'),...a],{cwd:f.lane,env:f.env,encoding:'utf8',timeout:20_000}); good(result);
     const call=rows(f.record).at(-1), e=rows(f.log)[0];
-    assert.notEqual(e.cwd,f.lane); assert.equal(e.cwd,call.cwd); assert.equal(e.slot,role==='land'?'land':'reviewer');
-    assert.deepEqual(fileParts(e),[{name:'context file',source:path.join(call.cwd,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
+    assert.notEqual(e.cwd,f.lane); assert.equal(e.cwd,realPath(call.cwd)); assert.equal(e.slot,role==='land'?'land':'reviewer');
+    assert.deepEqual(fileParts(e),[{name:'context file',source:path.join(realPath(call.cwd),'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
   }
 });
 // req: R-3730
