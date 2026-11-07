@@ -112,6 +112,7 @@ if (process.platform === "win32") {
 		fs.chmodSync(floorNode, 0o755);
 		const exactFloor = diagnoseDesk(floorNode);
 		// req: R-399
+		// req: R-3794
 		check("doctor accepts exact desk Node floor 22.19.0", exactFloor?.status === "ok" && exactFloor.detail.includes("Node v22.19.0"), JSON.stringify(exactFloor));
 		const stopped = diagnoseDesk(process.execPath, "waiting");
 		const missing = diagnoseDesk(path.join(home, "absent-node"));

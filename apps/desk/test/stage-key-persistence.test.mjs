@@ -1,845 +1,172 @@
 /**
  * @module apps/desk/test/stage-key-persistence.test.mjs
- * @purpose Pins that stage signing keys survive a desk restart across four server runs, and that a forged or unknown-key block is still redacted
- * @inputs apps/desk/server.mjs, apps/desk/stage-keys.mjs, nana-stage's lib/sign.mjs, and a stub `pi` that writes real session files with signed blocks
- * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME, key store and session files), network (HTTP to the desk it binds), process (spawns the desk and the stub pi)
- * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+ * @purpose Pin persisted app signing keys across restart and rename, plus store failure isolation.
+ * @inputs The real app host, temporary manifests/session files, StageKeyStore and deterministic RPC children.
+ * @outputs Awaited bounded TAP tests.
+ * @effects disk (temporary homes and records), network (ephemeral loopback), process (host and stub).
+ * @errors Assertion failures and timeouts fail the owning case.
  */
-// Stage signing keys survive a desk restart (design B, 2026-09-09).
-//
-// Drives the REAL desk server (own HOME, own apps dir, own key store) against a
-// STUB `pi` that writes a REAL pi session file, signs blocks with the
-// NANA_STAGE_KEY it was handed, and appends them as `nana-block` entries — so the
-// blocks on disk outlive the process that minted them, exactly as nana-stage's do.
-// Four server runs, in order:
-//
-//   1  fresh session A → a signed block → /api/entries returns it unredacted
-//   2  RESTART, resume A → the SAME block is still unredacted        ← the regression
-//      (and: a hand-appended bogus signature, and a block signed under a key this
-//       desk never issued, are still redacted to `nana-block-rejected`)
-//   3  rename A's file, resume by the NEW path → still verified (keyed by the pi
-//      session header id, not the path); then switch_session into session B (whose
-//      key was issued to a DIFFERENT app child in run 1): B's own history verifies
-//      under B's recorded key, an UNRESOLVED get_state falls back to this child's
-//      key alone (no stale authority), a LIVE block signed with that other key is
-//      still dropped (live path = this child's key only), a FORK of B inherits B's
-//      whole key set so its copied mixed-key blocks keep verifying, a fork after a
-//      switch whose observation FAILED inherits from what the child actually holds
-//      rather than a stale predecessor, an overlapping ledger read cannot strand a
-//      fork's inheritance, queued transitions send nothing while one is held (and
-//      the 9th is refused 429), an unsuccessful fork leaves the child usable, and a
-//      fork whose confirmation fails inherits NOTHING and arms nothing
-//   4  RESTART, resume B → both keys' blocks verify (any-of-recorded-keys)
-//   5  RESTART, resume a fork whose ledger was NEVER read → still verifies, which is
-//      only true if the desk recorded the fork when it observed it
-//
-// Plus direct StageKeyStore checks for the store properties the server path cannot
-// show deterministically: the 8-key cap, modes, a path-shaped session id refused as a
-// filename, an interrupted write, a failed save retried by the next record for that
-// session (owing only its own addition, so it neither hides nor overwrites what
-// another desk adds meanwhile), a corrupt record costing only its own session, a
-// pre-existing directory left as the operator made it, and the existence prune
-// (which never acts on an empty enumeration).
-//
-// Run: node apps/desk/test/stage-key-persistence.test.mjs   (exit 0 = all PASS)
+import assert from 'node:assert/strict';
+import { test } from './test-case.mjs';
+import { spawn } from 'node:child_process';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { signBlock } from '../../../packages/nana-stage/lib/sign.mjs';
+import { StageKeyStore } from '../stage-keys.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
-import { spawn } from "node:child_process";
-import crypto from "node:crypto";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { signBlock } from "../../../packages/nana-stage/lib/sign.mjs";
-import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
-import { StageKeyStore } from "../stage-keys.mjs";
+import { stopServer } from './stop-server.mjs';
 
-// Port zero asks the OS to bind each fixture listener atomically.
-let DESK = 0;
-const SERVER = new URL("../server.mjs", import.meta.url).pathname;
-// stub `pi` first on PATH → name the real package explicitly, or the desk refuses
-// to start rather than guess which install to parse sessions with.
-const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
+const options = { timeout: 30000 };
+const serverPath = fileURLToPath(new URL('../server.mjs', import.meta.url));
+const signPath = new URL('../../../packages/nana-stage/lib/sign.mjs', import.meta.url).href;
+const pause = ms => new Promise(r => setTimeout(r, ms));
+const post = (base, route, body = {}) => fetch(base + route, { method: 'POST', signal: AbortSignal.timeout(5000), headers: { 'content-type': 'application/json', origin: base }, body: JSON.stringify(body) }).then(async r => { assert.equal(r.status, 200, await r.clone().text()); return r.json(); });
+const rawBlock = id => ({ id, type: 'card', title: 'X', scope: 's', fields: [], slot: 'main', show: true, produced_by: { tool: 'read', args: {}, toolCallId: 'call', at: '2026-11-07T00:00:00Z' } });
+const signed = (id, key) => { const b = rawBlock(id); return { ...b, produced_by: { ...b.produced_by, sig: signBlock(key, b) } }; };
+const key = () => crypto.randomBytes(32).toString('hex');
+const record = (dir, id) => path.join(dir, id + '.json');
+const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 
-const TD = tmpDir(path.join(os.tmpdir(), "desk-stagekey-"));
-const binDir = path.join(TD, "bin");
-const appsDir = path.join(TD, "apps");
-const cwdA = path.join(TD, "repo-a");
-const cwdB = path.join(TD, "repo-b");
-const SESSIONS = path.join(TD, ".pi", "agent", "sessions");
-// where the server will put its own store, given HOME=TD (a DIRECTORY, one file per session)
-const STORE = path.join(TD, ".pi", "agent", "nana-desk", "stage-keys");
-const OUT = path.join(TD, "stub-out.jsonl");
-const OLD_KEY = path.join(TD, "old-key.txt");
-const NO_STATE = path.join(TD, "no-state.flag"); // its presence makes the stub fail get_state
-const AFTER_FORK = path.join(TD, "after-fork.flag"); // "fail" | "hold:<ms>" for the state read after a fork
-const HOLD_FORK = path.join(TD, "hold-fork.flag"); // ms to delay the fork RESPONSE itself
-const TRACE = path.join(TD, "trace.jsonl"); // every command the stub received, with its arrival time
-const TRACE_RESPONSES = path.join(TD, "trace-responses.jsonl");
-const HOLDING = path.join(TD, "holding.flag"); // written by the stub while it is holding a response
-const RELEASE = path.join(TD, "release.flag"); // the test creates it to let a held response go
-const FAIL_FORK = path.join(TD, "fail-fork.flag"); // answer the next fork unsuccessfully
-const UNARM = path.join(TD, "unarm.flag"); // drop any leftover post-fork failure budget
-const LATE = path.join(TD, "late.flag"); // the stub wrote a deliberately late answer
-for (const d of [binDir, appsDir, cwdA, cwdB, SESSIONS]) fs.mkdirSync(d, { recursive: true });
-const extStage = path.join(TD, "nana-stage.ts");
-fs.writeFileSync(extStage, "export default function () {}\n");
-
-// ── stub pi ─────────────────────────────────────────────────────────────────────
-// Writes a real session file (pi's header shape), signs blocks with its own
-// NANA_STAGE_KEY, and appends each as a `nana-block` entry so it is still there
-// after this process dies. `get_entries` reads the file back.
-const SIGN = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../../packages/nana-stage/lib/sign.mjs");
-const STUB = `#!/usr/bin/env node
-const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
-const argv = process.argv.slice(2);
-const flag = (f) => (argv.includes(f) ? argv[argv.indexOf(f) + 1] : null);
-const KEY = process.env.NANA_STAGE_KEY || "";
-fs.appendFileSync(process.env.STUB_OUT, JSON.stringify({ run: process.env.STUB_RUN, cwd: process.cwd(), key: KEY, session: flag("--session") }) + "\\n");
-const readEntries = (f) => fs.readFileSync(f, "utf-8").split("\\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-function newSession() {
-	const dir = path.join(process.env.STUB_SESSIONS, path.basename(process.cwd()));
-	fs.mkdirSync(dir, { recursive: true });
-	const f = path.join(dir, "s-" + crypto.randomBytes(5).toString("hex") + ".jsonl");
-	fs.writeFileSync(f, JSON.stringify({ type: "session", version: 3, id: crypto.randomUUID(), timestamp: new Date().toISOString(), cwd: process.cwd() }) + "\\n");
-	return f;
-}
-let afterFork = null; // "fail" | "hold", armed by a fork for the next get_state
-let failFork = false; // set by STUB_FAIL_FORK: answer the next fork unsuccessfully
-// Hold a response until the test says go, and SAY that the hold is in effect: the
-// test waits for that file rather than for a timer, so the overlap it is proving is
-// a fact and not a race it hopes to win.
-function hold(cmd, data) {
-	fs.writeFileSync(process.env.STUB_HOLDING, cmd.type);
-	const tick = setInterval(() => {
-		if (!fs.existsSync(process.env.STUB_RELEASE)) return;
-		clearInterval(tick);
-		try { fs.unlinkSync(process.env.STUB_HOLDING); } catch {}
-		try { fs.appendFileSync(process.env.STUB_TRACE_RESPONSES, JSON.stringify({ type: "held-response", command: cmd.type, t: Date.now() }) + "\\n"); } catch {}
-		say({ type: "response", id: cmd.id, command: cmd.type, success: true, data: data() });
-	}, 15);
-}
-let sessionFile = flag("--session") || newSession();
-const idOf = (f) => readEntries(f)[0].id;
-let sessionId = idOf(sessionFile);
-function append(entry) {
-	const es = readEntries(sessionFile);
-	const prev = es.filter((e) => e.type !== "session").at(-1);
-	const full = { id: crypto.randomBytes(4).toString("hex"), parentId: prev ? prev.id : null, timestamp: new Date().toISOString(), ...entry };
-	fs.appendFileSync(sessionFile, JSON.stringify(full) + "\\n");
-	return full;
-}
-const BLOCK = (id) => ({ id, type: "card", title: "X", scope: "s", fields: [{ label: "a", value: 1 }], slot: "main", show: true,
-	produced_by: { tool: "t", args: {}, toolCallId: "c1", at: "2026-09-09T00:00:00.000Z" } });
-let signBlock = null;
-const ready = import(${JSON.stringify(SIGN)}).then((m) => { signBlock = m.signBlock; });
-const sign = (b, k) => ({ ...b, produced_by: { ...b.produced_by, sig: signBlock(k, b) } });
-const say = (o) => {
-	try { fs.appendFileSync(process.env.STUB_TRACE_RESPONSES, JSON.stringify({ type: "response", command: o.command, t: Date.now() }) + "\\n"); } catch {}
-	process.stdout.write(JSON.stringify(o) + "\\n");
-};
-setTimeout(() => say({ type: "extension_ui_request", id: "st-1", method: "setStatus", statusKey: "nana-tools", statusText: "ready" }), 120);
-let buf = "";
-process.stdin.on("data", (c) => {
-	buf += c;
-	let nl;
-	while ((nl = buf.indexOf("\\n")) >= 0) {
-		const line = buf.slice(0, nl); buf = buf.slice(nl + 1);
-		if (!line.trim()) continue;
-		let cmd; try { cmd = JSON.parse(line); } catch { continue; }
-		try { fs.appendFileSync(process.env.STUB_TRACE, JSON.stringify({ type: cmd.type, t: Date.now() }) + "\\n"); } catch {}
-		const ok = (data) => say({ type: "response", id: cmd.id, command: cmd.type, success: true, data });
-		switch (cmd.type) {
-			// STUB_NO_STATE = "this child can no longer say which session it holds", while
-			// get_entries keeps working. Empty file = fail every time; a number = fail that
-			// many calls, then answer normally again.
-			case "get_state": {
-				let budget = null;
-				try { budget = fs.readFileSync(process.env.STUB_NO_STATE, "utf-8").trim(); } catch { budget = null; }
-				try { fs.readFileSync(process.env.STUB_UNARM); afterFork = null; fs.unlinkSync(process.env.STUB_UNARM); } catch {}
-				if (afterFork && afterFork.startsWith("fail")) {
-					// "fail" once, or "fail:N" for the desk's whole confirmation retry budget
-					const left = (afterFork.includes(":") ? Number(afterFork.split(":")[1]) : 1) - 1;
-					afterFork = left > 0 ? "fail:" + left : null;
-					say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: state unavailable" });
-					break;
-				}
-				if (afterFork && afterFork.startsWith("slow:")) {
-					const ms = Number(afterFork.slice(5)); afterFork = null;
-					const c = cmd;
-					setTimeout(() => {
-						say({ type: "response", id: c.id, command: c.type, success: true, data: { isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" } });
-						// acknowledge that the late answer has actually gone out, so the test can
-						// wait for it instead of shutting down before it lands
-						try { fs.writeFileSync(process.env.STUB_LATE, String(Date.now())); } catch {}
-					}, ms);
-					break;
-				}
-				if (afterFork === "hold") {
-					afterFork = null;
-					hold(cmd, () => ({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" }));
-					break;
-				}
-				if (budget !== null && (budget === "" || Number(budget) > 0)) {
-					if (budget !== "") {
-						const left = Number(budget) - 1;
-						if (left > 0) fs.writeFileSync(process.env.STUB_NO_STATE, String(left)); else fs.unlinkSync(process.env.STUB_NO_STATE);
-					}
-					say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: state unavailable" });
-				} else ok({ isStreaming: false, isCompacting: false, sessionName: "stub", sessionFile, sessionId, model: { provider: "stub", id: "stub" }, thinkingLevel: "off" });
-				break;
-			}
-			// what pi's fork/clone do to the ledger: the source session's entries are COPIED
-			// into a NEW file under a NEW header id
-			case "fork": case "clone": {
-				try { fs.readFileSync(process.env.STUB_FAIL_FORK); failFork = true; fs.unlinkSync(process.env.STUB_FAIL_FORK); } catch {}
-				if (failFork) { failFork = false; say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: fork refused" }); break; }
-				const src = readEntries(sessionFile);
-				const f = path.join(path.dirname(sessionFile), "s-" + crypto.randomBytes(5).toString("hex") + ".jsonl");
-				const head = Object.assign({}, src[0], { id: crypto.randomUUID(), timestamp: new Date().toISOString() });
-				fs.writeFileSync(f, [head].concat(src.slice(1)).map((e) => JSON.stringify(e)).join("\\n") + "\\n");
-				sessionFile = f; sessionId = head.id;
-				// arm an action for the state read the desk makes right after this fork
-				try { afterFork = fs.readFileSync(process.env.STUB_AFTER_FORK, "utf-8").trim(); fs.unlinkSync(process.env.STUB_AFTER_FORK); } catch {}
-				let holdFork = false;
-				try { fs.readFileSync(process.env.STUB_HOLD_FORK); holdFork = true; fs.unlinkSync(process.env.STUB_HOLD_FORK); } catch {}
-				if (failFork) { failFork = false; say({ type: "response", id: cmd.id, command: cmd.type, success: false, error: "stub: fork refused" }); break; }
-				if (holdFork) hold(cmd, () => ({ cancelled: false, text: "forked" }));
-				else ok({ cancelled: false, text: "forked" });
-				break;
-			}
-			case "get_entries": ready.then(() => {
-				const es = readEntries(sessionFile).filter((e) => e.type !== "session");
-				ok({ entries: es, leafId: es.length ? es.at(-1).id : null, since: cmd.since || null });
-			}); break;
-			case "switch_session": {
-				sessionFile = cmd.sessionPath; sessionId = idOf(sessionFile);
-				ok({ cancelled: false });
-				break;
-			}
-			case "prompt": ready.then(() => {
-				ok({});
-				say({ type: "agent_start" });
-				if (/oldblock/.test(cmd.message)) {
-					// signed with a key issued to ANOTHER child (the ledger accepts it; the live path must not)
-					const b = sign(BLOCK("blk_old"), fs.readFileSync(process.env.STUB_OLD_KEY, "utf-8").trim());
-					say({ type: "tool_execution_end", toolCallId: "c1", toolName: "t", isError: false, result: { content: [], details: { blocks: [b] } } });
-				} else if (/block/.test(cmd.message)) {
-					const b = sign(BLOCK("blk_" + crypto.randomBytes(3).toString("hex")), KEY);
-					append({ type: "custom", customType: "nana-block", data: b });
-					say({ type: "tool_execution_end", toolCallId: "c1", toolName: "t", isError: false, result: { content: [], details: { blocks: [b] } } });
-				}
-				say({ type: "agent_end", messages: [] });
-				say({ type: "agent_settled" });
-			}); break;
-			case "abort": ok({}); break;
-			default: ok({});
-		}
-	}
+// req: R-3797 R-437 R-438 R-439 R-440 R-443 R-444
+await test('R-3797: restart and renamed manifest session keep issued keys and redact forgeries without unrelated writes', options, async () => {
+  const home = tmpDir(path.join(os.tmpdir(), 'desk-stagekey-'));
+  const apps = path.join(home, 'apps'), agent = path.join(home, 'agent'), store = path.join(home, 'keys');
+  const sessions = path.join(agent, 'sessions', 'project');
+  for (const dir of [apps, sessions]) fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(sessions, 'session.jsonl');
+  const id = 'persisted-session';
+  // Existing manifest session, malformed/non-object prefix, CRLF, trailing spaces/tabs,
+  // and no final newline exercise the surviving bounded session-header reader.
+  const issued = key(), other = key();
+  fs.writeFileSync(file, ['bad', 'null', JSON.stringify({ type: 'session', version: 3, id, cwd: home }), JSON.stringify({ id: 'one', parentId: null, type: 'custom', customType: 'nana-block', data: signed('old', issued) }), JSON.stringify({ id: 'two', parentId: 'one', type: 'custom', customType: 'nana-block', data: signed('forged', other) }), JSON.stringify({ id: 'three', parentId: 'two', type: 'custom', customType: 'nana-block', data: signed('also-old', other) }), JSON.stringify({ id: 'four', parentId: 'three', type: 'custom', customType: 'nana-block', data: signed('unknown-key', key()) })].map(l => l + ' \t').join('\r\n'));
+  new StageKeyStore({ dir: store }).record(id, issued);
+  // A second issued key proves ledger verification uses the whole issuance set;
+  // the forged block is tampered after signing, not merely signed with an old key.
+  const entries = fs.readFileSync(file, 'utf8').replace('"id":"forged"', '"id":"tampered"');
+  fs.writeFileSync(file, entries);
+  new StageKeyStore({ dir: store }).seed(id, [other]);
+  const notes = path.join(home, 'operator-notes.txt'), settings = path.join(agent, 'settings.json');
+  fs.writeFileSync(notes, 'unrelated\r\nbytes\t'); fs.writeFileSync(settings, '{"keep":"owner"}\n');
+  const untouched = new Map([notes, settings].map(f => [f, fs.readFileSync(f)]));
+  const out = path.join(home, 'spawn.jsonl'), noState = path.join(home, 'no-state');
+  const stub = path.join(home, 'pi.cjs');
+  fs.writeFileSync(stub, `#!/usr/bin/env node
+const fs=require('node:fs');
+const file=process.argv[process.argv.indexOf('--session')+1];
+fs.appendFileSync(${JSON.stringify(out)}, JSON.stringify({key:process.env.NANA_STAGE_KEY,file})+'\\n');
+const say=o=>process.stdout.write(JSON.stringify(o)+'\\n');
+setTimeout(()=>say({type:'extension_ui_request',method:'setStatus',statusKey:'nana-tools',statusText:'ready'}),20);
+require('node:readline').createInterface({input:process.stdin}).on('line',async line=>{
+ const c=JSON.parse(line), ok=data=>say({type:'response',id:c.id,command:c.type,success:true,data});
+ if(c.type==='get_state') { if(fs.existsSync(${JSON.stringify(noState)})) say({type:'response',id:c.id,success:false}); else ok({sessionId:${JSON.stringify(id)},sessionFile:file}); }
+ else if(c.type==='get_entries') ok({entries:fs.readFileSync(file,'utf8').split('\\n').flatMap(l=>{try {const e=JSON.parse(l);return e&&e.type!=='session'?[e]:[];}catch{return []}}),leafId:'four'});
+ else if(c.type==='prompt') {const {signBlock}=await import(${JSON.stringify(signPath)});const b=${JSON.stringify(signed('foreign-live', other))};ok({});say({type:'tool_execution_end',toolName:'read',toolCallId:'call',result:{content:[],details:{blocks:[b]}}});}
+ else ok({});
 });
-process.stdin.on("end", () => process.exit(0));
-`;
-fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
-
-const manifest = (cwd) => ({ port: 0, cwd, tools: ["read"], extensions: [extStage], trust: "no-approve", title: "T" });
-fs.writeFileSync(path.join(appsDir, "alpha.json"), JSON.stringify(manifest(cwdA)));
-fs.writeFileSync(path.join(appsDir, "beta.json"), JSON.stringify(manifest(cwdB)));
-
-let fails = 0;
-const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
-let PA = 0, PB = 0, A = "", B = "";
-const D = () => `http://127.0.0.1:${DESK}`;
-const post = (base, p, body, origin = base) => fetch(base + p, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body ?? {}) });
-const get = (base, p) => fetch(base + p).then((r) => r.json());
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-// wait for a FACT, never for a duration
-let releaseT = 0;
-async function until(cond, what, ms = 10000) {
-	const deadline = Date.now() + ms;
-	while (!cond()) {
-		if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
-		await sleep(20);
-	}
-}
-const recordFile = (id) => path.join(STORE, `${id}.json`);
-const recordOf = (id) => (fs.existsSync(recordFile(id)) ? JSON.parse(fs.readFileSync(recordFile(id), "utf-8")) : null);
-const keysOf = (id) => recordOf(id)?.keys || [];
-const manifestOf = (n) => JSON.parse(fs.readFileSync(path.join(appsDir, `${n}.json`), "utf-8"));
-const setManifestSession = (n, file) => fs.writeFileSync(path.join(appsDir, `${n}.json`), JSON.stringify({ ...manifestOf(n), session: file }));
-
-let server = null;
-let log = "";
-let firstRunPorts = [];
-const concurrentResult = path.join(TD, "concurrent-ports.json");
-const isConcurrentChild = process.argv.includes("--concurrent-fixture-child");
-const concurrentChild = isConcurrentChild ? null : spawn(process.execPath, [new URL(import.meta.url).pathname, "--concurrent-fixture-child"], {
-	env: { ...process.env, DESK_STAGEKEY_CONCURRENT_RESULT: concurrentResult },
-	stdio: "ignore",
+`, { mode: 0o755 });
+  let bin = stub;
+  if (process.platform === 'win32') { bin = path.join(home, 'pi.cmd'); fs.writeFileSync(bin, `@echo off\r\n"${process.execPath}" "${stub}" %*\r\n`); }
+  const manifest = path.join(apps, 'alpha.json');
+  const setSession = session => fs.writeFileSync(manifest, JSON.stringify({ port: 0, cwd: home, tools: ['read'], session }));
+  setSession(file);
+  let server;
+  async function stop() {
+    await stopServer(server);
+  }
+  async function start() {
+    let log = '';
+    server = spawn(process.execPath, [serverPath], { cwd: home, env: { ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: agent, DESK_APPS_DIR: apps, DESK_STAGE_KEYS: store, DESK_PI_BIN: bin, DESK_PORT: '0' }, stdio: ['ignore','pipe','pipe'] });
+    server.stdout.on('data', c => { log += c; }); server.stderr.on('data', c => { log += c; });
+    const deadline = Date.now() + 10000;
+    while (Date.now() < deadline) {
+      const match = log.match(/nana code → http:\/\/127\.0\.0\.1:(\d+)/);
+      if (match) { const registry = await fetch(`http://127.0.0.1:${match[1]}/api/apps`).then(r => r.json()); if (registry[0]?.port) return `http://127.0.0.1:${registry[0].port}`; }
+      if (server.exitCode !== null) throw new Error(log);
+      await pause(30);
+    }
+    throw new Error('startup timeout: ' + log);
+  }
+  async function ledger(base) { return fetch(base + '/api/entries', { signal: AbortSignal.timeout(5000) }).then(r => r.json()); }
+  try {
+    for (let run = 0; run < 3; run++) {
+      if (run === 2) { const renamed = path.join(sessions, 'renamed.jsonl'); fs.renameSync(file, renamed); setSession(renamed); }
+      const base = await start(); await post(base, '/api/session');
+      const spawned = fs.readFileSync(out, 'utf8').trim().split('\n').map(JSON.parse).at(-1);
+      assert.equal(spawned.key, issued, 'resume reuses the most recent issued key');
+      const result = await ledger(base);
+      assert.deepEqual(result.entries.map(e => e.customType), ['nana-block','nana-block-rejected','nana-block','nana-block-rejected']);
+      fs.writeFileSync(noState, '');
+      assert.deepEqual((await ledger(base)).entries.map(e => e.customType), ['nana-block','nana-block-rejected','nana-block-rejected','nana-block-rejected']);
+      fs.unlinkSync(noState);
+      const stream = new AbortController();
+      const response = await fetch(base + '/api/events', { signal: stream.signal });
+      const reader = response.body.getReader();
+      await post(base, '/api/prompt', { message: 'foreign-live' });
+      let text = '';
+      while (!text.includes('tool_execution_end')) text += new TextDecoder().decode((await reader.read()).value);
+      stream.abort();
+      const event = text.split('\n').find(l => l.includes('tool_execution_end'));
+      assert.deepEqual(JSON.parse(event.slice(6)).result.details.blocks, [], 'recorded foreign key does not pass the live path');
+      await stop();
+      for (const [f, bytes] of untouched) assert.deepEqual(fs.readFileSync(f), bytes, 'unrelated file changed');
+      assert.equal(read(record(store, id)).keys[0], issued);
+    }
+  } finally { await stop(); }
 });
-const concurrentExit = concurrentChild ? new Promise((resolve) => concurrentChild.once("exit", resolve)) : null;
-async function startServer(run, confirmBudget = null) {
-	log = "";
-	DESK = 0; // never match the PREVIOUS run's startup line
-	const { DESK_TEST_CONFIRM_BUDGET_MS: _ambientConfirmBudget, ...parentEnv } = process.env;
-	server = spawn("node", [SERVER], {
-		env: {
-			...parentEnv, DESK_PI_ROOT: PI_ROOT, HOME: TD, DESK_PORT: "0", DESK_APPS_DIR: appsDir,
-			STUB_OUT: OUT, STUB_SESSIONS: SESSIONS, STUB_OLD_KEY: OLD_KEY, STUB_RUN: run, STUB_NO_STATE: NO_STATE,
-			STUB_AFTER_FORK: AFTER_FORK, STUB_HOLD_FORK: HOLD_FORK, STUB_TRACE: TRACE,
-			STUB_HOLDING: HOLDING, STUB_RELEASE: RELEASE, STUB_FAIL_FORK: FAIL_FORK, STUB_UNARM: UNARM, STUB_LATE: LATE,
-			STUB_TRACE_RESPONSES: TRACE_RESPONSES,
-			// explicit: an outer DESK_STAGE_KEYS would beat the temporary HOME and send
-			// this test's records into the operator's own store
-			DESK_STAGE_KEYS: STORE,
-			...(confirmBudget ? { DESK_TEST_CONFIRM_BUDGET_MS: String(confirmBudget) } : {}),
-			PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
-		},
-		stdio: ["ignore", "pipe", "pipe"],
-	});
-	server.stdout.on("data", (c) => (log += c));
-	server.stderr.on("data", (c) => (log += c));
-	for (let i = 0; i < 60; i++) {
-		// the desk prints its actual port and reports each app's actual bound port
-		const m = log.match(/nana code → http:\/\/127\.0\.0\.1:(\d+)/);
-		if (m) DESK = Number(m[1]);
-		try {
-			if (DESK) {
-				const apps = await fetch(D() + "/api/apps").then((r) => r.json());
-				const byName = Object.fromEntries(apps.map(({ name, port }) => [name, port]));
-				if (Number.isInteger(byName.alpha) && Number.isInteger(byName.beta) && byName.alpha > 0 && byName.beta > 0) {
-					PA = byName.alpha; PB = byName.beta; A = `http://127.0.0.1:${PA}`; B = `http://127.0.0.1:${PB}`;
-					if (run === "1") {
-						if (process.env.DESK_STAGEKEY_CONCURRENT_RESULT) fs.writeFileSync(process.env.DESK_STAGEKEY_CONCURRENT_RESULT, JSON.stringify({ ports: [PA, PB], requested: ["alpha", "beta"].map((name) => JSON.parse(fs.readFileSync(path.join(appsDir, `${name}.json`), "utf-8")).port) }));
-						else firstRunPorts = [PA, PB];
-					}
-					return;
-				}
-			}
-		} catch { /* listeners are still starting */ }
-		await sleep(250);
-	}
-	throw new Error(`run ${run}: app listeners never came up: ${log}`);
-}
-async function stopServer() {
-	if (!server) return;
-	const dead = new Promise((r) => server.on("exit", r));
-	server.kill();
-	await dead;
-	server = null;
-	await sleep(300); // let the OS release the listener ports before the next run binds them
-}
-// prompt and wait for the turn to settle, returning the live blocks of its tool event
-async function promptAndCollect(base, message) {
-	const ctl = new AbortController();
-	const res = await fetch(base + "/api/events", { signal: ctl.signal });
-	const reader = res.body.getReader();
-	await post(base, "/api/prompt", { message });
-	let text = "";
-	for (let i = 0; i < 40 && !/agent_settled/.test(text); i++) text += new TextDecoder().decode((await reader.read()).value);
-	ctl.abort();
-	const line = text.split("\n").find((l) => l.startsWith("data: ") && /tool_execution_end/.test(l));
-	return line ? JSON.parse(line.slice(6)).result.details.blocks : null;
-}
-const rpc = (id, command) => post(D(), `/api/session/${id}/rpc`, { command }, D()).then((r) => r.json());
-const blockEntries = (entries) => entries.filter((e) => e.type === "custom" && String(e.customType).startsWith("nana-block"));
-// what the stub recorded about each spawn: which run, which cwd, which key it was handed
-const spawns = (run, cwd) => fs.readFileSync(OUT, "utf-8").trim().split("\n").map((l) => JSON.parse(l))
-	.filter((r) => r.run === run && (!cwd || r.cwd === fs.realpathSync(cwd)));
 
-try {
-	// ── run 1: two fresh sessions (A for alpha, B for beta), one signed block each ──
-	await startServer("1");
-	let s = await post(A, "/api/session", {}).then((r) => r.json());
-	check("run 1: alpha child spawned", s.state === "running" && s.tools === "ready", JSON.stringify(s));
-	await post(B, "/api/session", {}).then((r) => r.json());
-	let live = await promptAndCollect(A, "make a block");
-	check("run 1: the live path passes the child's own signed block", live?.length === 1, JSON.stringify(live));
-	await promptAndCollect(B, "make a block");
-	let ent = await get(A, "/api/entries");
-	check("run 1: the block is on the ledger unredacted", blockEntries(ent.entries).length === 1 && blockEntries(ent.entries)[0].customType === "nana-block", JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
-	const fileA = manifestOf("alpha").session, fileB = manifestOf("beta").session;
-	check("run 1: the manifests point at the session files the children wrote", fs.existsSync(fileA || "") && fs.existsSync(fileB || ""), `${fileA} ${fileB}`);
-	const idA = JSON.parse(fs.readFileSync(fileA, "utf-8").split("\n")[0]).id;
-	const idB = JSON.parse(fs.readFileSync(fileB, "utf-8").split("\n")[0]).id;
-	const keyA1 = spawns("1", cwdA)[0].key;
-	const keyB1 = spawns("1", cwdB)[0].key;
-	fs.writeFileSync(OLD_KEY, keyB1);
-
-	// the key store itself: one file per session, named by the pi session header id
-	const rec = recordOf(idA);
-	// req: R-437
-	check("store: one v1 record per session, named by the pi session header id", rec?.v === 1 && rec.keys[0] === keyA1, JSON.stringify(rec));
-	const mode = (p) => (fs.existsSync(p) ? fs.statSync(p).mode & 0o777 : null);
-	// req: R-437
-	check("store: record mode 0600", mode(recordFile(idA)) === 0o600, String(mode(recordFile(idA))?.toString(8)));
-	// req: R-437
-	check("store: directory mode 0700", mode(STORE) === 0o700, String(mode(STORE)?.toString(8)));
-	const storeDir = () => (fs.existsSync(STORE) ? fs.readdirSync(STORE) : []);
-	check("store: no temp file left behind", storeDir().filter((f) => f.includes(".tmp")).length === 0, JSON.stringify(storeDir()));
-	check("store: the two sessions got SEPARATE records", storeDir().filter((f) => f.endsWith(".json")).length === 2, JSON.stringify(storeDir()));
-
-	await stopServer();
-
-	// hand-edits between the runs: a forged signature and a block signed under a key
-	// this desk never issued must BOTH stay redacted after the restart
-	const bogus = { id: "blk_bogus", type: "card", title: "X", scope: "s", fields: [], slot: "main", show: true, produced_by: { tool: "t", args: {}, toolCallId: "c1", at: "z", sig: "0".repeat(64) } };
-	const foreignKey = crypto.randomBytes(32).toString("hex");
-	const foreignRaw = { id: "blk_foreign", type: "card", title: "X", scope: "s", fields: [], slot: "main", show: true, produced_by: { tool: "t", args: {}, toolCallId: "c1", at: "z" } };
-	const foreign = { ...foreignRaw, produced_by: { ...foreignRaw.produced_by, sig: signBlock(foreignKey, foreignRaw) } };
-	fs.appendFileSync(fileA, JSON.stringify({ id: "hand1", parentId: null, type: "custom", customType: "nana-block", data: bogus }) + "\n");
-	fs.appendFileSync(fileA, JSON.stringify({ id: "hand2", parentId: "hand1", type: "custom", customType: "nana-block", data: foreign }) + "\n");
-
-	// ── run 2: RESTART, resume A. THE REGRESSION. ──
-	await startServer("2");
-	s = await post(A, "/api/session", {}).then((r) => r.json());
-	check("run 2: alpha resumed", s.state === "running", JSON.stringify(s));
-	const run2 = spawns("2", cwdA);
-	// req: R-438
-	check("run 2: the resumed child was handed the SAME key the store recorded for that session", run2[0].key === keyA1, `${run2[0].key.slice(0, 8)} vs ${keyA1.slice(0, 8)}`);
-	ent = await get(A, "/api/entries");
-	let be = blockEntries(ent.entries);
-	// req: R-438
-	check("run 2: a block minted before the restart is STILL unredacted", be.filter((e) => e.customType === "nana-block").length === 1, JSON.stringify(be.map((e) => [e.id, e.customType])));
-	// req: R-439
-	check("run 2: a hand-forged signature is still redacted", be.find((e) => e.id === "hand1")?.customType === "nana-block-rejected", JSON.stringify(be.find((e) => e.id === "hand1")));
-	// req: R-439
-	check("run 2: a block signed under a key this desk never issued is still redacted", be.find((e) => e.id === "hand2")?.customType === "nana-block-rejected", JSON.stringify(be.find((e) => e.id === "hand2")));
-	check("run 2: resuming reused the recorded key rather than appending a new one", keysOf(idA).length === 1, JSON.stringify(recordOf(idA)));
-	await stopServer();
-
-	// ── run 3: the session file is RENAMED, then resumed by its new path ──
-	const fileA2 = path.join(path.dirname(fileA), `renamed-${path.basename(fileA)}`);
-	fs.renameSync(fileA, fileA2);
-	setManifestSession("alpha", fileA2);
-	await startServer("3");
-	s = await post(A, "/api/session", {}).then((r) => r.json());
-	ent = await get(A, "/api/entries");
-	// req: R-438
-	check("run 3: renamed session file resumes and its old block still verifies (keyed by header id, not path)",
-		blockEntries(ent.entries).filter((e) => e.customType === "nana-block").length === 1, JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
-
-	// switch_session into B — a session whose key was issued to the OTHER child
-	let r = await post(D(), `/api/session/${s.id}/rpc`, { command: { type: "switch_session", sessionPath: fileB } }, D());
-	check("run 3: switch_session accepted", r.status === 200 && (await r.json()).success === true, String(r.status));
-	ent = await get(A, "/api/entries");
-	be = blockEntries(ent.entries);
-	check("run 3: after the switch, session B's own history verifies under B's recorded key",
-		be.length === 1 && be[0].customType === "nana-block", JSON.stringify(be.map((e) => e.customType)));
-	check("run 3: this child's key is now recorded under session B too (most recent first)",
-		keysOf(idB).length === 2 && keysOf(idB)[0] === keyA1 && keysOf(idB)[1] === keyB1,
-		JSON.stringify(keysOf(idB).map((k) => k.slice(0, 8))));
-	// the child can no longer say WHICH session it holds: the ledger read must fall back
-	// to this child's key alone, never to the recorded keys of the session it held before
-	fs.writeFileSync(NO_STATE, "");
-	ent = await get(A, "/api/entries");
-	be = blockEntries(ent.entries);
-	// req: R-443
-	check("run 3: an unresolved get_state drops the recorded-key widening entirely (no stale authority)",
-		be.length === 1 && be[0].customType === "nana-block-rejected", JSON.stringify(be.map((e) => e.customType)));
-	fs.rmSync(NO_STATE);
-	ent = await get(A, "/api/entries");
-	// req: R-443
-	check("run 3: ...and it verifies again as soon as the session can be established",
-		blockEntries(ent.entries)[0].customType === "nana-block", JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
-
-	live = await promptAndCollect(A, "oldblock please");
-	// req: R-440
-	check("run 3: LIVE path unchanged — a block signed with a recorded but FOREIGN key is dropped", Array.isArray(live) && live.length === 0, JSON.stringify(live));
-	live = await promptAndCollect(A, "make a block");
-	// req: R-440
-	check("run 3: LIVE path still passes this child's own block", live?.length === 1, JSON.stringify(live));
-
-	// FORK: pi copies the source session's entries — signed blocks and all — into a new
-	// file with a NEW header id. B's blocks were signed under TWO different keys; both
-	// must keep verifying in the fork.
-	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	check("run 3: fork accepted", r?.success === true, JSON.stringify(r));
-	const fileC = (await rpc(s.id, { type: "get_state" }))?.data?.sessionFile;
-	const idC = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	ent = await get(A, "/api/entries");
-	be = blockEntries(ent.entries);
-	check("run 3: a FORK inherits the source session's key set — mixed-key blocks all verify",
-		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => e.customType)));
-	// req: R-441
-	check("run 3: the fork's record was seeded from the source, not just given this child's key",
-		JSON.stringify(keysOf(idC)) === JSON.stringify([keyA1, keyB1]),
-		JSON.stringify(keysOf(idC).map((k) => k.slice(0, 8))));
-
-	// fork AGAIN and restart WITHOUT ever reading the ledger on the new session: the
-	// record has to be written when the desk observes the fork, not at the next replay
-	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	const fileD = (await rpc(s.id, { type: "get_state" }))?.data?.sessionFile;
-	check("run 3: second fork accepted", r?.success === true && typeof fileD === "string" && fileD !== fileC, String(fileD));
-
-	// THE WRONG-PREDECESSOR CASE. Move the child into session Z with the follow-up
-	// state read FAILING, then fork. The fork must inherit from Z — what the child
-	// actually holds, established by asking it before the command — and not from the
-	// last id the desk happened to observe, which is now stale.
-	const idZ = crypto.randomUUID();
-	const keyZ = crypto.randomBytes(32).toString("hex");
-	const fileZ = path.join(SESSIONS, "repo-a", `z-${idZ.slice(0, 8)}.jsonl`);
-	const rawZ = { id: "blk_z", type: "card", title: "Z", scope: "s", fields: [], slot: "main", show: true, produced_by: { tool: "t", args: {}, toolCallId: "c1", at: "z" } };
-	fs.writeFileSync(fileZ, [
-		JSON.stringify({ type: "session", version: 3, id: idZ, timestamp: new Date().toISOString(), cwd: cwdA }),
-		JSON.stringify({ id: "z1", parentId: null, type: "custom", customType: "nana-block", data: { ...rawZ, produced_by: { ...rawZ.produced_by, sig: signBlock(keyZ, rawZ) } } }),
-	].join("\n") + "\n");
-	fs.writeFileSync(recordFile(idZ), JSON.stringify({ v: 1, keys: [keyZ], updatedAt: Date.now() }));
-	fs.writeFileSync(NO_STATE, "1"); // exactly one get_state fails: the switch's own follow-up
-	r = await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
-	check("run 3: switch into Z accepted (its follow-up state read fails)", r?.success === true, JSON.stringify(r));
-	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	const idE = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	check("run 3: a fork after an UNOBSERVED switch inherits from what the child actually holds, not the stale predecessor",
-		keysOf(idE).includes(keyZ) && !keysOf(idE).includes(keyB1),
-		`${JSON.stringify(keysOf(idE).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)} kB=${keyB1.slice(0, 8)}`);
-	ent = await get(A, "/api/entries");
-	check("run 3: ...so that fork's inherited block verifies",
-		blockEntries(ent.entries).every((e) => e.customType === "nana-block") && blockEntries(ent.entries).length === 1,
-		JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
-
-	// Give the held confirmation its own generous-budget server process so incidental
-	// test and machine load cannot consume the production-sized confirmation window.
-	setManifestSession("alpha", fileZ);
-	fs.writeFileSync(TRACE_RESPONSES, "");
-	await stopServer();
-	await startServer("3-overlap", 10000);
-	s = await post(A, "/api/session", {}).then((r) => r.json());
-	// AN OVERLAPPING LEDGER READ MUST NOT DEFEAT THE FORK. Hold the state read the
-	// desk makes right after the fork, and slip a ledger read into that window: it
-	// observes the brand-new session, and if it files it under the live child's key
-	// alone the inheritance is stranded for good. The stub says when the hold is in
-	// effect, the competing read completes inside it, and only then is it released.
-	fs.rmSync(RELEASE, { force: true });
-	fs.writeFileSync(AFTER_FORK, "hold");
-	const forking = rpc(s.id, { type: "fork", entryId: "x" });
-	await until(() => fs.existsSync(HOLDING), "the fork's confirmation to be held");
-	ent = await get(A, "/api/entries"); // ← observes the new session mid-transition, and completes
-	await sleep(1100); // deliberately exceed the production default to prove this server uses the test override
-	fs.writeFileSync(RELEASE, "");
-	await forking;
-	fs.rmSync(RELEASE, { force: true });
-	const idF = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	const overlapTrace = fs.readFileSync(TRACE_RESPONSES, "utf-8").trim().split("\n").map((l) => JSON.parse(l));
-	const forkResponse = overlapTrace.findIndex((e) => e.type === "response" && e.command === "fork");
-	const confirmResponse = overlapTrace.find((e, i) => i > forkResponse && e.type === "held-response" && e.command === "get_state");
-	// req: R-945
-	check("run 3: a ledger read lands mid-fork under the generous test budget and inheritance survives",
-		keysOf(idF).includes(keyZ) && keysOf(idF).includes(keyA1) && forkResponse >= 0 && confirmResponse?.t - overlapTrace[forkResponse].t >= 1000 && confirmResponse?.t - overlapTrace[forkResponse].t < 10000,
-		`${JSON.stringify(keysOf(idF).map((k) => k.slice(0, 8)))} confirmation=${confirmResponse?.t - overlapTrace[forkResponse]?.t}ms`);
-	ent = await get(A, "/api/entries");
-	check("run 3: ...and its inherited block verifies afterwards",
-		blockEntries(ent.entries).length === 1 && blockEntries(ent.entries)[0].customType === "nana-block",
-		JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
-
-	// TWO LIFECYCLE RPCs MUST NOT INTERLEAVE, AND THE QUEUE IS BOUNDED. Hold the first
-	// fork's own response; the queue cap then PROVES the competing requests were
-	// admitted and are waiting inside the server (a 429 can only come from a full
-	// queue), so releasing is safe to do only after that fact is established.
-	fs.rmSync(RELEASE, { force: true });
-	fs.writeFileSync(HOLD_FORK, "1");
-	fs.writeFileSync(TRACE, "");
-	const held = rpc(s.id, { type: "fork", entryId: "x" });
-	await until(() => fs.existsSync(HOLDING), "the first fork to be held");
-	// eight competitors, and the release waits for ANY of them to come back 429 — the
-	// only thing that can produce one is a full queue, so that answer IS the proof
-	// that the others were admitted and are waiting inside the server
-	const statuses = [];
-	const queued = Array.from({ length: 8 }, () =>
-		post(D(), `/api/session/${s.id}/rpc`, { command: { type: "fork", entryId: "x" } }, D()).then((x) => {
-			statuses.push(x.status);
-			return x;
-		}));
-	await until(() => statuses.includes(429), "a queued session change to be refused with 429");
-	// req: R-442
-	check("run 3: the lifecycle queue is bounded — past the cap a session change is refused at once with 429",
-		statuses.includes(429), JSON.stringify(statuses));
-	releaseT = Date.now();
-	fs.writeFileSync(RELEASE, "");
-	await Promise.all([held, ...queued]);
-	fs.rmSync(RELEASE, { force: true });
-	const trace = fs.readFileSync(TRACE, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
-	const firstFork = trace.findIndex((e) => e.type === "fork");
-	const nextAfter = trace[firstFork + 1];
-	// req: R-442
-	check("run 3: while a transition is held, no queued transition sends anything to the child",
-		firstFork >= 0 && nextAfter && nextAfter.type === "get_state" && nextAfter.t >= releaseT,
-		JSON.stringify(trace.slice(firstFork, firstFork + 3).map((e) => e.type)));
-	const after429 = await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
-	// req: R-442
-	check("run 3: the queue's slots are released — a later lifecycle RPC still works", after429?.success === true, JSON.stringify(after429));
-
-	// A COMMAND THAT DID NOT SUCCEED RESTORES NO IDENTITY AND ARMS NOTHING. The desk
-	// confirmed a source for it; nothing about that may survive into the next session
-	// the child is observed holding.
-	fs.writeFileSync(FAIL_FORK, "");
-	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	check("run 3: an unsuccessful fork is reported as such", r?.success === false, JSON.stringify(r));
-	const afterFail = await rpc(s.id, { type: "switch_session", sessionPath: fileB });
-	check("run 3: ...and a lifecycle RPC after it still works", afterFail?.success === true, JSON.stringify(afterFail));
-
-	// A FORK WHOSE CONFIRMATION FAILS INHERITS NOTHING — AND LEAVES NOTHING ARMED.
-	// There is no "finish it later": a session can also change through a path the desk
-	// never sees (an extension slash command off a prompt), so a pending inheritance
-	// would eventually attach one session's keys to an unrelated one.
-	await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
-	fs.writeFileSync(AFTER_FORK, "fail:3"); // the desk's whole confirmation budget
-	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	check("run 3: a fork whose confirmation fails is still reported as successful", r?.success === true, JSON.stringify(r));
-	// disarm whatever confirmation budget this desk did not use, so the reads below are
-	// ordinary ones in every version — the difference under test is inheritance, not a
-	// failing state read
-	fs.writeFileSync(UNARM, "");
-	ent = await get(A, "/api/entries"); // an ordinary observation — the only kind left
-	// req: R-441
-	check("run 3: an unconfirmed fork inherits NOTHING; its copied blocks stay redacted",
-		blockEntries(ent.entries).length === 1 && blockEntries(ent.entries)[0].customType === "nana-block-rejected",
-		JSON.stringify(blockEntries(ent.entries).map((e) => e.customType)));
-	const idU = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	check("run 3: ...and that session's record holds only the live child's key, never the fork's source",
-		keysOf(idU).length === 1 && keysOf(idU)[0] === keyA1 && !keysOf(idU).includes(keyZ),
-		`${JSON.stringify(keysOf(idU).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)} kA=${keyA1.slice(0, 8)}`);
-
-	// Restart with the production default for the delayed-answer and boundary cases,
-	// even when this test process itself carries an ambient test-only override.
-	const beforeDefaultRestart = await rpc(s.id, { type: "get_state" });
-	setManifestSession("alpha", beforeDefaultRestart?.data?.sessionFile);
-	await stopServer();
-	process.env.DESK_TEST_CONFIRM_BUDGET_MS = "10000";
-	await startServer("3-default");
-	s = await post(A, "/api/session", {}).then((r) => r.json());
-	// THE CONFIRMATION BUDGET IS REAL. Fork from Z, whose record carries a key this
-	// child does NOT sign with: if the late answer were accepted, the destination would
-	// be confirmed and seeded, and keyZ would appear in its record. The child answers
-	// the confirming state read only after the budget, so it must not be.
-	await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
-	fs.rmSync(LATE, { force: true });
-	fs.writeFileSync(AFTER_FORK, "slow:3000");
-	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	// stay alive for the late answer, and give the desk a moment to mishandle it
-	await until(() => fs.existsSync(LATE), "the stub's late answer to go out", 8000);
-	await sleep(250);
-	const idSlow = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	// req: R-947
-	check("run 3: a late answer confirms nothing — the destination is not recorded at all",
-		recordOf(idSlow) === null, `${JSON.stringify(keysOf(idSlow).map((k) => k.slice(0, 8)))} kZ=${keyZ.slice(0, 8)}`);
-
-	// the BOUNDARY: an answer timed to land exactly on the deadline. Whether the timer
-	// or the response is handled first is not ours to schedule, so what is pinned here
-	// is the outcome either way — an answer that is not inside the budget confirms
-	// nothing, whichever of the two the event loop reaches first.
-	await rpc(s.id, { type: "switch_session", sessionPath: fileZ });
-	fs.rmSync(LATE, { force: true });
-	fs.writeFileSync(AFTER_FORK, "slow:1000");
-	r = await rpc(s.id, { type: "fork", entryId: "x" });
-	await until(() => fs.existsSync(LATE), "the boundary answer to go out", 8000);
-	await sleep(250);
-	const idEdge = (await rpc(s.id, { type: "get_state" }))?.data?.sessionId;
-	// req: R-441 R-946
-	check("run 3: a confirmation response delayed 1000 ms after request receipt confirms nothing",
-		r?.success === true && recordOf(idEdge) === null, `${JSON.stringify(keysOf(idEdge).map((k) => k.slice(0, 8)))}`);
-	await stopServer();
-
-	// ── run 4: RESTART, resume B — two different keys, both recorded ──
-	setManifestSession("alpha", fileB);
-	await startServer("4");
-	await post(A, "/api/session", {}).then((r) => r.json());
-	ent = await get(A, "/api/entries");
-	be = blockEntries(ent.entries);
-	// req: R-439
-	check("run 4: every block of session B verifies, across BOTH keys the desk issued for it",
-		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => [e.data?.id, e.customType])));
-	await stopServer();
-
-	// ── run 5: resume the fork nobody ever read the ledger of ──
-	setManifestSession("alpha", fileD);
-	await startServer("5");
-	await post(A, "/api/session", {}).then((r) => r.json());
-	ent = await get(A, "/api/entries");
-	be = blockEntries(ent.entries);
-	check("run 5: a fork resumed after a restart, with no ledger read in between, still verifies both keys",
-		be.length === 2 && be.every((e) => e.customType === "nana-block"), JSON.stringify(be.map((e) => [e.data?.id, e.customType])));
-	await stopServer();
-
-	// ── the store's own properties (direct, deterministic) ──
-	// One file per session, so these are per-file properties: there is no shared
-	// document to merge, lock or lose.
-	const td2 = tmpDir(path.join(os.tmpdir(), "stagekey-unit-"));
-	const d2 = path.join(td2, "nested", "stage-keys");
-	const rec2 = (id) => path.join(d2, `${id}.json`);
-	const ls2 = () => (fs.existsSync(d2) ? fs.readdirSync(d2) : []);
-	const keys = Array.from({ length: 9 }, () => crypto.randomBytes(32).toString("hex"));
-	let st = new StageKeyStore({ dir: d2, log: () => {} });
-	for (const k of keys) st.record("sid", k);
-	// req: R-437
-	check("store: capped at 8 keys, most recent first", JSON.stringify(new StageKeyStore({ dir: d2, log: () => {} }).keysFor("sid")) === JSON.stringify(keys.slice().reverse().slice(0, 8)));
-	check("store: an already-recorded key is a no-op (no rewrite)", st.record("sid", keys[8]) === false);
-	check("store: a directory the desk created is 0700", (fs.statSync(d2).mode & 0o777) === 0o700, (fs.statSync(d2).mode & 0o777).toString(8));
-	check("store: each record is 0600", (fs.statSync(rec2("sid")).mode & 0o777) === 0o600, (fs.statSync(rec2("sid")).mode & 0o777).toString(8));
-
-	// seeding is a UNION, not "fill a blank": a record that already exists (an
-	// overlapping observation filed the live child's key first) still receives the
-	// confirmed source's keys, and keeps what was there in front
-	const kNew = crypto.randomBytes(32).toString("hex");
-	const kSrc = [crypto.randomBytes(32).toString("hex"), crypto.randomBytes(32).toString("hex")];
-	st.record("dest", kNew);
-	check("store: seeding a NON-BLANK record adds the source's keys instead of refusing",
-		st.seed("dest", kSrc) === true && JSON.stringify(st.keysFor("dest")) === JSON.stringify([kNew, ...kSrc]),
-		JSON.stringify(st.keysFor("dest").map((k) => k.slice(0, 6))));
-	check("store: ...and seeding what is already there changes nothing", st.seed("dest", kSrc) === false);
-
-	// TWO desks on one directory: the file is authority on every read, so neither can
-	// answer from a stale picture of the other's session or overwrite it
-	const one = new StageKeyStore({ dir: d2, log: () => {} });
-	const two = new StageKeyStore({ dir: d2, log: () => {} });
-	const kk = Array.from({ length: 4 }, () => crypto.randomBytes(32).toString("hex"));
-	one.keysFor("shared"); // read it once: a cache would freeze what it saw here
-	two.record("shared", kk[0]);
-	two.record("shared", kk[1]);
-	one.record("shared", kk[2]);
-	two.record("shared", kk[3]);
-	check("store: sequential records from two instances keep every key",
-		kk.every((k) => one.keysFor("shared").includes(k)), JSON.stringify(one.keysFor("shared").map((k) => k.slice(0, 6))));
-	check("store: ...and either instance reads what the other wrote", JSON.stringify(one.keysFor("shared")) === JSON.stringify(two.keysFor("shared")));
-
-	// a session id becomes a FILENAME here, so anything not name-shaped is refused
-	// rather than escaped — neither recorded nor looked up
-	// req: R-437
-	check("store: a path-shaped session id is refused, not written", st.record("../escape", keys[0]) === false && !fs.existsSync(path.join(td2, "nested", "escape.json")));
-	check("store: ...and never looked up", st.keysFor("../escape").length === 0 && st.keysFor("a/b").length === 0);
-
-	// an interrupted write leaves the previous record intact (temp + rename, never in place)
-	const before = fs.readFileSync(rec2("sid"), "utf-8");
-	const realRename = fs.renameSync;
-	fs.renameSync = () => { throw new Error("simulated crash between write and rename"); };
-	let threw = false;
-	try { st.record("sid", crypto.randomBytes(32).toString("hex")); } catch { threw = true; }
-	fs.renameSync = realRename;
-	check("store: a write interrupted before the rename does not throw at the caller", threw === false);
-	// req: R-437
-	check("store: ...and leaves the previous record byte-identical", fs.readFileSync(rec2("sid"), "utf-8") === before);
-	check("store: ...and leaves no temp file behind", ls2().filter((f) => f.includes(".tmp")).length === 0, JSON.stringify(ls2()));
-
-	// a save that FAILED is retried by the next record for that session, even one that
-	// changes nothing — otherwise the desk keeps working and loses the key at the next start
-	const kr = crypto.randomBytes(32).toString("hex");
-	fs.renameSync = () => { throw new Error("simulated transient failure"); };
-	st.record("sidR", kr);
-	fs.renameSync = realRename;
-	check("store: a failed save leaves nothing on disk for that session", !fs.existsSync(rec2("sidR")));
-	// req: R-437
-	check("store: ...and a LATER record of the SAME key retries the save", st.record("sidR", kr) === false && fs.existsSync(rec2("sidR")));
-	check("store: ...so the key survives the next restart", new StageKeyStore({ dir: d2, log: () => {} }).keysFor("sidR")[0] === kr);
-	check("store: ...and one session's failed write did not disturb another's record", fs.readFileSync(rec2("sid"), "utf-8") === before);
-
-	// A FAILED WRITE OWES ONLY ITS OWN ADDITION. If it kept the whole record it had
-	// composed, it would mask — and then overwrite — whatever another desk added
-	// while it was owing, with no simultaneity at all.
-	const other = new StageKeyStore({ dir: d2, log: () => {} });
-	const kFail = crypto.randomBytes(32).toString("hex");
-	const kOther = crypto.randomBytes(32).toString("hex");
-	// fill the record so the 8-key cap is in play: an overlay holding the WHOLE record
-	// then leaves no room for anything another desk adds
-	for (let i = 0; i < 7; i++) st.record("owe", crypto.randomBytes(32).toString("hex"));
-	fs.renameSync = () => { throw new Error("simulated transient failure"); };
-	st.record("owe", kFail);
-	fs.renameSync = realRename;
-	other.record("owe", kOther); // a second desk, strictly afterwards
-	check("store: a failed write does not hide another desk's later key", st.keysFor("owe").includes(kOther) && st.keysFor("owe").includes(kFail),
-		JSON.stringify(st.keysFor("owe").map((k) => k.slice(0, 6))));
-	st.record("owe", kFail); // the retry
-	const persisted = new StageKeyStore({ dir: d2, log: () => {} }).keysFor("owe");
-	check("store: ...and the retry persists its own key without overwriting the other desk's",
-		persisted.includes(kFail) && persisted.includes(kOther),
-		`${JSON.stringify(persisted.map((k) => k.slice(0, 6)))} fail=${kFail.slice(0, 6)} other=${kOther.slice(0, 6)}`);
-
-	// a corrupt record costs THAT session and nothing else
-	fs.writeFileSync(rec2("sid"), "{not json");
-	st = new StageKeyStore({ dir: d2, log: () => {} });
-	check("store: a corrupt record reads as empty", st.keysFor("sid").length === 0);
-	check("store: ...and is moved aside, not deleted", ls2().some((f) => f.startsWith("sid.json.corrupt-")), JSON.stringify(ls2()));
-	check("store: ...while every other session's record still reads", st.keysFor("sidR")[0] === kr);
-	const k9 = crypto.randomBytes(32).toString("hex");
-	st.record("sid3", k9);
-	check("store: ...and the next record writes a fresh, valid one", new StageKeyStore({ dir: d2, log: () => {} }).keysFor("sid3")[0] === k9);
-
-	// a directory that was already there is NOT re-permissioned: it is not ours to change
-	const pre = path.join(td2, "pre-existing");
-	fs.mkdirSync(pre, { recursive: true });
-	fs.chmodSync(pre, 0o777);
-	new StageKeyStore({ dir: pre, log: () => {} }).record("sidP", crypto.randomBytes(32).toString("hex"));
-	check("store: a pre-existing store directory is left as the operator made it", (fs.statSync(pre).mode & 0o777) === 0o777, (fs.statSync(pre).mode & 0o777).toString(8));
-
-	// the existence prune: drops ids with no session file, but NEVER acts on an empty
-	// enumeration (indistinguishable from "the sessions dir could not be read")
-	st = new StageKeyStore({ dir: d2, log: () => {}, knownSessionIds: () => new Set() });
-	// req: R-444
-	check("store: an EMPTY session enumeration prunes nothing", st.keysFor("sid3")[0] === k9);
-	st = new StageKeyStore({ dir: d2, log: () => {}, knownSessionIds: () => new Set(["sidR"]) });
-	check("store: an id with no session file is pruned", st.keysFor("sid3").length === 0 && !fs.existsSync(rec2("sid3")));
-	check("store: ...and a session that still exists is kept", st.keysFor("sidR")[0] === kr);
-	check("store: ...and a moved-aside record is not swept with it", ls2().some((f) => f.startsWith("sid.json.corrupt-")), JSON.stringify(ls2()));
-	// the prune deletes records; it must not delete files it could never have written
-	fs.writeFileSync(path.join(d2, "operator.notes.json"), "{}");
-	fs.writeFileSync(path.join(d2, "sidR.json.12345.abcdef.tmp"), "{}");
-	new StageKeyStore({ dir: d2, log: () => {}, knownSessionIds: () => new Set(["sidR"]) }).keysFor("sidR");
-	// req: R-444
-	check("store: the prune leaves a file it could not have written (a dotted name is not a session id)", fs.existsSync(path.join(d2, "operator.notes.json")), JSON.stringify(ls2()));
-	check("store: ...and leaves stray temps and moved-aside records alone",
-		fs.existsSync(path.join(d2, "sidR.json.12345.abcdef.tmp")) && ls2().some((f) => f.startsWith("sid.json.corrupt-")), JSON.stringify(ls2()));
-
-	// TWO SESSIONS ROOTS, ONE SHARED STORE (U2 astra land MUST 1). The store stays at the
-	// fixed path while each desk enumerates its OWN agent dir's sessions: an enumeration
-	// is evidence only about records issued under the same root, so neither desk may
-	// prune the other's keys — and a legacy record (no root) is pruned only from the default.
-	const d3 = path.join(td2, "shared-store");
-	const rootDef = path.join(td2, "home-default", "sessions");
-	const rootCus = path.join(td2, "custom-agent", "sessions");
-	for (const r of [rootDef, rootCus]) fs.mkdirSync(r, { recursive: true });
-	const kD = crypto.randomBytes(32).toString("hex"), kC = crypto.randomBytes(32).toString("hex");
-	const kDgone = crypto.randomBytes(32).toString("hex"), kCgone = crypto.randomBytes(32).toString("hex");
-	const kLegacy = crypto.randomBytes(32).toString("hex");
-	const deskD = (known) => new StageKeyStore({ dir: d3, log: () => {}, sessionsRoot: rootDef, knownSessionIds: () => new Set(known) });
-	const deskC = (known) => new StageKeyStore({ dir: d3, log: () => {}, sessionsRoot: rootCus, knownSessionIds: () => new Set(known) });
-	deskD(["liveD", "goneD"]).record("liveD", kD);
-	deskD(["liveD", "goneD"]).record("goneD", kDgone);
-	deskC(["liveC", "goneC"]).record("liveC", kC);
-	deskC(["liveC", "goneC"]).record("goneC", kCgone);
-	const rec3 = (id) => path.join(d3, `${id}.json`);
-	check("two roots: each record carries the sessions root it was issued under",
-		JSON.parse(fs.readFileSync(rec3("liveD"), "utf-8")).sessionsRoot === fs.realpathSync(rootDef)
-		&& JSON.parse(fs.readFileSync(rec3("liveC"), "utf-8")).sessionsRoot === fs.realpathSync(rootCus));
-	// the custom-root desk opens with only its own live session: goneC is its to drop,
-	// liveD and goneD belong to the other root and are NOT evidence it can act on
-	deskC(["liveC"]).keysFor("liveC");
-	check("two roots: the custom-root desk prunes its own vanished session", !fs.existsSync(rec3("goneC")));
-	// req: R-444
-	check("two roots: ...and keeps the default-root desk's records (live AND not in its enumeration)",
-		fs.existsSync(rec3("liveD")) && fs.existsSync(rec3("goneD")) && deskD(["liveD"]).keysFor("liveD")[0] === kD);
-	// and the reverse: the default-root desk prunes goneD, never liveC
-	deskD(["liveD"]).keysFor("liveD");
-	check("two roots: the default-root desk prunes its own vanished session", !fs.existsSync(rec3("goneD")));
-	check("two roots: ...and keeps the custom-root desk's record", fs.existsSync(rec3("liveC")) && deskC(["liveC"]).keysFor("liveC")[0] === kC);
-	// a legacy record (written before records carried a root) is pruned only by a desk
-	// whose root IS the default ~/.pi/agent/sessions (HOME-relative, like the store)
-	fs.writeFileSync(rec3("legacy"), `${JSON.stringify({ v: 1, keys: [kLegacy], updatedAt: 1 })}\n`);
-	deskC(["liveC"]).keysFor("liveC");
-	check("two roots: a legacy record survives a non-default-root prune", fs.existsSync(rec3("legacy")));
-	new StageKeyStore({ dir: d3, log: () => {}, knownSessionIds: () => new Set(["liveD"]) }).keysFor("liveD");
-	check("two roots: ...and is pruned by a default-root desk that does not know it", !fs.existsSync(rec3("legacy")));
-
-	fs.rmSync(td2, { recursive: true, force: true });
-} catch (e) {
-	console.error("HARNESS ERROR", e, log.slice(-3000));
-	fails++;
-} finally {
-	await stopServer();
-	if (concurrentChild) {
-		const childCode = await concurrentExit;
-		const childReport = fs.existsSync(concurrentResult) ? JSON.parse(fs.readFileSync(concurrentResult, "utf-8")) : { ports: [], requested: [] };
-		const requested = ["alpha", "beta"].map((name) => JSON.parse(fs.readFileSync(path.join(appsDir, `${name}.json`), "utf-8")).port);
-		// req: R-949
-		check("concurrent fixture instances request port zero, bind distinct OS-assigned app ports and pass", fails === 0 && childCode === 0 && requested.every((port) => port === 0) && childReport.requested.every((port) => port === 0) && firstRunPorts.length === 2 && childReport.ports.length === 2 && new Set([...firstRunPorts, ...childReport.ports]).size === 4 && firstRunPorts.every((port) => Number.isInteger(port) && port > 0) && childReport.ports.every((port) => Number.isInteger(port) && port > 0), JSON.stringify({ childCode, parent: firstRunPorts, child: childReport }));
-	}
-	fs.rmSync(TD, { recursive: true, force: true });
-}
-console.log(fails ? `${fails} FAILED` : "all PASS");
-process.exit(fails ? 1 : 0);
+// Store checks retained from the original persistence harness; no session-control
+// HTTP route remains, so fork/clone queue and confirmation cases retire with it.
+// req: R-437 R-444
+await test('store: issuance cap, modes, atomic failure, retry, corrupt isolation and root-scoped pruning', options, () => {
+  const home = tmpDir(path.join(os.tmpdir(), 'stagekey-store-'));
+  const dir = path.join(home, 'nested', 'keys');
+  const log = () => {};
+  const st = new StageKeyStore({ dir, log });
+  const keys = Array.from({ length: 9 }, key);
+  for (const k of keys) st.record('sid', k);
+  assert.deepEqual(new StageKeyStore({ dir, log }).keysFor('sid'), keys.slice().reverse().slice(0,8));
+  assert.equal(st.record('sid', keys[8]), false);
+  if (process.platform !== 'win32') { assert.equal(fs.statSync(dir).mode & 0o777, 0o700); assert.equal(fs.statSync(record(dir, 'sid')).mode & 0o777, 0o600); }
+  assert.equal(st.record('../escape', keys[0]), false); assert.deepEqual(st.keysFor('a/b'), []);
+  const before = fs.readFileSync(record(dir, 'sid'));
+  const rename = fs.renameSync, failed = key(), otherKey = key();
+  try { fs.renameSync = () => { throw new Error('interrupted rename'); }; assert.doesNotThrow(() => st.record('sid', failed)); st.record('retry', failed); }
+  finally { fs.renameSync = rename; }
+  assert.deepEqual(fs.readFileSync(record(dir, 'sid')), before);
+  assert.ok(!fs.readdirSync(dir).some(f => f.includes('.tmp')));
+  assert.ok(!fs.existsSync(record(dir, 'retry')));
+  new StageKeyStore({ dir, log }).record('retry', otherKey);
+  assert.ok(st.keysFor('retry').includes(otherKey));
+  assert.equal(st.record('retry', failed), false);
+  assert.deepEqual(new Set(new StageKeyStore({ dir, log }).keysFor('retry')), new Set([failed, otherKey]));
+  const a = new StageKeyStore({ dir, log }), b = new StageKeyStore({ dir, log });
+  const shared = Array.from({ length: 4 }, key);
+  a.keysFor('shared'); shared.forEach((k,i) => (i%2 ? a : b).record('shared', k));
+  assert.deepEqual(a.keysFor('shared'), b.keysFor('shared')); assert.ok(shared.every(k => a.keysFor('shared').includes(k)));
+  const fresh = key(), inherited = [key(),key()];
+  st.record('dest', fresh); assert.equal(st.seed('dest', inherited), true); assert.deepEqual(st.keysFor('dest'), [fresh,...inherited]); assert.equal(st.seed('dest', inherited), false);
+  fs.writeFileSync(record(dir, 'sid'), '{broken'); assert.deepEqual(new StageKeyStore({ dir, log }).keysFor('sid'), []);
+  assert.ok(fs.readdirSync(dir).some(f => f.startsWith('sid.json.corrupt-'))); assert.ok(st.keysFor('retry').includes(failed));
+  const pre = path.join(home, 'pre'); fs.mkdirSync(pre); fs.chmodSync(pre, 0o777);
+  new StageKeyStore({ dir: pre, log }).record('sid', fresh);
+  if (process.platform !== 'win32') assert.equal(fs.statSync(pre).mode & 0o777, 0o777);
+  new StageKeyStore({ dir, log, knownSessionIds: () => new Set() }).keysFor('dest'); assert.ok(fs.existsSync(record(dir, 'dest')));
+  fs.writeFileSync(path.join(dir, 'operator.notes.json'), '{}'); fs.writeFileSync(path.join(dir, 'sid.json.123.tmp'), '{}');
+  new StageKeyStore({ dir, log, knownSessionIds: () => new Set(['retry']) }).keysFor('retry');
+  assert.ok(!fs.existsSync(record(dir, 'dest'))); assert.ok(fs.existsSync(record(dir, 'retry')));
+  for (const f of ['operator.notes.json','sid.json.123.tmp']) assert.ok(fs.existsSync(path.join(dir, f)));
+  const roots = [path.join(home,'default'),path.join(home,'custom')]; roots.forEach(r => fs.mkdirSync(r));
+  const sharedDir = path.join(home,'shared');
+  const at = (sessionsRoot, known) => new StageKeyStore({ dir: sharedDir, log, sessionsRoot, knownSessionIds: () => new Set(known) });
+  at(roots[0], ['liveD','goneD']).record('liveD', fresh); at(roots[0], ['liveD','goneD']).record('goneD', failed);
+  at(roots[1], ['liveC','goneC']).record('liveC', otherKey); at(roots[1], ['liveC','goneC']).record('goneC', inherited[0]);
+  at(roots[1], ['liveC']).keysFor('liveC'); assert.ok(!fs.existsSync(record(sharedDir,'goneC'))); assert.ok(fs.existsSync(record(sharedDir,'goneD')));
+  at(roots[0], ['liveD']).keysFor('liveD'); assert.ok(!fs.existsSync(record(sharedDir,'goneD'))); assert.ok(fs.existsSync(record(sharedDir,'liveC')));
+  assert.equal(read(record(sharedDir,'liveC')).sessionsRoot, fs.realpathSync(roots[1]));
+  fs.writeFileSync(record(sharedDir,'legacy'), JSON.stringify({ v:1,keys:[fresh],updatedAt:1 }));
+  at(roots[1], ['liveC']).keysFor('liveC'); assert.ok(fs.existsSync(record(sharedDir,'legacy')));
+  new StageKeyStore({ dir: sharedDir, log, knownSessionIds: () => new Set(['liveD']) }).keysFor('liveD'); assert.ok(!fs.existsSync(record(sharedDir,'legacy')));
+});

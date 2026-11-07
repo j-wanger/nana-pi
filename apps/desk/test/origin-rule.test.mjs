@@ -13,14 +13,19 @@
 // Zero-dep: drives the REAL server on a test port, no pi child is ever spawned.
 // Run: node apps/desk/test/origin-rule.test.mjs   (exit 0 = all PASS)
 import { spawn } from "node:child_process";
+import { fileURLToPath } from 'node:url';
+import os from 'node:os';
+import path from 'node:path';
+import { tmpDir } from "./tmp-dir.mjs";
+const home = tmpDir(path.join(os.tmpdir(), 'desk-origin-'));
 
 const PORT = Number(process.env.DESK_TEST_PORT || 4391);
 const BASE = `http://127.0.0.1:${PORT}`;
 const OWN = `http://127.0.0.1:${PORT}`;
 const EVIL = "http://evil.example";
-const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+const SERVER = fileURLToPath(new URL("../server.mjs", import.meta.url));
 
-const server = spawn("node", [SERVER], { env: { ...process.env, DESK_PORT: String(PORT) }, stdio: ["ignore", "pipe", "pipe"] });
+const server = spawn("node", [SERVER], { env: { ...process.env, HOME: home, USERPROFILE: home, DESK_APPS_DIR: path.join(home, 'no-apps'), DESK_PORT: String(PORT) }, stdio: ["ignore", "pipe", "pipe"] });
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
 const req = (method, path, { origin, ct, body } = {}) => {
@@ -40,7 +45,7 @@ try {
 	let r = await req("POST", "/api/spawn", { origin: EVIL, ct: "text/plain", body: JSON.stringify({ cwd: "/tmp" }) });
 	// req: R-459
 	check("cross-origin text/plain POST /api/spawn → 403", r.status === 403, String(r.status));
-	const live = await fetch(BASE + "/api/live").then((x) => x.json());
+	const live = await fetch(BASE + "/api/apps").then((x) => x.json());
 	// req: R-459
 	check("…and no child was spawned", Array.isArray(live) && live.length === 0);
 
@@ -74,7 +79,7 @@ try {
 	check("no-Origin DELETE reaches the route", r.status === 404, String(r.status));
 
 	// 8. reads stay open regardless of origin
-	r = await req("GET", "/api/live", { origin: EVIL });
+	r = await req("GET", "/api/apps", { origin: EVIL });
 	check("cross-origin GET still 200 (browser SOP hides the body)", r.status === 200, String(r.status));
 
 	// 9. Origin: null (sandboxed iframe / file://) is foreign

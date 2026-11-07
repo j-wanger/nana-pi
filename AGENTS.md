@@ -29,9 +29,8 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
   on PATH, the desk launchd service. The canonical copies of those hooks and rules live HERE
   (`claude/`), symlinked into `~/.claude` — edit them in the repo, never in `~/.claude`.
   `nana-setup doctor` is the ✓/✗ instrument for a machine.
-- `apps/desk/` — "nana code": the local browser dashboard over pi sessions (rail, live
-  transcripts, spawn/fork/rename, the wire). Its README carries the Contract notes and
-  Known limits — read them before changing its surface.
+- `apps/desk/` — the local manifest app host; the desk page is retired. Its README carries
+  the Contract notes and Known limits — read them before changing its surface.
 - `apps/bench/` — builder and seat context anatomy; `studies/` holds preserved verdicts and frozen fixtures from retired study runners.
 - `templates/` — copier templates behind `scaffold-py`/`scaffold-ts` and `adopt-py`/`adopt-ts`.
   The copier src is the REPO ROOT (root `copier.yml`, `language` question); tags ship only through
@@ -158,5 +157,5 @@ A lane brief names its feature as `Feature: FEAT-nnn · <label>`. A lane brief c
 
 ### The desk
 
-Sessions here are visible and driveable on nana code (the desk, started separately) — a local browser
-dashboard over your pi sessions (history, live transcripts, spawn, rename).
+The desk process hosts manifest-configured apps on separate loopback listeners.
+Its main port serves a retired-page note and app links; session-dashboard controls are retired.

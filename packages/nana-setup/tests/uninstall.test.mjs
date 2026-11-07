@@ -260,6 +260,7 @@ if (process.platform !== "win32") {
   const installed = run(["install", "--desk", "--home", home]);
   const removed = run(["uninstall", "--yes", "--home", home]);
   // req: R-903 R-905
+  // req: R-3794
   check("install --desk then uninstall restores the independent home snapshot", installed.status === 0 && removed.status === 0 && sameSnapshot(initial, snapshot(home)), `${installed.status}; ${removed.status}\n${removed.stdout}\n${removed.stderr}`);
 
   const updateHome = tmpDir(path.join(os.tmpdir(), "nana-uninstall-update-"));
