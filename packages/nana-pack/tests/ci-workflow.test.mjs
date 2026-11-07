@@ -20,8 +20,8 @@ const workflow = readFileSync(process.env.CI_WORKFLOW_PATH ?? path.join(repoRoot
 check("root CI runs the suite on macOS, Linux, and Windows and gates tag release", () => {
   assert(workflow.includes("on:\n  push:\n    branches: [main]\n  pull_request:"));
   assert.match(workflow, /^permissions:\n  contents: read/m);
-  assert.match(workflow, /^  suite:\n    strategy:/m);
-  assert.match(workflow, /os: \[macos-latest, ubuntu-latest, windows-latest\]/);
+  assert.match(workflow, /^  suite:\n[\s\S]*?^    strategy:/m);
+  for (const os of ["macos-latest", "ubuntu-latest", "windows-latest"]) assert(workflow.includes(`- os: ${os}`));
   assert.match(workflow, /^      - run: npm test/m);
   assert.match(workflow, /^  release:\n    needs: \[suite, install-check\]\n    if: github.event_name == 'push' && github.ref == 'refs\/heads\/main'/m);
   assert.match(workflow, /^    permissions:\n      contents: write/m);
@@ -176,7 +176,7 @@ function suiteBlocksOn(workflowText) {
 // req: R-1530
 check("R-1530: a failing macOS or Windows suite leg stops the release job", () => {
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
-  const matrixLine = suite.match(/^ {8}os: \[(.+)\]$/m)?.[1] ?? "";
+  const matrixLine = [...suite.matchAll(/^ {10}- os: (.+)$/gm)].map((match) => match[1]).join(",");
   assert(matrixLine.includes("macos-latest"), "suite matrix must include a macOS leg");
   assert(matrixLine.includes("windows-latest"), "suite matrix must include a Windows leg");
   const needsLine = workflow.match(/^  release:\n {4}needs: \[(.+)\]$/m)?.[1] ?? "";
@@ -195,7 +195,7 @@ check("R-1531: a failing Linux suite leg alone does not stop the release job", (
 // req: R-1313
 check("R-1313: the Windows suite leg runs the suite verbose", () => {
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
-  assert.match(suite, /^      - run: npm test -- --verbose --jobs=\$\{\{ env\.NANA_CI_JOBS \}\}\n        if: matrix\.os == 'windows-latest'$/m);
+  assert.match(suite, /^      - run: npm test -- --verbose --jobs=\$\{\{ env\.NANA_CI_JOBS \}\} --shard=\$\{\{ matrix\.shard \}\}\n        if: matrix\.os == 'windows-latest'$/m);
   assert.match(suite, /^      - run: npm test -- --verbose --jobs=/m);
 });
 // req: R-2556
@@ -275,7 +275,7 @@ check("R-2632: every suite leg uploads its record after the suite, failed or not
   assert(start > lastTest, "the upload step must follow the last npm test step");
   assert.match(step, /^ {8}if: \$\{\{ !cancelled\(\) \}\}$/m);
   assert.match(step, /^ {8}continue-on-error: true$/m);
-  assert.match(step, new RegExp(`^ {10}name: ${CI_ARTIFACT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\$\\{\\{ matrix\\.os \\}\\}-\\$\\{\\{ github\\.run_attempt \\}\\}$`, "m"));
+  assert.match(step, new RegExp(`^ {10}name: ${CI_ARTIFACT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\$\\{\\{ matrix\\.leg \\}\\}-\\$\\{\\{ github\\.run_attempt \\}\\}$`, "m"));
   assert.match(step, /^ {10}path: \$\{\{ runner\.temp \}\}\/\$\{\{ env\.NANA_CI_RECORD_NAME \}\}$/m);
   assert.doesNotMatch(step, /^\s*if-no-files-found:\s*error\s*$/m);
   suiteBlocksOn(workflow);
@@ -385,12 +385,12 @@ check("main pushes run the full suite on all systems without path filters or iss
   assert.match(normalized, /^on:\n  push:\n    branches: \[main\]\n  pull_request:/m);
   assert.doesNotMatch(normalized, /^\s*(paths|paths-ignore|issues):/m);
   const suite = normalized.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
-  assert.match(suite, /os: \[macos-latest, ubuntu-latest, windows-latest\]/);
+  for (const os of ["macos-latest", "ubuntu-latest", "windows-latest"]) assert(suite.includes(`- os: ${os}`));
   assert.doesNotMatch(suite, /^    if:/m);
   const commands = [...suite.matchAll(/^      - run: (npm test[^\n]*)\n        if: ([^\n]*)/gm)];
   assert.deepEqual(commands.map((m) => [m[1], m[2]]), [
     ["npm test -- --jobs=${{ env.NANA_CI_JOBS }}", "matrix.os != 'windows-latest'"],
-    ["npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }}", "matrix.os == 'windows-latest'"],
+    ["npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }} --shard=${{ matrix.shard }}", "matrix.os == 'windows-latest'"],
   ]);
 });
 if (failures) process.exitCode = 1;

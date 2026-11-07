@@ -97,7 +97,9 @@ check("R-2750: after the merge, its containment check and outside the ledger loc
 	try {
 		process.env.GH_HOST = "example.invalid"; process.env.CLICOLOR_FORCE = "1"; process.env.GH_FORCE_TTY = "1";
 		const out = land(defaultState()); assert.equal(out.code, 0, out.text);
-		const gh = out.events.filter((event) => event.kind === "gh"); assert(gh.length > 1); const firstRecords = out.events.indexOf(gh[1]);
+		const gh = out.events.filter((event) => event.kind === "gh"); assert(gh.length > 1);
+		const releaseIndex = out.events.findIndex((event) => event.kind === "release");
+		const firstRecords = out.events.findIndex((event, index) => index > releaseIndex && event.kind === "gh");
 		const lastLockExit = out.events.map((event) => event.kind).lastIndexOf("lock-exit");
 		const containment = out.events.findIndex((event) => event.kind === "git" && event.args.join(" ").includes(`merge-base --is-ancestor ${out.fixture.tip} refs/heads/main`));
 		assert(lastLockExit < firstRecords && containment < firstRecords && out.events.findIndex((event) => event.kind === "release") < firstRecords);
@@ -105,7 +107,10 @@ check("R-2750: after the merge, its containment check and outside the ledger loc
 		assert.match(out.text, /ci record: darwin macos-latest run 501 attempt 1/); assert.match(out.text, /ci record: 1 records from 1 CI runs/);
 		assert(out.text.indexOf("ci: ") < out.text.indexOf("ci record:")); assert(out.text.indexOf("ci record:") < out.text.indexOf("push command:"));
 		const failed = land(defaultState(), { runCommand: () => ({ status: 7, stdout: "", stderr: "suite red\t" }) });
-		assert.equal(failed.code, 1); assert.equal(failed.events.filter((event) => event.kind === "gh").length, 1);
+		assert.equal(failed.code, 1);
+		const suiteIndex = failed.events.findIndex((event) => event.kind === "suite");
+		assert.equal(suiteIndex, -1); // this case supplies its own failing suite callback
+		assert.equal(failed.events.filter((event) => event.kind === "gh").length, 5); // verdict plus four proof-reader calls, no post-merge read
 	} finally {
 		for (const [key, value] of [["GH_HOST", oldHost], ["CLICOLOR_FORCE", oldColor], ["GH_FORCE_TTY", oldTty]]) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
 	}

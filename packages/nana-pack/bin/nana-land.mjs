@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { canonicalItem, reviewTextEvidence, withReviewLedgerLock, repoKeyOf } from "./review-round.mjs";
 import { releaseStatus } from "../lib/release-status.mjs";
 import { realPath } from "../lib/real-path.mjs";
-import { changedSuitePaths, ciScope, githubRepoOf, judgeRuns, proveCiSuite } from "../lib/land-ci.mjs";
+import { changedSuitePaths, ciScope, ciSuiteLegs, githubRepoOf, judgeRuns, proveCiSuite } from "../lib/land-ci.mjs";
 import { ciReadiness, ciTarget, ciRunJobs, classifyRun } from "../lib/ci-wait.mjs";
 import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
@@ -322,13 +322,17 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			lifecycle.ci = "passed";
 			lifecycle.ciWaitMs = landCiWaitMs(verdict.runs);
 			suiteProof = needsMerge ? { ok: true } : changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", capturedMain, tip));
-			if (suiteProof.ok) {
-				try {
-					const budget = budgetedGh({ runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env }), now: recordsNow });
-					const records = readCiRecords([tip], { cwd: tree, runGit, runGh: budget.runGh, writeLine: () => {} });
-					suiteProof = proveCiSuite({ ...records, budgetStopped: budget.budgetStopped }, verdict.runs, platform);
-				} catch { suiteProof = { ok: false, reason: "CI suite records could not be read" }; }
-			}
+			let shardFailure = null;
+			try {
+				const budget = budgetedGh({ runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env }), now: recordsNow });
+				const records = readCiRecords([tip], { cwd: tree, runGit, runGh: budget.runGh, writeLine: () => {} });
+				const judged = new Set(verdict.runs.map((run) => String(run.id)));
+				const shards = ciSuiteLegs({ ...records, parsed: records.parsed.filter((item) => judged.has(String(item.run.id))), jobs: records.jobs?.filter((item) => judged.has(String(item.run.id))) });
+				if (!shards.ok) shardFailure = shards.reason;
+				if (suiteProof.ok) suiteProof = proveCiSuite({ ...records, budgetStopped: budget.budgetStopped }, verdict.runs, platform);
+			} catch { if (suiteProof.ok) suiteProof = { ok: false, reason: "CI suite records could not be read" }; }
+			// A known incomplete/red sharded leg is CI failure, not permission to substitute locally.
+			if (shardFailure) { lifecycle.ci = "refused"; throw new Error(shardFailure); }
 		}
 		if (needsMerge && !suiteProof.ok) throw mergeRefusal("suite", suiteProof.reason);
 		lifecycle.stage = "suite";

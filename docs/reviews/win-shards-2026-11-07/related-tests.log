@@ -1,0 +1,20 @@
+FAIL  packages/nana-pack/tests/ci-records.test.mjs             5 pass, 1 fail  3.2s  — exit 1
+      | FAIL R-2633: a record the runner writes under CI's arguments reads back in ci-records with the runner's own totals AssertionError [ERR_ASSERTION]: runner totals line is required
+PASS  packages/nana-pack/tests/ci-wait.test.mjs                6 pass  8.5s
+FAIL  packages/nana-pack/tests/land-ci-edge.test.mjs           1 pass, 1 fail  20.6s  — exit 1
+      | FAIL R-2590: a repository or tip without GitHub CI skips the CI read and notes why Expected values to be strictly equal:
+FAIL  packages/nana-pack/tests/land-ci-read.test.mjs           5 pass, 1 fail  13.4s  — exit 1
+      | FAIL R-2588: the newest run of each workflow at its latest attempt decides, and the land names it Expected values to be strictly equal:
+FAIL  packages/nana-pack/tests/land-ci-records.test.mjs        6 pass, 1 fail  17.0s  — exit 1
+      | FAIL R-2750: after the merge, its containment check and outside the ledger lock, the land reads the tip's CI records from github.com in its gh environment and prints the reader's lines AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+PASS  packages/nana-pack/tests/land-ci-suite.test.mjs          6 pass  39.1s
+PASS  packages/nana-pack/tests/land-clean-merge-race.test.mjs  2 pass  19.7s
+PASS  packages/nana-pack/tests/land-clean-merge.test.mjs       12 pass  44.9s
+PASS  packages/nana-pack/tests/land-regenerate.test.mjs        6 pass  71.4s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                1 pass  0.1s
+PASS  packages/nana-pack/tests/runtime-map.test.mjs            15 pass  28.8s
+PASS  packages/nana-pack/tests/suite-records.test.mjs          9 pass  17.0s
+PASS  packages/nana-pack/tests/template-release.test.mjs       5 pass  5.1s
+
+13 files: 9 PASS, 4 FAIL, 0 SKIP, 0 WARN · checks: 79 pass, 4 fail, 0 skip · 289.5s
+failed: packages/nana-pack/tests/ci-records.test.mjs, packages/nana-pack/tests/land-ci-edge.test.mjs, packages/nana-pack/tests/land-ci-read.test.mjs, packages/nana-pack/tests/land-ci-records.test.mjs

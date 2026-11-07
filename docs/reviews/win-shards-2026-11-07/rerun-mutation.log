@@ -1,0 +1,5 @@
+FAIL  packages/nana-pack/tests/win-shards.test.mjs  8 pass, 1 fail  8.6s  — exit 1
+      | FAIL M8: partial reruns select the latest execution per shard and count each file once AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 8 pass, 1 fail, 0 skip · 9.0s
+failed: packages/nana-pack/tests/win-shards.test.mjs

@@ -9,6 +9,7 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { readCiRecords } from "./ci-records.mjs";
+import { ciSuiteLegs } from "./land-ci.mjs";
 import { finalFiles } from "./suite-records.mjs";
 import { ghDefault, ghResult } from "./gh-runner.mjs";
 import { CI_HOST, CI_READ_TIMEOUT_MS, CI_DONE_STATUS, CI_PASS_CONCLUSION, MAIN_REF, TIP_DIGITS } from "./land-config.mjs";
@@ -54,14 +55,10 @@ export function mainCi({ cwd = process.cwd(), post = false, env = process.env, r
 		if (!/^[a-f0-9]{40,64}$/i.test(run.head_sha)) throw new Error(`run ${run.id}: unreadable SHA`);
 		const records = readCiRecords([run.head_sha], { cwd, runGh: (root, args) => runGh(root, args, { env }), ...(runGit ? { runGit } : {}), ...(tempRoot ? { tempRoot } : {}), runId: run.id, writeLine: () => {} });
 		const failures = [];
-		// An attempt can copy older successful legs: choose each leg's newest readable record.
-		const newest = new Map();
-		for (const item of records.parsed) {
-			if (String(item.run.id) !== String(run.id)) continue;
-			const prior = newest.get(item.leg);
-			if (!prior || item.attempt > prior.attempt) newest.set(item.leg, item);
-		}
-		for (const { leg, record } of newest.values()) {
+		// Land and main use the same per-shard latest-execution and completeness decision.
+		const selected = ciSuiteLegs(records);
+		if (!selected.ok) failures.push(selected.reason);
+		for (const { leg, record } of selected.records) {
 			const files = finalFiles(record).filter((file) => file.label === "FAIL").map((file) => file.path);
 			if (files.length) for (const file of files) failures.push(`${leg}: ${file}`);
 			else if (record.exitCode !== 0 || record.unnamedFailures?.length) failures.push(`${leg}: suite`);

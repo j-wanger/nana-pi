@@ -1,0 +1,8 @@
+FAIL  packages/nana-pack/tests/win-shards.test.mjs  5 pass, 4 fail  7.3s  — exit 1
+      | FAIL M4: land and main require every successful Windows shard AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+      | FAIL M6: CI measures and enforces each Windows shard's under-20-minute wall time AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL M7: release blocks each failed cancelled or skipped Windows shard and Linux stays advisory AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL M8: partial reruns select the latest execution per shard and count each file once AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 5 pass, 4 fail, 0 skip · 7.7s
+failed: packages/nana-pack/tests/win-shards.test.mjs

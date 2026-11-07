@@ -1,0 +1,8 @@
+PASS  packages/nana-pack/tests/ci-records.test.mjs       6 pass  3.5s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs      25 pass  0.0s
+PASS  packages/nana-pack/tests/land-ci-edge.test.mjs     2 pass  21.9s
+PASS  packages/nana-pack/tests/land-ci-read.test.mjs     6 pass  17.4s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs  7 pass  13.9s
+PASS  packages/nana-pack/tests/win-shards.test.mjs       9 pass  10.6s
+
+6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 55 pass, 0 fail, 0 skip · 67.7s
