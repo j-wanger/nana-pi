@@ -6,7 +6,7 @@
  * @effects disk (OS-temp fixtures), process (bounded git and fake worker children).
  * @errors Assertion failures exit nonzero; each case has a time limit.
  */
-import { test } from 'node:test';
+import { tmpDir } from "./tmp-dir.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
@@ -23,11 +23,28 @@ const read = (file) => fs.readFileSync(path.join(pack, file), 'utf8');
 const preamble = () => read('prompts/builder-preamble.md');
 const planner = () => read('prompts/planner.md');
 const options = { timeout: 60_000 };
+async function check(title, { timeout }, run) {
+ let timer;
+ const started = Date.now();
+ try {
+  await Promise.race([
+   Promise.resolve().then(run),
+   new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('case timed out')), timeout); }),
+  ]);
+  assert.ok(Date.now() - started <= timeout, 'case exceeded its time limit');
+  console.log('PASS', title);
+ } catch (error) {
+  console.log('FAIL', title, error.stack ?? error);
+  process.exitCode = 1;
+ } finally {
+  clearTimeout(timer);
+ }
+}
 const missing = 'pi-worker: lane refused: Precedent section needs a Precedent heading, or a line holding only Precedent:, then one entry in either form: - <path> or - none: <reason>';
 const malformed = 'pi-worker: lane refused: Precedent section needs one entry in either form: - <path> or - none: <reason>';
 const privateSentence = 'If it is private, drop the leading underscore, update its existing callers, and import the public name; never import a private name from another module. A move to a shared module needs the brief to name it.';
 function fixture() {
- const root = fs.mkdtempSync(path.join(os.tmpdir(), 'builder-context-'));
+ const root = tmpDir(path.join(os.tmpdir(), 'builder-context-'));
  const repo = path.join(root, 'repo'), lane = path.join(root, 'lane'), bin = path.join(root, 'bin'), agent = path.join(root, 'agent'), home = path.join(root, 'home');
  for (const d of [repo, bin, agent, home]) fs.mkdirSync(d);
  const git = (cwd, args) => {
@@ -49,7 +66,7 @@ function fixture() {
  };
 }
 // req: R-3733
-test('R-3733: frozen lessons end the preamble and reach both builder runtimes', options, () => {
+await check('R-3733: frozen lessons end the preamble and reach both builder runtimes', options, () => {
  const text = preamble();
  const footer = text.split('## Lessons from earlier work\n')[1];
  assert.ok(footer, 'lessons heading');
@@ -61,18 +78,18 @@ test('R-3733: frozen lessons end the preamble and reach both builder runtimes', 
  const f=fixture(); try { for(const size of ['small','larger']) { const r=f.run('Precedent:\n- seed\n',size); assert.equal(r.status,0,r.stderr); assert.ok(fs.readFileSync(f.capture,'utf8').includes(footer)); } } finally { f.close(); }
 });
 // req: R-3734
-test('R-3734: private helpers become public without unnamed shared moves', options, () => {
+await check('R-3734: private helpers become public without unnamed shared moves', options, () => {
  const text=preamble();
  for(const part of ['drop the leading underscore','update its existing callers','import the public name','never import a private name from another module','A move to a shared module needs the brief to name it']) assert.ok(text.includes(part),part);
  assert.ok(!text.includes('report the departure and stop'));
 });
 // req: R-3735
-test('R-3735: fix cards without precedent launch at every lane size with one exception line', options, () => {
+await check('R-3735: fix cards without precedent launch at every lane size with one exception line', options, () => {
  assert.equal(FIX_CARD_LINE, 'Card: fix');
  const f=fixture(); try { for(const size of ['small','larger']) for(const text of ['Card: fix\n','\uFEFFCard: fix \t\r\nOther text','Other text\rCard: fix\t']) { const r=f.run(text,size); assert.equal(r.status,0,r.stderr); const lines=r.stderr.split(/\r?\n/).filter(l=>l.includes('Card: fix')); assert.equal(lines.length,1,r.stderr); assert.match(lines[0],/Precedent.*omitted/); } } finally { f.close(); }
 });
 // req: R-3736
-test('R-3736: unmarked and malformed briefs retain exact refusals at every lane size', options, () => {
+await check('R-3736: unmarked and malformed briefs retain exact refusals at every lane size', options, () => {
  const f=fixture(); try { for(const size of [undefined,'small','larger']) {
   for(const text of ['No card\n','Card: feature\n','Card: fixture','Text Card: fix\n']) assert.equal(f.check(text,size).line,missing);
   for(const section of ['Precedent:\n','Precedent:\n- none:\t']) assert.equal(f.check('Card: fix\r\n'+section,size).line,malformed);
@@ -82,20 +99,20 @@ test('R-3736: unmarked and malformed briefs retain exact refusals at every lane 
  } } finally { f.close(); }
 });
 // req: R-3737
-test('R-3737: planner specifies helper calls fix markers and the identical private clause', options, () => {
+await check('R-3737: planner specifies helper calls fix markers and the identical private clause', options, () => {
  const text=planner();
  assert.ok(text.includes('call <symbol> (<path:lines>) rather than re-implementing it — <what it does>'));
  assert.match(text,/small fix briefs[^\n]*`Card: fix`/);
  assert.ok(text.includes(privateSentence)); assert.ok(preamble().includes(privateSentence));
 });
 // req: R-3747
-test('R-3747: planner requires fresh-search and map-impact caller contracts with traceback and NaN examples', options, () => {
+await check('R-3747: planner requires fresh-search and map-impact caller contracts with traceback and NaN examples', options, () => {
  const text=planner();
  assert.ok(text.includes('When a change alters what a function returns or raises, list each caller found at plan time by freshly searching the repo for the function\'s name and by running the project\'s map impact command as its own must-meet line stating the caller\'s observable contract, never just "still works".'));
  assert.ok(text.includes('For example: "the report has no NaN; the CLI exits non-zero with a message, never a traceback".'));
 });
 // req: R-3738
-test('R-3738: precedent ruling keeps plans required and exempts marked fix cards', options, () => {
+await check('R-3738: precedent ruling keeps plans required and exempts marked fix cards', options, () => {
  const ruling=read('rules/nana-rulings.md').split('\n').filter(l=>l.includes('Every plan and brief'));
  assert.equal(ruling.length,1);
  assert.match(ruling[0],/Card: fix.*may omit.*owner.*2026-11-06.*#338/);
