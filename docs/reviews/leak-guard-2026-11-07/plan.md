@@ -57,8 +57,8 @@ None.
 - `packages/nana-setup/claude/rules/nana-seat.md` and `packages/nana-setup/tests/seat-rule.test.mjs`: the test pins the exact bullet list (`bullets.length === RULES.length`), so the new bullet is an expected edit to that test's RULES.
 - `packages/nana-pack/tests/credential-strip.test.mjs` (~164) and templates-render.test.mjs (~556): both read builder-preamble.md.
 - `docs/known-bugs/FEAT-032.md`: the scan's blind spots. `docs/known-bugs/FEAT-028.md`: 139 older committed logs, out of scope.
-- The 11-05 seat lesson "feedback-scan-gates-push": the chained-scan pattern (seat memory, not tracked).
-- map:search and map:impact as in draft 1. pi-worker, the preamble and identity-scan each reach the 202/277 always-run set. build-records writes A-006.
+- none: the 11-05 seat lesson "feedback-scan-gates-push": the chained-scan pattern (seat memory, not tracked).
+- none: map:search and map:impact were run as in draft 1. pi-worker, the preamble and identity-scan each reach the 202/277 always-run set. build-records writes A-006.
 
 ## Outside precedent
 - gitleaks (MIT), borrow: commit-range scanning over blobs, not the worktree. Skip the tool itself (regex secrets, Go binary).
