@@ -845,7 +845,8 @@ Each `pi-review` review runs from a detached checkout under the OS temporary dir
 `node_modules` are not copied, so a reviewer that needs them must install dependencies or review read-only.
 The checkout path is available as `NANA_REVIEW_ROOT`; initialized submodules are refused before admission,
 and stale checkouts from dead reviews are reclaimed at startup.
-Any number of reviews on one revision is one round.
+Any number of reviews, by any roles, on one revision is one round.
+A review of a new revision is a round regardless of role.
 The ledger lives in the same user's home directory as the agents it governs. Anyone who can
 write it can exhaust an item (three fabricated round lines) or extend one (delete lines); deleting
 verdict records also changes what the land check reads. Pruning the kept-text store blocks a revision

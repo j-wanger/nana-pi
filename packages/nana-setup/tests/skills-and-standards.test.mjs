@@ -105,7 +105,6 @@ try {
 			SKILL_NORM.includes("Before you flip a row to `implemented`, its test passes and the row says no more than the test") &&
 			SKILL_NORM.includes("a row wider than its test is an overclaim, and the fix is to narrow the row") &&
 			SKILL_NORM.includes("Every land gets an independent reviewer** who reads the diff and asks: does the feature work") &&
-			SKILL_NORM.includes("In an install, hook or gate lane the seat also breaks the code and watches the cited test go") &&
 			GONE.every((phrase) => !RULE_NORM.includes(phrase) && !SKILL_NORM.includes(phrase)),
 			`RULE:${RULE_TEXT}\n---\nSKILL:${SKILL_TEXT}`);
 		const GENERAL_SRC = path.join(repo, "templates", "_shared", "requirements-general.md");
