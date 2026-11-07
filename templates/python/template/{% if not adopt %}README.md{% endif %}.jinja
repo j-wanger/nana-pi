@@ -42,5 +42,32 @@ row is `implemented` only when a test named in its evidence cell pins it. A full
 every command, path, flag and script name here has to exist, and `--list` prints what it
 checks.
 
+{% if data_checks %}
+## Data checks
+
+The optional baseline needs only Python's standard library and the existing pytest dependency.
+Fill in `data-checks.json` with source globs, database paths, identifier SQL types (a type string
+or an object with `type` and optional namespace metadata), keys, the canonical normalizer,
+connector modules, report folders and row-wise budget. Empty lists check no data; configure
+real inputs before treating a passing suite as validation.
+
+`uv run python scripts/data_checks.py data-checks.json` prints a findings table without writing
+reports. `tests/test_data_checks.py` runs the same eight checks under pytest: identifier types,
+keys and crosswalk uniqueness, one normalizer, connectors, stable identifiers, report lineage,
+reusable processing and row-wise operations. Errors fail; warnings pass. Use `uv run pytest -s`
+to see warning tables on passing tests. Removing settings skips the test with an enable message.
+
+The pack never imports or executes project modules. Extra normalizer definitions produce an
+error because sample equivalence cannot be established safely. Samples and import roots remain
+metadata; the static check does not claim behavioural equivalence. A canonical module with
+initialisation calls also reports an error instead of executing those calls.
+
+SQLite opens with `immutable=1`. A nonempty WAL produces an explicit error, not a stale clean
+verdict; supply a checkpointed copy made outside the inspected project. JSON reports need a
+`provenance` object; text reports need a structured HTML comment carrying that object and its
+required fields. Prose mentioning provenance is not a provenance block. The scan never applies
+finding suppressions. Source and report scope belong in settings; warnings are advisory.
+{% endif %}
+
 Scaffolded from the nana-pi Python template; `uvx copier update` re-syncs it
 when the template evolves. Agent-facing structure and rules live in `AGENTS.md`.

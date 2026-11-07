@@ -43,7 +43,7 @@ check("renders all four modes with the exact resolved SHA and prepares adopt ove
     return { status: 0, stdout: "" };
   };
   assert.equal(runAcceptance({ src, ref: "HEAD", tmpRoot: root, run, log: (line) => logs.push(line) }), 0);
-  assert.deepEqual(seen, ["python:scaffold", "python:adopt", "typescript:scaffold", "typescript:adopt"]);
+  assert.deepEqual(seen, ["python:scaffold", "python:adopt", "typescript:scaffold", "typescript:adopt", "python:scaffold", "python:adopt"]);
 });
 
 // req: R-594
@@ -158,7 +158,7 @@ function acceptanceStub({ failCommand = null } = {}) {
 check("acceptance invokes the exact check command matrix in every combination", () => {
   const stub = acceptanceStub();
   assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: () => {} }), 0);
-  const actual = stub.calls.filter(({ cmd }) => !["git", "uvx"].includes(cmd)).map(({ cmd, args, options }) => [path.basename(options.cwd), [cmd, ...args].join(" ")]);
+  const actual = stub.calls.filter(({ cmd, options }) => !["git", "uvx"].includes(cmd) && !path.basename(options.cwd).startsWith("python-data-")).map(({ cmd, args, options }) => [path.basename(options.cwd), [cmd, ...args].join(" ")]);
   assert.deepEqual(actual, [
     ["python-scaffold", "uv sync"], ["python-scaffold", "uv run ruff check ."], ["python-scaffold", "uv run ruff format --check ."], ["python-scaffold", "uv run mypy"], ["python-scaffold", "uv run pytest"],
     ["python-adopt", "uv run python scripts/code_map.py"], ["python-adopt", "uv sync"], ["python-adopt", "uv run ruff check ."], ["python-adopt", "uv run ruff format --check ."], ["python-adopt", "uv run mypy"], ["python-adopt", "uv run pytest"],
@@ -192,7 +192,7 @@ check("map failures report the executable and script", () => {
 check("all four combinations run and the temporary root is removed on success", () => {
   const stub = acceptanceStub();
   assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: () => {} }), 0);
-  assert.deepEqual(stub.calls.filter(({ cmd }) => cmd === "uvx").map(({ args }) => args.find((arg) => arg.startsWith("language=")).slice(9) + (args.includes("adopt=true") ? " adopt" : " scaffold")), ["python scaffold", "python adopt", "typescript scaffold", "typescript adopt"]);
+  assert.deepEqual(stub.calls.filter(({ cmd }) => cmd === "uvx").map(({ args }) => args.find((arg) => arg.startsWith("language=")).slice(9) + (args.includes("adopt=true") ? " adopt" : " scaffold")), ["python scaffold", "python adopt", "typescript scaffold", "typescript adopt", "python scaffold", "python adopt"]);
   assert.equal(fs.existsSync(stub.generatedRoot), false);
   const copier = stub.calls.find(({ cmd }) => cmd === "uvx");
   assert.equal(copier.options.env.GIT_CONFIG_KEY_0, "gc.auto"); assert.equal(copier.options.env.GIT_CONFIG_VALUE_0, "0");
@@ -202,7 +202,7 @@ check("command failures continue all combinations and ENOENT names pnpm", () => 
   const stub = acceptanceStub({ failCommand: "pnpm ENOENT" }); const logs = [];
   const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: (line) => logs.push(line) });
   assert.equal(status, 1); assert(logs.some((line) => line.includes("typescript scaffold: pnpm install exited 1")));
-  assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 4); assert.equal(fs.existsSync(stub.generatedRoot), false);
+  assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 6); assert.equal(fs.existsSync(stub.generatedRoot), false);
 });
 // req: R-594
 check("a single adopt mypy failure names its command while later combinations still run", () => {
@@ -210,7 +210,7 @@ check("a single adopt mypy failure names its command while later combinations st
   const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: (line) => logs.push(line) });
   assert.equal(status, 1); assert(logs.some((line) => line.includes("python adopt") && line.includes("uv run mypy")));
   assert(!logs.some((line) => line.includes("python scaffold")), "scaffold must not report the adopt-only failure");
-  assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 4); assert.equal(fs.existsSync(stub.generatedRoot), false);
+  assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 6); assert.equal(fs.existsSync(stub.generatedRoot), false);
 });
 
 // req: R-594

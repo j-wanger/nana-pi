@@ -25,6 +25,7 @@ export const SURFACES = {
 };
 
 export const EXEMPTIONS = [
+  ...["data-checks.json", "scripts/data_checks.py", "tests/test_data_checks.py"].map((text) => ({ surface: "adopt-py", kind: "path", text, reason: "Optional data_checks=true paths, absent in the default-off target; data-pack.test.mjs pins opted-in scaffold and adoption." })),
   ...[["adopt-py", "tests/__init__.py"], ["adopt-structure", "AGENTS.override.md"], ["adopt-structure", "CLAUDE.md"], ["adopt-structure", "nana-pack.json"], ["adopt-structure", "./skills"], ["adopt-structure", "skills/adopt-structure"], ["requirements", "config.mjs"], ["requirements", "config.py"], ["requirements", "config.ts"], ["requirements", "path/to/module"], ["adopt-ts", "pnpm-workspace.yaml"], ["py-review", "uv.lock"], ["spec", "specs"]].map(([surface, text]) => ({ surface, kind: "path", text, reason: "Claim is a documented placeholder or optional target, measured in the lane probe." })),
   ...["nana-adoption.mjs", "nana-knowledge.ts", "nana-knowledge.ts hook", "nana-objective.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", "nana-knowledge", "nana-rulings.md"].map((text) => ({ surface: "templates/_shared/working-under-nana-pi.md", kind: "path", text, reason: "Runtime name is provided by another package or runtime, measured in the lane probe." })),
 ];

@@ -24,6 +24,12 @@ Sibling repo to `~/nana-agent-loop`.
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
   via `uvx copier update`; tags are cut only by `npm run release -- [--ref <rev>] [--push]`, which runs the acceptance gate first. CI runs that release step after the suite and install-check jobs pass on main; the Linux suite leg is non-blocking, while the Windows suite leg and the Windows install check block release. Generated CI
   carries a `template-drift` job that goes red when the project is behind the latest tag.
+Python templates offer a default-off `data_checks` answer. Opting in adds a standard-library
+read-only checker, settings and a pytest entry point for eight data checks. Adoption preserves
+existing pack files. Release acceptance runs default-off templates plus opted-in Python scaffold
+and adoption projects through their native toolchains; the suite exercises this on macOS and
+Windows too. Configure real inputs before treating a green data test as validation.
+
 - `packages/nana-knowledge/` — knowledge pull: a local BM25 (FTS5) index over the
   markdown knowledge stores on this machine, queried from a Claude Code
   `UserPromptSubmit` hook and from pi's `before_agent_start` through one shared hook CLI,
