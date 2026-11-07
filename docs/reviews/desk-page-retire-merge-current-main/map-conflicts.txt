@@ -1,0 +1,20 @@
+Combined diff summary: docs/code-map.md
+Parents: 98f4773f (lane), 33010d61 (main).
+
+Marked hunk 1, original line 10:
+Lane covers apps/hive and 608 modules.
+Main removes apps/hive and covers 568 modules.
+Resolution: regenerate from merged sources and main's config.
+
+Marked hunk 2, original line 2744 in lane / 2374 in main:
+Lane process-tree callers include apps/bench/run.mjs and apps/desk/test/stop-server.mjs.
+Main removes apps/bench/run.mjs, and does not yet include stop-server.mjs.
+Resolution: regenerate; keep surviving stop-server caller and omit deleted bench runner.
+
+Marked hunk 3, original line 3130 in lane / 2760 in main:
+Lane agent-dir-parity callees include apps/bench/lib/pi-exports.mjs.
+Main agent-dir-parity callees include apps/desk/pi-session.mjs.
+Resolution: regenerate; merged test uses neither retired bench helper nor desk transcript parser.
+
+The combined diff also shows the cleanly merged usage-line callee reduction and main's removal of the hive module entries.
+No generated content was hand-merged.

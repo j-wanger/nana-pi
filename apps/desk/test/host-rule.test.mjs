@@ -22,6 +22,7 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from 'node:url';
 
 const freePort = () =>
 	new Promise((resolve) => {
@@ -34,7 +35,7 @@ const freePort = () =>
 // ephemeral by default so concurrent runs cannot collide
 const PORT = Number(process.env.DESK_TEST_PORT) || (await freePort());
 const APP_PORT = await freePort();
-const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+const SERVER = fileURLToPath(new URL("../server.mjs", import.meta.url));
 const TD = tmpDir(path.join(os.tmpdir(), "desk-host-"));
 const appsDir = path.join(TD, "apps");
 const appCwd = path.join(TD, "repo");
@@ -107,16 +108,16 @@ try {
 
 	// ── loopback names still work, including the spellings the desk links to ──
 	for (const host of [`127.0.0.1:${PORT}`, `localhost:${PORT}`, `[::1]:${PORT}`, `LOCALHOST:${PORT}`]) {
-		r = await raw(PORT, "GET", "/api/live", host);
+		r = await raw(PORT, "GET", "/api/apps", host);
 		check(`Host: ${host} → 200`, r.status === 200, String(r.status));
 	}
-	r = await raw(PORT, "GET", "/api/live", null);
+	r = await raw(PORT, "GET", "/api/apps", null);
 	// req: R-458
 	check("no Host at all (HTTP/1.0, non-browser) → 200, like the no-Origin rule", r.status === 200, String(r.status));
-	r = await raw(PORT, "GET", "/api/live", "127.0.0.1:9999");
+	r = await raw(PORT, "GET", "/api/apps", "127.0.0.1:9999");
 	// req: R-458
 	check("right host, WRONG port → 403 (a rebind names its own port)", r.status === 403, String(r.status));
-	r = await raw(PORT, "GET", "/api/live", "127.0.0.1");
+	r = await raw(PORT, "GET", "/api/apps", "127.0.0.1");
 	check("loopback with no port → 403 (this listener is not on :80)", r.status === 403, String(r.status));
 
 	// names that RESOLVE to loopback but are not loopback names — the rebind shapes
@@ -128,11 +129,11 @@ try {
 	check("a foreign name PREFIXED by localhost → 403", r.status === 403, String(r.status));
 
 	// absolute-form request target: the Host header still decides
-	r = await raw(PORT, "GET", `http://evil.example/api/live`, "evil.example");
+	r = await raw(PORT, "GET", `http://evil.example/api/apps`, "evil.example");
 	check("absolute-form target with a foreign Host → 403", r.status === 403, String(r.status));
-	r = await raw(PORT, "GET", `http://evil.example/api/live`, `127.0.0.1:${PORT}`);
+	r = await raw(PORT, "GET", `http://evil.example/api/apps`, `127.0.0.1:${PORT}`);
 	check("absolute-form target cannot smuggle a foreign authority past the Host rule", r.status === 200, String(r.status));
-	r = await raw(PORT, "GET", `http://127.0.0.1:${PORT}/api/live`, `127.0.0.1:${PORT}`);
+	r = await raw(PORT, "GET", `http://127.0.0.1:${PORT}/api/apps`, `127.0.0.1:${PORT}`);
 	check("absolute-form loopback target routes normally", r.status === 200 && r.body.trim().startsWith("["), `${r.status} ${r.body.slice(0, 40)}`);
 
 	// ── the same rule guards every app listener, on its own port ──
@@ -149,7 +150,7 @@ try {
 	// req: R-458
 	check("app listener: the DESK's port in Host → 403 (each listener owns one origin)", r.status === 403, String(r.status));
 
-	check("no child was spawned by any of it", JSON.parse((await raw(PORT, "GET", "/api/live", `127.0.0.1:${PORT}`)).body).length === 0);
+	check("no child was spawned by any of it", (await fetch(`http://127.0.0.1:${APP_PORT}/api/session`).then(r => r.json())) === null);
 
 	// ── DESK_PORT=0 (2026-09-09): the rule reads the port the desk BOUND, not the one
 	// it was asked for. Before this, a port-0 desk 403'd every request including its
@@ -168,14 +169,14 @@ try {
 		}
 		// req: R-400
 		check("DESK_PORT=0 reports the port it bound", bound > 1024, String(bound));
-		r = await raw(bound, "GET", "/api/live", `127.0.0.1:${bound}`);
+		r = await raw(bound, "GET", "/api/apps", `127.0.0.1:${bound}`);
 		// req: R-400
 		check("…and answers its own bound port", r.status === 200, `${r.status} ${r.body.slice(0, 60)}`);
 		r = await raw(bound, "GET", "/api/settings", `evil.example:${bound}`);
 		check("…while a rebound Host is still 403 (the rule was not switched off)", r.status === 403, String(r.status));
-		r = await raw(bound, "GET", "/api/live", "127.0.0.1:9999");
+		r = await raw(bound, "GET", "/api/apps", "127.0.0.1:9999");
 		check("…and a loopback name on the WRONG port is still 403", r.status === 403, String(r.status));
-		r = await raw(bound, "GET", "/api/live", "127.0.0.1:0");
+		r = await raw(bound, "GET", "/api/apps", "127.0.0.1:0");
 		check("…including the port it was configured with (0), which it is not on", r.status === 403, String(r.status));
 	} finally {
 		zero.kill();

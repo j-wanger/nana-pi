@@ -611,11 +611,9 @@ function checkInstructionContracts() {
 	check("shared working pattern says the builder builds every lane when the roster sets no larger-lane builder",
 		largerLanesBullets.length === 1 && largerLanesBullets[0].includes("With no `largerBuilder`, the builder builds every lane."),
 		JSON.stringify(largerLanesBullets));
-	// req: R-685
-	check("desk matrix states nana resources for every spawn class and the terminal trust step",
-		desk.includes("Default desk spawn | Pi defaults: installed skills and extensions, including nana-pack where installed. Objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify, and roster notice are present only when their extensions are installed and loaded.") &&
-		desk.includes("Narrowed desk spawn | Only checked skills and extensions are passed; `--no-skills` / `--no-extensions` disables the rest, including nana-pack unless explicitly re-added. Each nana surface (objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify, roster notice) is available only if its extension is in the checked set.") &&
-		desk.includes("Current basketball and edge children list their app extension, nana-stage, and builtin MCP, not nana-pack: they receive no objective, writing, knowledge, gate, post-edit, handoff, lifecycle, notify, or roster notice unless a manifest explicitly lists the relevant extension.") &&
+	check("app host matrix states manifest-only resources and the terminal trust step",
+		desk.includes("Only manifest-listed skills and extensions load.") &&
+		desk.includes("No nana-pack surfaces load unless the manifest lists their extensions.") &&
 		desk.includes("`/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session."));
 	// req: R-1100
 	check("shared working pattern requires a threat model per plan",

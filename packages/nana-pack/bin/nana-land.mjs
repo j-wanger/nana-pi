@@ -87,8 +87,8 @@ function guardGeneratorConfiguration(folder) {
  } catch (error) { throw mergeRefusal("generatorScope", error.message); }
 }
 
-/** Rebuild a conflicted tree in an unregistered checkout and a private index; cleanup owns only this temp folder. */
-function regenerateTree(runGit, main, mergedTree, conflicts, { generatorContract, generatorTimeoutMs, runGenerator }) {
+/** Rebuild a merged tree in an unregistered checkout and a private index; cleanup owns only this temp folder. */
+function regenerateTree(runGit, main, mergedTree, generatedPaths, { generatorContract, generatorTimeoutMs, runGenerator }) {
  const folder = mkdtempSync(path.join(os.tmpdir(), "nana land generated-"));
  const checkout = path.join(folder, "tree");
  try {
@@ -103,7 +103,7 @@ function regenerateTree(runGit, main, mergedTree, conflicts, { generatorContract
    // Diagnostics (including HEAD-based deliverable notes) do not validate the merged tree.
    if (result.error || result.status !== 0) throw mergeRefusal(reason, `${argv.join(" ")}: exit ${result.status ?? result.signal ?? result.error?.code ?? "unknown"}${resultText(result) ? `: ${resultText(result).slice(0, LAND_REASON_MAX_CHARS).trim()}` : ""}`);
   };
-  for (const entry of generatorContract) if (conflicts.includes(entry.path)) command(entry.write, "generatorFailed");
+  for (const entry of generatorContract) if (generatedPaths.includes(entry.path)) command(entry.write, "generatorFailed");
   for (const entry of generatorContract) command(entry.check, "generatorCheck");
   const allowed = new Set(generatorContract.map(entry => entry.path));
   // Check worktree changes before staging: index-only changes are checked separately against mergedTree.
@@ -149,14 +149,10 @@ function cleanMergeTree(runGit, main, tip, capturedMain, generators) {
 		(result.status === 0 ? lines.length !== 1 : lines.length < 2 || lines.slice(1).some((line) => !line))) {
 		throw mergeRefusal("git", `exit ${result.status ?? result.signal ?? "unknown"}: ${String(result.stderr ?? result.error?.message ?? "malformed output").trim()}`);
 	}
-	if (result.status === 1) {
-  const conflicts = lines.slice(1);
-  if (conflicts.some(file => !GENERATOR_CONTRACT.some(entry => entry.path === file))) throw mergeRefusal("conflict", `${conflicts.slice(0, CLEAN_MERGE_NAME_CAP).join(", ")}${conflicts.length > CLEAN_MERGE_NAME_CAP ? ", …" : ""}`);
-  return { tree: regenerateTree(runGit, main, lines[0], conflicts, generators), base, regenerated: conflicts };
- }
-	// Preserve the clean-merge refusal for separate-hunk generated edits; only conflicts regenerate.
-	const generated = CLEAN_MERGE_GENERATED_PATHS.find((file) => lanePaths.includes(file) && mainPaths.includes(file));
-	if (generated) throw mergeRefusal("unsupported", `generated path ${generated} changed on both sides`);
+	const conflicts = result.status === 1 ? lines.slice(1) : [];
+	if (conflicts.some(file => !GENERATOR_CONTRACT.some(entry => entry.path === file))) throw mergeRefusal("conflict", `${conflicts.slice(0, CLEAN_MERGE_NAME_CAP).join(", ")}${conflicts.length > CLEAN_MERGE_NAME_CAP ? ", …" : ""}`);
+	const generated = [...new Set([...conflicts, ...CLEAN_MERGE_GENERATED_PATHS.filter(file => lanePaths.includes(file) && mainPaths.includes(file))])];
+	if (generated.length) return { tree: regenerateTree(runGit, main, lines[0], generated, generators), base, regenerated: generated };
 	return { tree: lines[0], base };
 }
 

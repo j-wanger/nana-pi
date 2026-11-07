@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { check } from './profile-fixture.mjs';
-import { regenerateFixture, executeCleanMerge, mergeSnapshot, commit, git, gitRunner, generatorRun } from './land-fixtures.mjs';
+import { regenerateFixture, executeCleanMerge, mergeSnapshot, commit, git, gitRunner, generatorRun, separateGeneratedHunks } from './land-fixtures.mjs';
 import * as C from '../lib/land-config.mjs';
 
 const outputs=['docs/code-map.md','docs/requirements-tree.md'];
@@ -31,7 +31,7 @@ const observe=()=>{
 };
 const cleaned=o=>{assert(o.dirs.length>0,'generator reached');for(const dir of o.dirs)assert(!fs.existsSync(dir),dir);};
 
-// req: R-3706
+// req: R-3706, R-3831
 await check('M1: generated-only conflicts land actual generator bytes and preserve the merged sources',()=>{
  for(const conflicts of [[outputs[0]],[outputs[1]],outputs]) {
   const f=regenerateFixture('m1',conflicts), registered=registrations(f), source=git(f.feature,'rev-parse','HEAD');
@@ -119,6 +119,27 @@ await check('M5: sealed Node argv ignores npm scripts and replaces decoys across
   assert.equal(out.code,0,out.text);cleaned(o);
   assert.equal(fs.readFileSync(path.join(f.main,outputs[0]),'utf8'),f.expected[outputs[0]]);assert(!fs.existsSync(path.join(f.main,'npm-ran')));
  }
+});
+
+// req: R-3829
+await check('both-sides clean generator failures timeout and scope changes refuse unchanged',()=>{
+ for(const kind of ['failure','timeout','scope']) {
+  const f=regenerateFixture(`both-${kind}`,[]),o=observe();
+  assert.equal(separateGeneratedHunks(f).status,0);
+  const write=kind==='failure'?'process.exit(7)':kind==='timeout'?'setTimeout(()=>{},60000)':writeOutput+"require('node:fs').writeFileSync('base.txt','extra');";
+  refuse(f,kind==='scope'?/generatorScope/:/generatorFailed/,{generatorContract:injected(write),generatorTimeoutMs:kind==='timeout'?20:C.GENERATOR_TIMEOUT_MS,runGenerator:o.runGenerator});
+  cleaned(o);
+ }
+});
+
+// req: R-3833
+await check('mixed conflict and clean both-sides outputs land both generator oracles',()=>{
+ const f=regenerateFixture('mixed',[outputs[0]]);
+ assert.equal(separateGeneratedHunks(f,[outputs[1]]).status,1);
+ const out=executeCleanMerge(f);assert.equal(out.code,0,out.text);assert.equal(out.suites,0);
+ for(const file of outputs)assert.equal(fs.readFileSync(path.join(f.main,file),'utf8'),f.expected[file]);
+ const sourceEntries=dir=>git(dir,'ls-tree','-r','HEAD').split(/\r?\n/).filter(line=>!outputs.includes(line.split('\t')[1]));
+ assert.deepEqual(sourceEntries(f.main),sourceEntries(f.oracle));
 });
 
 // req: R-3711

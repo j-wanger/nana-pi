@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { check } from './profile-fixture.mjs';
-import { cleanMergeFixture, executeCleanMerge, mergeSnapshot, commit, git, gitRunner, reviewTip } from './land-fixtures.mjs';
+import { cleanMergeFixture, executeCleanMerge, mergeSnapshot, commit, git, gitRunner, reviewTip, regenerateFixture, separateGeneratedHunks } from './land-fixtures.mjs';
 import { withReviewLedgerLock } from '../bin/review-round.mjs';
 import * as C from '../lib/land-config.mjs';
 
@@ -44,7 +44,7 @@ await check('M1: clean moved-main merge lands using only accepted-tip CI and rev
  assert.equal(out.end.outcome, 'landed');
 });
 
-// req: R-3689
+// req: R-3689, R-3830
 await check('M2: clean merge content matches literals and an independent ordinary merge', () => {
  const base = 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\n';
  for (const kind of ['hunks', 'rename', 'added']) {
@@ -120,15 +120,18 @@ await check('M10: rename destination merge driver refuses before merge-tree unch
  assert.equal(merges, 0); assert.equal(out.calls.length, 0);
 });
 
-// req: R-3690, R-3697
-await check('M11: generated paths changed in separate hunks refuse unchanged', () => {
- const base = 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\n';
- for (const file of ['docs/code-map.md', 'docs/requirements-tree.md']) {
-  const f = cleanMergeFixture('m11', { [file]: base });
-  commit(f.feature, file, base.replace('one\n', 'lane one\n'), 'first hunk');
-  commit(f.main, file, base.replace('nine\n', 'main nine\n'), 'last hunk'); refresh(f);
-  const out = refused(f, /unsupported.*generated path/);
-  assert(out.text.includes(file)); assert.equal(out.calls.length, 0);
+// req: R-3697, R-3828, R-3834
+await check('M11: separate-hunk generated changes land exact real-generator bytes', () => {
+ for (const file of C.CLEAN_MERGE_GENERATED_PATHS) {
+  const f = regenerateFixture('m11', []);
+  assert.equal(separateGeneratedHunks(f,[file]).status,0);
+  const out = executeCleanMerge(f);
+  assert.equal(out.code,0,out.text); assert.equal(out.suites,0);
+  assert.equal(fs.readFileSync(path.join(f.main,file),'utf8'),f.expected[file]);
+  assert(out.text.includes(file));
+  const merged=git(f.main,'rev-parse','HEAD');
+  assert(out.calls.filter(args=>args.at(-1).includes('/actions/runs?')).every(args=>args.at(-1).includes(`head_sha=${f.tip}&`)));
+  withReviewLedgerLock(f.home,({rounds,reservations})=>assert(![...rounds,...reservations].some(row=>row.revision===merged)));
  }
  assert.deepEqual(C.CLEAN_MERGE_GENERATED_PATHS, ['docs/code-map.md', 'docs/requirements-tree.md']);
 });
@@ -141,7 +144,7 @@ await check('M12: descendant main already containing the accepted tip refuses un
  const out = refused(f, /already contained/); assert.equal(out.calls.length, 0);
 });
 
-// req: R-3691
+// req: R-3691, R-3830
 await check('M4: conflict names paths and the merge-review-CI remedy before any CI read', () => {
  const f = cleanMergeFixture('m4'); commit(f.feature, 'base.txt', 'lane\n', 'lane conflict');
  commit(f.main, 'base.txt', 'main\n', 'main conflict'); refresh(f);
@@ -187,7 +190,7 @@ await check('M8: accepted policy limit lands a textually clean but semantically 
  assert.notEqual(broken.status,0); assert.match(broken.stderr,/does not provide an export named 'oldName'/);
 });
 
-// req: R-3696, R-3712
+// req: R-3696, R-3712, R-3832
 await check('M9: shared guidance, rendered region, README and ruling agree on the exemption', () => {
  const read=rel=>fs.readFileSync(new URL(`../../../${rel}`,import.meta.url),'utf8');
  const shared=read('templates/_shared/working-under-nana-pi.md'), agents=read('AGENTS.md');
@@ -203,7 +206,7 @@ await check('M9: shared guidance, rendered region, README and ruling agree on th
  for(const phrase of ['without new CI or review','merge.renormalize=false','check-attr --source','git ≥ 2.40','bors-ng']) assert(readme.includes(phrase),phrase);
  const exception='a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict';
  for(const text of [shared,readme])assert(text.includes(exception),exception);
- const ruling='- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review; a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land.';
+ const ruling='- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review; a generated file the land contract names, changed on both sides and rebuilt by its own generator, counts as no conflict. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land.';
  const rulings=read('packages/nana-pack/rules/nana-rulings.md');
  assert.equal(rulings.split('\n').filter(line=>line===ruling).length,1);
  assert(!rulings.includes('- 2026-10-10: An independent reviewer'));

@@ -11,21 +11,23 @@
 // that records its argv + cwd and speaks just enough RPC. Zero-dep.
 // Run: node apps/desk/test/app-listener.test.mjs   (exit 0 = all PASS)
 import { tmpDir } from "./tmp-dir.mjs";
+import { removeTmpDir } from "./tmp-dir.mjs";
 import { spawn } from "node:child_process";
+import { stopServer } from './stop-server.mjs';
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { reduceEntries } from "../../../packages/nana-stage/lib/blocks.mjs";
-import { resolvePiBin, resolvePiPackage } from "../pi-session.mjs";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const DESK_REQUESTED_PORT = 0;
 let DESK = 0, PA = 0, PB = 0, PZ = 0, PG = 0, PD = 0, P_BADPAGE = 0, P_BADDATA = 0, P_BADDATA2 = 0, P_BADNAME = 0, P_BADCWD = 0, P_NOTOOLS = 0, P_BADBUILTIN = 0, P_BADBUILTIN2 = 0, P_EPSILON = 0, DESK2 = 0;
-const SERVER = new URL("../server.mjs", import.meta.url).pathname;
+const SERVER = fileURLToPath(new URL("../server.mjs", import.meta.url));
 // The desk imports pi's session parser from the install tied to the `pi` it
 // SPAWNS — and this test deliberately puts a stub `pi` first on PATH, which no
 // package contains. So the harness names the real package explicitly; without it
 // the desk refuses to start rather than guess which install to parse with.
-const PI_ROOT = process.env.DESK_PI_ROOT || resolvePiPackage(resolvePiBin()).root;
+// The app host no longer imports pi's transcript parser.
 const tmp = tmpDir(path.join(os.tmpdir(), "desk-apps-"));
 const binDir = path.join(tmp, "bin");
 const appsDir = path.join(tmp, "apps");
@@ -39,7 +41,7 @@ fs.writeFileSync(extStage, "export default function () {}\n");
 const OUT = path.join(tmp, "stub-out.jsonl");
 
 // ── stub pi: records argv + cwd, answers get_state / get_entries / prompt, emits a dialog on "ask" ──
-const SIGN = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../../packages/nana-stage/lib/sign.mjs");
+const SIGN = pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../packages/nana-stage/lib/sign.mjs")).href;
 const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
 fs.appendFileSync(process.env.STUB_OUT, JSON.stringify({ argv: process.argv.slice(2), cwd: process.cwd(), hasKey: /^[0-9a-f]{64}$/.test(process.env.NANA_STAGE_KEY || ""), expect: process.env.NANA_STAGE_EXPECT_TOOLS || null }) + "\\n");
@@ -94,7 +96,10 @@ process.stdin.on("data", (c) => {
 });
 process.stdin.on("end", () => process.exit(0));
 `;
-fs.writeFileSync(path.join(binDir, "pi"), STUB, { mode: 0o755 });
+const stubFile = path.join(binDir, "pi.cjs");
+fs.writeFileSync(stubFile, STUB, { mode: 0o755 });
+const piBin = path.join(binDir, process.platform === 'win32' ? 'pi.cmd' : 'pi');
+fs.writeFileSync(piBin, process.platform === 'win32' ? `@echo off\r\n"${process.execPath}" "${stubFile}" %*\r\n` : STUB, { mode: 0o755 });
 
 const manifest = (_port, cwd, extra = {}) => ({ port: 0, cwd, tools: ["read", "player_card"], extensions: [extA, extStage], trust: "no-approve", title: "T", ...extra });
 // gamma: an app with its OWN page and durable-state data commands (slice 2 seam)
@@ -136,7 +141,7 @@ fs.writeFileSync(path.join(appsDir, "badbuiltin.json"), JSON.stringify(manifest(
 fs.writeFileSync(path.join(appsDir, "badbuiltin2.json"), JSON.stringify(manifest(P_BADBUILTIN2, cwdA, { extensions: [extA, "builtin:../x"] })));
 
 const server = spawn("node", [SERVER], {
-	env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: String(DESK_REQUESTED_PORT), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", DESK_READY_BOUND_MS: "1500", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
+	env: { ...process.env, HOME: tmp, USERPROFILE: tmp, PI_CODING_AGENT_DIR: path.join(tmp, 'agent'), DESK_STAGE_KEYS: path.join(tmp, 'keys'), DESK_PI_BIN: piBin, DESK_PORT: String(DESK_REQUESTED_PORT), DESK_APPS_DIR: appsDir, STUB_OUT: OUT, DESK_DATA_TIMEOUT_MS: "800", DESK_READY_BOUND_MS: "1500", PATH: `${binDir}${path.delimiter}${process.env.PATH}` },
 	stdio: ["ignore", "pipe", "pipe"],
 });
 let serverLog = "";
@@ -274,7 +279,7 @@ try {
 	fs.writeFileSync(path.join(appsDir, "epsilon.json"), JSON.stringify(manifest(P_EPSILON, cwdDying)));
 	// (the server loads manifests at start — spawn a second server for this one app)
 	const OUT2 = path.join(tmp, "stub-out-2.jsonl");
-	const server2 = spawn("node", [SERVER], { env: { ...process.env, DESK_PI_ROOT: PI_ROOT, DESK_PORT: "0", DESK_APPS_DIR: appsDir, STUB_OUT: OUT2, STUB_DIE_IN: "dying", DESK_READY_BOUND_MS: "5000", PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
+	const server2 = spawn("node", [SERVER], { env: { ...process.env, HOME: tmp, USERPROFILE: tmp, PI_CODING_AGENT_DIR: path.join(tmp, 'agent'), DESK_STAGE_KEYS: path.join(tmp, 'keys'), DESK_PI_BIN: piBin, DESK_PORT: "0", DESK_APPS_DIR: appsDir, STUB_OUT: OUT2, STUB_DIE_IN: "dying", DESK_READY_BOUND_MS: "5000", PATH: `${binDir}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
 	let server2Log = "";
 	server2.stdout.on("data", (c) => (server2Log += c)); server2.stderr.on("data", (c) => (server2Log += c));
 	try {
@@ -293,7 +298,7 @@ try {
 		const rE = await post(`http://127.0.0.1:${epsilonPort}`, "/api/session", {});
 		// req: R-450
 		check("dying child: POST /api/session → 502 naming the exit, not a 200 with tools=waiting", rE.status === 502 && /exited before its tools/.test((await rE.json()).error), String(rE.status));
-	} finally { server2.kill(); }
+	} finally { await stopServer(server2); }
 
 	// ── manifest session written back atomically after spawn ──
 	const mA = JSON.parse(fs.readFileSync(path.join(appsDir, "alpha.json"), "utf-8"));
@@ -307,7 +312,7 @@ try {
 	const sB = await post(B, "/api/session", {}).then((r) => r.json());
 	const runB = stubRuns().at(-1);
 	check("beta spawned its own child in its own cwd with -a", sB.id !== s1.id && runB.cwd === fs.realpathSync(cwdB) && /\s-a\b/.test(` ${runB.argv.join(" ")}`));
-	check("desk /api/live sees both app children (same user, same machine)", (await get(D, "/api/live")).filter((c) => c.id === s1.id || c.id === sB.id).length === 2);
+	check("desk has no live-session control API", (await fetch(D + '/api/live')).status === 404);
 
 	// ── Origin rule per port: A's origin cannot POST to B; own origin can ──
 	let r = await post(B, "/api/prompt", { message: "hi" }, A);
@@ -383,7 +388,7 @@ try {
 	console.log("HARNESS ERROR", e, "\n--- server log ---\n" + serverLog);
 	fails = 99;
 } finally {
-	server.kill();
-	fs.rmSync(tmp, { recursive: true, force: true });
+	await stopServer(server);
+	removeTmpDir(tmp);
 }
 process.exit(fails ? 1 : 0);

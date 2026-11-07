@@ -179,6 +179,19 @@ export function regenerateFixture(name, conflicts = ['docs/code-map.md', 'docs/r
  return f;
 }
 
+/** Replace distant generated hunks with decoys and prove git merges them textually. */
+export function separateGeneratedHunks(f, files = landConfig.CLEAN_MERGE_GENERATED_PATHS) {
+ for (const file of files) {
+  const base = gitRunner(f.main, ['show', `${f.base}:${file}`]).stdout;
+  const lines = base.trimEnd().split('\n'); assert(lines.length > 8);
+  commit(f.feature, file, ['lane decoy', ...lines.slice(1)].join('\n')+'\n', 'lane first generated hunk');
+  commit(f.main, file, [...lines.slice(0,-1), 'main decoy'].join('\n')+'\n', 'main last generated hunk');
+ }
+ f.tip=git(f.feature,'rev-parse','HEAD'); f.capturedMain=git(f.main,'rev-parse','HEAD');
+ const result=gitRunner(f.main,['merge-tree','--write-tree','--name-only','--no-messages',f.tip,f.capturedMain]);
+ return result;
+}
+
 export const ensureCiReview = (fixture) => {
 	if (!fixture.reviewed) { mkdirSync(path.join(fixture.home, ".pi", "agent"), { recursive: true }); fixture.reviewed = [`${reviewTip(fixture.feature, fixture.home)}=item`]; }
 };

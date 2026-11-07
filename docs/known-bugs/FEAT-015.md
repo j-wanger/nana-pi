@@ -30,10 +30,8 @@
 - Stale copies at session start (stale-copies-hooks, review): the install-record check keeps a branch for a call without settings, and no caller uses it now. A future caller that passes missing settings takes the other branch. It then finds no install record, so the line stays silent.
 - Byte-order mark (bom-pack-config): install refuses a Claude Code settings file that starts with a mark. Nobody has checked whether Claude Code itself loads such a file.
 - Byte-order mark (bom-pack-config, pack-config-utf16): nobody has seen the owner's nana config file. Since pack-config-utf16, nana reads the UTF-16 that PowerShell 5.1's redirect and file-output command write by default. The owner may still hit something neither lane fixes.
-- Byte-order mark (bom-pack-config): the frozen desk reads the nana config file its own way. It still treats a marked file as empty (inferred from its code, not run).
 - Byte-order mark (bom-pack-config), found on main too: the project setup test finds pi through npm's global folder. Under a temporary home, npm can point at another Node's folder, and the test file then crashes. Setting npm's prefix by hand avoids it.
 - Byte-order mark (pack-config-utf16, plan): pi's own settings file saved as UTF-16 stays unreadable, to pi and to doctor. pi owns that file, so the lane left its readers alone.
-- Byte-order mark (pack-config-utf16, plan and independent check): the frozen desk still reads a nana config file saved as UTF-16 as unreadable. Before it writes, its save path warns and keeps a backup, so no data is lost.
 - Byte-order mark (pack-config-utf16, plan): PowerShell 5.1's Set-Content writes in the ANSI code page by default. nana reads that file as UTF-8, so each non-ASCII character becomes a replacement mark.
 - Byte-order mark (pack-config-utf16, independent check): a UTF-16 config file holds half as many characters under the 1 MiB read cap. No realistic config comes near it.
 - Byte-order mark (pack-config-utf16, final review): only the objective producer's check pins the UTF-16 shapes that still cannot parse. No test pins the gate's stop or the roster's refusal for them. The reviewer's probes saw both behave as on main.
@@ -47,7 +45,6 @@
 - Doctor warnings (doctor-quiet): the checks pin the behaviour on Node 22, which CI and this Mac run. A Node release whose type stripping still warns would fail the project-settings check. The plan infers this for Node 23 and early 24; nobody has run either.
 - Doctor warnings (doctor-quiet): doctor hands every other warning to the listeners it saved. A one-time listener loses its one-time wrapper there. So a user preload's one-time listener fires on every later warning. The knowledge index's SQLite loader has the same pattern.
 - Doctor warnings (doctor-quiet): saved listeners run without the process as their context. A user listener that reads its context behaves differently. Node's own printer does not read it.
-- Byte-order mark (pi-settings-bom): the frozen desk still reads pi's own settings file without removing a leading mark. So it treats a marked file as absent (inferred from its code, not run).
 - Byte-order mark (pi-settings-bom), found on main too: a pi settings file holding only null crashes doctor and the install dry run. pi always writes an object, so this input is outside honest variation.
 - Byte-order mark (pi-settings-bom): a pi settings file holding a mark, then null, now crashes doctor and the install dry run. On main it read as not covered. An unmarked null already crashed both on main. One fix covers both: read packages only from an object.
 - Byte-order mark (pi-settings-bom, review): doctor's new import line sits between two Node built-in imports. It is a style point only.

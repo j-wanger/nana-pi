@@ -1,0 +1,22 @@
+Audit: 380 test/fixture files; 21 deleted paths; 239 removed complete prose lines/sentences; 9 matches.
+apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/test/crash-paths.test.mjs: apps/desk/test/crash-paths.test.mjs
+  kept: immutable benchmark checkout: resolves within its own fixture
+apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/test/double-msg.e2e.mjs: apps/desk/test/double-msg.e2e.mjs
+  kept: immutable benchmark checkout: resolves within its own fixture
+apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/test/rail-collapse.e2e.mjs: apps/desk/test/rail-collapse.e2e.mjs
+  kept: immutable benchmark checkout: resolves within its own fixture
+apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/test/spawn-and-persist.test.mjs: apps/desk/test/spawn-and-persist.test.mjs
+  kept: immutable benchmark checkout: resolves within its own fixture
+apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/test/spawn-tools.e2e.mjs: apps/desk/test/spawn-tools.e2e.mjs
+  kept: immutable benchmark checkout: resolves within its own fixture
+apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/test/subagent-render.e2e.mjs: apps/desk/test/subagent-render.e2e.mjs
+  kept: immutable benchmark checkout: resolves within its own fixture
+apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/test/teardown-invariants.test.mjs: apps/desk/test/teardown-invariants.test.mjs
+  kept: immutable benchmark checkout: resolves within its own fixture
+apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/test/title-live.e2e.mjs: apps/desk/test/title-live.e2e.mjs
+  kept: immutable benchmark checkout: resolves within its own fixture
+packages/nana-pack/tests/code-map.test.mjs: apps/desk/test/live-feel.e2e.mjs
+  kept: intentional unknown-module negative input; no file-existence assertion
+No surviving assertion pins the retired README spawn-class sentences; templates-render now pins manifest-only resources.
+New retirement assertions name removed files deliberately to pin absence.
+Historical design documents, review corpora and benchmark snapshots remain historical records, not runtime readers.

@@ -1,0 +1,33 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs apps/desk/test/app-listener.test.mjs apps/desk/test/buffer-caps.test.mjs apps/desk/test/host-rule.test.mjs apps/desk/test/origin-rule.test.mjs apps/desk/test/page-retire.test.mjs apps/desk/test/stage-key-persistence.test.mjs apps/desk/test/usage-line.test.mjs packages/nana-pack/tests/agent-dir-parity.test.mjs packages/nana-pack/tests/build-records.test.mjs packages/nana-pack/tests/code-map-launch.test.mjs packages/nana-pack/tests/context-anatomy.test.mjs packages/nana-pack/tests/nana-roster-set.test.mjs packages/nana-pack/tests/nana-roster.test.mjs packages/nana-pack/tests/one-reviewer.test.mjs packages/nana-pack/tests/outside-reader.test.mjs packages/nana-pack/tests/path-spelling.test.mjs packages/nana-pack/tests/planner-prompt.test.mjs packages/nana-pack/tests/review-ledger-state.test.mjs packages/nana-pack/tests/roster-notice.test.mjs packages/nana-pack/tests/rulings.test.mjs packages/nana-pack/tests/templates-render.test.mjs packages/nana-pack/tests/worker-claude.test.mjs packages/nana-setup/tests/desk-service.test.mjs packages/nana-setup/tests/doctor-detail.test.mjs packages/nana-setup/tests/seat-rule.test.mjs packages/nana-setup/tests/skills-and-standards.test.mjs packages/nana-setup/tests/uninstall.test.mjs
+
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs       44 pass  2.1s
+PASS  packages/nana-pack/tests/build-records.test.mjs          7 pass  13.3s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs        12 pass  1.8s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs        23 pass  52.8s
+PASS  packages/nana-pack/tests/nana-roster-set.test.mjs        11 pass  2.2s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs            27 pass  1.4s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs           8 pass  2.8s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs         8 pass  0.1s
+PASS  packages/nana-pack/tests/path-spelling.test.mjs          11 pass  30.1s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs         11 pass  0.0s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs    96 pass  44.1s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs          21 pass  0.4s
+PASS  packages/nana-pack/tests/rulings.test.mjs                23 pass  0.1s
+PASS  packages/nana-pack/tests/templates-render.test.mjs       173 pass  74.5s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs          24 pass, 3 skip  32.8s
+PASS  packages/nana-setup/tests/desk-service.test.mjs          46 pass  8.8s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs         72 pass  12.2s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs             21 pass  0.0s
+PASS  packages/nana-setup/tests/skills-and-standards.test.mjs  88 pass  7.5s
+PASS  packages/nana-setup/tests/uninstall.test.mjs             31 pass  2.4s
+PASS  apps/desk/test/app-listener.test.mjs                     76 pass  6.1s
+PASS  apps/desk/test/buffer-caps.test.mjs                      1 pass  0.3s
+PASS  apps/desk/test/host-rule.test.mjs                        30 pass  0.8s
+PASS  apps/desk/test/origin-rule.test.mjs                      11 pass  0.4s
+PASS  apps/desk/test/page-retire.test.mjs                      4 pass, 2 skip  7.1s
+PASS  apps/desk/test/stage-key-persistence.test.mjs            2 pass  1.3s
+PASS  apps/desk/test/usage-line.test.mjs                       6 pass  2.7s
+
+27 files: 27 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 887 pass, 0 fail, 5 skip · 308.6s

@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 570 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 562 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -231,16 +231,6 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callees** — `packages/nana-stage/lib/sign.mjs`
 - **repo-code launches** — line 235: spawn; binding line 365
 
-### `apps/desk/changes.mjs`
-
-- **purpose** — Read-only git view of a live session's repository — the working tree against HEAD as one count per file, plus one file's unified diff.
-- **inputs** — a live child's cwd and a repository-relative path; env DESK_GIT_TIMEOUT_MS, DESK_DIFF_CAP, DESK_UNTRACKED_TOTAL_CAP; `git` on PATH
-- **outputs** — exports collectChanges/resolveInRoot/fileDiff, each returning {status, body}: {repo:false, reason} | {repo:true, root, files:[{path,status,added,removed,binary}], totals} | {path, diff, truncated}
-- **effects** — disk (reads the repository and untracked files), process (spawn("git") with the path after `--`, never a shell)
-- **errors** — {status:500, body:{error}} when git fails or exceeds DESK_GIT_TIMEOUT_MS; resolveInRoot returns {error} for an absent, absolute, NUL-bearing or `..`-escaping path, or one resolving outside the real repository root; an ambiguous spawn ENOENT becomes 200 {repo:false} with "git not found" or "working directory is gone"
-- **callers** — `apps/desk/server.mjs`, `apps/desk/test/changes-endpoint.test.mjs`
-- **callees** — —
-
 ### `apps/desk/pi-session.mjs`
 
 - **purpose** — Resolve the single pi install the desk both spawns and imports, and expose pi's own session parser from that package root without ever rewriting a session file.
@@ -248,29 +238,9 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports PI_PACKAGE/PI_MIN_VERSION/parseSemver/compareSemver/sameVersion/resolvePiBin/piBinVersion/walkUpToPackage/piRootCandidates/resolvePiPackage/loadPiSession; loadPiSession returns {parseSessionEntries, migrateSessionEntries, CURRENT_SESSION_VERSION} from the same install the desk spawns
 - **effects** — disk (reads package.json files and dynamic-imports the pi package), process (execFileSync of the pi binary for --version, 8 s timeout)
 - **errors** — throws Error when no pi binary is found, when its package root cannot be resolved, when the version is below PI_MIN_VERSION, or when the imported install's version differs from the binary's
-- **callers** — `apps/desk/server.mjs`, `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-rpc-contract.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`, `apps/desk/test/usage-line.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`
+- **callers** — `apps/desk/server.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-rpc-contract.test.mjs`
 - **callees** — —
 - **repo-code launches** — line 171: execFileSync; binding line 180
-
-### `apps/desk/public/app.js`
-
-- **purpose** — The desk page: it drives every view (rail, live transcript, composer, historical sessions, settings, spawn popover) against the desk's /api surfaces.
-- **inputs** — the DOM of public/index.html; the /api/* JSON routes and the per-session SSE stream; keyboard, paste, scroll and visibility events; localStorage keys nana-code-theme, nana-code-rail, desk-collapsed and desk-append-sp
-- **outputs** — renders the whole page and its dialogs; POSTs prompts, steers, bash, aborts, spawns, renames, title derivation, settings/mcp/nana-pack/agents/context-file writes and session exports; persists view preferences to localStorage
-- **effects** — network (fetch and EventSource against the desk origin), disk (browser localStorage only)
-- **errors** — none thrown to the host — a failed request surfaces as a toast or an inline error, and a response for a stage the user has left is dropped without painting
-- **callers** — `apps/desk/test/spawn-and-persist.test.mjs`
-- **callees** — `apps/desk/public/changes.js`, `apps/desk/public/desk-client.mjs`, `apps/desk/public/md.js`
-
-### `apps/desk/public/changes.js`
-
-- **purpose** — Own the "files changed" bar above the composer and the floating, draggable diff window it opens.
-- **inputs** — init({stale}) from app.js (the stage-staleness predicate), refresh(sessionId, generation) and clear(); /api/session/:id/changes and /changes/file?path=; pointer events; localStorage key nana-code-diffwin for the window position
-- **outputs** — renders the changed-file bar and the diff window; returns nothing — app.js calls refresh()/clear() and reads no state back
-- **effects** — network (fetch against the desk origin), disk (browser localStorage only)
-- **errors** — none thrown — a response for a stage generation the user has left is dropped without painting, and a failed fetch leaves the bar in its previous state
-- **callers** — `apps/desk/public/app.js`
-- **callees** — `apps/desk/public/desk-client.mjs`
 
 ### `apps/desk/public/desk-client.mjs`
 
@@ -279,17 +249,17 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — exports stripAnsi/el/contentBlocks/renderImage/argSummary/ARG_KEYS/toolActivity/activityVerb/parseSkillMessage/skillLabel/matchesUserEcho/toolRow/setToolStreaming/renderDiff/finishToolRow/buildDialog/openEventStream/postJson/rpcCall/JSON_HEADERS; returns detached DOM nodes, strings and parsed JSON
 - **effects** — network (openEventStream opens an EventSource; postJson and rpcCall POST JSON)
 - **errors** — rpcCall rejects with Error(r.error) when the RPC reports an error or !success; postJson resolves to the server's {error} body rather than rejecting; openEventStream reports transport failures through its onError callback and drops an unparsable event line silently; the render helpers throw nothing
-- **callers** — `apps/desk/public/app.js`, `apps/desk/public/changes.js`, `apps/desk/test/live-feel.test.mjs`
+- **callers** — —
 - **callees** — —
 
 ### `apps/desk/public/md.js`
 
 - **purpose** — Escape-first minimal markdown to HTML for agent replies: fences, headings, lists, blockquotes, rules and inline code, bold, italic and links.
-- **inputs** — mdToHtml(text) — one markdown string
-- **outputs** — an HTML string in which every character was escaped before any transform and inline code is carved out first so no other pattern fires inside it
+- **inputs** — mdToHtml(text) or escapeHtml(text) — one string
+- **outputs** — exports escapeHtml/mdToHtml; an HTML string escaped before any transform and inline code is carved out first so no other pattern fires inside it
 - **effects** — none
 - **errors** — none
-- **callers** — `apps/desk/public/app.js`
+- **callers** — `apps/desk/server.mjs`
 - **callees** — —
 
 ### `apps/desk/public/stage/stage.js`
@@ -304,14 +274,14 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 
 ### `apps/desk/server.mjs`
 
-- **purpose** — The desk's loopback HTTP server: static page, the /api surfaces over live `pi --mode rpc` children, and read/write access to pi's session and config files.
-- **inputs** — HTTP requests on 127.0.0.1 (port DESK_PORT, default 7317); env DESK_APPS_DIR, DESK_KILL_GRACE_MS, DESK_MAX_PENDING_RPC, DESK_SSE_BUFFER_CAP, DESK_STDOUT_LINE_CAP, DESK_TAIL_BUDGET, PATH; pi's ACTIVE agent dir (sessions/, settings.json, mcp.json, nana-pack.json, agents/), per-project .pi/nana-pack.json and AGENTS.md-family files, app manifests, and public/ assets
-- **outputs** — JSON responses and the per-session SSE stream (desk_hello then live RPC events); usage lines to stdout; spawned `pi --mode rpc` children and relayed RPC; writes session_info entries, settings.json, mcp.json, nana-pack.json, agents definitions and context files (each after a .bak copy); session HTML export; the startup URL on stdout
-- **effects** — disk (session and config reads and writes), process (spawns pi, git, the native folder picker and headless title derivation; exits on signals), network (binds 127.0.0.1 only; the model calls its pi children make)
-- **errors** — per-route JSON {error} at 400 (bad body or argument), 403 (Host/Origin rejection — a request must address the desk by a loopback name), 404 (unknown session, or a path resolving outside the sessions dir), 409 (refusals and lifecycle conflicts: a write through or below a symlink, a non-session file, a session file another process is writing, a dialog that is not open, a session that is not running), 500 (child or filesystem failure); exit 1 when the desk cannot start (pi unresolvable, port taken), exit 0 after draining children on SIGINT/SIGTERM
-- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/origin-rule.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`, `apps/desk/test/usage-line.test.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/copy-record.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`
-- **callees** — `apps/desk/apps.mjs`, `apps/desk/changes.mjs`, `apps/desk/pi-session.mjs`, `apps/desk/stage-keys.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-stage/lib/blocks.mjs`
-- **repo-code launches** — line 485: spawn · line 487: spawn · line 1615: exec; binding line 1635 · line 1616: execFile; binding line 1635 · line 1830: execFile
+- **purpose** — Host manifest-configured loopback apps and a retired desk-page notice.
+- **inputs** — HTTP requests; DESK_PORT, DESK_APPS_DIR, DESK_PI_BIN; pi's active agent directory; app manifests, session headers and persisted stage keys; child RPC events.
+- **outputs** — Retired notice, app registry, per-app listeners and bounded RPC/SSE transport.
+- **effects** — disk (session headers, manifests and stage keys), process (pi children), network (loopback).
+- **errors** — JSON errors including 400/403/404/409/429/500; startup errors are fatal; signals drain children.
+- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/origin-rule.test.mjs`, `apps/desk/test/page-retire.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/usage-line.test.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/copy-record.test.mjs`, `packages/nana-setup/tests/desk-service.test.mjs`
+- **callees** — `apps/desk/apps.mjs`, `apps/desk/pi-session.mjs`, `apps/desk/public/md.js`, `apps/desk/stage-keys.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-stage/lib/blocks.mjs`
+- **repo-code launches** — line 162: spawn · line 163: spawn
 
 ### `apps/desk/stage-keys.mjs`
 
@@ -331,37 +301,17 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME, apps dir and manifests), network (HTTP to the desk and app ports it binds), process (spawns the desk and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/blocks.mjs`, `packages/nana-stage/lib/sign.mjs`
+- **callees** — `apps/desk/server.mjs`, `apps/desk/test/stop-server.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/blocks.mjs`, `packages/nana-stage/lib/sign.mjs`
 
 ### `apps/desk/test/buffer-caps.test.mjs`
 
-- **purpose** — Pins the bounded-buffer property — no local producer can grow the desk process without bound or cost the operator the other sessions
-- **inputs** — apps/desk/server.mjs with the four caps lowered by environment, a stub `pi` that floods, and an SSE client that stops reading
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME and apps dir), network (HTTP and SSE against the desk it binds), process (spawns the desk and the stub pi)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **purpose** — Retain the app data-command output-cap regression after desk-route retirement.
+- **inputs** — The app host, temporary manifest and flooding data command.
+- **outputs** — Bounded awaited TAP case.
+- **effects** — disk (temporary fixtures), process (host and data child), network (loopback).
+- **errors** — Assertions and timeouts fail the case.
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
-
-### `apps/desk/test/changes-endpoint.test.mjs`
-
-- **purpose** — Pins that the changes endpoints answer from git and that nothing a request names can reach outside the session's own work tree
-- **inputs** — apps/desk/changes.mjs and apps/desk/server.mjs, temp git repositories, and a stub `pi` first on PATH
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, git repositories and work trees), network (HTTP to the desk it binds), process (spawns the desk, the stub pi and git)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/desk/changes.mjs`, `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
-
-### `apps/desk/test/crash-paths.test.mjs`
-
-- **purpose** — Pins that nothing a request or a child can say takes the desk process down, wedges its event loop, or leaves a live pi process untracked
-- **inputs** — apps/desk/server.mjs, hostile request targets, and a stub `pi` emitting hostile child events
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, apps dir and manifests), network (HTTP to the desk and app ports it binds), process (spawns the desk and the stub pi)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
+- **callees** — `apps/desk/server.mjs`, `apps/desk/test/test-case.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `apps/desk/test/host-rule.test.mjs`
 
@@ -383,16 +333,6 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callers** — —
 - **callees** — —
 
-### `apps/desk/test/live-feel.test.mjs`
-
-- **purpose** — Pins the two pure pieces behind the live-feel surfaces — the activity line's verb derivation and the skill-expansion parser
-- **inputs** — apps/desk/public/desk-client.mjs, imported in Node with no DOM
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — none
-- **errors** — a failed check prints FAIL with the got and want values and the run exits 1
-- **callers** — —
-- **callees** — `apps/desk/public/desk-client.mjs`
-
 ### `apps/desk/test/origin-rule.test.mjs`
 
 - **purpose** — Pins that every state-changing desk route rejects cross-origin browser requests and non-JSON bodies before doing anything, while reads stay open
@@ -401,17 +341,18 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — network (HTTP to the desk it binds), process (spawns the desk; no pi child is ever spawned)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/server.mjs`
+- **callees** — `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
 
-### `apps/desk/test/pi-087-entries.test.mjs`
+### `apps/desk/test/page-retire.test.mjs`
 
-- **purpose** — Pins the newer pi session entry kinds on the desk's read path — none reaches the page, all stay in the branch index, and the edited target is still rendered
-- **inputs** — apps/desk/server.mjs, apps/desk/pi-session.mjs, and a session file written by pi's own SessionManager
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (a temp HOME and session files), network (HTTP to the desk it binds), process (spawns the desk and a stub pi)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **purpose** — Pin desk-page retirement and the surviving app host in HTTP and browser requests.
+- **inputs** — The real server, OS-temporary manifests and a deterministic RPC child; PW_ROOT for browser checks.
+- **outputs** — Awaited bounded TAP cases.
+- **effects** — disk (temporary fixtures), network (loopback), process (server, stub and browser).
+- **errors** — Assertions, timeouts and missing browser tooling fail the owning case.
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
+- **callees** — `apps/desk/server.mjs`, `apps/desk/test/stop-server.mjs`, `apps/desk/test/test-case.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-stage/lib/sign.mjs`
+- **unresolved launches** — line 133: spawnSync
 
 ### `apps/desk/test/pi-resolution.test.mjs`
 
@@ -434,66 +375,45 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **callees** — `apps/desk/pi-session.mjs`, `apps/desk/test/tmp-dir.mjs`
 - **repo-code launches** — line 109: spawn
 
-### `apps/desk/test/pi-session-parity.test.mjs`
-
-- **purpose** — The parity contract for reading sessions with pi's own parser — resolution ties the parser to the binary, the answers match the old parser on what a reader uses, and pi is the judge of the branch
-- **inputs** — apps/desk/server.mjs, apps/desk/pi-session.mjs, and sessions written by pi's own SessionManager
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME and session files), network (HTTP to the desk it binds), process (spawns the desk and a stub pi)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
-
-### `apps/desk/test/prompt-detach.test.mjs`
-
-- **purpose** — Pins the prompt endpoint's DETACH contract — every answer carries a promptId, a detached prompt settles exactly once by event, and the outcome is kept for a client that attaches later
-- **inputs** — apps/desk/server.mjs and a stub `pi` that holds its acceptance past the detach deadline
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME and apps dir), network (HTTP and SSE against the desk it binds), process (spawns the desk and the stub pi)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
-
-### `apps/desk/test/spawn-and-persist.test.mjs`
-
-- **purpose** — Pins three things only the desk gets to decide — the trust flag it sends pi, that title derivation runs tool-less on fenced attacker-influenceable text, and that an appended session_info chains to the current leaf
-- **inputs** — apps/desk/server.mjs and a stub `pi` that records its argv, under a temp HOME
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, settings and session files), network (HTTP to the desk it binds), process (spawns the desk and the stub pi)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/public/app.js`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
-
 ### `apps/desk/test/stage-key-persistence.test.mjs`
 
-- **purpose** — Pins that stage signing keys survive a desk restart across four server runs, and that a forged or unknown-key block is still redacted
-- **inputs** — apps/desk/server.mjs, apps/desk/stage-keys.mjs, nana-stage's lib/sign.mjs, and a stub `pi` that writes real session files with signed blocks
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, key store and session files), network (HTTP to the desk it binds), process (spawns the desk and the stub pi)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
+- **purpose** — Pin persisted app signing keys across restart and rename, plus store failure isolation.
+- **inputs** — The real app host, temporary manifests/session files, StageKeyStore and deterministic RPC children.
+- **outputs** — Awaited bounded TAP tests.
+- **effects** — disk (temporary homes and records), network (ephemeral loopback), process (host and stub).
+- **errors** — Assertion failures and timeouts fail the owning case.
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/stage-keys.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/sign.mjs`
-- **unresolved launches** — line 274: spawn
+- **callees** — `apps/desk/server.mjs`, `apps/desk/stage-keys.mjs`, `apps/desk/test/stop-server.mjs`, `apps/desk/test/test-case.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/sign.mjs`
 
-### `apps/desk/test/teardown-invariants.test.mjs`
+### `apps/desk/test/stop-server.mjs`
 
-- **purpose** — Pins that the desk never stops counting a child it cannot prove is gone, so every freed capacity slot corresponds to a process that really ended
-- **inputs** — apps/desk/server.mjs, a stub `pi`, and the preload fixture that makes a kill fail the way EPERM does
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME and apps dir), network (HTTP to the desk it binds), process (spawns the desk and unkillable stub children, and signals them)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
+- **purpose** — Stop a fixture host and await closed stdio, including its Windows process tree.
+- **inputs** — A spawned ChildProcess.
+- **outputs** — An awaited shutdown promise.
+- **effects** — process (signals the host or runs taskkill).
+- **errors** — Rejects kill failures for a live host and bounded shutdown timeouts.
+- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/page-retire.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`
+- **callees** — `packages/nana-pack/lib/process-tree.mjs`
+
+### `apps/desk/test/test-case.mjs`
+
+- **purpose** — Emit repository-runner check lines for bounded Node test cases.
+- **inputs** — A case title, Node test options and an awaited case body.
+- **outputs** — Named test wrapper returning Node's test promise and PASS/SKIP lines.
+- **effects** — process (test reporting)
+- **errors** — Node's test runner reports body failures and timeouts with a failing exit code.
+- **callers** — `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/page-retire.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`
+- **callees** — —
 
 ### `apps/desk/test/tmp-dir.mjs`
 
 - **purpose** — Create test temporary roots and remove them when the test process exits.
-- **inputs** — A mkdtemp prefix.
-- **outputs** — The created temporary directory path.
+- **inputs** — A mkdtemp prefix or finished temporary root.
+- **outputs** — The created temporary directory path, or removal of a finished root.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
-- **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/changes-endpoint.test.mjs`, `apps/desk/test/crash-paths.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/pi-087-entries.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-rpc-contract.test.mjs`, `apps/desk/test/pi-session-parity.test.mjs`, `apps/desk/test/prompt-detach.test.mjs`, `apps/desk/test/spawn-and-persist.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/teardown-invariants.test.mjs`, `apps/desk/test/usage-line.test.mjs`
-- **callees** — —
+- **errors** — Explicit creation/removal errors propagate; exit-time cleanup errors are ignored.
+- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/origin-rule.test.mjs`, `apps/desk/test/page-retire.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-rpc-contract.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/usage-line.test.mjs`
+- **callees** — `packages/nana-pack/lib/test-runner-config.mjs`
 
 ### `apps/desk/test/usage-line.test.mjs`
 
@@ -503,7 +423,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temporary fixtures), process (desk and stub pi), network (ephemeral loopback listeners)
 - **errors** — failed checks increment the failure count; unexpected errors fail the process
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
+- **callees** — `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`
 
 ### `scripts/blast-radius.mjs`
 
@@ -1317,7 +1237,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Invalid arguments, missing review evidence, failed preconditions, unreadable or red CI, suite failures, and git failures return a named refusal.
 - **callers** — `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/ci-wait.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/record-ledger.mjs`, `packages/nana-pack/lib/release-status.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`
-- **unresolved launches** — line 193: spawnSync
+- **unresolved launches** — line 189: spawnSync
 - **repo-code launches** — line 38: spawnSync
 
 ### `packages/nana-pack/bin/nana-main-ci.mjs`
@@ -2374,7 +2294,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — pidAlive, killProcessTree's boolean outcome, killProcessTreeNoWait, and sealed taskkill/default constants
 - **effects** — process (signals a process group or starts taskkill)
 - **errors** — never throws
-- **callers** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
+- **callers** — `apps/desk/test/stop-server.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
 - **callees** — —
 - **repo-code launches** — line 37: spawnSync · line 63: spawn
 
@@ -2626,7 +2546,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — JOBS_FLAG, SHARD_FLAG, shardFiles, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder removal retry count and delay, and checkoutSpellingSkipReason
 - **effects** — disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
 - **errors** — checkoutSpellingSkipReason propagates temporary-folder creation errors
-- **callers** — `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`, `packages/nana-setup/tests/memory-end-hook.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
+- **callers** — `apps/desk/test/tmp-dir.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`, `packages/nana-setup/tests/memory-end-hook.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/tree-kill-scan.mjs`
@@ -2672,12 +2592,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/windows-skips-config.mjs`
 
-- **purpose** — Declare the whole-file Windows test skips the runner (scripts/test.mjs) reads on win32.
+- **purpose** — Declare the whole-file Windows test skips the runner reads on win32.
 - **inputs** — none
 - **outputs** — WINDOWS_SKIPS
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/test.mjs`
+- **callers** — `apps/desk/test/page-retire.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `scripts/test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/writing-check.mjs`
@@ -2760,7 +2680,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and install targets), network (HTTP to the desk it binds on an ephemeral port), process (sets HOME and PI_CODING_AGENT_DIR, spawns the desk, the installer and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/pi-session.mjs`, `apps/desk/server.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`
+- **callees** — `apps/desk/server.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`
 
 ### `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`
 
@@ -3428,7 +3348,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Assertion failures set exit code one.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `scripts/test.mjs`
-- **unresolved launches** — line 184: spawnSync · line 186: spawnSync
+- **unresolved launches** — line 187: spawnSync · line 189: spawnSync
 
 ### `packages/nana-pack/tests/land-fixtures.mjs`
 
@@ -5840,7 +5760,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the 64-char hex signature (signBlock), a timing-safe boolean verdict (verifyBlock), and the canonical sorted-key JSON string (canonical)
 - **effects** — none
 - **errors** — none — a missing, non-string or wrong-length signature is a false verdict, never a throw
-- **callers** — `apps/desk/apps.mjs`, `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `packages/nana-stage/extensions/nana-stage.ts`, `packages/nana-stage/tests/blocks.test.mjs`
+- **callers** — `apps/desk/apps.mjs`, `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/page-retire.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `packages/nana-stage/extensions/nana-stage.ts`, `packages/nana-stage/tests/blocks.test.mjs`
 - **callees** — —
 
 ### `packages/nana-stage/tests/blocks.test.mjs`
