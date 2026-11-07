@@ -10,8 +10,8 @@
 // Drives the REAL desk server with two app manifests against a STUB `pi`
 // that records its argv + cwd and speaks just enough RPC. Zero-dep.
 // Run: node apps/desk/test/app-listener.test.mjs   (exit 0 = all PASS)
-import { tmpDir } from "./tmp-dir.mjs";
-import { spawn } from "node:child_process";
+import { tmpDir, removeTmpDir } from "./tmp-dir.mjs";
+import { spawn, execFile } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -146,6 +146,23 @@ let serverLog = "";
 let reportedApps = [];
 server.stdout.on("data", (c) => (serverLog += c));
 server.stderr.on("data", (c) => (serverLog += c));
+
+// Windows does not deliver Node's SIGTERM handlers. Kill the entire tree there,
+// then await both taskkill and the host's closed stdio before deleting its cwd.
+async function stopServer(child) {
+	if (child.exitCode !== null || child.signalCode !== null) return;
+	let timer;
+	const closed = new Promise((resolve, reject) => {
+		child.once("close", resolve);
+		timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("host shutdown timeout")); }, 10000);
+	});
+	try {
+		const stopped = process.platform === "win32"
+			? new Promise((resolve, reject) => execFile("taskkill", ["/pid", String(child.pid), "/t", "/f"], { timeout: 10000 }, error => error ? reject(error) : resolve()))
+			: Promise.resolve(child.kill());
+		await Promise.all([closed, stopped]);
+	} finally { clearTimeout(timer); }
+}
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };
@@ -296,7 +313,7 @@ try {
 		const rE = await post(`http://127.0.0.1:${epsilonPort}`, "/api/session", {});
 		// req: R-450
 		check("dying child: POST /api/session → 502 naming the exit, not a 200 with tools=waiting", rE.status === 502 && /exited before its tools/.test((await rE.json()).error), String(rE.status));
-	} finally { server2.kill(); }
+	} finally { await stopServer(server2); }
 
 	// ── manifest session written back atomically after spawn ──
 	const mA = JSON.parse(fs.readFileSync(path.join(appsDir, "alpha.json"), "utf-8"));
@@ -386,7 +403,7 @@ try {
 	console.log("HARNESS ERROR", e, "\n--- server log ---\n" + serverLog);
 	fails = 99;
 } finally {
-	server.kill();
-	fs.rmSync(tmp, { recursive: true, force: true });
+	await stopServer(server);
+	removeTmpDir(tmp);
 }
 process.exit(fails ? 1 : 0);

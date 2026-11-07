@@ -638,12 +638,12 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `apps/desk/test/tmp-dir.mjs`
 
 - **purpose** — Create test temporary roots and remove them when the test process exits.
-- **inputs** — A mkdtemp prefix.
-- **outputs** — The created temporary directory path.
+- **inputs** — A mkdtemp prefix or finished temporary root.
+- **outputs** — The created temporary directory path, or removal of a finished root.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
-- **errors** — Propagates directory creation errors and ignores cleanup errors.
+- **errors** — Explicit creation/removal errors propagate; exit-time cleanup errors are ignored.
 - **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/buffer-caps.test.mjs`, `apps/desk/test/host-rule.test.mjs`, `apps/desk/test/origin-rule.test.mjs`, `apps/desk/test/page-retire.test.mjs`, `apps/desk/test/pi-resolution.test.mjs`, `apps/desk/test/pi-rpc-contract.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`, `apps/desk/test/usage-line.test.mjs`
-- **callees** — —
+- **callees** — `packages/nana-pack/lib/test-runner-config.mjs`
 
 ### `apps/desk/test/usage-line.test.mjs`
 
@@ -3028,7 +3028,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder removal retry count and delay, and checkoutSpellingSkipReason
 - **effects** — disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
 - **errors** — checkoutSpellingSkipReason propagates temporary-folder creation errors
-- **callers** — `packages/nana-pack/tests/lane-class.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/tests/memory-end-hook.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
+- **callers** — `apps/desk/test/tmp-dir.mjs`, `packages/nana-pack/tests/lane-class.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/tests/memory-end-hook.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/tree-kill-scan.mjs`
