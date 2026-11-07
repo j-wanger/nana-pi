@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { signBlock } from '../../../packages/nana-stage/lib/sign.mjs';
 import { StageKeyStore } from '../stage-keys.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
+import { stopServer } from './stop-server.mjs';
 
 const options = { timeout: 30000 };
 const serverPath = fileURLToPath(new URL('../server.mjs', import.meta.url));
@@ -73,9 +74,7 @@ require('node:readline').createInterface({input:process.stdin}).on('line',async 
   setSession(file);
   let server;
   async function stop() {
-    if (!server || server.exitCode !== null || server.signalCode !== null) return;
-    const exited = new Promise(r => server.once('exit', r)); server.kill();
-    let timer; await Promise.race([exited, new Promise((_, reject) => { timer = setTimeout(() => { server.kill('SIGKILL'); reject(new Error('shutdown timeout')); }, 5000); })]); clearTimeout(timer);
+    await stopServer(server);
   }
   async function start() {
     let log = '';

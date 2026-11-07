@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 607 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `apps/hive`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 608 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -541,7 +541,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temp HOME, apps dir and manifests), network (HTTP to the desk and app ports it binds), process (spawns the desk and the stub pi)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `apps/desk/server.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/blocks.mjs`, `packages/nana-stage/lib/sign.mjs`
+- **callees** — `apps/desk/server.mjs`, `apps/desk/test/stop-server.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/blocks.mjs`, `packages/nana-stage/lib/sign.mjs`
 
 ### `apps/desk/test/buffer-caps.test.mjs`
 
@@ -591,8 +591,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temporary fixtures), network (loopback), process (server, stub and browser).
 - **errors** — Assertions, timeouts and missing browser tooling fail the owning case.
 - **callers** — —
-- **callees** — `apps/desk/server.mjs`, `apps/desk/test/test-case.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-stage/lib/sign.mjs`
-- **unresolved launches** — line 136: spawnSync
+- **callees** — `apps/desk/server.mjs`, `apps/desk/test/stop-server.mjs`, `apps/desk/test/test-case.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-stage/lib/sign.mjs`
+- **unresolved launches** — line 133: spawnSync
 
 ### `apps/desk/test/pi-resolution.test.mjs`
 
@@ -623,7 +623,17 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — disk (temporary homes and records), network (ephemeral loopback), process (host and stub).
 - **errors** — Assertion failures and timeouts fail the owning case.
 - **callers** — —
-- **callees** — `apps/desk/server.mjs`, `apps/desk/stage-keys.mjs`, `apps/desk/test/test-case.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/sign.mjs`
+- **callees** — `apps/desk/server.mjs`, `apps/desk/stage-keys.mjs`, `apps/desk/test/stop-server.mjs`, `apps/desk/test/test-case.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-stage/lib/sign.mjs`
+
+### `apps/desk/test/stop-server.mjs`
+
+- **purpose** — Stop a fixture host and await closed stdio, including its Windows process tree.
+- **inputs** — A spawned ChildProcess.
+- **outputs** — An awaited shutdown promise.
+- **effects** — process (signals the host or runs taskkill).
+- **errors** — Rejects kill failures for a live host and bounded shutdown timeouts.
+- **callers** — `apps/desk/test/app-listener.test.mjs`, `apps/desk/test/page-retire.test.mjs`, `apps/desk/test/stage-key-persistence.test.mjs`
+- **callees** — `packages/nana-pack/lib/process-tree.mjs`
 
 ### `apps/desk/test/test-case.mjs`
 
@@ -2734,7 +2744,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — pidAlive, killProcessTree's boolean outcome, killProcessTreeNoWait, and sealed taskkill/default constants
 - **effects** — process (signals a process group or starts taskkill)
 - **errors** — never throws
-- **callers** — `apps/bench/run.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
+- **callers** — `apps/bench/run.mjs`, `apps/desk/test/stop-server.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/tree-kill-scan.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
 - **callees** — —
 - **repo-code launches** — line 37: spawnSync · line 63: spawn
 

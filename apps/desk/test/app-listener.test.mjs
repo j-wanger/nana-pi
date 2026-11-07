@@ -12,7 +12,8 @@
 // Run: node apps/desk/test/app-listener.test.mjs   (exit 0 = all PASS)
 import { tmpDir } from "./tmp-dir.mjs";
 import { removeTmpDir } from "./tmp-dir.mjs";
-import { spawn, execFile } from "node:child_process";
+import { spawn } from "node:child_process";
+import { stopServer } from './stop-server.mjs';
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -147,23 +148,6 @@ let serverLog = "";
 let reportedApps = [];
 server.stdout.on("data", (c) => (serverLog += c));
 server.stderr.on("data", (c) => (serverLog += c));
-
-// Windows does not deliver Node's SIGTERM handlers. Kill the entire tree there,
-// then await both taskkill and the host's closed stdio before deleting its cwd.
-async function stopServer(child) {
-	if (child.exitCode !== null || child.signalCode !== null) return;
-	let timer;
-	const closed = new Promise((resolve, reject) => {
-		child.once("close", resolve);
-		timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("host shutdown timeout")); }, 10000);
-	});
-	try {
-		const stopped = process.platform === "win32"
-			? new Promise((resolve, reject) => execFile("taskkill", ["/pid", String(child.pid), "/t", "/f"], { timeout: 10000 }, error => error ? reject(error) : resolve()))
-			: Promise.resolve(child.kill());
-		await Promise.all([closed, stopped]);
-	} finally { clearTimeout(timer); }
-}
 
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extra); if (!ok) fails++; };

@@ -16,6 +16,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
+import { stopServer } from './stop-server.mjs';
 import { WINDOWS_SKIPS } from '../../../packages/nana-pack/lib/windows-skips-config.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -79,11 +80,7 @@ require('node:readline').createInterface({input:process.stdin}).on('line', async
     assert.ok(listeners?.length === 2 && listeners.every(a => a.port), log);
     await body({ desk, listeners, home, app: `http://127.0.0.1:${listeners.find(a => a.name === 'alpha').port}` });
   } finally {
-    const ended = new Promise(r => server.once('exit', r));
-    server.kill();
-    let timer;
-    await Promise.race([ended, new Promise(r => { timer = setTimeout(() => { server.kill('SIGKILL'); r(); }, 5000); })]);
-    clearTimeout(timer);
+    await stopServer(server);
   }
 }
 
