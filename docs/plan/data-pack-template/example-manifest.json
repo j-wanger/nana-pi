@@ -1,0 +1,220 @@
+{
+  "project": "basketball-geek",
+  "project_root": "<project root>",
+  "source_globs": [
+    "src/basketball_geek/**/*.py",
+    "scripts/**/*.py"
+  ],
+  "import_roots": [
+    "src"
+  ],
+  "databases": [
+    {
+      "label": "main",
+      "path": "data/basketball.sqlite"
+    },
+    {
+      "label": "intel",
+      "path": "data/intel.sqlite"
+    }
+  ],
+  "identifiers": {
+    "nba_id": {
+      "type": "INTEGER",
+      "namespace": "nba-players"
+    },
+    "espn_id": "TEXT",
+    "bref_slug": "TEXT",
+    "fantrax_id": "TEXT",
+    "team_id": {
+      "type": "TEXT",
+      "namespace": "fantrax-teams"
+    }
+  },
+  "keys": [
+    {
+      "db": "main",
+      "table": "players",
+      "columns": [
+        "nba_id"
+      ]
+    },
+    {
+      "db": "main",
+      "table": "boxscores",
+      "columns": [
+        "game_id",
+        "nba_id"
+      ]
+    },
+    {
+      "db": "main",
+      "table": "player_season_stats",
+      "columns": [
+        "season",
+        "measure",
+        "per_mode",
+        "nba_id"
+      ]
+    },
+    {
+      "db": "main",
+      "table": "news",
+      "columns": [
+        "news_id"
+      ]
+    },
+    {
+      "db": "main",
+      "table": "salaries",
+      "columns": [
+        "season",
+        "bref_slug"
+      ]
+    },
+    {
+      "db": "main",
+      "table": "drafts",
+      "columns": [
+        "bref_slug"
+      ]
+    },
+    {
+      "db": "main",
+      "table": "fantrax_roster_items",
+      "columns": [
+        "league_id",
+        "period",
+        "fantrax_id"
+      ]
+    }
+  ],
+  "crosswalk_unique": [
+    {
+      "db": "main",
+      "table": "crosswalk",
+      "columns": [
+        "espn_id"
+      ]
+    },
+    {
+      "db": "main",
+      "table": "crosswalk",
+      "columns": [
+        "bref_slug"
+      ]
+    },
+    {
+      "db": "main",
+      "table": "crosswalk",
+      "columns": [
+        "fantrax_id"
+      ]
+    }
+  ],
+  "normalizer": {
+    "canonical": "src/basketball_geek/crosswalk.py:norm_name",
+    "function_name_pattern": "norm",
+    "arg_name_pattern": "name",
+    "samples": [
+      "De'Aaron Fox",
+      "Jaren Jackson Jr.",
+      "Nikola Joki\u0107",
+      "Shai Gilgeous-Alexander",
+      "P.J. Washington",
+      "Kelly Oubre Jr.",
+      "Larry Nance Jr.",
+      "Larry Nance",
+      "Tim Hardaway Jr.",
+      "Tim Hardaway",
+      "Gary Payton II",
+      "Gary Payton"
+    ]
+  },
+  "connectors": {
+    "network_patterns": [
+      "^requests(\\.|$)",
+      "^urllib\\.request",
+      "^urllib\\.urlopen",
+      "^http\\.client",
+      "^httpx",
+      "^nba_api",
+      "^urlopen$"
+    ],
+    "network_modules": [
+      "src/basketball_geek/cache.py",
+      "src/basketball_geek/ratelimit.py",
+      "src/basketball_geek/nba.py",
+      "src/basketball_geek/espn.py",
+      "src/basketball_geek/bref.py",
+      "src/basketball_geek/fantrax.py"
+    ],
+    "db_modules": [
+      "src/basketball_geek/db.py"
+    ]
+  },
+  "id_name_pattern": "(^|_)id$",
+  "lineage": {
+    "report_dirs": [
+      "reports"
+    ],
+    "extensions": [
+      ".json",
+      ".jsonl",
+      ".md",
+      ".txt"
+    ],
+    "provenance_key": "provenance",
+    "required_fields": [
+      "input_db"
+    ],
+    "exclude_globs": [
+      "reports/independent-review-*.md",
+      "reports/pi-review-*.md",
+      "reports/dynasty-review-*.md"
+    ],
+    "_note_exclude_globs": "chosen 2026-11-04: these are written reviews of the project, not generated outputs",
+    "markdown_marker": "<!-- provenance: (\\{[^\\n]*\\}) -->"
+  },
+  "duplicates": {
+    "min_ast_nodes": 40,
+    "near_copy_literal_similarity": 0.8
+  },
+  "rowwise": {
+    "budget": 10,
+    "top_sites": 8,
+    "_note_budget": "chosen 2026-11-04: v0 probe value; the standard is zero, 10 tolerates the db.py upsert helpers while executemany is absent"
+  },
+  "exceptions": [],
+  "namespaces": {
+    "nba-players": {
+      "db": "main",
+      "table": "players",
+      "column": "nba_id"
+    },
+    "fantrax-teams": {
+      "db": "main",
+      "table": "fantrax_league_teams",
+      "column": "team_id"
+    }
+  },
+  "namespace_overrides": {},
+  "derived_keys": [
+    {
+      "db": "main",
+      "table": "players",
+      "id_column": "nba_id",
+      "name_column": "full_name",
+      "role": "source"
+    }
+  ],
+  "paths": {
+    "modules": [],
+    "code_extensions": [
+      ".py",
+      ".sql",
+      ".sh"
+    ]
+  },
+  "accepted_debt": []
+}
