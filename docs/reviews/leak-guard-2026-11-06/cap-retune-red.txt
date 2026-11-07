@@ -1,0 +1,9 @@
+PASS M1: exact preamble sentence and chained seat bullet
+PASS M2: identity range has no outside allowlist bleed
+PASS M3: tip blobs range deletions and new rename paths
+PASS M4: literal home and temp forms honor suffix boundaries
+PASS M6: CLI blocks hits and unread skips and rejects unknown refs
+PASS M7: lane end warns after build line without changing outcome or exit
+PASS M5: CLI worker and record never echo matched text
+PASS M8: build report lines ignore optional leak metadata
+FAIL seal: leak file cap is 4194304 bytes ERR_ASSERTION

@@ -6,4 +6,4 @@ PASS M6: CLI blocks hits and unread skips and rejects unknown refs
 PASS M7: lane end warns after build line without changing outcome or exit
 PASS M5: CLI worker and record never echo matched text
 PASS M8: build report lines ignore optional leak metadata
-PASS seal: leak file cap is 1048576 bytes
+PASS seal: leak file cap is 4194304 bytes

@@ -48,6 +48,8 @@ Every mutation restored the original source in a finally block. No assertion was
 - Initial `node packages/nana-pack/tests/leak-scan.test.mjs`: 1 against wrong code; `wrong-code.txt`.
 - Corrected `node packages/nana-pack/tests/leak-scan.test.mjs`: 0; nine checks; `green.txt`.
 - Temporary mutation driver: 0; nine of nine mutants rejected; `mutations.txt`.
+- Initial committed-tip gate: 1; it correctly skipped the 1,229,982-byte requirements ledger under the initial 1 MiB cap.
+- Cap revision: R-3756 changed first to 4194304 bytes; its updated seal failed against the old config (exit 1, `cap-retune-red.txt`). Only then was the config changed. The larger cap admits the real ledger while retaining the same over-cap refusal contract.
 - Initial touched runner: 1; stale copied-worker fixtures and last-line assertion; `touched-initial.txt`.
 - Intermediate touched runner: 1 only because the generated map needed refreshing after fixture edits.
 - `node scripts/code-map.mjs --write`: 0; `map.txt`.

@@ -6,5 +6,5 @@
  * @effects none
  * @errors none
  */
-// chosen (2026-11-06, R-3756): bound log and snapshot reads while admitting ordinary source files.
-export const LEAK_FILE_MAX_BYTES = 1048576;
+// chosen (2026-11-06, R-3756): bound log and snapshot reads while admitting the 1.23 MB requirements ledger.
+export const LEAK_FILE_MAX_BYTES = 4194304;

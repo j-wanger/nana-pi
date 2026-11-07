@@ -149,5 +149,5 @@ await check('M8: build report lines ignore optional leak metadata',()=>{
   assert.equal(render({}),render(withLeaks));
 });
 // req: R-3756
-await check('seal: leak file cap is 1048576 bytes',async()=>assert.equal((await import('../lib/leak-scan-config.mjs')).LEAK_FILE_MAX_BYTES,1048576));
+await check('seal: leak file cap is 4194304 bytes',async()=>assert.equal((await import('../lib/leak-scan-config.mjs')).LEAK_FILE_MAX_BYTES,4194304));
 fs.rmSync(temp,{recursive:true,force:true});process.exitCode=failures?1:0;
