@@ -38,7 +38,7 @@ pi coding agent (@earendil-works/pi-coding-agent, MIT), `dist/core/resource-load
 
 ## Must-meet
 1. R-3726: delegation. With a stub pi package on the locator's path whose `loadProjectContextFiles` returns two entries (`/SENTINEL/A/AGENTS.md`, 1234 chars; `/SENTINEL/B/AGENTS.md`, 56 chars) and whose package.json version is `9.9.9-stub`, a lane-worker spawn line carries exactly those two 'context file' parts in that order, with full = delivered = the returned content length, and `piVersion: 9.9.9-stub`. The content string itself never appears in the line.
-2. R-3727: real pi. Against the installed pi, a fixture folder holding both AGENTS.md and CLAUDE.md gives one part, AGENTS.md. Skipped with a stated reason where pi isn't installed.
+2. R-3727: real pi. Against the installed pi, a fixture folder holding both AGENTS.md and CLAUDE.md gives one part, AGENTS.md. Where pi isn't installed, the skip prints one visible line naming the reason. The seat runs it un-skipped before the land on a machine with pi.
 3. R-3728: agent dir from the child's env. When the child's env points the agent dir at a temp dir containing AGENTS.md and the parent's agent dir has none, that file appears as a part.
 4. R-3729: pi-review. Its line records the cwd the child pi runs in (its checkout), lists that checkout's context-file parts, and logs slot `land` for `--role land` and `reviewer` otherwise. Both cases are pinned.
 5. R-3730: every pi-worker lane line carries `slot` (builder or largerBuilder) matching the selected entry. Both sizes are pinned.
