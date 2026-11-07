@@ -1,0 +1,4 @@
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  32.6s
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  31.0s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 64 pass, 0 fail, 0 skip · 64.0s

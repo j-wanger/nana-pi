@@ -1,0 +1,7 @@
+M3 sampler starts wrong: exit 1
+FAIL R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler {"status":143,"signal":null,"elapsedMs":60688,"samplerName":"ps","resolvedLaunchSampler":"<fixture>/worker-lane-Ux54vT/r2883-sampler/ps","resolvedDefaultSampler":"/bin/ps","hold":{"timerFired":true,"heldMs":2012},"samplerStarted":true,"stubHasSampler":false}
+FAIL seal: worker-lane's launches have a 30-second limit and poll less often than that {"CHILD_LIMIT_MS":30000,"WORKER_POLL_SECS":0.1}
+M3 sampler leaks wrong: exit 1
+FAIL R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler {"status":0,"signal":null,"elapsedMs":2498,"samplerName":"ps","resolvedLaunchSampler":"<fixture>/worker-lane-jpuSLc/r2883-sampler/ps","resolvedDefaultSampler":"<fixture>/worker-lane-jpuSLc/r2883-sampler/ps","hold":{"timerFired":true,"heldMs":2009},"samplerStarted":false,"stubHasSampler":false}
+M3 delayed timer green: exit 0
+PASS R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler 
