@@ -35,3 +35,4 @@ For a reused helper, write its Precedent entry as `call <symbol> (<path:lines>) 
 Mark small fix briefs with the line `Card: fix`; those briefs may omit Precedent. Plans and feature briefs still require Precedent.
 
 For each must-meet test, say what it proves and what exact sentence or result it pins. Keep tests to the requirements of the change.
+When a change alters what a function returns or raises, list each known caller as its own must-meet line stating the caller's observable contract, never just "still works". For example: "the report has no NaN; the CLI exits non-zero with a message, never a traceback".
