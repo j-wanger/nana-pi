@@ -91,7 +91,7 @@ test('R-3737: planner specifies helper calls fix markers and the identical priva
 // req: R-3747
 test('R-3747: planner requires each known caller observable contract with traceback and NaN examples', options, () => {
  const text=planner();
- assert.ok(text.includes('When a change alters what a function returns or raises, list each known caller as its own must-meet line stating the caller\'s observable contract, never just "still works".'));
+ assert.ok(text.includes('When a change alters what a function returns or raises, list each caller found at plan time by freshly searching the repo for the function\'s name and by running the project\'s map impact command as its own must-meet line stating the caller\'s observable contract, never just "still works".'));
  assert.ok(text.includes('For example: "the report has no NaN; the CLI exits non-zero with a message, never a traceback".'));
 });
 // req: R-3738
