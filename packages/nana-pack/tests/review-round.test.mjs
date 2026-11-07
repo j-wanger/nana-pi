@@ -10,11 +10,18 @@
 // slug is canonical; roundCapVerdict keeps its pre-T2b contract; roundFromOutPath survives only as
 // a deprecated export for ~/nana-agent-loop's forwarder (its test's assertions are mirrored here).
 // Process-level proofs: review-ledger.test.mjs. Run: node packages/nana-pack/tests/review-round.test.mjs
-const { SLUG_MAX, roundsUsed, optValue, canonicalItem, roundFromOutPath } =
+import { REVIEW_ROUND_CAP, roundFromOutPath, roundCapVerdict } from '../bin/review-round.mjs';
+const { SLUG_MAX, roundsUsed, optValue, canonicalItem } =
 	await import(new URL("../bin/review-round.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
+// req: R-730
+check("legacy forwarder named imports preserve pure compatibility",
+	REVIEW_ROUND_CAP === 3 && typeof roundFromOutPath === 'function' &&
+	[null, undefined, 1, 3].every(round => roundCapVerdict(round) === 'allow') &&
+	roundCapVerdict(4) === 'refuse' && roundCapVerdict(4, '   ') === 'refuse' &&
+	roundCapVerdict(4, 'legacy reason') === 'override');
 const v = (revision, role) => ({ revision, role });
 const throws = (f) => { try { f(); return false; } catch { return true; } };
 

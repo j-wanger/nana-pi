@@ -2,7 +2,7 @@
  * @module packages/nana-pack/bin/review-round.mjs
  * @purpose The review round ledger — admit, project, complete and release one per-item review round under a
  *  user-scope lock.
- * @inputs a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git
+ * @inputs a launcher's own argv (--item, --tree, --revision, --role, --out), the reviewed tree's git
  *  state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr
  *  file identities, captured review text, complete()'s optional rename seam, env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
  * @outputs an admission or refusal with its note and warning, a reservation file, a round appended to the
@@ -113,6 +113,17 @@ export function canonicalItem(raw) {
 /** Rounds consumed by a list of {revision} entries: the number of DISTINCT revisions (pure). */
 export function roundsUsed(entries) {
   return new Set(entries.map((e) => e.revision)).size;
+}
+
+/** @deprecated Pure legacy value kept for ~/nana-agent-loop's review-round.mjs forwarder.
+ * Nothing in nana-pi calls or consumes this cap export; review admission has no round cap. */
+export const REVIEW_ROUND_CAP = 3;
+
+/** @deprecated Pure legacy verdict kept for ~/nana-agent-loop's review-round.mjs forwarder.
+ * Nothing in nana-pi calls this helper; review admission has no round cap. */
+export function roundCapVerdict(projected, overCap) {
+  if (projected === null || projected === undefined || projected <= REVIEW_ROUND_CAP) return 'allow';
+  return overCap && String(overCap).trim() ? 'override' : 'refuse';
 }
 
 /** @deprecated T2b: the store does not read file names (a basename parse was bypassed). Kept, pure

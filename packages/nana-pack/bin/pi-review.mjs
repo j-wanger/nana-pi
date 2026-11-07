@@ -2,7 +2,7 @@
 /**
  * @module packages/nana-pack/bin/pi-review.mjs
  * @purpose Run and record a pi review from an immutable checkout under the liveness watchdog.
- * @inputs argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--`
+ * @inputs argv (--out, --item, --tree, --role, --revision, --stall-secs, --retries, --poll, then `--`
  *  and the pi args), the user-scope review ledger, the reviewed tree's git revision, and
  *  prompts/review-standard.md and the brief feature's known bugs
  * @outputs the review text written to --out and the kept-text store, a round recorded in the ledger,

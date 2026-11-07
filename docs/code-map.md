@@ -1833,7 +1833,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/pi-review.mjs`
 
 - **purpose** — Run and record a pi review from an immutable checkout under the liveness watchdog.
-- **inputs** — argv (--out, --item, --tree, --role, --revision, --over-cap, --stall-secs, --retries, --poll, then `--` and the pi args), the user-scope review ledger, the reviewed tree's git revision, and prompts/review-standard.md and the brief feature's known bugs
+- **inputs** — argv (--out, --item, --tree, --role, --revision, --stall-secs, --retries, --poll, then `--` and the pi args), the user-scope review ledger, the reviewed tree's git revision, and prompts/review-standard.md and the brief feature's known bugs
 - **outputs** — the review text written to --out and the kept-text store, a round recorded in the ledger, an external temporary known-bug prompt file, and admission, warning and SUCCESS, FAILED or unread-verdict lines
 - **effects** — disk (output, checkout, known-bug prompt and review store), process (git, watchdog child and heartbeat)
 - **errors** — exit 1 when admission is refused (a git failure, a bad --out, bad args, a missing, non-regular or blank review standard), when every attempt stalled or failed, when the round could not be recorded, or when its recorded verdict is empty; exit 0 otherwise
@@ -1875,7 +1875,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/bin/review-round.mjs`
 
 - **purpose** — The review round ledger — admit, project, complete and release one per-item review round under a user-scope lock.
-- **inputs** — a launcher's own argv (--item, --tree, --revision, --role, --out, --over-cap), the reviewed tree's git state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr file identities, captured review text, complete()'s optional rename seam, env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
+- **inputs** — a launcher's own argv (--item, --tree, --revision, --role, --out), the reviewed tree's git state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr file identities, captured review text, complete()'s optional rename seam, env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
 - **outputs** — an admission or refusal with its note and warning, a reservation file, a round appended to the tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
 - **effects** — disk (an O_EXCL lock around every read-decide-write, reservation files, the kept-text store, the never-rotated tally and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing heartbeat interval)
 - **errors** — canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, a retired option, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or a lost reservation
