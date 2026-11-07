@@ -3281,7 +3281,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Pin measured builder lessons, fix-card precedent exceptions and helper guidance.
 - **inputs** — Repository prompts and launchers, OS-temp git worktrees and fake builder commands.
-- **outputs** — Six requirement-tagged checks.
+- **outputs** — Seven requirement-tagged checks.
 - **effects** — disk (OS-temp fixtures), process (bounded git and fake worker children).
 - **errors** — Assertion failures exit nonzero; each case has a time limit.
 - **callers** — —
