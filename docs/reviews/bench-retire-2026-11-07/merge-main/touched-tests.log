@@ -1,0 +1,29 @@
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs       56 pass  3.2s
+PASS  packages/nana-pack/tests/build-records.test.mjs          7 pass  12.6s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs        12 pass  1.8s
+PASS  packages/nana-pack/tests/code-map.test.mjs               48 pass  3.2s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs        23 pass  51.8s
+PASS  packages/nana-pack/tests/first-look.test.mjs             8 pass  0.1s
+PASS  packages/nana-pack/tests/nana-roster-set.test.mjs        11 pass  2.1s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs            27 pass  1.3s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs           8 pass  2.7s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs         8 pass  0.1s
+PASS  packages/nana-pack/tests/path-spelling.test.mjs          11 pass  28.2s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs         11 pass  0.0s
+PASS  packages/nana-pack/tests/readme-check.test.mjs           11 pass  0.3s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs   63 pass  27.4s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs      98 pass  2.6s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs    96 pass  40.6s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs          21 pass  0.4s
+PASS  packages/nana-pack/tests/rulings.test.mjs                23 pass  0.1s
+PASS  packages/nana-pack/tests/templates-render.test.mjs       173 pass  68.0s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs   11 pass  32.8s
+PASS  packages/nana-pack/tests/test-runner.test.mjs            53 pass  30.3s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs          24 pass, 3 skip  31.5s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs             21 pass  0.0s
+PASS  packages/nana-setup/tests/skills-and-standards.test.mjs  88 pass  6.5s
+PASS  apps/bench/test/anatomy-labels.test.mjs                  30 pass  1.3s
+PASS  apps/bench/test/anatomy.test.mjs                         9 pass  1.0s
+PASS  apps/bench/test/retire.test.mjs                          8 pass  41.0s
+
+27 files: 27 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 959 pass, 0 fail, 3 skip · 391.3s

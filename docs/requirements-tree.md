@@ -360,33 +360,30 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Reads: A-003, A-015, A-046, A-006, A-030, A-032, A-033
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
-  Parent: — · Rows: 135 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3406, R-3640–R-3648, R-3682–R-3684
+  Parent: — · Rows: 143 · IDs: R-500–R-543, R-545–R-577, R-691–R-699, R-1095, R-1500–R-1504, R-1520, R-2517, R-2770–R-2772, R-3270–R-3278, R-3390–R-3406, R-3640–R-3648, R-3682–R-3684, R-3783–R-3790
   Kind: product
-  Deliverables: R-509, R-532, R-507, R-535, R-536, R-694, R-3270, R-3390
+  Deliverables: R-694, R-3270, R-3390
   - **FEAT-034 · Define reproducible comparisons**
     Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
     Status: active
     Also applies: —
-    Parent: CAP-08 · Rows: 21 · IDs: R-501, R-502, R-508–R-514, R-532–R-534, R-551–R-554, R-573, R-1095, R-2770–R-2772
+    Parent: CAP-08 · Rows: 29 · IDs: R-501, R-502, R-508–R-514, R-532–R-534, R-551–R-554, R-573, R-1095, R-2770–R-2772, R-3783–R-3790
     Artifacts: A-039, A-074
-    Reads: A-042
   - **FEAT-035 · Account for cost and uncertainty**
     Purpose: Measure direct and nested work with consistent usage semantics and report unknown or partially priced spend explicitly.
-    Status: active
+    Status: frozen (study accounting retired 2026-11-07; recorded summary preserved)
     Also applies: —
     Parent: CAP-08 · Rows: 11 · IDs: R-503–R-506, R-535, R-546–R-550, R-557
     Artifacts: A-040
-    Reads: A-042
   - **FEAT-036 · Bound study execution and paid work**
     Purpose: Preflight paid work, apply budgets and stop conditions and preserve exactly-once records during interruption.
-    Status: active
+    Status: frozen (study execution retired 2026-11-07; probe ledger preserved)
     Also applies: —
     Parent: CAP-08 · Rows: 21 · IDs: R-500, R-515–R-521, R-541, R-542, R-545, R-555, R-556, R-558–R-560, R-1500–R-1504
     Artifacts: A-041
-    Reads: A-042
   - **FEAT-037 · Grade behavior with trustworthy checks**
     Purpose: Separate behavioral grading from the code under evaluation and report failures and grader errors honestly.
-    Status: active
+    Status: frozen (study grading retired 2026-11-07; results and oracle keys preserved)
     Also applies: —
     Parent: CAP-08 · Rows: 24 · IDs: R-507, R-522–R-531, R-543, R-561–R-572
     Artifacts: A-042, A-075

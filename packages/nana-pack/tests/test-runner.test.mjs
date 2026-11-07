@@ -131,8 +131,8 @@ const POST_EDIT_HARDENING_FIXTURE = posix
 	? TRAP("the declared platform skip did not skip")
 	: 'console.log("PASS runs on win32, where its declared skip never applies");\n';
 const EXPECTED_TALLY = posix
-	? { files: 14, pass: 8, fail: 4, skip: 2, checks: { pass: 9, fail: 22, skip: 2 } }
-	: { files: 14, pass: 9, fail: 4, skip: 1, checks: { pass: 10, fail: 22, skip: 2 } };
+	? { files: 14, pass: 9, fail: 4, skip: 1, checks: { pass: 10, fail: 22, skip: 2 } }
+	: { files: 14, pass: 10, fail: 4, skip: 0, checks: { pass: 11, fail: 22, skip: 2 } };
 const rootA = mkRoot("A", {
 	"packages/probe/ts-probe.ts": "export const bump = (n: number): number => n + 1;\n",
 	"packages/probe/tests/a-cwd.test.mjs": [
@@ -205,7 +205,7 @@ const rootA = mkRoot("A", {
 	"packages/fixtures/tests/trap.test.mjs": TRAP("a fixtures-segment package was collected"),
 	// the one declared platform skip; on POSIX it must never actually run, on win32 it always does
 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
-	"apps/bench/test/study-tasks.test.mjs": TRAP("the declared study-tasks prerequisite skip did not skip"),
+	"apps/bench/test/anatomy-fixture.test.mjs": 'console.log("PASS bench fixture ran");\n',
 });
 
 const A = run(rootA, [], {
@@ -281,15 +281,16 @@ if (posix) {
 	check("a file whose declared skip condition does not hold runs instead of skipping", labelFor(A.out, "post-edit-hardening.test.mjs") === "PASS");
 }
 // req: R-607
-check("study tasks SKIP only when their declared extension prerequisite is absent", labelFor(A.out, "study-tasks.test.mjs") === "SKIP" && lineFor(A.out, "study-tasks.test.mjs").includes("apps/bench/.ext/pi-web-access"));
+check("a declared tool prerequisite skips only when absent on POSIX", labelFor(A.out, "post-edit-hardening.test.mjs") === (posix ? "SKIP" : "PASS"));
 
-const rootStudy = mkRoot("study-present", {
-	"apps/bench/.ext/pi-web-access/package.json": "{}\n",
-	"apps/bench/test/study-tasks.test.mjs": 'console.log("PASS study fixture ran");\n',
+const rootPrerequisite = mkRoot("prerequisite-present", {
+	"packages/nana-pack/tests/post-edit-hardening.test.mjs": 'console.log("PASS prerequisite fixture ran");\n',
 });
-const studyPresent = run(rootStudy, ["--verbose", "study-tasks"]);
+const prerequisiteBin = path.join(rootPrerequisite, "bin"); fs.mkdirSync(prerequisiteBin);
+if (posix) fs.symlinkSync(process.execPath, path.join(prerequisiteBin, "pgrep"));
+const prerequisitePresent = run(rootPrerequisite, ["--verbose", "post-edit-hardening"], { PATH: prerequisiteBin });
 // req: R-607
-check("study tasks run when their declared extension prerequisite exists", labelFor(studyPresent.out, "study-tasks.test.mjs") === "PASS" && studyPresent.out.includes("PASS study fixture ran") && studyPresent.code === 0);
+check("a tool-dependent file runs when its declared prerequisite exists", labelFor(prerequisitePresent.out, "post-edit-hardening.test.mjs") === "PASS" && prerequisitePresent.out.includes("PASS prerequisite fixture ran") && prerequisitePresent.code === 0);
 
 const spellingProbe = fs.realpathSync.native(tmpDir(path.join(TD, "checkout-spelling-probe-")));
 const swappedSpelling = path.join(path.dirname(spellingProbe), [...path.basename(spellingProbe)].map((char) => char === char.toLowerCase() ? char.toUpperCase() : char.toLowerCase()).join(""));
@@ -539,7 +540,7 @@ const rootRecord = mkRoot("suite-record", {
 	"packages/probe/tests/c-silent.test.mjs": 'console.log("diagnostic only");\n',
 	"packages/probe/tests/d-timeout.test.mjs": `setTimeout(() => process.exit(0), ${TIMEOUT_FIXTURE_MS});\n`,
 	"packages/probe/tests/e-signal.test.mjs": 'process.kill(process.pid, "SIGKILL");\n',
-	"apps/bench/test/study-tasks.test.mjs": TRAP("the declared skip did not skip"),
+	"packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
 });
 function runRecorded(name, args, extra = {}) {
 	const recordFile = path.join(TD, `${name}.json`);
@@ -550,8 +551,8 @@ function runRecorded(name, args, extra = {}) {
 	return { result, record, recordFile };
 }
 const recordCoverage = path.join(TD, "suite-record-coverage");
-const recordedSerial = runRecorded("record-serial", [], { [COVERAGE_ENV]: recordCoverage });
-const recordedParallel = runRecorded("record-parallel", ["--jobs=2"]);
+const recordedSerial = runRecorded("record-serial", [], { [COVERAGE_ENV]: recordCoverage, PATH: noPath });
+const recordedParallel = runRecorded("record-parallel", ["--jobs=2"], { PATH: noPath });
 const recordByPath = (record) => new Map((record?.files ?? []).map((entry) => [entry.path, entry]));
 const serialFiles = recordByPath(recordedSerial.record);
 const parallelFiles = recordByPath(recordedParallel.record);
@@ -561,7 +562,7 @@ const expectedRecordLabels = new Map([
 	["packages/probe/tests/c-silent.test.mjs", "FAIL"],
 	["packages/probe/tests/d-timeout.test.mjs", "FAIL"],
 	["packages/probe/tests/e-signal.test.mjs", "FAIL"],
-	["apps/bench/test/study-tasks.test.mjs", "SKIP"],
+	["packages/nana-pack/tests/post-edit-hardening.test.mjs", posix ? "SKIP" : "PASS"],
 ]);
 const recordsMatchOutput = (result, record, entries, expectedJobs, covered) => record?.schema === RECORD_SCHEMA
 	&& record.exitCode === result.code && record.jobs === expectedJobs && record.platform === process.platform
@@ -708,10 +709,7 @@ const windowsFixtureBody = (p) => [
 ].join("\n");
 const windowsFixtureFiles = {};
 for (const p of windowsFixturePaths) windowsFixtureFiles[p] = windowsFixtureBody(p);
-const rootWindows = mkRoot("windows-skips", {
-	...windowsFixtureFiles,
-	"apps/bench/.ext/pi-web-access/package.json": "{}\n",
-});
+const rootWindows = mkRoot("windows-skips", windowsFixtureFiles);
 const forceWin32 = path.join(TD, "force-win32.mjs");
 fs.writeFileSync(forceWin32, 'Object.defineProperty(process, "platform", { value: "win32" });\n');
 const forceLinux = path.join(TD, "force-linux.mjs");

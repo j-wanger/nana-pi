@@ -1,0 +1,20 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs apps/bench/test/anatomy-labels.test.mjs apps/bench/test/anatomy.test.mjs apps/bench/test/retire.test.mjs packages/nana-pack/tests/agent-dir-parity.test.mjs packages/nana-pack/tests/code-map-launch.test.mjs packages/nana-pack/tests/code-map.test.mjs packages/nana-pack/tests/first-look.test.mjs packages/nana-pack/tests/pages-workflow.test.mjs packages/nana-pack/tests/preview-retirement.test.mjs packages/nana-pack/tests/readme-check.test.mjs packages/nana-pack/tests/requirements-regroup.test.mjs packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-pack/tests/test-runner-parallel.test.mjs packages/nana-pack/tests/test-runner.test.mjs
+
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs      56 pass  3.1s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs       12 pass  1.8s
+PASS  packages/nana-pack/tests/code-map.test.mjs              48 pass  3.1s
+PASS  packages/nana-pack/tests/first-look.test.mjs            7 pass  0.1s
+PASS  packages/nana-pack/tests/pages-workflow.test.mjs        2 pass  0.0s
+PASS  packages/nana-pack/tests/preview-retirement.test.mjs    8 pass  7.4s
+PASS  packages/nana-pack/tests/readme-check.test.mjs          11 pass  0.3s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs  63 pass  26.5s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs     98 pass  2.5s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  32.9s
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  30.0s
+PASS  apps/bench/test/anatomy-labels.test.mjs                 30 pass  1.2s
+PASS  apps/bench/test/anatomy.test.mjs                        9 pass  1.1s
+PASS  apps/bench/test/retire.test.mjs                         8 pass  40.9s
+
+14 files: 14 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 416 pass, 0 fail, 0 skip · 151.2s

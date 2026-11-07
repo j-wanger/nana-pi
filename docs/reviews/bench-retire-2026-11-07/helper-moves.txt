@@ -1,0 +1,7 @@
+Original public functions, compared against a562ff9a6a7eda7b06a75a5b58dac18bf977a25c:
+globMatch: unchanged function bytes; apps/bench/lib/checkers.mjs -> scripts/glob-match.mjs
+cohensKappa: unchanged function bytes; apps/bench/lib/catch-stats.mjs -> apps/bench/lib/anatomy-stats.mjs
+seededSample: unchanged function bytes; apps/bench/lib/catch-stats.mjs -> apps/bench/lib/anatomy-stats.mjs
+readJsonl: unchanged function bytes; apps/bench/lib/plan.mjs -> apps/bench/lib/jsonl.mjs
+callJudge: unchanged function bytes; apps/bench/lib/catch-judge.mjs -> apps/bench/lib/catch-judge.mjs
+parseStream: unchanged function bytes; apps/bench/lib/usage.mjs -> apps/bench/lib/usage.mjs
