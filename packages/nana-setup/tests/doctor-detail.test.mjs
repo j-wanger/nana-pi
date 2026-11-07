@@ -53,7 +53,7 @@ const personalCheck = (layout) => diagnoseWithPi(layout, { projectDir: layout.ba
 	const layout = resolveLayout({ home });
 	fs.mkdirSync(layout.claudeHome, { recursive: true });
 	fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: "NODE_NO_WARNINGS=1 node /missing-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook" }] }] } }));
-	const c = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit knowledge pull");
+	const c = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit retired hook");
 	const outside = path.join(home, "outside", "nana-knowledge.ts");
 	fs.mkdirSync(path.dirname(outside), { recursive: true });
 	fs.writeFileSync(outside, "// test target\n");
@@ -62,9 +62,9 @@ const personalCheck = (layout) => diagnoseWithPi(layout, { projectDir: layout.ba
 		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${validTarget}' hook` },
 		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${outside}' hook` },
 	] }] } }));
-	const outsideCheck = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit knowledge pull");
+	const outsideCheck = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit retired hook");
 	// req: R-393
-	check("doctor rejects missing and out-of-repo absolute knowledge-hook targets", c?.status === "fail" && /target is missing/.test(c.detail) && outsideCheck?.status === "fail" && /does not resolve inside/.test(outsideCheck.detail), `${JSON.stringify(c)} ${JSON.stringify(outsideCheck)}`);
+	check("doctor reports missing and out-of-repo knowledge hooks as retired", c?.status === "fail" && /retired hook/.test(c.detail) && outsideCheck?.status === "fail" && /nana-setup install/.test(outsideCheck.detail), `${JSON.stringify(c)} ${JSON.stringify(outsideCheck)}`);
 }
 
 {

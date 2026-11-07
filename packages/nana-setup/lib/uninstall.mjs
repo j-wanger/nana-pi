@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import { repoRoot, platform } from "./paths.mjs";
 import { stateRows } from "./state-manifest.mjs";
-import { desiredHooks, commandInvokes, removeInstallerHooks, removeRetiredContextHook, serialize } from "./settings.mjs";
+import { desiredHooks, retiredKnowledgeHook, commandInvokes, removeInstallerHooks, removeRetiredContextHook, serialize } from "./settings.mjs";
 import { readClaudeSettings, SetupError, withSettingsLock, writeSettingsAtomic, DESK_SERVER, realpathSafe, directoryAncestorsAreSafe } from "./steps.mjs";
 
 const inside = (root, target) => { const rel = path.relative(root, target); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel)); };
@@ -22,7 +22,7 @@ const canonical = (value) => Array.isArray(value) ? value.map(canonical) : value
 const installerRows = (layout) => stateRows(layout).filter((r) => r.owner === "nana-setup" && ["link", "seed", "generated", "plist", "settings-entry"].includes(r.kind));
 
 function settingsVariants(settings, layout) {
-  const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot });
+  const wanted = [...desiredHooks({ hooksDir: layout.hooksDir, repoRoot }), retiredKnowledgeHook({ repoRoot })];
   const retired = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
   const exact = new Set(wanted.map((w) => JSON.stringify(canonical(w.entry))));
   const found = [];

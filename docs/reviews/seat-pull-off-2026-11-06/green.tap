@@ -1,0 +1,60 @@
+TAP version 13
+# (node:159) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: R-3739: fresh POSIX and win32 installs omit only the knowledge entry
+ok 1 - R-3739: fresh POSIX and win32 installs omit only the knowledge entry
+  ---
+  duration_ms: 25.8585
+  type: 'test'
+  ...
+# Subtest: R-3740: install removes shell and exec knowledge entries and preserves foreign entries
+ok 2 - R-3740: install removes shell and exec knowledge entries and preserves foreign entries
+  ---
+  duration_ms: 18.866875
+  type: 'test'
+  ...
+# Subtest: R-3741: doctor names retired knowledge commands and install repair, but not absence
+ok 3 - R-3741: doctor names retired knowledge commands and install repair, but not absence
+  ---
+  duration_ms: 673.111667
+  type: 'test'
+  ...
+# Subtest: R-3742: uninstall still removes the previous installer knowledge entry
+ok 4 - R-3742: uninstall still removes the previous installer knowledge entry
+  ---
+  duration_ms: 0.806792
+  type: 'test'
+  ...
+# Subtest: R-3743: install-check omits the Claude knowledge hook and still checks pi knowledge
+ok 5 - R-3743: install-check omits the Claude knowledge hook and still checks pi knowledge
+  ---
+  duration_ms: 0.885625
+  type: 'test'
+  ...
+# Subtest: R-3744: query returns index results after install
+ok 6 - R-3744: query returns index results after install
+  ---
+  duration_ms: 218.528208
+  type: 'test'
+  ...
+# Subtest: R-3745: install retains matcher siblings and drops only groups emptied by removal
+ok 7 - R-3745: install retains matcher siblings and drops only groups emptied by removal
+  ---
+  duration_ms: 6.6775
+  type: 'test'
+  ...
+# Subtest: R-3746: knowledge README retires Claude wiring and points to explicit query
+ok 8 - R-3746: knowledge README retires Claude wiring and points to explicit query
+  ---
+  duration_ms: 0.333791
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1017.394083

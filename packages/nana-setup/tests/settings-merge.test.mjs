@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { commandInvokes, desiredHooks, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, WIN_VERIFIER_MATCHER, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, WIN_VERIFIER_MATCHER, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout, platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
@@ -33,12 +33,14 @@ const skip = (n, why) => console.log("SKIP", n, "—", why);
 const posixModeReason = "POSIX mode bits (win32 stat reports a fixed mode regardless of what was requested)";
 
 const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
-const spec = (label) => wanted.find((w) => w.label === label).spec;
-check("six active hook entries are wanted", wanted.length === 7);
+// Historical descriptors exercise public helpers, not install's active wanted set.
+const historicalHooks = options => [...desiredHooks(options), retiredKnowledgeHook(options)];
+const spec = (label) => (wanted.find((w) => w.label === label) ?? retiredKnowledgeHook()).spec;
+check("six active hook entries are wanted", wanted.length === 6);
 
 /* --- paths are quoted, so a space in the home or clone still runs --------------------- */
 {
-	const w = desiredHooks({ hooksDir: "/Users/Jane Doe/.claude/hooks", repoRoot: "/Users/Jane Doe/nana-pi" });
+	const w = historicalHooks({ hooksDir: "/Users/Jane Doe/.claude/hooks", repoRoot: "/Users/Jane Doe/nana-pi" });
 	// req: R-319
 	check("Node hook commands single-quote the path", w[0].entry.command === "node '/Users/Jane Doe/.claude/hooks/nana-objective.mjs'");
 	check("the node command single-quotes the path", w.find((x) => x.label === "UserPromptSubmit knowledge pull").entry.command === "NODE_NO_WARNINGS=1 node '/Users/Jane Doe/nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts' hook");
@@ -148,8 +150,8 @@ check("six active hook entries are wanted", wanted.length === 7);
 {
 	const s = {};
 	const r = mergeHooks(s, wanted);
-	check("empty settings: all six active entries added", r.added.length === 7);
-	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit.length === 1);
+	check("empty settings: all six active entries added", r.added.length === 6);
+	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit === undefined);
 	// req: R-316
 	check("empty settings: merging again adds nothing", mergeHooks(s, wanted).added.length === 0);
 }
@@ -169,14 +171,14 @@ check("six active hook entries are wanted", wanted.length === 7);
 	};
 	const before = JSON.stringify(s.hooks.Stop);
 	const r = mergeHooks(s, wanted);
-	check("the other six are added", r.added.length === 7);
+	check("the other six are added", r.added.length === 6);
 	// req: R-316
 	check("foreign SessionStart hook still first", s.hooks.SessionStart[0].hooks[0].command.endsWith("session-start.sh"));
 	// req: R-316
 	check("nana SessionStart hooks appended to the same group", s.hooks.SessionStart[0].hooks.length === 5 && s.hooks.SessionStart.length === 1);
 	// req: R-316
 	check("a matcher-scoped group is left alone", s.hooks.UserPromptSubmit[0].matcher === "Bash" && s.hooks.UserPromptSubmit[0].hooks.length === 1);
-	check("the knowledge hook appends without replacing the foreign prompt entry", s.hooks.UserPromptSubmit[1].hooks.length === 2 && s.hooks.UserPromptSubmit[1].hooks[0].command.endsWith("owner-prompt.sh"));
+	check("retired knowledge hook is not appended beside the foreign prompt entry", s.hooks.UserPromptSubmit[1].hooks.length === 1 && s.hooks.UserPromptSubmit[1].hooks[0].command.endsWith("owner-prompt.sh"));
 	// req: R-316
 	check("unrelated events untouched", JSON.stringify(s.hooks.Stop) === before);
 	// req: R-316
@@ -187,7 +189,7 @@ check("six active hook entries are wanted", wanted.length === 7);
 
 /* --- a recognized stale knowledge hook is atomically migrated, unknown entries survive -- */
 {
-	const wantedKnowledge = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo" });
+	const wantedKnowledge = historicalHooks({ hooksDir: "/unused", repoRoot: "/repo" });
 	const desired = wantedKnowledge.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.command;
 	check("fixture: the desired knowledge command matches today's shape", desired === "NODE_NO_WARNINGS=1 node '/repo/packages/nana-knowledge/bin/nana-knowledge.ts' hook");
 	const customized = { type: "command", command: "NANA_KNOWLEDGE_HOME=/custom node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "nana: knowledge pull" };
@@ -228,7 +230,7 @@ check("six active hook entries are wanted", wanted.length === 7);
 	fs.mkdirSync(outsideKnowledgeDir, { recursive: true });
 	const outsideKnowledgeTarget = `${outsideKnowledgeDir}/nana-knowledge.ts`;
 	fs.writeFileSync(outsideKnowledgeTarget, "// exists on disk, but is not this checkout's copy\n");
-	const wantedOutside = desiredHooks({ hooksDir: "/unused", repoRoot: repo });
+	const wantedOutside = historicalHooks({ hooksDir: "/unused", repoRoot: repo });
 	const desiredOutsideCommand = wantedOutside.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.command;
 	const outsideEntry = { type: "command", command: `NODE_NO_WARNINGS=1 node ${shq(outsideKnowledgeTarget)} hook`, timeout: 5, statusMessage: "nana: knowledge pull" };
 	const outsideSettings = { hooks: { UserPromptSubmit: [{ hooks: [outsideEntry] }] } };
@@ -242,7 +244,7 @@ check("six active hook entries are wanted", wanted.length === 7);
    byte for byte, not replaced — the merge result matches main's own gate (`settings.mjs:276`),
    which skipped any entry whose statusMessage was not "nana: knowledge pull" (R-653, R-1061) --- */
 {
-	const wantedForeign = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo" });
+	const wantedForeign = historicalHooks({ hooksDir: "/unused", repoRoot: "/repo" });
 	const foreignStale = { type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "my own knowledge" };
 	const before = JSON.stringify(foreignStale);
 	const foreignSettings = { hooks: { UserPromptSubmit: [{ hooks: [foreignStale] }] } };
@@ -259,7 +261,7 @@ check("six active hook entries are wanted", wanted.length === 7);
    same as a foreign one, because every entry the installer has ever written carries its own
    (R-1061, R-653) --- */
 {
-	const wantedNoMessage = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo" });
+	const wantedNoMessage = historicalHooks({ hooksDir: "/unused", repoRoot: "/repo" });
 	const noMessageStale = { type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 };
 	const before = JSON.stringify(noMessageStale);
 	const noMessageSettings = { hooks: { UserPromptSubmit: [{ hooks: [noMessageStale] }] } };
@@ -275,7 +277,7 @@ check("six active hook entries are wanted", wanted.length === 7);
    entry regardless of matcher, not only matcher-less ones — a stale entry under a foreign
    matcher-scoped group is still found and replaced in place, no twin --------------------------- */
 {
-	const wantedMatcherStale = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo" });
+	const wantedMatcherStale = historicalHooks({ hooksDir: "/unused", repoRoot: "/repo" });
 	const staleUnderMatcher = { type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" };
 	const matcherSettings = { hooks: { UserPromptSubmit: [{ matcher: "*", hooks: [staleUnderMatcher] }] } };
 	const matcherResult = mergeRepoHooks(matcherSettings, { repoRoot: "/repo", wanted: wantedMatcherStale });
@@ -290,7 +292,7 @@ check("six active hook entries are wanted", wanted.length === 7);
    duplicate beside it) — uses this checkout's own real repo root, since realpathSync needs a real
    target to read as healthy -------------------------------------------------------------------- */
 {
-	const wantedHealthyMatcher = desiredHooks({ hooksDir: "/unused", repoRoot: repo });
+	const wantedHealthyMatcher = historicalHooks({ hooksDir: "/unused", repoRoot: repo });
 	const healthyEntry = { ...wantedHealthyMatcher.find((w) => w.label === "UserPromptSubmit knowledge pull").entry };
 	const before = JSON.stringify(healthyEntry);
 	const healthySettings = { hooks: { UserPromptSubmit: [{ matcher: "*", hooks: [healthyEntry] }] } };
@@ -311,9 +313,9 @@ check("six active hook entries are wanted", wanted.length === 7);
 	// req: R-1051
 	check("win32 desiredHooks: the five hook entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
 	// req: R-1050
-	check("win32 desiredHooks: only the knowledge entry adds `hook`", w32.filter((w) => w.entry.args.length > 1).length === 1 && w32.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.args[1] === "hook");
+	check("win32 desiredHooks: no active entry adds a subcommand", w32.every(w => w.entry.args.length === 1));
 	// req: R-1050
-	check("win32 desiredHooks: the knowledge target is the checkout's own nana-knowledge CLI", w32.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.args[0] === `${weird}/packages/nana-knowledge/bin/nana-knowledge.ts`);
+	check("win32 desiredHooks: no knowledge target is wanted", !w32.some(w => w.spec.script === 'nana-knowledge.ts'));
 	// req: R-1053
 	check("WIN_VERIFIER_MATCHER is Bash-or-PowerShell", WIN_VERIFIER_MATCHER === "Bash|PowerShell");
 	// req: R-1053
@@ -332,7 +334,6 @@ check("six active hook entries are wanted", wanted.length === 7);
 		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: { interpreters: ["node"], script: "nana-shared-memory.mjs" }, entry: { type: "command", command: "node '/h/nana-shared-memory.mjs'", timeout: 5, statusMessage: "nana: shared memory index" } },
 		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: { interpreters: ["node"], script: "nana-roster-notice.mjs" }, entry: { type: "command", command: "node '/h/nana-roster-notice.mjs'", timeout: 5, statusMessage: "nana: roster notice" } },
 		{ event: "PreToolUse", matcher: "Bash", label: "PreToolUse verifier pipe", marker: "verifier-pipe.mjs", spec: { interpreters: ["node"], script: "verifier-pipe.mjs" }, entry: { type: "command", command: "node '/h/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" } },
-		{ event: "UserPromptSubmit", label: "UserPromptSubmit knowledge pull", marker: "nana-knowledge.ts hook", spec: { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] }, entry: { type: "command", command: "NODE_NO_WARNINGS=1 node '/r/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" } },
 		{ event: E.event, label: `${E.event} memory making`, marker: E.file, spec: { interpreters: ['node'], script: E.file }, entry: { type: 'command', command: `node '/h/${E.file}'`, timeout, statusMessage: E.statusMessage } },
 	];
 	// req: R-1061
@@ -371,8 +372,8 @@ check("six active hook entries are wanted", wanted.length === 7);
 	const wantedWin = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
 	const objWin = wantedWin.find((w) => w.label === "SessionStart objective");
 	const wantedPosix = desiredHooks({ hooksDir: "/h", repoRoot: "/repo" });
-	const knowledgeWin = wantedWin.find((w) => w.label === "UserPromptSubmit knowledge pull");
-	const knowledgePosix = wantedPosix.find((w) => w.label === "UserPromptSubmit knowledge pull");
+	const knowledgeWin = retiredKnowledgeHook({ repoRoot: '/repo', platform: 'win32' });
+	const knowledgePosix = retiredKnowledgeHook({ repoRoot: '/repo' });
 	const objPosix = wantedPosix.find((w) => w.label === "SessionStart objective");
 	// req: R-1056
 	check("installerTarget accepts the POSIX knowledge form on every platform", installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgeWin, "win32")?.form === "posix" && installerTarget({ command: "NODE_NO_WARNINGS=1 node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgePosix, undefined)?.form === "posix");
@@ -427,7 +428,7 @@ check("six active hook entries are wanted", wanted.length === 7);
 	settings.hooks.SessionStart[0].hooks.push({ type: "command", command: "node", args: ["/repo/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5, statusMessage: "nana: objective + current priority" });
 	const removed = removeInstallerHooks(settings, { hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
 	// req: R-1050
-	check("forced-win32 removeInstallerHooks removes exactly the six entries", removed.length === 7, JSON.stringify(removed));
+	check("forced-win32 removeInstallerHooks removes exactly the six entries", removed.length === 6, JSON.stringify(removed));
 	// Guarded with optional chaining, not a plain settings.hooks.SessionStart[0] read: a wrong
 	// removeInstallerHooks that over-removes can empty and delete the whole SessionStart group (or
 	// settings.hooks itself), and this case must still report FAIL rather than throw and abort
@@ -574,7 +575,7 @@ const homeSnapshot = (root) => {
 	// req: R-660
 	check("owner command variant with arguments is preserved", after.hooks.UserPromptSubmit[0].hooks.some((h) => h.command === "bash ~/.claude/hooks/context-size-check.sh --custom"));
 	check("retirement reports that the hook was removed", /UserPromptSubmit context-size retirement/.test(r.stdout), r.stdout);
-	check("the knowledge hook was added", JSON.stringify(after).includes("nana-knowledge.ts"));
+	check("the retired knowledge hook was not added", !JSON.stringify(after).includes("nana-knowledge.ts"));
 	if (platform() === "win32") {
 		skip("file mode is preserved across the atomic write", posixModeReason);
 	} else {
@@ -687,9 +688,9 @@ const homeSnapshot = (root) => {
 	};
 	const ownEntries = entries.filter(isOurs);
 	// req: R-394
-	check("install replaces its stale hook without a duplicate", r.status === 0 && !text.includes(stale) && ownEntries.length === 1 && ownEntries[0] === entries[0], JSON.stringify(commands));
+	check("install removes its stale hook without a duplicate", r.status === 0 && !text.includes(stale) && ownEntries.length === 0, JSON.stringify(commands));
 	// req: R-653
-	check("install preserves customized knowledge hook entry byte-for-byte", JSON.stringify(after.hooks.UserPromptSubmit[0].hooks[2]) === JSON.stringify(customized));
+	check("install preserves customized knowledge hook entry byte-for-byte", JSON.stringify(after.hooks.UserPromptSubmit[0].hooks[1]) === JSON.stringify(customized));
 }
 
 /* --- the atomic write refuses to clobber a concurrent edit ---------------------------- */

@@ -1,0 +1,6 @@
+requirements: 2542 total (2277 implemented · 7 planned · 63 retired · 190 untested · 5 violated); 2285 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:68200) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<home>/nana-pi-wt/seat-pull-off/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <home>/nana-pi-wt/seat-pull-off/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

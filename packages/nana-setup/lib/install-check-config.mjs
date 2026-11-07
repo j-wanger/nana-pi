@@ -17,7 +17,6 @@ export const HOOKS = [
   { label: "hook shared memory", shortLabel: "shared memory", event: "SessionStart", matcher: "startup", script: "nana-shared-memory.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook roster notice", shortLabel: "roster notice", event: "SessionStart", matcher: "startup", script: "nana-roster-notice.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook verifier pipe", shortLabel: "verifier pipe", event: "PreToolUse", matcher: { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, tools: { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, script: "verifier-pipe.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
-  { label: "hook knowledge pull", shortLabel: "knowledge pull", event: "UserPromptSubmit", matcher: null, script: "nana-knowledge.ts", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
 ];
 // contract: R-1209 — independent of nana-pack's roster-notice-config.mjs (the install check's
 // own sealed contract), so a notice-config change cannot silently loosen what the check accepts.

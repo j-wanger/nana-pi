@@ -31,7 +31,7 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
-import { commandInvokes, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
+import { commandInvokes, entryInvokes, retiredKnowledgeHook, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
@@ -65,8 +65,9 @@ function retiredSettingsCommands(settings) {
 		for (const group of groups) {
 			if (!Array.isArray(group?.hooks)) continue;
 			for (const hook of group.hooks) {
-				if (scripts.some((script) => commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })))
-					findings.push({ event, command: hook.command });
+				if (scripts.some((script) => commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) ||
+					(event === "UserPromptSubmit" && (entryInvokes(hook, retiredKnowledgeHook().spec, "win32") || commandInvokes(hook?.command, retiredKnowledgeHook().spec))))
+					findings.push({ event, command: [hook.command, ...(Array.isArray(hook.args) ? hook.args : [])].join(" ") });
 			}
 		}
 	}
@@ -453,11 +454,8 @@ export function diagnose(layout, opts = {}) {
 	} catch (err) {
 		parseError = err.code === "ENOENT" ? "missing" : `unreadable (${err.message})`;
 	}
-	// R-1055: on win32 every one of the six settings rows is now a real ✓/✗, read the same way —
-	// the entry sits under the expected event and matcher (hasHook), and every entry that invokes
-	// its script resolves inside the checkout (hookTargets). On POSIX the five hook rows keep
-	// hasHook alone and the knowledge row keeps knowledgeHookHealthy, both exactly as on `main`
-	// (R-1061).
+	// Active settings rows check presence and, on win32, checkout targets.
+	// Retired knowledge wiring is reported separately below, never as a missing active hook.
 	for (const row of hookSettingsRows(layout, settings, parseError)) add(row.ok ? OK : FAIL, row.label, row.detail);
 	// R-1060: stated, not checked — a probe of `claude --version` brings back the Windows launch
 	// problem pi-cmd-launch solved for pi, which is not worth it for a floor the owner already exceeds.
@@ -473,7 +471,9 @@ export function diagnose(layout, opts = {}) {
 		add(FAIL, "settings lock", `${settingsLock} is left over (${lockHolder(settingsLock)}) — install will not run until it is removed; if no nana-setup is running, remove it: ${fix}`);
 	}
 	for (const { event, command } of retiredSettingsCommands(settings))
-		add(FAIL, `settings ${event} retired hook`, `retired bash hook still wired: ${command}`);
+		add(FAIL, `settings ${event} retired hook`, command.includes('nana-knowledge.ts')
+			? `retired hook still wired: ${command} — run \`nana-setup install\``
+			: `retired bash hook still wired: ${command}`);
 
 	// --- two-tier auto-memory ---
 	const idx = path.join(layout.sharedMemoryDir, "MEMORY.md");

@@ -209,6 +209,6 @@ check("both READMEs declare which pipelines the verifier-pipe guard asks on", [p
 // final review r2 (sol SHOULD 2, astra SHOULD 3): the migration sentence now opens "On POSIX" —
 // Windows also recognizes the legacy and exec forms, covered in the sentence that follows it.
 // req: R-985
-check("setup README retains context retirement and knowledge migration guarantees", setupReadme.includes("Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved.") && setupReadme.includes("On POSIX, the knowledge hook is migrated in place only when its timeout and status metadata match"));
+check("setup README retains context retirement and knowledge retirement guarantees", setupReadme.includes("Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved.") && setupReadme.includes("Install removes only complete installer-shaped knowledge entries in shell or exec form"));
 
 if (failures) process.exitCode = 1;

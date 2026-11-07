@@ -1,0 +1,72 @@
+PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs        13 pass  0.7s
+PASS  packages/nana-setup/tests/checkout-converge.test.mjs          6 pass  2.7s
+PASS  packages/nana-setup/tests/checkout-spelling.test.mjs          6 pass  5.3s
+PASS  packages/nana-setup/tests/claude-config-dir.test.mjs          7 pass  2.1s
+PASS  packages/nana-setup/tests/copy-record.test.mjs                8 pass  1.9s
+PASS  packages/nana-setup/tests/desk-service.test.mjs               46 pass  8.8s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs              72 pass  11.9s
+PASS  packages/nana-setup/tests/doctor-fix-line.test.mjs            15 pass  3.8s
+PASS  packages/nana-setup/tests/doctor-knowledge.test.mjs           5 pass  0.7s
+PASS  packages/nana-setup/tests/doctor-memory-links.test.mjs        12 pass  1.6s
+PASS  packages/nana-setup/tests/doctor-package-source.test.mjs      10 pass  1.5s
+PASS  packages/nana-setup/tests/doctor-pi-dependencies.test.mjs     3 pass  1.5s
+PASS  packages/nana-setup/tests/doctor-quiet.test.mjs               7 pass  1.2s
+PASS  packages/nana-setup/tests/doctor-release.test.mjs             2 pass  0.9s
+PASS  packages/nana-setup/tests/doctor-runtime.test.mjs             21 pass  2.7s
+PASS  packages/nana-setup/tests/doctor-trust.test.mjs               1 pass  0.4s
+PASS  packages/nana-setup/tests/entry-guidance.test.mjs             17 pass  0.3s
+PASS  packages/nana-setup/tests/fresh-machine.test.mjs              9 pass  0.1s
+PASS  packages/nana-setup/tests/frontier-hook.test.mjs              1 pass  1.7s
+PASS  packages/nana-setup/tests/fsops.test.mjs                      17 pass  0.0s
+PASS  packages/nana-setup/tests/hook-deadlines.test.mjs             7 pass  34.1s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs             13 pass  0.1s
+PASS  packages/nana-setup/tests/hooks-closed-output.test.mjs        7 pass  1.0s
+SKIP  packages/nana-setup/tests/hooks-win32-exec.test.mjs           runs only on the Windows leg (process.platform !== "win32")
+PASS  packages/nana-setup/tests/install-check-builder-env.test.mjs  3 pass  0.8s
+PASS  packages/nana-setup/tests/install-check.test.mjs              142 pass  1.2s
+PASS  packages/nana-setup/tests/install-overlap.test.mjs            4 pass  0.2s
+PASS  packages/nana-setup/tests/install.test.mjs                    110 pass  8.4s
+PASS  packages/nana-setup/tests/linked-claude-folder.test.mjs       10 pass  8.8s
+PASS  packages/nana-setup/tests/memory-end-hook.test.mjs            7 pass  3.7s
+PASS  packages/nana-setup/tests/memory-end-wiring.test.mjs          1 pass  0.3s
+PASS  packages/nana-setup/tests/objective-path-shapes.test.mjs      5 pass, 1 skip  4.5s
+PASS  packages/nana-setup/tests/paths.test.mjs                      5 pass  0.0s
+PASS  packages/nana-setup/tests/pi-install-pin.test.mjs             10 pass  0.1s
+PASS  packages/nana-setup/tests/pi-launch-limits.test.mjs           22 pass, 2 skip  67.0s
+PASS  packages/nana-setup/tests/pi-registration.test.mjs            72 pass, 3 skip  4.7s
+PASS  packages/nana-setup/tests/project-dismiss.test.mjs            14 pass  0.5s
+PASS  packages/nana-setup/tests/project-key.test.mjs                13 pass, 1 skip  0.0s
+PASS  packages/nana-setup/tests/project-odd-seeds.test.mjs          8 pass  3.7s
+PASS  packages/nana-setup/tests/project-stale.test.mjs              11 pass  4.5s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs     28 pass  0.2s
+PASS  packages/nana-setup/tests/project.test.mjs                    124 pass  32.3s
+PASS  packages/nana-setup/tests/readme-rehearsal.test.mjs           8 pass  0.1s
+PASS  packages/nana-setup/tests/realpath-fallback.test.mjs          3 pass  3.4s
+PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs         31 pass  1.9s
+PASS  packages/nana-setup/tests/restore.test.mjs                    17 pass  1.6s
+PASS  packages/nana-setup/tests/retired-artifacts.test.mjs          47 pass  3.5s
+PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs         4 pass  0.6s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs            12 pass  3.3s
+PASS  packages/nana-setup/tests/seat-pull-off.test.mjs              8 pass  0.9s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs                  21 pass  0.0s
+PASS  packages/nana-setup/tests/settings-lock.test.mjs              6 pass, 2 skip  3.2s
+PASS  packages/nana-setup/tests/settings-merge.test.mjs             222 pass  4.6s
+PASS  packages/nana-setup/tests/shared-link-state.test.mjs          7 pass  0.0s
+PASS  packages/nana-setup/tests/shared-memory-budget.test.mjs       7 pass  0.4s
+PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs         43 pass  0.7s
+PASS  packages/nana-setup/tests/shared-memory-input.test.mjs        3 pass  0.1s
+PASS  packages/nana-setup/tests/skills-and-standards.test.mjs       88 pass  6.9s
+PASS  packages/nana-setup/tests/stale-copies-slow.test.mjs          2 pass  37.5s
+PASS  packages/nana-setup/tests/stale-copies.test.mjs               14 pass  6.6s
+PASS  packages/nana-setup/tests/state-manifest.test.mjs             21 pass  0.9s
+PASS  packages/nana-setup/tests/trust.test.mjs                      13 pass  1.2s
+PASS  packages/nana-setup/tests/uninstall.test.mjs                  31 pass  2.2s
+FAIL  packages/nana-setup/tests/verifier-pipe.test.mjs              30 pass, 1 fail  2.4s  — exit 1
+      | FAIL setup README retains context retirement and knowledge migration guarantees 
+PASS  packages/nana-setup/tests/win-shims.test.mjs                  2 pass, 6 skip  0.4s
+PASS  packages/nana-setup/tests/win32-degrade.test.mjs              88 pass  6.5s
+PASS  packages/nana-setup/tests/win32-hook-repair.test.mjs          14 pass  2.7s
+PASS  packages/nana-setup/tests/writing-rule.test.mjs               4 pass  0.0s
+
+68 files: 66 PASS, 1 FAIL, 1 SKIP, 0 WARN · checks: 1640 pass, 1 fail, 15 skip · 318.1s
+failed: packages/nana-setup/tests/verifier-pipe.test.mjs

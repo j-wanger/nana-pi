@@ -1,7 +1,7 @@
 # nana-knowledge
 
-A local full-text index over the knowledge stores on this machine, queried **at the
-moment you type a prompt** and injected as a handful of pointers.
+A local full-text index over the knowledge stores on this machine, searched with
+`nana-knowledge query` or pulled as pointers by pi's extension.
 
 The problem it answers (audit: `~/nana-agent-loop/docs/audits/2026-09-16-knowledge-utilization.md`):
 72 grounded research articles with zero reads, ten knowledge wikis unqueried since June.
@@ -132,26 +132,15 @@ predate the full-page check; the check alone cost about 85 ms on a 50 MB index, 
 
 ## The hook
 
-Wire it as a Claude Code `UserPromptSubmit` hook in `~/.claude/settings.json`:
+The Claude Code `UserPromptSubmit` hook is retired (2026-11-06, #342).
+In matched seat transcripts, 17 of 871 suggested files were later opened: approximately 2%.
+The hook also fired on cross-session messages. Do not wire it manually.
+Run `nana-setup install` to remove existing installer-owned wiring; until then, doctor
+reports it as a retired hook. Search explicitly with `nana-knowledge query "your terms"`
+(the Usage section shows the checkout command).
 
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "NODE_NO_WARNINGS=1 node /Users/example/nana-pi/packages/nana-knowledge/bin/nana-knowledge.ts hook",
-            "timeout": 5,
-            "statusMessage": "nana: knowledge pull"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+The pi extension stays, not because it measured useful: its 686 entries could not be
+matched to transcripts. The shared `hook` CLI remains for that extension.
 
 It reads the hook JSON on stdin (`prompt`, `session_id`, `cwd`, `transcript_path`) and
 prints an optional frozen-index notice line before at most one pointer block, capped at 2000 characters:
@@ -184,7 +173,7 @@ Behaviour, in the order it is decided:
   silently on the deadline. It cannot bound a **synchronous** stall: if a wedged
   filesystem blocks inside one SQLite call (or `existsSync`, or the log append) the event
   loop never runs, the timer never fires, and the only bound left is the harness hook
-  timeout (`"timeout": 5` above). There is no 1500 ms guarantee — the guarantee is
+  timeout supplied by its caller. There is no 1500 ms guarantee — the guarantee is
   fail-open, not fail-fast. The per-stage checks only short-circuit work that is already
   pointless. Stdin is capped at 256 KB and only the first 8 KB of the prompt is tokenized.
 - **Launcher roles get nothing.** When `NANA_ROLE` is `reviewer` (every pi-review or review-ledger run child) or `worker` (every pi-worker child), the hook prints nothing and writes nothing to the log; `nana-knowledge query` still answers.
@@ -246,7 +235,7 @@ pi install /path/to/nana-pi/packages/nana-knowledge
   open the file. There is no reinjection machinery and should not be one.
 - **A message, not a system-prompt append** — pi rebuilds the system prompt every turn,
   so a deduped pointer would silently vanish; a message stays on the turn it was for.
-- Log lines carry `"source":"pi"` (Claude Code's carry `"claude-code"`), and dedup is
+- Log lines carry `"source":"pi"` (historical Claude Code rows carry `"claude-code"`), and dedup is
   keyed on the **pi session id**, so `--continue` into a new session starts over.
 - No config key. Uninstall the package to turn it off, or `rm -rf
   ~/.pi/agent/nana-knowledge` to remove the index and let it go quiet.

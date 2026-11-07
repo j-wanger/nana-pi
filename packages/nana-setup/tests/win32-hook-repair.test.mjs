@@ -19,7 +19,7 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { hookSettingsRows } = await import(new URL("../lib/hook-health.mjs", import.meta.url).href);
 const { repoRoot } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
-const { WIN_VERIFIER_MATCHER, desiredHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { WIN_VERIFIER_MATCHER, desiredHooks, retiredKnowledgeHook } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 
 let fails = 0;
 function check(name, ok, extra) {
@@ -78,7 +78,7 @@ const foreignAfterVerifier = { type: "command", command: "echo verifier-after", 
 const sessionLabels = ["SessionStart objective", "SessionStart adoption", "SessionStart shared-memory", "SessionStart roster notice"];
 const carriedSession = sessionLabels.map((label) => clone(byLabel(posixWanted, label).entry));
 const carriedVerifier = clone(byLabel(posixWanted, "PreToolUse verifier pipe").entry);
-const carriedKnowledge = clone(byLabel(posixWanted, "UserPromptSubmit knowledge pull").entry);
+const carriedKnowledge = clone(retiredKnowledgeHook({ repoRoot: sourceRepoRoot }).entry);
 
 const f1Home = freshHome();
 seed(f1Home, {
@@ -139,7 +139,7 @@ seed(f6Home, { hooks: {
 		{ matcher: WIN_VERIFIER_MATCHER, hooks: [clone(f1VerifierExpected)] },
 		{ matcher: "Bash", hooks: [clone(carriedVerifier)] },
 	],
-	UserPromptSubmit: [{ hooks: [clone(byLabel(winWanted, "UserPromptSubmit knowledge pull").entry)] }],
+	UserPromptSubmit: [{ hooks: [clone(retiredKnowledgeHook({ repoRoot, platform: 'win32' }).entry)] }],
 } });
 const f6Before = fs.readFileSync(settingsPath(f6Home));
 const f6Install = run(["install", "--home", f6Home]);
@@ -159,7 +159,7 @@ seed(f7Home, { hooks: {
 		{ matcher: "Bash", hooks: [clone(f7Carried)] },
 		{ matcher: WIN_VERIFIER_MATCHER, hooks: [clone(f7OwnerLookalike)] },
 	],
-	UserPromptSubmit: [{ hooks: [clone(byLabel(winWanted, "UserPromptSubmit knowledge pull").entry)] }],
+	UserPromptSubmit: [{ hooks: [clone(retiredKnowledgeHook({ repoRoot, platform: 'win32' }).entry)] }],
 } });
 const f7Install = run(["install", "--home", f7Home]);
 const f7After = JSON.parse(fs.readFileSync(settingsPath(f7Home), "utf8"));
@@ -179,7 +179,7 @@ const allSixUnchanged = winWanted.every((wanted) => f1SecondLines.some((line) =>
 check("win32 install: a second install over the repaired home reports all six settings rows unchanged", f1Second.status === 0 && allSixUnchanged && f1AfterSecond.equals(f1BeforeSecond), f1Second.stdout);
 
 const allSixHealthy = winWanted.every((wanted) => new RegExp(`✓ settings ${regexEscape(wanted.label)}\\b`).test(f1Doctor.stdout));
-const f1KnowledgeAtIndex = sortedEqual(f1After.hooks.UserPromptSubmit[0].hooks[0], byLabel(winWanted, "UserPromptSubmit knowledge pull").entry);
+const f1KnowledgeAtIndex = f1After.hooks.UserPromptSubmit === undefined;
 // req: R-1884
 check("win32 doctor: all six settings rows read ✓ after one install over the carried home", allSixHealthy && f1KnowledgeAtIndex, f1Doctor.stdout);
 
@@ -190,9 +190,9 @@ seed(f3Home, { hooks: { UserPromptSubmit: [{ hooks: [f3Foreign, f3Unquoted] }] }
 const f3Install = run(["install", "--home", f3Home]);
 const f3After = JSON.parse(fs.readFileSync(settingsPath(f3Home), "utf8"));
 const f3Entries = f3After.hooks.UserPromptSubmit[0].hooks;
-const f3Repaired = f3Install.status === 0 && f3Entries.length === 2 && byteEqual(f3Entries[0], f3Foreign) && sortedEqual(f3Entries[1], byLabel(winWanted, "UserPromptSubmit knowledge pull").entry);
+const f3Repaired = f3Install.status === 0 && f3Entries.length === 1 && byteEqual(f3Entries[0], f3Foreign);
 // req: R-1885
-check("win32 install: the first installer's unquoted knowledge entry becomes exec form in place", f3Repaired, `${f3Install.stdout}\n${JSON.stringify(f3Entries)}`);
+check("win32 install: the first installer's unquoted knowledge entry is retired", f3Repaired, `${f3Install.stdout}\n${JSON.stringify(f3Entries)}`);
 
 const objective = clone(byLabel(posixWanted, "SessionStart objective").entry);
 const f4ObjectiveLookalikes = [
@@ -227,7 +227,7 @@ const adviceDeadPaths = [
 ];
 const vEntries = sessionLabels.map((label, index) => ({ ...clone(byLabel(winWanted, label).entry), args: [adviceDeadPaths[index]] }));
 const vVerifier = { ...clone(byLabel(winWanted, "PreToolUse verifier pipe").entry), args: [adviceDeadPaths[4]] };
-const vKnowledge = { ...clone(byLabel(winWanted, "UserPromptSubmit knowledge pull").entry), args: [adviceDeadPaths[5], "hook"] };
+const vKnowledge = { ...clone(retiredKnowledgeHook({ repoRoot, platform: 'win32' }).entry), args: [adviceDeadPaths[5], "hook"] };
 const vHome = freshHome();
 seed(vHome, { hooks: {
 	SessionStart: [{ hooks: vEntries }],
@@ -241,6 +241,7 @@ const slashPath = (value) => value.replaceAll("\\", "/");
 const installCommand = (wanted) => [wanted.entry.command, ...wanted.entry.args].map(slashPath).join(" ");
 const safeRoute = "remove that entry by hand, then run nana-setup install";
 const vRowsRepairByHand = winWanted.every((wanted, index) => {
+	if (wanted.event === 'SessionEnd') index = 6;
 	const line = settingsLine(vDoctor.stdout, wanted.label);
 	const editRoute = `to edit instead, run ${installCommand(wanted)}`;
 	return line?.trimStart().startsWith("✗ ") && line.includes(slashPath(adviceDeadPaths[index])) && !line.slice(line.indexOf("install leaves")).includes("\\") && line.includes(safeRoute) && line.includes(editRoute) && line.indexOf(safeRoute) < line.indexOf(editRoute);
@@ -275,7 +276,7 @@ seed(guardHome, { hooks: {
 	UserPromptSubmit: [{ hooks: [clone(carriedKnowledge)] }],
 } });
 const guardDoctor = run(["doctor", "--home", guardHome]);
-const guardLines = winWanted.map((wanted) => settingsLine(guardDoctor.stdout, wanted.label));
+const guardLines = winWanted.filter(wanted => wanted.event !== 'SessionEnd').map((wanted) => settingsLine(guardDoctor.stdout, wanted.label));
 const guardInstallerPaths = [
 	...sessionLabels.map((label) => `${sourceHooksDir}/${byLabel(posixWanted, label).spec.script}`),
 	`${sourceHooksDir}/verifier-pipe.mjs`,

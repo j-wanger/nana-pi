@@ -497,9 +497,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     if (!mappedEntry) { report(label, structural?.code ?? "missing-entry", false); return; }
     const entry = mappedEntry.entry;
     if (structural) { report(label, structural.code, false, hookFailureReason(entry, expected, structural.code, platformName)); return; }
-    const input = ["SessionStart", "SessionEnd"].includes(expected.event) ? sample : expected.event === "UserPromptSubmit"
-      ? { prompt: `${SAMPLE_INPUTS.prompt} ${token}`, cwd: project }
-      : { hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command: tool === "PowerShell" ? SAMPLE_INPUTS.verifier.powershellHit : SAMPLE_INPUTS.verifier.bashHit } };
+    const input = ["SessionStart", "SessionEnd"].includes(expected.event) ? sample : { hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command: tool === "PowerShell" ? SAMPLE_INPUTS.verifier.powershellHit : SAMPLE_INPUTS.verifier.bashHit } };
     const invocation = hookInvocation(entry, platformName, bash);
     const hookEnv = { ...childEnv, CLAUDE_PROJECT_DIR: project };
     for (const key of Object.keys(hookEnv)) if (expected.removeEnv?.some(name => name.toLowerCase() === key.toLowerCase())) delete hookEnv[key];
@@ -517,7 +515,6 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     }
     if (expected.event === "SessionEnd") passed &&= stdout === "" && (result.stderr ?? "") === "";
     if (expected.shortLabel === "roster notice") passed &&= rosterNoticeOutputOk(stdout);
-    if (expected.shortLabel === "knowledge pull") passed &&= stdout.includes("[nana:knowledge]") && stdout.includes(PI_TURN.noteFile);
     let miss = null;
     if (expected.shortLabel === "verifier pipe") {
       const missInput = { hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command: tool === "PowerShell" ? "git status" : SAMPLE_INPUTS.verifier.bashMiss } };

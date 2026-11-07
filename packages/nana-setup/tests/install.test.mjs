@@ -292,7 +292,7 @@ const knowledgeSpec = { interpreters: ["node"], script: "nana-knowledge.ts", arg
 // forward-slash after repoRoot, never path.join's backslash — normalise both sides before the
 // substring compare (R-1050).
 const forwardSlash = (p) => p.replace(/\\/g, "/");
-check("knowledge hook points at this install root", hookTargets(settings, "UserPromptSubmit", knowledgeSpec, platform()).some((t) => forwardSlash(t).includes(forwardSlash(path.join(repo, "packages", "nana-knowledge")))));
+check("knowledge hook is not installed", hookTargets(settings, "UserPromptSubmit", knowledgeSpec, platform()).length === 0);
 
 // req: R-308
 check("shared memory index seeded", fs.readFileSync(path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md"), "utf8").startsWith("# Shared memory"));

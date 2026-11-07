@@ -43,7 +43,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeBytesWithBackup, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, serialize, validateShape } from "./settings.mjs";
+import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, serialize, validateShape } from "./settings.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
@@ -631,21 +631,24 @@ export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
 			status: added.includes(w.label) ? CREATED : UNCHANGED,
 			detail: added.includes(w.label) ? "added" : "already wired",
 		})),
+		...(added.includes("UserPromptSubmit knowledge retirement") ? [{ label: "settings UserPromptSubmit knowledge retirement", status: UPDATED, detail: "removed retired nana-managed invocation" }] : []),
 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
 		...(added.includes("SessionStart retired hook migration") ? [{ label: "settings SessionStart retired hook migration", status: UPDATED, detail: o.dryRun ? "would migrate managed entries in place" : "migrated managed entries in place" }] : []),
 		...retiredHookCommands(settings).map(({ event, command }) => ({ label: `settings ${event} retired hook`, status: PROBLEM, detail: `retired bash hook still wired: ${command}` })),
 	];
 	const merge = (settings) => {
 		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
+		const retiredKnowledge = removeRetiredKnowledgeHook(settings);
 		const migratedLegacy = !win() && migrateLegacyHooks(settings, { hooksDir: layout.hooksDir, claudeHome: layout.claudeHome });
-		// Repo-anchored entries (the knowledge pull on every platform, all six on win32) are
-		// repaired in place when stale or (on win32) not yet in exec form (R-1056, R-1059);
+		// Active repo-anchored entries on win32 are repaired in place when stale or
+		// not yet in exec form (R-1056);
 		// everything else goes through the ordinary append-if-missing merge.
 		const repo = mergeRepoHooks(settings, { repoRoot, wanted, platform: platformValue });
 		const toAppend = wanted.filter((w) => !repo[w.label]?.found);
 		const result = mergeHooks(settings, toAppend, platformValue);
 		for (const w of wanted) if (repo[w.label]?.replaced) result.added.push(w.label);
 		if (retiredContext) result.added.push("UserPromptSubmit context-size retirement");
+		if (retiredKnowledge) result.added.push("UserPromptSubmit knowledge retirement");
 		if (migratedLegacy) result.added.push("SessionStart retired hook migration");
 		return result;
 	};

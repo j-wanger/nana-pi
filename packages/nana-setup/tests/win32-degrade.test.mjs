@@ -147,13 +147,13 @@ check("win32: the private rule is still seeded", fs.existsSync(path.join(home, "
 check("win32: the pi config is still seeded", fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
 check("win32: the knowledge index is still built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
-const cmds = settings.hooks.UserPromptSubmit.flatMap((g) => g.hooks.map((h) => h.command));
+const cmds = (settings.hooks.UserPromptSubmit ?? []).flatMap((g) => g.hooks.map((h) => h.command));
 // final review r1 astra SHOULD 7: all five hooks are now wired on win32 — this check only ever
 // examined UserPromptSubmit, which still carries exactly the one knowledge entry (no twin); the
 // title used to claim the opposite ("only the knowledge hook is wired") from when the other four
 // were skipped there. Renamed; see test-title-map.json.
 // req: R-1051
-check("win32: UserPromptSubmit carries exactly the one knowledge entry, no twin", cmds.length === 1 && JSON.stringify(settings.hooks.UserPromptSubmit).includes("nana-knowledge.ts"));
+check("win32: UserPromptSubmit carries no retired knowledge entry", cmds.length === 0);
 // req: R-1050
 check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("bash "));
 // R-985, R-1053: the verifier-pipe hook IS wired on win32 now, matcher Bash|PowerShell.
@@ -384,9 +384,9 @@ for (const w of win32Wanted) {
 	// req: R-1059
 	check("win32: install over the earlier win32 form exits 0", r.status === 0, r.stdout + r.stderr);
 	const after = JSON.parse(fs.readFileSync(path.join(h2, ".claude", "settings.json"), "utf8"));
-	const entries = after.hooks.UserPromptSubmit[0].hooks;
+	const entries = (after.hooks.UserPromptSubmit ?? []).flatMap(group => group.hooks);
 	// req: R-1059
-	check("win32: a healthy earlier-form knowledge entry is moved to exec form in place, no twin", entries.length === 1 && entries[0].command === "node" && Array.isArray(entries[0].args) && entries[0].args[1] === "hook", JSON.stringify(entries));
+	check("win32: a healthy earlier-form knowledge entry is retired, no twin", entries.length === 0, JSON.stringify(entries));
 }
 
 /* the seam does not leak: a normal run on this machine still links */

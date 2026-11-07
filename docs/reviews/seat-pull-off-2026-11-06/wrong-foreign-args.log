@@ -1,0 +1,15 @@
+PASS R-3739: fresh POSIX and win32 installs omit only the knowledge entry
+FAIL R-3740: install removes shell and exec knowledge entries and preserves foreign entries Expected values to be strictly equal:
++ actual - expected
+
++ `[{"type":"command","command":"NODE_NO_WARNINGS=1 node '/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":9,"statusMessage":"nana: knowledge pull"},{"type":"command","command":"NODE_NO_WARNINGS=1 node '/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":5,"statusMessage":"nana: knowledge pull","async":true},{"type":"prompt","command":"NODE_NO_WARNINGS=1 node '/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":5,"statusMessage":"nana: knowledge pull"},{"type":"command","command":"node","args":["C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts","hook","--owner"],"timeout":5,"statusMessage":"nana: knowledge pull"},{"type":"command","command":"echo foreign","timeout":17},{"type":"command","command":"NODE_NO_WARNINGS=1 node '/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":5,"statusMessage":"owner knowledge"}]`
+- `[{"type":"command","command":"NODE_NO_WARNINGS=1 node '/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":9,"statusMessage":"nana: knowledge pull"},{"type":"command","command":"NODE_NO_WARNINGS=1 node '/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":5,"statusMessage":"nana: knowledge pull","async":true},{"type":"command","command":"NODE_NO_WARNINGS=1 node '/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":5,"statusMessage":"nana: knowledge pull","args":[]},{"type":"prompt","command":"NODE_NO_WARNINGS=1 node '/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":5,"statusMessage":"nana: knowledge pull"},{"type":"command","command":"node","args":["C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts","hook","--owner"],"timeout":5,"statusMessage":"nana: knowledge pull"},{"type":"command","command":"echo foreign","timeout":17},{"type":"command","command":"NODE_NO_WARNINGS=1 node '/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts' hook","timeout":5,"statusMessage":"owner knowledge"}]`
+
+PASS R-3741: doctor names retired knowledge commands and install repair, but not absence
+PASS R-3742: uninstall still removes the previous installer knowledge entry
+PASS R-3743: install-check omits the Claude knowledge hook and still checks pi knowledge
+PASS R-3744: query returns index results after install
+PASS R-3745: install retains matcher siblings and drops only groups emptied by removal
+PASS R-3746: knowledge README retires Claude wiring and points to explicit query
+(node:95909) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -162,22 +162,8 @@ try {
 		check("repository-managed context hook symlink is removed", !fs.existsSync(hookLink) && !fs.lstatSync(hookLink, { throwIfNoEntry: false }), result.stdout);
 		const settings = JSON.parse(fs.readFileSync(path.join(h, ".claude", "settings.json"), "utf8"));
 		const completeContextEntries = settings.hooks.UserPromptSubmit[0].hooks;
-		// On win32 the knowledge entry is exec form (R-1050): `command: "node"` plus an `args`
-		// array built with a forward-slash template, never the POSIX quoted string.
-		const expectedInstalledHooks = process.platform !== "win32"
-			? [...ownerHooks, {
-				type: "command",
-				command: `NODE_NO_WARNINGS=1 node '${path.join(repo, "packages", "nana-knowledge", "bin", "nana-knowledge.ts")}' hook`,
-				timeout: 5,
-				statusMessage: "nana: knowledge pull",
-			}]
-			: [...ownerHooks, {
-				type: "command",
-				command: "node",
-				args: [`${repo}/packages/nana-knowledge/bin/nana-knowledge.ts`, "hook"],
-				timeout: 5,
-				statusMessage: "nana: knowledge pull",
-			}];
+		// Knowledge retirement adds no replacement beside the retained owner commands.
+		const expectedInstalledHooks = [...ownerHooks];
 		// No released Windows install ever wrote this retired hook, in any form: bash hooks were
 		// unconditionally "skipped (win32: bash hook)" from the first win32 commit (b39518f,
 		// 2026-09-18) onward, and this hook was retired from the install flow entirely on

@@ -134,6 +134,8 @@ function earlierHome(spelling, label) {
 	};
 	walk(fixture.home);
 	const settings = readSettings(fixture);
+	// Seed historical wiring explicitly: a fresh install no longer creates it.
+	settings.hooks.UserPromptSubmit = [{ hooks: [{ type: 'command', command: wantedKnowledgeCommand(), timeout: 5, statusMessage: 'nana: knowledge pull' }] }];
 	let knowledgeChanged = 0;
 	for (const groups of Object.values(settings.hooks ?? {})) for (const group of groups ?? []) for (const entry of group.hooks ?? []) {
 		if (typeof entry.command !== "string") continue;
@@ -202,15 +204,14 @@ process.platform !== "win32" ? check("R-2201: install preserves skill links to a
 }) : skip("R-2201 — POSIX-only: skill links are copies on win32");
 
 // req: R-2202
-process.platform !== "win32" ? check("R-2202: install converges the knowledge command to the on-disk spelling", () => {
+process.platform !== "win32" ? check("R-2202: install retires the respelled knowledge command", () => {
 	eachSpelling((spelling) => {
 		const { fixture } = earlierHome(spelling, `2202-${spelling.kind}`);
 		const result = run(canonical, ["install"], fixture);
 		assertFinished(result, "knowledge-converging install");
 		assert(result.status === 0, `${spelling.kind}: install exited ${result.status}\n${result.stdout}\n${result.stderr}`);
 		const entries = knowledgeEntries(readSettings(fixture));
-		assert(entries.length === 1, `${spelling.kind}: expected one knowledge entry, got ${entries.length}`);
-		assert(entries[0].command === wantedKnowledgeCommand(), `${spelling.kind}: command=${entries[0].command}`);
+		assert(entries.length === 0, `${spelling.kind}: retired knowledge entry remains`);
 	});
 }) : skip("R-2202 — POSIX-only: Windows hook entries keep typed path spellings");
 

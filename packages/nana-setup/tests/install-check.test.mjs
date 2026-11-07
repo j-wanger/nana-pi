@@ -48,9 +48,9 @@ async function runChecks() {
 
 // req: R-1074
 check("sealed hook table and allowed entry shape", () => {
-  assert.equal(HOOKS.length, 7);
+  assert.equal(HOOKS.length, 6);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
-  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice", "hook verifier pipe", "hook knowledge pull"]);
+  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice", "hook verifier pipe"]);
   assert.ok(HOOKS.every((h) => h.form.darwin && h.form.linux && h.form.win32));
 });
 
@@ -462,7 +462,7 @@ check("spawn: every child goes through the injected spawn (git init twice, Git B
       const joined = fixture.calls.map(({ command, args }) => `${command} ${args.join(" ")}`).join("\\n");
       assert.equal(fixture.calls.filter((call) => call.args[0] === "init").length, 2);
       if (platformName === "linux") {
-        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", "nana-knowledge.ts"]) assert.ok(joined.includes(name), name);
+        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) assert.ok(joined.includes(name), name);
         assert.ok(fixture.calls.some((call) => call.args[0] === "install" && call.args.some((arg) => arg.includes("pi-subagents"))));
         assert.ok(fixture.calls.some((call) => call.args.includes("doctor")));
         assert.ok(fixture.calls.filter((call) => call.options.input?.includes("PreToolUse")).length >= 2);
@@ -647,7 +647,6 @@ check("pin R-1074 R-1082: the hook table with its form columns and the allowed e
     ["hook shared memory", "SessionStart", "startup", null, "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook roster notice", "SessionStart", "startup", null, "nana-roster-notice.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook verifier pipe", "PreToolUse", { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook knowledge pull", "UserPromptSubmit", null, null, "nana-knowledge.ts", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
   ]);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
 });
@@ -794,11 +793,15 @@ check("verifier: two JSON lines fail", async () => await assertOnlyHookFails(scr
 // req: R-1077
 check("verifier: a miss sample that prints anything fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? { stdout: "unexpected" } : {}), "hook verifier pipe (Bash)"));
 // req: R-1083
-check("knowledge: an empty output fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-knowledge.ts"), () => ({ stdout: "" })), "hook knowledge pull"));
+check("knowledge: no Claude hook output is required after retirement", async () => {
+  const fixture = scriptedFixture(hookIs("nana-knowledge.ts"), () => ({ stdout: "" }));
+  try { const result = await fixture.run; assert.ok(!result.lines.some(line => line.includes('hook knowledge pull'))); assert.equal(result.exitCode, 0); }
+  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+});
 // req: R-1083
-check("knowledge: a win32 ~\\notes\\docs\\install-check.md pointer matches by file name", async () => {
+check("knowledge: win32 has no retired Claude hook result line", async () => {
   const fixture = scriptedFixture(hookIs("nana-knowledge.ts"), () => ({ stdout: "[nana:knowledge] ~\\notes\\docs\\install-check.md" }), "win32");
-  try { const result = await fixture.run; assert.ok(result.lines.some(line => line === "PASS hook knowledge pull")); }
+  try { const result = await fixture.run; assert.ok(!result.lines.some(line => line.includes('hook knowledge pull'))); assert.equal(result.exitCode, 0); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1209

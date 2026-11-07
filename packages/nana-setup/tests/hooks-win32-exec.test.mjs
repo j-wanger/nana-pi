@@ -20,7 +20,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { withPiStub } from "./stub-pi.mjs";
-import { desiredHooks, entryInvokes } from "../lib/settings.mjs";
+import { desiredHooks, retiredKnowledgeHook, entryInvokes } from "../lib/settings.mjs";
 import { platform } from "../lib/paths.mjs";
 import { GH_COMMAND_ENV } from "../../nana-pack/lib/suite-records-config.mjs";
 import { describeKnowledgeHome } from "./knowledge-state.mjs";
@@ -119,7 +119,7 @@ try {
 	// req: R-1050
 	check("every entry has command node, an args array and no shell key", wanted.every((w) => entries[w.spec.script]) && Object.values(entries).every(({ hook }) => hook.command === "node" && Array.isArray(hook.args) && !("shell" in hook)), JSON.stringify(entries));
 	// req: R-1056
-	check("the stale knowledge entry was replaced in place, not twinned", Boolean(entries["nana-knowledge.ts"]) && (settings.hooks.UserPromptSubmit ?? []).flatMap((g) => g.hooks).filter((h) => JSON.stringify(h).includes("nana-knowledge")).length === 1, JSON.stringify(settings.hooks.UserPromptSubmit));
+	check("the stale knowledge entry was retired, not twinned", !entries["nana-knowledge.ts"] && (settings.hooks.UserPromptSubmit ?? []).flatMap((g) => g.hooks).filter((h) => JSON.stringify(h).includes("nana-knowledge")).length === 0, JSON.stringify(settings.hooks.UserPromptSubmit));
 	// req: R-1053
 	check("the verifier group's matcher is Bash-or-PowerShell", entries["verifier-pipe.mjs"]?.matcher === "Bash|PowerShell", JSON.stringify(entries["verifier-pipe.mjs"]));
 
@@ -219,7 +219,8 @@ try {
 	const knowledgeHome = env.NANA_KNOWLEDGE_HOME;
 	fs.mkdirSync(knowledgeHome, { recursive: true });
 	fs.writeFileSync(path.join(knowledgeHome, "sources.json"), JSON.stringify({ roots: [{ path: fixtureSrc, kind: "articles" }] }));
-	const knowledgeEntry = entries["nana-knowledge.ts"].hook;
+	// The shared CLI still serves pi; no Claude settings entry should be created to test it.
+	const knowledgeEntry = retiredKnowledgeHook({ repoRoot: worktree, platform: 'win32' }).entry;
 	const built = spawnSync(knowledgeEntry.command, [knowledgeEntry.args[0], "build"], { shell: false, env, encoding: "utf8" });
 	{
 		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt: "hello from the windows leg", cwd: project, session_id: "win32-exec" });
@@ -233,7 +234,7 @@ try {
 		const prompt = "tell me about the quasar nebula telescope horizon findings";
 		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt, cwd: project, session_id: "win32-exec" });
 		// req: R-1330
-		check("R-1330: on Windows the installed knowledge hook command prints a pull block naming the fixture file for a matching prompt", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md"), `build status ${built.status} ${built.stdout}${built.stderr}\n${detail(r)}`);
+		check("R-1330: on Windows the shared knowledge CLI prints a pull block naming the fixture file for a matching prompt", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md"), `build status ${built.status} ${built.stdout}${built.stderr}\n${detail(r)}`);
 	}
 	{
 		const staleDb = path.join(knowledgeHome, "index.db");
@@ -247,7 +248,7 @@ try {
 		const rebuiltAt = waitForRebuilt(knowledgeHome, staleMtimeMs);
 		const afterState = describeKnowledgeHome(knowledgeHome);
 		// req: R-1713 R-3540
-		check("R-1713: on Windows the installed knowledge hook command on an index older than one hour prints the fixture's pull block and the index is rebuilt in the background", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md") && rebuiltAt !== null, `${detail(r)}; rebuilt when the command returned: ${rebuiltOnReturn}; rebuilt ${rebuiltAt === null ? "deadline" : rebuiltAt - returnedAt + " ms"} later; knowledge state before hook: ${JSON.stringify(beforeState)}; knowledge state when wait ended: ${JSON.stringify(afterState)}`);
+		check("R-1713: on Windows the shared knowledge CLI on an index older than one hour prints the fixture's pull block and the index is rebuilt in the background", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md") && rebuiltAt !== null, `${detail(r)}; rebuilt when the command returned: ${rebuiltOnReturn}; rebuilt ${rebuiltAt === null ? "deadline" : rebuiltAt - returnedAt + " ms"} later; knowledge state before hook: ${JSON.stringify(beforeState)}; knowledge state when wait ended: ${JSON.stringify(afterState)}`);
 	}
 
 	// SS1 (R-1340): the earlier objective/adoption checks above (R-1058, R-1063) prove only exit 0
@@ -280,7 +281,7 @@ try {
 	const doctorResult = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8", env }));
 	// req: R-1055
 	check("doctor: exit 0", doctorResult.status === 0, doctorResult.stdout);
-	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice", "settings PreToolUse verifier pipe", "settings UserPromptSubmit knowledge pull", "node for the objective hook"]) {
+	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice", "settings PreToolUse verifier pipe", "settings SessionEnd memory making", "node for the objective hook"]) {
 		const line = doctorResult.stdout.split("\n").find((l) => l.includes(label)) ?? "";
 		// req: R-1055
 		check(`doctor: "${label}" is ✓`, line.trim().startsWith("✓"), line);

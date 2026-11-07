@@ -216,7 +216,8 @@ function breakLinkedSkillsHealthy(fixture) {
 	const linkedSkills = path.join(fixture.home, "dotfiles-skills");
 	fs.renameSync(fixture.layout.skillsDir, linkedSkills);
 	fs.symlinkSync(linkedSkills, fixture.layout.skillsDir, process.platform === "win32" ? "junction" : "dir");
-	editSettings(fixture, (hooks) => { delete hooks.UserPromptSubmit; });
+	// Break an active hook: missing retired knowledge wiring is no longer stale.
+	editSettings(fixture, (hooks) => { delete hooks.PreToolUse; });
 }
 
 function breakLinkedClaudeMissingSkills(fixture) {

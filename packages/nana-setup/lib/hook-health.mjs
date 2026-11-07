@@ -9,7 +9,7 @@
 import * as path from "node:path";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import { pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { desiredHooks, hasHook, hookTargets, knowledgeHookHealthy, mergeHooks, mergeRepoHooks, validateShape } from "./settings.mjs";
+import { desiredHooks, hasHook, hookTargets, mergeHooks, mergeRepoHooks, validateShape } from "./settings.mjs";
 import { HOOKS } from "./steps.mjs";
 import { linkOk } from "./stale-copies.mjs";
 
@@ -67,15 +67,11 @@ export function hookSettingsRows(layout, settings, parseError = null, { repoRoot
 			rows.push({ label: `settings ${w.label}`, ok: healthy, detail });
 			continue;
 		}
-		const healthy = w.label === "UserPromptSubmit knowledge pull"
-			? knowledgeHookHealthy(settings, repoRoot)
-			: hasHook(settings, w.event, w.spec, w.matcher);
+		const healthy = hasHook(settings, w.event, w.spec, w.matcher);
 		rows.push({
 			label: `settings ${w.label}`,
 			ok: healthy,
-			detail: w.label === "UserPromptSubmit knowledge pull" && !healthy
-				? `${w.marker} — target is missing or does not resolve inside ${repoRoot}`
-				: w.marker,
+			detail: w.marker,
 		});
 	}
 	return rows;

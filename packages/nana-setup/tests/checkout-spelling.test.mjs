@@ -265,7 +265,8 @@ function earlierHome(form, spelling, label) {
 	fs.writeFileSync(piSettingsPath, `${JSON.stringify(piSettings, null, 2)}\n`);
 	const beforeRows = doctorRows(run(canonical, ["doctor"], item));
 	const changed = repointEarlierHome(item, spelling);
-	assert(changed.hooks > 0, `${form.name}/${spelling.kind}: no hook entry changed`);
+	// POSIX active commands name home symlinks, not the checkout; only exec hooks change.
+	if (form.name !== 'POSIX') assert(changed.hooks > 0, `${form.name}/${spelling.kind}: no hook entry changed`);
 	if (form.name === "POSIX") assert(changed.links > 0, `${form.name}/${spelling.kind}: no link changed`);
 	return { item, beforeRows, changed };
 }

@@ -6,7 +6,7 @@
  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; entryInvokes() boolean;
  *  desiredHooks(); hookTargets(); knowledgeHookHealthy(); mergeRepoHooks(); validateShape(); hasHook();
  *  mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook();
- *  removeInstallerHooks(); installerTarget(); serialize() JSON text; WIN_VERIFIER_MATCHER; CLAUDE_CODE_EXEC_FLOOR
+ *  removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); serialize() JSON text; WIN_VERIFIER_MATCHER; CLAUDE_CODE_EXEC_FLOOR
  * @effects disk (reads only)
  * @errors none thrown — validateShape returns the reason the shape cannot be extended, and any
  *  command that is unparseable or carries a shell operator reads as NOT installed
@@ -185,10 +185,9 @@ export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
  * which Claude Code spawns directly with no shell (hooks#exec-form-and-shell-form). There is
  * never a usable symlink into `~/.claude/hooks` on this platform (stepHooks skips it), so every
  * win32 script path names the CHECKOUT's own copy directly: the five hooks under
- * `<repoRoot>/packages/nana-setup/claude/hooks/`, the knowledge pull under
- * `<repoRoot>/packages/nana-knowledge/bin/`. No path is quoted or escaped — exec form passes each
- * `args` element exactly as written — and the knowledge entry's `args` carries its `hook`
- * subcommand as a second element rather than a trailing shell word. The verifier matcher on win32
+ * `<repoRoot>/packages/nana-setup/claude/hooks/`. No path is quoted or escaped — exec form passes each
+ * `args` element exactly as written. The retired knowledge entry is matched separately, never written.
+ * The verifier matcher on win32
  * is WIN_VERIFIER_MATCHER ("Bash|PowerShell"), because Windows may route shell commands through
  * either the Bash tool or the PowerShell tool.
  */
@@ -214,11 +213,6 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 	const verifierPipeEntry = win32
 		? { type: "command", command: "node", args: [verifierPipeTarget], timeout: 5, statusMessage: "nana: verifier pipe" }
 		: { type: "command", command: `node ${shq(verifierPipeTarget)}`, timeout: 5, statusMessage: "nana: verifier pipe" };
-	const knowledgeCli = `${repoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`;
-	const knowledgeSpec = { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] };
-	const knowledgeEntry = win32
-		? { type: "command", command: "node", args: [knowledgeCli, "hook"], timeout: 5, statusMessage: "nana: knowledge pull" }
-		: { type: "command", command: `NODE_NO_WARNINGS=1 node ${shq(knowledgeCli)} hook`, timeout: 5, statusMessage: "nana: knowledge pull" };
 	return [
 		{ event: "SessionStart", label: "SessionStart objective", marker: "nana-objective.mjs", spec: objective.spec, entry: objective.entry },
 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: adoption.spec, entry: adoption.entry },
@@ -232,7 +226,6 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 			spec: verifierPipeSpec,
 			entry: verifierPipeEntry,
 		},
-		{ event: "UserPromptSubmit", label: "UserPromptSubmit knowledge pull", marker: "nana-knowledge.ts hook", spec: knowledgeSpec, entry: knowledgeEntry },
 		{ event: MEMORY_END_ENTRY.event, label: `${MEMORY_END_ENTRY.event} memory making`, marker: MEMORY_END_ENTRY.file, spec: memoryEnd.spec, entry: memoryEnd.entry },
 	];
 }
@@ -291,6 +284,47 @@ export function hookTargets(settings, event, spec, platform) {
 	return out;
 }
 
+/** Historical entry descriptor, retained for ownership matching and uninstall, never installation. */
+export function retiredKnowledgeHook({ repoRoot = "", platform } = {}) {
+	const target = `${repoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`;
+	return {
+		event: "UserPromptSubmit", label: "UserPromptSubmit knowledge pull", marker: "nana-knowledge.ts hook",
+		spec: { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] },
+		entry: { type: "command", ...(platform === "win32" ? { command: "node", args: [target, "hook"] } : { command: `NODE_NO_WARNINGS=1 node ${shq(target)} hook` }), timeout: 5, statusMessage: "nana: knowledge pull" },
+	};
+}
+
+/** Match only complete installer-shaped entries; customized objects remain foreign. */
+export function isRetiredKnowledgeHook(hook) {
+	if (!hook || typeof hook !== "object" || hook.type !== "command" || hook.timeout !== 5) return false;
+	const keys = Object.keys(hook).sort().join(",");
+	if (keys !== "command,statusMessage,timeout,type" && keys !== "args,command,statusMessage,timeout,type") return false;
+	const wanted = retiredKnowledgeHook();
+	// An args key belongs only to the released exec form. Never reinterpret a customized
+	// shell-with-args entry through the POSIX reader, which intentionally ignores args.
+	if (Object.hasOwn(hook, "args")) return hook.command === "node" && Boolean(installerTarget(hook, wanted, "win32"));
+	// Read released shell forms on either host, without touching a customized command.
+	return Boolean(installerTarget(hook, wanted, "win32") || installerTarget(hook, wanted));
+}
+
+/** Remove retired knowledge commands in place and only the groups this removal empties. */
+export function removeRetiredKnowledgeHook(settings) {
+	const groups = settings?.hooks?.UserPromptSubmit;
+	if (!Array.isArray(groups)) return false;
+	let changed = false;
+	for (let i = groups.length - 1; i >= 0; i--) {
+		const group = groups[i];
+		if (!Array.isArray(group?.hooks)) continue;
+		const kept = group.hooks.filter(hook => !isRetiredKnowledgeHook(hook));
+		if (kept.length === group.hooks.length) continue;
+		changed = true;
+		group.hooks = kept;
+		if (!kept.length) groups.splice(i, 1);
+	}
+	if (changed && !groups.length) delete settings.hooks.UserPromptSubmit;
+	return changed;
+}
+
 /** Remove only the exact installer-owned context hook object. */
 export function removeRetiredContextHook(settings, { hooksDir } = {}) {
 	const groups = settings?.hooks?.UserPromptSubmit;
@@ -333,7 +367,7 @@ function respelledKnowledgeEntry(entry, wanted) {
  *  `platform` only forwards to desiredHooks: uninstall itself refuses on win32 before this ever
  *  runs there (uninstall.mjs), so this pure case exists for a function that is already tested. */
 export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } = {}) {
-	const wanted = desiredHooks({ hooksDir, repoRoot, platform });
+	const wanted = [...desiredHooks({ hooksDir, repoRoot, platform }), retiredKnowledgeHook({ repoRoot, platform })];
 	const removed = [];
 	const hooks = settings?.hooks;
 	if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) return removed;
