@@ -18,7 +18,6 @@ import { displayText } from "../lib/display.mjs";
 import * as M from "../lib/memory-making-config.mjs";
 import * as C from "../lib/memory-shaping-config.mjs";
 import { extractShaped, runShape } from "../lib/memory-shaping.mjs";
-import { scoreMemory } from "../lib/memory-score.mjs";
 import { claudeRunner, piRunner, createRunner } from "../../../scripts/memory-shape-runners.mjs";
 import { piLaunch } from "../bin/pi-watchdog.mjs";
 
@@ -67,6 +66,21 @@ async function fixture(run) {
 const ask = () => [entry("assistant", "ask", [{ type: "tool_use", id: "call", name: "AskUserQuestion", input: { questions: [{ question: "Which sample size?" }] } }]), entry("user", "answer", [{ type: "tool_result", tool_use_id: "call", content: '"Which sample size?"="Small"' }])];
 const readRecords = (out) => fs.readFileSync(path.join(out, C.OUTPUT_FILE), "utf8").trim().split("\n").filter(Boolean).map(JSON.parse);
 
+// Moved surviving runner assertions from the retired meter suite.
+// req: R-3316
+await check('commands stay private and Claude options stay isolated', async () => {
+ for (const option of ['model', 'effort', 'budgetUsd', 'timeoutMs', 'maxBuffer']) assert.throws(() => createRunner({ runner: 'pi', [option]: 1 }));
+ const input = { system: C.SYSTEM_PROMPT, prompt: 'Synthetic stdin', schema: { type: 'object' } };
+ let invoked = 0;
+ const runner = createRunner({ runner: 'claude', spawn: (bin, argv, opts) => {
+  invoked++; assert.equal(bin, 'claude'); assert.equal(opts.input, input.prompt); assert.equal(opts.cwd, os.tmpdir()); assert.equal(opts.timeout, C.TIMEOUT_MS); assert.equal(opts.maxBuffer, C.MAX_BUFFER); assert.equal(opts.env.NANA_ROLE, 'worker'); assert.deepEqual(opts.stdio, ['pipe', 'pipe', 'pipe']);
+  for (const [flag, value] of [['--model', C.CLAUDE_MODEL], ['--effort', C.CLAUDE_EFFORT], ['--max-budget-usd', String(C.DOLLAR_CAP)], ['--tools', ''], ['--setting-sources', ''], ['--system-prompt', input.system]]) assert.equal(argv[argv.indexOf(flag) + 1], value);
+  for (const flag of ['--strict-mcp-config', '--no-session-persistence']) assert.ok(argv.includes(flag)); assert.ok(!argv.includes(input.prompt));
+  return { status: 0, stdout: JSON.stringify({ structured_output: { matches: [] }, modelUsage: { [C.CLAUDE_MODEL]: { inputTokens: 2 } }, total_cost_usd: 0.01 }) };
+ } });
+ assert.equal((await runner(input)).ok, true); assert.equal(invoked, 1);
+});
+
 // req: R-3251
 await check("runner reply schema has an object root", () => fixture(async ({ roots, add, reviews }) => {
  add(); reviews(); let schema;
@@ -98,9 +112,11 @@ await check("kind pairing scores against independent primary and alternate label
  add(entries);
  const labels = fs.readFileSync(new URL("fixtures/memory-shaping/labels.jsonl", import.meta.url), "utf8").trim().split("\n").map(JSON.parse);
  const first = await extractShaped({ ...roots, runModel: fake(["correction", "decision", "decision"]) });
- const lines = scoreMemory(first.records, labels); assert.ok(lines.includes("correction: recall 1/1")); assert.ok(lines.includes("decision: recall 2/2")); assert.ok(lines.includes("precision 3/3")); assert.ok(lines.includes("unlabelled 0"));
+ const pairs = records => records.map(({ evidence, kind }) => ({ evidence, kind }));
+ assert.deepEqual(pairs(first.records), labels.filter(row => row.kind !== 'none'));
  const second = await extractShaped({ ...roots, runModel: fake(["decision", "decision", "decision"]) });
- assert.ok(scoreMemory(second.records, labels).includes("precision 2/3")); assert.ok(scoreMemory(second.records, labels).includes("unlabelled 0"));
+ assert.deepEqual(pairs(second.records), [labels[1], labels[2], labels[3]].map(row => ({ ...row, kind: 'decision' })));
+ assert.ok(second.records.every(record => labels.some(label => label.evidence === record.evidence)));
  assert.ok(first.records.every((r) => !r.evidence.endsWith("+none")));
  add(ask()); let calls = 0;
  const answered = await extractShaped({ ...roots, runModel: () => { calls++; throw new Error("must not call"); } });

@@ -1,0 +1,5 @@
+FAIL  packages/nana-setup/tests/retired-artifacts.test.mjs  47 pass, 1 fail  3.8s  — exit 1
+      | FAIL M1: install retires released verifier forms and owned links while doctor names the fix doctor must name the retired hook and install fix
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 47 pass, 1 fail, 0 skip · 4.2s
+failed: packages/nana-setup/tests/retired-artifacts.test.mjs

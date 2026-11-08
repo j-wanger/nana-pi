@@ -1,0 +1,34 @@
+PASS  packages/nana-setup/tests/hook-producers.test.mjs             12 pass  0.1s
+PASS  packages/nana-setup/tests/hooks-closed-output.test.mjs        5 pass  0.9s
+PASS  packages/nana-setup/tests/install-check-builder-env.test.mjs  3 pass  0.8s
+FAIL  packages/nana-setup/tests/install-check.test.mjs              54 pass, 45 fail  0.3s  — exit 1
+      | FAIL sealed hook table and allowed entry shape Expected values to be strictly equal:
+      | FAIL readme gate: darwin prints one readme checklist result line from /bin/zsh runs in a second home; linux runs neither rehearsal shell and prints none code is not defined
+      | FAIL readme gate: win32 prints one readme checklist result line from cmd.exe runs in a second home, ending on the Windows checklist's last step code is not defined
+      | FAIL environment: every child gets the base environment plus only its own step's additions (CLAUDE_PROJECT_DIR for each hook, NANA_TEST_TEMP_ROOTS empty for the pi session, the offline value for each build) code is not defined
+      | FAIL pi session: a get_commands response without reload-runtime prints FAIL pi session code is not defined
+      | FAIL pi session: a journal without a directory_unadopted line for the fixture project prints FAIL pi session code is not defined
+      | FAIL pi session: runs with NANA_TEST_TEMP_ROOTS set empty code is not defined
+      | FAIL spawn: every child goes through the injected spawn (git init twice, Git Bash discovery, install, pi install, pi list, pi session, each hook hit and miss, doctor) code is not defined
+      | FAIL install: the command line carries no override flag code is not defined
+      | FAIL platform: NANA_SETUP_PLATFORM in the caller changes nothing code is not defined
+      | FAIL pi launch: on win32, pi install, pi list and the session go through findPi and winCommand code is not defined
+      | FAIL reporting: a run with any FAIL line exits non-zero and a run of only PASS lines exits 0 code is not defined
+      | FAIL reporting: the first lines name Git Bash on win32 only, then pi and node code is not defined
+      | FAIL matcher: NotBash does not admit Bash The expression evaluated to a falsy value:
+      | FAIL matcher: win32 requires PowerShell in the verifier matcher The expression evaluated to a falsy value:
+      | FAIL dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it code is not defined
+      | FAIL dispatch: every SessionStart entry starts before any of them finishes code is not defined
+      | FAIL dispatch: each hook's spawn timeout is its row's timeout × 1000 code is not defined
+      | FAIL dispatch: a hook that runs past its timeout is a FAIL whose reason prints the duration detail is not defined
+      | FAIL objective: the failure marker fails even though it starts with [nana:objective] code is not defined
+PASS  packages/nana-setup/tests/retired-artifacts.test.mjs          48 pass  4.1s
+PASS  packages/nana-setup/tests/seat-pull-off.test.mjs              8 pass  1.1s
+PASS  packages/nana-setup/tests/settings-merge.test.mjs             216 pass  4.1s
+FAIL  packages/nana-setup/tests/win32-degrade.test.mjs              70 pass, 2 fail  4.8s  — exit 1
+      | FAIL win32 install prints no row labelled with a Claude Code hook script nana-setup install
+      | FAIL win32 doctor prints no row labelled with a Claude Code hook script nana-setup doctor — .
+PASS  packages/nana-setup/tests/win32-hook-repair.test.mjs          8 pass  1.9s
+
+9 files: 7 PASS, 2 FAIL, 0 SKIP, 0 WARN · checks: 424 pass, 47 fail, 0 skip · 18.5s
+failed: packages/nana-setup/tests/install-check.test.mjs, packages/nana-setup/tests/win32-degrade.test.mjs

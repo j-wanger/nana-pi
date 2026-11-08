@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/tests/install-check-builder-env.test.mjs
- * @purpose Pin builder environment isolation and its real gate/post-edit consequence.
+ * @purpose Pin builder environment isolation and its real gate consequence.
  * @inputs Shared launcher definitions, installed pi loader, temporary sandbox fixtures.
  * @outputs Sequential PASS/FAIL cases and exit status.
  * @effects disk, process
@@ -15,7 +15,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import * as config from '../lib/install-check-config.mjs';
 import * as worker from '../../nana-pack/bin/worker-config.mjs';
 import { credentialStripEnv } from '../../nana-pack/lib/credential-strip.mjs';
-import { buildEnvironment, judgePiPostEdit } from '../lib/install-check.mjs';
+import { buildEnvironment } from '../lib/install-check.mjs';
 import { findPiRoot } from '../../nana-pack/tests/pi-install.mjs';
 
 const cases = [];
@@ -31,7 +31,7 @@ check('builder boundary is removed in every key casing', () => {
 });
 
 // req: R-3714
-check('sanitized builder fixture passes real gate post-edit and judge', async () => {
+check('sanitized builder fixture passes real gate', async () => {
   const original = { ...process.env };
   const base = tmpDir(path.join(os.tmpdir(), 'install-builder-'));
   try {
@@ -44,21 +44,17 @@ check('sanitized builder fixture passes real gate post-edit and judge', async ()
     const jiti = createJiti(import.meta.url, { moduleCache: false, alias: { '@earendil-works/pi-coding-agent': path.join(root, 'dist/index.js') } });
     const load = async rel => jiti.import(fileURLToPath(new URL(rel, import.meta.url)), { default: true });
     const gate = await load('../../nana-pack/extensions/nana-gate.ts');
-    const postEdit = await load('../../nana-pack/extensions/nana-post-edit.ts');
     const { acceptedTempRoots, within } = await jiti.import(fileURLToPath(new URL('../../nana-pack/lib/gate-temp-roots.ts', import.meta.url)));
     const source = { ...original, NANA_WORKTREE_ROOT: lane };
     const env = buildEnvironment(source, home);
     const setEnv = value => { for (const key of Object.keys(process.env)) delete process.env[key]; Object.assign(process.env, value); };
     setEnv(env);
-    const edit = config.PI_TURN_EDIT;
-    const run = `"${process.execPath}" -e "${edit.source}" ${edit.placeholder}`;
-    fs.writeFileSync(path.join(home, '.pi/agent/nana-pack.json'), JSON.stringify({ postEdit: { commands: [{ match: edit.match, run }] } }));
     const roots = acceptedTempRoots({ platform: process.platform, env, home, tmpdir: os.tmpdir() });
     if (process.platform !== 'win32') roots.push(fs.realpathSync('/tmp'));
     const exempt = roots.some(root => within(root, fs.realpathSync(project)));
     console.log(`M2 portable branch: ${exempt ? 'temp-exempt; both allowed' : 'non-exempt; leaked boundary blocked'}`);
     const token = 'builder-environment-fixture';
-    const target = path.join(project, edit.file);
+    const target = path.join(project, 'install-check-write.txt');
     const ctx = { cwd: project, hasUI: false, isProjectTrusted: () => true, signal: new AbortController().signal };
     const exercise = async value => {
       setEnv(value);
@@ -67,19 +63,12 @@ check('sanitized builder fixture passes real gate post-edit and judge', async ()
       const verdict = await handlers.tool_call({ toolName: 'write', input: { path: target } }, ctx);
       const event = { toolName: 'write', input: { path: target }, isError: !!verdict?.block, content: [{ type: 'text', text: verdict?.reason ?? 'written' }] };
       if (!event.isError) fs.writeFileSync(target, token);
-      const postHandlers = {};
-      postEdit({ on: (name, fn) => { postHandlers[name] = fn; } });
-      const result = await postHandlers.tool_result(event, ctx);
-      const text = (result?.content ?? event.content).map(part => part.text ?? '').join('\n');
-      return { blocked: event.isError, judgment: judgePiPostEdit({ record: { toolResults: [{ toolName: 'write', isError: event.isError, text }] }, token }) };
+      return { blocked: event.isError };
     };
     const clean = await exercise(env);
     assert.equal(clean.blocked, false);
-    assert.equal(clean.judgment.passed, true, JSON.stringify(clean.judgment));
     const leaked = await exercise({ ...env, NANA_WORKTREE_ROOT: lane });
     assert.equal(leaked.blocked, !exempt);
-    assert.equal(leaked.judgment.passed, exempt);
-    if (!exempt) assert.equal(leaked.judgment.code, 'write-error');
   } finally {
     for (const key of Object.keys(process.env)) delete process.env[key];
     Object.assign(process.env, original);

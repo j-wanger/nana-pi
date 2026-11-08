@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, WIN_VERIFIER_MATCHER, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout, platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
@@ -36,7 +36,7 @@ const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
 // Historical descriptors exercise public helpers, not install's active wanted set.
 const historicalHooks = options => [...desiredHooks(options), retiredKnowledgeHook(options)];
 const spec = (label) => (wanted.find((w) => w.label === label) ?? retiredKnowledgeHook()).spec;
-check("six active hook entries are wanted", wanted.length === 6);
+check("four active hook entries are wanted", wanted.length === 4);
 
 /* --- paths are quoted, so a space in the home or clone still runs --------------------- */
 {
@@ -150,7 +150,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 {
 	const s = {};
 	const r = mergeHooks(s, wanted);
-	check("empty settings: all six active entries added", r.added.length === 6);
+	check("empty settings: all four active entries added", r.added.length === 4);
 	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit === undefined);
 	// req: R-316
 	check("empty settings: merging again adds nothing", mergeHooks(s, wanted).added.length === 0);
@@ -171,7 +171,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 	};
 	const before = JSON.stringify(s.hooks.Stop);
 	const r = mergeHooks(s, wanted);
-	check("the other six are added", r.added.length === 6);
+	check("the other four are added", r.added.length === 4);
 	// req: R-316
 	check("foreign SessionStart hook still first", s.hooks.SessionStart[0].hooks[0].command.endsWith("session-start.sh"));
 	// req: R-316
@@ -311,15 +311,11 @@ check("six active hook entries are wanted", wanted.length === 6);
 	// req: R-1050
 	check("win32 desiredHooks: every entry is exec form with no shell key", w32.every((w) => w.entry.command === "node" && Array.isArray(w.entry.args) && !("shell" in w.entry)));
 	// req: R-1051
-	check("win32 desiredHooks: the five hook entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
+	check("win32 desiredHooks: the four SessionStart entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
 	// req: R-1050
 	check("win32 desiredHooks: no active entry adds a subcommand", w32.every(w => w.entry.args.length === 1));
 	// req: R-1050
 	check("win32 desiredHooks: no knowledge target is wanted", !w32.some(w => w.spec.script === 'nana-knowledge.ts'));
-	// req: R-1053
-	check("WIN_VERIFIER_MATCHER is Bash-or-PowerShell", WIN_VERIFIER_MATCHER === "Bash|PowerShell");
-	// req: R-1053
-	check("win32 desiredHooks: the verifier group's matcher is WIN_VERIFIER_MATCHER", w32.find((w) => w.label === "PreToolUse verifier pipe").matcher === WIN_VERIFIER_MATCHER);
 	// req: R-1060
 	check("CLAUDE_CODE_EXEC_FLOOR is 2.1.139", CLAUDE_CODE_EXEC_FLOOR === "2.1.139");
 }
@@ -327,14 +323,11 @@ check("six active hook entries are wanted", wanted.length === 6);
 	// (R-1061) POSIX desiredHooks is byte-identical to today's, with or without an explicit non-win32 platform.
 	const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
 	const eq = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
-	const { MEMORY_END_ENTRY: E, MEMORY_END_TIMEOUT_SECONDS: timeout } = await import('../lib/memory-end-config.mjs');
 	const fixture = [
 		{ event: "SessionStart", label: "SessionStart objective", marker: "nana-objective.mjs", spec: { interpreters: ["node"], script: "nana-objective.mjs" }, entry: { type: "command", command: "node '/h/nana-objective.mjs'", timeout: 5, statusMessage: "nana: objective + current priority" } },
 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: { interpreters: ["node"], script: "nana-adoption.mjs" }, entry: { type: "command", command: "node '/h/nana-adoption.mjs'", timeout: 5, statusMessage: "nana: unadopted repositories" } },
 		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: { interpreters: ["node"], script: "nana-shared-memory.mjs" }, entry: { type: "command", command: "node '/h/nana-shared-memory.mjs'", timeout: 5, statusMessage: "nana: shared memory index" } },
 		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: { interpreters: ["node"], script: "nana-roster-notice.mjs" }, entry: { type: "command", command: "node '/h/nana-roster-notice.mjs'", timeout: 5, statusMessage: "nana: roster notice" } },
-		{ event: "PreToolUse", matcher: "Bash", label: "PreToolUse verifier pipe", marker: "verifier-pipe.mjs", spec: { interpreters: ["node"], script: "verifier-pipe.mjs" }, entry: { type: "command", command: "node '/h/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" } },
-		{ event: E.event, label: `${E.event} memory making`, marker: E.file, spec: { interpreters: ['node'], script: E.file }, entry: { type: 'command', command: `node '/h/${E.file}'`, timeout, statusMessage: E.statusMessage } },
 	];
 	// req: R-1061
 	// req: R-1208
@@ -428,7 +421,7 @@ check("six active hook entries are wanted", wanted.length === 6);
 	settings.hooks.SessionStart[0].hooks.push({ type: "command", command: "node", args: ["/repo/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5, statusMessage: "nana: objective + current priority" });
 	const removed = removeInstallerHooks(settings, { hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
 	// req: R-1050
-	check("forced-win32 removeInstallerHooks removes exactly the six entries", removed.length === 6, JSON.stringify(removed));
+	check("forced-win32 removeInstallerHooks removes exactly the four entries", removed.length === 4, JSON.stringify(removed));
 	// Guarded with optional chaining, not a plain settings.hooks.SessionStart[0] read: a wrong
 	// removeInstallerHooks that over-removes can empty and delete the whole SessionStart group (or
 	// settings.hooks itself), and this case must still report FAIL rather than throw and abort
@@ -567,9 +560,6 @@ const homeSnapshot = (root) => {
 	const after = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 	check("model key survives", after.model === "fable");
 	const preTool = after.hooks.PreToolUse.flatMap((group) => group.hooks);
-	const verifierSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
-	// req: R-985
-	check("PreToolUse preserves the foreign hook and appends the Node verifier hook", preTool[0].command === original.hooks.PreToolUse[0].hooks[0].command && preTool.some((entry) => entryInvokes(entry, verifierSpec, platform())));
 	// req: R-660
 	check("exact nana context invocation is removed", !JSON.stringify(after).includes('"command": "bash ~/.claude/hooks/context-size-check.sh"'), JSON.stringify(after));
 	// req: R-660

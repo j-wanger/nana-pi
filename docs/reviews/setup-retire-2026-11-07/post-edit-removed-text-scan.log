@@ -1,0 +1,51 @@
+Scanned 337 tracked test sources for every removed path and basename.
+
+REMOVED packages/nana-pack/extensions/nana-post-edit.ts
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-file-queue.test.mjs:51: const ext = await jiti.import(new URL("../extensions/nana-post-edit.ts", import.meta.url).pathname, { default: true });
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-hardening.test.mjs:32: const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-status.test.mjs:13: const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-status.test.mjs:195: 		const lockExt = await jiti.import(new URL("../extensions/nana-post-edit.ts", import.meta.url).pathname, { default: true });
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/receipt-binding.test.mjs:11: const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
+packages/nana-pack/tests/code-map-launch.test.mjs:201: 		...['extensions/nana-post-edit.ts', 'lib/post-edit-config.mjs', ...['post-edit-default-timeout', 'post-edit-file-queue', 'post-edit-hardening', 'post-edit-status', 'post-edit-utf8', 'post-edit-values-named'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires the post-edit extension and its dedicated checks.']),
+packages/nana-pack/tests/code-map-launch.test.mjs:214: 	for (const file of ['display-surfaces', 'config-handlers-malformed']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-post-edit.ts`, 'FEAT-013 removes the post-edit-only cases; surviving cases remain.');
+MATCHES 7
+
+REMOVED packages/nana-pack/lib/post-edit-config.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:201: 		...['extensions/nana-post-edit.ts', 'lib/post-edit-config.mjs', ...['post-edit-default-timeout', 'post-edit-file-queue', 'post-edit-hardening', 'post-edit-status', 'post-edit-utf8', 'post-edit-values-named'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires the post-edit extension and its dedicated checks.']),
+MATCHES 1
+
+REMOVED packages/nana-pack/tests/post-edit-default-timeout.test.mjs
+MATCHES 0
+
+REMOVED packages/nana-pack/tests/post-edit-file-queue.test.mjs
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-status.test.mjs:172: // own loader does — same setup as post-edit-file-queue.test.mjs), POSIX mode bits
+MATCHES 1
+
+REMOVED packages/nana-pack/tests/post-edit-hardening.test.mjs
+docs/reviews/win-test-limits-2026-10-25/seat-mutate.mjs:11: const PEH = "packages/nana-pack/tests/post-edit-hardening.test.mjs";
+docs/reviews/win-test-limits-2026-10-25/seat-mutate.mjs:32: 	"(seat) pair 17 removes R-2884's exact-title SKIP line; R-1954's scan of post-edit-hardening.test.mjs is static, so it runs on macOS",
+docs/reviews/win-test-limits-2026-10-25/seat-titles.mjs:20: 		["packages/nana-pack/tests/post-edit-hardening.test.mjs","R-2884: with taskkill off PATH and the tree's first level starting 3 seconds late, the shell still ends and the run settles timed out",["R-2884"]],
+docs/reviews/win-test-limits-2026-10-25/seat-titles.mjs:21: 		["packages/nana-pack/tests/post-edit-hardening.test.mjs","seal: the taskkill-off-PATH case allows 10 seconds and starts its first level 3 seconds late, inside the settle watchdog and the fixture's self-exit",["R-2884"]],
+packages/nana-pack/tests/test-runner.test.mjs:207: 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
+packages/nana-pack/tests/test-runner.test.mjs:278: 	check("a file declared unrunnable on this platform SKIPs with its reason printed", labelFor(A.out, "post-edit-hardening.test.mjs") === "SKIP" && lineFor(A.out, "post-edit-hardening.test.mjs").includes("needs `pgrep` on POSIX"));
+packages/nana-pack/tests/test-runner.test.mjs:281: 	check("a file whose declared skip condition does not hold runs instead of skipping", labelFor(A.out, "post-edit-hardening.test.mjs") === "PASS");
+packages/nana-pack/tests/test-runner.test.mjs:284: check("a declared tool prerequisite skips only when absent on POSIX", labelFor(A.out, "post-edit-hardening.test.mjs") === (posix ? "SKIP" : "PASS"));
+packages/nana-pack/tests/test-runner.test.mjs:287: 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": 'console.log("PASS prerequisite fixture ran");\n',
+packages/nana-pack/tests/test-runner.test.mjs:293: check("a tool-dependent file runs when its declared prerequisite exists", labelFor(prerequisitePresent.out, "post-edit-hardening.test.mjs") === "PASS" && prerequisitePresent.out.includes("PASS prerequisite fixture ran") && prerequisitePresent.code === 0);
+packages/nana-pack/tests/test-runner.test.mjs:543: 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
+packages/nana-pack/tests/test-runner.test.mjs:565: 	["packages/nana-pack/tests/post-edit-hardening.test.mjs", posix ? "SKIP" : "PASS"],
+scripts/test.mjs:208: 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": () =>
+MATCHES 13
+
+REMOVED packages/nana-pack/tests/post-edit-status.test.mjs
+docs/reviews/pi-cmd-launch-2026-10-11/seat-verify-tests.mjs:10: const FILES = ["packages/nana-setup/tests/pi-registration.test.mjs", "packages/nana-setup/tests/doctor-runtime.test.mjs", "packages/nana-pack/tests/post-edit-status.test.mjs"];
+MATCHES 1
+
+REMOVED packages/nana-pack/tests/post-edit-utf8.test.mjs
+MATCHES 0
+
+REMOVED packages/nana-pack/tests/post-edit-values-named.test.mjs
+MATCHES 0
+
+Removed documentation prose (excluding ledger rows and generated code-map metadata):
+No front-door documentation prose was removed in this part; its coordinated retirement is still pending.

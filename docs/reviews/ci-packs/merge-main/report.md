@@ -1,0 +1,103 @@
+# ci-packs: merge current main
+
+Feature: FEAT-031. Branch: `feat/ci-packs`.
+
+Merge inputs: lane `243d79ab`; main `19cb9c940c0034616dc4586b4f01aaccbfdb8994`.
+The merge retains both histories; no rebase. No new requirement IDs or authored test files.
+
+## Conflict resolutions
+
+The original combined diff is `conflicts.diff`. All 18 conflict blocks follow.
+
+| File / block | Resolution |
+|---|---|
+| REQUIREMENTS.md / 1 | Keep the lane's R-020 objective-smoke evidence and main's R-641 handoff retirement. |
+| REQUIREMENTS.md / 2 | Keep main's R-3872–R-3879 fixes-red rows and the lane's macOS-only R-3824 PR policy. Main's R-3826 exception also survives. |
+| packages/nana-pack/README.md / 1 | Keep main's fixes-red option and explanation, and the lane's complete-pack/shard proof contract. |
+| packages/nana-pack/tests/templates-render.test.mjs / 1 | Keep the extracted working-region guards in templates-working, importing its public markerBlock. Move main's R-3895/R-3896 assertions there unchanged; retain main's rendered R-3899 assertion and retirement updates in templates-render. |
+| packages/nana-setup/tests/doctor-detail.test.mjs / 1 | Main's obsolete subagent checks stay deleted. Node-floor checks remain exclusively in the lane's extracted doctor-floor file. All other main doctor changes survive. |
+| docs/code-map.md / 1 (old lane line 10) | Regenerate coverage count. |
+| docs/code-map.md / 2 (472) | Regenerate code-map callers. |
+| docs/code-map.md / 3 (794) | Regenerate trace callers. |
+| docs/code-map.md / 4 (846, first) | Regenerate locked-runner callers. |
+| docs/code-map.md / 5 (846, second) | Regenerate test-runner callers and callees. |
+| docs/code-map.md / 6 (1520) | Regenerate agent-dir callers. |
+| docs/code-map.md / 7 (2183) | Regenerate objective callers. |
+| docs/code-map.md / 8 (2543) | Regenerate runner-config callers. |
+| docs/code-map.md / 9 (3831) | Regenerate pi-install helper callers. |
+| docs/code-map.md / 10 (4530) | Regenerate temporary-directory helper callers. |
+| docs/code-map.md / 11 (4836) | Regenerate setup project callers. |
+| docs/code-map.md / 12 (4911) | Regenerate install-check callers. |
+| docs/code-map.md / 13 (5836) | Regenerate setup temporary-directory helper callers. |
+
+`docs/requirements-tree.md` was also regenerated, not hand-merged.
+`preservation.log` proves zero missing IDs from either parent: 2,659 lane rows and 2,685 main rows; merged total 2,695.
+Main's nana-land and main-ci modules remain byte-identical to main.
+HANDOFF.md came only from main's automatic merge; no authored edit.
+
+## Membership
+
+All seven files main added receive exactly one pack:
+
+| File | Pack | Category |
+|---|---|---|
+| packages/nana-knowledge/tests/pull-cut.test.mjs | module | Knowledge package's explicit-search behavior. |
+| packages/nana-pack/tests/experiment-cut.test.mjs | retire | Finished-experiment removal guard. |
+| packages/nana-pack/tests/memory-cut-checks.test.mjs | retire | Retired memory-artifact guard. |
+| packages/nana-pack/tests/memory-cut-guidance.test.mjs | release | Copier/scaffold/adoption rehearsal. |
+| packages/nana-pack/tests/setup-retire.test.mjs | module | Adoption discovery and legacy configuration compatibility. |
+| packages/nana-setup/tests/memory-pause.test.mjs | module | Setup memory-hook behavior. |
+| packages/nana-setup/tests/pull-cut-turn.test.mjs | module | Setup explicit-search turn behavior. |
+
+Main's land-fix-red cases were added to the existing `win-main-only.test.mjs`; it remains in `main` (landing machinery, not a new core-contract land guard).
+The 21 test files main deleted stay deleted and leave TEST_PACKS; `deleted-tests.txt` lists them.
+No extra test file was deleted. Existing land extraction files remain.
+
+## Requirement and test adjustments
+
+No new behavior rows or IDs. R-3857 now permits every explicit main deletion, rather than only the earlier review-paperwork retirement. Its existing M8 test compares historical collection with main's committed inventory, while still asserting deletions stay absent and all surviving nonrelease tests run.
+R-020 retains the extracted evidence path; R-3895 and R-3896 cite their retained assertions' new home. Both sides' other rows remain, including main's retirements and fixes-red rows.
+
+Existing test edits beyond accepting main:
+
+- `test-packs-ci.test.mjs`: M8's obsolete three-file retirement assumption now uses main's committed inventory.
+- `win-main-only.test.mjs`: its existing injected artifact fixture now emits complete pack metadata, identical across Windows shards with the complete selected-file union. All existing fixes-red and ordinary-gate assertions remain.
+- `templates-working.test.mjs`: receives main's two new assertions without altering historical extracted bytes.
+- `templates-render.test.mjs`: imports the existing public markerBlock and omits only the moved block; retains main's other changes.
+- `doctor-detail.test.mjs`: omits retired checks and the already-extracted floor assertions. `doctor-floor.test.mjs` is unchanged.
+
+No new tunable, helper, private cross-module import or shared-module move. Card: fix names no Precedent section; existing lane patterns are retained without departure.
+
+## Mutation pairs
+
+- Membership: unchanged config with main's new files fails existing M1 (exit 1, `membership-wrong.log`); refreshed membership passes (`resolution-tests.log`, exit 0).
+- Pack integration: break production `suiteScopeProblem` to refuse every pack record, never change an assertion. Existing fixes-red M1 and six other cases fail (`fixes-red-pack-wrong.log`, exit 1). Restore production code; all fixes-red and land-ci cases pass (`fixes-red-pack-green.log`, exit 0). The mutation is not committed.
+
+## Precommit checks
+
+| Command | Exit | Evidence / result |
+|---|---:|---|
+| npm run map | 0 | map.log; 543 modules, zero problems. |
+| npm run req:tree | 0 | tree.log. |
+| node scripts/test.mjs test-packs templates-working doctor-floor doctor-detail win-main-only land-ci | 0 | resolution-tests.log; 12 files, 105 checks. |
+| node scripts/test.mjs templates-render | 0 | templates-render.log. |
+| node scripts/test.mjs test-runner | 0 | test-runner.log. |
+| npm test -- --pack=land --jobs=4 | 0 | land-green.log; 71 files, 2,413 checks, 49.5 runner seconds. |
+| npm test -- --pack=land,module --changed-from=main --jobs=4 | 0 | selected-precommit.log; 192 files, 5,999 checks, 465.1 runner seconds. Prints policy-path fail-safe and all selection reasons. This precommit diff uses the old merge base; final-tip checks re-evaluate it. |
+| npm run map:check | 0 | map-check.log. |
+| npm run readme:check | 0 | readme-check.log. |
+| node scripts/requirements-trace.mjs | 0 | trace.log; 2,695 rows. |
+| node scripts/component-audit.mjs --check | 0 | component-audit.log; report-only stale and unclaimed notes remain. |
+| node packages/nana-setup/bin/install-check.mjs | 1 | install-check.log; all local instrumentation passes, README rehearsal fails at cloned checkout's doctor step. Rehearsal clones committed HEAD, which predates this merge. Repeat after committing. |
+| node scripts/test.mjs experiment-cut memory-cut setup-retire pull-cut memory-pause | 1 | new-main-tests.log; six pass, memory-cut-checks sees adoption.ts absent from premerge HEAD. memory-cut-detail.log names only three HEAD-tracking notes. Repeat after committing. |
+| git diff --check (unstaged resolution) | 0 | No whitespace errors in the tracked unstaged resolution. |
+| git diff --check --cached | 2 | staged-whitespace.log; inherited main evidence and literal conflict diffs contain whitespace. Preserved rather than rewriting historical evidence. |
+
+An initial land check failed because R-3899's main assertion had not yet been retained; the final templates-render resolution restores it. Trace and land are green afterwards.
+`removed-text-test-grep.log` searches tests for removed lines and deleted paths before reporting.
+Long output stays in this evidence directory. Logs normalize home paths to `~` and temporary paths to `$TMPDIR`.
+
+The repository delegates the full suite to CI in AGENTS.md. No redundant local full suite, CI read, push, GitHub write, credential lookup or live model call. Install checks use the repository's instrumented fixture provider.
+No known-bug line was edited. The complete FEAT-031 known-bug file was read; no listed bug is claimed fixed. Pack integration preserves the main-CI and record limitations already recorded there.
+
+Final-tip seat results and full SHA are reported after committing. Windows execution and CI remain the seat's responsibility.

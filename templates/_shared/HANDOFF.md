@@ -1,7 +1,7 @@
 # Handoff — <name> frontier
 
 *Frontier only: one line per live decision, dropped the moment it is an obvious default, gone,
-or archived — never a session archive. Narrative lives in `docs/sessions/`, newest first.
+or archived — never a session archive.
 Read `OBJECTIVE.md` first.*
 
 ## Where things stand (<date>)

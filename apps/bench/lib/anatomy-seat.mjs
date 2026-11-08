@@ -11,12 +11,15 @@ import crypto from 'node:crypto';
 import { streamEntriesIn, transcriptFiles } from '../../../packages/nana-pack/lib/claude-transcript.mjs';
 import { ownerTurn, textOnly } from '../../../packages/nana-pack/lib/memory-making.mjs';
 import { WRAPPER_TAGS } from '../../../packages/nana-pack/lib/memory-making-config.mjs';
-import { SLOT_MARKERS } from '../../../packages/nana-pack/lib/memory-replay-config.mjs';
 import { desiredHooks } from '../../../packages/nana-setup/lib/settings.mjs';
 import { projectKey } from '../../../packages/nana-setup/lib/project-key.mjs';
 import { SEAT_POLICY as P, SEAT_CLASS_FUNCTION } from './anatomy-config.mjs';
 import { segmentPart } from './anatomy-spans.mjs';
 import { callClasses } from './anatomy-pulls.mjs';
+
+// Preserved recorded-transcript contract (R-3385), chosen 2026-11-01.
+// Reader-local configuration: no experiment runtime or shared-module move.
+export const SLOT_MARKERS = Object.freeze({ instruction: 'AutoMem', hooks: Object.freeze(['nana-shared-memory.mjs', 'nana-shared-memory', 'nana: shared memory index']), readPaths: Object.freeze(['memory/', 'memory\\', 'memory.md', 'shared-memory']) });
 
 // Select strings only, never recursive object values: ids and paths are not payload.
 function strings(value) {

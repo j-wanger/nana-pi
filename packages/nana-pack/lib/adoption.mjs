@@ -13,7 +13,7 @@
  * @errors tailLines rethrows the fs error for a journal that exists but is not a readable regular file
  *  (ENOTFILE for a non-file); an absent journal is [] and every other function is total
  */
-// Directory adoption (lane L5) — the one predicate shared by the producer (extensions/nana-handoff.ts,
+// Directory adoption (lane L5) — the one predicate shared by the producer (extensions/nana-adoption.ts,
 // which journals `directory_unadopted`) and the reader (bin/nana-adoption.mjs, the seat's
 // `[nana:adoption]` session-start block). Plain .mjs on purpose: the reader imports no .ts, so its
 // hook has no Node floor of its own. Never throws, except tailLines() on a journal that exists but
@@ -59,7 +59,7 @@ const isDir = (p) => {
 	}
 };
 
-// The handoff store — the ONE implementation (extensions/nana-handoff.ts imports these). It is
+// The retired handoff store — existing files remain adoption evidence. It is
 // FIXED at ~/.pi/agent/handoffs on purpose (U2's ruling, twice): a handoff must survive switching
 // PI_CODING_AGENT_DIR, which only selects which CONFIG is live — so config follows piAgentDir(), the
 // store does not.

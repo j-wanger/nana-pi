@@ -127,8 +127,8 @@ await check('R-3296: narrow private evidence survives deletion without public te
  const project=path.join(f.a.dir,'projects',repositoryFolder(git(f.main,'rev-list','--max-parents=0','HEAD')));assert.ok(!allText(path.join(project,'runs')).includes('CANARY'));
  f.transcript(pair('ci',secret));assert.match((await f.command(['make'],{env:{...f.deps.env,CI:'1'},projectsRoot:{toString(){throw Error('read forbidden');}}})).output,/ci/);
 }));
-// req: R-3297
-await check('R-3297: land starts making only after the final merge and cannot alter its verdict',async()=>{
+// req: R-3861
+await check('R-3861: land never starts memory and the manual command still runs',async()=>{
  const f=memoryFixture();try {
   for(const mode of ['normal','broken-ledger','throw','refused','no-lane','default']) {
    const main=repo(f.temp,`land-${mode}`),tree=path.join(f.temp,`tree-${mode}`);git(main,'worktree','add','-b',mode==='no-lane'?'other':'feat/demo',tree);
@@ -137,8 +137,10 @@ await check('R-3297: land starts making only after the final merge and cannot al
    let locked=false,calls=0;const lock=(...args)=>withReviewLedgerLock(args[0],x=>{locked=true;try{return args[1](x);}finally{locked=false;}});
    const options={main,tree,reviewed,suite:'injected',home,runGit:gitRunner,now,withReviewLedgerLock:lock,runCommand:()=>({status:mode==='refused'?1:0,stdout:'',stderr:''}),readReleaseStatus:()=>({line:'ready'})};
    const baseline=runLand(options);if(mode!=='broken-ledger')fs.rmSync(landRecordsPath(path.join(main,'.git')),{force:true});git(main,'reset','--hard',base);const out=runLand({...options,...(mode==='default'?{}:{startMemory:input=>{calls++;assert.equal(locked,false);assert.equal(git(main,'rev-parse','main'),tip);assert.deepEqual(input,{repo:main,lane:'demo'});if(mode==='throw') throw Error('SYNTHETIC_OWNER_CANARY');return 'memory: started; last never unknown';}})});
-   assert.equal(out.code,baseline.code);if(['refused','no-lane','default'].includes(mode)) {assert.equal(calls,0);assert.equal(out.text,baseline.text);}else{assert.equal(calls,1);assert.equal(out.text,baseline.text+(mode==='throw'?C.WORDS.notStarted:'memory: started; last never unknown')+'\n');}
+   assert.equal(out.code,baseline.code);assert.equal(calls,0);assert.equal(out.text,baseline.text);assert.ok(!out.text.split(/\r?\n/).some(line=>line.startsWith('memory:')));
   }
+  await enabled(f);const transcript=f.transcript(pair('manual'));const manualCalls=[];
+  assert.equal((await f.command(['make','--session',transcript],{runModel:runner(manualCalls)})).code,0);assert.equal(manualCalls.length,1);assert.equal(f.states().length,1);
   let spawns=0,unrefs=0;const spawn=(bin,args,options)=>{spawns++;assert.equal(bin,process.execPath);assert.ok(args.includes('--repo'));assert.ok(args.includes('--lane'));assert.equal(options.detached,true);assert.equal(options.windowsHide,true);assert.equal(options.stdio,'ignore');assert.equal(options.cwd,f.temp);return {on:(event,fn)=>{assert.equal(event,'error');fn();},unref:()=>unrefs++};};
   for(const env of [{CI:'1'},{NANA_ROLE:'seat'},{NANA_ROLE:''}]) startMemory({repo:f.main,lane:'demo'},{env,home:f.temp,spawn,agentDir:f.a.agent,now});assert.equal(spawns,0);
   startMemory({repo:f.main,lane:'demo'},{env:{},home:f.temp,spawn,agentDir:f.a.agent,now});assert.equal(spawns,1);assert.equal(unrefs,1);

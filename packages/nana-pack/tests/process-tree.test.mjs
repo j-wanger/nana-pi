@@ -19,7 +19,6 @@ import {
 	killProcessTree,
 	killProcessTreeNoWait,
 } from "../lib/process-tree.mjs";
-import { TREE_KILL_EXCEPTIONS, scanTreeKillCopies } from "../lib/tree-kill-scan.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 let fails = 0;
@@ -100,55 +99,9 @@ for (const pid of badPids) {
 // req: R-2658
 check("R-2658: a pid of 0, 1, -1, 1.5, NaN, null or undefined signals nothing, starts no taskkill and calls no fallback", badEffects === 0);
 
-// req: R-2656 R-2657 R-2661
-check("seal: taskkill, SIGKILL by default, and the four declared tree-kill exceptions",
-	TASKKILL_COMMAND === "taskkill" && DEFAULT_KILL_SIGNAL === "SIGKILL" && Object.isFrozen(TREE_KILL_EXCEPTIONS)
-	&& JSON.stringify(TREE_KILL_EXCEPTIONS) === JSON.stringify({
-		"packages/nana-pack/lib/process-tree.mjs": "the one shared process-group and taskkill implementation",
-		"scripts/runtime-measure.mjs": "the runtime measurer walks a process snapshot before choosing safe group or pid targets",
-		"scripts/test-locked.mjs": "the locked runner composes runtime-measure targets with its live child handle",
-		"apps/desk/server.mjs": "the frozen desk keeps its existing child lifecycle implementation",
-	}));
-
-const fixture = tmpDir(path.join(os.tmpdir(), "tree-kill-scan-"));
-try {
-	const config = {
-		roots: ["scripts", "apps/desk", "packages/nana-pack/lib", "packages/nana-pack/bin", "packages/nana-pack/extensions", { path: "packages/nana-pack/tests", layerExempt: true }],
-		ignore: ["**/fixtures"],
-	};
-	const files = {
-		"code-map.config.json": `${JSON.stringify(config)}\r\n`,
-		"packages/nana-pack/lib/process-tree.mjs": "const x = 'taskkill';\r\n",
-		"scripts/runtime-measure.mjs": "process.kill(-pid, signal);\n",
-		"scripts/test-locked.mjs": "target.kill(signal);\n",
-		"apps/desk/server.mjs": "const command = `taskkill /pid ${pid}`;\n",
-		"packages/nana-pack/bin/good.mjs": "// spawn(\"taskkill\")\r\n /* process.kill(-pid) */\t\r\n * taskkill\r\nconst harmless = 'kill';\t",
-		"packages/nana-pack/bin/template.mjs": "const command = `taskkill ${pid}`;\t",
-		"packages/nana-pack/extensions/bad.ts": "spawn(\"taskkill\", []);  \r\nexport const b = () => process.kill( -4321, 'SIGKILL');\t",
-		"packages/nana-pack/tests/ignored.test.mjs": "const x = 'taskkill';\n",
-	};
-	for (const [relative, text] of Object.entries(files)) {
-		const target = path.join(fixture, relative);
-		fs.mkdirSync(path.dirname(target), { recursive: true });
-		fs.writeFileSync(target, text);
-	}
-	spawnSync("git", ["init", "-q"], { cwd: fixture });
-	spawnSync("git", ["add", "."], { cwd: fixture });
-	const planted = scanTreeKillCopies(fixture);
-	fs.rmSync(path.join(fixture, "scripts", "test-locked.mjs"));
-	const missingException = scanTreeKillCopies(fixture);
-	const repositoryFindings = scanTreeKillCopies(REPO);
-	// req: R-2661
-	check("R-2661: the tree-kill scan names each planted taskkill or negative-pid line outside the exceptions, and finds none in the repository",
-		repositoryFindings.length === 0 && JSON.stringify(planted.map(({ path: file, line }) => [file, line])) === JSON.stringify([
-			["packages/nana-pack/bin/template.mjs", 1],
-			["packages/nana-pack/extensions/bad.ts", 1],
-			["packages/nana-pack/extensions/bad.ts", 2],
-		]) && missingException.some((finding) => finding.path === "scripts/test-locked.mjs" && finding.line === 0),
-		JSON.stringify({ repositoryFindings, planted, missingException }));
-} finally {
-	fs.rmSync(fixture, { recursive: true, force: true });
-}
+// req: R-2656 R-2657
+check("seal: taskkill and SIGKILL by default",
+ TASKKILL_COMMAND === "taskkill" && DEFAULT_KILL_SIGNAL === "SIGKILL");
 
 if (process.platform === "win32") {
 	const realDir = tmpDir(path.join(os.tmpdir(), "tree-kill-real-"));

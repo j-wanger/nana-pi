@@ -17,7 +17,8 @@ import * as path from "node:path";
 
 const { ruleSource, PACK_RULES_DIR } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { checkText } = await import(new URL("../../nana-pack/lib/writing-check.mjs", import.meta.url).href);
-const { RULE_TITLE } = await import(new URL("../../nana-pack/lib/writing-trial-extractor.mjs", import.meta.url).href);
+/** Preserved role-neutral title contract; this is its only surviving reader. */
+const RULE_TITLE = "# Nana — Writing for";
 
 const SEALED_CHECK_TEXT = `## Check
 

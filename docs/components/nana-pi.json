@@ -159,7 +159,6 @@
         "scripts/first-look.mjs",
         "scripts/outside-reader.mjs",
         "scripts/playwright-resolve.mjs",
-        "scripts/blast-radius.mjs",
         "scripts/first-look-config.mjs",
         "scripts/outside-reader-config.mjs"
       ],
@@ -444,7 +443,6 @@
         "scripts/requirements-regroup.mjs",
         "scripts/requirements-lift.mjs",
         "scripts/requirements-lift-proof.mjs",
-        "scripts/requirement-rows.mjs",
         "scripts/requirements-tree.mjs",
         "scripts/requirements-trace.mjs"
       ],

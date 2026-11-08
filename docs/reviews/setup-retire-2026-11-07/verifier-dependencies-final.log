@@ -1,0 +1,8 @@
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs     12 pass  1.7s
+PASS  packages/nana-setup/tests/retired-artifacts.test.mjs  49 pass  4.4s
+PASS  packages/nana-setup/tests/stale-copies-slow.test.mjs  2 pass  35.8s
+PASS  packages/nana-setup/tests/stale-copies.test.mjs       14 pass  5.9s
+PASS  packages/nana-setup/tests/state-manifest.test.mjs     21 pass  0.9s
+PASS  packages/nana-setup/tests/uninstall.test.mjs          31 pass  2.1s
+
+6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 129 pass, 0 fail, 0 skip · 51.3s

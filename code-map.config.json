@@ -41,6 +41,7 @@
     "**/*.e2e.mjs"
   ],
   "launchAlwaysRun": [
+    { "path": "packages/nana-setup/tests/pull-cut-turn.test.mjs", "reason": "Offline pi uses the existing faux provider and registered checkout extensions." },
     { "path": "apps/bench/lib/catch-judge.mjs", "reason": "Injected pi executable; judge may run repository code." },
     { "path": "apps/desk/apps.mjs", "reason": "App command comes from app configuration." },
     { "path": "apps/desk/pi-session.mjs", "reason": "Shell lookup can execute shell startup code." },
@@ -49,12 +50,10 @@
     { "path": "packages/nana-pack/bin/nana-land.mjs", "reason": "Injected git command runner has caller-bound programs." },
     { "path": "packages/nana-pack/bin/pi-watchdog.mjs", "reason": "Shell command text and chosen pi executable do not trace." },
     { "path": "packages/nana-pack/lib/review-run.mjs", "reason": "Review command program comes from command arguments." },
-    { "path": "packages/nana-pack/extensions/nana-notify.ts", "reason": "PowerShell notification may run repository code." },
     { "path": "packages/nana-pack/lib/gh-runner-async.mjs", "reason": "Injected executable is resolved at its callers." },
     { "path": "packages/nana-pack/lib/gh-runner.mjs", "reason": "Injected executable is resolved at its callers." },
     { "path": "packages/nana-pack/lib/profile-sync.mjs", "reason": "Injected git executable is resolved at its callers, like gh-runner." },
     { "path": "packages/nana-pack/lib/process-tree.mjs", "reason": "Injected process-listing program is not a fixed literal." },
-    { "path": "packages/nana-pack/lib/tree-kill-scan.mjs", "reason": "Injected git executable does not trace." },
     { "path": "packages/nana-pack/tests/adoption-reader.test.mjs", "reason": "Pi loads extensions from a fixture manifest." },
     { "path": "packages/nana-pack/tests/build-records.test.mjs", "reason": "Shell sources the seat guide without a path launch." },
     { "path": "packages/nana-pack/tests/ci-records.test.mjs", "reason": "Fixture command runner accepts a program parameter." },
@@ -64,7 +63,6 @@
     { "path": "packages/nana-pack/tests/pack-config-utf16.test.mjs", "reason": "Pi executable is resolved at runtime." },
     { "path": "packages/nana-pack/tests/path-spelling.test.mjs", "reason": "Shell sources generated path-spelling commands." },
     { "path": "packages/nana-pack/tests/pi-install.mjs", "reason": "Pi can load repository extensions and manifest folders." },
-    { "path": "packages/nana-pack/tests/post-edit-utf8.test.mjs", "reason": "Pi executable comes from its installed package." },
     { "path": "packages/nana-pack/tests/pwsh-oracle.mjs", "reason": "PowerShell program is selected by runtime discovery." },
     { "path": "packages/nana-pack/tests/requirements-deliverables.test.mjs", "reason": "Fixture command runner accepts a program parameter." },
     { "path": "packages/nana-pack/tests/requirements-lift.test.mjs", "reason": "Shell invokes the requirements skill fixture." },

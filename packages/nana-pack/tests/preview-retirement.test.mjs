@@ -38,7 +38,7 @@ await test('R-3775: preview files and live references are gone', async () => {
   for (const file of removed) await assert.rejects(fs.access(path.join(root, file)), file);
   const tracked = spawnSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }); assert.equal(tracked.status, 0);
   for (const file of tracked.stdout.split('\0').filter(Boolean)) {
-    if (/^(docs\/(plan|reviews|sessions)\/|research\/)/.test(file)) continue;
+    if (/^(docs\/(plan|reviews|sessions|evidence)\/|research\/)/.test(file)) continue;
     let text; try { text = await read(file); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
     if (file === 'REQUIREMENTS.md') text = text.split(/\r?\n/).filter(line => !line.includes(' | retired | ') && !/^Artifact: .* · retired:/.test(line)).join('\n');
     for (const gone of removed) assert(!text.includes(gone), `${file} names ${gone}`);

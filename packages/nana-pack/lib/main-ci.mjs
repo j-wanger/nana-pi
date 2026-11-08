@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/main-ci.mjs
  * @purpose Report the newest main push CI run and its required legs, optionally posting one scanned seat issue.
  * @inputs Repository cwd, environment, injected gh and optional git runners, scanner, temporary root, expected main SHA and advisory-Linux land mode.
- * @outputs A verdict, per-leg failed paths and jobs, unfinished-run notice and exact posting command.
+ * @outputs A verdict, evidenceReadable flag for completed runs, per-leg failed paths and jobs, unfinished-run notice and exact posting command.
  * @effects disk (temporary CI downloads), process (local gh and identity scan), network (gh).
  * @errors Unreadable CI, scan failures, launcher posting and gh failures return code 1 with a named line.
  */
@@ -69,17 +69,18 @@ export function mainCi({ cwd = process.cwd(), post = false, env = process.env, r
 		}
 		if (run.conclusion !== CI_PASS_CONCLUSION && !failures.length) failures.push("ci");
 		const blocking = (text) => !advisoryLinux || !(text.startsWith("ubuntu-latest:") || text === CI_ADVISORY_JOB || /^run \S+ ubuntu-latest:/.test(text));
+		const evidenceReadable = records.code === 0 && !records.problems?.length && !records.missingLegs?.length;
 		const red = run.conclusion !== CI_PASS_CONCLUSION || failures.some(blocking) || Boolean(records.problems?.some(blocking)) || records.code !== 0;
 		line(`run ${run.id} ${run.head_sha.slice(0, TIP_DIGITS)} ${red ? "red" : "green"}`);
 		for (const failure of failures) line(failure);
-		if (run.conclusion === "cancelled") { line("cancelled main run; nothing to post"); return { code: 1, red: true, run }; }
-		if (!red) return { code: 0, red, run };
+		if (run.conclusion === "cancelled") { line("cancelled main run; nothing to post"); return { code: 1, red: true, run, evidenceReadable }; }
+		if (!red) return { code: 0, red, run, evidenceReadable };
 		line(`post: ${mainCiCommand(cwd)} --post`);
 		// Missing inputs are not permission to claim a known failure in a public issue.
-		if (!failures.length) return { code: 1, red, run };
+		if (!failures.length) return { code: 1, red, run, evidenceReadable };
 		const title = `main CI: ${failures[0].replace(/^[^:]+: /, "")}`;
 		const body = `${WATCH_SEAT_MARKER}\nRun: ${run.id}\nSHA: ${run.head_sha.slice(0, TIP_DIGITS)}\n${[...new Set(failures)].join("\n")}`;
-		if (!post) return { code: 0, red, run, title, body };
+		if (!post) return { code: 0, red, run, title, body, evidenceReadable };
 		const scanned = scanText(`${title}\n${body}`);
 		if (scanned?.error || scanned?.status !== 0) throw new Error("identity scan refused the issue");
 		const account = ghResult(runGh, cwd, ["api", "--hostname", CI_HOST, "user"], { env });

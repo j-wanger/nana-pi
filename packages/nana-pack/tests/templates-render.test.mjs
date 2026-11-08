@@ -429,11 +429,10 @@ const RUNTIME_INVENTORY_TEXT = {
 	"nana-objective": "`nana-objective`",
 	"nana-frontier-summary": "`nana-frontier-summary`",
 	"nana-writing": "`nana-writing`",
-	"nana-notify": "`nana-notify`",
 	"nana-lifecycle": "`nana-lifecycle`",
 	"nana-gate": "`nana-gate`",
 	"nana-post-edit": "`nana-post-edit`",
-	"nana-handoff": "`nana-handoff`",
+	"nana-adoption": "`nana-adoption`",
 	"nana-knowledge": "`nana-knowledge`",
 	"nana-roster-notice.mjs": "nana-roster-notice.mjs",
 	"nana-roster-notice": "`nana-roster-notice`",
@@ -443,7 +442,7 @@ const RUNTIME_INVENTORY_TEXT = {
 function runtimeInventory() {
 	// The runtime table covers in-session context and tools, not end-of-session makers (plan A4).
 	const hooks = desiredHooks({ hooksDir: "/hooks", repoRoot: REPO }).filter(({event}) => event !== 'SessionEnd').map(({ marker }) => marker);
-	const extensions = ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"]
+	const extensions = ["packages/nana-pack/extensions"]
 		.flatMap((directory) => fs.readdirSync(path.join(REPO, directory), { withFileTypes: true })
 			.filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
 			.map((entry) => path.basename(entry.name, ".ts")));
@@ -472,15 +471,15 @@ function checkInstructionContracts() {
 	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
 		fs.readFileSync(path.join(REPO, file), "utf-8"));
 	const support = frontDoors.map((text) => [...text.matchAll(/^Support:.*$/gm)].map((match) => match[0]));
-	// req: R-680 R-985
+	// req: R-680
 	check("shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory",
 		runtimeInventoryDocumented(runtimeInventory(), shared) && !runtimeInventoryDocumented([...runtimeInventory(), "unmapped-extension-fixture"], shared) &&
 		["Claude Code seat", "pi TUI or desk", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
-		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge pull", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
+		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge search", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
 		[
-			"| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |",
-			"| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension; `nana-roster-notice` extension shows the roster notice as a widget |",
-			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension; `nana-roster-notice` extension runs but shows nothing (no UI) |",
+			"| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | No nana verifier hook | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |",
+			"| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction | No nana notify; `nana-roster-notice` extension shows the roster notice as a widget |",
+			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; pi-owned compaction | No nana notify; `nana-roster-notice` extension runs but shows nothing (no UI) |",
 			"| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |",
 		].every((v) => shared.includes(v)));
 
@@ -765,6 +764,11 @@ if (!version) {
 			// req: R-737
 			check(`${language}: copier renders the template`, ok, log.slice(-800));
 			if (!ok) continue;
+			const working = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
+			// req: R-3899
+			check(`${language}: M6 rendered working region equals the shared bytes without a notes step`,
+				markerBlock(fs.readFileSync(path.join(dest, "AGENTS.md"), "utf8")) === working &&
+				!working.includes("Put HANDOFF and session notes") && working.includes("Nothing is written after a land."));
 			if (language === "python") {
 				const cp1252 = runCp1252(dest);
 				if (!cp1252.available) {
