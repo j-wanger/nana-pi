@@ -2457,7 +2457,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
-- **unresolved launches** — line 75: execFileSync
+- **unresolved launches** — line 67: execFileSync
 
 ### `packages/nana-pack/tests/agent-dir-parity.test.mjs`
 

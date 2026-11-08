@@ -38,14 +38,6 @@ const call = async (toolName, input) => ((await handler({ toolName, input }, ctx
 let fails = 0;
 const check = (name, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : extra); if (!ok) fails++; };
 
-let canLink = true;
-try {
-	fs.symlinkSync(os.tmpdir(), path.join(HOME, "probe-link"), "dir");
-} catch {
-	canLink = false;
-	console.log("SKIP-NOTE: no symlink privilege — A and B rows skipped");
-}
-
 // ── C: deleted cwd with a relative PI_CODING_AGENT_DIR (child process: it deletes its own cwd) ──
 if (process.platform === "win32") {
 	console.log("SKIP section C: deleted-cwd probes (Windows locks a live cwd and will not delete it)");
