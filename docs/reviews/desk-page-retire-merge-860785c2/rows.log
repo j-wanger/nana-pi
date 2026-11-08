@@ -1,4 +1,0 @@
-HEAD: 92 changed/new rows preserved byte-identically.
-main: 7 changed/new rows preserved byte-identically.
-Union: 2604 rows; no dropped, duplicate or renumbered IDs.
-No main deletions since the merge base.

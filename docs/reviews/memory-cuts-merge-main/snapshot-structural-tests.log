@@ -1,5 +1,0 @@
-PASS  packages/nana-pack/tests/memory-cut-checks.test.mjs  1 pass  4.0s
-PASS  packages/nana-setup/tests/settings-merge.test.mjs    213 pass  4.1s
-PASS  packages/nana-pack/tests/setup-retire.test.mjs       5 pass  4.7s
-
-3 files: 3 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 219 pass, 0 fail, 0 skip · 5.1s

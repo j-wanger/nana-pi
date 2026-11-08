@@ -1,2 +1,0 @@
-ok   replaced: win32 skips pi executable probe → win32 pi executable probe uses injected ComSpec launcher
-seat-verify-tests: 0 gap(s)

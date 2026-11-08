@@ -1,2 +1,0 @@
-PASS two machines converge without a merge
-PASS offline contention and a stopped rebase lose nothing

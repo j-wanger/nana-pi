@@ -1,5 +1,0 @@
-FAIL  packages/nana-setup/tests/memory-pause.test.mjs  1 pass, 1 fail  0.1s  — exit 1
-      | FAIL R-3862: install retires memory dispatch and doctor names the repair Error: ENOENT: no such file or directory, open './packages/nana-setup/claude/hooks/nana-memory-end.mjs'
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 1 pass, 1 fail, 0 skip · 0.4s
-failed: packages/nana-setup/tests/memory-pause.test.mjs
