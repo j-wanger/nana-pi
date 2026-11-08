@@ -1,7 +1,7 @@
 {
 	"name": "nana-knowledge",
 	"version": "0.1.0",
-	"description": "nana-knowledge: local BM25 full-text index over the owner's research/knowledge stores, pulled at prompt time by a Claude Code UserPromptSubmit hook and by a pi extension, injecting a couple of KB of pointers",
+	"description": "nana-knowledge: local BM25 full-text index with explicit, injection-safe knowledge search",
 	"keywords": ["pi-package"],
 	"license": "MIT",
 	"type": "module",
@@ -9,7 +9,7 @@
 		"nana-knowledge": "./bin/nana-knowledge.ts"
 	},
 	"pi": {
-		"extensions": ["./extensions"]
+		"extensions": []
 	},
 	"peerDependencies": {
 		"@earendil-works/pi-coding-agent": "*"

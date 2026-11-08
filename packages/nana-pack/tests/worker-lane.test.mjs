@@ -402,7 +402,12 @@ check("lane preamble forbids the named package-manager operations at a worktree 
 const preambleText = prompt1Text;
 const RULE_LINE = {
 	storedCredential: "- Never read, print or use a stored credential: no `git credential fill` or `get`, no token from a keychain, file or environment variable, and no direct GitHub API call. If a step needs a credential or `gh` is missing, report it and stop.",
-	knownBugsFolder: `- Never edit \`HANDOFF.md\`, \`${KNOWN_BUGS_DIR}/\` or session archives.`,
+	knownBugsFolder: `- Remove only the known-bug lines your brief names; never make any other edit under \`${KNOWN_BUGS_DIR}/\`.`,
+	trackedDeletion: "- Delete tracked files with `git rm -q --`.",
+	sharedTemp: "- Test files use the shared `tmpDir` helper for temp folders and never call `mkdtemp`.",
+	testInventory: "- After adding or deleting a test file, run `node scripts/test.mjs test-runner`.",
+	removedTextSearch: "- Before reporting, grep tests for every sentence, path and file name the change removed or renamed.",
+	noNestedCheckers: "- Suite tests never re-run the suite or whole-repo checkers.\n  Code map, README, requirements tree, requirements trace and component audit run as seat checks and in their own tests.",
 	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
 	reuseNotCopy: "- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private, drop the leading underscore, update its existing callers, and import the public name; never import a private name from another module. A move to a shared module needs the brief to name it.",
 	knownBugsContext: "- The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches.",
@@ -422,7 +427,19 @@ const RULE_LINE = {
 };
 const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
 // req: R-2510
-check("R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives", preambleOnce(RULE_LINE.knownBugsFolder), RULE_LINE.knownBugsFolder);
+check("R-2510: only brief-named known-bug removals are allowed and HANDOFF stays protected",
+	preambleOnce("- Never edit `HANDOFF.md`.") && preambleOnce(RULE_LINE.knownBugsFolder) &&
+	!preambleText.includes(`Never edit \`HANDOFF.md\` or \`${KNOWN_BUGS_DIR}/\``), RULE_LINE.knownBugsFolder);
+// req: R-3897
+check("M4: tracked deletion uses git rm", preambleOnce(RULE_LINE.trackedDeletion));
+// req: R-3897
+check("M4: test temp folders use shared tmpDir without mkdtemp", preambleOnce(RULE_LINE.sharedTemp));
+// req: R-3897
+check("M4: test file changes run the test-runner checks", preambleOnce(RULE_LINE.testInventory));
+// req: R-3897
+check("M4: removed and renamed text gets a test search before reporting", preambleOnce(RULE_LINE.removedTextSearch));
+// req: R-3903
+check("M10: suite tests do not re-run the suite or whole-repo checkers", preambleOnce(RULE_LINE.noNestedCheckers));
 // req: R-3650
 check("R-3650: the builder preamble forbids reading, printing or using a stored credential exactly once", preambleOnce(RULE_LINE.storedCredential), RULE_LINE.storedCredential);
 // req: R-2582

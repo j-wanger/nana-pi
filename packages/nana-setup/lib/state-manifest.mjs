@@ -8,9 +8,8 @@
  */
 import * as path from "node:path";
 import { ledgerPaths } from "../../nana-pack/bin/review-round.mjs";
-import { PATH_COMMANDS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED } from "./steps.mjs";
+import { HOOKS, PATH_COMMANDS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED } from "./steps.mjs";
 import { pkgRoot } from './paths.mjs';
-import { MEMORY_END_ENTRY } from './memory-end-config.mjs';
 import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 
 /** Sealed classification vocabulary; chosen by plan 5.5 and critic S2 (2026-10-08). */
@@ -63,7 +62,7 @@ export function stateRows(layout) {
   durable("nana share", "user", "dir", p(layout.base, ".local", "share", "nana"));
 
   rebuild("copy record", layout.copyRecord, "file");
-  for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", MEMORY_END_ENTRY.file]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
+  for (const name of HOOKS) rebuild(`hook ${name}`, p(layout.hooksDir, name));
   for (const name of ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE]) rebuild(`rule link ${name}`, p(layout.rulesDir, name));
   rebuild(`pi rule link ${RULINGS_FILE}`, layout.piRulings);
   rebuild(`pi rule link ${SEAT_GUIDE_FILE}`, layout.piSeatGuide);

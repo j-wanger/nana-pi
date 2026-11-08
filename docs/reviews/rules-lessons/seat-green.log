@@ -1,0 +1,29 @@
+PASS seat guide scopes itself to the seat in one sentence before its first bullet 
+PASS seat guide holds only retained rules and the brief checklist 
+PASS seat guide carries: launch in the background and end the turn 
+PASS seat guide carries: no reading or judging partial work mid-run 
+PASS seat guide carries: act on completion or a monitor's failure or stall 
+PASS seat guide carries: verify once at the end 
+PASS seat guide carries: every lane gets one reviewer plus CI 
+PASS R-1140: the seat guide has no retired mutation-runner instruction 
+PASS R-3140: first-look covers any page the owner sees with usable mode commands 
+PASS R-3141: referenced shots stay with the seat until visual-reader passes or the seat judges them 
+PASS R-3161: UI brief rule appears once after visual-reader with the canonical path and picking defaults 
+PASS R-3162: linked template carries reference picking and the image handoff 
+PASS R-3163: template gates follow the lane spec and recommend anchored ratings 
+PASS R-3067: seat guide carries the outside-reader timing, output and defect rule 
+PASS seat guide carries: findings back in the next brief 
+PASS seat guide carries: no more lanes building than the roster command's lanes line, two in planning, each slot defined 
+PASS seat guide carries: name and start independent work before the turn ends, lane steps in order 
+PASS seat guide carries: full suite whole, no split beside a full suite, a time-limit failure re-run alone 
+PASS seat guide carries: preamble and review standard named, not restated 
+PASS pi seat guide explains parallel builds and the shared working pattern names both guide loaders 
+PASS MM9: role launch guidance names commands slots seat exceptions scheduling and ruling 
+PASS M5: one brief checklist names the seven build lessons 
+PASS M8: brief authority and builder scope agree on named known-bug removals 
+PASS M9: red-main guidance names the reviewed fix land path beside post 
+PASS M11: every brief including small fixes names the requirements trace seat check 
+PASS M1: plan questions stay in the planner without seat posting or answer waits 
+PASS  packages/nana-setup/tests/seat-rule.test.mjs  26 pass  0.0s
+
+1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 26 pass, 0 fail, 0 skip · 0.4s

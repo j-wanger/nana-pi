@@ -1,0 +1,101 @@
+PASS four active hook entries are wanted 
+PASS Node hook commands single-quote the path 
+PASS the node command single-quotes the path 
+PASS a quote inside a path is escaped 
+PASS quoted command still matches its own spec (SessionStart objective) 
+PASS quoted command still matches its own spec (SessionStart adoption) 
+PASS quoted command still matches its own spec (SessionStart shared-memory) 
+PASS quoted command still matches its own spec (SessionStart roster notice) 
+PASS quoted command still matches its own spec (UserPromptSubmit knowledge pull) 
+PASS matches: node ~/.claude/hooks/nana-objective.mjs 
+PASS matches: node '~ Doe/.claude/hooks/nana-objective.mjs' 
+PASS matches: node "~/.claude/hooks/nana-objective.mjs" 
+PASS matches: /usr/bin/node ~/.claude/hooks/nana-objective.mjs 
+PASS matches: node /opt/hooks/nana-objective.mjs --quiet 
+PASS does NOT match: echo bash /tmp/nana-objective.sh 
+PASS does NOT match: node /tmp/nana-objective.mjs && 
+PASS does NOT match: node /tmp/nana-objective.mjs | cat 
+PASS does NOT match: node /tmp/nana-objective.mjs; false 
+PASS does NOT match: node /tmp/nana-objective.mjs > log 
+PASS does NOT match: node /tmp/nana-objective.mjs < in 
+PASS does NOT match: node /tmp/nana-objective.mjs &  
+PASS does NOT match: node $(echo /tmp)/nana-objective.mjs 
+PASS does NOT match: node `echo /tmp`/nana-objective.mjs 
+PASS does NOT match: echo nana-objective.mjs.disabled 
+PASS does NOT match: node ~/.claude/hooks/nana-objective.mjs.disabled 
+PASS does NOT match: node ~/.claude/hooks/old-nana-objective.mjsx 
+PASS does NOT match: echo '/x/nana-objective.mjs' 
+PASS does NOT match: node ~/.claude/hooks/nana-shared-memory.mjs 
+PASS knowledge: the real command matches 
+PASS knowledge: a different subcommand does not 
+PASS knowledge: a bare mention does not 
+PASS knowledge: a quoted path with a space matches 
+PASS knowledge: `echo node … hook` does not 
+PASS unbalanced quoting reads as NOT installed 
+PASS R-317: a hook counts as present only when its command, read with shell quoting and leading VAR=value words dropped, runs the interpreter on a path ending in the script with the expected argument 
+PASS tokenize: plain words 
+PASS tokenize: single quotes keep spaces 
+PASS tokenize: double quotes keep spaces 
+PASS tokenize: backslash escapes a space 
+PASS tokenize: env assignment stays its own word 
+PASS tokenize: an empty quoted word survives 
+PASS tokenize: unbalanced quoting is null 
+PASS tokenize: `&&` outside quotes is null 
+PASS tokenize: `||` outside quotes is null 
+PASS tokenize: `;` outside quotes is null 
+PASS tokenize: `|` outside quotes is null 
+PASS tokenize: `&` outside quotes is null 
+PASS tokenize: `>` outside quotes is null 
+PASS tokenize: `<` outside quotes is null 
+PASS tokenize: ``` outside quotes is null 
+PASS tokenize: `$(` outside quotes is null 
+PASS tokenize: an operator INSIDE quotes is just text 
+PASS tokenize: a bare $ (variable expansion) is fine 
+PASS valid: empty object 
+PASS valid: real-world settings 
+PASS invalid: {"hooks":"disabled"} 
+PASS invalid: hooks event is not an array 
+PASS invalid: a group is not an object 
+PASS invalid: group.hooks is not an array 
+PASS invalid: top level is an array 
+PASS empty settings: all four active entries added 
+PASS empty settings: one group per event 
+PASS empty settings: merging again adds nothing 
+PASS the other four are added 
+PASS foreign SessionStart hook still first 
+PASS nana SessionStart hooks appended to the same group 
+PASS a matcher-scoped group is left alone 
+PASS retired knowledge hook is not appended beside the foreign prompt entry 
+PASS unrelated events untouched 
+PASS unrelated top-level keys untouched 
+PASS second merge is a no-op 
+PASS fixture: the desired knowledge command matches today's shape 
+PASS recognized stale absolute knowledge command is replaced in place with no duplicate 
+PASS unrecognized hand-written node hook entry remains exactly equal 
+PASS unrecognized customized knowledge hook entry remains exactly equal 
+PASS unrecognized echo entry remains exactly equal 
+PASS absolute knowledge hook target outside repository is not accepted as healthy 
+PASS an EXISTING knowledge target outside the checkout, carrying the repository suffix, is replaced in place with no duplicate 
+PASS a stale knowledge entry with another status message is not matched as the installer's own (found false, not replaced) 
+PASS that entry is left byte for byte 
+PASS a stale knowledge entry with no status message is not matched as the installer's own (found false, not replaced) 
+PASS that entry is left byte for byte 
+PASS every group is scanned regardless of matcher: a stale knowledge entry under matcher "*" is found and replaced in place, no twin 
+PASS every group is scanned regardless of matcher: a healthy knowledge entry under matcher "*" is found and left alone, no twin 
+PASS win32 desiredHooks: every entry is exec form with no shell key 
+PASS win32 desiredHooks: the four SessionStart entries name packages/nana-setup/claude/hooks/ 
+PASS win32 desiredHooks: no active entry adds a subcommand 
+PASS win32 desiredHooks: no knowledge target is wanted 
+PASS CLAUDE_CODE_EXEC_FLOOR is 2.1.139 
+file://./packages/nana-setup/tests/settings-merge.test.mjs:331
+		{ event: E.event, label: `${E.event} memory making`, marker: E.file, spec: { interpreters: ['node'], script: E.file }, entry: { type: 'command', command: `node '/h/${E.file}'`, timeout, statusMessage: E.statusMessage } },
+		         ^
+
+ReferenceError: E is not defined
+    at file://./packages/nana-setup/tests/settings-merge.test.mjs:331:12
+
+Node.js v22.22.2
+FAIL  packages/nana-setup/tests/settings-merge.test.mjs  89 pass  0.0s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 89 pass, 0 fail, 0 skip · 0.4s
+failed: packages/nana-setup/tests/settings-merge.test.mjs

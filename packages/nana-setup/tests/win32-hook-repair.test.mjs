@@ -114,12 +114,12 @@ const f1AfterSecond = fs.readFileSync(settingsPath(f1Home));
 const f1SecondLines = f1Second.stdout.split("\n");
 const allSixUnchanged = winWanted.every((wanted) => f1SecondLines.some((line) => line.includes(`settings ${wanted.label}`) && line.includes("already wired")));
 // req: R-1883
-check("win32 install: a second install over the repaired home reports all five settings rows unchanged", f1Second.status === 0 && allSixUnchanged && f1AfterSecond.equals(f1BeforeSecond), f1Second.stdout);
+check("win32 install: a second install over the repaired home reports all four settings rows unchanged", f1Second.status === 0 && allSixUnchanged && f1AfterSecond.equals(f1BeforeSecond), f1Second.stdout);
 
 const allSixHealthy = winWanted.every((wanted) => new RegExp(`✓ settings ${regexEscape(wanted.label)}\\b`).test(f1Doctor.stdout));
 const f1KnowledgeAtIndex = f1After.hooks.UserPromptSubmit === undefined;
 // req: R-1884
-check("win32 doctor: all five settings rows read ✓ after one install over the carried home", allSixHealthy && f1KnowledgeAtIndex, f1Doctor.stdout);
+check("win32 doctor: all four settings rows read ✓ after one install over the carried home", allSixHealthy && f1KnowledgeAtIndex, f1Doctor.stdout);
 
 const f3Home = freshHome();
 const f3Foreign = { type: "command", command: "echo knowledge-owner", timeout: 8, statusMessage: "owner knowledge" };
@@ -161,7 +161,6 @@ const adviceDeadPaths = [
 	`${adviceDeadRoot}/nana-roster-notice.mjs`,
 	`${adviceDeadRoot}/verifier-pipe.mjs`,
 	`${adviceDeadRoot}/nana-knowledge.ts`,
-	`${adviceDeadRoot}/nana-memory-end.mjs`,
 ];
 const vEntries = sessionLabels.map((label, index) => ({ ...clone(byLabel(winWanted, label).entry), args: [adviceDeadPaths[index]] }));
 const vKnowledge = { ...clone(retiredKnowledgeHook({ repoRoot, platform: 'win32' }).entry), args: [adviceDeadPaths[5], "hook"] };
@@ -169,7 +168,6 @@ const vHome = freshHome();
 seed(vHome, { hooks: {
 	SessionStart: [{ hooks: vEntries }],
 	UserPromptSubmit: [{ hooks: [vKnowledge] }],
-	SessionEnd: [{ hooks: [{...clone(byLabel(winWanted, 'SessionEnd memory making').entry), args:[adviceDeadPaths[6]]}] }],
 } });
 const vInstall = run(["install", "--home", vHome]);
 const vDoctor = run(["doctor", "--home", vHome]);
@@ -177,7 +175,6 @@ const slashPath = (value) => value.replaceAll("\\", "/");
 const installCommand = (wanted) => [wanted.entry.command, ...wanted.entry.args].map(slashPath).join(" ");
 const safeRoute = "remove that entry by hand, then run nana-setup install";
 const vRowsRepairByHand = winWanted.every((wanted, index) => {
-	if (wanted.event === 'SessionEnd') index = 6;
 	const line = settingsLine(vDoctor.stdout, wanted.label);
 	const editRoute = `to edit instead, run ${installCommand(wanted)}`;
 	return line?.trimStart().startsWith("✗ ") && line.includes(slashPath(adviceDeadPaths[index])) && !line.slice(line.indexOf("install leaves")).includes("\\") && line.includes(safeRoute) && line.includes(editRoute) && line.indexOf(safeRoute) < line.indexOf(editRoute);

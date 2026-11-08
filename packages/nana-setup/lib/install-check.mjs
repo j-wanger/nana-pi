@@ -231,8 +231,6 @@ export function judgePiTurn({ record, stderr, status, token }) {
   if (!system.includes(PI_TURN.rulingsHeading)) return { passed: false, code: "missing-rulings", detail: `system prompt does not hold ${PI_TURN.rulingsHeading}` };
   if (!system.includes(PI_TURN.seatGuideHeading)) return { passed: false, code: "missing-seat-guide", detail: `system prompt does not hold ${PI_TURN.seatGuideHeading}` };
   if (!system.includes(PI_TURN.writingTag)) return { passed: false, code: "missing-writing", detail: `system prompt does not hold ${PI_TURN.writingTag}` };
-  const knowledge = Array.isArray(record.userMessages) && record.userMessages.some((message) => typeof message === "string" && message.startsWith(PI_TURN.knowledgeMarker) && message.includes(PI_TURN.noteFile));
-  if (!knowledge) return { passed: false, code: "missing-knowledge", detail: `no ${PI_TURN.knowledgeMarker} user message names ${PI_TURN.noteFile}` };
   const gate = Array.isArray(record.toolResults) && record.toolResults.some((result) => result?.toolName === PI_TURN.tool && result.isError === true && typeof result.text === "string" && result.text.startsWith(PI_TURN.gateBlockPrefix));
   if (!gate) return { passed: false, code: "missing-gate-block", detail: `no errored ${PI_TURN.tool} result starts with the gate block text` };
   return { passed: true, code: null, detail: "" };
@@ -371,7 +369,6 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   const listed = await piRun(["list"], SPAWN_TIMEOUT_MS.list);
   const parsed = parsePiList(listed.stdout ?? "", root, platformName);
   report("pi list nana-pack", "missing-entry", okay(listed) && parsed.pack);
-  report("pi list nana-knowledge", "missing-entry", okay(listed) && parsed.knowledge);
   const sessionArgs = ["--mode", "rpc", "--no-session"];
   const sessionLaunch = platformName === "win32" ? winCommand(pi, sessionArgs, { comspec: childEnv.ComSpec }) : null;
   const sessionEnv = { ...childEnv, NANA_TEST_TEMP_ROOTS: "" };

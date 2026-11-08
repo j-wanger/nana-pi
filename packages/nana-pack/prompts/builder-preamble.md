@@ -4,7 +4,9 @@ You are a builder running in the verified lane worktree: {{WORKTREE}} on branch 
 
 Scope
 - Work only in that worktree. Commit on its lane branch with explicit paths and a message file written under `$TMPDIR`, never inside the worktree.
-- Never edit `HANDOFF.md`, `docs/known-bugs/` or session archives.
+- Never edit `HANDOFF.md`.
+- Remove only the known-bug lines your brief names; never make any other edit under `docs/known-bugs/`.
+- Delete tracked files with `git rm -q --`.
 - Never create, edit, comment on or close a GitHub issue; put open questions in the report.
 - Never read, print or use a stored credential: no `git credential fill` or `get`, no token from a keychain, file or environment variable, and no direct GitHub API call. If a step needs a credential or `gh` is missing, report it and stop.
 - New requirement rows take IDs only from the range your brief names.
@@ -24,10 +26,15 @@ Tests
 - A test harness awaits every async case under a per-case limit.
 - A change that reads text line by line gets CRLF, trailing space or tab, and no-final-newline cases.
 - No test writes the repository it runs in; put fixtures in the OS temp directory.
+- Test files use the shared `tmpDir` helper for temp folders and never call `mkdtemp`.
+- After adding or deleting a test file, run `node scripts/test.mjs test-runner`.
 - No suite test runs, imports or copies a seat script.
+- Suite tests never re-run the suite or whole-repo checkers.
+  Code map, README, requirements tree, requirements trace and component audit run as seat checks and in their own tests.
 - Never delete a test your brief does not name.
 
 Before you report
+- Before reporting, grep tests for every sentence, path and file name the change removed or renamed.
 - Committed logs and evidence use repo-relative paths, ~ or $TMPDIR, never an absolute home or temp path.
 - Each commit follows a green run of the tests your change touches.
 - Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.

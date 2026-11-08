@@ -251,7 +251,7 @@ try {
 	const doctorResult = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8", env }));
 	// req: R-1055
 	check("doctor: exit 0", doctorResult.status === 0, doctorResult.stdout);
-	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice", "settings SessionEnd memory making", "node for the objective hook"]) {
+	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice", "node for the objective hook"]) {
 		const line = doctorResult.stdout.split("\n").find((l) => l.includes(label)) ?? "";
 		// req: R-1055
 		check(`doctor: "${label}" is ✓`, line.trim().startsWith("✓"), line);

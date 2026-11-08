@@ -534,7 +534,7 @@ check("R-2302: on win32, a pi.cmd with no npm package beside it, another package
 	}
 	const calls = observations.flatMap(({ calls }) => calls);
 	return {
-		ok: observations.every(({ calls: caseCalls }) => caseCalls.length >= 5)
+		ok: observations.every(({ calls: caseCalls }) => caseCalls.length === 4)
 			&& calls.every(({ command, args, options }) => command === comspec && JSON.stringify(args.slice(0, 4)) === JSON.stringify(["/d", "/v:off", "/s", "/c"]) && options.windowsVerbatimArguments === true),
 		detail: JSON.stringify(observations),
 	};

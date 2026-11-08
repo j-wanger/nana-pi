@@ -72,7 +72,7 @@ const packPackage = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "packages/na
 const surviving = ["gate", "lifecycle", "adoption", "objective", "writing", "roster notice"];
 const packageBullet = rootReadme.match(/- `packages\/` —[\s\S]*?(?=\n- )/)?.[0] ?? "";
 // req: R-658
-check("front-door descriptions name both runtimes and the surviving extension functions", rootReadme.includes("UserPromptSubmit") && rootReadme.includes("before_agent_start") && surviving.every((name) => packageBullet.includes(name)) && [rootPackage.description, packPackage.description].every((text) => surviving.every((name) => text.includes(name))));
+check("front-door descriptions name both runtimes and the surviving extension functions", rootReadme.includes("pi and Claude Code") && rootReadme.includes("nana-knowledge query") && surviving.every((name) => packageBullet.includes(name)) && [rootPackage.description, packPackage.description].every((text) => surviving.every((name) => text.includes(name))));
 
 const objective = fs.readFileSync(path.join(REPO_ROOT, "AGENTS.md"), "utf-8").split("## Working under nana-pi")[0];
 // req: R-659

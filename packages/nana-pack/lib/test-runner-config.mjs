@@ -72,7 +72,6 @@ export const TEMP_REMOVE_RETRY_DELAY_MS = 100;
 // HOOK_PRODUCER_TIMEOUT_MS-sensitive producer cases also run outside the pool.
 export const RUN_ALONE = Object.freeze({
 	"packages/nana-knowledge/tests/hook.test.mjs": "load-sensitive timing bounds (1500/1800 ms)",
-	"packages/nana-knowledge/tests/extension.test.mjs": "load-sensitive timing bounds (1000/1500 ms)",
 	"packages/nana-pack/tests/bounded-read.test.mjs": "load-sensitive timing bound (1000 ms)",
 	"packages/nana-pack/tests/test-locked.test.mjs": "load-sensitive timing bound (1200 ms) and 70-250 ms launch waits",
 	"packages/nana-pack/tests/review-ledger.test.mjs": "load-sensitive 1000 ms reservation stale window with a 200 ms heartbeat",

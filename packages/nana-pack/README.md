@@ -211,146 +211,10 @@ by operation and class, spend, records made per day and records removed per revi
 proposals free fewer than 2,000 claim characters, the seat brings the owner the gap before
 planning more curation. This build reads no real store and makes no paid call.
 
-## Memory outcomes
+## Completed memory studies
 
-Run from the repository root with Node 22.18+, git and an authenticated Claude CLI
-for the meter. Scoring and comparison need only Node. Tests inject every runner and spend nothing.
-
-```bash
-npm run memory:meter -- --candidates <private-jsonl> --root <private-transcript-projects> --out <private-folder>
-npm run memory:meter-score -- --rows <private-rows-jsonl> --labels <private-labels-jsonl>
-npm run memory:meter-compare -- --rows <private-rows-jsonl> --against <private-rows-jsonl>
-```
-
-The adapters are `scripts/outcome-meter.mjs`, `scripts/outcome-score.mjs` and
-`scripts/outcome-compare.mjs`.
-
-The meter in `scripts/outcome-meter.mjs` also accepts `--repo <repository>`,
-`--project <key>` and `--load-log <private-log>`; the default log is
-`nana-context-loads.jsonl` under the active pi agent directory. The meter never accepts labels.
-Only synthetic fixtures and counts belong in this repository. Keep real snapshots, candidates,
-labels, output and every run count private, outside any checkout. Each run exclusively creates
-`outcome-meter.jsonl` with mode 0600 in a 0700 folder on POSIX. Diagnostics never expose input,
-pointers, model replies or exception messages. A prior output file is never replaced.
-
-One interaction is an eligible owner turn with prior seat text. Session openers, tool results,
-meta, sidechains, compaction summaries and wrappers do not add interactions. All transcripts
-are walked once and ordered by entry instant, with file-entry order breaking ties. Ask results
-occupy their instant's position but add no interaction. Duplicate candidate pointers use the
-first row; lessons are ignored; malformed candidates fail before any judge call. Missing evidence
-is unresolved and seat-saved pointers are skipped.
-
-The first 60 interactions form one warm-up prefix; then consecutive windows contain 80
-interactions, with an unfilled final window marked partial. The warm-up prefix and partial tail
-never enter the pooled baseline, though warm-up items can match later repeats.
-Window rows are not a verdict. Pooled rates include Wilson intervals and the equal-arm,
-two-proportion interactions needed to detect a halving at 95% confidence and 80% power,
-using observed item density; zero repeats cannot estimate that number. Repeats must cross
-sessions. A session that began before the earlier item existed is parallel, not a repeat.
-Exact normalised claims need no judge. Pasted interactions print separately.
-
-Only prompted decisions settled the same way count as asked again; changed settlements print
-as re-decided and volunteered decisions as unprompted. The isolated, sealed Claude judge sees
-capped claims and call-local ids only, without pointers, sessions, instants or positions.
-Each chunk includes the entire in-lookback earlier set, without word blocking. Bad replies
-fail closed for the whole call. Token caps stop later calls with per-window unjudged counts;
-missing usage stays explicitly unknown. The runner uses no tools, MCP, settings sources or
-session persistence, replaces its system prompt, and receives text on stdin in OS temp.
-
-The scorer uses labels shaped as `{ evidence, kind, valid, repeatOf: [], relation }`, where
-`repeatOf` lists every acceptable earlier pointer and relation is same, changed or none.
-It scores only closed, non-warm-up windows. Kind precision counts valid items; repeat recall
-and precision count only valid items. Pointer agreement checks acceptable evidence among
-predicted repeats. Ratios carry Wilson lower bounds, bars use those bounds, and fewer than
-15 labelled repeats or any unlabelled items make a kind unscored. Comparison matches repeats
-by owner-turn pointer, ignoring the paired seat id, and prints intersection over union.
-The meter's own rates include invalid candidates and are therefore an upper reading; only
-labels correct validity. Shared Claude lineage remains a limit. The seat's private owner
-check and four-run noise comparison are baseline steps, not automated delivery verdicts.
-The paired replay below judges the first delivery; this long-run field meter confirms it later.
-
-Logged context reports total and per-part median, nearest-rank 90th percentile and maximum,
-split by role and launcher. Fewer than ten loads prints too few loads. OS-temp loads are test
-loads, excluded from context statistics. Missing, malformed and outside-window lines are counted.
-From the load-log land, pi-worker and pi-review totals include context files, so a window spanning that land compares two measures.
-Unknown role, launcher and part names receive distinct numbered aliases instead of exposing log text.
-Only logged parts can support a no-growth claim: planners and adversaries launched through the
-Agent tool are not logged, standing rules and Claude Code context files are outside the log, and the seat
-line covers only the shared-memory index. Known limit: one machine and Claude Code transcripts
-only; pi sessions and cross-machine repeats are invisible. Recurring findings are a later lane.
-
-## Paired memory replay
-
-Runtime dependencies: Node 22.18+ and git. Only `screen` and `run` need an authenticated
-Claude CLI; `plan` and `decide` make no model calls. The adapter is `scripts/memory-replay.mjs`.
-Tests inject synthetic runners and spend nothing. Run these commands from the repository root:
-
-```bash
-npm run memory:replay -- plan --labels <private-labels> --candidates <private-shaped-candidates> --root <frozen-projects-snapshot> --seed <fixed-seed> --out <private-replay-root>
-npm run memory:replay -- screen --in <private-replay-root> --expect <case-set-hash>
-npm run memory:replay -- run --in <private-plan-folder> --expect <case-set-hash>
-npm run memory:replay -- decide --in <private-replay-root> --case-set <case-set-hash> --sheet <private-blind-folder>
-npm run memory:replay -- decide --in <private-replay-root> --case-set <case-set-hash> --blind-agree <agreement-count>
-```
-
-Planning also accepts `--repo <repository>` and `--project <key>`.
-Freeze transcripts before planning: the live Claude projects directory is refused, and the
-transcript list and sizes enter the case-set hash. The labels can use the outcome shape above
-or kind-only `{ evidence, kind }` rows; kind-only corrections mean valid first corrections.
-Lesson and none rows do not become replay cases. Duplicate labels refuse. Missing pointers,
-changed claims, invalid labels and sessions without recorded instructions print skip counts.
-Stratum R needs a same-behaviour instance whose instant precedes the replay session's first
-entry; prompted re-asked decisions enter R only. All other corrections enter F. Earlier
-instances after session start remain F and print as late. The primary statistic pools R and F.
-
-The replay point is the owner request before the corrected agent turn. Recorded instructions,
-SessionStart outputs after the last compaction boundary, the last compaction summary and
-main-chain messages through that point form the reconstruction. Thinking, images, sidechains and bookkeeping stay out. Tool results
-are capped; over budget, whole oldest history entries drop, keeping the replay point.
-All arms differ only in one slot, after standing text and before conversation. Control keeps
-the recorded AutoMem and shared-memory hook output, matched by command or recorded status
-label (`nana: shared memory index`). Treatment merges only candidates with
-resolved evidence and session starts before the cut, without events or saved records, in a
-private temporary store removed after use. Evidence instants, not write stamps, order the bundle.
-The oracle contains one earlier record in R; the deliberately leaking ceiling contains the
-case's own correction in F. Neither sensitivity arm enters the treatment verdict.
-
-Both replay and judge use sealed isolated Claude runners with no tools, MCP, settings sources
-or session persistence. Replay writes a JSON-wrapped whole turn, including `TOOL` lines; no
-results come back. One blind judge call sees one reply and the mistake description, never arm
-metadata or another reply. The original turn must reproduce under the same judge shape.
-There are five draws per arm. Unclear and failed draws drop; each arm needs at least three judged draws
-(or all draws in a deliberately shorter synthetic run). Treatment and sensitivity-arm stalls
-count against avoidance. Per-case differences in rates over judged draws feed an exact
-one-sided sign-flip test, with benefit and harm levels each 0.05 and at least eight informative
-cases. Rational differences scale to exact integer sums, including the sensitivity and session
-checks. The effect line is the mean paired rate difference. Wilson rates, R/F lines, a session-level
-clustering check, attrition and per-kind reproduction sit beside it. Failed draws print per arm
-beside unclear draws, including draws from excluded cases.
-The blind check needs eight agreements among ten replies drawn only from informative cases;
-without it the verdict is pending, and below it the verdict is withheld.
-
-The optional screen writes a new plan in the private root's `screen` folder and prints its
-new hash. Cases the cap never screened remain marked `unrun` in that plan. Point `run` at
-that folder with that hash; all its draws are fresh, and unrun cases make no calls. Screen draws
-never enter decisions. Runs exclusively create private folders beneath their plan's `runs`
-folder and write `memory-replay.jsonl`; the plan file is named plan.json. Output files use 0600 and
-folders 0700 on POSIX. Every writer refuses checkout outputs and refuses overwrites.
-Only counts, fixed diagnostics and hashes print. Keep every real input, reply, sheet, count,
-rate and verdict outside the public repository. A treatment quoting the case is marked leaked.
-
-Each replay call has a $1 cap, each judge call $0.10, and the run cap is $150. The run finishes
-a started case before stopping, marks remaining cases unrun and prints incomplete with the
-verdict. Missing or unpriced usage prints cost unknown and reserves the call cap when checking
-the boundary. Case order is seeded and interleaved by stratum. Fix the seed and seals before
-spending. `decide` reads every matching run; only the first per bundle-maker hash is confirmatory.
-Later runs are exploratory. After tuning on results, use fresh cases from after the tuning date.
-
-Limits: control cannot open historical memory files, so the bias favours the bundle; its read
-attempts print separately. Shared bundle phrases in both arms show unblinding risk. Case-level
-power overstates precision when cases share sessions. The real Claude system prompt, tool loop,
-recorded ultra-effort API level, pi sessions and the other machine are not reconstructed.
-A replay shows a bundle can prevent a repeat, not that it does in live work.
+The outcome meter, replay and their scorers are retired. Preserved study records remain
+in review history. They are not runtime commands or evidence of live memory delivery.
 
 ## Offline memory candidates
 
@@ -380,15 +244,6 @@ include preceding seat context; answered AskUserQuestion pairs include question 
 choice. Worker lessons are distinct MUST titles per lane, not promoted rules.
 All records start low-trust and extracted. Nothing delivers or stores them for agents.
 
-`npm run memory:score -- --candidates <private-jsonl> --labels <private-labels-jsonl>`
-runs `scripts/memory-score.mjs`. Each JSONL label has `evidence` and `kind`
-(correction, decision, lesson or none), one label per pointer. Label every owner
-turn in the scored window independently of the frozen rules, using the same
-owner-plus-seat pointer form even for none labels. It prints per-kind recall,
-precision over all candidates, labelled false candidates per labelled owner turn,
-and unlabelled counts. Any unlabelled candidate makes the run unscored.
-Unknown candidates are not presumed false; zero denominators remain exact zero-over-zero counts.
-
 `lib/memory-making.mjs` exports `resolveEvidence(pointer, roots, record)` for the checking
 station. Claude pointers name both entry UUIDs; review pointers name the relative
 file and title index from the shared review parser. Missing files return missing;
@@ -397,12 +252,12 @@ changed title at the same index. Transcript expiry can make pointers missing;
 private quote and context snapshots preserve readability. No trust promotion,
 cross-run deduplication, automatic trigger, delivery or real-data scoring happens here.
 
-## Automatic project memory
+## Manual project memory
 
 `node packages/nana-pack/bin/nana-memory.mjs` provides `enable`, `make` and `status`.
 The command delegates to `scripts/memory-run.mjs` for the existing model adapter.
 Runtime dependencies: Node, git, the initialized private profile clone, and the authenticated
-Claude CLI used by the model shaper. Nana-setup installs the Claude Code SessionEnd hook; there is no PATH shim.
+Claude CLI used by the model shaper. There is no PATH shim.
 
 ```bash
 node packages/nana-pack/bin/nana-memory.mjs enable --repo <checkout>
@@ -417,17 +272,11 @@ clone. A full-root collision check refuses a different root with the same prefix
 The profile pointer and opt-in use `PI_CODING_AGENT_DIR`, otherwise the default pi agent
 directory. A Claude process without pi's override reads a different configuration file.
 
-A successful CLI land of a known lane starts making after containment and review-lock
-release, even if its land record could not be kept. Its extra fixed line reports the
-last run's age and outcome. The detached child has ignored stdio, a hidden Windows window
-and home-directory cwd. CI and every launcher role skip making. Library `runLand` calls
-start nothing unless their caller injects a starter.
-
-Claude Code's `packages/nana-setup/claude/hooks/nana-memory-end.mjs` starts the same run at every SessionEnd reason.
-It passes the transcript and existing input folder, falling back to `CLAUDE_PROJECT_DIR`.
-It reads stdin for at most 300 ms, spawns last, and exits zero without waiting or printing.
-The entry timeout is 1.5 seconds. Missing modules or invalid input start nothing.
-A slow Windows startup can still exceed that limit; the next run sweeps pending units.
+Automatic memory making is paused: neither land nor session end starts a run.
+Land prints no memory line. Use the manual `make` command explicitly.
+The run library, configuration and detached starter remain available; resuming requires
+an explicit wiring change, not a new configuration switch. Run `nana-setup install`
+to remove old session-end wiring. Doctor names remaining wiring with that repair.
 
 The make line reports `pushed` or `not pushed: <reason>` after a push attempt.
 Status and doctor's informational `memory making` note use this machine's local last-run file, not another machine's synced run.
@@ -658,9 +507,9 @@ only, no diagram.
 
 ### Land helper: `bin/nana-land.mjs`
 
-`nana-land merge --tree <integration-worktree> --main <main-checkout> --suite "<command>" --reviewed <sha>=<item> [--reviewed <sha>=<item> ...]` accepts only those four options; no option bypasses review. Keep a clean source tree and a clean tracked state in the checkout on `main`; both checkouts must share one Git repository. Every lane-authored commit the merge adds must be covered by a named reviewed revision, and each named revision needs a verified `LAND` review at version 2 for its canonical item and SHA. Any verified non-LAND verdict for a named commit or snapshot refuses the merge, even under another item; an in-flight review also refuses. Where `origin` is on github.com and the tip tracks a workflow under `.github/workflows`, the helper refuses until the newest CI run of each workflow for the tip has passed at its latest attempt. It refuses before the suite when `gh` cannot read the runs, a run is absent or unfinished, or a newest run did not succeed. With no run, it diagnoses the origin-matched upstream PR state. It stays a one-read gate (plus the clean-merge identity re-read), with no polling or gh write. For a capacity-cancelled run it points to `nana-ci-wait --tip <tip>` (`bin/nana-ci-wait.mjs`), the separate bounded waiter; use `--branch <remote-head>` when the source has no origin upstream, and optionally `--repo <owner/repo>` matching origin. The waiter targets github.com and origin explicitly, checks the PR head and mergeability, then polls for up to two hours. It re-runs failed jobs at most twice per workflow only with complete attempt-matched cancellation evidence, waiting for each attempt to advance. Skipped and neutral jobs are harmless; the tip's `.github/workflows/ci.yml` Linux suite failure is advisory only under its declared continue-on-error rule and a cancelled run. Blocking failures, timeouts and incomplete job evidence never authorize a re-run. A manual cancellation also matches this rule. The command needs Node.js, Git and an authenticated GitHub CLI, like the land tool; its tests inject Node fake gh commands. A successful land prints one `ci:` line per workflow; elsewhere one land note says why CI was not read. After a CI-checked merge, it reads the tip's CI suite records, keeps them in the clone's ci-runs store, and prints the reader's lines. It notes each non-skipped file at or above half its record's per-file limit. The records read stops after its total budget; a read or store failure becomes one land note and never refuses the completed land. The helper retries a nonzero run-list exit once, never a timeout or spawn error. Passing CI stands in for the local suite only when every highest-attempt same-platform leg record from a judged run has an empty `filters` array, final files and exit 0. On the fast-forward path, missing or old records and failed or over-budget reads require the local suite. A lane changing a workflow or the canonical test runner also requires it, even with passing CI. The helper prints one `suite:` line naming CI's run, attempt and platform, or local with its reason. End records carry `suite` and `suiteWhy`; CI lands have null `suiteMs`, and record readers show `suite ci`. Otherwise the helper runs the suite in the source tree with `NANA_LAND_TIP` set to the source tip's full SHA. Off Windows, the locked suite measures the runtime map; on Windows, it runs once without measuring and prints a land note. After a passing local suite it also writes the product report for the tip and prints a land note naming the page. CI lands refresh neither the runtime map, the land report nor local suite records; hand runs and fallback lands refresh them. Lines the suite prints with the `[nana-land]` land-note prefix appear in success output too. Immediately before merging it rechecks both checkouts, the verdicts, live reservations and main's captured HEAD under the ledger lock. Kept review text is not a land prerequisite and produces no land notes. It performs one `git merge --ff-only`, verifies containment, and requires the main ref equal to the tip or its merge commit with clean tracked state before success. Do not operate the main checkout during a land: a branch switch in the instant between the final check and merge is not defended, but a detected switch prevents success and the helper refuses afterwards without success records. Git refuses an untracked collision with a landed path. The helper never pushes or writes HANDOFF/session archive text. A legacy version-1 LAND does not authorize a land; every pre-change revision needs a fresh review. On success the helper prints the push command and release status. An attempt that reaches land recording writes a start and, when ended, an end record; an interrupted attempt may leave only its start, while argument refusals and a `--main` outside any repository write nothing, and each ended attempt ends with one `[nana-land] land record:` line. After a successful merge it prints the shared local `releaseStatus` result, which exports `selectReleaseTag` and `countTemplateCommits`, reports main against origin/main as of the last fetch, never fetches, and never runs `git tag` because its named form creates a tag.
+`nana-land merge --tree <integration-worktree> --main <main-checkout> --suite "<command>" --reviewed <sha>=<item> [--reviewed <sha>=<item> ...] [--fixes-red <run-id>]` accepts only those options; no option bypasses review. Keep a clean source tree and a clean tracked state in the checkout on `main`; both checkouts must share one Git repository. Every lane-authored commit the merge adds must be covered by a named reviewed revision, and each named revision needs a verified `LAND` review at version 2 for its canonical item and SHA. Any verified non-LAND verdict for a named commit or snapshot refuses the merge, even under another item; an in-flight review also refuses. Where `origin` is on github.com and the tip tracks a workflow under `.github/workflows`, the helper refuses until the newest CI run of each workflow for the tip has passed at its latest attempt. It refuses before the suite when `gh` cannot read the runs, a run is absent or unfinished, or a newest run did not succeed. With no run, it diagnoses the origin-matched upstream PR state. It stays a one-read gate (plus the clean-merge identity re-read), with no polling or gh write. For a capacity-cancelled run it points to `nana-ci-wait --tip <tip>` (`bin/nana-ci-wait.mjs`), the separate bounded waiter; use `--branch <remote-head>` when the source has no origin upstream, and optionally `--repo <owner/repo>` matching origin. The waiter targets github.com and origin explicitly, checks the PR head and mergeability, then polls for up to two hours. It re-runs failed jobs at most twice per workflow only with complete attempt-matched cancellation evidence, waiting for each attempt to advance. Skipped and neutral jobs are harmless; the tip's `.github/workflows/ci.yml` Linux suite failure is advisory only under its declared continue-on-error rule and a cancelled run. Blocking failures, timeouts and incomplete job evidence never authorize a re-run. A manual cancellation also matches this rule. The command needs Node.js, Git and an authenticated GitHub CLI, like the land tool; its tests inject Node fake gh commands. A successful land prints one `ci:` line per workflow; elsewhere one land note says why CI was not read. After a CI-checked merge, it reads the tip's CI suite records, keeps them in the clone's ci-runs store, and prints the reader's lines. It notes each non-skipped file at or above half its record's per-file limit. The records read stops after its total budget; a read or store failure becomes one land note and never refuses the completed land. The helper retries a nonzero run-list exit once, never a timeout or spawn error. Passing CI stands in for the local suite only when every highest-attempt same-platform leg record from a judged run has an empty `filters` array, final files and exit 0. On the fast-forward path, missing or old records and failed or over-budget reads require the local suite. A lane changing a workflow or the canonical test runner also requires it, even with passing CI. The helper prints one `suite:` line naming CI's run, attempt and platform, or local with its reason. End records carry `suite` and `suiteWhy`; CI lands have null `suiteMs`, and record readers show `suite ci`. Otherwise the helper runs the suite in the source tree with `NANA_LAND_TIP` set to the source tip's full SHA. Off Windows, the locked suite measures the runtime map; on Windows, it runs once without measuring and prints a land note. After a passing local suite it also writes the product report for the tip and prints a land note naming the page. CI lands refresh neither the runtime map, the land report nor local suite records; hand runs and fallback lands refresh them. Lines the suite prints with the `[nana-land]` land-note prefix appear in success output too. Immediately before merging it rechecks both checkouts, the verdicts, live reservations and main's captured HEAD under the ledger lock. Kept review text is not a land prerequisite and produces no land notes. It performs one `git merge --ff-only`, verifies containment, and requires the main ref equal to the tip or its merge commit with clean tracked state before success. Do not operate the main checkout during a land: a branch switch in the instant between the final check and merge is not defended, but a detected switch prevents success and the helper refuses afterwards without success records. Git refuses an untracked collision with a landed path. The helper never pushes or writes HANDOFF/session archive text. A legacy version-1 LAND does not authorize a land; every pre-change revision needs a fresh review. On success the helper prints the push command and release status. An attempt that reaches land recording writes a start and, when ended, an end record; an interrupted attempt may leave only its start, while argument refusals and a `--main` outside any repository write nothing, and each ended attempt ends with one `[nana-land] land record:` line. After a successful merge it prints the shared local `releaseStatus` result, which exports `selectReleaseTag` and `countTemplateCommits`, reports main against origin/main as of the last fetch, never fetches, and never runs `git tag` because its named form creates a tag.
 
-In nana-pi, lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands. The toolkit manifest selects this policy; other projects keep their existing workflow contract. The lane requires the macOS suite and both macOS install checks; Windows seats also use that macOS suite proof instead of waiting for a Windows lane run. Before landing, the helper reads the newest main push run and requires it to match captured main, with every macOS and Windows suite and install-check leg successful. Missing runs or required jobs refuse; Linux remains advisory for lands. Main's report and the land gate share required-job validation and shard completeness checks.
+In nana-pi, lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands. The fix lands through `nana-land` with `--fixes-red <run-id>`. The option must name the newest completed red push run for captured main, with readable jobs and records; green or unfinished runs refuse. The helper rechecks that run and attempt immediately before merging on both landing paths. A successful land records its `fixesRed` run ID; every other gate remains unchanged. The toolkit manifest selects this policy; other projects keep their existing workflow contract. The lane requires the macOS suite and both macOS install checks; Windows seats also use that macOS suite proof instead of waiting for a Windows lane run. Before landing, the helper reads the newest main push run and requires it to match captured main, with every macOS and Windows suite and install-check leg successful. Missing runs or required jobs refuse; Linux remains advisory for lands. Main's report and the land gate share required-job validation and shard completeness checks.
 
 The declared local-suite fallback paths are `.github/workflows/` and `scripts/test.mjs`.
 
@@ -670,7 +519,7 @@ Supported semantics require git ≥ 2.40 for `git check-attr --source`. The help
 
 `nana-land cleanup <lane> --main <main-checkout>` is a separate operation: it requires the checkout on `main`, then removes only a clean worktree whose `feat/<lane>` branch is contained in `main`, without force. Run through `nana-setup install` to link `nana-land` on PATH; `nana-setup doctor` reports whether the link is valid. The main checkout may have untracked files, but git can still refuse a colliding fast-forward.
 
-**Limits to plan for:** a textual-clean merge can break the build; unlike bors-ng's exact-merge testing, this policy gives up merge-result validation to avoid a new CI run and review. Main's push CI tests the result only after someone pushes; the helper never pushes. In nana-pi, the next land refuses until captured main has a green push run. Required macOS and Windows suite and install-check legs block; a Linux-only failure can leave CI green. Lands sharing one review-ledger home serialize under its lock and recheck captured main, branch, tracked state and source tip inside it. Different ledger homes and external operations do not share that lock; the final-check-to-ff instant remains undefended. An item in flight on a Windows seat whose key came from a short or wrongly cased main checkout restarts its round count once (W7c closed the key itself; a round already recorded under the old key still needs a re-review under the new one). A firmlink-typed `--out` on macOS (`/System/Volumes/Data/...`) stays as today. Deploy with no land, review, or worker process running. While a land holds the ledger lock, another review that waits past the 15-second limit is refused at admission or its completed verdict goes unrecorded; keep its output and re-run it. A new lane-authored commit—including an amend, rebase result, or empty commit—starts with a clean verdict record and needs its own review. A narrow review counts as a LAND for the whole ancestry up to its revision. A direct commit to `main` bypasses this helper; the working pattern forbids direct commits to `main`. A review's verdict comes from the final non-blank line when its canonical form contains a bounded `verdict:` label; otherwise it may come from the first non-blank line, but only when that raw line is plain VERDICT: WORD with an optional whole-number score such as (9/10), — 9/10 or 9/10, and an optional final period. Before detection, the parser removes one leading byte-order mark, removes Unicode default-ignorables, folds selected visual look-alikes, applies NFKC, repeats the removal and fold, then lower-cases. A selected final line may use the familiar leading marks and trailing punctuation; its raw text must still match the final-line grammar. A plain first-line verdict is refused if any other non-blank line mentions “verdict”; when the final line is selected, only the first line is checked for a conflicting verdict; a verdict in the middle is not read, so `notes`, `VERDICT: SEND-BACK`, `VERDICT: LAND` records LAND. A first-line verdict-like label must be valid and carry the same word. Thus VERDICT: LAND 9/10 followed by notes records LAND, but a quoted or marked first line, a later correction, a disguised conflicting label, or a malformed selected line records an empty verdict. A first-line verdict followed by a correction that avoids the word “verdict” can still be read as LAND; middle-only verdicts, misspelled labels, and look-alikes outside the configured table are not detected. Unicode default-ignorable handling follows the running Node version's Unicode tables. An empty verdict stays on the revision and refuses it for good; both launchers print one escaped diagnostic line and exit 1 after consuming the round, so the fix is a new commit and a fresh review, not a re-run. The diagnostic line has no length cap.
+**Limits to plan for:** a textual-clean merge can break the build; unlike bors-ng's exact-merge testing, this policy gives up merge-result validation to avoid a new CI run and review. Main's push CI tests the result only after someone pushes; the helper never pushes. In nana-pi, the next land refuses until captured main has a green push run, unless `--fixes-red` names that red run. Required macOS and Windows suite and install-check legs block; a Linux-only failure can leave CI green. Lands sharing one review-ledger home serialize under its lock and recheck captured main, branch, tracked state and source tip inside it. Different ledger homes and external operations do not share that lock; the final-check-to-ff instant remains undefended. An item in flight on a Windows seat whose key came from a short or wrongly cased main checkout restarts its round count once (W7c closed the key itself; a round already recorded under the old key still needs a re-review under the new one). A firmlink-typed `--out` on macOS (`/System/Volumes/Data/...`) stays as today. Deploy with no land, review, or worker process running. While a land holds the ledger lock, another review that waits past the 15-second limit is refused at admission or its completed verdict goes unrecorded; keep its output and re-run it. A new lane-authored commit—including an amend, rebase result, or empty commit—starts with a clean verdict record and needs its own review. A narrow review counts as a LAND for the whole ancestry up to its revision. A direct commit to `main` bypasses this helper; the working pattern forbids direct commits to `main`. A review's verdict comes from the final non-blank line when its canonical form contains a bounded `verdict:` label; otherwise it may come from the first non-blank line, but only when that raw line is plain VERDICT: WORD with an optional whole-number score such as (9/10), — 9/10 or 9/10, and an optional final period. Before detection, the parser removes one leading byte-order mark, removes Unicode default-ignorables, folds selected visual look-alikes, applies NFKC, repeats the removal and fold, then lower-cases. A selected final line may use the familiar leading marks and trailing punctuation; its raw text must still match the final-line grammar. A plain first-line verdict is refused if any other non-blank line mentions “verdict”; when the final line is selected, only the first line is checked for a conflicting verdict; a verdict in the middle is not read, so `notes`, `VERDICT: SEND-BACK`, `VERDICT: LAND` records LAND. A first-line verdict-like label must be valid and carry the same word. Thus VERDICT: LAND 9/10 followed by notes records LAND, but a quoted or marked first line, a later correction, a disguised conflicting label, or a malformed selected line records an empty verdict. A first-line verdict followed by a correction that avoids the word “verdict” can still be read as LAND; middle-only verdicts, misspelled labels, and look-alikes outside the configured table are not detected. Unicode default-ignorable handling follows the running Node version's Unicode tables. An empty verdict stays on the revision and refuses it for good; both launchers print one escaped diagnostic line and exit 1 after consuming the round, so the fix is a new commit and a fresh review, not a re-run. The diagnostic line has no length cap.
 
 ### Workers: `bin/pi-worker.mjs`
 
@@ -978,7 +827,7 @@ The title names the first failed file or job, not the run id, so repeated failur
 Launcher roles cannot post. An unavailable input or refused scan returns a named error.
 Without `--post`, the command never writes an issue. A known red returns 0 after reporting it;
 unavailable data, unfinished or cancelled main, or refused posting returns 1.
-Red or missing required main CI blocks the next nana-pi land.
+Red or missing required main CI blocks the next nana-pi land; `--fixes-red` permits only the named, readable red-run fix.
 Pull requests run macOS and Linux suites and macOS install checks; main pushes also run Windows shards and install checks.
 Tests: `tests/main-ci.test.mjs` injects gh and fixture records without network calls.
 
@@ -1191,10 +1040,7 @@ project config never contributes to either one, trusted or not.
 - **One process-tree kill and one rename retry** (`lib/process-tree.mjs`, `lib/rename-retry.mjs`).
   The waiting and no-wait kill forms share the POSIX group signal, Windows `taskkill /T /F /PID`,
   pid guard and explicit fallback policy. The rename helper retries EPERM, EBUSY and EACCES three
-  times on every platform, with a recheck after each delay. `lib/tree-kill-scan.mjs` rejects a new
-  mapped production copy; its declared exceptions are the shared implementation, runtime-measure's
-  snapshot walk, test-locked's composer and the frozen desk lifecycle. The scan does not detect
-  copied rename loops.
+  times on every platform, with a recheck after each delay.
 - **Gate is fail-closed headless**: without a UI, a dangerous/protected hit is blocked
   outright. Interactively, "Block" is the default choice and "Allow once" allows that one call.
   Built-in forms: `rm` recursive (`-r`/`-R`/`-rv`/`--recursive`, also `/bin/rm`, `\rm`,

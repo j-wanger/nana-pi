@@ -93,13 +93,4 @@ check("R-2954: a plan in the prompt form passes brief parsing and precedent chec
 		prompt.includes("Feature: FEAT-nnn · <label>") && prompt.includes("none: <reason>");
 })(), prompt);
 
-const seatGuidePath = path.join(root, "packages/nana-setup/claude/rules/nana-seat.md");
-const seatGuide = fs.existsSync(seatGuidePath) ? fs.readFileSync(seatGuidePath, "utf8") : "";
-
-// req: R-3012
-check("R-3012: seat guide posts one plan-question issue with the build label and default title", seatGuide.includes('Post a plan\'s questions as one `ask` issue before the build. This is the one exception to one issue per question. Label it `blocking` when any question is `hard to undo`, else `optional`. A blocking issue\'s title ends with "(default: go)", meaning build on the listed defaults.'), seatGuide);
-
-// req: R-3013
-check("R-3013: seat guide distinguishes blocking waits, optional defaults and None", seatGuide.includes("A blocking build waits for the owner's answer; meanwhile the seat reports YOUR CALL and starts other lanes. An optional build starts on the defaults, and a differing answer goes in the next brief. A plan whose questions read `None.` posts nothing."), seatGuide);
-
 if (fails) process.exitCode = 1;

@@ -16,7 +16,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, README_REHEARSAL } from "../lib/install-check-config.mjs";
 import * as installConfig from "../lib/install-check-config.mjs";
-import { MEMORY_END_ENTRY, MEMORY_END_TIMEOUT_SECONDS, MEMORY_MAKING_NOTE } from '../lib/memory-end-config.mjs';
+import { MEMORY_MAKING_NOTE } from '../lib/memory-end-config.mjs';
 import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck, rosterNoticeOutputOk } from "../lib/install-check.mjs";
 import * as installCheck from "../lib/install-check.mjs";
 import { STALE_PREFIX, STALE_UNAVAILABLE_PREFIX } from "../lib/stale-copies-config.mjs";
@@ -48,9 +48,9 @@ async function runChecks() {
 
 // req: R-1074
 check("sealed hook table and allowed entry shape", () => {
-  assert.equal(HOOKS.length, 5);
+  assert.equal(HOOKS.length, 4);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
-  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice"]);
+  assert.deepEqual(HOOKS.map((h) => h.label), ["hook objective", "hook adoption", "hook shared memory", "hook roster notice"]);
   assert.ok(HOOKS.every((h) => h.form.darwin && h.form.linux && h.form.win32));
 });
 
@@ -486,7 +486,7 @@ check("platform: NANA_SETUP_PLATFORM in the caller changes nothing", async () =>
     assert.ok(!result.lines.some((line) => line.startsWith("Git Bash:")));
     assert.ok(!fixture.calls.some((call) => call.options.input?.includes('"PowerShell"')));
     const hooks = fixture.calls.filter((call) => hookScriptFileName(call) !== null);
-    assert.ok(hooks.length >= 5);
+    assert.ok(hooks.length >= 4);
     assert.ok(hooks.every((call) => call.command === "/bin/sh" && call.args[0] === "-c"));
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
@@ -633,7 +633,6 @@ check("form: each row's form is read from the sealed table, never inferred from 
 // req: R-1074, R-1082
 check("pin R-1074 R-1082: the hook table with its form columns and the allowed entry keys", () => {
   assert.deepEqual(HOOKS.map(h => [h.label, h.event, h.matcher, h.tools ?? null, h.script, h.timeout, h.form]), [
-    ['hook memory making', MEMORY_END_ENTRY.event, null, null, MEMORY_END_ENTRY.file, MEMORY_END_TIMEOUT_SECONDS, { darwin: 'shell', linux: 'shell', win32: 'exec' }],
     ["hook objective", "SessionStart", "startup", null, "nana-objective.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook adoption", "SessionStart", "startup", null, "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook shared memory", "SessionStart", "startup", null, "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
@@ -676,7 +675,7 @@ check("dispatch: on win32 Git Bash discovery reads the path variable under any l
 // req: R-1075
 check("dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it", async () => {
   const fixture = recordingRun();
-  try { await fixture.run; const hooks = fixture.calls.filter(c => hookScriptFileName(c) !== null); assert.ok(hooks.length >= 5); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
+  try { await fixture.run; const hooks = fixture.calls.filter(c => hookScriptFileName(c) !== null); assert.ok(hooks.length >= 4); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1075
@@ -1016,7 +1015,7 @@ check("pi turn: one turn runs from the fixture project with the base environment
 });
 
 // req: R-1070, R-1791
-check("pi turn: a nonzero exit or a missing record, run token, rulings heading, writing section or knowledge message each fails the pi turn line, and a full record passes", () => {
+check("pi turn: a nonzero exit or a missing record, run token, rulings heading, writing section each fails the pi turn line, and a full record passes", () => {
   const token = "installcheck_judge";
   const good = passingTurnRecord(token);
   const judge = (record = good, status = 0, stderr = "") => installCheck.judgePiTurn({ record, stderr, status, token });
@@ -1032,8 +1031,6 @@ check("pi turn: a nonzero exit or a missing record, run token, rulings heading, 
     { ...good, system: good.system.replace(installConfig.PI_TURN.rulingsHeading, "<nana-rulings>") },
     { ...good, system: good.system.replace(installConfig.PI_TURN.seatGuideHeading, "missing") },
     { ...good, system: good.system.replace(installConfig.PI_TURN.writingTag, "missing") },
-    { ...good, userMessages: [`not ${installConfig.PI_TURN.knowledgeMarker} ${installConfig.PI_TURN.noteFile}`] },
-    { ...good, userMessages: [`${installConfig.PI_TURN.knowledgeMarker} another-note.md`] },
   ]) assert.equal(judge(record).passed, false);
 });
 

@@ -29,7 +29,7 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
-import { commandInvokes, entryInvokes, retiredKnowledgeHook, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
+import { commandInvokes, entryInvokes, retiredKnowledgeHook, retiredMemoryHook, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
@@ -65,6 +65,7 @@ function retiredSettingsCommands(settings) {
 			for (const hook of group.hooks) {
 				if (scripts.some((script) => commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) ||
 					(event === "UserPromptSubmit" && (entryInvokes(hook, retiredKnowledgeHook().spec, "win32") || commandInvokes(hook?.command, retiredKnowledgeHook().spec))) ||
+					(event === 'SessionEnd' && (entryInvokes(hook, retiredMemoryHook().spec, 'win32') || commandInvokes(hook?.command, retiredMemoryHook().spec))) ||
 					(event === "PreToolUse" && (entryInvokes(hook, { interpreters: ["node"], script: "verifier-pipe.mjs" }, "win32") || commandInvokes(hook?.command, { interpreters: ["node"], script: "verifier-pipe.mjs" }))))
 					findings.push({ event, command: [hook.command, ...(Array.isArray(hook.args) ? hook.args : [])].join(" ") });
 			}
@@ -462,7 +463,7 @@ export function diagnose(layout, opts = {}) {
 		add(FAIL, "settings lock", `${settingsLock} is left over (${lockHolder(settingsLock)}) — install will not run until it is removed; if no nana-setup is running, remove it: ${fix}`);
 	}
 	for (const { event, command } of retiredSettingsCommands(settings))
-		add(FAIL, `settings ${event} retired hook`, /nana-knowledge\.ts|verifier-pipe\.mjs/.test(command)
+		add(FAIL, `settings ${event} retired hook`, /nana-knowledge\.ts|verifier-pipe\.mjs/.test(command) || event === 'SessionEnd'
 			? `retired hook still wired: ${command} — run \`nana-setup install\``
 			: `retired bash hook still wired: ${command}`);
 

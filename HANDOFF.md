@@ -1,6 +1,6 @@
 # Handoff — nana-pi frontier
 
-*Frontier only; the narrative lives in `docs/sessions/`. One line per live decision: rewrite, don't accumulate. The live sections come first, then Landed, then the Known bugs pointer.*
+*Frontier only. One line per live decision: rewrite, don't accumulate. The live sections come first, then Landed, then the Known bugs pointer.*
 
 **No `OBJECTIVE.md` here.** nana-pi's objective is the umbrella one, `~/nana-agent-loop/OBJECTIVE.md`. Both runtimes print it and the current priority at session start.
 

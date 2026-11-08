@@ -10,10 +10,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
-import { repoRoot, platform } from "./paths.mjs";
+import { repoRoot, pkgRoot, platform } from "./paths.mjs";
+import { RETIRED_HOOK_FILES, retiredHookLinkOwned } from './retired.mjs';
 import { stateRows, retiredSeedRows } from "./state-manifest.mjs";
 import { desiredHooks, retiredKnowledgeHook, commandInvokes, removeInstallerHooks, removeRetiredContextHook, serialize } from "./settings.mjs";
-import { readClaudeSettings, SetupError, withSettingsLock, writeSettingsAtomic, DESK_SERVER, realpathSafe, directoryAncestorsAreSafe, retiredHookLinkOwned } from "./steps.mjs";
+import { readClaudeSettings, SetupError, withSettingsLock, writeSettingsAtomic, DESK_SERVER, realpathSafe, directoryAncestorsAreSafe } from "./steps.mjs";
 
 const inside = (root, target) => { const rel = path.relative(root, target); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel)); };
 const exists = (p) => { try { return fs.lstatSync(p); } catch (e) { if (e.code === "ENOENT" || e.code === "ENOTDIR") return null; throw e; } };
@@ -50,7 +51,7 @@ export function retireSeed(row, { dryRun = false, root } = {}) {
 
 export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
   if (platform() === "win32") throw new SetupError("uninstall is POSIX-only");
-  const rows = [...installerRows(layout), { store: 'retired verifier link', kind: 'link', path: path.join(layout.hooksDir, 'verifier-pipe.mjs'), retiredHook: 'verifier-pipe.mjs' }];
+  const rows = [...installerRows(layout), { store: 'retired verifier link', kind: 'link', path: path.join(layout.hooksDir, 'verifier-pipe.mjs'), retiredHook: 'verifier-pipe.mjs' }, ...RETIRED_HOOK_FILES.map(file => ({ kind: 'link', store: `retired hook ${file}`, path: path.join(layout.hooksDir, file), retiredHook: file }))];
   const removable = rows.filter((r) => r.kind !== "settings-entry");
   const settingsRow = rows.find((r) => r.kind === "settings-entry" && path.resolve(r.path) === path.resolve(layout.claudeSettings));
   const settingsLayout = settingsRow ? { ...layout, claudeSettings: settingsRow.path } : layout;
@@ -75,7 +76,7 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
   for (const row of inventoryLinks) {
     if (!exists(row.path)?.isSymbolicLink()) continue;
     hasLink = true;
-    if (row.retiredHook && retiredHookLinkOwned(row.path, row.retiredHook)) {
+    if (row.retiredHook && retiredHookLinkOwned(row.path, path.join(pkgRoot, 'claude', 'hooks'))) {
       inRepoLink = true;
       targets.push(`${row.path} -> retired repository hook`);
       continue;
@@ -130,7 +131,7 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
       if (!st) { out.push(result(row.store, "unchanged", "absent")); continue; }
       if (!st.isSymbolicLink()) { out.push(result(row.store, "skipped", `left — found ${st.isDirectory() ? "directory" : "regular file"}: ${row.path}`)); continue; }
       if (row.retiredHook) {
-        if (!retiredHookLinkOwned(row.path, row.retiredHook)) { out.push(result(row.store, 'skipped', 'left — foreign retired hook link')); continue; }
+        if (!retiredHookLinkOwned(row.path, path.join(pkgRoot, 'claude', 'hooks'))) { out.push(result(row.store, 'skipped', 'left — foreign retired hook link')); continue; }
         if (!dryRun) fs.unlinkSync(row.path);
         out.push(result(row.store, dryRun ? 'created' : 'updated', `${dryRun ? 'would unlink' : 'unlinked'} retired repository hook`));
         continue;
