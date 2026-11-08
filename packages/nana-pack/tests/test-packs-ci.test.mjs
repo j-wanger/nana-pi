@@ -77,7 +77,13 @@ await check("M8: main keeps all collected nonrelease files and an injected retir
   const before = git(REPO, "ls-tree", "-r", "--name-only", "85ca2b75d458f8d69edcaa2bf1a4de8f0023610c").split("\n").filter(f => /^(?:packages\/[^/]+\/tests|apps\/(?:desk|bench)\/test)\/[^/]+\.test\.mjs$/.test(f));
   const packs = suiteArgs("push").find(arg => arg.startsWith("--pack="))?.slice(7).split(","); assert(packs);
   // Main owns retirements; compare its committed inventory, never the working tree.
-  const onMain = new Set(git(REPO, "ls-tree", "-r", "--name-only", "main").split("\n"));
+  let base;
+  for (const ref of ["main", "origin/main"]) {
+    try { base = git(REPO, "rev-parse", "--verify", `${ref}^{commit}`); break; }
+    catch { /* PR checkouts have remote-tracking refs, not a local main. */ }
+  }
+  if (!base) throw new Error("M8 requires main or origin/main to resolve to a commit; fetch the main branch before running this check.");
+  const onMain = new Set(git(REPO, "ls-tree", "-r", "--name-only", base).split("\n"));
   const retiredByMain = before.filter(file => !onMain.has(file));
   for (const file of retiredByMain) assert(!fs.existsSync(path.join(REPO, file)), `main deletion restored: ${file}`);
   for (const file of before) if (!retiredByMain.includes(file) && !["release", "manual"].includes(TEST_PACKS[file])) assert(packs.includes(TEST_PACKS[file]), file);
