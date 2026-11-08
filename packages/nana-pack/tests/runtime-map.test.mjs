@@ -333,7 +333,7 @@ check("impact says how far main is past the measured tip, or that the tip is not
 );
 
 const changedTest = "packages/nana-pack/tests/runtime-map.test.mjs";
-const unchangedTests = ["packages/nana-pack/tests/code-map.test.mjs", "packages/nana-pack/tests/blast-radius.test.mjs"];
+const unchangedTests = ["packages/nana-pack/tests/code-map.test.mjs", "packages/nana-pack/tests/code-search.test.mjs"];
 function perTestStalenessData(file, kind) {
 	const hashes = currentHashes();
 	const target = kind === "gone" ? "no/such/file.txt" : NAMED_ZERO;

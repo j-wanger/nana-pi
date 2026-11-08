@@ -5,7 +5,7 @@
  *  checkout reached through the OS temp folder's own link (macOS /var, a reviewer's worktree)
  *  cannot read a silent exit 0 as a real pass.
  * @inputs scripts/requirements-moved.mjs, scripts/requirements-tree.mjs,
- *  scripts/requirement-rows.mjs, scripts/product-report.mjs and
+ *  scripts/product-report.mjs and
  *  packages/nana-pack/bin/nana-roster.mjs, spawned by real path and through one link to the
  *  checkout root built under the OS temp directory.
  * @outputs PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
@@ -79,12 +79,6 @@ try {
     const result = runBoth("scripts/requirements-tree.mjs", ["--root", flatDir]);
     // req: R-1631
     check("R-1631: the tree checker started through a linked checkout folder refuses a flat ledger with exit 1 as it does by its real path", sameAndPrinted(result) && result.real.status === 1, detail(result));
-  }
-
-  {
-    const result = runBoth("scripts/requirement-rows.mjs", []);
-    // req: R-1632
-    check("R-1632: requirement-rows started through a linked checkout folder refuses a run with no file and exits 1 as it does by its real path", sameAndPrinted(result) && result.real.status === 1, detail(result));
   }
 
   {

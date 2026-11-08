@@ -490,25 +490,6 @@ test('R-3813: controlled deadline kills at 3000 ms but not at 2999 ms', async ()
 test('R-3732: context measurement deadline seal is 3000 ms', async () => {
   assert.equal((await import('../bin/worker-config.mjs')).PI_CONTEXT_TIMEOUT_MS, 3000);
 });
-// req: R-3729 R-3315 R-3336
-test('R-3729: real review loads count by source cwd and name context statuses', async () => {
-  const { measureOutcomes } = await import('../lib/outcome-meter.mjs');
-  const { projectKey } = await import('../../nana-setup/lib/project-key.mjs');
-  const f = fixture(), reviewTemp = path.join(f.dir, 'review-temp'); fs.mkdirSync(reviewTemp);
-  stubContext(f); good(launch(f, 'pi-review', [], {...f.env, TMPDIR:reviewTemp, TMP:reviewTemp, TEMP:reviewTemp}));
-  const e = rows(f.log)[0];
-  const projectsRoot = path.join(f.dir, 'projects'), session = 'fixture';
-  const at = offset => new Date(Date.parse(e.at) + offset).toISOString();
-  write(path.join(projectsRoot, projectKey(f.lane), `${session}.jsonl`), [
-    {type:'assistant',uuid:'seat',sessionId:session,isSidechain:false,timestamp:at(-2000),message:{role:'assistant',content:'Which fixture?'}},
-    {type:'user',uuid:'owner',sessionId:session,isSidechain:false,timestamp:at(-1000),message:{role:'user',content:'Fixture answer.'}},
-  ].map(JSON.stringify).join('\n'));
-  for (const name of ['context files: disabled (-nc)', 'context files: unavailable (timed out)', 'context files: unavailable (pi entry import failed)']) fs.appendFileSync(f.log, JSON.stringify({...e,parts:[{name,deliveredChars:0}]})+'\n');
-  const result = await measureOutcomes({repoRoot:f.lane,projectsRoot,candidates:[],loadFile:f.log,tempRoot:reviewTemp,runModel:()=>assert.fail('no model call')});
-  assert.ok(result.lines.includes('test loads 0'), result.lines.join('\n'));
-  for (const [part, count] of [['context file',1],['context files: disabled (-nc)',1],['context files: unavailable',2]]) assert.ok(result.lines.includes(`1 context reviewer pi-review part ${part} too few loads ${count}`), result.lines.join('\n'));
-  assert.ok(!result.lines.some(line => line.includes('other-')));
-});
 for (const c of cases) {
   if(process.env.CONTEXT_CASE && !c.title.startsWith(process.env.CONTEXT_CASE))continue;
   let timer;

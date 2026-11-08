@@ -52,20 +52,15 @@ Windows too. Configure real inputs before treating a green data test as validati
 
 `npm run memory:make` (`scripts/memory-make.mjs`) makes private, low-trust candidates
 from this repository's Claude transcripts and review MUST titles. Node and git are
-required; no model runs. `npm run memory:score` (`scripts/memory-score.mjs`) compares
-private candidates with independent JSONL labels and prints counts only. Both run
-by hand. `npm run memory:shape` (`scripts/memory-shape.mjs`) classifies the same
+required; no model runs. This command runs by hand. `npm run memory:shape` (`scripts/memory-shape.mjs`) classifies the same
 units with an isolated Claude CLI by default, or pi through a sealed runner choice.
 `scripts/memory-shape-runners.mjs` holds both adapters; tests inject all calls.
-`npm run memory:meter` (`scripts/outcome-meter.mjs`) measures repeated corrections,
-re-asked decisions and logged context in interaction windows, using the isolated Claude CLI.
-`npm run memory:meter-score` (`scripts/outcome-score.mjs`) scores private labels;
-`npm run memory:meter-compare` (`scripts/outcome-compare.mjs`) compares private repeat sets.
-`npm run memory:replay` (`scripts/memory-replay.mjs`) plans paired historical replays,
-optionally screens control reproduction, runs isolated Claude arms and decides from private rows.
+Completed memory study instruments are retired; their records remain in review history.
+Automatic memory making at land and session end is paused; use the manual memory command
+in `packages/nana-pack/README.md` when needed.
 `npm run memory:curate` (`scripts/memory-curate.mjs`) proposes private merges and retirements
 for the owner's review; only an explicit accept changes live memory.
-These hand-run commands need Node and git; proposing curation, the meter and paid replay commands need authenticated Claude.
+These hand-run commands need Node and git; shaping and proposing curation need authenticated Claude.
 See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
 
 ## Requirements-first
@@ -107,11 +102,8 @@ inside the clone's shared git folder, outside the repository, and records which 
 and how long it took. `npm run map:impact` lists the artifacts a named file writes and reads, their
 recorded readers, the measured tests under each named file, the measured tip, time, age, checkout
 drift and main's movement; it marks stale only a test that ran a file which has since changed or been removed. Copies run from a temporary folder and children stopped by a signal
-are not counted. Nana-pi's own `npm run req:rows -- <file...>` tool in
-`scripts/requirement-rows.mjs` is not shipped by the templates, and its result is neither complete
-nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`; its `scripts/deliverables.mjs` check also prints report-only notes when a product deliverable's `Made by:` or `Read by:` claim is missing, unreadable or names a path not tracked at HEAD, and its count line leaves out a deliverable held by a `Parked:` line, then says how many it holds. `node scripts/known-bugs.mjs --root <dir>` checks `docs/known-bugs` entry names against active or frozen features, reports over-window file sizes without failing for them, and exits 1 on a name finding. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems, or a `0 problems` line followed by any deliverable count and notes. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
+are not counted. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`; its `scripts/deliverables.mjs` check also prints report-only notes when a product deliverable's `Made by:` or `Read by:` claim is missing, unreadable or names a path not tracked at HEAD, and its count line leaves out a deliverable held by a `Parked:` line, then says how many it holds. `node scripts/known-bugs.mjs --root <dir>` checks `docs/known-bugs` entry names against active or frozen features, reports over-window file sizes without failing for them, and exits 1 on a name finding. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems, or a `0 problems` line followed by any deliverable count and notes. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
 `node "$HOME/nana-pi/scripts/requirements-moved.mjs" --root <dir> --base <rev>` prints, per feature, which rows <dir>'s REQUIREMENTS.md added, removed, re-statused, reworded or moved since the merge base of `<rev>` and HEAD.
-`node "$HOME/nana-pi/scripts/blast-radius.mjs" --root <dir> --base <rev> --out <page>` writes one self-contained HTML page whose SVG draws, from the code map alone, every module changed since the merge base of `<rev>` and HEAD, their transitive callers and callees in four columns (tests, upstream, changed, downstream), the edges between them, the changed files the map does not hold, and which changed modules carry no linked test.
 `scripts/requirements-regroup.mjs` checks a drafted and reviewed proposal (a lift mapping plus one `regroup` object) against the lift and the regroup rules and writes the owner's review page: `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root <dir> --proposal <file> --out <page>`.
 `node scripts/identity-scan.mjs [--root <dir>]` scans tracked paths and content against digest counts; add a pinned allowlist entry by hand with its path, counts, reason and manifest-backed pin. With `--stdin`, it scans standard input instead, prints only each hit's word index and count, and exits 0 clean, 1 on a hit or 2 on bad use. It never echoes input text.
 `scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that

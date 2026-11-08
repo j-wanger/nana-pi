@@ -19,7 +19,6 @@ import { displayText } from "../lib/display.mjs";
 import * as C from "../lib/memory-making-config.mjs";
 import { DAY_TIMEZONE } from "../lib/claude-transcript.mjs";
 import { defaultMemoryRepo, extractMemory, resolveEvidence, runMake } from "../lib/memory-making.mjs";
-import { runScore } from "../lib/memory-score.mjs";
 
 async function check(title, fn) {
  const abort = new AbortController();
@@ -160,21 +159,6 @@ await check("default scope is this repo only", () => fixture(async ({ root, root
  assert.deepEqual((await extractMemory(roots)).records.map((r) => r.evidence).sort(), ["claude-code:synthetic#owner+seat", "claude-code:worktree#owner+seat"]);
  assert.deepEqual((await extractMemory({ ...roots, project: "unrelated" })).records.map((r) => r.evidence), ["claude-code:elsewhere#owner+seat"]);
 }));
-// req: R-3195
-await check("scoring prints exact counts over all candidates", () => fixture(async ({ root }) => {
- const candidates = [{ evidence: "a", kind: "correction", claim: "synthetic claim" }, { evidence: "b", kind: "decision" }, { evidence: "c", kind: "decision" }, { evidence: "d", kind: "correction" }, { evidence: "x", kind: "decision" }];
- const labels = [{ evidence: "a", kind: "correction", text: "synthetic label" }, { evidence: "b", kind: "decision" }, { evidence: "c", kind: "correction" }, { evidence: "d", kind: "none" }, { evidence: "e", kind: "decision" }];
- const cf = path.join(root, "candidates"), lf = path.join(root, "labels");
- for (const eol of ["\n", "\r\n", ""]) {
-  fs.writeFileSync(cf, candidates.map(JSON.stringify).join(eol || "\n") + (eol ? ` \t${eol}` : "")); fs.writeFileSync(lf, labels.map(JSON.stringify).join(eol || "\n") + eol);
-  let stdout = "", stderr = ""; const io = { stdout: (s) => { stdout += s; }, stderr: (s) => { stderr += s; } };
-  assert.equal(await runScore(["--candidates", cf, "--labels", lf], io), 0);
-  assert.equal(stdout, "correction: recall 1/2\ndecision: recall 1/2\nlesson: recall 0/0\nprecision 2/5\nfalse per owner turn 2/5\nunlabelled 1\nunscored: unlabelled candidates\n");
-  assert.equal(stdout.includes("synthetic"), false);
-  fs.writeFileSync(lf, "synthetic invalid label"); assert.notEqual(await runScore(["--candidates", cf, "--labels", lf], io), 0); assert.equal(stderr.includes("synthetic"), false);
- }
-}));
-
 // req: R-3567
 await check("curation review turns never become new memory", () => fixture(async ({ roots }) => {
  const { unitsIn } = await import('../lib/memory-making.mjs');

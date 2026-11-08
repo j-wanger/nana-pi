@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { extractSeatContexts } from '../lib/anatomy-seat.mjs';
+import { extractSeatContexts, SLOT_MARKERS } from '../lib/anatomy-seat.mjs';
 import { runAnatomy } from '../lib/anatomy.mjs';
 import { entriesIn } from '../../../packages/nana-pack/lib/claude-transcript.mjs';
 import { projectKey } from '../../../packages/nana-setup/lib/project-key.mjs';
@@ -345,6 +345,9 @@ await test('R-3640: seal seat extraction policy', () => {
 });
 // req: R-3644
 await test('R-3644: seal seat class functions', () => assert.deepEqual(C.SEAT_CLASS_FUNCTION, { ...C.CLASS_FUNCTION, memory: 'knowledge', delegation: 'knowledge', web: 'knowledge', skill: 'tools', write: 'task', other: 'unsorted' }));
+// Moved the surviving recorded-slot seal from the retired replay suite.
+// req: R-3385
+await test('seal: recorded memory slot markers', () => assert.deepEqual(SLOT_MARKERS, { instruction: 'AutoMem', hooks: ['nana-shared-memory.mjs', 'nana-shared-memory', 'nana: shared memory index'], readPaths: ['memory/', 'memory\\', 'memory.md', 'shared-memory'] }));
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`seat anatomy: ${cases - failures}/${cases} checks passed`);
 process.exitCode = failures ? 1 : 0;
