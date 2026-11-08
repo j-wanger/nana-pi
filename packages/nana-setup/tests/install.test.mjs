@@ -18,7 +18,6 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const { commandInvokes, desiredHooks, entryInvokes, hookTargets, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
-const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
@@ -39,7 +38,7 @@ const tmps = [];
 /** The pi-subagents vendor package nana-setup only READS (never installs — architecture-ruling
  *  §2): every throwaway home seeds it at the floor, the way a real, already-set-up machine has
  *  it, so doctor's version check (R-364) doesn't fail every fixture that isn't testing it. */
-function seedPiSubagents(td, version = PI_SUBAGENTS_FLOOR) {
+function seedPiSubagents(td, version = "0.75.0") {
 	const dir = path.join(td, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(dir, { recursive: true });
 	fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "pi-subagents", version }));

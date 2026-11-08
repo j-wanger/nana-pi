@@ -74,7 +74,7 @@ try {
 	// doctor fails `pi pi-subagents` regardless of anything this lane changed.
 	const subagentsDir = path.join(home, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(subagentsDir, { recursive: true });
-	const piSubagentsVersion = /PI_SUBAGENTS_FLOOR\s*=\s*"([^"]+)"/.exec(fs.readFileSync(path.join(worktree, "packages", "nana-setup", "lib", "doctor.mjs"), "utf8"))?.[1] ?? "0.75.0";
+	const piSubagentsVersion = "0.75.0"; // Historical fixture, no runtime floor.
 	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: piSubagentsVersion }));
 	fs.mkdirSync(path.join(home, ".pi", "agent", "nana-knowledge"), { recursive: true });
 	fs.writeFileSync(path.join(home, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));

@@ -259,6 +259,34 @@ check('M9: a sole retired link supports dry run repeat and foreign refusal', () 
   assert.equal(fs.readlinkSync(link), before);
 }));
 
+// req: R-3890
+check('M6: dead floor notify and prompt order are gone and legacy notify is silent', () => fixture(async ({ home, dir }) => {
+  const misses = [];
+  const doctor = await import('../lib/doctor.mjs');
+  if ('PI_SUBAGENTS_FLOOR' in doctor) misses.push('unused floor export');
+  if (fs.readFileSync(path.join(repo, 'packages/nana-pack/lib/prompt-sections.mjs'), 'utf8').includes('"nana-handoff"')) misses.push('retired prompt order');
+  const config = await import('../../nana-pack/lib/config.ts');
+  const original = process.env.PI_CODING_AGENT_DIR;
+  const agent = path.join(home, 'agent');
+  process.env.PI_CODING_AGENT_DIR = agent;
+  fs.mkdirSync(agent, { recursive: true });
+  try {
+    for (const notify of [{ enabled: false, headless: true }, { enabled: 'bad' }, 7]) {
+      const normalized = config.normalizeRaw({ notify });
+      if (normalized.problems.length || 'notify' in normalized.blocks) misses.push(`normalized ${JSON.stringify(notify)}`);
+      fs.writeFileSync(path.join(agent, 'nana-pack.json'), JSON.stringify({ notify }));
+      const notices = [];
+      const loaded = config.loadConfig({ cwd: dir, hasUI: true, ui: { notify: (...args) => notices.push(args) } });
+      if ('notify' in loaded || notices.length) misses.push(`loaded ${JSON.stringify(notify)}`);
+    }
+    if (fs.existsSync(path.join(agent, 'nana-journal.jsonl'))) misses.push('legacy config diagnostic');
+  } finally {
+    if (original === undefined) delete process.env.PI_CODING_AGENT_DIR;
+    else process.env.PI_CODING_AGENT_DIR = original;
+  }
+  assert.deepEqual(misses, []);
+}));
+
 let failures = 0;
 for (const { title, fn } of cases) {
   let timer;

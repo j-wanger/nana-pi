@@ -11,7 +11,7 @@
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
  *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
  *  knowledgeIndexState(), knowledgeSourcesState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
- *  ("22.18"); DESK_NODE_FLOOR ("22.19"); historical PI_SUBAGENTS_FLOOR for test fixtures; parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
+ *  ("22.18"); DESK_NODE_FLOOR ("22.19"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
  * @effects disk (reads only), process (spawns node, a bounded pi --version process tree and launchctl to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
@@ -178,8 +178,6 @@ export function nodeMeetsFloor(version, floor = NODE_FLOOR) {
 	return a > fa || (a === fa && b >= fb);
 }
 
-/** Historical fixture version for existing test homes only; no runtime check or install uses it. */
-export const PI_SUBAGENTS_FLOOR = "0.75.0";
 /** chosen: cap diagnostic output while still naming common broken links, 2026-10-07. */
 export const MEMORY_LINK_ISSUE_LIMIT = 30;
 

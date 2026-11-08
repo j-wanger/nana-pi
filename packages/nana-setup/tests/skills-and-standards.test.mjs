@@ -22,7 +22,6 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const SKILL_SRC = path.join(repo, "packages", "nana-pack", "skills", "requirements");
 const RULE_SRC = path.join(pkg, "claude", "rules", "nana-standards.md");
-const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 
 let passes = 0;
 let fails = 0;
@@ -43,7 +42,7 @@ function freshHome() {
 	// installs — seed it at the floor so this fixture reads as an already-set-up machine.
 	const subagentsDir = path.join(td, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(subagentsDir, { recursive: true });
-	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	return td;
 }
 const run = (args, env) => {

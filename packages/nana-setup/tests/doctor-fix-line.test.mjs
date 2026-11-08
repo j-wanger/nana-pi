@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/doctor-fix-line.test.mjs
  * @purpose Pin doctor's final repair line, and the `PATH resolves pi-review` row's own advice, to the changes install's dry run can actually make.
- * @inputs The nana-setup CLI, scratch homes and working folders, a pi stub, and PI_SUBAGENTS_FLOOR.
+ * @inputs The nana-setup CLI, scratch homes and working folders, a pi stub, and a historical pi-subagents fixture.
  * @outputs PASS/FAIL lines for R-1990 through R-1997 and R-2320 through R-2325, and a final failure-count summary.
  * @effects disk (temporary fixtures), process (runs install and doctor with sanitized environments).
  * @errors Failed assertions print their observed output and make the test process exit nonzero.
@@ -11,7 +11,6 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
@@ -30,7 +29,7 @@ function fixtureHome(name, { subagents = true } = {}) {
 	if (subagents) {
 		const packageDir = path.join(home, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 		fs.mkdirSync(packageDir, { recursive: true });
-		fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+		fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	}
 	return home;
 }
