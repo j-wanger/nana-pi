@@ -400,12 +400,12 @@ changed title at the same index. Transcript expiry can make pointers missing;
 private quote and context snapshots preserve readability. No trust promotion,
 cross-run deduplication, automatic trigger, delivery or real-data scoring happens here.
 
-## Automatic project memory
+## Manual project memory
 
 `node packages/nana-pack/bin/nana-memory.mjs` provides `enable`, `make` and `status`.
 The command delegates to `scripts/memory-run.mjs` for the existing model adapter.
 Runtime dependencies: Node, git, the initialized private profile clone, and the authenticated
-Claude CLI used by the model shaper. Nana-setup installs the Claude Code SessionEnd hook; there is no PATH shim.
+Claude CLI used by the model shaper. There is no PATH shim.
 
 ```bash
 node packages/nana-pack/bin/nana-memory.mjs enable --repo <checkout>
@@ -420,17 +420,11 @@ clone. A full-root collision check refuses a different root with the same prefix
 The profile pointer and opt-in use `PI_CODING_AGENT_DIR`, otherwise the default pi agent
 directory. A Claude process without pi's override reads a different configuration file.
 
-A successful CLI land of a known lane starts making after containment and review-lock
-release, even if its land record could not be kept. Its extra fixed line reports the
-last run's age and outcome. The detached child has ignored stdio, a hidden Windows window
-and home-directory cwd. CI and every launcher role skip making. Library `runLand` calls
-start nothing unless their caller injects a starter.
-
-Claude Code's `packages/nana-setup/claude/hooks/nana-memory-end.mjs` starts the same run at every SessionEnd reason.
-It passes the transcript and existing input folder, falling back to `CLAUDE_PROJECT_DIR`.
-It reads stdin for at most 300 ms, spawns last, and exits zero without waiting or printing.
-The entry timeout is 1.5 seconds. Missing modules or invalid input start nothing.
-A slow Windows startup can still exceed that limit; the next run sweeps pending units.
+Automatic memory making is paused: neither land nor session end starts a run.
+Land prints no memory line. Use the manual `make` command explicitly.
+The run library, configuration and detached starter remain available; resuming requires
+an explicit wiring change, not a new configuration switch. Run `nana-setup install`
+to remove old session-end wiring. Doctor names remaining wiring with that repair.
 
 The make line reports `pushed` or `not pushed: <reason>` after a push attempt.
 Status and doctor's informational `memory making` note use this machine's local last-run file, not another machine's synced run.

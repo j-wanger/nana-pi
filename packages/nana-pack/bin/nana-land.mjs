@@ -32,8 +32,6 @@ import { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
 export { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
 
 import { LANE_NAME_PATTERN } from '../lib/land-config.mjs';
-import { startMemory } from '../lib/memory-run.mjs';
-import { WORDS as MEMORY_WORDS } from '../lib/memory-run-config.mjs';
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const resultText = (r) => `${r.stdout ?? ""}${r.stderr ?? ""}`;
@@ -502,20 +500,9 @@ function runRecordedLand(options) {
 	return { ...result, text: withLandRecordLine(result.text, renderLandRecordLine(end, laneLine)) };
 }
 
-/** Post-merge making is independent of record retention and cannot change the land verdict. */
+/** Land and record the result; memory making is manual while automatic triggers are paused. */
 export function runLand(options) {
- let lane = null;
- try {
-  const branch = git(options.runGit ?? gitDefault, path.resolve(options.tree), 'branch', '--show-current');
-  const match = /^feat\/(.+)$/.exec(branch);
-  if (match && LANE_NAME_PATTERN.test(match[1])) lane = match[1];
- } catch {}
- const result = runRecordedLand(options);
- if (result.code !== 0 || !lane || typeof options.startMemory !== 'function') return result;
- let line;
- try { line = options.startMemory({repo:path.resolve(options.main),lane}); }
- catch { line = MEMORY_WORDS.notStarted; }
- return {...result,text:withLandRecordLine(result.text,line ?? MEMORY_WORDS.notStarted)};
+ return runRecordedLand(options);
 }
 
 /** Safely remove a landed lane worktree and its feat branch; refuses force and dirty trees. */
@@ -554,7 +541,7 @@ export function runCleanup(lane, { main, worktree, runGit = gitDefault } = {}) {
 export function main(args = process.argv.slice(2)) {
 	try {
 		const options = parseLandArgs(args);
-		return options.mode === "merge" ? runLand({ ...options, startMemory }) : runCleanup(options.lane, options);
+		return options.mode === "merge" ? runLand(options) : runCleanup(options.lane, options);
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {

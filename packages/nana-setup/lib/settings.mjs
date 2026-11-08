@@ -207,7 +207,6 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 	const adoption = nodeHook("nana-adoption.mjs", "nana: unadopted repositories");
 	const shared = nodeHook("nana-shared-memory.mjs", "nana: shared memory index");
 	const rosterNotice = nodeHook("nana-roster-notice.mjs", "nana: roster notice");
-	const memoryEnd = nodeHook(MEMORY_END_ENTRY.file, MEMORY_END_ENTRY.statusMessage, MEMORY_END_TIMEOUT_SECONDS);
 	const verifierPipeTarget = hookTarget("verifier-pipe.mjs");
 	const verifierPipeSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
 	const verifierPipeEntry = win32
@@ -226,7 +225,6 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 			spec: verifierPipeSpec,
 			entry: verifierPipeEntry,
 		},
-		{ event: MEMORY_END_ENTRY.event, label: `${MEMORY_END_ENTRY.event} memory making`, marker: MEMORY_END_ENTRY.file, spec: memoryEnd.spec, entry: memoryEnd.entry },
 	];
 }
 
@@ -307,23 +305,46 @@ export function isRetiredKnowledgeHook(hook) {
 	return Boolean(installerTarget(hook, wanted, "win32") || installerTarget(hook, wanted));
 }
 
-/** Remove retired knowledge commands in place and only the groups this removal empties. */
-export function removeRetiredKnowledgeHook(settings) {
-	const groups = settings?.hooks?.UserPromptSubmit;
+/** Historical memory dispatch descriptor: ownership only, never installation. */
+export function retiredMemoryHook({ hooksDir = '', repoRoot = '', platform } = {}) {
+ const target = platform === 'win32' ? `${repoRoot}/packages/nana-setup/claude/hooks/${MEMORY_END_ENTRY.file}` : `${hooksDir}/${MEMORY_END_ENTRY.file}`;
+ return { event: MEMORY_END_ENTRY.event, label: 'SessionEnd memory making', marker: MEMORY_END_ENTRY.file,
+  spec: { interpreters: ['node'], script: MEMORY_END_ENTRY.file },
+  entry: { type: 'command', ...(platform === 'win32' ? { command: 'node', args: [target] } : { command: `node ${shq(target)}` }), timeout: MEMORY_END_TIMEOUT_SECONDS, statusMessage: MEMORY_END_ENTRY.statusMessage } };
+}
+
+/** Recognize released shell and exec shapes across checkout and home spellings. */
+export function isRetiredMemoryHook(hook) {
+ const wanted = retiredMemoryHook();
+ if (!hook || hook.type !== 'command' || hook.timeout !== wanted.entry.timeout || hook.statusMessage !== wanted.entry.statusMessage) return false;
+ const keys = Object.keys(hook).sort().join(',');
+ if (keys === 'args,command,statusMessage,timeout,type') return Boolean(installerTarget(hook, wanted, 'win32'));
+ if (keys !== 'command,statusMessage,timeout,type') return false;
+ const argv = tokenize(hook.command);
+ return argv?.length === 2 && argv[0] === 'node' && path.win32.isAbsolute(argv[1]) &&
+  (argv[1].endsWith(`/.claude/hooks/${MEMORY_END_ENTRY.file}`) || argv[1].endsWith(`/packages/nana-setup/claude/hooks/${MEMORY_END_ENTRY.file}`)) && hook.command === `node ${shq(argv[1])}`;
+}
+
+/** Remove only recognized entries and groups emptied by this removal. */
+export function removeRetiredHook(settings, event, predicate) {
+	const groups = settings?.hooks?.[event];
 	if (!Array.isArray(groups)) return false;
 	let changed = false;
 	for (let i = groups.length - 1; i >= 0; i--) {
 		const group = groups[i];
 		if (!Array.isArray(group?.hooks)) continue;
-		const kept = group.hooks.filter(hook => !isRetiredKnowledgeHook(hook));
+		const kept = group.hooks.filter(hook => !predicate(hook));
 		if (kept.length === group.hooks.length) continue;
 		changed = true;
 		group.hooks = kept;
 		if (!kept.length) groups.splice(i, 1);
 	}
-	if (changed && !groups.length) delete settings.hooks.UserPromptSubmit;
+	if (changed && !groups.length) delete settings.hooks[event];
 	return changed;
 }
+
+export const removeRetiredKnowledgeHook = settings => removeRetiredHook(settings, 'UserPromptSubmit', isRetiredKnowledgeHook);
+export const removeRetiredMemoryHook = settings => removeRetiredHook(settings, MEMORY_END_ENTRY.event, isRetiredMemoryHook);
 
 /** Remove only the exact installer-owned context hook object. */
 export function removeRetiredContextHook(settings, { hooksDir } = {}) {
@@ -368,7 +389,7 @@ function respelledKnowledgeEntry(entry, wanted) {
  *  runs there (uninstall.mjs), so this pure case exists for a function that is already tested. */
 export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } = {}) {
 	const wanted = [...desiredHooks({ hooksDir, repoRoot, platform }), retiredKnowledgeHook({ repoRoot, platform })];
-	const removed = [];
+	const removed = removeRetiredMemoryHook(settings) ? ['SessionEnd memory making'] : [];
 	const hooks = settings?.hooks;
 	if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) return removed;
 	for (const [event, groups] of Object.entries(hooks)) {

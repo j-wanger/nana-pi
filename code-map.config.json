@@ -41,6 +41,7 @@
     "**/*.e2e.mjs"
   ],
   "launchAlwaysRun": [
+    { "path": "packages/nana-setup/tests/pull-cut-turn.test.mjs", "reason": "Offline pi uses the existing faux provider and registered checkout extensions." },
     { "path": "apps/bench/lib/catch-judge.mjs", "reason": "Injected pi executable; judge may run repository code." },
     { "path": "apps/desk/apps.mjs", "reason": "App command comes from app configuration." },
     { "path": "apps/desk/pi-session.mjs", "reason": "Shell lookup can execute shell startup code." },

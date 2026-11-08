@@ -67,8 +67,8 @@ await test('R-3739: fresh POSIX and win32 installs omit only the knowledge entry
     const after = installSettings(layout, {}, platform);
     assert.equal(promptEntries(after).length, 0);
     const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot, platform });
-    assert.equal(wanted.length, 6);
-    assert.deepEqual(wanted.map(w => w.spec.script), ['nana-objective.mjs', 'nana-adoption.mjs', 'nana-shared-memory.mjs', 'nana-roster-notice.mjs', 'verifier-pipe.mjs', 'nana-memory-end.mjs']);
+    assert.equal(wanted.length, 5);
+    assert.deepEqual(wanted.map(w => w.spec.script), ['nana-objective.mjs', 'nana-adoption.mjs', 'nana-shared-memory.mjs', 'nana-roster-notice.mjs', 'verifier-pipe.mjs']);
     for (const w of wanted) assert.deepEqual(after.hooks[w.event].find(g => g.matcher === w.matcher).hooks.find(h => h.statusMessage === w.entry.statusMessage), w.entry);
   });
 });
@@ -115,7 +115,7 @@ await test('R-3742: uninstall still removes the previous installer knowledge ent
 });
 
 // req: R-3743
-await test('R-3743: install-check omits the Claude knowledge hook and still checks pi knowledge', options, () => {
+await test('R-3743: install-check omits retired knowledge dispatch', options, () => {
   assert.ok(!HOOKS.some(h => h.event === 'UserPromptSubmit' || h.script === 'nana-knowledge.ts'));
   for (const platform of ['darwin', 'win32']) {
     const settings = {};
@@ -129,7 +129,7 @@ await test('R-3743: install-check omits the Claude knowledge hook and still chec
   const record = { system: `token ${PI_TURN.rulingsHeading} ${PI_TURN.seatGuideHeading} ${PI_TURN.writingTag}`, userMessages: [`${PI_TURN.knowledgeMarker} ${PI_TURN.noteFile}`], toolResults: [{ toolName: PI_TURN.tool, isError: true, text: PI_TURN.gateBlockPrefix }] };
   assert.equal(judgePiTurn({ record, status: 0, token: 'token' }).passed, true);
   record.userMessages = [];
-  assert.equal(judgePiTurn({ record, status: 0, token: 'token' }).code, 'missing-knowledge');
+  assert.equal(judgePiTurn({ record, status: 0, token: 'token' }).passed, true);
 });
 
 // req: R-3744

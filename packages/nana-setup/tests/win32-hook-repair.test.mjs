@@ -223,7 +223,6 @@ const adviceDeadPaths = [
 	`${adviceDeadRoot}/nana-roster-notice.mjs`,
 	`${adviceDeadRoot}/verifier-pipe.mjs`,
 	`${adviceDeadRoot}/nana-knowledge.ts`,
-	`${adviceDeadRoot}/nana-memory-end.mjs`,
 ];
 const vEntries = sessionLabels.map((label, index) => ({ ...clone(byLabel(winWanted, label).entry), args: [adviceDeadPaths[index]] }));
 const vVerifier = { ...clone(byLabel(winWanted, "PreToolUse verifier pipe").entry), args: [adviceDeadPaths[4]] };
@@ -233,7 +232,6 @@ seed(vHome, { hooks: {
 	SessionStart: [{ hooks: vEntries }],
 	PreToolUse: [{ matcher: WIN_VERIFIER_MATCHER, hooks: [vVerifier] }],
 	UserPromptSubmit: [{ hooks: [vKnowledge] }],
-	SessionEnd: [{ hooks: [{...clone(byLabel(winWanted, 'SessionEnd memory making').entry), args:[adviceDeadPaths[6]]}] }],
 } });
 const vInstall = run(["install", "--home", vHome]);
 const vDoctor = run(["doctor", "--home", vHome]);
@@ -241,7 +239,6 @@ const slashPath = (value) => value.replaceAll("\\", "/");
 const installCommand = (wanted) => [wanted.entry.command, ...wanted.entry.args].map(slashPath).join(" ");
 const safeRoute = "remove that entry by hand, then run nana-setup install";
 const vRowsRepairByHand = winWanted.every((wanted, index) => {
-	if (wanted.event === 'SessionEnd') index = 6;
 	const line = settingsLine(vDoctor.stdout, wanted.label);
 	const editRoute = `to edit instead, run ${installCommand(wanted)}`;
 	return line?.trimStart().startsWith("✗ ") && line.includes(slashPath(adviceDeadPaths[index])) && !line.slice(line.indexOf("install leaves")).includes("\\") && line.includes(safeRoute) && line.includes(editRoute) && line.indexOf(safeRoute) < line.indexOf(editRoute);
