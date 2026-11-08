@@ -102,4 +102,10 @@ await test('M6: both scopes ignore legacy blocks without warnings errors or gate
   assert.deepEqual(notices, []);
   assert.ok(!fs.existsSync(path.join(agent, 'nana-journal.jsonl')));
 }));
+// req: R-3802
+await test('M4: existing pi gate and pipe-guard suites remain green', () => {
+  const result = spawnSync(process.execPath, [path.join(root, 'scripts/test.mjs'), 'pipe-guard', 'gate'], { cwd: root, encoding: 'utf8', timeout: 60_000 });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /0 FAIL/);
+});
 process.exitCode = failures ? 1 : 0;

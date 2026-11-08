@@ -59,7 +59,7 @@ export function stateRows(layout) {
   seed("subagent config.json", layout.subagentConfig, SUBAGENT_CONFIG_SEED, "rebuildable");
   seed("reviewer.md", layout.reviewerAgent, REVIEWER_SEED, "rebuildable");
   rebuild("copy record", layout.copyRecord, "file");
-  for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", MEMORY_END_ENTRY.file]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
+  for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", MEMORY_END_ENTRY.file]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
   for (const name of ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE]) rebuild(`rule link ${name}`, p(layout.rulesDir, name));
   rebuild(`pi rule link ${RULINGS_FILE}`, layout.piRulings);
   rebuild(`pi rule link ${SEAT_GUIDE_FILE}`, layout.piSeatGuide);

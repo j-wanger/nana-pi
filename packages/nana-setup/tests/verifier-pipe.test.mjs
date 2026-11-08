@@ -1,152 +1,27 @@
 /**
  * @module packages/nana-setup/tests/verifier-pipe.test.mjs
- * @purpose Pins Claude hook decisions, setup wiring, doctor health, and declared runtime coverage.
- * @inputs the canonical verifier hook, settings and doctor modules, and shared runtime documentation.
+ * @purpose Preserve retired-bash doctor checks and live pi predicate documentation after Claude verifier retirement.
+ * @inputs Doctor, temporary settings, and shared runtime documentation.
  * @outputs PASS/FAIL lines and a nonzero exit when any check fails.
- * @effects disk (throwaway home), process (runs the hook with fixture stdin).
- * @errors an assertion failure exits nonzero.
+ * @effects disk (temporary home), process (doctor probes through pi stub).
+ * @errors Failed checks set a nonzero exit code.
  */
 import { tmpDir } from "./tmp-dir.mjs";
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { desiredHooks, WIN_VERIFIER_MATCHER } from "../lib/settings.mjs";
 import { diagnose } from "../lib/doctor.mjs";
-import { platform, resolveLayout } from "../lib/paths.mjs";
-import { runHook } from "../lib/verifier-hook.mjs";
-import { verifierPipeReason } from "../../nana-pack/lib/pipe-guard.mjs";
+import { resolveLayout } from "../lib/paths.mjs";
 import { withPiStub } from "./stub-pi.mjs";
-
 let failures = 0;
-const check = (title, pass, extra = "") => {
-	console.log(pass ? "PASS" : "FAIL", title, pass ? "" : extra);
-	if (!pass) failures++;
-};
+const check = (title, pass, extra = "") => { console.log(pass ? "PASS" : "FAIL", title, pass ? "" : extra); if (!pass) failures++; };
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const root = path.resolve(pkg, "..", "..");
-const hook = path.join(pkg, "claude", "hooks", "verifier-pipe.mjs");
-const installedHome = tmpDir(path.join(os.tmpdir(), "nana-pipe-installed-"));
-const install = spawnSync(process.execPath, [path.join(pkg, "bin", "nana-setup.mjs"), "install", "--home", installedHome], { encoding: "utf8" });
-// win32 install writes no ~/.claude/hooks symlink (stepHooks is a no-op there); the verifier
-// entry is wired in exec form straight at the checkout, so the installed script is read from
-// the settings entry's own args[0] instead of a symlink.
-const isWin32 = platform() === "win32";
-let installedHook;
-let installedHookMatches;
-if (isWin32) {
-	const installedSettings = JSON.parse(fs.readFileSync(path.join(installedHome, ".claude", "settings.json"), "utf8"));
-	const verifierEntry = (installedSettings.hooks?.PreToolUse ?? []).flatMap((g) => g.hooks ?? []).find((h) => Array.isArray(h.args) && h.args[0]?.endsWith("verifier-pipe.mjs"));
-	installedHook = verifierEntry?.args?.[0];
-	// desiredHooks' win32 branch builds args[0] as `${repoRoot}/packages/...` with a literal
-	// forward slash (settings.mjs's own documented backslash-root/forward-slash-suffix shape),
-	// while `hook` here is built with path.join's native (all-backslash) separator — an exact
-	// string compare would fail even though both name the same file; realpathSync resolves
-	// either spelling to the same canonical path.
-	installedHookMatches = Boolean(installedHook) && fs.realpathSync(installedHook) === fs.realpathSync(hook);
-} else {
-	installedHook = path.join(installedHome, ".claude", "hooks", "verifier-pipe.mjs");
-	installedHookMatches = fs.realpathSync(installedHook) === hook;
-}
-const invokeInstalledHook = (input) => spawnSync(process.execPath, [installedHook], { input, encoding: "utf8" });
-const hit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -1 && git commit -m done" } }));
-// win32 install writes no symlink (the title named one; retitled since exec form points
-// straight at the checkout there — no link exists to name).
-// req: R-985
-// req: R-984
-check("installed hook asks on a verifier-pipe hit", install.status === 0 && installedHookMatches && hit.status === 0 && JSON.stringify(JSON.parse(hit.stdout).hookSpecificOutput) === JSON.stringify({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: verifierPipeReason("npm test | tail -1 && git commit -m done") }));
-const discarded = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status | wc -l; git commit -m x" } }));
-const gitExeHit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -5 && git.exe commit -m x" } }));
-const gitExeLines = gitExeHit.stdout.split("\n").filter((line) => line.length > 0);
-let gitExeAsk = null;
-try { gitExeAsk = gitExeLines.length === 1 ? JSON.parse(gitExeLines[0]) : null; } catch {}
-// req: R-2355
-check("installed hook abstains on a discarded pipeline status and asks on git.exe commit", discarded.status === 0 && discarded.stdout === "" && discarded.stderr === "" && gitExeHit.status === 0 && gitExeHit.stderr === "" && gitExeAsk?.hookSpecificOutput?.permissionDecision === "ask");
-const ordinary = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status" } }));
-// req: R-984
-check("installed symlink abstains on an unrelated command", ordinary.status === 0 && ordinary.stdout === "" && ordinary.stderr === "");
-const invalid = invokeInstalledHook("{");
-// req: R-984
-check("installed symlink abstains on malformed JSON with stderr note", invalid.status === 0 && invalid.stdout === "" && /nana verifier-pipe:/.test(invalid.stderr));
-const malformedShape = invokeInstalledHook(JSON.stringify({ tool_name: "Bash", tool_input: { command: "git log | head && git commit" } }));
-// req: R-984
-check("installed hook reports malformed JSON shape on stderr", malformedShape.status === 0 && malformedShape.stdout === "" && /nana verifier-pipe:.*malformed/.test(malformedShape.stderr));
-let protocolStdout = "";
-let protocolStderr = "";
-runHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git log | head; git commit" } }), {
-	predicate: () => { throw new Error("predicate failure"); },
-	stdout: { write: (text) => { protocolStdout += text; } },
-	stderr: { write: (text) => { protocolStderr += text; } },
-});
-// req: R-984
-check("protocol writer reports predicate errors on stderr", protocolStdout === "" && /nana verifier-pipe:.*predicate failure.*abstaining/.test(protocolStderr));
-
-// desiredHooks has no platform default (an omitted platform key always yields POSIX shape,
-// never auto-detected) — the real OS is passed explicitly so this fixture and the doctor
-// fixture built from it below match what install actually writes on win32.
-const hooks = desiredHooks({ hooksDir: "/tmp/claude/hooks", repoRoot: root, platform: isWin32 ? "win32" : undefined });
-const pipe = hooks.find((entry) => entry.label === "PreToolUse verifier pipe");
-// req: R-985
-check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event === "PreToolUse" && pipe.spec.interpreters.includes("node") && pipe.spec.script === "verifier-pipe.mjs" && (isWin32
-	? pipe.matcher === WIN_VERIFIER_MATCHER && pipe.entry.command === "node" && Array.isArray(pipe.entry.args) && pipe.entry.args[0]?.endsWith("verifier-pipe.mjs")
-	: pipe.matcher === "Bash" && pipe.entry.command.startsWith("node ")));
-
-{
-	const { decideHook } = await import(new URL("../lib/verifier-hook.mjs", import.meta.url).href);
-	const prefixed = "set -o pipefail; npm test | Select-Object -Last 1 && git commit -m x";
-	const psHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: prefixed } });
-	// req: R-1054
-	check("decideHook judges a PowerShell event with the PowerShell dialect (bash pipefail syntax stays inactive)", psHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psHit));
-	const bashNoHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: prefixed } });
-	// req: R-1054
-	check("decideHook keeps the Bash dialect for a Bash event (the same pipefail prefix is exempted there)", bashNoHit.response === null, JSON.stringify(bashNoHit));
-	// final review r1 MUST 1: the embedded-# fix (R-1062) pinned through decideHook, not only the
-	// bare predicate.
-	const embeddedHash = "npm test | Select-Object -Last 5 && Write-Output issue#123; git commit -m x";
-	const psHashHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: embeddedHash } });
-	// req: R-1054
-	// req: R-1062
-	check("decideHook: an embedded # inside a PowerShell word does not mask a live pipe before commit", psHashHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psHashHit));
-	// final review r2 MUST 1: the embedded-<# fix (R-1062, sol r2 repro) pinned through
-	// decideHook too, not only the bare predicate (pipe-guard.test.mjs).
-	const embeddedBlock = "npm test | Select-Object -Last 1 && Write-Output issue<#123; git commit -m x";
-	const psBlockHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: embeddedBlock } });
-	// req: R-1054
-	// req: R-1062
-	check("decideHook: an embedded <# inside a PowerShell word does not mask a live pipe before commit", psBlockHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psBlockHit));
-	// final review r3 MUST 1 (R-1062, sol's repro): the boundary set omitted the closing single
-	// quote named by §2.2.3/§2.3.3, so a ")" right after it could close a $(...) subexpression
-	// early and hide the live pipe that follows — pinned through decideHook, not only the bare
-	// predicate (pipe-guard.test.mjs).
-	const solRepro = "\"$(Write-Output 'hi'# )\nnpm test | Select-Object -Last 1 && true\n)\"; git commit -m x";
-	const solReproHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: solRepro } });
-	// req: R-1054
-	// req: R-1062
-	check("decideHook: sol's closing-quote repro does not mask a live pipe before commit", solReproHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(solReproHit));
-}
-
 const home = tmpDir(path.join(os.tmpdir(), "nana-pipe-doctor-"));
 const layout = resolveLayout({ home });
 fs.mkdirSync(layout.claudeHome, { recursive: true });
-if (isWin32) {
-	// win32 doctor reads only settings.json for this row (doctor.mjs's win branch above never
-	// resolves a hooksDir symlink); skip creating one — Windows needs an elevated privilege for
-	// fs.symlinkSync, and this row never looks at it.
-} else {
-	fs.mkdirSync(layout.hooksDir, { recursive: true });
-	fs.symlinkSync(hook, path.join(layout.hooksDir, "verifier-pipe.mjs"));
-}
-const missing = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
-// req: R-985
-check("doctor reports the missing user hook wiring unhealthy", missing?.status === "fail");
-// win32's exec-form entry needs its args array too (entryInvokes/hookTargets read it on win32);
-// the POSIX shell-form command string alone is still enough there.
-const settings = { hooks: { PreToolUse: [{ matcher: pipe.matcher, hooks: [{ type: "command", command: pipe.entry.command, ...(pipe.entry.args ? { args: pipe.entry.args } : {}) }] }] } };
-fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
-const healthy = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
-// req: R-985
-check("doctor accepts the installed Node hook wiring", healthy?.status === "ok", JSON.stringify(healthy));
+const settings = { hooks: {} };
 settings.hooks.SessionStart = [{ hooks: [
 	{ type: "command", command: "/bin/bash /x/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" },
 	{ type: "command", command: "/bin/sh /other/nana-adoption.sh", timeout: 5, statusMessage: "foreign retired hook" },
@@ -188,27 +63,14 @@ for (const [name, group] of [["null group", null], ["string group", "bad"], ["ob
 	// req: R-909
 	check(`doctor diagnoses malformed retired-hook ${name} without throwing`, Array.isArray(rows) && rows.some((item) => item.label === "settings SessionStart objective" && item.status === "fail"), String(rows));
 }
-
-const matrix = fs.readFileSync(path.join(root, "templates/_shared/working-under-nana-pi.md"), "utf8");
 const packReadme = fs.readFileSync(path.join(root, "packages/nana-pack/README.md"), "utf8");
 const setupReadme = fs.readFileSync(path.join(pkg, "README.md"), "utf8");
-const claudeRow = matrix.split("\n").find((line) => line.startsWith("| Claude Code seat |")) ?? "";
-const piRow = matrix.split("\n").find((line) => line.startsWith("| pi TUI or desk session |")) ?? "";
-// req: R-985
-check("runtime matrix declares verifier-pipe surfaces for pi and Claude Code", /Verifier pipe/.test(matrix) && /PreToolUse Node hook `verifier-pipe\.mjs`/.test(claudeRow) && /matcher `Bash` on macOS and Linux, `Bash\\\|PowerShell` on Windows/.test(claudeRow) && /nana-gate/.test(piRow) && /shared predicate/.test(piRow));
 const packDeclaration = packReadme.split("\n").find((line) => line.includes("Verifier-pipe guard")) ?? "";
 const setupDeclaration = setupReadme.split("\n").find((line) => line.includes("Verifier-pipe guard")) ?? "";
-// req: R-985
-check("both READMEs declare the user-scope live verifier-pipe change", /user-scope/.test(packDeclaration) && /every session/.test(packDeclaration) && /user-scope/.test(setupDeclaration) && /every session/.test(setupDeclaration));
-// req: R-985, R-1053
-check("pack README declares the Claude win32 verifier coverage", /Claude Code hook is wired on native Windows too/.test(packDeclaration) && /Bash\|PowerShell/.test(packDeclaration));
 // req: R-2354
 check("both READMEs declare the literal-text later-call gap and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /not present in the literal command text/.test(line) && /reached through a later call/.test(line) && /sandbox is the boundary/.test(line)));
 // req: R-2356
 check("both READMEs declare which pipelines the verifier-pipe guard asks on", [packDeclaration, setupDeclaration].every((line) => /a `;` or a newline/.test(line) && /does not prompt/.test(line) && /contains `errexit` anywhere/.test(line) && /in any case and even inside a longer word/.test(line) && /a `set` word at any position/.test(line) && /within the same simple command/.test(line) && /the next `;`, `&`, `\|`, newline or closing bracket/.test(line) && /option word made of `-` and letters including `e`/.test(line) && /`set \+e` or `set \+o errexit` never turns that text flag off/.test(line) && /`\+o errexit` itself counts as enabling/.test(line) && /`git\.exe`/.test(line) && /path/.test(line)));
-// final review r2 (sol SHOULD 2, astra SHOULD 3): the migration sentence now opens "On POSIX" —
-// Windows also recognizes the legacy and exec forms, covered in the sentence that follows it.
-// req: R-985
+// req: R-660 R-3740
 check("setup README retains context retirement and knowledge retirement guarantees", setupReadme.includes("Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved.") && setupReadme.includes("Install removes only complete installer-shaped knowledge entries in shell or exec form"));
-
 if (failures) process.exitCode = 1;

@@ -221,7 +221,7 @@
         "packages/nana-setup/"
       ],
       "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
-      "anchors": ["R-3799", "R-3800", "R-3802", "R-3803", "R-3805", "R-3806", "R-3807"]
+      "anchors": ["R-3800", "R-3803", "R-3805", "R-3806"]
     },
     {
       "id": "release-route",

@@ -66,7 +66,8 @@ function retiredSettingsCommands(settings) {
 			if (!Array.isArray(group?.hooks)) continue;
 			for (const hook of group.hooks) {
 				if (scripts.some((script) => commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) ||
-					(event === "UserPromptSubmit" && (entryInvokes(hook, retiredKnowledgeHook().spec, "win32") || commandInvokes(hook?.command, retiredKnowledgeHook().spec))))
+					(event === "UserPromptSubmit" && (entryInvokes(hook, retiredKnowledgeHook().spec, "win32") || commandInvokes(hook?.command, retiredKnowledgeHook().spec))) ||
+					(event === "PreToolUse" && (entryInvokes(hook, { interpreters: ["node"], script: "verifier-pipe.mjs" }, "win32") || commandInvokes(hook?.command, { interpreters: ["node"], script: "verifier-pipe.mjs" }))))
 					findings.push({ event, command: [hook.command, ...(Array.isArray(hook.args) ? hook.args : [])].join(" ") });
 			}
 		}
@@ -471,7 +472,7 @@ export function diagnose(layout, opts = {}) {
 		add(FAIL, "settings lock", `${settingsLock} is left over (${lockHolder(settingsLock)}) — install will not run until it is removed; if no nana-setup is running, remove it: ${fix}`);
 	}
 	for (const { event, command } of retiredSettingsCommands(settings))
-		add(FAIL, `settings ${event} retired hook`, command.includes('nana-knowledge.ts')
+		add(FAIL, `settings ${event} retired hook`, /nana-knowledge\.ts|verifier-pipe\.mjs/.test(command)
 			? `retired hook still wired: ${command} — run \`nana-setup install\``
 			: `retired bash hook still wired: ${command}`);
 

@@ -51,7 +51,7 @@ const sourceLayout = resolveLayout({ home });
 const sourceRows = stateRows(sourceLayout);
 const durable = sourceRows.filter((row) => row.class === "durable");
 const NON_DURABLE_FIXTURE_STORES = [
-  "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs",
+  "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs",
   "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test",
   "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "pi-subagents package manifest", "knowledge index", "project memory shared links",
   "project trust", "review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal",

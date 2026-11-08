@@ -43,7 +43,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeBytesWithBackup, writeIfChanged } from "./fsops.mjs";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, serialize, validateShape } from "./settings.mjs";
+import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, removeRetiredVerifierHook, serialize, validateShape } from "./settings.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
 import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
@@ -58,8 +58,8 @@ import { MEMORY_END_ENTRY } from './memory-end-config.mjs';
 
 export class SetupError extends Error {}
 
-export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", MEMORY_END_ENTRY.file];
-const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
+export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", MEMORY_END_ENTRY.file];
+const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md and RULINGS_FILE, sourced from the pack (see ruleSource below;
  *  Amendment 1, §A1; rulings-file lane, 2026-10-19). */
@@ -631,6 +631,7 @@ export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
 			status: added.includes(w.label) ? CREATED : UNCHANGED,
 			detail: added.includes(w.label) ? "added" : "already wired",
 		})),
+		...(added.includes("PreToolUse verifier retirement") ? [{ label: "settings PreToolUse verifier retirement", status: UPDATED, detail: "removed retired nana-managed invocation" }] : []),
 		...(added.includes("UserPromptSubmit knowledge retirement") ? [{ label: "settings UserPromptSubmit knowledge retirement", status: UPDATED, detail: "removed retired nana-managed invocation" }] : []),
 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
 		...(added.includes("SessionStart retired hook migration") ? [{ label: "settings SessionStart retired hook migration", status: UPDATED, detail: o.dryRun ? "would migrate managed entries in place" : "migrated managed entries in place" }] : []),
@@ -639,6 +640,7 @@ export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
 	const merge = (settings) => {
 		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
 		const retiredKnowledge = removeRetiredKnowledgeHook(settings);
+		const retiredVerifier = removeRetiredVerifierHook(settings);
 		const migratedLegacy = !win() && migrateLegacyHooks(settings, { hooksDir: layout.hooksDir, claudeHome: layout.claudeHome });
 		// Active repo-anchored entries on win32 are repaired in place when stale or
 		// not yet in exec form (R-1056);
@@ -649,6 +651,7 @@ export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
 		for (const w of wanted) if (repo[w.label]?.replaced) result.added.push(w.label);
 		if (retiredContext) result.added.push("UserPromptSubmit context-size retirement");
 		if (retiredKnowledge) result.added.push("UserPromptSubmit knowledge retirement");
+		if (retiredVerifier) result.added.push("PreToolUse verifier retirement");
 		if (migratedLegacy) result.added.push("SessionStart retired hook migration");
 		return result;
 	};

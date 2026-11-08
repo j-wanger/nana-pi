@@ -71,6 +71,7 @@ check("adoption: design comment names complete Nana structure and temporary-root
 	const src = fs.readFileSync(new URL("../extensions/nana-adoption.ts", import.meta.url), "utf8");
 	check("one store: extension uses lib/adoption.mjs's root predicate", src.includes('rootState(root, objectiveFile)') && src.includes("../lib/adoption.mjs"));
 	check("one store: no createHash / storeDir definition left in the extension", !src.includes("createHash") && !/(const|function) (storeDir|storePathFor|canonicalCwd)\b/.test(src));
+	// req: R-108
 	check("one store: the store stays fixed at ~/.pi/agent/handoffs", lib.storeDir() === path.join(NANA_HOME, ".pi", "agent", "handoffs"));
 }
 
@@ -389,13 +390,20 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	// req: R-144
 	check("e: unadopted repo root → prompt exactly BASE", (await prompt(r1)) === "BASE");
 	const a = repo("sib-a"), b = repo("sib-b");
+	// req: R-113
 	check("siblings: distinct keys", lib.storePathFor(a) !== lib.storePathFor(b));
-	const wt = repo("gitmain-wt");
-	check("worktree: distinct key", lib.storePathFor(lib.canonicalCwd(wt)) !== lib.storePathFor(a));
+	const git = (...args) => spawnSync('git', ['-C', a, ...args], { encoding: 'utf8', timeout: 10_000 });
+	git('init', '-q');
+	git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'i');
+	const wt = path.join(base, 'gitmain-wt');
+	const added = git('worktree', 'add', '-q', wt);
+	// req: R-113
+	check("worktree: distinct key", added.status === 0 && lib.storePathFor(lib.canonicalCwd(wt)) !== lib.storePathFor(a));
 	if (process.platform === "darwin") {
 		const alias = `/tmp/nana-l3-${process.pid}-${Date.now()}`;
 		fs.mkdirSync(alias);
 		try {
+			// req: R-797
 			check("darwin: /tmp/x and /private/tmp/x → same key", lib.storePathFor(lib.canonicalCwd(alias)) === lib.storePathFor(lib.canonicalCwd(`/private${alias}`)));
 		} finally { fs.rmSync(alias, { recursive: true, force: true }); }
 	}

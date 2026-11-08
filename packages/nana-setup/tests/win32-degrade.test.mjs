@@ -22,7 +22,7 @@ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
-const { CLAUDE_CODE_EXEC_FLOOR, WIN_VERIFIER_MATCHER, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { CLAUDE_CODE_EXEC_FLOOR, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { renderWinShims } = await import(new URL("../lib/win-shims.mjs", import.meta.url).href);
 const { findGitBash } = await import(new URL("../lib/install-check.mjs", import.meta.url).href);
@@ -163,7 +163,7 @@ const hookScriptNames = win32Wanted.filter((w) => fs.existsSync(path.join(pkg, "
 const printedLabels = (output) => output.split("\n").flatMap((row) => row.match(/^\s*\S\s(.+?)\s{2,}/)?.[1] ?? []);
 const printsNoHookFileRows = (output) => {
 	const labels = printedLabels(output);
-	return hookScriptNames.length === 6 && hookScriptNames.every((script) => labels.every((label) => !label.includes(script))) && win32Wanted.every((w) => labels.includes(`settings ${w.label}`));
+	return hookScriptNames.length === 5 && hookScriptNames.every((script) => labels.every((label) => !label.includes(script))) && win32Wanted.every((w) => labels.includes(`settings ${w.label}`));
 };
 // req: R-1860
 check("win32 install prints no row labelled with a Claude Code hook script", printsNoHookFileRows(r.stdout), r.stdout);
@@ -174,9 +174,6 @@ for (const w of win32Wanted) {
 	// req: R-1051
 	check(`win32: ${w.label} args[0] is absolute, exists, and ends with the entry's script`, path.isAbsolute(found[0]?.hook.args?.[0] ?? "") && fs.existsSync(found[0]?.hook.args?.[0] ?? "") && (found[0]?.hook.args?.[0] ?? "").endsWith(w.spec.script));
 }
-// req: R-1053
-check("win32: the verifier group's matcher is Bash-or-PowerShell", allEntries.find(({ hook }) => JSON.stringify(hook).includes("verifier-pipe.mjs"))?.group?.matcher === WIN_VERIFIER_MATCHER);
-check("WIN_VERIFIER_MATCHER is Bash-or-PowerShell", WIN_VERIFIER_MATCHER === "Bash|PowerShell");
 
 /* doctor agrees, and does not fail on what the platform cannot have */
 const doctorCwd = tmpDir(path.join(os.tmpdir(), "nana-setup-doctor-cwd-"));
@@ -316,15 +313,6 @@ for (const w of win32Wanted) {
    checkout (distinct from the missing-target case above, which never reaches the
    resolves-inside-checkout branch), and a healthy entry beside a stale duplicate under the same
    event (every target must resolve, not just one) ----------------------------------------------- */
-{
-	const h2 = freshHome();
-	const verifierWanted = win32Wanted.find((w) => w.label === "PreToolUse verifier pipe");
-	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
-	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [verifierWanted.entry] }] } }, null, 2) + "\n");
-	const doc = run(["doctor", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
-	// req: R-1055
-	check("win32 doctor: a correctly-targeted entry under the wrong matcher reads ✗", new RegExp(`✗ settings ${verifierWanted.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc.stdout), doc.stdout);
-}
 {
 	const h2 = freshHome();
 	const objWanted = win32Wanted.find((w) => w.label === "SessionStart objective");

@@ -48,9 +48,9 @@ async function runChecks() {
 
 // req: R-1074
 check("sealed hook table and allowed entry shape", () => {
-  assert.equal(HOOKS.length, 6);
+  assert.equal(HOOKS.length, 5);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
-  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice", "hook verifier pipe"]);
+  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice"]);
   assert.ok(HOOKS.every((h) => h.form.darwin && h.form.linux && h.form.win32));
 });
 
@@ -331,10 +331,6 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       return { status: 0, stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
     }
     if (joined.includes("nana-knowledge.ts")) return { status: 0, stdout: `${installConfig.PI_TURN.knowledgeMarker} ${installConfig.PI_TURN.noteFile}` };
-    if (joined.includes("verifier-pipe.mjs")) {
-      const input = JSON.parse(options.input);
-      return { status: 0, stdout: input.tool_input.command === (input.tool_name === "PowerShell" ? installConfig.SAMPLE_INPUTS.verifier.powershellHit : "npm test | tail -1 && git commit -m done") ? `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n` : "" };
-    }
     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
     return { status: 0, stdout: "" };
   };
@@ -460,10 +456,9 @@ check("spawn: every child goes through the injected spawn (git init twice, Git B
       const joined = fixture.calls.map(({ command, args }) => `${command} ${args.join(" ")}`).join("\\n");
       assert.equal(fixture.calls.filter((call) => call.args[0] === "init").length, 2);
       if (platformName === "linux") {
-        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) assert.ok(joined.includes(name), name);
+        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) assert.ok(joined.includes(name), name);
         assert.ok(fixture.calls.some((call) => call.args[0] === "install" && call.args.some((arg) => arg.includes("pi-subagents"))));
         assert.ok(fixture.calls.some((call) => call.args.includes("doctor")));
-        assert.ok(fixture.calls.filter((call) => call.options.input?.includes("PreToolUse")).length >= 2);
       } else assert.ok(fixture.calls.some((call) => call.command === "C:\\tools\\pi.exe"));
     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
   }
@@ -492,7 +487,7 @@ check("platform: NANA_SETUP_PLATFORM in the caller changes nothing", async () =>
     assert.ok(!result.lines.some((line) => line.startsWith("Git Bash:")));
     assert.ok(!fixture.calls.some((call) => call.options.input?.includes('"PowerShell"')));
     const hooks = fixture.calls.filter((call) => hookScriptFileName(call) !== null);
-    assert.ok(hooks.length >= 7);
+    assert.ok(hooks.length >= 5);
     assert.ok(hooks.every((call) => call.command === "/bin/sh" && call.args[0] === "-c"));
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
@@ -606,26 +601,10 @@ check("hook set: a missing type, async true, a shell field, non-string args, or 
 check("hook set: a group without the matcher-and-hooks nesting fails", () => { expectBad([{ event: "SessionStart", group: { hooks: [] } }]); });
 // req: R-1074
 check("matcher: *, empty and omitted admit everything", () => {
-  for (const matcher of ["*", "", undefined]) { const rows = hookGroups("darwin", { "hook verifier pipe": matcher }); assert.equal(mapHookEntries(rows, "darwin").failures.length, 0); }
+  for (const matcher of ["*", "", undefined]) { const rows = hookGroups("darwin", { "hook objective": matcher }); assert.equal(mapHookEntries(rows, "darwin").failures.length, 0); }
 });
-// req: R-1074
-check("matcher: 'Bash, PowerShell' and 'Bash|PowerShell' admit both tools", () => {
-  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe": matcher }), "win32").failures.length, 0);
-});
-// req: R-1074
-check("matcher: list separators admit only the exact listed tools", () => {
-  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) {
-    assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe": matcher }), "win32").failures.length, 0);
-  }
-});
-// req: R-1074
-check("matcher: ^Bash$ admits Bash", () => { assert.equal(mapHookEntries(hookGroups("darwin", { "hook verifier pipe": "^Bash$" }), "darwin").failures.length, 0); });
-// req: R-1074
-check("matcher: NotBash does not admit Bash", () => { expectBad(hookGroups("darwin", { "hook verifier pipe": "NotBash" })); });
 // req: R-1074
 check("matcher: a resume SessionStart matcher fails", () => { expectBad(hookGroups("darwin", { "hook objective": "resume" })); });
-// req: R-1074
-check("matcher: win32 requires PowerShell in the verifier matcher", () => { expectBad(hookGroups("win32", { "hook verifier pipe": "Bash" }), "win32"); });
 // req: R-1082
 check("form: a shell-form entry under win32 fails", () => { const rows = hookGroups("win32"); delete rows[0].group.hooks[0].args; rows[0].group.hooks[0].command = `node ${HOOKS[0].script}`; expectBad(rows, "win32"); });
 // req: R-1082
@@ -644,7 +623,6 @@ check("pin R-1074 R-1082: the hook table with its form columns and the allowed e
     ["hook adoption", "SessionStart", "startup", null, "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook shared memory", "SessionStart", "startup", null, "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook roster notice", "SessionStart", "startup", null, "nana-roster-notice.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook verifier pipe", "PreToolUse", { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
   ]);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
 });
@@ -683,7 +661,7 @@ check("dispatch: on win32 Git Bash discovery reads the path variable under any l
 // req: R-1075
 check("dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it", async () => {
   const fixture = recordingRun();
-  try { await fixture.run; const hooks = fixture.calls.filter(c => hookScriptFileName(c) !== null); assert.ok(hooks.length >= 7); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
+  try { await fixture.run; const hooks = fixture.calls.filter(c => hookScriptFileName(c) !== null); assert.ok(hooks.length >= 5); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1075
@@ -780,16 +758,6 @@ check("output: a 10,001-character stdout fails", async () => await assertOnlyHoo
   const prefix = `[nana:objective] ${token} `;
   return { stdout: prefix + "x".repeat(10001 - prefix.length) };
 }), "hook objective"));
-// req: R-1077
-check("verifier: an allow decision fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" } })}\n` }), "hook verifier pipe (Bash)"));
-// req: R-1077
-check("verifier: a missing hookEventName fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { permissionDecision: "ask" } })}\n` }), "hook verifier pipe (Bash)"));
-// req: R-1077
-check("verifier: malformed JSON fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: "not-json\n" }), "hook verifier pipe (Bash)"));
-// req: R-1077
-check("verifier: two JSON lines fail", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n{}\n` }), "hook verifier pipe (Bash)"));
-// req: R-1077
-check("verifier: a miss sample that prints anything fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? { stdout: "unexpected" } : {}), "hook verifier pipe (Bash)"));
 // req: R-1083
 check("knowledge: no Claude hook output is required after retirement", async () => {
   const fixture = scriptedFixture(hookIs("nana-knowledge.ts"), () => ({ stdout: "" }));
@@ -979,39 +947,7 @@ check("pi list: runs from the fixture project with no PI_CODING_AGENT_DIR", asyn
   try { await fixture.run; const call = fixture.calls.find(item => item.args[0] === "list"); assert.equal(call.options.cwd, path.join(fixture.home, "project")); assert.equal(Object.hasOwn(call.options.env, "PI_CODING_AGENT_DIR"), false); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
-// req: R-1074, R-1077
-check("verifier row: on win32 one entry whose matcher admits Bash and PowerShell satisfies the hook set and both verifier lines", async () => {
-  const fixture = recordingRun({ platformName: "win32" });
-  try {
-    const result = await fixture.run;
-    assert.ok(result.lines.includes("PASS hook set"), result.lines.filter(line => line.includes("hook set") || line.includes("verifier pipe")).join("\n"));
-    assert.equal(result.lines.filter(line => /^PASS hook verifier pipe \((Bash|PowerShell)\)$/.test(line)).length, 2, result.lines.filter(line => line.includes("verifier pipe")).join("\n"));
-    const settings = JSON.parse(fs.readFileSync(path.join(fixture.home, ".claude/settings.json"), "utf8"));
-    assert.equal(settings.hooks.PreToolUse.length, 1);
-    assert.equal(settings.hooks.PreToolUse[0].matcher, "Bash|PowerShell");
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-// req: R-1074, R-1077
-check("verifier row: on win32 an entry whose matcher admits only Bash fails the PowerShell line", async () => {
-  const fixture = recordingRun({ platformName: "win32", spawnOverride: async ({ command, args, options, spawn }) => {
-    const result = await spawn(command, args, options);
-    if (args.includes("install") && args.some(arg => arg.includes("nana-setup.mjs"))) {
-      const file = path.join(fixture.home, ".claude/settings.json");
-      const settings = JSON.parse(fs.readFileSync(file, "utf8"));
-      settings.hooks.PreToolUse[0].matcher = "Bash";
-      fs.writeFileSync(file, JSON.stringify(settings));
-    }
-    return result;
-  }});
-  try { const result = await fixture.run; assert.ok(result.lines.includes("PASS hook verifier pipe (Bash)"), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); assert.ok(result.lines.some(line => line.startsWith("FAIL hook verifier pipe (PowerShell) — bad-matcher:")), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); }
-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-// req: R-1074, R-1077
-check("verifier row: on darwin one entry admitting Bash satisfies the verifier line and no PowerShell line is printed", async () => {
-  const fixture = recordingRun({ platformName: "darwin" });
-  try { const result = await fixture.run; assert.ok(result.lines.includes("PASS hook verifier pipe (Bash)")); assert.equal(result.lines.some(line => line.includes("PowerShell")), false); }
-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
+
 // req: R-1075
 check("spawn adapter: a child killed at its timeout reports ETIMEDOUT and its duration", async () => {
   const childSpawn = () => {

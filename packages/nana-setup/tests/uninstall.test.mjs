@@ -97,10 +97,9 @@ if (process.platform !== "win32") {
 
   const exact = desiredHooks({ hooksDir: "/tmp/hooks", repoRoot: "/repo" });
   const objective = exact.find((item) => item.label === "SessionStart objective").entry;
-  const verifier = exact.find((item) => item.label === "PreToolUse verifier pipe").entry;
   const misplaced = { hooks: {
     UserPromptSubmit: [{ hooks: [objective] }],
-    PreToolUse: [{ matcher: "Other", hooks: [verifier] }],
+    SessionStart: [{ matcher: "Other", hooks: [objective] }],
   } };
   const misplacedBefore = JSON.stringify(misplaced);
   removeInstallerHooks(misplaced, { hooksDir: "/tmp/hooks", repoRoot: "/repo" });
@@ -296,7 +295,7 @@ if (process.platform !== "win32") {
   const afterDry = snapshot(dryHome);
   const dryRows = dryResult.stdout.split("\n").filter((line) => /^  [ +–✗·]/u.test(line));
   const dryLabels = dryRows.map((line) => line.slice(4).split(/\s{2,}/u)[0]).sort();
-  const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs", "hook nana-memory-end.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "pi rule link nana-seat.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
+  const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook nana-memory-end.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "pi rule link nana-seat.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
   const second = run(["uninstall", "--yes", "--home", dryHome]);
   const third = run(["uninstall", "--yes", "--home", dryHome]);
   // req: R-903 R-904 R-905 R-906 R-907
@@ -444,7 +443,7 @@ if (process.platform !== "win32") {
   fs.symlinkSync(decoy, path.join(layout.hooksDir, "nana-adoption.mjs"));
   const regular = path.join(layout.hooksDir, "nana-shared-memory.mjs");
   fs.writeFileSync(regular, "owner file");
-  const directory = path.join(layout.hooksDir, "verifier-pipe.mjs");
+  const directory = path.join(layout.hooksDir, "nana-roster-notice.mjs");
   fs.mkdirSync(directory);
   const result = run(["uninstall", "--yes", "--home", home]);
   // req: R-902

@@ -473,7 +473,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     if (!mappedEntry) { report(label, structural?.code ?? "missing-entry", false); return; }
     const entry = mappedEntry.entry;
     if (structural) { report(label, structural.code, false, hookFailureReason(entry, expected, structural.code, platformName)); return; }
-    const input = ["SessionStart", "SessionEnd"].includes(expected.event) ? sample : { hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command: tool === "PowerShell" ? SAMPLE_INPUTS.verifier.powershellHit : SAMPLE_INPUTS.verifier.bashHit } };
+    const input = sample;
     const invocation = hookInvocation(entry, platformName, bash);
     const hookEnv = { ...childEnv, CLAUDE_PROJECT_DIR: project };
     for (const key of Object.keys(hookEnv)) if (expected.removeEnv?.some(name => name.toLowerCase() === key.toLowerCase())) delete hookEnv[key];
@@ -491,17 +491,9 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     }
     if (expected.event === "SessionEnd") passed &&= stdout === "" && (result.stderr ?? "") === "";
     if (expected.shortLabel === "roster notice") passed &&= rosterNoticeOutputOk(stdout);
-    let miss = null;
-    if (expected.shortLabel === "verifier pipe") {
-      const missInput = { hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command: tool === "PowerShell" ? "git status" : SAMPLE_INPUTS.verifier.bashMiss } };
-      miss = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(missInput), env: hookEnv });
-      const outputLines = stdout.trim().split(/\r?\n/).filter(Boolean); let valid = false;
-      if (outputLines.length === 1) try { const payload = JSON.parse(outputLines[0]).hookSpecificOutput; valid = payload?.hookEventName === "PreToolUse" && payload?.permissionDecision === "ask"; } catch {}
-      passed &&= valid && okay(miss) && (miss.stdout ?? "") === "";
-    }
-    let code = result.error?.code === "ETIMEDOUT" ? "timeout" : passed ? null : structural?.code ?? (!stdout ? "no-output" : "unexpected");
+    const code = result.error?.code === "ETIMEDOUT" ? "timeout" : passed ? null : structural?.code ?? (!stdout ? "no-output" : "unexpected");
     let detail = "";
-    if (!passed) detail = !okay(result) ? reason(result) : structural ? hookFailureReason(entry, expected, structural.code, platformName) : expected.shortLabel === "verifier pipe" ? `hit=${JSON.stringify(stdout)} miss=${JSON.stringify(miss?.stdout ?? "")}` : "required hook output or fixture condition was not observed";
+    if (!passed) detail = !okay(result) ? reason(result) : structural ? hookFailureReason(entry, expected, structural.code, platformName) : "required hook output or fixture condition was not observed";
     report(label, code, passed, detail);
   }));
   await Promise.all(hookRuns);

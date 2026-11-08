@@ -6,7 +6,6 @@
  * @effects process (spawns an isolated Node child).
  * @errors failed checks set a nonzero process exit code.
  */
-import { spawn } from "node:child_process";
 import path from "node:path";
 import { HOOK_DEADLINE_MS, HOOK_PRODUCER_TIMEOUT_MS, hookProducerConfig, runHookProducer } from "../lib/hook-producer.mjs";
 import { desiredHooks } from "../lib/settings.mjs";
@@ -114,16 +113,5 @@ check("both launcher configurations fail open when fallback cwd resolution throw
 	runHookProducer({ cli: "/producer.mjs", marker: "spawn marker", run: () => { throw new Error("spawn failed"); }, stdout: { write: (value) => { output += value; } } });
 	// req: R-687
 	check("spawn failure emits its marker and does not throw", output === "spawn marker");
-}
-{
-	const child = spawn(process.execPath, ["--input-type=module", "-e", `await import(${JSON.stringify(new URL("../lib/verifier-hook.mjs", import.meta.url).href)})`], { stdio: ["pipe", "ignore", "pipe"] });
-	let stderr = "";
-	child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
-	const outcome = await new Promise((resolve) => {
-		const timer = setTimeout(() => { child.kill("SIGKILL"); resolve({ timeout: true }); }, 4500);
-		child.on("exit", (code) => { clearTimeout(timer); resolve({ code }); });
-	});
-	// req: R-688
-	check("importing verifier logic completes with open stdin and empty stderr", outcome.code === 0 && !outcome.timeout && stderr === "");
 }
 if (failures) process.exitCode = 1;

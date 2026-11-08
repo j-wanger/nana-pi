@@ -38,7 +38,7 @@ function home() {
 	return dir;
 }
 const run = (args, env = process.env) => {
-	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...env, PATH: process.env.PATH } });
+	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", timeout: 20_000, env: { ...env, PATH: process.env.PATH } });
 	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
 };
 const install = (h, extra = []) => run(["install", "--home", h, ...extra]);
@@ -66,6 +66,73 @@ function treeSnapshot(root) {
 	};
 	walk(root);
 	return JSON.stringify(entries);
+}
+
+{
+  let timer, problem;
+  try {
+    await Promise.race([Promise.resolve().then(() => {
+      for (const platform of ['darwin', 'win32']) {
+        const h = home();
+        const layout = resolveLayout({ home: h });
+        fs.mkdirSync(layout.hooksDir, { recursive: true });
+        const target = path.join(layout.hooksDir, 'verifier-pipe.mjs');
+        fs.symlinkSync(path.join(pkg, 'claude/hooks/verifier-pipe.mjs'), target);
+        const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
+        const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+        const foreign = { ...shell, timeout: 17 };
+        const groups = [{ matcher: 'Bash', owner: 'keep', hooks: [shell, foreign] }, { matcher: 'Bash|PowerShell', hooks: [exec] }];
+        fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: groups } }));
+        const env = { ...process.env, NANA_SETUP_PLATFORM: platform };
+        const before = run(['doctor', '--home', h], env);
+        if (!before.stdout.split('\n').some(l => l.includes('✗ settings PreToolUse retired hook') && l.includes('verifier-pipe.mjs') && l.includes('nana-setup install'))) throw new Error('doctor must name the retired hook and install fix');
+        const result = run(['install', '--home', h], env);
+        if (result.status !== 0) throw new Error(result.stdout + result.stderr);
+        const after = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
+        if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', owner: 'keep', hooks: [foreign] }])) throw new Error('managed verifier entries survive or foreign siblings changed');
+        if (fs.lstatSync(target, { throwIfNoEntry: false })) throw new Error('retired hook link remains installed');
+      }
+    }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('retirement case timeout')), 20_000); })]);
+  } catch (error) { problem = error.message; }
+  finally { clearTimeout(timer); }
+  // req: R-3799
+  check('M1: install retires released verifier forms and owned links while doctor names the fix', !problem, problem);
+}
+
+{
+  let timer, problem;
+  try {
+    await Promise.race([Promise.resolve().then(() => {
+      if (process.platform === 'win32') return; // uninstall is POSIX-only
+      const h = home();
+      const layout = resolveLayout({ home: h });
+      fs.mkdirSync(layout.claudeHome, { recursive: true });
+      const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
+      const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+      const foreign = { type: 'command', command: 'echo owner', timeout: 9 };
+      fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [shell, foreign] }, { matcher: 'Bash|PowerShell', hooks: [exec] }] } }));
+      for (const [file, source] of [[layout.subagentConfig, 'subagent-config.seed.json'], [layout.reviewerAgent, 'reviewer.seed.md']]) {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.copyFileSync(path.join(pkg, 'pi', source), file);
+      }
+      const removed = run(['uninstall', '--yes', '--home', h], { ...process.env, NANA_SETUP_PLATFORM: 'darwin' });
+      if (removed.status !== 0) throw new Error(removed.stdout + removed.stderr);
+      if (fs.existsSync(layout.subagentConfig) || fs.existsSync(layout.reviewerAgent)) throw new Error('unchanged old seeds survived uninstall');
+      const remaining = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
+      if (JSON.stringify(remaining.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign] }])) throw new Error('uninstall left retired wiring or changed siblings');
+      fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [shell, exec, foreign] }] } }));
+      const installed = run(['install', '--home', h]);
+      if (installed.status !== 0) throw new Error(installed.stdout + installed.stderr);
+      const after = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
+      if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign] }])) throw new Error('install left a released verifier form or changed siblings');
+    }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('old-home retirement timeout')), 20_000); })]);
+  } catch (error) { problem = error.message; }
+  finally { clearTimeout(timer); }
+  if (process.platform === 'win32') console.log('SKIP M9: old-home uninstall is POSIX-only');
+  else {
+    // req: R-3807
+    check('M9: old-home uninstall removes retired wiring and unchanged seeds before install preserves only foreign siblings', !problem, problem);
+  }
 }
 
 try {

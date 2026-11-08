@@ -1,0 +1,120 @@
+REMOVED "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs",
+REMOVED "| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |",
+REMOVED ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+REMOVED ? pipe.matcher === WIN_VERIFIER_MATCHER && pipe.entry.command === "node" && Array.isArray(pipe.entry.args) && pipe.entry.args[0]?.endsWith("verifier-pipe.mjs")
+REMOVED @effects disk (throwaway home), process (runs the hook with fixture stdin).
+REMOVED @effects process (reads stdin and writes stdout/stderr).
+REMOVED @effects process (runHook writes stdout and stderr).
+REMOVED @errors an assertion failure exits nonzero.
+packages/nana-pack/tests/pipe-guard.test.mjs:7:  * @errors an assertion failure exits nonzero.
+REMOVED @errors malformed input and internal errors abstain with a stderr diagnostic; a stdout or stderr error, such as a reader that closed it, is ignored and the hook exits 0.
+REMOVED @errors predicate failures become abstentions with diagnostic text.
+REMOVED @inputs Claude Code PreToolUse JSON on stdin.
+REMOVED @inputs parsed hook JSON (tool_name Bash or PowerShell) and optionally an injected pipe-reason predicate.
+REMOVED @inputs the canonical verifier hook, settings and doctor modules, and shared runtime documentation.
+REMOVED @module packages/nana-setup/claude/hooks/verifier-pipe.mjs
+REMOVED @module packages/nana-setup/lib/verifier-hook.mjs
+REMOVED @outputs a hit decision on stdout; errors produce a stderr diagnostic.
+REMOVED @outputs an optional hook response and an optional diagnostic; runHook writes protocol output.
+REMOVED @purpose Convert Claude Code PreToolUse input into an ask decision or fail-open abstention.
+REMOVED @purpose Pins Claude hook decisions, setup wiring, doctor health, and declared runtime coverage.
+REMOVED @purpose Run the verifier-pipe decision for one Claude Code Bash or PowerShell PreToolUse event.
+REMOVED Break an active hook: missing retired knowledge wiring is no longer stale.
+REMOVED R-1944: Ignore every stdout error so a closed hook reader cannot fail the hook.
+REMOVED R-2014: Ignore every stderr error for the same fail-open contract.
+REMOVED The six active hook entries the nana experience needs, in the order they are added.
+REMOVED Windows also recognizes the legacy and exec forms, covered in the sentence that follows it.
+REMOVED Windows only; the Windows CI leg passed it in run 39508818938.
+REMOVED ["hook verifier pipe", "PreToolUse", { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+REMOVED add(FAIL, `settings ${event} retired hook`, command.includes('nana-knowledge.ts')
+REMOVED assert.deepEqual(wanted.map(w => w.spec.script), ['nana-objective.mjs', 'nana-adoption.mjs', 'nana-shared-memory.mjs', 'nana-roster-notice.mjs', 'verifier-pipe.mjs', 'nana-memory-end.mjs']);
+REMOVED check("runtime matrix declares verifier-pipe surfaces for pi and Claude Code", /Verifier pipe/.test(matrix) && /PreToolUse Node hook `verifier-pipe\.mjs`/.test(claudeRow) && /matcher `Bash` on macOS and Linux, `Bash\\\|PowerShell` on Windows/.test(claudeRow) && /nana-gate/.test(piRow) && /shared predicate/.test(piRow));
+REMOVED check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event === "PreToolUse" && pipe.spec.interpreters.includes("node") && pipe.spec.script === "verifier-pipe.mjs" && (isWin32
+REMOVED check("the verifier group's matcher is Bash-or-PowerShell", entries["verifier-pipe.mjs"]?.matcher === "Bash|PowerShell", JSON.stringify(entries["verifier-pipe.mjs"]));
+REMOVED check("verifier: a miss sample that prints anything fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? { stdout: "unexpected" } : {}), "hook verifier pipe (Bash)"));
+REMOVED check("verifier: a missing hookEventName fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { permissionDecision: "ask" } })}\n` }), "hook verifier pipe (Bash)"));
+REMOVED check("verifier: an allow decision fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" } })}\n` }), "hook verifier pipe (Bash)"));
+REMOVED check("verifier: malformed JSON fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: "not-json\n" }), "hook verifier pipe (Bash)"));
+REMOVED check("verifier: two JSON lines fail", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n{}\n` }), "hook verifier pipe (Bash)"));
+REMOVED check("win32 desiredHooks: the five hook entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
+REMOVED check("win32: the verifier group's matcher is Bash-or-PowerShell", allEntries.find(({ hook }) => JSON.stringify(hook).includes("verifier-pipe.mjs"))?.group?.matcher === WIN_VERIFIER_MATCHER);
+REMOVED const child = spawn(process.execPath, ["--input-type=module", "-e", `await import(${JSON.stringify(new URL("../lib/verifier-hook.mjs", import.meta.url).href)})`], { stdio: ["pipe", "ignore", "pipe"] });
+REMOVED const directory = path.join(layout.hooksDir, "verifier-pipe.mjs");
+REMOVED const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs", "hook nana-memory-end.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "pi rule link nana-seat.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
+REMOVED const f1VerifierEntries = f1VerifierGroups.flatMap((group) => group.hooks.filter((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")).map((entry) => ({ group, entry })));
+REMOVED const f2VerifierEntries = f2After.hooks.PreToolUse.flatMap((group) => group.hooks.filter((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")).map((entry) => ({ group, entry })));
+REMOVED const f6MovedAndWritten = f6Install.status === 0 && !f6AfterBytes.equals(f6Before) && f6VerifierEntries.length === 1 && f6VerifierEntries[0].group.matcher === WIN_VERIFIER_MATCHER && !f6After.hooks.PreToolUse.some((group) => group.matcher === "Bash" && group.hooks.some((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")));
+REMOVED const f6VerifierEntries = f6After.hooks.PreToolUse.flatMap((group) => group.hooks.filter((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")).map((entry) => ({ group, entry })));
+REMOVED const hook = path.join(pkg, "claude", "hooks", "verifier-pipe.mjs");
+REMOVED const install = spawnSync(process.execPath, [path.join(pkg, "bin", "nana-setup.mjs"), "install", "--home", installedHome], { encoding: "utf8" });
+REMOVED const matrix = fs.readFileSync(path.join(root, "templates/_shared/working-under-nana-pi.md"), "utf8");
+REMOVED const script = path.join(hooksDir, "verifier-pipe.mjs");
+REMOVED const v = entries["verifier-pipe.mjs"].hook;
+REMOVED const verifier = path.join(fixture.layout.hooksDir, "verifier-pipe.mjs");
+REMOVED const verifierEntry = (installedSettings.hooks?.PreToolUse ?? []).flatMap((g) => g.hooks ?? []).find((h) => Array.isArray(h.args) && h.args[0]?.endsWith("verifier-pipe.mjs"));
+REMOVED const verifierPipeSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
+REMOVED const verifierPipeTarget = hookTarget("verifier-pipe.mjs");
+REMOVED const verifierSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
+REMOVED const { CLAUDE_CODE_EXEC_FLOOR, WIN_VERIFIER_MATCHER, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+REMOVED const { WIN_VERIFIER_MATCHER, desiredHooks, retiredKnowledgeHook } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+REMOVED const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, WIN_VERIFIER_MATCHER, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+REMOVED const { decideHook } = await import(new URL("../lib/verifier-hook.mjs", import.meta.url).href);
+REMOVED decideHook too, not only the bare predicate (pipe-guard.test.mjs).
+REMOVED either spelling to the same canonical path.
+REMOVED either the Bash tool or the PowerShell tool.
+REMOVED export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", MEMORY_END_ENTRY.file];
+REMOVED fixture built from it below match what install actually writes on win32.
+REMOVED for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
+REMOVED for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", MEMORY_END_ENTRY.file]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
+REMOVED for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) assert.ok(joined.includes(name), name);
+REMOVED forward slash (settings.mjs's own documented backslash-root/forward-slash-suffix shape),
+REMOVED fs.symlinkSync(hook, path.join(layout.hooksDir, "verifier-pipe.mjs"));
+REMOVED fs.symlinkSync, and this row never looks at it.
+REMOVED hookEventName PreToolUse and permissionDecision ask — not merely "first line parses".
+REMOVED if (args.includes("install") && args.some(arg => arg.includes("nana-setup.mjs"))) {
+packages/nana-setup/tests/install-check.test.mjs:746:     if (args.includes("install") && args.some(arg => arg.includes("nana-setup.mjs"))) {
+REMOVED if (joined.includes("verifier-pipe.mjs")) {
+REMOVED import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, serialize, validateShape } from "./settings.mjs";
+REMOVED import { desiredHooks, WIN_VERIFIER_MATCHER } from "../lib/settings.mjs";
+REMOVED import { platform, resolveLayout } from "../lib/paths.mjs";
+REMOVED import { runHook } from "../../lib/verifier-hook.mjs";
+REMOVED import { runHook } from "../lib/verifier-hook.mjs";
+REMOVED import { verifierPipeReason } from "../../nana-pack/lib/pipe-guard.mjs";
+REMOVED installedHook = path.join(installedHome, ".claude", "hooks", "verifier-pipe.mjs");
+REMOVED packages/nana-setup/claude/hooks/verifier-pipe.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:201: 		...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+packages/nana-setup/tests/retired-artifacts.test.mjs:82:         const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/retired-artifacts.test.mjs:111:       const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/win32-hook-repair.test.mjs:102: const f7OwnerLookalike = { type: 'command', command: 'node', args: [`${repoRoot}/packages/nana-setup/claude/hooks/verifier-pipe.mjs`], timeout: 10, statusMessage: 'nana: verifier pipe' };
+REMOVED packages/nana-setup/lib/verifier-hook.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:201: 		...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+packages/nana-pack/tests/code-map-launch.test.mjs:219: 	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
+packages/nana-pack/tests/code-map-launch.test.mjs:220: 	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
+REMOVED platform, and all six entries on win32.
+REMOVED straight at the checkout there — no link exists to name).
+REMOVED the POSIX shell-form command string alone is still enough there.
+REMOVED the settings entry's own args[0] instead of a symlink.
+REMOVED verifier-hook.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:201: 		...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+packages/nana-pack/tests/code-map-launch.test.mjs:219: 	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
+packages/nana-pack/tests/code-map-launch.test.mjs:220: 	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
+REMOVED verifier-pipe.mjs
+packages/nana-pack/tests/templates-render.test.mjs:460: 	"verifier-pipe.mjs": "verifier-pipe.mjs",
+packages/nana-pack/tests/code-map-launch.test.mjs:201: 		...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+packages/nana-setup/tests/retired-artifacts.test.mjs:79:         const target = path.join(layout.hooksDir, 'verifier-pipe.mjs');
+packages/nana-setup/tests/retired-artifacts.test.mjs:80:         fs.symlinkSync(path.join(pkg, 'claude/hooks/verifier-pipe.mjs'), target);
+packages/nana-setup/tests/retired-artifacts.test.mjs:81:         const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/retired-artifacts.test.mjs:82:         const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/retired-artifacts.test.mjs:88:         if (!before.stdout.split('\n').some(l => l.includes('✗ settings PreToolUse retired hook') && l.includes('verifier-pipe.mjs') && l.includes('nana-setup install'))) throw new Error('doctor must name the retired hook and install fix');
+packages/nana-setup/tests/retired-artifacts.test.mjs:110:       const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/retired-artifacts.test.mjs:111:       const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/win32-hook-repair.test.mjs:80: const carriedVerifier = { type: "command", command: "node '~/.claude/hooks/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" }; // historical fixture
+packages/nana-setup/tests/win32-hook-repair.test.mjs:102: const f7OwnerLookalike = { type: 'command', command: 'node', args: [`${repoRoot}/packages/nana-setup/claude/hooks/verifier-pipe.mjs`], timeout: 10, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/win32-hook-repair.test.mjs:163: 	`${adviceDeadRoot}/verifier-pipe.mjs`,
+packages/nana-setup/tests/win32-hook-repair.test.mjs:219: 	`${sourceHooksDir}/verifier-pipe.mjs`,
+REMOVED win32 doctor reads only settings.json for this row (doctor.mjs's win branch above never
+REMOVED { event: "PreToolUse", matcher: "Bash", label: "PreToolUse verifier pipe", marker: "verifier-pipe.mjs", spec: { interpreters: ["node"], script: "verifier-pipe.mjs" }, entry: { type: "command", command: "node '/h/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" } },
+REMOVED { label: "hook verifier pipe", shortLabel: "verifier pipe", event: "PreToolUse", matcher: { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, tools: { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, script: "verifier-pipe.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
+REMOVED | Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |
+REMOVED | `claude/hooks/nana-objective.mjs`, `claude/hooks/nana-adoption.mjs`, `claude/hooks/nana-shared-memory.mjs`, `claude/hooks/nana-roster-notice.mjs`, `claude/hooks/verifier-pipe.mjs`, `claude/hooks/nana-memory-end.mjs` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` on POSIX — a `git pull` updates them |
+Scanned 261 test files for 94 removed sentences/paths.

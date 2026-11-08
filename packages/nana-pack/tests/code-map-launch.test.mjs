@@ -198,6 +198,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
 	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
 	const retiredSources = new Map([
+		...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
 		...['extensions/nana-handoff.ts', ...['handoff-artifact', 'handoff-store', 'handoff-staleness', 'handoff-trust', 'handoff-symlink'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires compaction storage and pickup; adoption survives separately.']),
 		...['extensions/nana-post-edit.ts', 'lib/post-edit-config.mjs', ...['post-edit-default-timeout', 'post-edit-file-queue', 'post-edit-hardening', 'post-edit-status', 'post-edit-utf8', 'post-edit-values-named'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires the post-edit extension and its dedicated checks.']),
 		['packages/nana-pack/extensions/nana-notify.ts', 'FEAT-013 setup-retire removes desktop notification behavior.'],
@@ -215,6 +216,8 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	for (const file of ['display-surfaces', 'config-handlers-malformed']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-post-edit.ts`, 'FEAT-013 removes the post-edit-only cases; surviving cases remain.');
 	for (const file of ['display-surfaces', 'config-handlers-malformed', 'writing-injection', 'handoff-writer-role', 'adoption-producer']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-handoff.ts`, 'FEAT-013 removes handoff-only calls; adoption now imports nana-adoption.');
 	losses.set('packages/nana-pack/tests/adoption-producer.test.mjs -> packages/nana-pack/lib/config.ts', 'FEAT-013 adoption now reads only user-scope adoptionSettings; the test still exercises config via its dynamic import.');
+	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
+	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
 	const graph = checkRepo().graph;
 	for (const entry of gitShow("57167e92", "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];

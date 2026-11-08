@@ -37,7 +37,7 @@ A session-start producer still running at the launcher's 2,500 ms cap is stopped
 
 | Piece | Where | How |
 |---|---|---|
-| `claude/hooks/nana-objective.mjs`, `claude/hooks/nana-adoption.mjs`, `claude/hooks/nana-shared-memory.mjs`, `claude/hooks/nana-roster-notice.mjs`, `claude/hooks/verifier-pipe.mjs`, `claude/hooks/nana-memory-end.mjs` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` on POSIX — a `git pull` updates them |
+| `claude/hooks/nana-objective.mjs`, `claude/hooks/nana-adoption.mjs`, `claude/hooks/nana-shared-memory.mjs`, `claude/hooks/nana-roster-notice.mjs`, `claude/hooks/nana-memory-end.mjs` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` on POSIX — a `git pull` updates them |
 | `claude/rules/nana-soul.md` (the identity) | `~/.claude/rules/` | **symlink** into `claude/rules/` |
 | `claude/rules/nana-standards.md` (the coding standards) | `~/.claude/rules/` | **symlink** into `claude/rules/` — requirement-first, no inline tunables, one purpose per module with the six-tag header, the code map kept current, status honesty. Generic, language-agnostic; it does not repeat `claude/rules/nana-soul.md` |
 | `claude/rules/nana-seat.md` (running builders and reviewers) | `~/.claude/rules/` | **symlink** into `claude/rules/` — the seat guide: background launches, no reading or judging partial work mid-run, verify once at the end |

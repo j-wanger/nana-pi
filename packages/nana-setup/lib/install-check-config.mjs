@@ -16,7 +16,6 @@ export const HOOKS = [
   { label: "hook adoption", shortLabel: "adoption", event: "SessionStart", matcher: "startup", script: "nana-adoption.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook shared memory", shortLabel: "shared memory", event: "SessionStart", matcher: "startup", script: "nana-shared-memory.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook roster notice", shortLabel: "roster notice", event: "SessionStart", matcher: "startup", script: "nana-roster-notice.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
-  { label: "hook verifier pipe", shortLabel: "verifier pipe", event: "PreToolUse", matcher: { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, tools: { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, script: "verifier-pipe.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
 ];
 // contract: R-1209 — independent of nana-pack's roster-notice-config.mjs (the install check's
 // own sealed contract), so a notice-config change cannot silently loosen what the check accepts.
@@ -55,9 +54,9 @@ export const DOCTOR_NOTES = {
 export const SAMPLE_INPUTS = {
   session: { source: "startup", transcript_path: "", cwd: "" },
   prompt: "How does nana install-check validate this fixture?",
+  // Live pi-gate turn samples, not Claude hook samples (R-1999, R-2004).
   verifier: {
     bashHit: "npm test | tail -1 && git commit -m done",
-    bashMiss: "git status",
     powershellHit: "npm test | Select-Object -Last 5 && git commit -m x", // Chosen 2026-10-20: a `;` no longer asks (R-2350).
   },
   maxOutput: 10000,

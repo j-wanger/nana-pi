@@ -10,6 +10,8 @@ import * as fs from 'node:fs';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { EVENT, adoptionSettings, canonicalCwd, isAdopted, printable, recentReports, repoRootOf, rootState, tailLines } from '../lib/adoption.mjs';
 
+// Existing once-per-day adoption window, retained from the handoff producer (R-146).
+const DAY_MS = 86_400_000;
 let overrideJournaled = false;
 // Adoption evidence includes a regular HANDOFF.md together with AGENTS.md and docs/sessions/.
 // The real OS temporary directories (including canonical /tmp on POSIX) are skipped.
@@ -27,7 +29,7 @@ export default function (pi: ExtensionAPI) {
       const root = repoRootOf(canonicalCwd(ctx.cwd));
       if (!root || !printable(root)) return;
       const state = rootState(root, objectiveFile);
-      if (isAdopted(state) || recentReports(tailLines(journal), Date.now() - 86_400_000).some(r => r.root === root)) return;
+      if (isAdopted(state) || recentReports(tailLines(journal), Date.now() - DAY_MS).some(r => r.root === root)) return;
       fs.appendFileSync(journal, `${JSON.stringify({ ts: new Date().toISOString(), event: EVENT, cwd: root, has: { handoff: false, objective: false, agents: state.agents, sessions: state.sessions } })}\n`);
     } catch {
       // Best-effort user-scope report, never a prompt or session failure.

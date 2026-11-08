@@ -6,7 +6,7 @@
  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; entryInvokes() boolean;
  *  desiredHooks(); hookTargets(); knowledgeHookHealthy(); mergeRepoHooks(); validateShape(); hasHook();
  *  mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook();
- *  removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); serialize() JSON text; WIN_VERIFIER_MATCHER; CLAUDE_CODE_EXEC_FLOOR
+ *  removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); isRetiredVerifierHook(); removeRetiredVerifierHook(); serialize() JSON text; CLAUDE_CODE_EXEC_FLOOR
  * @effects disk (reads only)
  * @errors none thrown — validateShape returns the reason the shape cannot be extended, and any
  *  command that is unparseable or carries a shell operator reads as NOT installed
@@ -25,9 +25,8 @@ import { MEMORY_END_ENTRY, MEMORY_END_TIMEOUT_SECONDS } from './memory-end-confi
 //     as installed (sol r1);
 //   - present means untouched — no rewrite, no reorder, no dedupe of anyone else's entries;
 //   - a missing hook is APPENDED to the first group of that event that has no `matcher`
-//     (foreign matcher-scoped groups are left alone), or a new group is added; the win32
-//     exception moves an installer-shaped verifier from the POSIX installer's matcher to the
-//     win32 verifier matcher while preserving that source group's foreign entries;
+//     (foreign matcher-scoped groups are left alone), or a new group is added;
+//   - retired verifier entries are removed only in their complete released shapes;
 //   - on POSIX every path we WRITE is single-quoted, so a home or clone with a space in it still
 //     runs (R-319); on win32 every hook entry is written in EXEC form instead — `command: "node"`
 //     plus an `args` array Claude Code spawns directly with no shell, so no path ever needs
@@ -161,12 +160,6 @@ export function entryInvokes(hook, spec, platform) {
 	return commandInvokes(hook?.command, spec);
 }
 
-/** The win32 verifier-pipe matcher. Contract value: hooks#powershell and hooks#matcher-patterns,
- *  read 2026-10-12 — a hit from either the Bash tool or the PowerShell tool must fire it, and the
- *  docs name an exact-name list rather than a regular expression. One test (R-1053) pins it by name. */
-/** Existing POSIX installer contract, pinned by the desiredHooks fixture (R-1061, R-1208). */
-const POSIX_VERIFIER_MATCHER = "Bash";
-export const WIN_VERIFIER_MATCHER = "Bash|PowerShell";
 /** The Claude Code version that added hook `args` (exec form), so a win32 hook entry without a
  *  shell works at all. Contract value: the 2.1.139 changelog entry, read 2026-10-12. Doctor's
  *  floor note (R-1060) and the Support lines' canonical sentence (R-684) read it by name — one
@@ -174,11 +167,11 @@ export const WIN_VERIFIER_MATCHER = "Bash|PowerShell";
 export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
 
 /**
- * The six active hook entries the nana experience needs, in the order they are added.
+ * The five active hook entries the nana experience needs, in the order they are added.
  *
  * When `platform` is absent or not "win32", the output is byte-identical to `main`: every hook
  * runs in shell form from `hooksDir` (the live symlinks under `~/.claude/hooks`), paths are
- * single-quoted, and the verifier matcher is plain `Bash`. The callers that pass no platform keep
+ * single-quoted. The callers that pass no platform keep
  * this POSIX output: `uninstall.mjs`, `migrateLegacyHooks`, and the tests that call it bare.
  *
  * On win32 every entry is written in EXEC form instead — `command: "node"` plus an `args` array,
@@ -187,9 +180,7 @@ export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
  * win32 script path names the CHECKOUT's own copy directly: the five hooks under
  * `<repoRoot>/packages/nana-setup/claude/hooks/`. No path is quoted or escaped — exec form passes each
  * `args` element exactly as written. The retired knowledge entry is matched separately, never written.
- * The verifier matcher on win32
- * is WIN_VERIFIER_MATCHER ("Bash|PowerShell"), because Windows may route shell commands through
- * either the Bash tool or the PowerShell tool.
+ * The retired verifier is matched separately and never installed.
  */
 export function desiredHooks({ hooksDir, repoRoot, platform }) {
 	const win32 = platform === "win32";
@@ -208,24 +199,11 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 	const shared = nodeHook("nana-shared-memory.mjs", "nana: shared memory index");
 	const rosterNotice = nodeHook("nana-roster-notice.mjs", "nana: roster notice");
 	const memoryEnd = nodeHook(MEMORY_END_ENTRY.file, MEMORY_END_ENTRY.statusMessage, MEMORY_END_TIMEOUT_SECONDS);
-	const verifierPipeTarget = hookTarget("verifier-pipe.mjs");
-	const verifierPipeSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
-	const verifierPipeEntry = win32
-		? { type: "command", command: "node", args: [verifierPipeTarget], timeout: 5, statusMessage: "nana: verifier pipe" }
-		: { type: "command", command: `node ${shq(verifierPipeTarget)}`, timeout: 5, statusMessage: "nana: verifier pipe" };
 	return [
 		{ event: "SessionStart", label: "SessionStart objective", marker: "nana-objective.mjs", spec: objective.spec, entry: objective.entry },
 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: adoption.spec, entry: adoption.entry },
 		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: shared.spec, entry: shared.entry },
 		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: rosterNotice.spec, entry: rosterNotice.entry },
-		{
-			event: "PreToolUse",
-			matcher: win32 ? WIN_VERIFIER_MATCHER : POSIX_VERIFIER_MATCHER,
-			label: "PreToolUse verifier pipe",
-			marker: "verifier-pipe.mjs",
-			spec: verifierPipeSpec,
-			entry: verifierPipeEntry,
-		},
 		{ event: MEMORY_END_ENTRY.event, label: `${MEMORY_END_ENTRY.event} memory making`, marker: MEMORY_END_ENTRY.file, spec: memoryEnd.spec, entry: memoryEnd.entry },
 	];
 }
@@ -307,21 +285,43 @@ export function isRetiredKnowledgeHook(hook) {
 	return Boolean(installerTarget(hook, wanted, "win32") || installerTarget(hook, wanted));
 }
 
+/** Match complete released verifier entries; owner variants are never removed. */
+export function isRetiredVerifierHook(hook) {
+	if (!hook || typeof hook !== "object" || hook.type !== "command" || hook.timeout !== 5 || hook.statusMessage !== "nana: verifier pipe") return false;
+	const keys = Object.keys(hook).sort().join(",");
+	if (keys === "args,command,statusMessage,timeout,type") {
+		const wanted = { marker: "verifier-pipe.mjs", spec: { interpreters: ["node"], script: "verifier-pipe.mjs" }, entry: { statusMessage: "nana: verifier pipe" } };
+		return Boolean(installerTarget(hook, wanted, "win32"));
+	}
+	if (keys !== "command,statusMessage,timeout,type") return false;
+	const argv = tokenize(hook.command);
+	const target = argv?.[1];
+	return argv?.length === 2 && argv[0] === "node" && typeof target === "string" && (path.isAbsolute(target) || path.win32.isAbsolute(target)) && target.endsWith("/hooks/verifier-pipe.mjs") && hook.command === `node ${shq(target)}`;
+}
+
+export function removeRetiredVerifierHook(settings) {
+	return removeRetiredHookEntries(settings, "PreToolUse", isRetiredVerifierHook);
+}
+
 /** Remove retired knowledge commands in place and only the groups this removal empties. */
 export function removeRetiredKnowledgeHook(settings) {
-	const groups = settings?.hooks?.UserPromptSubmit;
+	return removeRetiredHookEntries(settings, "UserPromptSubmit", isRetiredKnowledgeHook);
+}
+
+function removeRetiredHookEntries(settings, event, matches) {
+	const groups = settings?.hooks?.[event];
 	if (!Array.isArray(groups)) return false;
 	let changed = false;
 	for (let i = groups.length - 1; i >= 0; i--) {
 		const group = groups[i];
 		if (!Array.isArray(group?.hooks)) continue;
-		const kept = group.hooks.filter(hook => !isRetiredKnowledgeHook(hook));
+		const kept = group.hooks.filter(hook => !matches(hook));
 		if (kept.length === group.hooks.length) continue;
 		changed = true;
 		group.hooks = kept;
 		if (!kept.length) groups.splice(i, 1);
 	}
-	if (changed && !groups.length) delete settings.hooks.UserPromptSubmit;
+	if (changed && !groups.length) delete settings.hooks[event];
 	return changed;
 }
 
@@ -368,7 +368,7 @@ function respelledKnowledgeEntry(entry, wanted) {
  *  runs there (uninstall.mjs), so this pure case exists for a function that is already tested. */
 export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } = {}) {
 	const wanted = [...desiredHooks({ hooksDir, repoRoot, platform }), retiredKnowledgeHook({ repoRoot, platform })];
-	const removed = [];
+	const removed = removeRetiredVerifierHook(settings) ? ["PreToolUse verifier pipe (retired)"] : [];
 	const hooks = settings?.hooks;
 	if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) return removed;
 	for (const [event, groups] of Object.entries(hooks)) {
@@ -495,7 +495,7 @@ export function installerTarget(hook, wanted, platform) {
 /**
  * Replace every stale or (on win32) wrongly-shaped repo-anchored entry in place, returning
  * { [label]: { found, replaced } } for each one R-1056 names: the knowledge pull on every
- * platform, and all six entries on win32.
+ * platform, and all active entries on win32.
  *
  * It scans entries under that entry's event; where the entry has a matcher, it scans only groups
  * with that matcher, otherwise every group (as the knowledge scan always has). The timeout gate
@@ -513,33 +513,6 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 	const result = {};
 	for (const w of repoAnchored) {
 		const groups = settings?.hooks?.[w.event];
-		let movedVerifier = false;
-		if (win32 && w.matcher === WIN_VERIFIER_MATCHER && Array.isArray(groups)) {
-			const alreadyAtWinMatcher = groups.some((group) => group?.matcher === WIN_VERIFIER_MATCHER && Array.isArray(group.hooks) && group.hooks.some((hook) => hook?.timeout === w.entry.timeout && installerTarget(hook, w, platform)));
-			let moved;
-			for (let gi = groups.length - 1; gi >= 0; gi--) {
-				const group = groups[gi];
-				if (group?.matcher !== POSIX_VERIFIER_MATCHER || !Array.isArray(group.hooks)) continue;
-				let removedFromGroup = false;
-				for (let i = group.hooks.length - 1; i >= 0; i--) {
-					const hook = group.hooks[i];
-					if (hook?.timeout !== w.entry.timeout || !installerTarget(hook, w, platform)) continue;
-					const [removed] = group.hooks.splice(i, 1);
-					moved ??= removed;
-					movedVerifier = true;
-					removedFromGroup = true;
-				}
-				if (removedFromGroup && group.hooks.length === 0) groups.splice(gi, 1);
-			}
-			if (movedVerifier && !alreadyAtWinMatcher) {
-				let targetGroup = groups.find((group) => group?.matcher === WIN_VERIFIER_MATCHER && Array.isArray(group.hooks));
-				if (!targetGroup) {
-					targetGroup = { matcher: WIN_VERIFIER_MATCHER, hooks: [] };
-					groups.push(targetGroup);
-				}
-				targetGroup.hooks.push({ ...moved, command: w.entry.command, args: w.entry.args });
-			}
-		}
 		const found = [];
 		if (Array.isArray(groups)) {
 			for (const group of groups) {
@@ -574,7 +547,7 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 				}
 			}
 		}
-		let replaced = movedVerifier;
+		let replaced = false;
 		for (const item of found) {
 			if (item.healthy && (!win32 || item.form === "win32-exec") && !item.sameFile) continue;
 			const current = item.group.hooks[item.index];

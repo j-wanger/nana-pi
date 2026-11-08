@@ -216,7 +216,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   - **FEAT-015 · Diagnose the active environment**
     Purpose: Report what is installed, configured or unhealthy with concrete repair guidance and accurate active-source attribution.
     Status: active
-    Also applies: R-193, R-307, R-347, R-378, R-392, R-589, R-650, R-909, R-959, R-964, R-980, R-985, R-2023, R-2024
+    Also applies: R-193, R-307, R-347, R-378, R-392, R-589, R-650, R-909, R-959, R-964, R-980, R-2023, R-2024
     Parent: CAP-04 · Rows: 167 · IDs: R-341–R-344, R-346, R-362, R-364–R-372, R-377, R-393, R-399, R-586, R-654, R-666, R-667, R-673–R-675, R-937, R-952, R-953, R-990, R-991, R-997–R-999, R-1037, R-1055, R-1057, R-1060, R-1070–R-1077, R-1079–R-1084, R-1096, R-1209, R-1540–R-1545, R-1580–R-1586, R-1600–R-1606, R-1750–R-1752, R-1760–R-1766, R-1790–R-1796, R-1810–R-1812, R-1853–R-1855, R-1972, R-1974, R-1980, R-1983, R-1990–R-1997, R-2000–R-2004, R-2021, R-2070–R-2076, R-2084, R-2085, R-2091, R-2180–R-2183, R-2230–R-2237, R-2280, R-2281, R-2292–R-2294, R-2320–R-2325, R-2410–R-2412, R-2681–R-2687, R-2701–R-2703, R-2705, R-2713–R-2715, R-3713–R-3715
     Artifacts: A-022, A-048
     Reads: A-001, A-004, A-006, A-007, A-009, A-010, A-011, A-012, A-013, A-016, A-021, A-025, A-052, A-053, A-054, A-058, A-060, A-061, A-062, A-063, A-064, A-065, A-066, A-069, A-071, A-079
@@ -479,7 +479,6 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-973 | FEAT-007 | FEAT-004 | 1 |
 | R-974 | FEAT-007 | FEAT-004 | 1 |
 | R-980 | FEAT-013 | FEAT-015 | 1 |
-| R-985 | FEAT-013 | FEAT-015 | 1 |
 | R-992 | FEAT-007 | FEAT-008 | 1 |
 | R-1001 | FEAT-028 | FEAT-014 | 1 |
 | R-1008 | FEAT-007 | FEAT-008 | 1 |

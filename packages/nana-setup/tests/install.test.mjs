@@ -205,7 +205,7 @@ const winFileCopy = (target, source) => {
 	}
 };
 if (process.platform !== "win32") {
-	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
+	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) {
 		// req: R-301 R-985
 		check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
 	}
@@ -213,7 +213,7 @@ if (process.platform !== "win32") {
 	check("adoption Node hook is installed as a repo symlink", link(path.join(home, ".claude", "hooks", "nana-adoption.mjs")) === path.join(pkg, "claude", "hooks", "nana-adoption.mjs"));
 } else {
 	console.log("SKIP hook symlink checks (win32: stepHooks writes no ~/.claude/hooks file at all — every entry is wired in exec form from the checkout, pinned below by command/args shape)");
-	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
+	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) {
 		// req: R-301 R-985
 		check(`hook ${h} is not installed as a file on win32`, !fs.existsSync(path.join(home, ".claude", "hooks", h)));
 	}
