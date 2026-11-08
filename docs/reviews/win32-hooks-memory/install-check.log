@@ -1,0 +1,15 @@
+pi: ~/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: ~/.hermes/node/bin/node
+PASS install
+PASS pi list nana-pack
+PASS pi session
+PASS pi turn
+PASS pi-review
+PASS hook set
+PASS hook roster notice
+PASS hook shared memory
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
