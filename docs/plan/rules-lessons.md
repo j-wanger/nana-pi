@@ -16,7 +16,7 @@ Two owner picks from 2026-11-07, both text-only:
 - A3. Land checklist, in `templates/_shared/working-under-nana-pi.md` and AGENTS.md's marker region identically: remove "Put HANDOFF and session notes in the reviewed change before its final round"; keep "nothing is written after a land".
 - A4. Minimal `docs/sessions` cut, text only: the "narrative lives in `docs/sessions/`" sentences in `HANDOFF.md`, `templates/_shared/HANDOFF.md` and AGENTS.md. The sessions seeds, adoption criterion and general ask labels stay (separate owner decisions).
 - A5. Retire R-3012 and R-3013 (the planner's ask-issue rows); update R-2510 if it pins "session archives". The planner prompt keeps "Questions for the owner".
-- A6. Lane IDs R-3880 to R-3884. One reviewer plus CI. Serialized after memory-cuts, which edits the same shared region.
+- A6. Lane IDs R-3894 to R-3904 (R-3880 to R-3884 were too few once the adversary and later lessons added M6–M11). One reviewer plus CI. Serialized after memory-cuts, which edits the same shared region.
 
 ## Open choices
 
