@@ -1,0 +1,13 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs code-map-launch readme-check verifier-pipe setup-retire fresh-machine requirements-trace templates-render
+
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs     12 pass  1.6s
+PASS  packages/nana-pack/tests/readme-check.test.mjs        11 pass  0.2s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs  61 pass  4.6s
+PASS  packages/nana-pack/tests/setup-retire.test.mjs        5 pass  31.6s
+PASS  packages/nana-pack/tests/templates-render.test.mjs    173 pass  78.3s
+PASS  packages/nana-setup/tests/fresh-machine.test.mjs      9 pass  0.1s
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs      14 pass  2.0s
+
+7 files: 7 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 285 pass, 0 fail, 0 skip · 119.1s

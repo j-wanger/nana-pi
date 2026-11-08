@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/doctor-fix-line.test.mjs
  * @purpose Pin doctor's final repair line, and the `PATH resolves pi-review` row's own advice, to the changes install's dry run can actually make.
- * @inputs The nana-setup CLI, scratch homes and working folders, a pi stub, and PI_SUBAGENTS_FLOOR.
+ * @inputs The nana-setup CLI, scratch homes and working folders, a pi stub, and a historical pi-subagents fixture.
  * @outputs PASS/FAIL lines for R-1990 through R-1997 and R-2320 through R-2325, and a final failure-count summary.
  * @effects disk (temporary fixtures), process (runs install and doctor with sanitized environments).
  * @errors Failed assertions print their observed output and make the test process exit nonzero.
@@ -11,7 +11,6 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
@@ -30,7 +29,7 @@ function fixtureHome(name, { subagents = true } = {}) {
 	if (subagents) {
 		const packageDir = path.join(home, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 		fs.mkdirSync(packageDir, { recursive: true });
-		fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+		fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	}
 	return home;
 }
@@ -173,9 +172,10 @@ check("R-1995: doctor on a home install would change leaves every file, folder a
 const handHome = fixtureHome("hand-home", { subagents: false });
 const handCwd = freshCwd("hand-cwd");
 const handInstall = run(["install", "--home", handHome], { home: handHome, cwd: handCwd });
+fs.writeFileSync(path.join(handHome, '.pi', 'agent', 'mcp.json'), '{ invalid');
 const handDoctor = run(["doctor", "--home", handHome], { home: handHome, cwd: handCwd });
 // req: R-1991
-check("R-1991: when no ✗ row is install's, the summary lists each as a fix by hand and never names install", handInstall.status === 0 && handDoctor.status === 1 && summary(handDoctor) === "1 missing — fix by hand as each ✗ line says: pi pi-subagents", `install ${handInstall.status}\n${handInstall.stdout}\n${handInstall.stderr}\ndoctor ${handDoctor.status}\n${handDoctor.stdout}\n${handDoctor.stderr}`);
+check("R-1991: when no ✗ row is install's, the summary lists each as a fix by hand and never names install", handInstall.status === 0 && handDoctor.status === 1 && summary(handDoctor) === "1 missing — fix by hand as each ✗ line says: pi mcp.json", `install ${handInstall.status}\n${handInstall.stdout}\n${handInstall.stderr}\ndoctor ${handDoctor.status}\n${handDoctor.stdout}\n${handDoctor.stderr}`);
 
 const mixedHome = fixtureHome("mixed-home");
 const mixedCwd = freshCwd("mixed-cwd");
@@ -261,7 +261,7 @@ const mixedWarnCwd = freshCwd("mixed-warn-cwd", true);
 const handWarn = run(["doctor", "--home", handHome], { home: handHome, cwd: handWarnCwd });
 const mixedWarn = run(["doctor", "--home", mixedHome], { home: mixedHome, cwd: mixedWarnCwd });
 // req: R-1996
-check("R-1996: with a ! row, both by-hand summary forms still end with the ! count", handWarn.status === 1 && mixedWarn.status === 1 && summary(handWarn) === "1 missing — fix by hand as each ✗ line says: pi pi-subagents (and see the 1 ! above)" && summary(mixedWarn) === "3 missing — fix by hand as each ✗ line says: skill spec; then run: nana-setup install for the other 2 (and see the 1 ! above)", `hand ${handWarn.status}\n${handWarn.stdout}\n${handWarn.stderr}\nmixed ${mixedWarn.status}\n${mixedWarn.stdout}\n${mixedWarn.stderr}`);
+check("R-1996: with a ! row, both by-hand summary forms still end with the ! count", handWarn.status === 1 && mixedWarn.status === 1 && summary(handWarn) === "1 missing — fix by hand as each ✗ line says: pi mcp.json (and see the 1 ! above)" && summary(mixedWarn) === "3 missing — fix by hand as each ✗ line says: skill spec; then run: nana-setup install for the other 2 (and see the 1 ! above)", `hand ${handWarn.status}\n${handWarn.stdout}\n${handWarn.stderr}\nmixed ${mixedWarn.status}\n${mixedWarn.stdout}\n${mixedWarn.stderr}`);
 
 const unexpectedHome = fixtureHome("unexpected-home");
 const unexpectedCwd = freshCwd("unexpected-cwd");

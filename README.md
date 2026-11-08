@@ -1,6 +1,6 @@
 # nana-pi
 
-Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge pull, and project templates.
+Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge search, and project templates.
 
 Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
 Sibling repo to `~/nana-agent-loop`.
@@ -8,16 +8,16 @@ Sibling repo to `~/nana-agent-loop`.
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
   (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
   deep-research artifacts it was distilled from.
-- `packages/` — our pi packages, chiefly the nana extension pack: ten extensions (gate,
-  post-edit, lifecycle, notify, handoff, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
+- `packages/` — our pi packages, chiefly the nana extension pack: eight extensions (gate,
+  lifecycle, adoption, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
   dev-workflow skills. Installable via
-  `pi install git:` or a local path — which ships the extensions of `nana-pack` and
-  `nana-knowledge` (the two the root `package.json` manifests) plus the pack's skills.
+  `pi install git:` or a local path — which ships `nana-pack` extensions and skills.
+  Knowledge search remains an explicit CLI, with no pi extension.
   `nana-stage`'s extension is NOT in that manifest: the desk loads it per app.
 - `templates/` — copier project templates behind the `scaffold-py`/`scaffold-ts` skills
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
   emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
-  folder-by-feature, nested AGENTS.md, post-edit quality gates, and the three frontier seeds
+  folder-by-feature, nested AGENTS.md, explicit project checks, and the three frontier seeds
   (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/`) from the one `templates/_shared` source
   every path shares. The copier src is the
   REPO ROOT (root `copier.yml`, `language` question) — canonically
@@ -30,11 +30,9 @@ existing pack files. Release acceptance runs default-off templates plus opted-in
 and adoption projects through their native toolchains; the suite exercises this on macOS and
 Windows too. Configure real inputs before treating a green data test as validation.
 
-- `packages/nana-knowledge/` — knowledge pull: a local BM25 (FTS5) index over the
-  markdown knowledge stores on this machine, queried from a Claude Code
-  `UserPromptSubmit` hook and from pi's `before_agent_start` through one shared hook CLI,
-  then injected as a few pointers at the moment of a live decision. Zero dependencies;
-  read-only on every source. See
+- `packages/nana-knowledge/` — explicit local BM25 (FTS5) search over this machine's
+  markdown knowledge stores. Use `nana-knowledge query`; automatic delivery is retired
+  in pi and Claude Code. Zero dependencies; read-only on every source. See
   `packages/nana-knowledge/README.md`.
 - `packages/nana-setup/` — the one-command bootstrap for everything that is NOT a pi extension:
   the Claude Code half (hooks, rules, skills, `settings.json` wiring, the two-tier auto-memory), the
@@ -52,20 +50,15 @@ Windows too. Configure real inputs before treating a green data test as validati
 
 `npm run memory:make` (`scripts/memory-make.mjs`) makes private, low-trust candidates
 from this repository's Claude transcripts and review MUST titles. Node and git are
-required; no model runs. `npm run memory:score` (`scripts/memory-score.mjs`) compares
-private candidates with independent JSONL labels and prints counts only. Both run
-by hand. `npm run memory:shape` (`scripts/memory-shape.mjs`) classifies the same
+required; no model runs. This command runs by hand. `npm run memory:shape` (`scripts/memory-shape.mjs`) classifies the same
 units with an isolated Claude CLI by default, or pi through a sealed runner choice.
 `scripts/memory-shape-runners.mjs` holds both adapters; tests inject all calls.
-`npm run memory:meter` (`scripts/outcome-meter.mjs`) measures repeated corrections,
-re-asked decisions and logged context in interaction windows, using the isolated Claude CLI.
-`npm run memory:meter-score` (`scripts/outcome-score.mjs`) scores private labels;
-`npm run memory:meter-compare` (`scripts/outcome-compare.mjs`) compares private repeat sets.
-`npm run memory:replay` (`scripts/memory-replay.mjs`) plans paired historical replays,
-optionally screens control reproduction, runs isolated Claude arms and decides from private rows.
+Completed memory study instruments are retired; their records remain in review history.
+Automatic memory making at land and session end is paused; use the manual memory command
+in `packages/nana-pack/README.md` when needed.
 `npm run memory:curate` (`scripts/memory-curate.mjs`) proposes private merges and retirements
 for the owner's review; only an explicit accept changes live memory.
-These hand-run commands need Node and git; proposing curation, the meter and paid replay commands need authenticated Claude.
+These hand-run commands need Node and git; shaping and proposing curation need authenticated Claude.
 See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
 
 ## Requirements-first
@@ -107,14 +100,11 @@ inside the clone's shared git folder, outside the repository, and records which 
 and how long it took. `npm run map:impact` lists the artifacts a named file writes and reads, their
 recorded readers, the measured tests under each named file, the measured tip, time, age, checkout
 drift and main's movement; it marks stale only a test that ran a file which has since changed or been removed. Copies run from a temporary folder and children stopped by a signal
-are not counted. Nana-pi's own `npm run req:rows -- <file...>` tool in
-`scripts/requirement-rows.mjs` is not shipped by the templates, and its result is neither complete
-nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`; its `scripts/deliverables.mjs` check also prints report-only notes when a product deliverable's `Made by:` or `Read by:` claim is missing, unreadable or names a path not tracked at HEAD, and its count line leaves out a deliverable held by a `Parked:` line, then says how many it holds. `node scripts/known-bugs.mjs --root <dir>` checks `docs/known-bugs` entry names against active or frozen features, reports over-window file sizes without failing for them, and exits 1 on a name finding. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems, or a `0 problems` line followed by any deliverable count and notes. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
+are not counted. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`; its `scripts/deliverables.mjs` check also prints report-only notes when a product deliverable's `Made by:` or `Read by:` claim is missing, unreadable or names a path not tracked at HEAD, and its count line leaves out a deliverable held by a `Parked:` line, then says how many it holds. `node scripts/known-bugs.mjs --root <dir>` checks `docs/known-bugs` entry names against active or frozen features, reports over-window file sizes without failing for them, and exits 1 on a name finding. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems, or a `0 problems` line followed by any deliverable count and notes. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
 The report commands share the bounded read-only Git runner in `scripts/git-runner.mjs`.
-`node "$HOME/nana-pi/scripts/blast-radius.mjs" --root <dir> --base <rev> --out <page>` writes one self-contained HTML page whose SVG draws, from the code map alone, every module changed since the merge base of `<rev>` and HEAD, their transitive callers and callees in four columns (tests, upstream, changed, downstream), the edges between them, the changed files the map does not hold, and which changed modules carry no linked test.
 `scripts/requirements-regroup.mjs` checks a drafted and reviewed proposal (a lift mapping plus one `regroup` object) against the lift and the regroup rules and writes the owner's review page: `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root <dir> --proposal <file> --out <page>`.
 `node scripts/identity-scan.mjs [--root <dir>]` scans tracked paths and content against digest counts; add a pinned allowlist entry by hand with its path, counts, reason and manifest-backed pin. With `--stdin`, it scans standard input instead, prints only each hit's word index and count, and exits 0 clean, 1 on a hit or 2 on bad use. It never echoes input text.
-`scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
+`scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; run it by hand for changed `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
 extracts rows from a project that has none yet) into both pi and Claude Code, plus a
 `packages/nana-setup/claude/rules/nana-standards.md` rule carrying the same bar in prose. The pattern was proven in a work project
 (2026-10-01/02) before it was promoted here.
@@ -131,7 +121,7 @@ the pi-hosted ones. nana supports pi 1.0.3 through 1.4.0. For pi 1.0.3 through 1
 | `packages/nana-pack/` (the extensions + skills) | pi itself, as an **optional peerDependency** (`@earendil-works/pi-coding-agent: "*"`) — the extensions run inside pi, so pi is the host, not a package they install. No runtime npm dependencies. | Zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests FAIL naming the locations tried when pi is absent. Set `DESK_PI_ROOT` to point pack tests at another install (`DESK_PI_BIN` selects the executable for desk tests). |
 | `packages/nana-stage/` (the stage ledger) | Same: pi as an optional peerDependency, no runtime npm dependencies. | Zero-dep node tests. |
 | `packages/nana-setup/` (the bootstrap) | Node ≥ 22.18 only (the installed objective hook's CLI imports `.ts` via Node's built-in type stripping; older Node → a named `OBJECTIVE UNAVAILABLE` marker and a doctor ✗); no npm dependencies. Shells out to `pi` (registration), `node` (the knowledge build) and `launchctl` (`--desk`, macOS) — each optional, each reported as skipped when missing. | Zero-dep `node packages/nana-setup/tests/*.test.mjs`; every test installs into `os.tmpdir()` via `--home` and never touches the real `~/.claude`, `~/.pi` or LaunchAgents. |
-| `packages/nana-knowledge/` (the knowledge pull) | Node ≥ 22.18 only — `node:sqlite` (bundled SQLite, FTS5) and Node's TypeScript type stripping; no build step, no npm dependencies, no model calls. pi is an optional peerDependency — the index and the `nana-knowledge` CLI run without it; the Claude Code `UserPromptSubmit` hook is retired (#342) — but the package also ships a live pi extension (`packages/nana-knowledge/extensions/nana-knowledge.ts`, manifested in the root `package.json`) that pi loads when the pack is installed. | Zero-dep `node packages/nana-knowledge/tests/*.test.mjs`; no fixtures outside `os.tmpdir()`. Details: `packages/nana-knowledge/README.md`. |
+| `packages/nana-knowledge/` (explicit knowledge search) | Node ≥ 22.18 only — `node:sqlite` (bundled SQLite, FTS5) and Node's TypeScript type stripping; no build step, npm dependencies, model calls or pi runtime required. Automatic knowledge delivery is retired in both runtimes. | Zero-dep `node packages/nana-knowledge/tests/*.test.mjs`; no fixtures outside `os.tmpdir()`. Details: `packages/nana-knowledge/README.md`. |
 | `templates/` (copier scaffolds) | `uv` (which ships `uvx`, how copier runs) for both languages; `pnpm` for the TypeScript template. Generated projects carry their own pinned stacks. | — |
 | `apps/bench/` (context anatomy) | Node ≥ 22.19 and git; authenticated Claude CLI on PATH for optional paid labelling. No npm dependencies of its own. Study runners are retired; records remain frozen. | Synthetic `test/*.test.mjs` fixtures use OS temp and make no model calls. Details: `apps/bench/README.md`. |
 
@@ -177,9 +167,8 @@ The experience has **two halves**, and both are installed from this repo:
 3. Run `git clone https://github.com/j-wanger/nana-pi ~/nana-pi`; keep the clone.
 4. Run `cd ~/nana-pi`, then `node packages/nana-setup/bin/nana-setup.mjs install` (`--desk` adds the desk service).
 5. Run `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile`, then open a new terminal.
-6. Run `pi install npm:pi-subagents@0.75.0`.
-7. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
-8. Run `cd ~/nana-pi`, then `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor`; expect `all good`.
+6. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
+7. Run `cd ~/nana-pi`, then `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor`; expect `all good`.
 
 `uv` (both templates) and `pnpm` (TypeScript) are needed only to scaffold or adopt.
 
@@ -192,9 +181,8 @@ The experience has **two halves**, and both are installed from this repo:
 3. Run `git clone https://github.com/j-wanger/nana-pi "%USERPROFILE%\nana-pi"`; keep the clone.
 4. Run `cd /d "%USERPROFILE%\nana-pi"`, then `node packages/nana-setup/bin/nana-setup.mjs install`.
 5. Add `%USERPROFILE%\.local\bin` to the user Path in Environment Variables, then open a new Command Prompt.
-6. Run `pi install npm:pi-subagents@0.75.0`.
-7. Write your objective and current-priority lines over the placeholders in `%USERPROFILE%\.pi\agent\nana-objective.md`, or set `objective.path` in `%USERPROFILE%\.pi\agent\nana-pack.json` to an umbrella repo's `OBJECTIVE.md`; write paths with forward slashes because JSON reads a single backslash as an escape, and `~/` means your user folder, for example `{ "objective": { "projectFile": "OBJECTIVE.md", "path": "~/umbrella/OBJECTIVE.md" } }`.
-8. Run `cd /d "%USERPROFILE%\nana-pi"`, then `nana-setup trust "%USERPROFILE%\nana-pi"` (it asks before it records), then `nana-setup doctor`; expect `all good`.
+6. Write your objective and current-priority lines over the placeholders in `%USERPROFILE%\.pi\agent\nana-objective.md`, or set `objective.path` in `%USERPROFILE%\.pi\agent\nana-pack.json` to an umbrella repo's `OBJECTIVE.md`; write paths with forward slashes because JSON reads a single backslash as an escape, and `~/` means your user folder, for example `{ "objective": { "projectFile": "OBJECTIVE.md", "path": "~/umbrella/OBJECTIVE.md" } }`.
+7. Run `cd /d "%USERPROFILE%\nana-pi"`, then `nana-setup trust "%USERPROFILE%\nana-pi"` (it asks before it records), then `nana-setup doctor`; expect `all good`.
 
 ### A blank folder → a nana project
 
@@ -231,7 +219,7 @@ with Linux paths.
 ### From git (pack-only use; no clone needed)
 
 ```bash
-# 1. the nana-pack — all ten extensions, the knowledge pull + every skill (the root package.json
+# 1. the nana-pack — all eight extensions + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
 pi install git:github.com/j-wanger/nana-pi        # pack-only use; add -l for project-local
 
@@ -320,7 +308,12 @@ After first-look on a product-page lane, run `npm run outside-reader -- --from <
 
 ## Tests
 
-CI covers this repository's full suite. Builders run touched tests, commit and report their branch, full tip and seat checks. Builders do not push. The seat pushes after verifying, then waits for the pushed tip's CI. A land uses passing unfiltered same-platform records unless the lane changes a workflow or the runner; otherwise it runs the local suite. CI lands refresh no runtime map, land product report or local suite record. Hand commands and fallback lands refresh those artifacts.
+PR CI runs land plus affected module tests and every edited nonmanual test on macOS.
+Release-path changes, release-test edits and their graph dependencies add the release pack.
+Main runs land, main, module and retire on macOS, Windows and Linux; Linux stays advisory.
+Superseded PR runs cancel; main runs never cancel. `npm run release` runs the release pack before acceptance.
+
+CI covers event-selected test packs. Builders run touched tests, commit and report their branch, full tip and seat checks. Builders do not push. The seat pushes after verifying, then waits for the pushed tip's CI. A land uses passing same-platform full-suite records or complete land/module pack records unless the lane changes a workflow or the runner; otherwise it runs the local suite. CI lands refresh no runtime map, land product report or local suite record. Hand commands and fallback lands refresh those artifacts.
 
 On a shared machine, run a fallback full suite with `npm run test:locked` (implemented by `scripts/test-locked.mjs`); it serializes full runs across worktrees. Add a path substring after `--` for an unlocked filtered run, such as `npm run test:locked -- packages/nana-pack/tests/test-locked.test.mjs`. Two runs reclaiming the same dead holder's lock at the same instant may both proceed; this can share CPU but cannot lose suite data.
 
@@ -337,6 +330,15 @@ deliberately failing file to prove the runner turns red. On win32 the runner als
 desk or bench file on the declared Windows skip list
 (`packages/nana-pack/lib/windows-skips-config.mjs`), printing that file's reason without
 starting it.
+
+`npm test -- --pack=land` runs the land pack. `--pack=land,module --changed-from=main`
+adds affected module tests and every changed collected nonmanual test, printing their selection reasons.
+Suite records list changed tests separately; CI readers refuse proof missing any selected test. `scripts/test-packs.mjs`
+uses import and launch reach, blind reach and text-input watches; uncertainty runs every module test.
+`packages/nana-pack/lib/test-packs-config.mjs` declares membership and sealed selection policy.
+Every collected file needs a pack. Browser tests stay manual. A complete-pack
+`npm run test:locked -- --pack=land` holds the machine lock and keeps its record;
+adding a path substring still bypasses the lock.
 
 `npm test -- --jobs=N` keeps up to N collected files running at once (default 1), reporting
 matching labels, counts, excerpts, warnings, failed list, self-test verdict, totals and exit

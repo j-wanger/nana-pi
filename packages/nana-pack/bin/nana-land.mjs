@@ -32,8 +32,6 @@ import { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
 export { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
 
 import { LANE_NAME_PATTERN } from '../lib/land-config.mjs';
-import { startMemory } from '../lib/memory-run.mjs';
-import { WORDS as MEMORY_WORDS } from '../lib/memory-run-config.mjs';
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const resultText = (r) => `${r.stdout ?? ""}${r.stderr ?? ""}`;
@@ -164,9 +162,10 @@ export function parseLandArgs(args) {
 	const options = { mode, lane: positional, reviewed: [] };
 	for (let i = mode === "cleanup" ? 2 : 1; i < args.length; i++) {
 		const key = args[i];
-		if (!["--tree", "--main", "--suite", "--reviewed"].includes(key)) throw new Error(`unknown option ${key}`);
+		if (!["--tree", "--main", "--suite", "--reviewed", "--fixes-red"].includes(key)) throw new Error(`unknown option ${key}`);
 		const value = args[++i];
 		if (!value || value.startsWith("--")) throw new Error(`${key} needs a value`);
+		if (key === "--fixes-red" && (mode !== "merge" || options["fixes-red"] || !/^[1-9][0-9]*$/.test(value))) throw new Error("--fixes-red needs one positive run id in merge mode");
 		if (key === "--reviewed") options.reviewed.push(value);
 		else options[key.slice(2)] = value;
 	}
@@ -186,7 +185,7 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; process and state readers are injectable for controlled callers and tests. */
-function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, platform = process.platform, recordsNow = () => performance.now(), now = () => new Date(), generatorContract = GENERATOR_CONTRACT, generatorTimeoutMs = GENERATOR_TIMEOUT_MS, runGenerator = (argv, cwd, options) => spawnSync(process.execPath, argv, { ...options, cwd }), lifecycle }) {
+function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, platform = process.platform, recordsNow = () => performance.now(), now = () => new Date(), generatorContract = GENERATOR_CONTRACT, generatorTimeoutMs = GENERATOR_TIMEOUT_MS, runGenerator = (argv, cwd, options) => spawnSync(process.execPath, argv, { ...options, cwd }), lifecycle }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
 		const repo = repoKeyOf(tree);
@@ -239,6 +238,18 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		const repository = githubRepoOf(originUrl);
 		const workflowPaths = repository ? git(runGit, tree, "ls-tree", "-z", "--name-only", tip, "--", `${CI_WORKFLOW_DIR}/`) : "";
 		const scope = ciScope({ remoteNames, originUrl, workflowPaths });
+		if (fixesRed !== undefined && (typeof fixesRed !== "string" || !/^[1-9][0-9]*$/.test(fixesRed))) throw new Error("--fixes-red needs a positive run id");
+		let fixedMainRun = null;
+		const readMain = () => {
+			const lines = [];
+			const current = mainCi({ cwd: main, env: ghEnvironment(process.env), runGit, runGh, expectedSha: capturedMain, advisoryLinux: true, writeLine: line => lines.push(line) });
+			if (fixesRed !== undefined) {
+				if (!current.run || String(current.run.id) !== fixesRed || current.run.head_sha !== capturedMain || current.run.status !== CI_DONE_STATUS) throw new Error(`--fixes-red ${fixesRed} must name the newest completed main push run; ${lines.join("\n")}`);
+				if (!current.evidenceReadable) throw new Error(`Main CI evidence read refused for --fixes-red ${fixesRed}: ${lines.join("\n")}`);
+				if (current.red !== true) throw new Error(`--fixes-red ${fixesRed} unnecessary: main is green`);
+			} else if (current.red !== false || current.code !== 0) throw new Error(lines.join("\n") || "Main CI: unreadable main push run");
+			return current.run;
+		};
 		const readRuns = () => {
 			const apiPath = CI_RUNS_PATH.replace("<owner>", scope.repository.owner).replace("<repo>", scope.repository.repo);
 			const args = ["api", "--hostname", CI_HOST, `${apiPath}?head_sha=${tip}&per_page=${CI_RUNS_PAGE_SIZE}`];
@@ -287,6 +298,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		let ciReadPassed = false;
 		let suiteProof = { ok: false, reason: scope.note };
 		if (!scope.applies) {
+			if (fixesRed !== undefined) throw new Error("--fixes-red requires toolkit main CI evidence");
 			if (needsMerge) throw mergeRefusal("noCi", scope.note);
 			lifecycle.ci = "skipped";
 			ciNote = `${LAND_NOTE_PREFIX} note: CI not read: ${scope.note}`;
@@ -299,10 +311,9 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			const manifest = runGit(tree, ["show", `${tip}:package.json`]);
 			const toolkit = manifest.status === 0 && toolkitCi(manifest.stdout);
 			if (toolkit) {
-				const lines = [];
-				const current = mainCi({ cwd: main, env, runGit, runGh, expectedSha: capturedMain, advisoryLinux: true, writeLine: (line) => lines.push(line) });
-				if (current.red !== false || current.code !== 0) throw new Error(lines.join("\n") || "Main CI: unreadable main push run");
-			}
+				const current = readMain();
+				if (fixesRed !== undefined) fixedMainRun = { id: String(current.id), attempt: current.run_attempt, sha: current.head_sha };
+			} else if (fixesRed !== undefined) throw new Error("--fixes-red requires toolkit main CI evidence");
 			ciLines = verdict.lines;
 			ciReadPassed = true;
 			lifecycle.ci = "passed";
@@ -358,6 +369,12 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			if (git(runGit, main, "rev-parse", "HEAD") !== capturedMain) throw new Error("main checkout HEAD changed during suite");
 			assertCleanTracked(runGit, tree, "source tree");
 			if (git(runGit, tree, "rev-parse", "HEAD^{commit}") !== tip) throw new Error("source tip changed during suite");
+			if (fixedMainRun) {
+				try {
+					const latest = readMain();
+					if (String(latest.id) !== fixedMainRun.id || latest.run_attempt !== fixedMainRun.attempt || latest.head_sha !== fixedMainRun.sha) throw new Error("newest run id or attempt changed");
+				} catch (error) { throw new Error(`changed main CI: ${error.message}`); }
+			}
 			git(runGit, main, "merge", "--ff-only", landedTip);
 			if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout switched away from branch main during merge");
 			if (git(runGit, main, "rev-parse", "refs/heads/main") !== landedTip) throw new Error("main ref does not equal landed tip after merge");
@@ -366,6 +383,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		if (git(runGit, main, "rev-parse", "refs/heads/main") !== landedTip) throw new Error("main ref does not equal landed tip after merge");
 		assertCleanTracked(runGit, main, "main checkout after merge");
 		if (!isAncestor(runGit, tip, "refs/heads/main", main)) throw new Error("containment check failed: landed tip is not an ancestor of main");
+		if (fixedMainRun) lifecycle.fixesRed = fixedMainRun.id;
 		let releaseLine;
 		try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
 		catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
@@ -448,6 +466,7 @@ function runRecordedLand(options) {
 			suiteMs: lifecycle.suiteMs,
 			suite: lifecycle.suite,
 			suiteWhy: lifecycle.suiteWhy,
+			...(result.code === 0 && lifecycle.fixesRed ? { fixesRed: lifecycle.fixesRed } : {}),
 		};
 		const kept = appendLandRecord(common, end);
 		if (!kept.ok) {
@@ -470,20 +489,9 @@ function runRecordedLand(options) {
 	return { ...result, text: withLandRecordLine(result.text, renderLandRecordLine(end, laneLine)) };
 }
 
-/** Post-merge making is independent of record retention and cannot change the land verdict. */
+/** Land and record the result; memory making is manual while automatic triggers are paused. */
 export function runLand(options) {
- let lane = null;
- try {
-  const branch = git(options.runGit ?? gitDefault, path.resolve(options.tree), 'branch', '--show-current');
-  const match = /^feat\/(.+)$/.exec(branch);
-  if (match && LANE_NAME_PATTERN.test(match[1])) lane = match[1];
- } catch {}
- const result = runRecordedLand(options);
- if (result.code !== 0 || !lane || typeof options.startMemory !== 'function') return result;
- let line;
- try { line = options.startMemory({repo:path.resolve(options.main),lane}); }
- catch { line = MEMORY_WORDS.notStarted; }
- return {...result,text:withLandRecordLine(result.text,line ?? MEMORY_WORDS.notStarted)};
+ return runRecordedLand(options);
 }
 
 /** Safely remove a landed lane worktree and its feat branch; refuses force and dirty trees. */
@@ -522,7 +530,7 @@ export function runCleanup(lane, { main, worktree, runGit = gitDefault } = {}) {
 export function main(args = process.argv.slice(2)) {
 	try {
 		const options = parseLandArgs(args);
-		return options.mode === "merge" ? runLand({ ...options, startMemory }) : runCleanup(options.lane, options);
+		return options.mode === "merge" ? runLand(options) : runCleanup(options.lane, options);
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {

@@ -51,7 +51,8 @@ export { buildGraph, collectModules, impact, isLayerExempt, loadConfig, untraced
 const isTest = (graph, path) => isLayerExempt(graph.config, path) && /\.test\.(?:mjs|ts|js)$/.test(path);
 const blindSite = (site) => ["unresolved", "other-program", "program-unknown"].includes(site.kind);
 
-function linkRepo(root, graph, sources) {
+/** Add the repository's declared launch policy to a collected import graph. */
+export function linkRepo(root, graph, sources) {
 	graph.importGraph = buildGraph(sources, graph.config);
 	addLaunchLinks(graph, sources);
 	const declarations = JSON.parse(readFileSync(resolve(root, "code-map.config.json"), "utf8")).launchAlwaysRun ?? [];

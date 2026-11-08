@@ -71,6 +71,19 @@ export function requiredCiJobs(jobs, { main = false } = {}) {
 	return { ok: problems.length === 0, problems };
 }
 
+/** Distinguish a complete lane pack proof from ordinary substring-filtered output. */
+export function suiteScopeProblem(record) {
+	if (!Array.isArray(record.filters) || record.filters.length) return "CI suite record does not prove an unfiltered run";
+	const pack = record.packRun;
+	if (pack === undefined) return null; // historical full suites remain valid
+	if (pack?.complete !== true || !Array.isArray(pack.packs) || !pack.packs.includes("land") || !pack.packs.includes("module")) return "CI pack record omits complete land and module packs";
+	const selection = pack.selection;
+	if (!selection || !Array.isArray(selection.changedPaths) || !Array.isArray(selection.module) || !Array.isArray(selection.changedTests)
+		|| !(selection.changedFrom === null || typeof selection.changedFrom === "string")
+		|| [...selection.module, ...selection.changedTests].some(item => typeof item?.path !== "string" || !Array.isArray(item.reasons) || !item.reasons.length)) return "CI pack record omits module selection";
+	return null;
+}
+
 /** Select each leg's newest record, then combine complete shard groups without counting old attempts. */
 export function ciSuiteLegs(result) {
 	const newest = new Map();
@@ -115,7 +128,8 @@ export function ciSuiteLegs(result) {
 			const carried = Date.parse(job?.started_at) < Date.parse(item.artifact?.created_at);
 			if (latestAttempt > item.attempt && !carried) problems.push(`${item.leg}: attempt ${latestAttempt} left no record`);
 			if (record.shard?.index !== index || record.shard?.count !== count) problems.push(`${item.leg}: record shard identity differs`);
-			if (record.platform !== members[0][1].record.platform || !Array.isArray(record.filters) || record.filters.length || !finalFiles(record).length || record.exitCode !== 0 || record.unnamedFailures?.length || finalFiles(record).some((file) => file.label === "FAIL")) problems.push(`${item.leg}: shard record did not pass an unfiltered suite`);
+			if (JSON.stringify(record.packRun) !== JSON.stringify(members[0][1].record.packRun)) problems.push(`${item.leg}: pack selection differs across shards`);
+			if (record.platform !== members[0][1].record.platform || suiteScopeProblem(record) || !finalFiles(record).length || record.exitCode !== 0 || record.unnamedFailures?.length || finalFiles(record).some((file) => file.label === "FAIL")) problems.push(`${item.leg}: shard record did not pass an unfiltered suite`);
 		}
 		if (!members.length) continue;
 		if (records.some((item) => String(item.run.id) === String(run.id) && item.leg === base)) problems.push(`${base}: mixed sharded and unsharded records`);
@@ -131,10 +145,19 @@ export function ciSuiteLegs(result) {
 			exitCode: values.some((item) => item.record.exitCode !== 0) ? 1 : 0,
 		} });
 	}
+	for (const { leg, record } of records) {
+		if (record.packRun === undefined) continue;
+		const problem = suiteScopeProblem(record);
+		if (problem) problems.push(`${leg}: ${problem}`);
+		else {
+			const paths = new Set(finalFiles(record).map(file => file.path));
+			if ([...record.packRun.selection.module, ...record.packRun.selection.changedTests].some(item => !paths.has(item.path))) problems.push(`${leg}: selected test file missing from pack record`);
+		}
+	}
 	return { ok: problems.length === 0, reason: problems.join("; "), records };
 }
 
-/** Require every highest-attempt same-platform leg from a judged run to prove an unfiltered successful suite. */
+/** Require each same-platform leg to prove a successful full suite or complete lane pack selection. */
 export function proveCiSuite(result, runs, platform) {
 	if (result?.code !== 0 || !Array.isArray(result?.parsed) || result?.problems?.length || result?.budgetStopped) return { ok: false, reason: result?.budgetStopped ? "CI suite records exceeded their budget" : "CI suite records could not be read" };
 	const judged = new Set(runs.map((run) => String(run.id)));
@@ -143,9 +166,10 @@ export function proveCiSuite(result, runs, platform) {
 	const legs = selected.records.filter((item) => item.record?.platform === platform);
 	if (!legs.length) return { ok: false, reason: `no CI suite record for platform ${platform}` };
 	for (const { record } of legs) {
-		if (!Array.isArray(record.filters) || record.filters.length !== 0) return { ok: false, reason: "CI suite record does not prove an unfiltered run" };
+		const scopeProblem = suiteScopeProblem(record);
+		if (scopeProblem) return { ok: false, reason: scopeProblem };
 		if (finalFiles(record).length === 0) return { ok: false, reason: "CI suite record has no final files" };
-		if (record.exitCode !== 0) return { ok: false, reason: "CI suite record did not exit 0" };
+		if (record.exitCode !== 0 || record.unnamedFailures?.length || finalFiles(record).some(file => file.label === "FAIL")) return { ok: false, reason: "CI suite record did not exit 0" };
 	}
 	return { ok: true, records: legs };
 }

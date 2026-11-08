@@ -3,7 +3,7 @@
  * @module scripts/test.mjs
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
- * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
+ * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, --pack=list, --changed-from=ref, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
  *  NANA_COVERAGE_DIR (runtime-map's coverage knob), NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
  *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
@@ -13,7 +13,7 @@
  *  --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output
  *  and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and,
  *  per file, a coverage folder with a path/label/seconds record, plus one completion record naming the
- *  collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 whole-run record with the default per-file limit
+ *  collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 run record with the default per-file limit and, for pack runs, complete selection metadata
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
  *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
@@ -80,6 +80,8 @@ import {
 	checkoutSpellingSkipReason,
 	JOBS_FLAG,
 	SHARD_FLAG,
+	PACK_FLAG,
+	CHANGED_FROM_FLAG,
 	shardFiles,
 	RUN_ALONE,
 	TEMP_REMOVE_RETRIES,
@@ -139,6 +141,16 @@ const isDir = (p) => {
 		return false;
 	}
 };
+
+// --pack=land runs complete land membership. --pack=land,module --changed-from=main
+// additionally selects affected module tests and records each reason before sharding.
+const packArgs = argv.filter(arg => arg.startsWith(PACK_FLAG.slice(0, -1)));
+const changedArgs = argv.filter(arg => arg.startsWith(CHANGED_FROM_FLAG.slice(0, -1)));
+if (packArgs.length > 1 || changedArgs.length > 1 || packArgs.some(arg => !arg.startsWith(PACK_FLAG) || arg.length === PACK_FLAG.length) || changedArgs.some(arg => !arg.startsWith(CHANGED_FROM_FLAG) || arg.length === CHANGED_FROM_FLAG.length) || (changedArgs.length && !packArgs.length)) {
+	console.log("[runner] bad --pack/--changed-from argument");
+	process.exit(1);
+}
+let packRun = null;
 
 // ── cleanup: every active child's tree and the scratch dir, on EVERY exit path ──────────────
 // Sets, not a single slot: at --jobs=N greater than 1 several files run at once, so more than
@@ -213,7 +225,7 @@ function collect() {
 	}
 	files.push(...testsIn(path.join(root, "apps", "desk", "test")));
 	files.push(...testsIn(path.join(root, "apps", "bench", "test")));
-	return files.filter((f) => !excluded(f)).filter((f) => !filters.length || filters.some((s) => rel(f).includes(s)));
+	return files.filter((f) => !excluded(f));
 }
 
 const onPath = (cmd) => {
@@ -223,11 +235,13 @@ const onPath = (cmd) => {
 
 /** Declared platform skips: file → () => reason | null. A reason means SKIP, printed. */
 const SKIPS = {
+	// Forced-win32 guards now live in win32-forced; this file contains native Windows cases only.
+	"packages/nana-pack/tests/win32-launch.test.mjs": () => process.platform !== "win32" ? "native Windows launch cases (forced fixtures run in win32-forced)" : null,
+	"packages/nana-setup/tests/win-shims.test.mjs": () => process.platform !== "win32" ? "native Windows shim cases (sh fixtures run in win-shims-sh)" : null,
 	"packages/nana-setup/tests/checkout-spelling.test.mjs": checkoutSpellingSkipReason,
 	"packages/nana-setup/tests/checkout-converge.test.mjs": () => process.platform === "win32" ? "POSIX-only: skill links are copies on win32 and uninstall refuses there" : null,
-	// On POSIX it proves no child was left running with `pgrep -f`, and reads "pgrep missing" as
-	// "nothing left" — so without pgrep it would pass without proving anything. On win32 it does
-	// not use pgrep (it guards its own POSIX cases), so it always runs there.
+	// Historical fixture key used by test-runner.test.mjs to exercise a missing tool.
+	// The real post-edit test is retired; only OS-temporary runner fixtures use this entry.
 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": () =>
 		posix && !onPath("pgrep") ? "needs `pgrep` on POSIX (not on PATH)" : null,
 	// Windows-leg-only (R-1058): spawns exec-form hook entries exactly as the real platform would;
@@ -363,7 +377,23 @@ const BASE_ENV = (() => {
 })();
 
 // ── main ─────────────────────────────────────────────────────────────────────────────────────
-const files = shardFiles(collect(), shard, rel);
+let collected = collect();
+if (packArgs.length) {
+	try {
+		const { selectPackFiles } = await import("./test-packs.mjs");
+		const selected = await selectPackFiles({ root, files: collected.map(rel), packs: packArgs[0].slice(PACK_FLAG.length).split(","), changedFrom: changedArgs[0]?.slice(CHANGED_FROM_FLAG.length) ?? null });
+		packRun = { packs: selected.packs, selection: selected.selection, complete: !filters.length && !selfTest };
+		if (selected.selection.failSafe) console.log(`[packs] fail-safe: ${selected.selection.failSafe}`);
+		for (const item of selected.selection.changedTests) console.log(`[packs] test ${item.path}: ${item.reasons.join("; ")}`);
+		for (const item of selected.selection.module) console.log(`[packs] module ${item.path}: ${item.reasons.join("; ")}`);
+		console.log(`[packs] ${selected.packs.join(",")}: ${selected.files.length} selected files`);
+		collected = selected.files.map(file => path.join(root, file));
+	} catch (error) {
+		console.log(`[packs] ${error.message}`);
+		process.exit(1);
+	}
+}
+const files = shardFiles(collected.filter(file => !filters.length || filters.some(filter => rel(file).includes(filter))), shard, rel);
 scratch = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-runner-${process.pid}-`));
 const trackedSnapshot = () => {
 	const listed = spawnSync("git", ["ls-files", "-s", "-z"], { cwd: root, encoding: "buffer" });
@@ -639,6 +669,7 @@ if (suiteRecordFile) {
 			schema: RECORD_SCHEMA,
 			filters,
 			...(shard ? { shard } : {}),
+			...(packRun ? { packRun } : {}),
 			files: suiteFiles.filter(Boolean),
 			unnamedFailures,
 			exitCode: finalExitCode,

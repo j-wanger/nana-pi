@@ -21,7 +21,7 @@ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const shared = path.join(repo, "templates", "_shared");
-const { PACK_STARTER, CLAUDE_IMPORT } = await import(new URL("../lib/project.mjs", import.meta.url).href);
+const { CLAUDE_IMPORT } = await import(new URL("../lib/project.mjs", import.meta.url).href);
 
 let fails = 0;
 let passes = 0;
@@ -71,7 +71,7 @@ function walk(dir) {
 	const { dir, home } = freshProject();
 	const first = run(["project", dir, "--home", home]);
 	check("project exits 0", first.status === 0, first.stderr);
-	for (const rel of ["OBJECTIVE.md", "HANDOFF.md", "docs/sessions/README.md", `docs/sessions/${stamp.slice(0, 7)}.md`, "AGENTS.md", ".pi/nana-pack.json"]) {
+	for (const rel of ["OBJECTIVE.md", "HANDOFF.md", "docs/sessions/README.md", `docs/sessions/${stamp.slice(0, 7)}.md`, "AGENTS.md"]) {
 		// req: R-327
 		check(`created ${rel}`, fs.existsSync(path.join(dir, ...rel.split("/"))));
 	}
@@ -83,8 +83,7 @@ function walk(dir) {
 	// req: R-988
 	check("project-created AGENTS stub wraps the section in both markers", /<!-- nana:working-under-nana-pi begin -->[\s\S]*<!-- nana:working-under-nana-pi end -->/.test(read(path.join(dir, "AGENTS.md"))));
 	check("AGENTS.md has the empty Layout + Rules sections", /## Layout\n/.test(read(path.join(dir, "AGENTS.md"))) && /## Rules that don't move\n/.test(read(path.join(dir, "AGENTS.md"))));
-	// req: R-330
-	check("pack starter is an empty postEdit list", JSON.parse(read(path.join(dir, ".pi", "nana-pack.json"))).postEdit.commands.length === 0);
+	check("pack config is not seeded", !fs.existsSync(path.join(dir, '.pi/nana-pack.json')));
 	// req: R-331
 	check("knowledge refresh is skipped with a reason when there is no index", /knowledge index\s+skipped.*run `nana-setup install` first/.test(first.stdout), first.stdout);
 
@@ -109,16 +108,15 @@ function walk(dir) {
 
 	// The seeded empty checker set and undecided trust are explicit warnings.
 	const seededCheck = run(["project", dir, "--check", "--home", home]);
-	check("project --check warns on an empty checker set and undecided trust", seededCheck.status === 1 && /! post-edit commands.*empty/.test(seededCheck.stdout) && /! project trust.*nana-setup trust/.test(seededCheck.stdout), seededCheck.stdout);
-	// req: R-673
-	check("--check summarizes effective warnings with actionable repairs", /effective-state warnings:[\s\S]*post-edit commands:.*configure real postEdit\.commands[\s\S]*project trust:.*nana-setup trust/.test(seededCheck.stdout) && !/missing — run: nana-setup project/.test(seededCheck.stdout), seededCheck.stdout);
+	check("project --check accepts defaults without config", seededCheck.status === 0 && !/post-edit|project trust/.test(seededCheck.stdout), seededCheck.stdout);
+	check("--check summarizes healthy defaults", /all good/.test(seededCheck.stdout), seededCheck.stdout);
 	const currentMonth = path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`);
 	fs.unlinkSync(currentMonth);
 	const olderMonth = path.join(dir, "docs", "sessions", "2001-01.md");
 	fs.writeFileSync(olderMonth, "# historical log\n");
 	const oldLogCheck = run(["project", dir, "--check", "--home", home]);
 	// req: R-395
-	check("project --check accepts an existing prior-month YYYY-MM log", oldLogCheck.status === 1 && /✓ docs\/sessions\/YYYY-MM\.md\s+2001-01\.md/.test(oldLogCheck.stdout) && !/✗ docs\/sessions\//.test(oldLogCheck.stdout), oldLogCheck.stdout);
+	check("project --check accepts an existing prior-month YYYY-MM log", oldLogCheck.status === 0 && /✓ docs\/sessions\/YYYY-MM\.md\s+2001-01\.md/.test(oldLogCheck.stdout) && !/✗ docs\/sessions\//.test(oldLogCheck.stdout), oldLogCheck.stdout);
 	fs.unlinkSync(olderMonth);
 	const impossibleMonth = path.join(dir, "docs", "sessions", "2026-99.md");
 	fs.writeFileSync(impossibleMonth, "# impossible month\n");
@@ -170,7 +168,7 @@ function walk(dir) {
 	check("CLAUDE.md-only: no AGENTS.md written", !fs.existsSync(path.join(dir, "AGENTS.md")));
 	check("CLAUDE.md-only: the file is untouched", read(path.join(dir, "CLAUDE.md")) === "MY CLAUDE\n");
 	const claudeCheck = run(["project", dir, "--check", "--home", home]);
-	check("CLAUDE.md-only: --check keeps the navigation file healthy while warning about empty checkers", claudeCheck.status === 1 && /✓ AGENTS\.md\s+CLAUDE\.md/.test(claudeCheck.stdout) && /! post-edit commands/.test(claudeCheck.stdout));
+	check("CLAUDE.md-only: --check keeps the navigation file healthy", claudeCheck.status === 0 && /✓ AGENTS\.md\s+CLAUDE\.md/.test(claudeCheck.stdout));
 }
 
 /* --- 5. an empty project postEdit block must not shadow user-scope commands ---------- */
@@ -179,10 +177,8 @@ function walk(dir) {
 	fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 	fs.writeFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{ match: "\\.py$", run: "ruff check {file}" }] } }));
 	const r = run(["project", dir, "--home", home]);
-	// req: R-330
 	check("no project pack config written over user-scope commands", !fs.existsSync(path.join(dir, ".pi", "nana-pack.json")));
-	// req: R-330
-	check("and the reason is reported", /would shadow them here/.test(r.stdout), r.stdout);
+	check("and the reason is reported", /not needed/.test(r.stdout), r.stdout);
 }
 
 {
@@ -191,17 +187,16 @@ function walk(dir) {
 	fs.mkdirSync(path.dirname(userConfig), { recursive: true });
 	fs.writeFileSync(userConfig, `\uFEFF${JSON.stringify({ postEdit: { commands: [{ match: "\\.mjs$", run: "node --check {file}" }] } })}`);
 	const result = run(["project", dir, "--home", home]);
-	// req: R-1582
-	check("project skips .pi/nana-pack.json when a user nana-pack.json saved with a byte-order mark has postEdit.commands", !fs.existsSync(path.join(dir, ".pi", "nana-pack.json")) && /would shadow them here/.test(result.stdout), result.stdout);
+	check("project omits config even with a byte-order-mark user config", !fs.existsSync(path.join(dir, ".pi", "nana-pack.json")) && /not needed/.test(result.stdout), result.stdout);
 }
 
 {
 	const { dir, home } = freshProject();
 	run(["project", dir, "--home", home]);
+	fs.mkdirSync(path.join(dir, '.pi'), { recursive: true });
 	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), `\uFEFF${JSON.stringify({ postEdit: { commands: [{ match: "\\.mjs$", run: "node --check {file}" }] } })}`);
 	const result = run(["project", dir, "--check", "--home", home]);
-	// req: R-1583
-	check("--check counts post-edit commands from a .pi/nana-pack.json saved with a byte-order mark", /✓ post-edit commands\s+1 effective checker command\(s\)/.test(result.stdout), result.stdout);
+	check("--check accepts a legacy config saved with a byte-order mark", /✓ \.pi\/nana-pack\.json\s+file present/.test(result.stdout) && !/post-edit/.test(result.stdout), result.stdout);
 }
 
 {
@@ -211,21 +206,21 @@ function walk(dir) {
 	runCase(["project", projectCase.dir, "--home", projectCase.home], projectCase.home);
 	const projectConfig = path.join(projectCase.dir, ".pi", "nana-pack.json");
 	const text = JSON.stringify({ postEdit: { commands: [{ match: "\\.mjs$", run: "node --check {file}" }] } });
+	fs.mkdirSync(path.dirname(projectConfig), { recursive: true });
 	fs.writeFileSync(projectConfig, text);
 	const projectUtf8 = configRows(runCase(["project", projectCase.dir, "--check", "--home", projectCase.home], projectCase.home).stdout);
 	fs.writeFileSync(projectConfig, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]));
 	const projectUtf16 = configRows(runCase(["project", projectCase.dir, "--check", "--home", projectCase.home], projectCase.home).stdout);
 	const userCase = freshProject("utf16-user-config");
 	runCase(["project", userCase.dir, "--home", userCase.home], userCase.home);
-	fs.rmSync(path.join(userCase.dir, ".pi", "nana-pack.json"));
+	fs.rmSync(path.join(userCase.dir, ".pi", "nana-pack.json"), { force: true });
 	const userConfig = path.join(userCase.home, ".pi", "agent", "nana-pack.json");
 	fs.mkdirSync(path.dirname(userConfig), { recursive: true });
 	fs.writeFileSync(userConfig, text);
 	const userUtf8 = configRows(runCase(["project", userCase.dir, "--check", "--home", userCase.home], userCase.home).stdout);
 	fs.writeFileSync(userConfig, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]));
 	const userUtf16 = configRows(runCase(["project", userCase.dir, "--check", "--home", userCase.home], userCase.home).stdout);
-	// req: R-2234
-	check("--check counts post-edit commands from a UTF-16LE project or user nana-pack.json as from UTF-8", projectUtf8.length === 2 && userUtf8.length === 2 && JSON.stringify(projectUtf16) === JSON.stringify(projectUtf8) && JSON.stringify(userUtf16) === JSON.stringify(userUtf8), JSON.stringify({ projectUtf8, projectUtf16, userUtf8, userUtf16 }));
+	check("--check preserves presence rows across UTF-16LE and UTF-8", projectUtf8.length === 1 && userUtf8.length === 1 && JSON.stringify(projectUtf16) === JSON.stringify(projectUtf8) && JSON.stringify(userUtf16) === JSON.stringify(userUtf8), JSON.stringify({ projectUtf8, projectUtf16, userUtf8, userUtf16 }));
 }
 
 /* --- 6. dry run writes nothing -------------------------------------------------------- */
@@ -254,8 +249,9 @@ function walk(dir) {
 	check("directory at a seed path: reported as skipped", /HANDOFF\.md\s+skipped\s+a directory is there/.test(r.stdout), r.stdout);
 	check("the seeds that WERE absent still landed", fs.existsSync(path.join(dir, "docs", "sessions", "README.md")));
 
-	// req: R-673
-	check("--check warns when effective post-edit commands are empty", /! post-edit commands.*empty/.test(run(["project", dir, "--check", "--home", home]).stdout));
+	check("--check omits legacy checker judgement", !/post-edit/.test(run(["project", dir, "--check", "--home", home]).stdout));
+	fs.mkdirSync(path.join(dir, '.pi'), { recursive: true });
+	fs.writeFileSync(path.join(dir, '.pi/nana-pack.json'), '{}');
 	// req: R-674
 	check("--check warns when project config has no affirmative trust decision", /! project trust.*nana-setup trust/.test(run(["project", dir, "--check", "--home", home]).stdout));
 	const npmRoot = spawnNpmRoot().stdout.trim();
@@ -265,11 +261,9 @@ function walk(dir) {
 	// req: R-674
 	check("--check reads trust from its explicit layout without rewriting process environment", /✓ project trust.*affirmative/.test(trustCheck.stdout), trustCheck.stdout);
 	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{ match: "(?!)", run: "your-formatter {file}" }] } }));
-	// req: R-673
-	check("--check warns when post-edit commands are still the starter placeholder", /! post-edit commands.*starter placeholder/.test(run(["project", dir, "--check", "--home", home]).stdout));
+	check("--check ignores starter placeholder", !/post-edit/.test(run(["project", dir, "--check", "--home", home]).stdout));
 	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{}, { match: "[", run: "bad" }, { match: ".*" }] } }));
-	// req: R-673
-	check("--check warns when all malformed post-edit commands are dropped", /! post-edit commands.*empty/.test(run(["project", dir, "--check", "--home", home]).stdout));
+	check("--check ignores malformed legacy commands", !/post-edit/.test(run(["project", dir, "--check", "--home", home]).stdout));
 
 	// ...and --check must NOT print ✓ over the thing setup refused to write: the objective
 	// still cannot be read (sol r2).
@@ -319,9 +313,7 @@ function walk(dir) {
 	check("SKILL.md: says the name is data, never pasted into the command text", /name is DATA/.test(skillText) && /environment variable, never in the command\s*\n?\s*text/.test(skillText));
  // req: R-591
  check("SKILL.md: names the skill-relative canonical shared source and it resolves", (skillText.match(/\.\.\/\.\.\/\.\.\/\.\.\/templates\/_shared\//g) ?? []).length >= 4 && fs.existsSync(path.resolve(path.dirname(skillFile), "../../../../templates/_shared/working-under-nana-pi.md")) && /Only when this canonical path is absent on\s+disk may you render a throwaway scaffold/.test(skillText));
- const starter = skillText.match(/^[ \t]*```json\n([\s\S]*?)\n[ \t]*```/m);
- // req: R-592
- check("SKILL.md starter equals nana-setup project's PACK_STARTER", Boolean(starter) && JSON.stringify(JSON.parse(starter[1])) === JSON.stringify(JSON.parse(PACK_STARTER)), `${starter?.[1]} != ${PACK_STARTER}`);
+ check("project no longer exports a pack starter", !Object.hasOwn(await import('../lib/project.mjs'), 'PACK_STARTER'));
 }
 
 /* --- 8. --check mirrors what setup decided, never fails a deliberate state ------------ */
@@ -337,7 +329,7 @@ function walk(dir) {
 	check("inside a repo: no nested git init", !fs.existsSync(path.join(inner, ".git")) && /inside .* already — no nested repo created/.test(setup.stdout), setup.stdout);
 	const c1 = run(["project", inner, "--check", "--home", home]);
 	// req: R-336
-	check("--check: a folder inside a repo reads ✓ with the reason", c1.status === 1 && /✓ git repo\s+inside .* — no nested repo, by design/.test(c1.stdout) && /! post-edit commands/.test(c1.stdout), c1.stdout);
+	check("--check: a folder inside a repo reads ✓ with the reason", c1.status === 0 && /✓ git repo\s+inside .* — no nested repo, by design/.test(c1.stdout) && !/post-edit commands/.test(c1.stdout), c1.stdout);
 
 	// b. pack config deliberately omitted because user-scope postEdit.commands exist
 	const { dir, home: home2 } = freshProject();
@@ -346,7 +338,7 @@ function walk(dir) {
 	run(["project", dir, "--home", home2]);
 	const c2 = run(["project", dir, "--check", "--home", home2]);
 	// req: R-336
-	check("--check: a deliberately omitted pack config reads ✓ with the reason", c2.status === 0 && /✓ \.pi\/nana-pack\.json\s+omitted on purpose/.test(c2.stdout), c2.stdout);
+	check("--check: a deliberately omitted pack config reads ✓ with the reason", c2.status === 0 && /✓ \.pi\/nana-pack\.json\s+not needed/.test(c2.stdout), c2.stdout);
 	check("--check: the CLAUDE.md import reads ✓", /✓ CLAUDE\.md\s+the one-line import @AGENTS\.md/.test(c2.stdout), c2.stdout);
 
 	// ...and ONLY when it resolves to THIS project's AGENTS.md (sol r3). Three bad shapes:
@@ -377,7 +369,7 @@ function walk(dir) {
 	// and it is still ✗ when it is simply missing for no reason
 	const { dir: bare } = freshProject();
 	const c3 = run(["project", bare, "--check", "--home", path.join(tmp("nana-home-"), "h")]);
-	check("--check: a missing pack config with no reason is still ✗", c3.status === 1 && /✗ \.pi\/nana-pack\.json/.test(c3.stdout), c3.stdout);
+	check("--check: a missing pack config is not a missing seed", c3.status === 1 && /✓ \.pi\/nana-pack\.json/.test(c3.stdout), c3.stdout);
 }
 
 /* --- 9. the knowledge refresh tells the truth: a held lock is not a rebuild ----------- */

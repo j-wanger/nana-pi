@@ -112,7 +112,7 @@ function setupRows(stdout) {
 	const ok = docsRun.status === 0 && piRun.status === 0
 		&& hasRow(docsRun.stdout, "–", "docs/sessions/README.md", "a file at docs")
 		&& hasRow(docsRun.stdout, "–", monthSeed, "a file at docs")
-		&& fs.existsSync(path.join(docs.dir, "OBJECTIVE.md")) && fs.existsSync(path.join(docs.dir, ".pi", "nana-pack.json"))
+		&& fs.existsSync(path.join(docs.dir, "OBJECTIVE.md")) && !fs.existsSync(path.join(docs.dir, ".pi", "nana-pack.json"))
 		&& hasRow(piRun.stdout, "–", ".pi/nana-pack.json", "a symlink -> missing-pi at \\.pi")
 		&& fs.existsSync(path.join(pi.dir, "OBJECTIVE.md")) && fs.existsSync(path.join(pi.dir, "docs", "sessions", `${month}.md`));
 	// req: R-2420

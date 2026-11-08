@@ -4,6 +4,11 @@ on:
     branches: [main]
   pull_request:
 
+# chosen 2026-11-07 (R-3853): cancel only a superseded PR, never a main push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
@@ -65,7 +70,7 @@ jobs:
         # chosen 2026-11-07 (R-3817): three shards from the plan's measured Windows
         # 1,790–1,860 s at four jobs; ideal 597–620 s leaves room below 20 min for skew.
         # contract (R-3824): select jobs, not steps, so PRs allocate no Windows runner.
-        include: ${{ fromJSON(github.event_name == 'push' && '[{"os":"macos-latest","leg":"macos-latest","shard":""},{"os":"ubuntu-latest","leg":"ubuntu-latest","shard":""},{"os":"windows-latest","leg":"windows-latest-shard-1-of-3","shard":"1/3"},{"os":"windows-latest","leg":"windows-latest-shard-2-of-3","shard":"2/3"},{"os":"windows-latest","leg":"windows-latest-shard-3-of-3","shard":"3/3"}]' || '[{"os":"macos-latest","leg":"macos-latest","shard":""},{"os":"ubuntu-latest","leg":"ubuntu-latest","shard":""}]') }}
+        include: ${{ fromJSON(github.event_name == 'push' && '[{"os":"macos-latest","leg":"macos-latest","shard":""},{"os":"ubuntu-latest","leg":"ubuntu-latest","shard":""},{"os":"windows-latest","leg":"windows-latest-shard-1-of-3","shard":"1/3"},{"os":"windows-latest","leg":"windows-latest-shard-2-of-3","shard":"2/3"},{"os":"windows-latest","leg":"windows-latest-shard-3-of-3","shard":"3/3"}]' || '[{"os":"macos-latest","leg":"macos-latest","shard":""}]') }}
     runs-on: ${{ matrix.os }}
     # chosen 2026-10-20 (R-2061): 90 minutes, not GitHub's 360-minute default, so a hung leg stops
     # within 90 minutes. Measured job wall times, every CI run from 2026-10-16 to 2026-10-20: slowest
@@ -103,11 +108,12 @@ jobs:
       - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"
       - name: Verify pi version
         run: test "$(pi --version)" = "${PI_VERSION}"
-      - run: npm test -- --jobs=${{ env.NANA_CI_JOBS }}
+      # contract (R-3853, R-3857): retire stays on main; the runner adds release on release-path hits.
+      - run: npm test -- --jobs=${{ env.NANA_CI_JOBS }} --pack=${{ github.event_name == 'push' && 'land,main,module,retire' || 'land,module' }} ${{ github.event_name == 'pull_request' && '--changed-from=origin/main' || '' }}
         if: matrix.os != 'windows-latest'
         env:
           NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
-      - run: npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }} --shard=${{ matrix.shard }}
+      - run: npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }} --shard=${{ matrix.shard }} --pack=land,main,module,retire
         if: matrix.os == 'windows-latest'
         env:
           NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
@@ -166,4 +172,4 @@ jobs:
         run: test "$(pi --version)" = "${PI_VERSION}"
       - run: git config user.name "github-actions[bot]"
       - run: git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - run: node scripts/template-release.mjs --push
+      - run: npm run release -- --push

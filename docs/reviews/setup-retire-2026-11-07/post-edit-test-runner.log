@@ -1,0 +1,6 @@
+FAIL  packages/nana-pack/tests/test-runner-parallel.test.mjs  10 pass, 1 fail  32.6s  — exit 1
+      | FAIL R-1474: the run-alone list names only collected test files, each with a reason packages/nana-knowledge/tests/hook.test.mjs, packages/nana-knowledge/tests/extension.test.mjs, packages/nana-pack/tests/bounded-read.test.mjs, packages/nana-pack/tests/test-locked.test.mjs, packages/nana-pack/tests/post-edit-utf8.test.mjs, packages/nana-pack/tests/review-ledger.test.mjs, packages/nana-setup/tests/hook-deadlines.test.mjs, packages/nana-pack/tests/adoption-reader.test.mjs
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  30.0s
+
+2 files: 1 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 63 pass, 1 fail, 0 skip · 63.0s
+failed: packages/nana-pack/tests/test-runner-parallel.test.mjs

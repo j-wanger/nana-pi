@@ -29,7 +29,7 @@ check("root CI runs the suite on macOS, Linux, and Windows and gates tag release
   assert.match(workflow, /^    permissions:\n      contents: write/m);
   assert.match(workflow, /^    concurrency:\n      group: template-release\n      cancel-in-progress: false/m);
   assert.match(workflow, /^        with:\n          fetch-depth: 0/m);
-  assert.match(workflow, /^      - run: git config user\.name "github-actions\[bot\]"\n      - run: git config user\.email "41898282\+github-actions\[bot\]@users\.noreply\.github\.com"\n      - run: node scripts\/template-release\.mjs --push/m);
+  assert.match(workflow, /^      - run: git config user\.name "github-actions\[bot\]"\n      - run: git config user\.email "41898282\+github-actions\[bot\]@users\.noreply\.github\.com"\n      - run: npm run release -- --push/m);
   assert(workflow.indexOf("pi --version") < workflow.indexOf("npm test"));
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
   const release = workflow.match(/^  release:\n([\s\S]*)$/m)?.[1] ?? "";
@@ -197,7 +197,7 @@ check("R-1531: a failing Linux suite leg alone does not stop the release job", (
 // req: R-1313
 check("R-1313: the Windows suite leg runs the suite verbose", () => {
   const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
-  assert.match(suite, /^      - run: npm test -- --verbose --jobs=\$\{\{ env\.NANA_CI_JOBS \}\} --shard=\$\{\{ matrix\.shard \}\}\n        if: matrix\.os == 'windows-latest'$/m);
+  assert.match(suite, /^      - run: npm test -- --verbose --jobs=\$\{\{ env\.NANA_CI_JOBS \}\} --shard=\$\{\{ matrix\.shard \}\} --pack=land,main,module,retire\n        if: matrix\.os == 'windows-latest'$/m);
   assert.match(suite, /^      - run: npm test -- --verbose --jobs=/m);
 });
 // req: R-2556
@@ -391,8 +391,8 @@ check("main pushes run the full suite on all systems without path filters or iss
   assert.doesNotMatch(suite, /^    if:/m);
   const commands = [...suite.matchAll(/^      - run: (npm test[^\n]*)\n        if: ([^\n]*)/gm)];
   assert.deepEqual(commands.map((m) => [m[1], m[2]]), [
-    ["npm test -- --jobs=${{ env.NANA_CI_JOBS }}", "matrix.os != 'windows-latest'"],
-    ["npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }} --shard=${{ matrix.shard }}", "matrix.os == 'windows-latest'"],
+    ["npm test -- --jobs=${{ env.NANA_CI_JOBS }} --pack=${{ github.event_name == 'push' && 'land,main,module,retire' || 'land,module' }} ${{ github.event_name == 'pull_request' && '--changed-from=origin/main' || '' }}", "matrix.os != 'windows-latest'"],
+    ["npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }} --shard=${{ matrix.shard }} --pack=land,main,module,retire", "matrix.os == 'windows-latest'"],
   ]);
 });
 if (failures) process.exitCode = 1;

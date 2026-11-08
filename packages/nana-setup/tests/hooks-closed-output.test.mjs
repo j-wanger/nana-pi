@@ -99,16 +99,6 @@ const cases = [
 		hook: "nana-roster-notice.mjs",
 		input: JSON.stringify({ source: "startup" }),
 	},
-	{
-		row: "R-1944",
-		title: "verifier hook ignores a closed stdout and exits 0",
-		hook: "verifier-pipe.mjs",
-		input: JSON.stringify({
-			hook_event_name: "PreToolUse",
-			tool_name: "Bash",
-			tool_input: { command: "npm test | tail -1 && git commit -m done" },
-		}),
-	},
 ];
 
 for (const testCase of cases) {
@@ -133,19 +123,7 @@ for (const testCase of cases) {
 			// req: R-1943
 			check("roster-notice hook ignores a closed stdout and exits 0", ok, open, closed);
 			break;
-		case "R-1944":
-			// req: R-1944
-			check("verifier hook ignores a closed stdout and exits 0", ok, open, closed);
-			break;
 	}
-}
-
-{
-	const script = path.join(hooksDir, "verifier-pipe.mjs");
-	const open = await run(script, [], env, "not json", null);
-	const closed = await run(script, [], env, "not json", "stderr");
-	// req: R-2014
-	check("verifier hook ignores a closed stderr and exits 0", open.code === 0 && /nana verifier-pipe:/.test(open.stderr) && closed.code === 0 && !open.timedOut && !closed.timedOut, open, closed);
 }
 
 {

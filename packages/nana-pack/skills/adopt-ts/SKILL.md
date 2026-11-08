@@ -1,6 +1,6 @@
 ---
 name: adopt-ts
-description: Retrofit the nana-pi TypeScript stack (strict tsconfig + Biome + Vitest, post-edit gates, copier drift tracking) onto an EXISTING TypeScript/Node project. Use when the user wants to adopt/retrofit/apply the nana standards to a project that already has code.
+description: Retrofit the nana-pi TypeScript stack (strict tsconfig + Biome + Vitest, manual checks, copier drift tracking) onto an EXISTING TypeScript/Node project. Use when the user wants to adopt/retrofit/apply the nana standards to a project that already has code.
 ---
 
 # Adopt the TypeScript stack in an existing project
@@ -31,7 +31,7 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    lint/format stack (ESLint/Prettier/Biome), test runner, layout, CI. Note
    whether the project is ESM or CJS and whether `strict` is already on.
 2. **Present the plan and get an OK** — what lands (tsconfig pins, biome.json,
-   `.pi` post-edit preset, CI, root AGENTS.md, answers file, and the
+   manual checks, CI, root AGENTS.md, answers file, and the
    requirements rail: `REQUIREMENTS.md`, the map and readme-check generators and four tests under
    `tests/` — see step 3), what gets merged
    (their package.json fields/deps with the pinned scripts + devDeps), what is
@@ -40,19 +40,14 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    otherwise take the **keep-your-linter path** below.
 
    **Keep-your-linter path** (they said no to Biome). Excluding `biome.json` is
-   NOT enough on its own: Biome runs fine with no config file, and the post-edit
-   preset's `biome check --write` REWRITES every file the agent edits — their
-   formatter and Biome would fight over the same bytes. All three of these:
+   NOT enough on its own: Biome runs fine without that file. Do all three:
    - add `-x biome.json` to the overlay command in step 3;
-   - in step 4, delete the `biome check --write` entry from
-     `.pi/nana-pack.json` and put their own format/lint command in its place
-     (keep the size-cap and `tsc --noEmit` entries);
+   - in step 4, adapt AGENTS.md's manual lint and format commands to their tools;
    - in step 4, do NOT add the `@biomejs/biome` devDep, and leave the `lint` /
      `format` scripts pointing at their tools.
 
-   Record the deviation in AGENTS.md (a future `copier update` may re-emit
-   `biome.json` and the Biome post-edit command — remove them again; the note
-   stays).
+   Record the deviation in AGENTS.md; a future `copier update` may re-emit
+   `biome.json` and the manual Biome commands, so reconcile them again.
 3. **Overlay**:
 
    ```bash
@@ -65,7 +60,7 @@ the reconciliation surface — nothing is lost because the tree starts clean.
    Adopt mode emits the configs AND the requirements rail — no source code:
 
    - configs: package.json, tsconfig + tsconfig.build, biome.json, CI, root
-     AGENTS.md, `.pi/nana-pack.json`, `.copier-answers.yml`;
+     AGENTS.md, `.copier-answers.yml`;
    - `REQUIREMENTS.md` with the standard general-engineering feature, every G row
      `untested` and no product rows — the project's own behaviour is step 7's
      work;
@@ -83,7 +78,6 @@ Files written by an adopt render into an empty folder:
 - `.copier-answers.yml`
 - `.github/workflows/ci.yml`
 - `.gitignore`
-- `.pi/nana-pack.json`
 - `AGENTS.md`
 - `HANDOFF.md` (written only when absent)
 - `OBJECTIVE.md` (written only when absent)
@@ -123,11 +117,8 @@ First two steps:
    - `tsconfig.build.json`: adapt to how they actually build (outDir/rootDir/
      excludes), or drop it if they build another way — record which.
    - `.gitignore`: union of theirs and the template's.
-   - `.pi/nana-pack.json`: rewrite the `pnpm exec` runner prefixes to their
-     package manager (npm → `npx`, yarn → `yarn exec`) — until this is done,
-     every edit fires failing post-edit commands. Merge any pre-existing
-     postEdit list. On the keep-your-linter path, swap the
-     `biome check --write` entry for their own format/lint command.
+   - Leave any existing .pi/nana-pack.json byte-identical; legacy checker
+     lists do nothing. No starter is emitted; gate patterns still need trust.
    - `pnpm-workspace.yaml`: ensure it carries this valid YAML block (create the file with only this setting if absent):
 
      ```yaml
@@ -175,8 +166,19 @@ First two steps:
    features that the owner approves. Generate the real map once (`node scripts/code-map.mjs`). Expect
    general-engineering feature rows to land `violated` on a legacy codebase — that is the honest
    state and the ratchet list, same as the `@ts-expect-error` escapes.
-8. **Validate**: install with their package manager, then typecheck + lint +
-   test all green.
+8. **Validate**: install with their package manager, then run these manual
+   checks before committing, adapting pnpm to their package manager and Biome
+   to their linter when retained. Nana runs no per-edit checks. Replace `{file}`
+   with each changed TypeScript file, quoted for your shell.
+
+- **Manual lint:** `pnpm exec biome check .`
+- **Manual format:** `pnpm exec biome check --write {file}` (repair lint and formatting)
+- **Manual types:** `pnpm exec tsc --noEmit`
+- **Manual tests:** `pnpm test`
+- **Manual map:** `node scripts/code-map.mjs --check`
+- **Manual readme:** `node scripts/readme-check.mjs`
+- **Manual length:** `node -e "const s = require('fs').readFileSync(process.argv[1], 'utf8'); const n = s.split(/\r?\n/).length - (s.endsWith('\n') ? 1 : 0); if (n > 300) { console.error(process.argv[1] + ': ' + n + ' lines exceeds the 300-line file cap - split it'); process.exit(1); }" {file}`
+
 9. **Commit the adoption as one commit** (including `.copier-answers.yml` —
    the update relationship needs it git-tracked), then prove the
    relationship: `uvx copier update --pretend --defaults` runs clean.

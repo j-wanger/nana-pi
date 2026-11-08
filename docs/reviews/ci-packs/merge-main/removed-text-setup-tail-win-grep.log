@@ -1,0 +1,4 @@
+"await check('M2: reviewer entry points suppress fixture credential dispatch', () => matrix(['pi-review', 'claude-review']));" []
+"const root = tmpDir(path.join(os.tmpdir(), 'setup-tail-'));" []
+'| R-3661 | WHEN pi-review or claude-review launches a reviewer, its spawn and Claude settings environment shall prevent git credential dispatch from obtaining a password or invoking the fixture helper or askpass. | implemented | `packages/nana-pack/tests/credential-strip.test.mjs::M2: reviewer entry points suppress fixture credential dispatch`; Claude reviewer fixture applies conflicting settings env before lookup (review round 1 fix) |' []
+'| R-3887 | Both language scaffolds and copier updates shall omit fresh postEdit blocks while preserving an edited existing pack config or removing only an untouched template copy. | implemented | `packages/nana-setup/tests/setup-tail.test.mjs::M3: fresh scaffolds omit pack config and updates preserve project bytes` |' []

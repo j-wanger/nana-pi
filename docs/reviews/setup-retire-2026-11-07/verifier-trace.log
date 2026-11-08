@@ -1,0 +1,84 @@
+requirements: 2625 total (2057 implemented · 14 planned · 423 retired · 128 untested · 3 violated); 2069 traced by tests
+ears: 0 rows off form (allowance 0)
+PASS ears: the CLI prints the report line right after the summary line, naming the count and the allowance 
+FAIL REQUIREMENTS.md and the markers the suite carries agree 
+  R-1051 cites 'packages/nana-setup/tests/settings-merge.test.mjs::win32 desiredHooks: the five hook entries name packages/nana-setup/claude/hooks/' but no test with that title carries '// req: R-1051'
+  R-1055 cites 'packages/nana-setup/tests/win32-degrade.test.mjs::win32 doctor: a correctly-targeted entry under the wrong matcher reads ✗' but no test with that title carries '// req: R-1055'
+  R-1058 cites 'packages/nana-setup/tests/hooks-win32-exec.test.mjs::verifier: exit 0 within its own timeout, no module-resolution error' but no test with that title carries '// req: R-1058'
+  R-1074 cites 'packages/nana-setup/tests/install-check.test.mjs::matcher: list separators admit only the exact listed tools' but no test with that title carries '// req: R-1074'
+  R-1074 cites 'packages/nana-setup/tests/install-check.test.mjs::matcher: ^Bash$ admits Bash' but no test with that title carries '// req: R-1074'
+  R-1074 cites 'packages/nana-setup/tests/install-check.test.mjs::matcher: NotBash does not admit Bash' but no test with that title carries '// req: R-1074'
+  R-1074 cites 'packages/nana-setup/tests/install-check.test.mjs::matcher: win32 requires PowerShell in the verifier matcher' but no test with that title carries '// req: R-1074'
+  R-1077 is 'implemented' but no test carries '// req: R-1077' and its evidence is not external
+  R-1077 cites 'packages/nana-setup/tests/install-check.test.mjs::verifier: an allow decision fails' but no test with that title carries '// req: R-1077'
+  R-1077 cites 'packages/nana-setup/tests/install-check.test.mjs::verifier: a missing hookEventName fails' but no test with that title carries '// req: R-1077'
+  R-1077 cites 'packages/nana-setup/tests/install-check.test.mjs::verifier: malformed JSON fails' but no test with that title carries '// req: R-1077'
+  R-1077 cites 'packages/nana-setup/tests/install-check.test.mjs::verifier: two JSON lines fail' but no test with that title carries '// req: R-1077'
+  R-1077 cites 'packages/nana-setup/tests/install-check.test.mjs::verifier: a miss sample that prints anything fails' but no test with that title carries '// req: R-1077'
+  R-3799 is 'planned' but 1 test(s) trace it; set status to implemented
+  R-3802 is 'planned' but 1 test(s) trace it; set status to implemented
+PASS rail roots equal the package test roots and two app roots collected by npm test 
+PASS no collected test root has nested test files outside fixture directories 
+PASS the rail read the whole file and traced something 
+PASS ears: a two-shall row and a no-shall row are counted, a retired one is not 
+PASS ears: over the allowance each off-form row is a problem, at the allowance none 
+PASS seal: EARS_ALLOWANCE is 0 (G-015) 
+PASS this repo: zero rows off form 
+PASS seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom) 
+PASS R-1000: CRLF ledger and general rows are read and clean 
+PASS R-1000: spaces and tab after closing pipes are read and clean 
+PASS R-1001: CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+PASS R-1000: CRLF test-file marker traces its four-digit row 
+PASS R-1000: both four-digit row prefixes load 
+PASS R-1000: TS markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+PASS R-1000: invalid row ID R-0123 is rejected 
+PASS R-1000: invalid row ID R-10000 is rejected 
+PASS R-1000: invalid row ID R-１２３ is rejected 
+PASS R-1001: missing closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: missing closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: zero-width space after closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: fenced example names REQUIREMENTS.md:6 
+PASS R-1001: fenced example names REQUIREMENTS-general.md:6 
+PASS R-1001: R candidate names REQUIREMENTS.md:5 
+PASS R-1001: R candidate names REQUIREMENTS-general.md:5 
+PASS R-1001: G candidate names REQUIREMENTS.md:5 
+PASS R-1001: G candidate names REQUIREMENTS-general.md:5 
+PASS R-1001: U+2028 inside a cell is read and clean 
+PASS R-1001: U+0085 inside a cell is read and clean 
+PASS R-1001: U+200B after closing pipe names REQUIREMENTS.md:4 
+PASS R-1000: both rails remove exactly one BOM from a double-BOM first-line row 
+PASS R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe read 
+PASS R-1001: a leading BOM before the first row is ignored 
+PASS R-1000: a BOM and comma or U+2028 separated first-line marker list traces 
+PASS R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4 
+PASS R-1000: Python rail reads four-digit R/G rows 
+PASS R-1000: Python row grammar rejects leading-zero, five-digit and non-ASCII IDs 
+PASS R-1000: Python markers accept four-digit R/G and reject zero, five and non-ASCII digits 
+PASS R-1001: Python reads U+0085, U+FEFF and U+00A0 around row cells and after the pipe 
+PASS R-1001: Python ignores a leading BOM before the first row 
+PASS R-1000: Python leaves the second BOM before a double-BOM first-line row 
+PASS R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators 
+PASS R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4 
+PASS R-1001: Python U+2028 inside a cell is read and clean 
+PASS R-1001: Python U+0085 inside a cell is read and clean 
+PASS R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4 
+PASS R-1001: Python CRLF ledger and general rows are read and clean 
+PASS R-1001: Python spaces and tab after closing pipes are read and clean 
+PASS R-1001: Python CRLF row missing its closing pipe fails at REQUIREMENTS.md:4 
+PASS R-1001: Python missing closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: Python missing closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS.md:5 
+PASS R-1001: Python zero-width space after closing pipe names REQUIREMENTS-general.md:5 
+PASS R-1001: Python fenced example names REQUIREMENTS.md:6 
+PASS R-1001: Python fenced example names REQUIREMENTS-general.md:6 
+PASS R-1001: Python R candidate names REQUIREMENTS.md:5 
+PASS R-1001: Python R candidate names REQUIREMENTS-general.md:5 
+PASS R-1001: Python G candidate names REQUIREMENTS.md:5 
+PASS R-1001: Python G candidate names REQUIREMENTS-general.md:5 
+
+1 FAILED
+FAIL  packages/nana-pack/tests/requirements-trace.test.mjs  60 pass, 1 fail  4.3s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 60 pass, 1 fail, 0 skip · 4.7s
+failed: packages/nana-pack/tests/requirements-trace.test.mjs

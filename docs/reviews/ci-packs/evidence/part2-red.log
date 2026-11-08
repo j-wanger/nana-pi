@@ -1,0 +1,7 @@
+FAIL  packages/nana-pack/tests/test-packs-runner.test.mjs  0 pass, 3 fail  1.1s  — exit 1
+      | FAIL M2: pack execution selects exact land and affected module paths with reasons AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL M3: unreadable diffs graph errors and policy changes run all module files Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'scripts/test-packs.mjs' imported from packages/nana-pack/tests/test-packs-runner.test.mjs
+      | FAIL M9: complete-pack locked runs serialize retain records and path filters bypass AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 0 pass, 3 fail, 0 skip · 1.5s
+failed: packages/nana-pack/tests/test-packs-runner.test.mjs

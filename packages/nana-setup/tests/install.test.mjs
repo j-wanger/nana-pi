@@ -18,31 +18,8 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const { commandInvokes, desiredHooks, entryInvokes, hookTargets, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
-const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
-
-/**
- * A minimal, SEPARATE re-implementation of pi-subagents' own documented frontmatter contract
- * (byte 0 is "---", a line starting "---" ends the block) — deliberately not steps.mjs's
- * firstBodyLine(), so this pins the seed's DISCOVERABILITY as a valid agent independently of
- * nana's own helper (astra r1, 2026-10-04, MUST 3b: astra ran the real pi-subagents 0.75.0
- * discovery code against this seed and confirmed these exact frontmatter values).
- */
-function parseFrontmatterIndependently(content) {
-	// CRLF-tolerant: a Windows checkout of the seed starts "---\r\n", not "---\n" (R-1061's own
-	// readers already normalise the same way; this independent parser must not read that as absent).
-	const normalized = content.replace(/\r\n/g, "\n");
-	if (!normalized.startsWith("---\n")) return null;
-	const end = normalized.indexOf("\n---", 4);
-	if (end === -1) return null;
-	const fm = {};
-	for (const line of normalized.slice(4, end).split("\n")) {
-		const m = line.match(/^([\w-]+):\s*(.*)$/);
-		if (m) fm[m[1]] = m[2].trim();
-	}
-	return fm;
-}
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -61,7 +38,7 @@ const tmps = [];
 /** The pi-subagents vendor package nana-setup only READS (never installs — architecture-ruling
  *  §2): every throwaway home seeds it at the floor, the way a real, already-set-up machine has
  *  it, so doctor's version check (R-364) doesn't fail every fixture that isn't testing it. */
-function seedPiSubagents(td, version = PI_SUBAGENTS_FLOOR) {
+function seedPiSubagents(td, version = "0.75.0") {
 	const dir = path.join(td, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(dir, { recursive: true });
 	fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "pi-subagents", version }));
@@ -205,7 +182,7 @@ const winFileCopy = (target, source) => {
 	}
 };
 if (process.platform !== "win32") {
-	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
+	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) {
 		// req: R-301 R-985
 		check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
 	}
@@ -213,7 +190,7 @@ if (process.platform !== "win32") {
 	check("adoption Node hook is installed as a repo symlink", link(path.join(home, ".claude", "hooks", "nana-adoption.mjs")) === path.join(pkg, "claude", "hooks", "nana-adoption.mjs"));
 } else {
 	console.log("SKIP hook symlink checks (win32: stepHooks writes no ~/.claude/hooks file at all — every entry is wired in exec form from the checkout, pinned below by command/args shape)");
-	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
+	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) {
 		// req: R-301 R-985
 		check(`hook ${h} is not installed as a file on win32`, !fs.existsSync(path.join(home, ".claude", "hooks", h)));
 	}
@@ -300,25 +277,6 @@ check("shared memory index seeded", fs.readFileSync(path.join(home, ".claude", "
 check("installer leaves per-project shared-link creation to the SessionStart hook", !fs.existsSync(path.join(home, ".claude", "projects")));
 check("pi nana-pack.json seeded", JSON.parse(fs.readFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), "utf8")).objective.projectFile === "OBJECTIVE.md");
 check("pi nana-objective.md seeded", fs.existsSync(path.join(home, ".pi", "agent", "nana-objective.md")));
-const seededSubagentConfig = JSON.stringify(JSON.parse(fs.readFileSync(path.join(home, ".pi", "agent", "extensions", "subagent", "config.json"), "utf8")));
-const subagentConfigSeed = JSON.stringify(JSON.parse(fs.readFileSync(path.join(pkg, "pi", "subagent-config.seed.json"), "utf8")));
-// req: R-360
-check("subagent config seeded when absent", seededSubagentConfig === subagentConfigSeed);
-const installedReviewerBytes = fs.readFileSync(path.join(home, ".pi", "agent", "agents", "reviewer.md"), "utf8");
-const reviewerSeedBytes = fs.readFileSync(path.join(pkg, "pi", "reviewer.seed.md"), "utf8");
-// req: R-363
-check("reviewer agent seeded when absent (full byte match with the seed)", installedReviewerBytes === reviewerSeedBytes);
-// A file holding only the marker would pass a marker-only check without being the seed, or a
-// discoverable reviewer (astra r1 MUST 3b) — so this independently parses the INSTALLED file's
-// frontmatter and checks the fields pi-subagents' own discovery reads.
-const installedReviewerFrontmatter = parseFrontmatterIndependently(installedReviewerBytes);
-const isValidReviewerAgent =
-	installedReviewerBytes.startsWith("---") &&
-	installedReviewerFrontmatter?.name === "reviewer" &&
-	Boolean(installedReviewerFrontmatter?.description) &&
-	(installedReviewerFrontmatter?.tools ?? "").split(",").map((t) => t.trim()).includes("bash");
-// req: R-363
-check("reviewer agent: valid frontmatter independently parsed (byte 0 is ---, name/description/tools incl. bash)", isValidReviewerAgent, JSON.stringify(installedReviewerFrontmatter));
 // req: R-310
 check("knowledge index built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 // POSIX installs symlinks and exercises link-specific repairs here. Windows installs sh and
@@ -459,10 +417,6 @@ check("existing nana-personal.md untouched", fs.readFileSync(path.join(keep, ".c
 // req: R-309
 check("existing nana-pack.json untouched", fs.readFileSync(path.join(keep, ".pi", "agent", "nana-pack.json"), "utf8") === '{"objective":{"path":"/somewhere/OBJECTIVE.md"}}');
 check("existing nana-objective.md untouched", fs.readFileSync(path.join(keep, ".pi", "agent", "nana-objective.md"), "utf8") === "MY OBJECTIVE\n");
-// req: R-360
-check("existing subagent config.json byte-identical after install", fs.readFileSync(path.join(keep, ".pi", "agent", "extensions", "subagent", "config.json"), "utf8") === '{"forceTopLevelAsync":false}');
-// req: R-363
-check("existing reviewer.md untouched", fs.readFileSync(path.join(keep, ".pi", "agent", "agents", "reviewer.md"), "utf8") === "MY REVIEWER\n");
 
 /* --- 5. the private rule is created only when absent ---------------------------------- */
 const absent = freshHome();

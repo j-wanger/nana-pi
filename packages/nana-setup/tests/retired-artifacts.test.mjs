@@ -16,6 +16,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import testFingerprints from "./fixtures/retired/dev-check-fingerprints.json" with { type: "json" };
 import { stepRetiredArtifacts } from "../lib/steps.mjs";
+import assert from 'node:assert/strict';
 import { resolveLayout } from "../lib/paths.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -38,7 +39,7 @@ function home() {
 	return dir;
 }
 const run = (args, env = process.env) => {
-	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...env, PATH: process.env.PATH } });
+	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", timeout: 20_000, env: { ...env, PATH: process.env.PATH } });
 	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
 };
 const install = (h, extra = []) => run(["install", "--home", h, ...extra]);
@@ -67,6 +68,134 @@ function treeSnapshot(root) {
 	walk(root);
 	return JSON.stringify(entries);
 }
+
+{
+  let timer, problem;
+  try {
+    await Promise.race([Promise.resolve().then(() => {
+      for (const platform of ['darwin', 'win32']) {
+        const h = home();
+        const layout = resolveLayout({ home: h });
+        fs.mkdirSync(layout.hooksDir, { recursive: true });
+        const target = path.join(layout.hooksDir, 'verifier-pipe.mjs');
+        fs.symlinkSync(path.join(pkg, 'claude/hooks/verifier-pipe.mjs'), target);
+        const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
+        const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+        const foreign = { ...shell, timeout: 17 };
+        const groups = [{ matcher: 'Bash', owner: 'keep', hooks: [shell, foreign] }, { matcher: 'Bash|PowerShell', hooks: [exec] }];
+        fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: groups } }));
+        const env = { ...process.env, NANA_SETUP_PLATFORM: platform };
+        const before = run(['doctor', '--home', h], env);
+        if (!before.stdout.split('\n').some(l => l.includes('✗ settings PreToolUse retired hook') && l.includes('verifier-pipe.mjs') && l.includes('nana-setup install'))) throw new Error('doctor must name the retired hook and install fix');
+        const result = run(['install', '--home', h], env);
+        if (result.status !== 0) throw new Error(result.stdout + result.stderr);
+        const after = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
+        if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', owner: 'keep', hooks: [foreign] }])) throw new Error('managed verifier entries survive or foreign siblings changed');
+        if (fs.lstatSync(target, { throwIfNoEntry: false })) throw new Error('retired hook link remains installed');
+      }
+    }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('retirement case timeout')), 20_000); })]);
+  } catch (error) { problem = error.message; }
+  finally { clearTimeout(timer); }
+  // req: R-3799
+  check('M1: install retires released verifier forms and owned links while doctor names the fix', !problem, problem);
+}
+
+{
+  let timer, problem;
+  try {
+    await Promise.race([Promise.resolve().then(() => {
+      if (process.platform === 'win32') return; // uninstall is POSIX-only
+      const h = home();
+      const layout = resolveLayout({ home: h });
+      fs.mkdirSync(layout.claudeHome, { recursive: true });
+      const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
+      const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+      const foreign = { type: 'command', command: 'echo owner', timeout: 9 };
+      fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [shell, foreign] }, { matcher: 'Bash|PowerShell', hooks: [exec] }] } }));
+      for (const [file, source] of [[layout.subagentConfig, 'subagent-config.seed.json'], [layout.reviewerAgent, 'reviewer.seed.md']]) {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.copyFileSync(path.join(pkg, 'pi', 'retired', source), file);
+      }
+      const removed = run(['uninstall', '--yes', '--home', h], { ...process.env, NANA_SETUP_PLATFORM: 'darwin' });
+      if (removed.status !== 0) throw new Error(removed.stdout + removed.stderr);
+      if (fs.existsSync(layout.subagentConfig) || fs.existsSync(layout.reviewerAgent)) throw new Error('unchanged old seeds survived uninstall');
+      const remaining = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
+      if (JSON.stringify(remaining.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign] }])) throw new Error('uninstall left retired wiring or changed siblings');
+      fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [shell, exec, foreign] }] } }));
+      const installed = run(['install', '--home', h]);
+      if (installed.status !== 0) throw new Error(installed.stdout + installed.stderr);
+      const after = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
+      if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign] }])) throw new Error('install left a released verifier form or changed siblings');
+    }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('old-home retirement timeout')), 20_000); })]);
+  } catch (error) { problem = error.message; }
+  finally { clearTimeout(timer); }
+  if (process.platform === 'win32') console.log('SKIP M9: old-home uninstall is POSIX-only');
+  else {
+    // req: R-3807
+    check('M9: old-home uninstall removes retired wiring and unchanged seeds before install preserves only foreign siblings', !problem, problem);
+  }
+}
+
+async function test(title, body) {
+  let timer;
+  try {
+    await Promise.race([Promise.resolve().then(body), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('seed retirement timeout')), 20_000); })]);
+    check(title, true);
+  } catch (error) { check(title, false, error.stack); }
+  finally { clearTimeout(timer); }
+}
+const oldSeeds = layout => [[layout.subagentConfig, 'subagent-config.seed.json'], [layout.reviewerAgent, 'reviewer.seed.md']];
+const seedBytes = name => fs.readFileSync(path.join(pkg, 'pi', 'retired', name));
+
+// req: R-3803
+await test('M5: install retires unchanged seeds without new seeds doctor rows or vendor retries', async () => {
+  for (const platform of ['darwin', 'win32']) {
+    const env = { ...process.env, NANA_SETUP_PLATFORM: platform };
+    for (const old of [false, true]) {
+      const h = home(), layout = resolveLayout({ home: h });
+      if (old) for (const [file, name] of oldSeeds(layout)) {
+        fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, seedBytes(name));
+      }
+      const result = run(['install', '--home', h], env);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      for (const [file] of oldSeeds(layout)) assert.equal(fs.lstatSync(file, { throwIfNoEntry: false }), undefined);
+      const doctor = run(['doctor', '--home', h], env);
+      assert.ok(!/pi (subagent config|reviewer agent|pi-subagents)/.test(doctor.stdout), doctor.stdout);
+    }
+  }
+  const config = await import('../lib/install-check-config.mjs');
+  assert.ok(!('PI_SUBAGENTS_RETRY' in config));
+  assert.ok(!fs.readFileSync(path.join(pkg, 'lib/install-check.mjs'), 'utf8').includes('pi-subagents'));
+});
+
+// req: R-3806
+await test('M8: retirement preserves edited marked foreign and linked seeds and their targets including dry runs', () => {
+  for (const platform of ['darwin', 'win32']) for (const mode of ['edited', 'foreign', 'link', 'parent-link']) {
+    const h = home(), layout = resolveLayout({ home: h });
+    const expected = [];
+    for (const [file, name] of oldSeeds(layout)) {
+      const bytes = mode === 'foreign' ? Buffer.from('owner bytes\r\nwith trailing space \t') : Buffer.concat([seedBytes(name), Buffer.from('\r\nowner edit \t')]);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      if (mode === 'parent-link') {
+        const external = path.join(h, `external-${name}`);
+        fs.mkdirSync(external); fs.rmdirSync(path.dirname(file)); fs.symlinkSync(external, path.dirname(file), 'junction');
+        fs.writeFileSync(path.join(external, path.basename(file)), seedBytes(name));
+      } else if (mode === 'link') {
+        const target = path.join(h, `external-${name}`); fs.writeFileSync(target, seedBytes(name)); fs.symlinkSync(target, file);
+      } else fs.writeFileSync(file, bytes);
+      expected.push([file, fs.readFileSync(file), mode === 'link' ? fs.readlinkSync(file) : null]);
+    }
+    for (const command of ['install', ...(platform === 'darwin' ? ['uninstall'] : [])]) for (const dry of [true, false]) {
+      const result = run([command, '--home', h, ...(command === 'uninstall' && !dry ? ['--yes'] : []), ...(dry ? ['--dry-run'] : [])], { ...process.env, NANA_SETUP_PLATFORM: platform });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      for (const [file, bytes, link] of expected) {
+        assert.deepEqual(fs.readFileSync(file), bytes);
+        if (link) { assert.equal(fs.readlinkSync(file), link); assert.deepEqual(fs.readFileSync(link), bytes); }
+        if (mode === 'parent-link') assert.ok(fs.lstatSync(path.dirname(file)).isSymbolicLink());
+      }
+    }
+  }
+});
 
 try {
 	{

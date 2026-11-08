@@ -10,6 +10,20 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import fingerprints from "./retired-fingerprints.json" with { type: "json" };
+import { MEMORY_END_ENTRY } from './memory-end-config.mjs';
+import { realPath } from '../../nana-pack/lib/real-path.mjs';
+
+/** Retired installed hook links, including dangling links after the source cut. */
+export const RETIRED_HOOK_FILES = Object.freeze([MEMORY_END_ENTRY.file]);
+
+/** Ownership is the link's exact filename and checkout hook directory, not its now-absent target. */
+export function retiredHookLinkOwned(link, sourceDirectory) {
+ try {
+  if (!fs.lstatSync(link).isSymbolicLink()) return false;
+  const target = path.resolve(path.dirname(link), fs.readlinkSync(link));
+  return path.basename(target) === path.basename(link) && realPath(path.dirname(target), { mustExist: true }) === realPath(sourceDirectory, { mustExist: true });
+ } catch { return false; }
+}
 
 const legacySkills = ["py-init", "ts-init", "nana-init", "nana", "spec", "py-lint", "py-review", "py-test"];
 const agentImports = ["dev-check", "dev-debrief", "dev-init", "dev-plan", "dev-scan", "dev-wiki", "knowledge-wiki", "memory-consolidate", "nana", "nana-init", "py-init", "ts-init", "wiki-absorb", "wiki-add", "wiki-bootstrap", "wiki-consolidate", "wiki-health", "wiki-index", "wiki-init", "wiki-query", "wiki-registry", "wiki-reorg"];

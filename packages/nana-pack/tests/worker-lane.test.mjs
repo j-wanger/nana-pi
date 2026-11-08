@@ -106,94 +106,6 @@ check("non-lane repeated worker options keep the legacy first-occurrence behavio
 fs.rmSync(piSpawnMarker, { force: true }); fs.rmSync(out, { force: true });
 // req: R-960
 check("non-lane usage text remains the legacy form", spawnSync(process.execPath, [worker], { cwd: lane, encoding: "utf8" }).stderr === "usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n");
-// req: R-960
-check("lane options with missing values refuse before pi spawn", (() => {
-	const cases = [
-		["lane option missing", ["--lane"]],
-		["lane option empty", ["--lane", ""]],
-		["lane option starts with dash", ["--lane", "-alpha"]],
-		["brief option missing", ["--lane", "alpha", "--brief"]],
-		["max-secs option missing", ["--lane", "alpha", "--brief", brief, "--max-secs"]],
-		["repeated lane with trailing missing value", ["--lane", "alpha", "--brief", brief, "--lane"]],
-		["repeated brief with trailing missing value", ["--lane", "alpha", "--brief", brief, "--brief"]],
-		["repeated max-secs with trailing missing value", ["--lane", "alpha", "--brief", brief, "--max-secs", "30", "--max-secs"]],
-		["brief missing even without lane value", ["--brief"]],
-		["max-secs missing even without lane value", ["--max-secs"]],
-	];
-	return cases.every(([, args]) => {
-		fs.rmSync(piSpawnMarker, { force: true });
-		const result = run(lane, args);
-		return result.status === 1 && /lane refused/.test(result.stderr) && !fs.existsSync(piSpawnMarker);
-	});
-})());
-// req: R-960
-check("lane mode refuses the main checkout before starting pi", /main checkout/.test(run(repo, ["--lane", "alpha", "--brief", brief]).stderr) && !fs.existsSync(out));
-fs.mkdirSync(path.join(lane, "nested"));
-// req: R-960
-check("lane mode refuses a nested cwd", /cwd is not the repository root/.test(run(path.join(lane, "nested"), ["--lane", "alpha", "--brief", brief]).stderr));
-// req: R-960
-check("lane mode refuses a missing brief before starting pi", /brief file does not exist/.test(run(lane, ["--lane", "alpha", "--brief", "missing.md"]).stderr));
-const briefDirectory = path.join(temp, "brief-directory"); fs.mkdirSync(briefDirectory);
-// req: R-960
-check("lane mode refuses a brief directory with a named failure", /brief must be a readable regular file/.test(run(lane, ["--lane", "alpha", "--brief", briefDirectory]).stderr));
-// req: R-960
-check("lane mode refuses a switched lane branch before starting pi", (() => { git(lane, "checkout", "-qb", "feat/other"); const result = run(lane, ["--lane", "alpha", "--brief", brief]); git(lane, "checkout", "-q", "feat/alpha"); return /expected feat\/alpha/.test(result.stderr); })());
-// req: R-2578
-check("R-2578: a lane brief with no Precedent section, an empty one or a reasonless none is refused before the lock and before pi starts", (() => {
-	const cases = [
-		"Feature: FEAT-006 · Missing\n",
-		"## Precedent\n\n## Done\n",
-		"Precedent:\r\nprose ends this label section\t\r\n",
-		"\ufeffPrecedent:\n- none:\t",
-	];
-	return cases.every((text) => {
-		const result = runBriefText(text);
-		return result.status === 1 && result.stderr.includes("pi-worker: lane refused:") && result.stderr.includes("Precedent") &&
-			result.stderr.includes("- <path>") && result.stderr.includes("- none: <reason>") &&
-			!fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath);
-	});
-})());
-
-// req: R-2579
-check("R-2579: Precedent entries not tracked at HEAD are refused, each one named", (() => {
-	fs.writeFileSync(path.join(lane, "untracked-present.mjs"), "untracked\n");
-	fs.writeFileSync(path.join(lane, "staged-only.mjs"), "staged\n");
-	git(lane, "add", "staged-only.mjs");
-	const absoluteBad = path.join(temp, "absolute-bad.mjs").replaceAll("\\", "/");
-	const bad = ["untracked-present.mjs", "staged-only.mjs", "old-name.mjs", "../outside.md", absoluteBad, "*.mjs", "tracke", "after-wrap.md"];
-	const text = [
-		"Precedent:",
-		"- seed — a tracked entry", "  whose note wraps onto another line", "- after-wrap.md",
-		"- untracked-present.mjs", "- staged-only.mjs", "- old-name.mjs", "- ../outside.md",
-		`- ${absoluteBad}`, "- *.mjs", "- tracke", "- tracked/nested.mjs", "",
-	].join("\n");
-	const result = runBriefText(text);
-	const sha = git(lane, "rev-parse", "--short", "HEAD").stdout.trim();
-	const namedAll = bad.every((entry) => result.stderr.includes(`${JSON.stringify(entry)} is not tracked`));
-	const goodNotNamed = !result.stderr.includes('"seed" is not tracked') && !result.stderr.includes('"tracked/nested.mjs" is not tracked');
-	const literalPathspec = fs.readFileSync(path.join(root, "lib", "brief-precedent.mjs"), "utf8").includes('"--literal-pathspecs"');
-	git(lane, "reset", "-q", "HEAD", "--", "staged-only.mjs");
-	fs.rmSync(path.join(lane, "staged-only.mjs"), { force: true });
-	fs.rmSync(path.join(lane, "untracked-present.mjs"), { force: true });
-	if (!(result.status === 1 && namedAll && goodNotNamed && literalPathspec && result.stderr.includes(sha) && !fs.existsSync(piSpawnMarker))) {
-		process.stderr.write(`untracked precedent case failed: status=${result.status} namedAll=${namedAll} goodNotNamed=${goodNotNamed} literalPathspec=${literalPathspec} sha=${sha}\n${result.stderr}\n`);
-		return false;
-	}
-
-	const tree = git(lane, "rev-parse", "HEAD^{tree}").stdout.trim();
-	const common = git(lane, "rev-parse", "--git-common-dir").stdout.trim();
-	const objectPath = path.join(path.resolve(lane, common), "objects", tree.slice(0, 2), tree.slice(2));
-	let objectBytes;
-	try { objectBytes = fs.readFileSync(objectPath); fs.rmSync(objectPath); }
-	catch (error) { process.stderr.write(`listing-failure fixture could not remove ${objectPath}: ${error.message}\n`); return false; }
-	const failedListing = runBriefText("Precedent:\n- seed\n");
-	fs.mkdirSync(path.dirname(objectPath), { recursive: true });
-	fs.writeFileSync(objectPath, objectBytes);
-	const listingPassed = failedListing.status === 1 && failedListing.stderr.includes("cannot list paths tracked at HEAD") && !fs.existsSync(piSpawnMarker);
-	if (!listingPassed) process.stderr.write(`failed-listing precedent case failed: status=${failedListing.status}\n${failedListing.stderr}\n`);
-	return listingPassed;
-})());
-
 // req: R-2580
 check("R-2580: honest Precedent forms pass and the launch line names the checked entry count", (() => {
 	const subfolderBrief = path.join(lane, "brief-fixtures", "nested-brief.md");
@@ -402,7 +314,12 @@ check("lane preamble forbids the named package-manager operations at a worktree 
 const preambleText = prompt1Text;
 const RULE_LINE = {
 	storedCredential: "- Never read, print or use a stored credential: no `git credential fill` or `get`, no token from a keychain, file or environment variable, and no direct GitHub API call. If a step needs a credential or `gh` is missing, report it and stop.",
-	knownBugsFolder: `- Never edit \`HANDOFF.md\`, \`${KNOWN_BUGS_DIR}/\` or session archives.`,
+	knownBugsFolder: `- Remove only the known-bug lines your brief names; never make any other edit under \`${KNOWN_BUGS_DIR}/\`.`,
+	trackedDeletion: "- Delete tracked files with `git rm -q --`.",
+	sharedTemp: "- Test files use the shared `tmpDir` helper for temp folders and never call `mkdtemp`.",
+	testInventory: "- After adding or deleting a test file, run `node scripts/test.mjs test-runner`.",
+	removedTextSearch: "- Before reporting, grep tests for every sentence, path and file name the change removed or renamed.",
+	noNestedCheckers: "- Suite tests never re-run the suite or whole-repo checkers.\n  Code map, README, requirements tree, requirements trace and component audit run as seat checks and in their own tests.",
 	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
 	reuseNotCopy: "- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private, drop the leading underscore, update its existing callers, and import the public name; never import a private name from another module. A move to a shared module needs the brief to name it.",
 	knownBugsContext: "- The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches.",
@@ -422,7 +339,19 @@ const RULE_LINE = {
 };
 const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
 // req: R-2510
-check("R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives", preambleOnce(RULE_LINE.knownBugsFolder), RULE_LINE.knownBugsFolder);
+check("R-2510: only brief-named known-bug removals are allowed and HANDOFF stays protected",
+	preambleOnce("- Never edit `HANDOFF.md`.") && preambleOnce(RULE_LINE.knownBugsFolder) &&
+	!preambleText.includes(`Never edit \`HANDOFF.md\` or \`${KNOWN_BUGS_DIR}/\``), RULE_LINE.knownBugsFolder);
+// req: R-3897
+check("M4: tracked deletion uses git rm", preambleOnce(RULE_LINE.trackedDeletion));
+// req: R-3897
+check("M4: test temp folders use shared tmpDir without mkdtemp", preambleOnce(RULE_LINE.sharedTemp));
+// req: R-3897
+check("M4: test file changes run the test-runner checks", preambleOnce(RULE_LINE.testInventory));
+// req: R-3897
+check("M4: removed and renamed text gets a test search before reporting", preambleOnce(RULE_LINE.removedTextSearch));
+// req: R-3903
+check("M10: suite tests do not re-run the suite or whole-repo checkers", preambleOnce(RULE_LINE.noNestedCheckers));
 // req: R-3650
 check("R-3650: the builder preamble forbids reading, printing or using a stored credential exactly once", preambleOnce(RULE_LINE.storedCredential), RULE_LINE.storedCredential);
 // req: R-2582

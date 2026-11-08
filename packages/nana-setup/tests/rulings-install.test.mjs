@@ -32,11 +32,11 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
-const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { RULINGS_FILE, SEAT_GUIDE_FILE, SEAT_GUIDE_HEADING } = await import(new URL("../../nana-pack/lib/rulings-config.mjs", import.meta.url).href);
 const { PI_TURN } = await import(new URL("../lib/install-check-config.mjs", import.meta.url).href);
 
 const SRC = ruleSource(RULINGS_FILE);
+const { buildBlock } = await import(new URL("../../nana-pack/extensions/nana-rulings.ts", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -57,7 +57,7 @@ function freshRoots() {
 	fs.writeFileSync(path.join(P, "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
 	const subagentsDir = path.join(P, "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(subagentsDir, { recursive: true });
-	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	return { H, P };
 }
 const run = (args, env) => {
@@ -72,6 +72,20 @@ const lstatSafe = (p) => {
 		return null;
 	}
 };
+
+{
+	const { H, P } = freshRoots();
+	const installed = run(["install", "--home", H, "--pi-home", P], win32Env);
+	const shipped = fs.readFileSync(SRC, "utf8");
+	const claude = fs.readFileSync(path.join(H, ".claude", "rules", RULINGS_FILE), "utf8");
+	const pi = fs.readFileSync(path.join(P, RULINGS_FILE), "utf8");
+	const injected = buildBlock(P);
+	// req: R-3899
+	check("M6: installed Claude and pi-injected rulings drop notes before review and retain the post-land ban",
+		installed.status === 0 && claude === shipped && pi === shipped && injected.endsWith(shipped) &&
+		[shipped, claude, pi, injected].every(text => !text.includes("Notes go in before the final round") &&
+			text.includes("nothing is written after a land")));
+}
 
 /* ========================================================================================
  * R-1412 — install places nana-rulings.md in pi's active agent dir: a symlink on POSIX, a

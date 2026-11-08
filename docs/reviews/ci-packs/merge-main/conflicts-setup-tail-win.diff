@@ -1,0 +1,53 @@
+diff --cc docs/code-map.md
+index d7eb6276,9a51439e..00000000
+--- a/docs/code-map.md
++++ b/docs/code-map.md
+@@@ -2351,10 -2331,10 +2351,14 @@@ The pi extension pack, the knowledge pu
+  
+  - **purpose** — Declare runner scheduling policy, stable shard assignment and volume-dependent file preconditions.
+  - **inputs** — os.tmpdir(), or a caller-supplied temporary root for the checkout-spelling probe
+ -- **outputs** — JOBS_FLAG, SHARD_FLAG, shardFiles, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder removal retry count and delay, and checkoutSpellingSkipReason
+ +- **outputs** — JOBS_FLAG, SHARD_FLAG, PACK_FLAG, CHANGED_FROM_FLAG, shardFiles, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder removal retry count and delay, and checkoutSpellingSkipReason
+  - **effects** — disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
+  - **errors** — checkoutSpellingSkipReason propagates temporary-folder creation errors
+++<<<<<<< HEAD
+ +- **callers** — `apps/desk/test/tmp-dir.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-packs-runner.test.mjs`, `packages/nana-pack/tests/test-packs.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
+++=======
++ - **callers** — `apps/desk/test/tmp-dir.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
+++>>>>>>> main
+  - **callees** — —
+  
+  ### `packages/nana-pack/lib/verdict-config.mjs`
+@@@ -2771,27 -2709,17 +2775,27 @@@
+  - **effects** — disk (OS temp fixtures), process (bounded git and fake model children)
+  - **errors** — Assertion failures set exit 1; fixture setup failures throw.
+  - **callers** — —
+- - **callees** — `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/credential-strip-config.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`
+- - **repo-code launches** — line 44: spawnSync; binding line 117; binding line 133
++ - **callees** — `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/credential-strip-config.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`
++ - **repo-code launches** — line 45: spawnSync; binding line 118; binding line 134
+  
+ +### `packages/nana-pack/tests/data-pack-land.test.mjs`
+ +
+ +- **purpose** — Guard the eight data-check contracts without running template release acceptance.
+ +- **inputs** — Current data-check source and temporary Python fixtures.
+ +- **outputs** — One awaited bounded PASS/FAIL verdict.
+ +- **effects** — disk (temporary fixtures), process (bounded Python child).
+ +- **errors** — Failed assertions set exit status 1.
+ +- **callers** — —
+ +- **callees** — `packages/nana-pack/tests/data-pack.test.mjs`, `packages/nana-pack/tests/pack-fixtures.mjs`
+ +
+  ### `packages/nana-pack/tests/data-pack.test.mjs`
+  
+ -- **purpose** — Exercise the eight data-pack must-meets on temporary rendered projects and small data fixtures.
+ +- **purpose** — Exercise data-pack release acceptance and expose its bounded Python fixture runner.
+  - **inputs** — Current template sources, Copier, uv and the acceptance runner.
+ -- **outputs** — Eight PASS/FAIL verdicts.
+ +- **outputs** — Seven PASS/FAIL verdicts and the public py fixture runner.
+  - **effects** — disk (temporary fixtures), process (bounded synchronous Python and Copier children).
+  - **errors** — Any failed assertion sets exit status 1.
+ -- **callers** — —
+ +- **callers** — `packages/nana-pack/tests/data-pack-land.test.mjs`
+  - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/template-acceptance.mjs`
+  
+  ### `packages/nana-pack/tests/display-surfaces.test.mjs`

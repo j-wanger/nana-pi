@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/relative-agent-dir.test.mjs
  * @purpose Pins that an AMBIENT relative PI_CODING_AGENT_DIR is refused by `install`, `project` and `project --check` with the cwd and the remedy named, while an explicit --pi-home is honoured and `doctor` warns
- * @inputs bin/nana-setup.mjs with a relative PI_CODING_AGENT_DIR in the environment, throwaway home and project dirs, and lib/doctor.mjs's PI_SUBAGENTS_FLOOR
+ * @inputs bin/nana-setup.mjs with a relative PI_CODING_AGENT_DIR in the environment, throwaway home and project dirs, and a historical pi-subagents fixture
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway home and project dirs), process (sets PI_CODING_AGENT_DIR, spawns the setup CLI)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -23,7 +23,6 @@ import { fileURLToPath } from "node:url";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
-const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (n, ok, extra) => {
@@ -130,7 +129,7 @@ try {
 			fs.writeFileSync(path.join(relHome, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
 			const subagentsDir = path.join(relHome, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 			fs.mkdirSync(subagentsDir, { recursive: true });
-			fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+			fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 
 			const installEnv = { ...process.env };
 			delete installEnv.PI_CODING_AGENT_DIR;

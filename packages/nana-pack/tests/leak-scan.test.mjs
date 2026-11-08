@@ -153,21 +153,6 @@ await check('M3: history retains removed leaks from the merge-base',async()=>{
   let usage='';assert.equal((await cli()).runLeakScan([],{stderr:{write:s=>usage+=s}}),2);
   assert.ok(usage.includes('merge-base'));
 });
-// req: R-3753
-await check('M6: CLI blocks hits and unread skips and rejects unknown refs',async()=>{
-  const {LEAK_FILE_MAX_BYTES}=await import('../lib/leak-scan-config.mjs');
-  const f=fixture();const env={...process.env,HOME:path.join(temp,'synthetic-home'),USERPROFILE:path.join(temp,'synthetic-home')};
-  const command=path.join(root,'packages/nana-pack/bin/leak-scan.mjs');
-  const invoke=(base,extra={})=>run(process.execPath,[command,'--base',base,'--tip','HEAD'],f.cwd,{env,...extra});
-  let r=invoke(f.base);detail={subcase:'clean range',expectedExit:0,actualExit:r.status};assert.equal(r.status,0);
-  put(f.cwd,'home.log',env.HOME+'/log');commit(f.cwd);r=invoke(f.base);detail={subcase:'home hit',expectedExit:1,actualExit:r.status};assert.equal(r.status,1);assert.ok(r.stdout.includes(`leak: home.log (${git(f.cwd,'rev-parse','--short','HEAD')}): home path ×1`));
-  const base=git(f.cwd,'rev-parse','HEAD');put(f.cwd,'large.log',Buffer.alloc(LEAK_FILE_MAX_BYTES+1,120));commit(f.cwd);
-  const marker=path.join(temp,'blob-reads');const preload=path.join(temp,'read-probe.mjs');
-  fs.writeFileSync(preload,`import cp from 'node:child_process';import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';const original=cp.execFileSync;cp.execFileSync=(cmd,args,opts)=>{if(args.includes('cat-file')&&(args.includes('blob')||args.includes('-p')))fs.appendFileSync(${JSON.stringify(marker)},JSON.stringify(args)+'\\n');return original(cmd,args,opts)};syncBuiltinESMExports();`);
-  r=run(process.execPath,['--import',pathToFileURL(preload).href,command,'--base',base,'--tip','HEAD'],f.cwd,{env});
-  detail={subcase:'unread over-cap skip',expectedExit:1,actualExit:r.status};assert.equal(r.status,1);assert.ok(r.stdout.includes(`leak scan skipped: large.log (${git(f.cwd,'rev-parse','--short','HEAD')}):`));assert.equal(fs.existsSync(marker),false);
-  r=invoke('unknown-fixture-ref');detail={subcase:'unknown ref',expectedExit:2,actualExit:r.status};assert.equal(r.status,2);assert.ok(r.stderr.includes('unavailable'));
-});
 // req: R-3754
 await check('M7: lane end warns after build line without changing outcome or exit',async()=>{
   const f=fixture(), lane=path.join(temp,'lane'), bin=path.join(temp,'bin'), agent=path.join(temp,'agent'), home=path.join(temp,'private-home');

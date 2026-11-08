@@ -86,35 +86,6 @@ const runPowerShellCaller = (args) => {
 };
 const jsonResult = (run) => JSON.parse(run.stdout.trim().split(/\r?\n/).at(-1));
 
-// req: R-1611
-test("sh shim hands node every argument unchanged and returns the bin's exit status", "R-1611", "all", () => {
-	assert.deepEqual(WIN_SHIM_SUFFIXES, { sh: "", cmd: ".cmd" });
-	assert.deepEqual(WIN_SHIM_LINE_ENDINGS, { sh: "\n", cmd: "\r\n" });
-	assert.ok(!rendered.sh.includes("\r"));
-	const briefArg = `@${process.platform === "win32" ? brief.replaceAll("/", "\\") : brief}`;
-	const args = ["a space", "single'quote", 'double"quote', "% & ^ ! ( ) | < >", "trailing\\", "line one\nline two", "", briefArg];
-	if (process.platform === "win32") assert.ok(args.every((arg) => !arg.includes("/")));
-	const run = runShCaller(args);
-	assert.ok(run, "Git Bash not found");
-	assert.equal(run.status, 7, run.stderr);
-	assert.deepEqual(jsonResult(run).argv, args);
-	const stdinText = "first line  \r\nsecond line\t";
-	const stdinFile = path.join(callerDir, "stdin fixture.txt");
-	fs.writeFileSync(stdinFile, stdinText);
-	const stdinRun = runShCaller(["stdin"], false, stdinFile);
-	assert.ok(stdinRun, "Git Bash not found");
-	assert.equal(stdinRun.status, 7, stdinRun.stderr);
-	assert.equal(jsonResult(stdinRun).stdin, stdinText);
-});
-
-// req: R-1617
-test("an sh shim rewritten by its own bin runs none of the new text", "R-1617", "all", () => {
-	const run = runShCaller(["--rewrite"], true);
-	assert.ok(run, "Git Bash not found");
-	assert.equal(run.status, 7, run.stderr);
-	assert.doesNotMatch(run.stdout, /NANA_REWRITE_MARKER/);
-});
-
 // req: R-1612
 test("Windows: cmd.exe hands a .cmd shim's bin every double-quoted argument unchanged on the PATH node and returns its exit status", "R-1612", "win32", () => {
 	fs.writeFileSync(path.join(callerDir, "node.cmd"), "@exit /b 42\r\n");

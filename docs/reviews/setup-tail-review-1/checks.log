@@ -1,0 +1,49 @@
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs  12 pass  1.7s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs      68 pass  32.2s
+PASS  packages/nana-setup/tests/setup-tail.test.mjs      9 pass  46.5s
+
+3 files: 3 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 89 pass, 0 fail, 0 skip · 81.8s
+targeted exit=0
+
+> nana-pi@0.5.0 map
+> node scripts/code-map.mjs --write
+
+docs/code-map.md: 544 modules
+map exit=0
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 544 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+map:check exit=0
+
+> nana-pi@0.5.0 req:tree
+> node scripts/requirements-tree.mjs --write
+
+requirements tree: 0 problems; rows 2667; features 43
+deliverables: 19 of 21 made and read by code, 12 more parked
+req:tree exit=0
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 846 claims checked; 0 problem(s)
+readme:check exit=0
+pi: ~/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: ~/.hermes/node/bin/node
+PASS install
+PASS pi list nana-pack
+PASS pi list nana-knowledge
+PASS pi session
+PASS pi turn
+PASS pi-review
+PASS hook set
+PASS hook memory making
+PASS hook shared memory
+PASS hook roster notice
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
+install-check exit=0

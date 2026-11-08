@@ -1,6 +1,6 @@
 ---
 name: adopt-py
-description: Retrofit the nana-pi Python stack (uv + ruff + mypy strict + pytest, post-edit gates, copier drift tracking) onto an EXISTING Python project. Use when the user wants to adopt/retrofit/apply the nana standards to a project that already has code.
+description: Retrofit the nana-pi Python stack (uv + ruff + mypy strict + pytest, manual checks, copier drift tracking) onto an EXISTING Python project. Use when the user wants to adopt/retrofit/apply the nana standards to a project that already has code.
 ---
 
 # Adopt the Python stack in an existing project
@@ -30,8 +30,8 @@ reconciliation surface — nothing is lost because the tree starts clean.
    (src/ vs flat), where tests live, existing lint/type/CI config, the import
    package name. Measure the baseline: does the suite pass, at what coverage
    (`pytest --cov` if cheap). You need the coverage number for step 5.
-2. **Present the plan and get an OK** — what lands (tool pins, `.pi` post-edit
-   preset, CI workflow, root AGENTS.md, answers file, and the requirements rail:
+2. **Present the plan and get an OK** — what lands (tool pins, manual checks,
+   CI workflow, root AGENTS.md, answers file, and the requirements rail:
    `REQUIREMENTS.md`, the map and readme-check generators and four tests under `tests/` — see
    step 3), what gets merged (their
    `[project]` metadata + deps into the pinned pyproject, .gitignore union),
@@ -48,7 +48,7 @@ reconciliation surface — nothing is lost because the tree starts clean.
 
    Adopt mode emits the configs AND the requirements rail — no source code:
 
-   - configs: pyproject, pre-commit, CI, root AGENTS.md, `.pi/nana-pack.json`,
+   - configs: pyproject, pre-commit, CI, root AGENTS.md,
      `.copier-answers.yml`;
    - `REQUIREMENTS.md` with the standard general-engineering feature, every G row
      `untested` and no product rows — the project's own behaviour is step 7's
@@ -67,7 +67,6 @@ Files written by an adopt render into an empty folder:
 - `.copier-answers.yml`
 - `.github/workflows/ci.yml`
 - `.gitignore`
-- `.pi/nana-pack.json`
 - `.pre-commit-config.yaml`
 - `AGENTS.md`
 - `HANDOFF.md` (written only when absent)
@@ -122,7 +121,8 @@ project code and refuses nonempty WAL databases rather than claiming a stale cle
      merge — fold the template's hooks into their pre-commit list, and move the
      gate steps AND the template-drift job into their existing workflow instead
      of keeping a duplicate ci.yml.
-   - `.pi/nana-pack.json`: if one existed, merge the postEdit command lists.
+   - Leave any existing .pi/nana-pack.json byte-identical; legacy checker
+     lists do nothing. No starter is emitted; gate patterns still need trust.
    - `AGENTS.md`: fold any existing AGENTS/CLAUDE.md content in, write the
      real Layout section (the template leaves a placeholder comment), keep it
      one screen.
@@ -169,8 +169,18 @@ project code and refuses nonempty WAL databases rather than claiming a stale cle
    features that the owner approves. Generate the real map once (`uv run python scripts/code_map.py`).
    Expect general-engineering feature rows to land `violated` on a legacy codebase — that is the
    honest state and the ratchet list, same as the mypy overrides.
-8. **Validate**: `uv sync`, `uv run pre-commit install`, then all four gates —
-   `ruff check .`, `ruff format --check .`, `mypy`, `pytest` — green.
+8. **Validate**: `uv sync`, `uv run pre-commit install`, then run the manual
+   checks below before committing. Nana runs no per-edit checks. Replace `{file}`
+   with each changed Python file, quoted for your shell.
+
+- **Manual lint:** `uv run ruff check .`
+- **Manual format:** `uv run ruff format --check .` (repair with `uv run ruff format .`)
+- **Manual types:** `uv run mypy`
+- **Manual tests:** `uv run pytest`
+- **Manual map:** `uv run python scripts/code_map.py --check`
+- **Manual readme:** `uv run python scripts/readme_check.py`
+- **Manual length:** `uv run python -c "import sys; n = sum(1 for _ in open(sys.argv[1], encoding='utf-8')); sys.exit(sys.argv[1] + ': ' + str(n) + ' lines exceeds the 500-line module cap - split it' if n > 500 else 0)" {file}`
+
 9. **Commit the adoption as one commit** (it must include
    `.copier-answers.yml` — the update relationship needs it git-tracked), then
    prove the relationship: `uvx copier update --pretend --defaults` runs clean.

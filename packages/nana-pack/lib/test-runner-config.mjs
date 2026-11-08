@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/test-runner-config.mjs
  * @purpose Declare runner scheduling policy, stable shard assignment and volume-dependent file preconditions.
  * @inputs os.tmpdir(), or a caller-supplied temporary root for the checkout-spelling probe
- * @outputs JOBS_FLAG, SHARD_FLAG, shardFiles, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder
+ * @outputs JOBS_FLAG, SHARD_FLAG, PACK_FLAG, CHANGED_FROM_FLAG, shardFiles, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder
  *  removal retry count and delay, and checkoutSpellingSkipReason
  * @effects disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
  * @errors checkoutSpellingSkipReason propagates temporary-folder creation errors
@@ -21,6 +21,10 @@ export const JOBS_FLAG = "--jobs=";
 
 // contract (R-3816): Jest-compatible one-based i/N syntax, chosen 2026-11-07.
 export const SHARD_FLAG = "--shard=";
+
+// contract (ci-packs M7, R-3856), chosen 2026-11-07: equals-form pack and merge-base selection.
+export const PACK_FLAG = "--pack=";
+export const CHANGED_FROM_FLAG = "--changed-from=";
 
 /** Stable path hashing needs no OS-specific ordering or runtime baseline. Preserve collection order. */
 export function shardFiles(files, shard, key = (file) => file) {
@@ -70,12 +74,14 @@ export const TEMP_REMOVE_RETRY_DELAY_MS = 100;
 // missing a renewal under load. Windows run 1e77de81 showed hook-deadlines overrun
 // HOOK_DEADLINE_MS under load; the adoption-reader miss shared a runner-wide stall, so its
 // HOOK_PRODUCER_TIMEOUT_MS-sensitive producer cases also run outside the pool.
+// Chosen 2026-11-08: Windows run 42517200227 recorded no password or helper
+// invocation, but a 3000 ms credential probe timed out beside parallel suite files.
+// Isolate suite load rather than increase the probe or case deadline.
 export const RUN_ALONE = Object.freeze({
+	"packages/nana-pack/tests/credential-strip.test.mjs": "load-sensitive fixture credential probes bounded by 3000 ms",
 	"packages/nana-knowledge/tests/hook.test.mjs": "load-sensitive timing bounds (1500/1800 ms)",
-	"packages/nana-knowledge/tests/extension.test.mjs": "load-sensitive timing bounds (1000/1500 ms)",
 	"packages/nana-pack/tests/bounded-read.test.mjs": "load-sensitive timing bound (1000 ms)",
 	"packages/nana-pack/tests/test-locked.test.mjs": "load-sensitive timing bound (1200 ms) and 70-250 ms launch waits",
-	"packages/nana-pack/tests/post-edit-utf8.test.mjs": "load-sensitive 3000 ms post-edit check starts a Python parent and child",
 	"packages/nana-pack/tests/review-ledger.test.mjs": "load-sensitive 1000 ms reservation stale window with a 200 ms heartbeat",
 	"packages/nana-setup/tests/hook-deadlines.test.mjs": "load-sensitive hook cases bounded by HOOK_DEADLINE_MS and HOOK_PRODUCER_TIMEOUT_MS",
 	"packages/nana-pack/tests/adoption-reader.test.mjs": "load-sensitive adoption producer bounded by HOOK_PRODUCER_TIMEOUT_MS",

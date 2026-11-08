@@ -1,7 +1,7 @@
 {
 	"name": "nana-pi",
 	"version": "0.5.0",
-	"description": "nana-pi bundle: ten nana-pack pi extensions (gate, post-edit, lifecycle, notify, handoff, objective, frontier summary, writing, roster notice, rulings) + the nana-knowledge prompt-time knowledge pull + scaffold/adopt/dev skills, installable straight from this repo via `pi install git:`",
+	"description": "nana-pi bundle: eight nana-pack pi extensions (gate, lifecycle, adoption, objective, frontier summary, writing, roster notice, rulings) + explicit local knowledge search + scaffold/adopt/dev skills, installable straight from this repo via `pi install git:`",
 	"keywords": ["pi-package"],
 	"license": "MIT",
 	"repository": "github:j-wanger/nana-pi",
@@ -12,16 +12,10 @@
 		"map:check": "node scripts/code-map.mjs --check",
 		"map:search": "node scripts/code-map.mjs --search",
 		"memory:make": "node scripts/memory-make.mjs",
-		"memory:score": "node scripts/memory-score.mjs",
 		"memory:shape": "node scripts/memory-shape.mjs",
-		"memory:meter": "node scripts/outcome-meter.mjs",
-		"memory:meter-score": "node scripts/outcome-score.mjs",
-		"memory:meter-compare": "node scripts/outcome-compare.mjs",
-		"memory:replay": "node scripts/memory-replay.mjs",
 		"memory:curate": "node scripts/memory-curate.mjs",
 		"map:impact": "node scripts/code-map.mjs --impact",
 		"map:measure": "node scripts/runtime-measure.mjs",
-		"req:rows": "node scripts/requirement-rows.mjs",
 		"req:tree": "node scripts/requirements-tree.mjs --write",
 		"readme:check": "node scripts/readme-check.mjs",
 		"report": "node scripts/product-report.mjs",
@@ -29,10 +23,10 @@
 		"outside-reader": "node scripts/outside-reader.mjs",
 		"visual-reader": "node scripts/visual-reader.mjs",
 		"template:accept": "node scripts/template-acceptance.mjs",
-		"release": "node scripts/template-release.mjs"
+		"release": "node scripts/test.mjs --pack=release && node scripts/template-release.mjs"
 	},
 	"pi": {
-		"extensions": ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"],
+		"extensions": ["packages/nana-pack/extensions"],
 		"skills": ["packages/nana-pack/skills"]
 	},
 	"peerDependencies": {

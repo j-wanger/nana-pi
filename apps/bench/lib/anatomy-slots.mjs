@@ -6,9 +6,22 @@
  * @effects disk (optional corrections file only)
  * @errors Malformed corrections throw a fixed INVALID_CORRECTIONS diagnostic.
  */
-import { rows } from '../../../packages/nana-pack/lib/memory-score.mjs';
+import fs from 'node:fs';
 import { distinctUnits, normalize } from './anatomy-measures.mjs';
 import { OVERSIZE_UNIT_CHARS, REPORT_PARTS, SEAT_CLASS_FUNCTION, SEAT_POLICY, SHARE_DIGITS } from './anatomy-config.mjs';
+
+// Preserved corrections-file reader; scoring commands no longer ship.
+const kinds = ['correction', 'decision', 'lesson'];
+function rows(file, labels, { allowDuplicates = false } = {}) {
+ const records = fs.readFileSync(file, 'utf8').split(/\r?\n/u).filter(line => line.trim()).map(line => JSON.parse(line));
+ const seen = new Set();
+ for (const row of records) {
+  if (typeof row?.evidence !== 'string' || !row.evidence || !(labels ? [...kinds, 'none'] : kinds).includes(row.kind)) throw new Error('invalid score record');
+  if (labels && !allowDuplicates && seen.has(row.evidence)) throw new Error('duplicate label');
+  seen.add(row.evidence);
+ }
+ return records;
+}
 
 const sum = (items, value) => items.reduce((n, item) => n + value(item), 0);
 const share = (n, total) => total ? Number((100 * n / total).toFixed(SHARE_DIGITS)) : 0;
