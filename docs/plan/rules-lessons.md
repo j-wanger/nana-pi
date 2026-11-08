@@ -34,7 +34,7 @@ Honest variation in how seats and builders read the rules. Out of scope.
 
 - `packages/nana-setup/claude/rules/nana-seat.md`: the seat guide to edit.
 - `packages/nana-pack/prompts/builder-preamble.md`: the builder preamble to edit.
-- `packages/nana-pack/tests/seat-rule.test.mjs`: pins the seat guide's lines.
+- `packages/nana-setup/tests/seat-rule.test.mjs`: pins the seat guide's lines.
 - `packages/nana-pack/tests/planner-prompt.test.mjs`: pins R-3012 and R-3013.
 - `templates/_shared/working-under-nana-pi.md`: the shared land checklist.
 
@@ -49,3 +49,6 @@ none: in-house rule text.
 - M3 (sessions sentence). HANDOFF.md, the HANDOFF seed and AGENTS.md no longer say the narrative lives in `docs/sessions/`; the builder preamble's Scope line no longer names session archives.
 - M4 (builder lessons). The builder preamble carries the four builder lessons in A2, each pinned by one test.
 - M5 (brief checklist). The seat guide carries the brief bullet in A1, pinned by one test.
+- M6 (adversary 1: every copy of the notes rule). The 2026-11-02 ruling's "Notes go in before the final round" sentence is removed and "nothing is written after a land" kept; the shared pattern, AGENTS marker region, installed Claude rules and pi-injected rulings all agree; both rendered language templates' working region equals the shared bytes; the ruling's pinning test is updated and exits 0.
+- M7 (adversary 2: seat-rule inventory). R-1140 and the seat-rule test's inventory reflect exactly two removed ask bullets and one added brief bullet; the parallel-build guidance keeps a valid anchor; restoring an ask bullet or removing the brief bullet fails the test.
+- M8 (adversary 3: known-bug authority is consistent). The builder preamble lets a builder remove only the known-bug lines its brief names and forbids every other edit under `docs/known-bugs/`; R-2510 and its test match; the seat guide's brief bullet says the brief names those lines.
