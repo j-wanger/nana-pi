@@ -43,9 +43,20 @@ const RULE_14 = "- On a lane that changes the product page, after first-look run
 const RULE_15 = "- On a lane whose page has a reference, run `npm run visual-reader -- --from <first-look folder> --out <folder>` outside git before you point the owner to the shots. Point the owner to them only after it prints a pass, or after you have judged them side by side with the reference yourself and say so in your report.";
 const RULE_16 = "- On an enabled personal machine, automatically save quoted preferences, corrections, facts and thinking about the owner to both the private profile and today's shared memory until delivery lands. Run `node \"$HOME/nana-pi/packages/nana-pack/bin/nana-profile.mjs\" save`; never enable saving on a machine without the owner's choice. Show each Saved: line in your reply so the owner can retract it; confirm only on an explicit owner yes with new owner words. Never save as a builder or reviewer, from a linked worktree, or from a disabled machine. Decisions belong in nana-rulings.md and open threads in GitHub issues.";
 const RULE_17 = "- On a lane that builds or reshapes a page a person looks at, write the build brief from `$HOME/nana-pi/docs/ui-brief-template.md`. The seat picks references by default. The owner's starred references from the library replace those picks when the owner wants a say.";
+const BRIEF_RULE = "- A brief names the following checks.";
+const BRIEF_CHECKS = [
+	"  Name the new requirement ID range.",
+	"  Name only Precedent files tracked at the lane's current tip.",
+	"  Name the tests and known-bug lines a removal lane may delete.",
+	"  Require whole-part commits for large lanes.",
+	"  Export CI logs when the builder must read a failure.",
+	"  Commit the review brief before the first push.",
+	"  Serialize lanes sharing `templates/_shared/working-under-nana-pi.md`, `AGENTS.md`, `packages/nana-setup/claude/rules/nana-seat.md`, `code-map.config.json`, `packages/nana-pack/tests/code-map-launch.test.mjs` or `REQUIREMENTS.md`.",
+];
+const TRACE_CHECK = "  Name `node scripts/requirements-trace.mjs` among every brief's seat checks, including small fix briefs.";
 const ROLE_RULE = fs.readFileSync(GUIDE, 'utf8').split(/\r?\n/).find(line => line.startsWith('- Start scout '));
 const PUSH_RULE = '- Before pushing a lane branch, run `node "$HOME/nana-pi/packages/nana-pack/bin/leak-scan.mjs" --base main --tip HEAD` chained with `&&` to the push; on a hit, fix the commit before any push.';
-const RULES = [PUSH_RULE, ROLE_RULE, RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_17, RULE_5, RULE_6, RULE_9, RULE_10, RULE_7, RULE_8, RULE_16];
+const RULES = [BRIEF_RULE, PUSH_RULE, ROLE_RULE, RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_17, RULE_5, RULE_6, RULE_9, RULE_10, RULE_7, RULE_8, RULE_16];
 
 const raw = (() => { try { return fs.readFileSync(GUIDE, "utf8"); } catch { return ""; } })();
 const text = raw.replace(/\r/g, "");
@@ -60,7 +71,8 @@ check("seat guide scopes itself to the seat in one sentence before its first bul
 // A numbered item ("1." or "1)") counts as a bullet too.
 const bullets = lines.filter((l) => /^\s*(?:[-*+]|\d{1,9}[.)])\s/.test(l));
 // req: R-1140
-check("seat guide holds only its original rules and the role-launch rule", bullets.length === RULES.length && bullets.every((b) => RULES.includes(b)), JSON.stringify(bullets));
+// req: R-3900
+check("seat guide holds only retained rules and the brief checklist", bullets.length === 18 && bullets.length === RULES.length && RULES.every(rule => bullets.filter(b => b === rule).length === 1), JSON.stringify(bullets));
 
 // req: R-1140
 check("seat guide carries: launch in the background and end the turn", lines.filter((l) => l === RULE_1).length === 1, JSON.stringify(lines.filter((l) => l === RULE_1)));
@@ -120,6 +132,7 @@ check("seat guide carries: preamble and review standard named, not restated", li
 	const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
 	const seatLine = shared.split("\n").find((line) => line.startsWith("- Seat guide:"));
 	// req: R-3026
+	// req: R-3900
 	check("pi seat guide explains parallel builds and the shared working pattern names both guide loaders", guide.split(sentence).length === 2 && guide.indexOf(sentence) > guide.indexOf(RULE_9) && guide.indexOf(sentence) < guide.indexOf(RULE_10) && seatLine?.includes("Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions") && agents.includes(seatLine), JSON.stringify({ seatLine, guideHasSentence: guide.includes(sentence), agentsHasLine: agents.includes(seatLine ?? "") }));
 }
 
@@ -132,6 +145,24 @@ check('MM9: role launch guidance names commands slots seat exceptions scheduling
 		[shared,agents].every(t=>t.includes('pi-worker --slot')&&t.includes('scout')&&t.includes('planner')&&t.includes('adversary')&&!t.includes('adversary and checker')&&t.includes('seat')&&t.includes('none')) &&
 		ruling.includes('2026-11-07: The roster names a slot for the scout, planner and adversary; a seat starts each through its slot.');
 })());
+// req: R-3898
+check("M5: one brief checklist names the seven build lessons", text.split(BRIEF_RULE).length === 2 &&
+	text.includes([BRIEF_RULE, ...BRIEF_CHECKS].join("\n")));
+// req: R-3901
+check("M8: brief authority and builder scope agree on named known-bug removals", (() => {
+	const preamble = fs.readFileSync(path.join(ROOT, "packages/nana-pack/prompts/builder-preamble.md"), "utf8");
+	return text.includes(BRIEF_CHECKS[2]) &&
+		preamble.includes("- Remove only the known-bug lines your brief names; never make any other edit under `docs/known-bugs/`.") &&
+		!preamble.includes("Never edit `HANDOFF.md` or `docs/known-bugs/`");
+})());
+// req: R-3902
+check("M9: red-main guidance names the reviewed fix land path beside post", (() => {
+	const redMain = text.split("\n\n").find(paragraph => paragraph.includes("Use `--post` when it reports red."));
+	return redMain?.includes("Land the reviewed fix through `nana-land … --fixes-red <run>`.") ?? false;
+})());
+// req: R-3904
+check("M11: every brief including small fixes names the requirements trace seat check",
+	text.includes([BRIEF_RULE, ...BRIEF_CHECKS, TRACE_CHECK].join("\n")));
 // req: R-3894
 check("M1: plan questions stay in the planner without seat posting or answer waits", (() => {
 	const planner = fs.readFileSync(path.join(ROOT, "packages/nana-pack/prompts/planner.md"), "utf8");

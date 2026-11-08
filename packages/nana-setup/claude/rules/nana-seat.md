@@ -14,6 +14,15 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - On a lane that builds or reshapes a page a person looks at, write the build brief from `$HOME/nana-pi/docs/ui-brief-template.md`. The seat picks references by default. The owner's starred references from the library replace those picks when the owner wants a say.
 - Every lane gets one reviewer plus CI.
 - Send findings on a build back in the next brief instead of fixing the builder's work yourself.
+- A brief names the following checks.
+  Name the new requirement ID range.
+  Name only Precedent files tracked at the lane's current tip.
+  Name the tests and known-bug lines a removal lane may delete.
+  Require whole-part commits for large lanes.
+  Export CI logs when the builder must read a failure.
+  Commit the review brief before the first push.
+  Serialize lanes sharing `templates/_shared/working-under-nana-pi.md`, `AGENTS.md`, `packages/nana-setup/claude/rules/nana-seat.md`, `code-map.config.json`, `packages/nana-pack/tests/code-map-launch.test.mjs` or `REQUIREMENTS.md`.
+  Name `node scripts/requirements-trace.mjs` among every brief's seat checks, including small fix briefs.
 - Before you end your turn, name and start what waits on nothing else: another lane's build, separate research agents. Each lane's own steps stay in order.
 
   In pi, the seat asks the user to start another lane's build from another pi session or the desk; its own builds run in the foreground.
@@ -23,6 +32,8 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 
 - On an enabled personal machine, automatically save quoted preferences, corrections, facts and thinking about the owner to both the private profile and today's shared memory until delivery lands. Run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-profile.mjs" save`; never enable saving on a machine without the owner's choice. Show each Saved: line in your reply so the owner can retract it; confirm only on an explicit owner yes with new owner words. Never save as a builder or reviewer, from a linked worktree, or from a disabled machine. Decisions belong in nana-rulings.md and open threads in GitHub issues.
 
-At session start, run the main CI check command when the block names it, and run it again after each land once that land's main run finishes. Use `--post` when it reports red. Builders and reviewers never run the main CI check.
+At session start, run the main CI check command when the block names it, and run it again after each land once that land's main run finishes. Use `--post` when it reports red.
+Land the reviewed fix through `nana-land … --fixes-red <run>`.
+Builders and reviewers never run the main CI check.
 
 In Claude Code, at session start, when the block names the issue watch, run that command as a background monitor. When it ends, run the restart command it printed. Builders and reviewers never run the issue watch. In pi, the frontier extension runs it itself.

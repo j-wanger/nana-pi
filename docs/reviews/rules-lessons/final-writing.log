@@ -1,0 +1,79 @@
+AGENTS.md:5: length: 99 words (cap 25)
+AGENTS.md:11: passive: passive candidate: "bounded" in "Output is bounded, marker-derived intent, never raw file instructions."
+AGENTS.md:15: length: 82 words (cap 25)
+AGENTS.md:24: passive: passive candidate: "retired" in "Automatic knowledge delivery is retired in both runtimes."
+AGENTS.md:27: length: 27 words (cap 25)
+AGENTS.md:32: passive: passive candidate: "retired" in "`apps/desk/` — the local manifest app host; the desk page is retired."
+AGENTS.md:36: length: 32 words (cap 25)
+AGENTS.md:37: length: 53 words (cap 25)
+AGENTS.md:43: passive: passive candidate: "written" in "`research/raw/` holds the deep-research artifacts the distilled files were written from."
+AGENTS.md:48: passive: passive candidate: "deprecated" in "Target the `@earendil-works` scope only; `@mariozechner/*` is deprecated upstream."
+AGENTS.md:49: length: 37 words (cap 25)
+AGENTS.md:58: length: 26 words (cap 25)
+AGENTS.md:58: passive: passive candidate: "declared" in "Contract changes are declared where the consumer reads them — `apps/desk/README.md` "Contract notes"/"Known limits", the pack README, the design doc — not only in a commit."
+AGENTS.md:68: length: 26 words (cap 25)
+AGENTS.md:77: passive: passive candidate: "shared" in "Requirements-first practice is shared through project `AGENTS.md` and the requirements skill."
+AGENTS.md:84: length: 29 words (cap 25)
+AGENTS.md:92: length: 55 words (cap 25)
+AGENTS.md:93: length: 28 words (cap 25)
+AGENTS.md:93: passive: passive candidate: "hardened" in "Urgent fixes ship alone and are hardened in a later lane."
+AGENTS.md:93: passive: passive candidate: "edited" in "Once every reviewer says LAND, nothing more is edited."
+AGENTS.md:94: length: 68 words (cap 25)
+AGENTS.md:94: passive: passive candidate: "retired" in "A review with no MUST finding says LAND; LAND-WITH-FIXES is retired because `nana-land` accepts only LAND."
+AGENTS.md:95: length: 68 words (cap 25)
+AGENTS.md:95: length: 45 words (cap 25)
+AGENTS.md:95: length: 65 words (cap 25)
+AGENTS.md:95: length: 38 words (cap 25)
+AGENTS.md:95: passive: passive candidate: "covered" in "Every commit reaching main must be covered by a revision every reviewer accepted; the one exemption is that conflict-free merge, including generated-file conflicts resolved by their own generators; there are no others, and never commit directly to main."
+AGENTS.md:95: passive: passive candidate: "written" in "Nothing is written after a land."
+AGENTS.md:96: length: 27 words (cap 25)
+AGENTS.md:97: length: 38 words (cap 25)
+AGENTS.md:114: passive: passive candidate: "written" in "**Baseline (works everywhere):** before working in a folder, READ that folder's `AGENTS.md` — each is written to stand alone as a useful on-demand read."
+AGENTS.md:125: passive: passive candidate: "honored" in "`.pi/nana-pack.json` (project scope) is honored **only in trusted projects** — it can set gate patterns (`extraPatterns` / `allowPatterns` / `protectedPaths`)."
+AGENTS.md:126: passive: passive candidate: "accepted" in "Legacy `postEdit` and `handoff` sections are accepted and ignored."
+AGENTS.md:129: length: 44 words (cap 25)
+AGENTS.md:132: length: 30 words (cap 25)
+AGENTS.md:133: length: 57 words (cap 25)
+AGENTS.md:141: length: 26 words (cap 25)
+AGENTS.md:145: length: 27 words (cap 25)
+AGENTS.md:155: passive: passive candidate: "marked" in "A lane brief carries a Precedent section unless it is marked `Card: fix`."
+AGENTS.md:160: passive: passive candidate: "retired" in "Its main port serves a retired-page note and app links; session-dashboard controls are retired."
+templates/_shared/working-under-nana-pi.md:3: length: 26 words (cap 25)
+templates/_shared/working-under-nana-pi.md:12: passive: passive candidate: "shared" in "Requirements-first practice is shared through project `AGENTS.md` and the requirements skill."
+templates/_shared/working-under-nana-pi.md:19: length: 29 words (cap 25)
+templates/_shared/working-under-nana-pi.md:27: length: 55 words (cap 25)
+templates/_shared/working-under-nana-pi.md:28: length: 28 words (cap 25)
+templates/_shared/working-under-nana-pi.md:28: passive: passive candidate: "hardened" in "Urgent fixes ship alone and are hardened in a later lane."
+templates/_shared/working-under-nana-pi.md:28: passive: passive candidate: "edited" in "Once every reviewer says LAND, nothing more is edited."
+templates/_shared/working-under-nana-pi.md:29: length: 68 words (cap 25)
+templates/_shared/working-under-nana-pi.md:29: passive: passive candidate: "retired" in "A review with no MUST finding says LAND; LAND-WITH-FIXES is retired because `nana-land` accepts only LAND."
+templates/_shared/working-under-nana-pi.md:30: length: 68 words (cap 25)
+templates/_shared/working-under-nana-pi.md:30: length: 45 words (cap 25)
+templates/_shared/working-under-nana-pi.md:30: length: 65 words (cap 25)
+templates/_shared/working-under-nana-pi.md:30: length: 38 words (cap 25)
+templates/_shared/working-under-nana-pi.md:30: passive: passive candidate: "covered" in "Every commit reaching main must be covered by a revision every reviewer accepted; the one exemption is that conflict-free merge, including generated-file conflicts resolved by their own generators; there are no others, and never commit directly to main."
+templates/_shared/working-under-nana-pi.md:30: passive: passive candidate: "written" in "Nothing is written after a land."
+templates/_shared/working-under-nana-pi.md:31: length: 27 words (cap 25)
+templates/_shared/working-under-nana-pi.md:32: length: 38 words (cap 25)
+packages/nana-pack/prompts/builder-preamble.md:11: length: 29 words (cap 25)
+packages/nana-pack/prompts/builder-preamble.md:18: length: 29 words (cap 25)
+packages/nana-pack/prompts/builder-preamble.md:47: length: 43 words (cap 25)
+packages/nana-pack/prompts/builder-preamble.md:51: length: 34 words (cap 25)
+packages/nana-pack/prompts/builder-preamble.md:52: length: 34 words (cap 25)
+packages/nana-setup/claude/rules/nana-seat.md:9: length: 27 words (cap 25)
+packages/nana-setup/claude/rules/nana-seat.md:11: length: 58 words (cap 25)
+packages/nana-setup/claude/rules/nana-seat.md:12: length: 46 words (cap 25)
+packages/nana-setup/claude/rules/nana-seat.md:13: length: 28 words (cap 25)
+packages/nana-setup/claude/rules/nana-seat.md:13: length: 30 words (cap 25)
+packages/nana-setup/claude/rules/nana-seat.md:28: length: 26 words (cap 25)
+packages/nana-setup/claude/rules/nana-seat.md:33: length: 28 words (cap 25)
+packages/nana-setup/claude/rules/nana-seat.md:35: length: 27 words (cap 25)
+packages/nana-pack/rules/nana-rulings.md:3: length: 29 words (cap 25)
+packages/nana-pack/rules/nana-rulings.md:9: passive: passive candidate: "required" in "2026-10-10: In nana-pi, Windows testing is required."
+packages/nana-pack/rules/nana-rulings.md:12: passive: passive candidate: "edited" in "2026-10-11: After every reviewer says LAND, nothing more is edited."
+packages/nana-pack/rules/nana-rulings.md:12: passive: passive candidate: "hardened" in "Urgent fixes ship alone and are hardened later."
+packages/nana-pack/rules/nana-rulings.md:30: length: 30 words (cap 25)
+packages/nana-pack/rules/nana-rulings.md:35: length: 49 words (cap 25)
+packages/nana-pack/rules/nana-rulings.md:35: passive: passive candidate: "written" in "Nobody commits to main directly, and nothing is written after a land."
+packages/nana-pack/rules/nana-rulings.md:36: passive: passive candidate: "planned" in "At most two more lanes are planned."
+summary sentences=390 words=6401 over=50 passive=28 banned=0 verdict=n/a identifiers=0
