@@ -51,7 +51,6 @@ const BRIEF_CHECK = path.join(PACK, "bin", "brief-check.mjs");
 const PREAMBLE = path.join(PACK, "prompts", "builder-preamble.md");
 const CASE_LIMIT_MS = 20_000;
 const STARTUP_SIGNAL_READY_LIMIT_MS = 5_000; // Chosen to bound fixture readiness below the per-case watchdog.
-const BLOCKING_READ_SETTLE_MS = 500; // Chosen to let the selected start-up read begin after the precedent line.
 const BLOCKING_READ_END_MS = 2_000; // Chosen to bound a lost SIGTERM well below the per-case watchdog.
 const BLOCKING_HELPER_HANG_MS = 30_000; // Chosen to outlast both the bounded signal wait and the per-case watchdog.
 const BLOCKING_HELPER_STOP_MS = 1_000; // Chosen to bound orphan cleanup after a FIFO is released or a helper is killed.
@@ -664,6 +663,19 @@ if (process.platform !== "win32") {
 		const timer = setTimeout(() => resolve({ code: null, signal: "TIMEOUT" }), BLOCKING_READ_END_MS);
 		closed.then((ended) => { clearTimeout(timer); resolve(ended); });
 	});
+	// Opening a FIFO writer succeeds only once this specific reader has opened it.
+	// Keep the writer open without bytes: readFileSync cannot finish until cleanup.
+	const fifoReadiness = (fifo) => {
+		let writer;
+		return {
+			blocked: () => {
+				if (writer !== undefined) return true;
+				try { writer = fs.openSync(fifo, fs.constants.O_WRONLY | fs.constants.O_NONBLOCK); return true; }
+				catch (error) { if (error?.code === "ENXIO") return false; throw error; }
+			},
+			close: () => { if (writer !== undefined) fs.closeSync(writer); },
+		};
+	};
 	const trustFifo = path.join(AGENT, "trust.json");
 	const trustPid = path.join(TEMP, "blocking-trust.pid");
 	const trustPreload = path.join(TEMP, "blocking-trust.cjs");
@@ -694,10 +706,11 @@ if (process.platform !== "win32") {
 			prepare: () => {
 				fs.rmSync(settingsFifo, { recursive: true, force: true });
 				makeFifo(settingsFifo);
+				const ready = fifoReadiness(settingsFifo);
 				return {
 					env: { CLAUDE_CONFIG_DIR: userSettingsDir },
-					blocked: (run) => run.child.exitCode === null && run.child.signalCode === null,
-					cleanup: async () => { unblockFifo(settingsFifo); },
+					blocked: ready.blocked,
+					cleanup: async () => { ready.close(); unblockFifo(settingsFifo); },
 				};
 			},
 		},
@@ -716,9 +729,8 @@ if (process.platform !== "win32") {
 		const fixture = item.prepare();
 		const run = startWorker({ extra: ["--max-secs", "10", "--stall-secs", "10"], env: tempEnv(root, { ...fixture.env, WC_SLEEP_MS: "10000" }) });
 		const precedent = await waitFor(() => run.stderr().includes("pi-worker: precedent:"), run.child);
-		if (precedent) await delay(BLOCKING_READ_SETTLE_MS);
-		const blocked = precedent && fixture.blocked(run);
-		if (precedent && run.child.exitCode === null && run.child.signalCode === null) run.child.kill("SIGTERM");
+		const blocked = precedent && await waitFor(fixture.blocked, run.child, STARTUP_SIGNAL_READY_LIMIT_MS);
+		if (blocked) run.child.kill("SIGTERM");
 		const ended = await closeWithin(run.closed);
 		if (ended.signal === "TIMEOUT") {
 			try { run.child.kill("SIGKILL"); } catch {}
@@ -741,7 +753,7 @@ if (process.platform !== "win32") {
 	}
 	fs.writeFileSync(homeSettings, JSON.stringify({ env: {} }));
 } else console.log("SKIP R-2694: blocking start-up reads — POSIX signal delivery and FIFO only");
-// req: R-2694
+// req: R-2694 R-3905 R-3907 R-3908
 check("R-2694: off Windows, SIGTERM sent to pi-worker while its trust check, Claude settings read or HEAD read hangs ends it before any temp file or lane lock exists",
 	process.platform === "win32" || (blockingReadObservations.length === 3 && blockingReadObservations.every((item) => item.precedent && item.blocked && item.ended.code === null && item.ended.signal === "SIGTERM" && item.empty && !item.lock && item.calls === 0 && !item.fakeClaude)),
 	JSON.stringify(blockingReadObservations), process.platform === "win32");

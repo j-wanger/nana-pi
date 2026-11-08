@@ -934,7 +934,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Each awaited case reports errors within its deadline and ends its children in finally.
 - **callers** — —
 - **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
-- **unresolved launches** — line 32: spawn; binding line 64; binding line 154; binding line 216; binding line 234; binding line 268; binding line 350; binding line 425
+- **unresolved launches** — line 32: spawn; binding line 64; binding line 175; binding line 193; binding line 227; binding line 309; binding line 384
 
 ### `packages/nana-knowledge/tests/discovery.test.mjs`
 
@@ -4128,8 +4128,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed checks or per-case time limits exit nonzero; unexpected fixture failures throw.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/lane-watcher-child.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/process-tree-helper.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/runtime-measure.mjs`
-- **unresolved launches** — line 171: spawnSync · line 211: spawn · line 405: spawn · line 879: spawn · line 908: spawn · line 911: spawn · line 960: spawnSync · line 1015: spawn
-- **repo-code launches** — line 762: spawn
+- **unresolved launches** — line 170: spawnSync · line 210: spawn · line 404: spawn · line 891: spawn · line 920: spawn · line 923: spawn · line 972: spawnSync · line 1027: spawn
+- **repo-code launches** — line 774: spawn
 
 ### `packages/nana-pack/tests/worker-lane.test.mjs`
 
