@@ -1,0 +1,31 @@
+PASS  packages/nana-pack/tests/agent-dir-hostile.test.mjs     10 pass  8.2s
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs      43 pass  2.1s
+PASS  packages/nana-pack/tests/agent-dir-policy.test.mjs      18 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-resolver.test.mjs    1 pass  0.1s
+PASS  packages/nana-pack/tests/claude-review-launch.test.mjs  2 pass  1.0s
+PASS  packages/nana-pack/tests/claude-review.test.mjs         8 pass, 1 skip  10.6s
+PASS  packages/nana-pack/tests/code-map-land.test.mjs         2 pass  2.4s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs       12 pass  1.7s
+PASS  packages/nana-pack/tests/code-map.test.mjs              46 pass  1.9s
+PASS  packages/nana-pack/tests/identity-scan.test.mjs         6 pass  0.8s
+PASS  packages/nana-pack/tests/identity-tree.test.mjs         2 pass  15.1s
+PASS  packages/nana-pack/tests/leak-scan-cli.test.mjs         1 pass  0.7s
+PASS  packages/nana-pack/tests/leak-scan.test.mjs             11 pass  15.8s
+PASS  packages/nana-pack/tests/objective-golden.test.mjs      1243 pass  32.2s
+PASS  packages/nana-pack/tests/objective-smoke.test.mjs       37 pass  1.6s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs    61 pass  4.5s
+PASS  packages/nana-pack/tests/templates-render.test.mjs      168 pass  70.8s
+PASS  packages/nana-pack/tests/templates-working.test.mjs     5 pass  0.0s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs       1 pass  0.3s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs     3 pass  4.4s
+PASS  packages/nana-pack/tests/test-packs.test.mjs            2 pass  0.0s
+PASS  packages/nana-pack/tests/win32-forced.test.mjs          5 pass  0.1s
+SKIP  packages/nana-pack/tests/win32-launch.test.mjs          native Windows launch cases (forced fixtures run in win32-forced)
+PASS  packages/nana-pack/tests/worker-lane.test.mjs           60 pass  29.8s
+PASS  packages/nana-pack/tests/worker-refusal.test.mjs        8 pass  1.6s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs        69 pass  11.0s
+PASS  packages/nana-setup/tests/doctor-floor.test.mjs         3 pass  0.0s
+PASS  packages/nana-setup/tests/win-shims-sh.test.mjs         2 pass  0.4s
+SKIP  packages/nana-setup/tests/win-shims.test.mjs            native Windows shim cases (sh fixtures run in win-shims-sh)
+
+29 files: 27 PASS, 0 FAIL, 2 SKIP, 0 WARN · checks: 1829 pass, 0 fail, 1 skip · 217.8s

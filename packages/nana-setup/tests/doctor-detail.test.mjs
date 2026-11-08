@@ -69,8 +69,6 @@ const personalCheck = (layout) => diagnoseWithPi(layout, { projectDir: layout.ba
 }
 
 {
-	// req: R-650
-	check("desk Node floor is pinned at 22.19", DESK_NODE_FLOOR === "22.19");
 	const sample = '<key>ProgramArguments</key><array><string>/node</string><string>/desk/server.mjs</string></array><key>PATH</key><string>/bin</string>';
 	const parsed = parsePlistValues(sample);
 	// req: R-399
@@ -317,16 +315,6 @@ character" } }`, FORWARD_SLASH_ADVICE, true],
 		// req: R-343
 		check("doctor's projectFile rule matches the producer's isBareFileName", disagree.length === 0, JSON.stringify(disagree));
 	}
-	// Node floor: the objective hook's CLI imports .ts unflagged (type stripping, default from 22.18)
-	{
-		const { nodeMeetsFloor, NODE_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
-		// req: R-344
-		check("NODE_FLOOR is 22.18", NODE_FLOOR === "22.18");
-		// req: R-344
-		check("node floor: 22.17.1 fails, 22.18.0 / 22.22.2 / v24.0.0 pass, 21.9.0 fails",
-			!nodeMeetsFloor("22.17.1") && nodeMeetsFloor("22.18.0") && nodeMeetsFloor("22.22.2") && nodeMeetsFloor("v24.0.0") && !nodeMeetsFloor("21.9.0"));
-	}
-
 	// pi subagent config (R-361, R-362): the sealed keys live in the seed file ONLY — this test
 	// imports it rather than restating the values.
 	{

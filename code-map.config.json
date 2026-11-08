@@ -93,6 +93,7 @@
     { "path": "packages/nana-setup/tests/settings-lock.test.mjs", "reason": "Native shell program and fixture launch helpers are dynamic." },
     { "path": "packages/nana-setup/tests/stale-copies.test.mjs", "reason": "Producer fixture passes an object-shaped CLI configuration." },
     { "path": "packages/nana-setup/tests/win-shims.test.mjs", "reason": "Shell resolver and native command paths do not trace." },
+    { "path": "packages/nana-setup/tests/win-shims-sh.test.mjs", "reason": "Extracted shell resolver and native command paths do not trace." },
     { "path": "packages/nana-setup/tests/win32-degrade.test.mjs", "reason": "Native shell executable comes from an environment-derived path." },
     { "path": "scripts/memory-shape-runners.mjs", "reason": "Injected model spawn plus Claude and pi launch resolvers select external CLI programs." },
     { "path": "scripts/runtime-measure.mjs", "reason": "Measurement starts a caller-provided suite program." },

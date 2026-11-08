@@ -110,30 +110,6 @@ const commitChange = (repo, text) => {
 const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 
 {
-	const item = "claude-main";
-	const repo = makeRepo("main-tree");
-	const outside = path.join(temp, "outside-main");
-	fs.mkdirSync(outside);
-	const brief = path.join(repo, "brief.md");
-	fs.writeFileSync(brief, "Review the named revision.\n");
-	const home = makeHome("main");
-	const fakeBin = path.join(temp, "fake-main");
-	const record = writeFakeClaude(fakeBin, path.join(temp, "main-record.jsonl"));
-	const out = path.join(temp, "main-out.md");
-	const answer = "Looks correct.\nVERDICT: LAND\n";
-	const result = runLauncher({ cwd: outside, tree: repo, out, item, env: baseEnv(home, fakeBin, record, { CLAUDE_ANSWER: answer }), extra: ["--role", "final"] });
-	const calls = rows(record);
-	const state = ledgerState(home.home, item);
-	// req: R-2560
-	check("R-2560: claude-review starts the roster's Claude Code reviewer and records its round",
-		result.status === 0 && calls.length === 1 &&
-		JSON.stringify(calls[0].argv) === JSON.stringify(["-p", "--model", "fable", "--allowedTools", "Read,Grep,Glob,Bash", "--disallowedTools", "Edit,Write,NotebookEdit", "--setting-sources", "project,local", "--settings", calls[0].argv[calls[0].argv.indexOf('--settings') + 1], "--strict-mcp-config"]) &&
-		calls[0].role === "reviewer" && calls[0].handoff === "off" && fs.realpathSync(calls[0].cwd) === fs.realpathSync(repo) &&
-		fs.readFileSync(out, "utf8") === answer && state.rounds.length === 1 && state.rounds[0].model === "fable" && state.rounds[0].role === "final",
-		JSON.stringify({ result, calls, state }));
-}
-
-{
 	const item = "claude-prompt";
 	const repo = makeRepo("prompt-tree");
 	const briefRelative = process.platform === "win32" ? `brief folder/review quote and apostrophe's.md` : `brief folder/review \"quote\" and apostrophe's.md`;
@@ -157,28 +133,6 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 		result.status === 0 && prompt === expected && standardCount === 1 && prompt.indexOf(briefText) === 0 && prompt.indexOf(standardText) > prompt.indexOf(briefText) &&
 		prompt.endsWith(`${sentence}\n`) && sentence.includes("read-only: do not edit files") && sentence.includes("exactly VERDICT: LAND or VERDICT: SEND-BACK") && sentence.includes("write no other verdict line"),
 		JSON.stringify({ status: result.status, stderr: result.stderr, prompt, expected, standardCount }));
-}
-
-{
-	const item = "claude-refused";
-	const repo = makeRepo("refused-tree");
-	fs.writeFileSync(path.join(repo, "brief.md"), "Review.\n");
-	const fakeBin = path.join(temp, "fake-refused");
-	const record = writeFakeClaude(fakeBin, path.join(temp, "refused-record.jsonl"));
-	const piHome = makeHome("pi-reviewer", roster(piEntry()));
-	const piResult = runLauncher({ cwd: temp, tree: repo, out: path.join(temp, "pi-refused-out.md"), item, env: baseEnv(piHome, fakeBin, record) });
-	const badHome = makeHome("bad-roster");
-	const badFile = path.join(badHome.agent, "nana-pack.json");
-	fs.writeFileSync(badFile, "{\"roster\": ");
-	const badResult = runLauncher({ cwd: temp, tree: repo, out: path.join(temp, "bad-refused-out.md"), item, env: baseEnv(badHome, fakeBin, record) });
-	const piState = ledgerState(piHome.home, item);
-	const badState = ledgerState(badHome.home, item);
-	// req: R-2562
-	check("R-2562: a pi reviewer in the roster is refused before admission",
-		piResult.status === 1 && /roster\.reviewer/.test(piResult.stderr) && /pi-review/.test(piResult.stderr) && /nana-roster set reviewer claude-code/.test(piResult.stderr) &&
-		badResult.status === 1 && badResult.stderr.includes(badFile) && noStack(badResult.stderr) && !fs.existsSync(record) &&
-		piState.rounds.length === 0 && piState.reservations.length === 0 && badState.rounds.length === 0 && badState.reservations.length === 0,
-		JSON.stringify({ piResult, badResult, piState, badState }));
 }
 
 {

@@ -233,6 +233,9 @@ const onPath = (cmd) => {
 
 /** Declared platform skips: file → () => reason | null. A reason means SKIP, printed. */
 const SKIPS = {
+	// Forced-win32 guards now live in win32-forced; this file contains native Windows cases only.
+	"packages/nana-pack/tests/win32-launch.test.mjs": () => process.platform !== "win32" ? "native Windows launch cases (forced fixtures run in win32-forced)" : null,
+	"packages/nana-setup/tests/win-shims.test.mjs": () => process.platform !== "win32" ? "native Windows shim cases (sh fixtures run in win-shims-sh)" : null,
 	"packages/nana-setup/tests/checkout-spelling.test.mjs": checkoutSpellingSkipReason,
 	"packages/nana-setup/tests/checkout-converge.test.mjs": () => process.platform === "win32" ? "POSIX-only: skill links are copies on win32 and uninstall refuses there" : null,
 	// On POSIX it proves no child was left running with `pgrep -f`, and reads "pgrep missing" as

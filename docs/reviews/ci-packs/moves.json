@@ -1,0 +1,117 @@
+{
+  "base": "85ca2b75d458f8d69edcaa2bf1a4de8f0023610c",
+  "moves": [
+    {
+      "to": "packages/nana-pack/tests/leak-scan-cli.test.mjs",
+      "start": "// req: R-3753\n",
+      "end": "// req: R-3754\n",
+      "sha256": "fb712d9258ed532c5bd2a4bf11159286d5143c7428da77cf87fbcf9125ae5aa5",
+      "from": "packages/nana-pack/tests/leak-scan.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/identity-tree.test.mjs",
+      "start": "{\n\tconst config = JSON.parse(fs.readFileSync(path.join(REPO, \"identity-scan.config.json\"), \"utf8\"));\n\tconst expectedFiles",
+      "end": "if (fails) process.exitCode = 1;",
+      "sha256": "ce3d7b4fafe36c475a334f58d997afd6c2dcea16ce2781e60d336c1fce6700b9",
+      "from": "packages/nana-pack/tests/identity-scan.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/worker-refusal.test.mjs",
+      "start": "// req: R-960\ncheck(\"lane options",
+      "end": "// req: R-2580\n",
+      "sha256": "5b1615c76eee5570283a8d5adfa69562f4d6498fa70104fe55da5cc29a9ef4dd",
+      "from": "packages/nana-pack/tests/worker-lane.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/objective-smoke.test.mjs",
+      "start": "// 1. umbrella governs",
+      "end": "// 6. unreadable file",
+      "sha256": "38a50e79de35c4b25f4776007da5130a729416d1506b6eb4a486a9990c6debb9",
+      "from": "packages/nana-pack/tests/objective-golden.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/objective-smoke.test.mjs",
+      "start": "// 18. disabled:",
+      "end": "// 20. FRESH MACHINE",
+      "sha256": "cf5d5fdeddafacacbef3b57d6e53aa737408563375a2b952b862be454ca20d9c",
+      "from": "packages/nana-pack/tests/objective-golden.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/win32-forced.test.mjs",
+      "start": "{\n\tconst g1 =",
+      "end": "// ---------------------------------------------------------------- Windows leg only",
+      "sha256": "629952f80a49da29d1d46f206b1479c1113c0809089f33fc876c78d92c641da5",
+      "from": "packages/nana-pack/tests/win32-launch.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/claude-review-launch.test.mjs",
+      "start": "{\n\tconst item = \"claude-main\";",
+      "end": "{\n\tconst item = \"claude-prompt\";",
+      "sha256": "bb5513b90d06dcc8a2ae4e845e6dadce91b5d2181d28ac7bfc4dc041e615a655",
+      "from": "packages/nana-pack/tests/claude-review.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/claude-review-launch.test.mjs",
+      "start": "{\n\tconst item = \"claude-refused\";",
+      "end": "{\n\tconst title = \"R-2564:",
+      "sha256": "f132eb8616dda27701ef05b61ae2f6eda081ae47e1a909dbe6aaee001cd4c861",
+      "from": "packages/nana-pack/tests/claude-review.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/agent-dir-policy.test.mjs",
+      "start": "if (canLink) {",
+      "end": "// \u2500\u2500 C: deleted cwd",
+      "sha256": "e5628dedbbdfdd04c925d37eadfb9041f9ca062f345fc4abe501199900585251",
+      "from": "packages/nana-pack/tests/agent-dir-hostile.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/agent-dir-resolver.test.mjs",
+      "start": "// \u2500\u2500 exactly ONE implementation",
+      "end": "// The real holder (Windows run 2):",
+      "sha256": "a3bee4d9ad411f9782e59347d8997b545a6d9cb48f1de4e8f8734666d069070a",
+      "from": "packages/nana-pack/tests/agent-dir-parity.test.mjs"
+    },
+    {
+      "to": "packages/nana-setup/tests/doctor-floor.test.mjs",
+      "start": "\t// req: R-650\n\tcheck(\"desk Node floor",
+      "end": "\tconst sample =",
+      "sha256": "180ce9671d7c90d5c2c8afcdd855b617ef875c598401b976ca6590e1b738c748",
+      "from": "packages/nana-setup/tests/doctor-detail.test.mjs"
+    },
+    {
+      "to": "packages/nana-setup/tests/doctor-floor.test.mjs",
+      "start": "\t// Node floor: the objective hook",
+      "end": "\t// pi subagent config",
+      "sha256": "b6e9aff54d23a8af0afd97b54b7b6f40aa23f3c65c9c670d1401e7302ea43f65",
+      "from": "packages/nana-setup/tests/doctor-detail.test.mjs"
+    },
+    {
+      "to": "packages/nana-setup/tests/win-shims-sh.test.mjs",
+      "start": "// req: R-1611",
+      "end": "// req: R-1612",
+      "sha256": "87604c9b8487a2c8c53bd275440c9cd7e624debfb3b11745294ba7fc78fcf858",
+      "from": "packages/nana-setup/tests/win-shims.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/code-map-land.test.mjs",
+      "start": "// req: G-004 G-009 G-010",
+      "end": "// req: R-870",
+      "sha256": "9c030362f4a0f5f77f7d7339106fdd32be4ed69a3c16eb1b25581426350a34ab",
+      "from": "packages/nana-pack/tests/code-map.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/code-map-land.test.mjs",
+      "start": "// the documented command is the one that runs:",
+      "end": "check(\"the config the CLI reads",
+      "sha256": "73be0b309a2e326c0c15b59e7030c4cf5fd175ab2ab4dac8856f5e9850f40f59",
+      "from": "packages/nana-pack/tests/code-map.test.mjs"
+    },
+    {
+      "to": "packages/nana-pack/tests/templates-working.test.mjs",
+      "start": "function checkAgentsMdMirrorsWorkingUnderNanaPi() {",
+      "end": "const RUNTIME_INVENTORY_TEXT =",
+      "sha256": "2a24ae0b5addf1feeb372a8c176fdebe7da6ed38163dba60a2d1189750361e92",
+      "from": "packages/nana-pack/tests/templates-render.test.mjs"
+    }
+  ]
+}
