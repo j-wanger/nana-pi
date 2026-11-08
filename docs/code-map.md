@@ -1443,9 +1443,9 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/brief-config.mjs`
 
-- **purpose** — Define the sealed vocabulary and bounded git-list output for lane brief precedent checks.
+- **purpose** — Define sealed vocabulary and bounded git-list output for lane brief completeness checks.
 - **inputs** — none
-- **outputs** — Precedent section, none-entry and feature-line tokens, accepted trailing punctuation, and git output cap.
+- **outputs** — Precedent, fix-card, Serves and feature-line tokens, accepted trailing punctuation, and git output cap.
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
@@ -1453,7 +1453,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/lib/brief-precedent.mjs`
 
-- **purpose** — Parse and check a lane brief's precedent and feature context against its worktree's injected HEAD reader.
+- **purpose** — Check a lane brief's precedent, Serves completeness and feature context against its worktree's injected HEAD reader.
 - **inputs** — Brief text or path, worktree root, an injected git runner, and tracked paths for pure predicates.
 - **outputs** — Parsed entries, path judgments, or the worker-compatible refusal/launch line and known-bug path.
 - **effects** — disk (the launch check reads the brief and regular known-bug file metadata)
@@ -4312,8 +4312,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — failed checks or per-case time limits exit nonzero; unexpected fixture failures throw.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/brief-check.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/lane-watcher-child.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/process-tree-helper.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/runtime-measure.mjs`
-- **unresolved launches** — line 170: spawnSync · line 210: spawn · line 404: spawn · line 891: spawn · line 920: spawn · line 923: spawn · line 972: spawnSync · line 1027: spawn
-- **repo-code launches** — line 774: spawn
+- **unresolved launches** — line 171: spawnSync · line 211: spawn · line 405: spawn · line 892: spawn · line 921: spawn · line 924: spawn · line 973: spawnSync · line 1028: spawn
+- **repo-code launches** — line 775: spawn
 
 ### `packages/nana-pack/tests/worker-lane.test.mjs`
 

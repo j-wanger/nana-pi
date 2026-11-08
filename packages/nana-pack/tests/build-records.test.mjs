@@ -62,7 +62,7 @@ const LEDGER = path.join(COMMON, ...BUILD_RECORDS_SUBPATH.split("/"));
 const LOCK = path.join(GIT_DIR, "nana-lane.lock");
 const INSIDE_BRIEF = path.join(LANE, "brief.md");
 const OUTSIDE_BRIEF = path.join(TD, "outside-brief.md");
-const BRIEF_TEXT = "Feature: FEAT-006 · Build records\r\n\r\nPrecedent:\r\n- seed \t";
+const BRIEF_TEXT = "Serves: roadmap step 3: exercise build records.\r\nFeature: FEAT-006 · Build records\r\n\r\nPrecedent:\r\n- seed \t";
 fs.writeFileSync(INSIDE_BRIEF, BRIEF_TEXT);
 fs.writeFileSync(OUTSIDE_BRIEF, BRIEF_TEXT);
 

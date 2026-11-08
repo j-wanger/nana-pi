@@ -48,7 +48,7 @@ if(a.includes('-p')&&!p&&!prompts.length){let t='';process.stdin.on('data',c=>t+
   const env = { ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: agent, PATH: `${bin}${path.delimiter}${process.env.PATH}`, RECORD: record };
   delete env.CLAUDE_CONFIG_DIR;
   const brief = path.join(lane, 'brief.md');
-  const briefText = 'Feature: FEAT-006 · Fixture\r\nTouch `quoted needle` and `-p`. \t\r\n\r\n## Precedent\r\n- seed';
+  const briefText = 'Serves: roadmap step 3: exercise context logging.\r\nFeature: FEAT-006 · Fixture\r\nTouch `quoted needle` and `-p`. \t\r\n\r\n## Precedent\r\n- seed';
   write(brief, briefText);
   const bug = path.join(lane, 'docs/known-bugs/FEAT-006.md');
   const log = path.join(agent, 'nana-context-loads.jsonl');

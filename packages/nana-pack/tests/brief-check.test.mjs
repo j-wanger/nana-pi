@@ -85,7 +85,7 @@ const selectedLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.start
 const cases = [
 	["missing section", writeBrief("missing.md", "Feature: FEAT-006 · Missing\n"), 1, "pi-worker: lane refused:"],
 	["untracked path", writeBrief("untracked.md", "Precedent:\n- missing.mjs\n"), 1, "pi-worker: lane refused:"],
-	["passing with known bugs", writeBrief("passing.md", "Feature: FEAT-006 · Passing\n\nPrecedent:\n- seed\n"), 0, "pi-worker: precedent:"],
+	["passing with known bugs", writeBrief("passing.md", "Serves: roadmap step 3: exercise the launcher.\nFeature: FEAT-006 · Passing\n\nPrecedent:\n- seed\n"), 0, "pi-worker: precedent:"],
 ];
 const observations = [];
 for (const [name, brief, expectedStatus, prefix] of cases) {
@@ -108,6 +108,39 @@ for (const [name, brief, expectedStatus, prefix] of cases) {
 		checkStderr: checkResult.stderr,
 	});
 }
+const check = (title, pass, detail = "") => {
+	console.log(pass ? "PASS" : "FAIL", title, pass ? "" : detail);
+	if (!pass) process.exitCode = 1;
+};
+// Seven off-roadmap launches prompted this refusal (memory-sort plan).
+// Each child has CHILD_LIMIT_MS; cases are synchronous and all are observed.
+const servesResults = [];
+for (const [label, value, accepted] of [
+	["missing", null, false], ["empty", "", false], ["whitespace", " \t", false],
+	["malformed", "useful work", false], ["bare step", "roadmap step 3", false],
+	["bare owner", "owner 2026-11-08", false], ["bad date", "owner today: do this", false],
+	["roadmap", "roadmap step 3: move guidance into both seat runtimes.", true],
+	["owner", "owner 2026-11-08: run this lane.", true],
+]) {
+	for (const [ending, suffix] of [["\n", "\n"], ["\r\n", " \t\r\n"], ["\n", ""]]) {
+		const text = `Precedent:${ending}- seed${ending}${value === null ? "" : `Serves: ${value}${suffix}`}`;
+		const brief = writeBrief("serves.md", text);
+		fs.rmSync(marker, { force: true });
+		const launched = runWorker(brief);
+		const started = fs.existsSync(marker);
+		fs.rmSync(marker, { force: true });
+		const checked = runCheck(brief);
+		servesResults.push({ label, ending, suffix, ok: launched.status === (accepted ? 0 : 1) &&
+			checked.status === launched.status && started === accepted && !fs.existsSync(marker) &&
+			selectedLine(launched.stderr) === selectedLine(checked.stderr) &&
+			(accepted || /lane refused: Serves:/.test(launched.stderr)), stderr: launched.stderr });
+	}
+}
+// req: R-3948
+check("R-3948: Serves refuses missing empty and malformed values and launches complete roadmap or owner forms", servesResults.every((r) => r.ok), JSON.stringify(servesResults.filter((r) => !r.ok)));
+// req: R-3949
+check("R-3949: the alignment label is sealed as Serves:", briefConfig.SERVES_LINE_PREFIX === "Serves:");
+
 const workerSource = fs.readFileSync(worker, "utf8");
 const checkerSource = fs.existsSync(briefCheck) ? fs.readFileSync(briefCheck, "utf8") : "";
 const sharedByBoth = fs.existsSync(sharedCheck) &&
@@ -118,10 +151,6 @@ const sharedByBoth = fs.existsSync(sharedCheck) &&
 const hold = fs.existsSync(holdRecord) ? JSON.parse(fs.readFileSync(holdRecord, "utf8")) : null;
 const samplerResolvedFirst = samplerIsFirst(resolvedSampler, samplerShim);
 const ok = observations.every((entry) => entry.ok) && sharedByBoth;
-const check = (title, pass, detail = "") => {
-	console.log(pass ? "PASS" : "FAIL", title, pass ? "" : detail);
-	if (!pass) process.exitCode = 1;
-};
 // req: R-2585
 check("R-2585: brief-check prints what pi-worker would print for the same brief and starts nothing", ok, JSON.stringify({ observations, sharedByBoth }));
 // req: R-2670
@@ -182,7 +211,7 @@ const selectionCases = [
 const selectionResults = [];
 for (const [bullet, expected] of selectionCases) {
 	for (const ending of ["\n", "\r\n", ""]) {
-		const text = `## Precedent\n${bullet} \t`.replaceAll("\n", ending === "\r\n" ? "\r\n" : "\n") + ending;
+		const text = `Serves: roadmap step 3: exercise selection.\n## Precedent\n${bullet} \t`.replaceAll("\n", ending === "\r\n" ? "\r\n" : "\n") + ending;
 		const brief = writeBrief("selection.md", text);
 		fs.rmSync(marker, { force: true });
 		const launched = runWorker(brief);
