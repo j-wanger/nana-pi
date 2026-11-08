@@ -8,7 +8,6 @@
  */
 import { spawnSync } from "node:child_process";
 import { CI_READ_TIMEOUT_MS, CHILD_OUTPUT_MAX_BYTES } from "../packages/nana-pack/lib/land-config.mjs";
-import { collectModules, impact, blindReach, linkRepo, repoGraph } from "./code-map.mjs";
 import { globMatch } from "./glob-match.mjs";
 import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
 
@@ -23,7 +22,8 @@ export function changedPaths(root, ref) {
   return git(["diff", "--name-only", "--no-renames", "-z", `${base}...HEAD`]).split("\0").filter(Boolean);
 }
 
-function makeRepoGraph(root) {
+async function makeRepoGraph(root) {
+  const { collectModules, linkRepo, repoGraph } = await import("./code-map.mjs");
   const graph = repoGraph(root);
   linkRepo(root, graph, collectModules(root, graph.config));
   if (graph.problems.length) throw new Error("graph has problems");
@@ -56,7 +56,8 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
       if (policy) selection.failSafe = `policy path changed: ${policy}`;
       if (!selection.failSafe) {
         try {
-          const graph = makeGraph(root);
+          const { impact, blindReach } = await import("./code-map.mjs");
+          const graph = await makeGraph(root);
           for (const changed of selection.changedPaths) {
             if (moduleFiles.includes(changed)) add(changed, "changed test");
             for (const caller of impact(graph, [changed]).callers) if (moduleFiles.includes(caller)) add(caller, `caller of ${changed}`);

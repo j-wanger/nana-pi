@@ -1,0 +1,8 @@
+FAIL  packages/nana-pack/tests/test-packs-ci.test.mjs  0 pass, 4 fail  6.0s  — exit 1
+      | FAIL M4: PR CI selects macOS packs release watches and cancellation while main runs every OS AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL M5: land accepts complete lane pack records and refuses filtered or landless proof AssertionError [ERR_ASSERTION]: {"packs":["module"],"selection":{"changedFrom":null,"changedPaths":[],"module":[{"path":"packages/probe/tests/module-0.test.mjs","reasons":["complete module pack"]},{"path":"packages/probe/tests/module-1.test.mjs","reasons":["complete module pack"]},{"path":"packages/probe/tests/module-2.test.mjs","reasons":["complete module pack"]},{"path":"packages/probe/tests/module-3.test.mjs","reasons":["complete module pack"]},{"path":"packages/probe/tests/module-4.test.mjs","reasons":["complete module pack"]},{"path":"packages/probe/tests/module-5.test.mjs","reasons":["complete module pack"]}],"failSafe":null},"complete":true}
+      | FAIL M8: main keeps all collected nonrelease files and an injected retire failure fails its command AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+      | FAIL M10: real pack shards pass every reader and newest missing or failed shards leave main unchanged AssertionError [ERR_ASSERTION]: pack-gap
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 0 pass, 4 fail, 0 skip · 6.4s
+failed: packages/nana-pack/tests/test-packs-ci.test.mjs

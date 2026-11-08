@@ -1,0 +1,6 @@
+requirements: 2647 total (2225 implemented · 8 planned · 283 retired · 128 untested · 3 violated); 2235 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:79108) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://./templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to ./package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -320,7 +320,11 @@ After first-look on a product-page lane, run `npm run outside-reader -- --from <
 
 ## Tests
 
-CI covers this repository's full suite. Builders run touched tests, commit and report their branch, full tip and seat checks. Builders do not push. The seat pushes after verifying, then waits for the pushed tip's CI. A land uses passing unfiltered same-platform records unless the lane changes a workflow or the runner; otherwise it runs the local suite. CI lands refresh no runtime map, land product report or local suite record. Hand commands and fallback lands refresh those artifacts.
+PR CI runs land plus affected module tests on macOS, adding release for release-path changes.
+Main runs land, main, module and retire on macOS, Windows and Linux; Linux stays advisory.
+Superseded PR runs cancel; main runs never cancel. `npm run release` runs the release pack before acceptance.
+
+CI covers this repository's full suite. Builders run touched tests, commit and report their branch, full tip and seat checks. Builders do not push. The seat pushes after verifying, then waits for the pushed tip's CI. A land uses passing same-platform full-suite records or complete land/module pack records unless the lane changes a workflow or the runner; otherwise it runs the local suite. CI lands refresh no runtime map, land product report or local suite record. Hand commands and fallback lands refresh those artifacts.
 
 On a shared machine, run a fallback full suite with `npm run test:locked` (implemented by `scripts/test-locked.mjs`); it serializes full runs across worktrees. Add a path substring after `--` for an unlocked filtered run, such as `npm run test:locked -- packages/nana-pack/tests/test-locked.test.mjs`. Two runs reclaiming the same dead holder's lock at the same instant may both proceed; this can share CPU but cannot lose suite data.
 

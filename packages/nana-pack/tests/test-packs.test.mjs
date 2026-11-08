@@ -34,7 +34,12 @@ await check("M1: every collected file has exactly one pack and omissions name th
 });
 // req: R-3856
 await check("M7: R-3856 watch globs and fail-safe paths are sealed with provenance", async () => {
-  const { WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS } = await import("../lib/test-packs-config.mjs");
+  const { WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, PACK_NAMES } = await import("../lib/test-packs-config.mjs");
+  const { PACK_FLAG, CHANGED_FROM_FLAG } = await import("../lib/test-runner-config.mjs");
+  assert.equal(PACK_FLAG, "--pack=", "R-3856");
+  assert.equal(CHANGED_FROM_FLAG, "--changed-from=", "R-3856");
+  assert.deepEqual(PACK_NAMES, ["land", "module", "main", "release", "manual", "retire"], "R-3856");
+  assert(Object.isFrozen(PACK_NAMES));
   assert.deepEqual(Object.keys(WATCH_GLOBS), [".github/workflows/*.yml", ".github/workflows/*.yaml", "packages/nana-pack/prompts/*.md", "packages/nana-pack/rules/*.md", "packages/nana-setup/claude/rules/*.md", "templates/**", "copier.yml", "code-map.config.json", "REQUIREMENTS.md", "HANDOFF.md", "docs/known-bugs/**", "**/*.test.mjs"]);
   assert.deepEqual(Object.keys(FAIL_SAFE_PATHS), ["scripts/test.mjs", "scripts/test-packs.mjs", "packages/nana-pack/lib/test-packs-config.mjs", "packages/nana-pack/lib/test-runner-config.mjs", "package.json", "code-map.config.json"]);
   assert.deepEqual(Object.keys(RELEASE_GLOBS), ["templates/**", "copier.yml", "packages/nana-setup/**"]);

@@ -13,7 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV } from "../packages/nana-pack/lib/test-runner-config.mjs";
+import { JOBS_FLAG, PACK_FLAG, SUITE_JOBS, SUITE_JOBS_ENV } from "../packages/nana-pack/lib/test-runner-config.mjs";
 import { COVERAGE_ENV, COVERAGE_PREFIX } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
 import { gitCommonDir, readRunRecord, readSuiteRecords, storeSuiteRecord, suiteGitFacts, suiteRecordLines } from "../packages/nana-pack/lib/suite-records.mjs";
@@ -223,7 +223,7 @@ function finishSuiteRecord({ recordFile, runnerRecord, suiteCode, root, env, rec
 
 /** Pack selection is complete unless a substring, shard or self-test narrows its proof. */
 export function isCompletePackRun(args) {
-	return args.some(arg => arg.startsWith("--pack=")) && args.every(arg => arg.startsWith("--"))
+	return args.some(arg => arg.startsWith(PACK_FLAG)) && args.every(arg => arg.startsWith("--"))
 		&& !args.some(arg => arg.startsWith("--shard") || arg === "--self-test");
 }
 

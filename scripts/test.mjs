@@ -13,7 +13,7 @@
  *  --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output
  *  and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and,
  *  per file, a coverage folder with a path/label/seconds record, plus one completion record naming the
- *  collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 whole-run record with the default per-file limit
+ *  collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 run record with the default per-file limit and, for pack runs, complete selection metadata
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
  *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
@@ -80,6 +80,8 @@ import {
 	checkoutSpellingSkipReason,
 	JOBS_FLAG,
 	SHARD_FLAG,
+	PACK_FLAG,
+	CHANGED_FROM_FLAG,
 	shardFiles,
 	RUN_ALONE,
 	TEMP_REMOVE_RETRIES,
@@ -142,9 +144,9 @@ const isDir = (p) => {
 
 // --pack=land runs complete land membership. --pack=land,module --changed-from=main
 // additionally selects affected module tests and records each reason before sharding.
-const packArgs = argv.filter(arg => arg.startsWith("--pack"));
-const changedArgs = argv.filter(arg => arg.startsWith("--changed-from"));
-if (packArgs.length > 1 || changedArgs.length > 1 || packArgs.some(arg => !/^--pack=.+$/.test(arg)) || changedArgs.some(arg => !/^--changed-from=.+$/.test(arg)) || (changedArgs.length && !packArgs.length)) {
+const packArgs = argv.filter(arg => arg.startsWith(PACK_FLAG.slice(0, -1)));
+const changedArgs = argv.filter(arg => arg.startsWith(CHANGED_FROM_FLAG.slice(0, -1)));
+if (packArgs.length > 1 || changedArgs.length > 1 || packArgs.some(arg => !arg.startsWith(PACK_FLAG) || arg.length === PACK_FLAG.length) || changedArgs.some(arg => !arg.startsWith(CHANGED_FROM_FLAG) || arg.length === CHANGED_FROM_FLAG.length) || (changedArgs.length && !packArgs.length)) {
 	console.log("[runner] bad --pack/--changed-from argument");
 	process.exit(1);
 }
@@ -380,7 +382,7 @@ let collected = collect();
 if (packArgs.length) {
 	try {
 		const { selectPackFiles } = await import("./test-packs.mjs");
-		const selected = await selectPackFiles({ root, files: collected.map(rel), packs: packArgs[0].slice("--pack=".length).split(","), changedFrom: changedArgs[0]?.slice("--changed-from=".length) ?? null });
+		const selected = await selectPackFiles({ root, files: collected.map(rel), packs: packArgs[0].slice(PACK_FLAG.length).split(","), changedFrom: changedArgs[0]?.slice(CHANGED_FROM_FLAG.length) ?? null });
 		packRun = { packs: selected.packs, selection: selected.selection, complete: !filters.length && !selfTest };
 		if (selected.selection.failSafe) console.log(`[packs] fail-safe: ${selected.selection.failSafe}`);
 		for (const item of selected.selection.module) console.log(`[packs] module ${item.path}: ${item.reasons.join("; ")}`);

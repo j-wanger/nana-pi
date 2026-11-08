@@ -29,7 +29,7 @@
 		"outside-reader": "node scripts/outside-reader.mjs",
 		"visual-reader": "node scripts/visual-reader.mjs",
 		"template:accept": "node scripts/template-acceptance.mjs",
-		"release": "node scripts/template-release.mjs"
+		"release": "node scripts/test.mjs --pack=release && node scripts/template-release.mjs"
 	},
 	"pi": {
 		"extensions": ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"],

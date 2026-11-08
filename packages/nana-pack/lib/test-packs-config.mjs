@@ -8,6 +8,7 @@
  */
 // chosen 2026-11-07 (ci-packs plan M1): seat classification, corrected against collection.
 // Helpers are not runnable files. Browser e2e files remain manual, never collected.
+// contract (ci-packs A1/M7, R-3856): six explicit, non-overlapping pack names.
 export const PACK_NAMES = Object.freeze(["land", "module", "main", "release", "manual", "retire"]);
 export const TEST_PACKS = Object.freeze({
   "apps/bench/test/anatomy-labels.test.mjs": "module",
@@ -192,6 +193,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/test-packs.test.mjs": "land",
   "packages/nana-pack/tests/test-packs-runner.test.mjs": "land",
   "packages/nana-pack/tests/test-packs-core.test.mjs": "land",
+  "packages/nana-pack/tests/test-packs-ci.test.mjs": "land",
   "packages/nana-pack/tests/leak-scan-cli.test.mjs": "land",
   "packages/nana-pack/tests/identity-tree.test.mjs": "land",
   "packages/nana-pack/tests/worker-refusal.test.mjs": "land",

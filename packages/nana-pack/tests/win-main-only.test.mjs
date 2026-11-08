@@ -70,11 +70,11 @@ await check("M10: PR matrices omit Windows and main push matrices include every 
  const osExpr = install.match(/^        os: \$\{\{ (.+) \}\}$/m)?.[1];
  assert(suiteExpr && osExpr, "event-selected matrices required, not skipped steps on Windows runners");
  for (const event of ["pull_request", "push"]) {
-  const expected = ["macos-latest", "ubuntu-latest", ...(event === "push" ? [shard(1), shard(2), shard(3)] : [])];
+  const expected = ["macos-latest", ...(event === "push" ? ["ubuntu-latest", shard(1), shard(2), shard(3)] : [])];
   const matrix = evaluate(suiteExpr, event);
   assert.deepEqual(matrix.map(item => item.leg), expected);
   for (const item of matrix) assert.equal(item.os, item.leg.startsWith("windows") ? "windows-latest" : item.leg);
-  assert.deepEqual(matrix.map(item => item.shard), event === "push" ? ["", "", "1/3", "2/3", "3/3"] : ["", ""]);
+  assert.deepEqual(matrix.map(item => item.shard), event === "push" ? ["", "", "1/3", "2/3", "3/3"] : [""]);
   assert.deepEqual(evaluate(osExpr, event), event === "push" ? ["macos-latest", "windows-latest"] : ["macos-latest"]);
  }
  assert.match(install, /pi: \[ceiling, floor\]/);
