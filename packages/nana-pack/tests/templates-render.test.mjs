@@ -462,11 +462,10 @@ const RUNTIME_INVENTORY_TEXT = {
 	"nana-objective": "`nana-objective`",
 	"nana-frontier-summary": "`nana-frontier-summary`",
 	"nana-writing": "`nana-writing`",
-	"nana-notify": "`nana-notify`",
 	"nana-lifecycle": "`nana-lifecycle`",
 	"nana-gate": "`nana-gate`",
 	"nana-post-edit": "`nana-post-edit`",
-	"nana-handoff": "`nana-handoff`",
+	"nana-adoption": "`nana-adoption`",
 	"nana-knowledge": "`nana-knowledge`",
 	"nana-roster-notice.mjs": "nana-roster-notice.mjs",
 	"nana-roster-notice": "`nana-roster-notice`",
@@ -505,15 +504,15 @@ function checkInstructionContracts() {
 	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
 		fs.readFileSync(path.join(REPO, file), "utf-8"));
 	const support = frontDoors.map((text) => [...text.matchAll(/^Support:.*$/gm)].map((match) => match[0]));
-	// req: R-680 R-985
+	// req: R-680
 	check("shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory",
 		runtimeInventoryDocumented(runtimeInventory(), shared) && !runtimeInventoryDocumented([...runtimeInventory(), "unmapped-extension-fixture"], shared) &&
 		["Claude Code seat", "pi TUI or desk", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
 		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge search", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
 		[
-			"| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |",
-			"| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension; `nana-roster-notice` extension shows the roster notice as a widget |",
-			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension; `nana-roster-notice` extension runs but shows nothing (no UI) |",
+			"| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | No nana verifier hook | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |",
+			"| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction | No nana notify; `nana-roster-notice` extension shows the roster notice as a widget |",
+			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; pi-owned compaction | No nana notify; `nana-roster-notice` extension runs but shows nothing (no UI) |",
 			"| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |",
 		].every((v) => shared.includes(v)));
 
@@ -556,7 +555,7 @@ function checkInstructionContracts() {
 		}) && fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8")
 			.split("\nTests\n")[0].includes("- Never create, edit, comment on or close a GitHub issue; put open questions in the report."));
 	// req: R-683
-	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "docs/reviews/<lane>-<date>/", "pi-worker", "pi-review", "three rounds", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
+	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "pi-worker", "pi-review", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
 	const canonicalSupport = `Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.`;
 	// req: R-684

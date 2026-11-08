@@ -1,7 +1,7 @@
 /**
  * @module scripts/template-acceptance.mjs
  * @purpose Render and run every native check job for both templates and adoption modes at one immutable commit.
- * @inputs CLI source/ref and injectable child-process runner.
+ * @inputs CLI source/ref, optional programmatic mode-prefix filter and injectable child-process runner.
  * @outputs One failure report per failed command and a process exit status.
  * @effects process (git, copier, and package-manager children), disk (temporary renders).
  * @errors Missing tools, render failures, timeouts, or check failures return status 1.
@@ -12,6 +12,7 @@ import { realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { findOnPath, winCommand } from "../packages/nana-pack/lib/win-command.mjs";
 
 /** Chosen: 10 min; warm probe 2026-10-08 render 2 s, pnpm install 4.3 s, pnpm check 5.5 s, uv sync 1.3 s. */
 export const COMMAND_TIMEOUT_MS = 600_000;
@@ -30,8 +31,19 @@ const ANSWERS = {
   python: { project_name: "Tpl PY", description: "Acceptance render", package_name: "tpl_py" },
   typescript: { project_name: "Tpl TS", description: "Acceptance render" },
 };
-const defaultRun = (cmd, args, options) => spawnSync(cmd, args, { encoding: "utf8", ...options });
-const textOf = (result) => `${result?.stdout ?? ""}${result?.stderr ?? ""}`;
+export function defaultRun(cmd, args, options, { platform = process.platform, lookup = findOnPath, spawn = spawnSync } = {}) {
+  if (platform === "win32") {
+    const file = lookup(cmd, { cwd: options?.cwd, env: options?.env }) ?? cmd;
+    if (/\.(cmd|bat)$/i.test(file)) {
+      const launch = winCommand(file, args);
+      if (launch.refused) return { status: null, error: new Error(launch.refused) };
+      return spawn(launch.command, launch.args, { encoding: "utf8", ...options, ...launch.options });
+    }
+    cmd = file;
+  }
+  return spawn(cmd, args, { encoding: "utf8", ...options });
+}
+export const textOf = (result) => `${result?.stdout ?? ""}${result?.stderr ?? ""}${result?.error ? `\n${result.error.code ?? ""}: ${result.error.message}` : ""}`;
 function cli(argv) {
   let src = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   let ref = "HEAD";
@@ -73,7 +85,7 @@ function seedAdopt(scaffold, target, language) {
   fs.writeFileSync(smoke, body);
 }
 
-export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), run = defaultRun, log = console.log }) {
+export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), modes, run = defaultRun, log = console.log }) {
   const resolve = runChecked(run, "git", ["-C", src, "rev-parse", "--verify", `${ref}^{commit}`], src);
   if (!resolve.ok) { log(`template acceptance failed: git ${textOf(resolve.result).trim() || "could not start"}`); return 1; }
   const sha = String(resolve.result.stdout).trim();
@@ -84,6 +96,7 @@ export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), run = defaultRu
   try {
     for (const [language, dataChecks] of [["python", false], ["typescript", false], ["python", true]]) {
       const prefix = dataChecks ? "python-data" : language;
+      if (modes && !modes.includes(prefix)) continue;
       const answers = { ...ANSWERS[language], ...(dataChecks ? { data_checks: true } : {}) };
       const scaffold = path.join(root, `${prefix}-scaffold`);
       const render = runChecked(run, "uvx", copierArgs(language, answers, scaffold, sha), src, childEnv);

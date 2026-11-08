@@ -1,0 +1,6 @@
+FAIL  packages/nana-setup/tests/retired-artifacts.test.mjs  49 pass, 2 fail  4.8s  — exit 1
+      | FAIL M5: install retires unchanged seeds without new seeds doctor rows or vendor retries AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL M8: retirement preserves edited marked foreign and linked seeds and their targets including dry runs Error: ENOENT: no such file or directory, open '$TMPDIR/nana-test-1366-Pt75GT/nana-retired-yz4YW9/.pi/agent/extensions/subagent/config.json'
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 49 pass, 2 fail, 0 skip · 5.2s
+failed: packages/nana-setup/tests/retired-artifacts.test.mjs

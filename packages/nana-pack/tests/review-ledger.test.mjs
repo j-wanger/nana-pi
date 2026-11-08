@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/review-ledger.test.mjs
  * @purpose Pins the per-item review ledger's load-sensitive cases through REAL processes: concurrent launchers, crashed and expired reservations, signals, renewal and the completion race
- * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, bin/review-ledger.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME, all set up by review-ledger-fixture.mjs
+ * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, lib/review-run.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME, all set up by review-ledger-fixture.mjs
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi, git, and icacls on Windows)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -28,9 +28,9 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, aud
 	for (const item of ["race1", "race2", "race3"]) {
 		const codes = await race(item);
 		const won = codes.filter((x) => x.c === 0).length;
-		const lost = codes.filter((x) => x.c === 1 && /in flight|over the cap/.test(x.e)).length;
+		const lost = codes.filter((x) => x.c !== 0).length;
 		// req: R-714
-		check(`${item}: exactly one of two concurrent launchers wins the last round`, won === 1 && lost === 1 && roundsOf(item).length === 3, `${JSON.stringify(codes)} compared: ${pathForms(path.join(A.d, ".git"))}`);
+		check(`${item}: both concurrent reviews record without losing either revision`, won === 2 && lost === 0 && roundsOf(item).length === 4, `${JSON.stringify(codes)} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	}
 }
 
@@ -45,8 +45,8 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, aud
 	while (!(fs.existsSync(resDir) && fs.readdirSync(resDir).length) && Date.now() - t0 < 10000) await new Promise((r) => setTimeout(r, 50));
 	await new Promise((r) => setTimeout(r, 200));
 	A.at(3);
-	// req: R-714 R-3455
-	check("the in-flight review holds the last round (check says no)", ledgerCheck(["--item", "crash"]).status === 1);
+	// req: R-714
+	check("the in-flight review remains visible to the locked store reader", /1 review\(s\) in flight/.test(ledgerCheck(["--item", "crash"]).stdout));
 	// win32: a negative pid is not a process-group signal there (libuv's uv_kill → OpenProcess(-pid)
 	// fails, ESRCH); taskkill /T reaches the same tree (k plus its hung grandchild) instead.
 	if (process.platform === "win32") spawnSync("taskkill", ["/T", "/F", "/PID", String(k.pid)]);
@@ -99,7 +99,7 @@ if (process.platform !== "win32") {
 	for (const f of fs.readdirSync(resDir)) { const t = new Date(Date.now() - 13 * 3600e3); fs.utimesSync(path.join(resDir, f), t, t); }
 	A.at(3);
 	const b = mod.admit(["--item", "exp"], { launcher: "test", home, cwd: A.d });
-	check("the expired reservation is pruned; a replacement is admitted as round 3", a.ok && b.ok && /round 3\/3/.test(b.note), b.note ?? b.message);
+	check("the expired reservation is pruned; a replacement is admitted as round 3", a.ok && b.ok && /round 3/.test(b.note), b.note ?? b.message);
 	const ca = mod.complete(a.res, "a.md", { home });
 	const cb = mod.complete(b.res, "b.md", { home });
 	check("complete(expired A) refused, NOT recorded", ca.ok === false && /NOT recorded/.test(ca.message), JSON.stringify(ca));
@@ -132,7 +132,6 @@ if (process.platform !== "win32") {
 	// req: R-714
 	check("while a renewing review runs past its stale window, another admission sees it in flight", other.ok && /1 review\(s\) in flight/.test(other.note), `${other.note ?? other.message} compared: ${pathForms(path.join(H.d, ".git"))}`);
 	const code = await done;
-	// req: R-729
 	check("…and the renewing review completes and is recorded (exit 0, round 1)", code === 0 && roundsOf("hb").some((x) => x.revision === H.shas[0]), kerr);
 	// `other` is held by this (live) test process but never renewed → reclaimed after the window
 	await new Promise((r) => setTimeout(r, 1300));

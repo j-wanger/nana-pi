@@ -25,7 +25,6 @@ const TARGET_FILES = [
 	{ req: "R-1951", rel: "packages/nana-pack/tests/requirements-lift.test.mjs", label: "requirements-lift.test.mjs" },
 	{ req: "R-1952", rel: "packages/nana-pack/tests/bounded-read.test.mjs", label: "bounded-read.test.mjs" },
 	{ req: "R-1953", rel: "packages/nana-pack/tests/adoption-producer.test.mjs", label: "adoption-producer.test.mjs" },
-	{ req: "R-1954", rel: "packages/nana-pack/tests/post-edit-hardening.test.mjs", label: "post-edit-hardening.test.mjs" },
 	{ req: "R-1955", rel: "packages/nana-pack/tests/adoption-reader.test.mjs", label: "adoption-reader.test.mjs" },
 	{ req: "R-1956", rel: "packages/nana-setup/tests/win32-degrade.test.mjs", label: "win32-degrade.test.mjs" },
 	{ req: "R-1957", rel: "packages/nana-pack/tests/test-locked.test.mjs", label: "test-locked.test.mjs" },
@@ -244,21 +243,16 @@ const check = (title, ok, why = "") => {
 }
 {
 	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[4].rel), TARGET_FILES[4].label);
-	// req: R-1954
-	check("post-edit-hardening.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
-}
-{
-	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[5].rel), TARGET_FILES[5].label);
 	// req: R-1955
 	check("adoption-reader.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
 }
 {
-	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[6].rel), TARGET_FILES[6].label);
+	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[5].rel), TARGET_FILES[5].label);
 	// req: R-1956
 	check("win32-degrade.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
 }
 {
-	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[7].rel), TARGET_FILES[7].label);
+	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[6].rel), TARGET_FILES[6].label);
 	// req: R-1957
 	check("test-locked.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
 }

@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { tmpDir } from "./tmp-dir.mjs";
 import { check } from '../../nana-pack/tests/profile-fixture.mjs';
 import { resolveLayout, repoRoot } from '../lib/paths.mjs';
@@ -40,6 +41,14 @@ function fixture(body) {
 }
 // req: R-3862
 await check('R-3862: install retires memory dispatch and doctor names the repair', () => {
+ const placeholder = path.join(repoRoot, 'packages/nana-setup/claude/hooks', file);
+ const header = fs.readFileSync(placeholder, 'utf8');
+ assert.match(header, /retired/i); assert.match(header, /until machines reinstall/i);
+ for (const input of ['', '{"transcript_path":"ignored","cwd":"ignored"}\r\n \t', 'not json without final newline']) {
+  const child = spawnSync(process.execPath, [placeholder], { input, encoding: 'utf8', timeout: 5000 });
+  assert.equal(child.error, undefined); assert.equal(child.status, 0);
+  assert.equal(child.stdout, ''); assert.equal(child.stderr, '');
+ }
  fixture(({ layout, link, read }) => {
   process.env.NANA_SETUP_PLATFORM = 'darwin';
   const rows = withPiStub(() => diagnose(layout, { projectDir: layout.base }));

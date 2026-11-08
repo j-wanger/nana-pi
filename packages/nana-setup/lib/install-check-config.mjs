@@ -2,20 +2,17 @@
  * @module packages/nana-setup/lib/install-check-config.mjs
  * @purpose Defines the independent sealed contract and tunables for the install check.
  * @inputs None.
- * @outputs Hook, environment, retry, review, build, known-red, doctor-note and filesystem-path contracts.
+ * @outputs Hook, environment, review, build, known-red, doctor-note and filesystem-path contracts.
  * @effects none
  * @errors None.
  */
 import { MEMORY_MAKING_NOTE } from './memory-end-config.mjs';
 // Contract values: Claude Code hooks/runtime matrix, read 2026-10-12; installer timeout in settings.mjs.
-// Chosen 2026-10-21 (R-2480): two retries cover a transient registry or file-lock failure; 5 s lets it clear within the CI job. npm 10 and npm 8 error leads (R-2481).
-export const PI_SUBAGENTS_RETRY = { attempts: 3, pauseMs: 5000, codeLeads: ["npm error code ", "npm ERR! code "] };
 export const HOOKS = [
   { label: "hook objective", shortLabel: "objective", event: "SessionStart", matcher: "startup", script: "nana-objective.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook adoption", shortLabel: "adoption", event: "SessionStart", matcher: "startup", script: "nana-adoption.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook shared memory", shortLabel: "shared memory", event: "SessionStart", matcher: "startup", script: "nana-shared-memory.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook roster notice", shortLabel: "roster notice", event: "SessionStart", matcher: "startup", script: "nana-roster-notice.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
-  { label: "hook verifier pipe", shortLabel: "verifier pipe", event: "PreToolUse", matcher: { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, tools: { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, script: "verifier-pipe.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
 ];
 // contract: R-1209 — independent of nana-pack's roster-notice-config.mjs (the install check's
 // own sealed contract), so a notice-config change cannot silently loosen what the check accepts.
@@ -54,9 +51,9 @@ export const DOCTOR_NOTES = {
 export const SAMPLE_INPUTS = {
   session: { source: "startup", transcript_path: "", cwd: "" },
   prompt: "How does nana install-check validate this fixture?",
+  // Live pi-gate turn samples, not Claude hook samples (R-1999, R-2004).
   verifier: {
     bashHit: "npm test | tail -1 && git commit -m done",
-    bashMiss: "git status",
     powershellHit: "npm test | Select-Object -Last 5 && git commit -m x", // Chosen 2026-10-20: a `;` no longer asks (R-2350).
   },
   maxOutput: 10000,
@@ -79,22 +76,6 @@ export const PI_TURN = {
   gateBlockPrefix: "nana-gate: verifier pipe blocked (headless fail-closed):",
   extensionErrorPrefix: "Extension error (",
 };
-// Contract values: nana-post-edit command matching, placeholder substitution and failure-line
-// shape, read 2026-10-20. The fixture name and item are chosen to identify this live check.
-export const PI_TURN_EDIT = (() => {
-  const exitCode = 3; // Chosen 2026-10-20: distinct from could-not-run statuses 1, 126, 127 and 9009 (R-2000).
-  return {
-    item: "pi post-edit", // Contract: install-check result item (R-2002).
-    tool: "write", // Contract: pi's file-writing tool, whose result nana-post-edit extends (R-2002).
-    file: "install-check-post-edit.txt", // Chosen 2026-10-20: dedicated fixture file (R-2000).
-    match: "install-check-post-edit\\.txt$", // Contract: only the dedicated fixture filename matches (R-2000).
-    placeholder: "{file}", // Contract: nana-post-edit file placeholder, read 2026-10-20 (R-2000).
-    failureLead: "- check ", // Contract: nana-post-edit failure-line lead, read 2026-10-20 (R-2002).
-    exitCode,
-    source: `process.stdout.write(require('fs').readFileSync(process.argv[1],'utf8'));process.exitCode=${exitCode}`, // Contract: print the edited file and fail (R-2000).
-    exitText: `exited ${exitCode}`, // Contract: nana-post-edit nonzero-exit wording, read 2026-10-20 (R-2002).
-  };
-})();
 // Contract values: pi 1.0.2 cli.md and windows.md, read 2026-10-20; powershell is off by
 // default and --tools replaces the active selection. The item name identifies this live check.
 export const PI_TURN_POWERSHELL = {

@@ -5,13 +5,13 @@
  *  review's own recorded file in each declared layout, the four cases where none can be read, the
  *  marks an unverified, over-cap, no-verdict or older line carries, no absolute path in the output,
  *  and no write to the ledger folder or any review folder.
- * @inputs bin/review-timeline.mjs, bin/review-ledger.mjs, bin/review-round.mjs, a stub reviewer
+ * @inputs bin/review-timeline.mjs, lib/review-run.mjs, bin/review-round.mjs, a stub reviewer
  *  process, and temporary git repositories, HOMEs and review-output folders under the OS temp
  *  directory
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, git repositories and review-output folders under the OS temp
  *  directory; hand-crafted tally lines appended only to those temp ledgers), process (spawns
- *  bin/review-timeline.mjs and, through bin/review-ledger.mjs, a stub reviewer process)
+ *  bin/review-timeline.mjs and, through lib/review-run.mjs, a stub reviewer process)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected
  *  throw propagates and fails the run
  */
@@ -22,12 +22,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
+import { reviewRunHarness } from './review-run-harness.mjs';
 import { repoKeyOf } from "../bin/review-round.mjs";
 import { WORD_MUST, WORD_NOTE, WORD_SEND_BACK, WORD_SHOULD } from "../lib/review-timeline-config.mjs";
 
 const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin");
 const TIMELINE = path.join(bin, "review-timeline.mjs");
-const LEDGER_CLI = path.join(bin, "review-ledger.mjs");
+const LEDGER_CLI = reviewRunHarness(fs.realpathSync(tmpDir(path.join(os.tmpdir(), 'timeline-review-harness-'))));
 
 let fails = 0;
 const check = (name, ok, why = "") => {
@@ -75,7 +76,7 @@ function writeFixtureSource(text) {
 	return f;
 }
 
-/** Record a real review through `review-ledger run`: the stub prints `text` byte for byte. */
+/** Record a real review through `shared review runner`: the stub prints `text` byte for byte. */
 function recordReview({ home, repoDir, item, role, model, outFile, text }) {
 	const stubFile = writeFixtureSource(text);
 	fs.mkdirSync(path.dirname(outFile), { recursive: true });
@@ -315,7 +316,7 @@ function snapshotDir(dir) {
 	check("RT4: unverified, over-cap, no-verdict and older ledger lines carry their marks",
 		t.status === 0 &&
 			/duration: \d+m \d{2}s \([^)]*\bunverified\b[^)]*\)/.test(driftLine) &&
-			/duration: \d+m \d{2}s \(over cap: ran over cap because of urgency\)/.test(overcapLine) &&
+			!/over cap:/.test(overcapLine) &&
 			/verdict: no verdict/.test(noverdictLine) &&
 			/model: -/.test(legacyLine) &&
 			/duration: -/.test(legacyLine),

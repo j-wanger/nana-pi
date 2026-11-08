@@ -15,7 +15,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { STATE_CLASSES, stateRows } from "../lib/state-manifest.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { ledgerPaths } from "../../nana-pack/bin/review-round.mjs";
-import { PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED } from "../lib/steps.mjs";
+import { PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED } from "../lib/steps.mjs";
 import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 
 let fails = 0;
@@ -28,12 +28,12 @@ check("each manifest row has one allowed class and complete ownership metadata",
 const tuple = (store) => { const { class: cls, owner, kind, source, restore } = rows.find((row) => row.store === store) ?? {}; return [cls, owner, kind, source, restore]; };
 // req: R-954
 check("shared settings and seed rows pin ownership and removal semantics", JSON.stringify(tuple("Claude settings")) === JSON.stringify(["secret", "nana-setup", "settings-entry", "packages/nana-setup/lib/steps.mjs", "sign in again or carry by hand; never archive"]) && JSON.stringify(tuple("pi settings")) === JSON.stringify(["durable", "nana-setup", "settings-entry", "packages/nana-setup/lib/steps.mjs", "restore from the private state archive"]) && JSON.stringify(tuple("shared memory seed")) === JSON.stringify(["durable", "nana-setup", "seed", SHARED_MEMORY_SEED, "restore from the private state archive"]) && JSON.stringify(tuple("shared memory")) === JSON.stringify(["durable", "user", "dir", "user-created store", "restore archive; SessionStart recreates project shared links"]), JSON.stringify(rows.filter((row) => ["Claude settings", "pi settings", "shared memory seed", "shared memory"].includes(row.store))));
-const installTupleNames = ["private rule", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "knowledge index", "desk plist"];
-const expectedInstallTuples = [["durable", "nana-setup", "seed", PRIVATE_RULE_SEED, "restore from the private state archive"],["durable", "nana-setup", "seed", PI_PACK_SEED, "restore from the private state archive"],["durable", "nana-setup", "seed", PI_OBJECTIVE_SEED, "restore from the private state archive"],["rebuildable", "nana-setup", "seed", SUBAGENT_CONFIG_SEED, "re-run nana-setup install"],["rebuildable", "nana-setup", "seed", REVIEWER_SEED, "re-run nana-setup install"],["rebuildable", "nana-setup", "generated", "packages/nana-knowledge/lib/paths.ts", "run nana-knowledge build"],["rebuildable", "nana-setup", "plist", "packages/nana-setup/lib/steps.mjs", "re-run nana-setup install"]];
+const installTupleNames = ["private rule", "pi pack config", "pi objective", "knowledge index", "desk plist"];
+const expectedInstallTuples = [["durable", "nana-setup", "seed", PRIVATE_RULE_SEED, "restore from the private state archive"],["durable", "nana-setup", "seed", PI_PACK_SEED, "restore from the private state archive"],["durable", "nana-setup", "seed", PI_OBJECTIVE_SEED, "restore from the private state archive"],["rebuildable", "nana-setup", "generated", "packages/nana-knowledge/lib/paths.ts", "run nana-knowledge build"],["rebuildable", "nana-setup", "plist", "packages/nana-setup/lib/steps.mjs", "re-run nana-setup install"]];
 // req: R-954 R-904
 check("install seeds and generated stores pin exact owner and kind tuples", installTupleNames.every((name, index) => JSON.stringify(tuple(name)) === JSON.stringify(expectedInstallTuples[index])) && !rows.some((row) => row.store === "LaunchAgents directory"), JSON.stringify(installTupleNames.filter((name, index) => JSON.stringify(tuple(name)) !== JSON.stringify(expectedInstallTuples[index]))));
 // knowledgeHome is a layout container only; only sources.json and pull.log are durable rows.
-const containers = ["base", "claudeHome", "piHome", "knowledgeHome", "hooksDir", "rulesDir", "skillsDir", "projectsDir", "binDir", "launchAgentsDir"];
+const containers = ["base", "claudeHome", "piHome", "knowledgeHome", "hooksDir", "rulesDir", "skillsDir", "projectsDir", "binDir", "launchAgentsDir", "subagentConfig", "reviewerAgent", "piSubagentsPackage"];
 const pathEntries = Object.entries(layout).filter(([key, value]) => typeof value === "string" && path.isAbsolute(value) && !containers.includes(key));
 // req: R-955
 check("every resolved layout path except declared containers is inventoried", pathEntries.every(([, value]) => byPath.has(path.resolve(value))), pathEntries.filter(([, value]) => !byPath.has(path.resolve(value))).map(([key]) => key).join(", "));
@@ -67,8 +67,8 @@ const installedRows = stateRows(ownerLayout);
 const installTargets = [
   ownerLayout.claudeSettings, path.join(ownerLayout.sharedMemoryDir, "MEMORY.md"),
   path.join(ownerLayout.rulesDir, "nana-personal.md"), ownerLayout.piPackConfig, ownerLayout.piObjective,
-  ownerLayout.subagentConfig, ownerLayout.reviewerAgent, path.join(ownerLayout.knowledgeHome, "index.db"), ownerLayout.copyRecord,
-  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+  path.join(ownerLayout.knowledgeHome, "index.db"), ownerLayout.copyRecord,
+  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
   ...["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE].map((name) => path.join(ownerLayout.rulesDir, name)),
   ...["requirements", "spec", "py-lint", "py-review", "py-test"].map((name) => path.join(ownerLayout.skillsDir, name)),
   ...["pi-review", "pi-worker", "nana-land", "nana-setup", "nana-writing"].map((name) => path.join(ownerLayout.binDir, name)),
@@ -76,7 +76,7 @@ const installTargets = [
   ownerLayout.piRulings,
   ownerLayout.piSeatGuide,
 ];
-const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", "file", ...Array(20).fill("link"), ...Array(5).fill("shim"), "link", "link"];
+const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "generated", "file", ...Array(19).fill("link"), ...Array(5).fill("shim"), "link", "link"];
 const uncoveredInstallTargets = installTargets.filter((target, index) => !installedRows.some((row) => row.owner === "nana-setup" && row.kind === installKinds[index] && (row.source.startsWith("packages/nana-setup/lib/steps.mjs") || row.source === "packages/nana-knowledge/lib/paths.ts" || path.isAbsolute(row.source)) && path.resolve(row.path) === path.resolve(target)));
 // The manifest row for every "link" target exists on every platform (state-manifest.mjs lists
 // every platform-owned path unconditionally) — the coverage check above holds either way. Actual
@@ -84,7 +84,7 @@ const uncoveredInstallTargets = installTargets.filter((target, index) => !instal
 // four .cmd companions. Rules and all five skill mirrors still land on Windows, so these sets keep
 // only the platform-specific absences.
 const posixOnlyInstallTargets = new Set([
-  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
 ].map((p) => path.resolve(p)));
 const win32OnlyInstallTargets = new Set([
   ownerLayout.copyRecord,

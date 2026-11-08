@@ -1,0 +1,1585 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index f62e6dd6..a4408214 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -70,9 +70,9 @@ The bullets below describe pi sessions; other runtimes receive only the surfaces
+ 
+ | Runtime | Objective | Shared memory | nana-soul / nana-standards | Writing rule / rulings | Knowledge pull | Gate | Verifier pipe | Post-edit | Compaction summary | Notify |
+ |---|---|---|---|---|---|---|---|---|---|---|
+-| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |
+-| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | No nana notify; `nana-roster-notice` extension shows the roster notice as a widget |
+-| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | No nana notify; `nana-roster-notice` extension runs but shows nothing (no UI) |
++| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | No nana verifier hook | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |
++| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction | No nana notify; `nana-roster-notice` extension shows the roster notice as a widget |
++| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; pi-owned compaction | No nana notify; `nana-roster-notice` extension runs but shows nothing (no UI) |
+ | Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |
+ 
+ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul are Claude-only. Requirements-first practice is shared through project `AGENTS.md` and the requirements skill. The separate nana-knowledge extension serves pi; Claude Code uses explicit `nana-knowledge query` search.
+diff --git a/packages/nana-pack/extensions/nana-adoption.ts b/packages/nana-pack/extensions/nana-adoption.ts
+index 470cd98d..2af70b73 100644
+--- a/packages/nana-pack/extensions/nana-adoption.ts
++++ b/packages/nana-pack/extensions/nana-adoption.ts
+@@ -10,6 +10,8 @@ import * as fs from 'node:fs';
+ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+ import { EVENT, adoptionSettings, canonicalCwd, isAdopted, printable, recentReports, repoRootOf, rootState, tailLines } from '../lib/adoption.mjs';
+ 
++// Existing once-per-day adoption window, retained from the handoff producer (R-146).
++const DAY_MS = 86_400_000;
+ let overrideJournaled = false;
+ // Adoption evidence includes a regular HANDOFF.md together with AGENTS.md and docs/sessions/.
+ // The real OS temporary directories (including canonical /tmp on POSIX) are skipped.
+@@ -27,7 +29,7 @@ export default function (pi: ExtensionAPI) {
+       const root = repoRootOf(canonicalCwd(ctx.cwd));
+       if (!root || !printable(root)) return;
+       const state = rootState(root, objectiveFile);
+-      if (isAdopted(state) || recentReports(tailLines(journal), Date.now() - 86_400_000).some(r => r.root === root)) return;
++      if (isAdopted(state) || recentReports(tailLines(journal), Date.now() - DAY_MS).some(r => r.root === root)) return;
+       fs.appendFileSync(journal, `${JSON.stringify({ ts: new Date().toISOString(), event: EVENT, cwd: root, has: { handoff: false, objective: false, agents: state.agents, sessions: state.sessions } })}\n`);
+     } catch {
+       // Best-effort user-scope report, never a prompt or session failure.
+diff --git a/packages/nana-pack/tests/adoption-producer.test.mjs b/packages/nana-pack/tests/adoption-producer.test.mjs
+index be497c70..c67f2ac3 100644
+--- a/packages/nana-pack/tests/adoption-producer.test.mjs
++++ b/packages/nana-pack/tests/adoption-producer.test.mjs
+@@ -71,6 +71,7 @@ check("adoption: design comment names complete Nana structure and temporary-root
+ 	const src = fs.readFileSync(new URL("../extensions/nana-adoption.ts", import.meta.url), "utf8");
+ 	check("one store: extension uses lib/adoption.mjs's root predicate", src.includes('rootState(root, objectiveFile)') && src.includes("../lib/adoption.mjs"));
+ 	check("one store: no createHash / storeDir definition left in the extension", !src.includes("createHash") && !/(const|function) (storeDir|storePathFor|canonicalCwd)\b/.test(src));
++	// req: R-108
+ 	check("one store: the store stays fixed at ~/.pi/agent/handoffs", lib.storeDir() === path.join(NANA_HOME, ".pi", "agent", "handoffs"));
+ }
+ 
+@@ -389,13 +390,20 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
+ 	// req: R-144
+ 	check("e: unadopted repo root → prompt exactly BASE", (await prompt(r1)) === "BASE");
+ 	const a = repo("sib-a"), b = repo("sib-b");
++	// req: R-113
+ 	check("siblings: distinct keys", lib.storePathFor(a) !== lib.storePathFor(b));
+-	const wt = repo("gitmain-wt");
+-	check("worktree: distinct key", lib.storePathFor(lib.canonicalCwd(wt)) !== lib.storePathFor(a));
++	const git = (...args) => spawnSync('git', ['-C', a, ...args], { encoding: 'utf8', timeout: 10_000 });
++	git('init', '-q');
++	git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'i');
++	const wt = path.join(base, 'gitmain-wt');
++	const added = git('worktree', 'add', '-q', wt);
++	// req: R-113
++	check("worktree: distinct key", added.status === 0 && lib.storePathFor(lib.canonicalCwd(wt)) !== lib.storePathFor(a));
+ 	if (process.platform === "darwin") {
+ 		const alias = `$TMPDIR/nana-l3-${process.pid}-${Date.now()}`;
+ 		fs.mkdirSync(alias);
+ 		try {
++			// req: R-797
+ 			check("darwin: $TMPDIR/x and /private$TMPDIR/x → same key", lib.storePathFor(lib.canonicalCwd(alias)) === lib.storePathFor(lib.canonicalCwd(`/private${alias}`)));
+ 		} finally { fs.rmSync(alias, { recursive: true, force: true }); }
+ 	}
+diff --git a/packages/nana-pack/tests/code-map-launch.test.mjs b/packages/nana-pack/tests/code-map-launch.test.mjs
+index 9380ff4a..21bcf9b3 100644
+--- a/packages/nana-pack/tests/code-map-launch.test.mjs
++++ b/packages/nana-pack/tests/code-map-launch.test.mjs
+@@ -198,6 +198,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
+ 	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
+ 	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
+ 	const retiredSources = new Map([
++		...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+ 		...['extensions/nana-handoff.ts', ...['handoff-artifact', 'handoff-store', 'handoff-staleness', 'handoff-trust', 'handoff-symlink'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires compaction storage and pickup; adoption survives separately.']),
+ 		...['extensions/nana-post-edit.ts', 'lib/post-edit-config.mjs', ...['post-edit-default-timeout', 'post-edit-file-queue', 'post-edit-hardening', 'post-edit-status', 'post-edit-utf8', 'post-edit-values-named'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires the post-edit extension and its dedicated checks.']),
+ 		['packages/nana-pack/extensions/nana-notify.ts', 'FEAT-013 setup-retire removes desktop notification behavior.'],
+@@ -215,6 +216,8 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
+ 	for (const file of ['display-surfaces', 'config-handlers-malformed']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-post-edit.ts`, 'FEAT-013 removes the post-edit-only cases; surviving cases remain.');
+ 	for (const file of ['display-surfaces', 'config-handlers-malformed', 'writing-injection', 'handoff-writer-role', 'adoption-producer']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-handoff.ts`, 'FEAT-013 removes handoff-only calls; adoption now imports nana-adoption.');
+ 	losses.set('packages/nana-pack/tests/adoption-producer.test.mjs -> packages/nana-pack/lib/config.ts', 'FEAT-013 adoption now reads only user-scope adoptionSettings; the test still exercises config via its dynamic import.');
++	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
++	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
+ 	const graph = checkRepo().graph;
+ 	for (const entry of gitShow("57167e92", "docs/code-map.md").split(/^### `/m).slice(1)) {
+ 		const path = entry.split("`")[0];
+diff --git a/packages/nana-pack/tests/setup-retire.test.mjs b/packages/nana-pack/tests/setup-retire.test.mjs
+index 23894da2..c4d6d1f0 100644
+--- a/packages/nana-pack/tests/setup-retire.test.mjs
++++ b/packages/nana-pack/tests/setup-retire.test.mjs
+@@ -102,4 +102,10 @@ await test('M6: both scopes ignore legacy blocks without warnings errors or gate
+   assert.deepEqual(notices, []);
+   assert.ok(!fs.existsSync(path.join(agent, 'nana-journal.jsonl')));
+ }));
++// req: R-3802
++await test('M4: existing pi gate and pipe-guard suites remain green', () => {
++  const result = spawnSync(process.execPath, [path.join(root, 'scripts/test.mjs'), 'pipe-guard', 'gate'], { cwd: root, encoding: 'utf8', timeout: 60_000 });
++  assert.equal(result.status, 0, result.stdout + result.stderr);
++  assert.match(result.stdout, /0 FAIL/);
++});
+ process.exitCode = failures ? 1 : 0;
+diff --git a/packages/nana-pack/tests/templates-render.test.mjs b/packages/nana-pack/tests/templates-render.test.mjs
+index fa5692fb..522833c8 100644
+--- a/packages/nana-pack/tests/templates-render.test.mjs
++++ b/packages/nana-pack/tests/templates-render.test.mjs
+@@ -465,7 +465,7 @@ const RUNTIME_INVENTORY_TEXT = {
+ 	"nana-lifecycle": "`nana-lifecycle`",
+ 	"nana-gate": "`nana-gate`",
+ 	"nana-post-edit": "`nana-post-edit`",
+-	"nana-handoff": "`nana-handoff`",
++	"nana-adoption": "`nana-adoption`",
+ 	"nana-knowledge": "`nana-knowledge`",
+ 	"nana-roster-notice.mjs": "nana-roster-notice.mjs",
+ 	"nana-roster-notice": "`nana-roster-notice`",
+@@ -504,15 +504,15 @@ function checkInstructionContracts() {
+ 	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
+ 		fs.readFileSync(path.join(REPO, file), "utf-8"));
+ 	const support = frontDoors.map((text) => [...text.matchAll(/^Support:.*$/gm)].map((match) => match[0]));
+-	// req: R-680 R-985
++	// req: R-680
+ 	check("shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory",
+ 		runtimeInventoryDocumented(runtimeInventory(), shared) && !runtimeInventoryDocumented([...runtimeInventory(), "unmapped-extension-fixture"], shared) &&
+ 		["Claude Code seat", "pi TUI or desk", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
+ 		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge pull", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
+ 		[
+-			"| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |",
+-			"| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | No nana notify; `nana-roster-notice` extension shows the roster notice as a widget |",
+-			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | No nana notify; `nana-roster-notice` extension runs but shows nothing (no UI) |",
++			"| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | No nana verifier hook | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |",
++			"| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction | No nana notify; `nana-roster-notice` extension shows the roster notice as a widget |",
++			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; pi-owned compaction | No nana notify; `nana-roster-notice` extension runs but shows nothing (no UI) |",
+ 			"| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |",
+ 		].every((v) => shared.includes(v)));
+ 
+diff --git a/packages/nana-setup/README.md b/packages/nana-setup/README.md
+index 4ca9c783..d423a45a 100644
+--- a/packages/nana-setup/README.md
++++ b/packages/nana-setup/README.md
+@@ -37,7 +37,7 @@ A session-start producer still running at the launcher's 2,500 ms cap is stopped
+ 
+ | Piece | Where | How |
+ |---|---|---|
+-| `claude/hooks/nana-objective.mjs`, `claude/hooks/nana-adoption.mjs`, `claude/hooks/nana-shared-memory.mjs`, `claude/hooks/nana-roster-notice.mjs`, `claude/hooks/verifier-pipe.mjs`, `claude/hooks/nana-memory-end.mjs` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` on POSIX — a `git pull` updates them |
++| `claude/hooks/nana-objective.mjs`, `claude/hooks/nana-adoption.mjs`, `claude/hooks/nana-shared-memory.mjs`, `claude/hooks/nana-roster-notice.mjs`, `claude/hooks/nana-memory-end.mjs` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` on POSIX — a `git pull` updates them |
+ | `claude/rules/nana-soul.md` (the identity) | `~/.claude/rules/` | **symlink** into `claude/rules/` |
+ | `claude/rules/nana-standards.md` (the coding standards) | `~/.claude/rules/` | **symlink** into `claude/rules/` — requirement-first, no inline tunables, one purpose per module with the six-tag header, the code map kept current, status honesty. Generic, language-agnostic; it does not repeat `claude/rules/nana-soul.md` |
+ | `claude/rules/nana-seat.md` (running builders and reviewers) | `~/.claude/rules/` | **symlink** into `claude/rules/` — the seat guide: background launches, no reading or judging partial work mid-run, verify once at the end |
+diff --git a/packages/nana-setup/claude/hooks/verifier-pipe.mjs b/packages/nana-setup/claude/hooks/verifier-pipe.mjs
+deleted file mode 100644
+index 33ef522b..00000000
+--- a/packages/nana-setup/claude/hooks/verifier-pipe.mjs
++++ /dev/null
+@@ -1,22 +0,0 @@
+-#!/usr/bin/env node
+-/**
+- * @module packages/nana-setup/claude/hooks/verifier-pipe.mjs
+- * @purpose Run the verifier-pipe decision for one Claude Code Bash or PowerShell PreToolUse event.
+- * @inputs Claude Code PreToolUse JSON on stdin.
+- * @outputs a hit decision on stdout; errors produce a stderr diagnostic.
+- * @effects process (reads stdin and writes stdout/stderr).
+- * @errors malformed input and internal errors abstain with a stderr diagnostic; a stdout or stderr error, such as a reader that closed it, is ignored and the hook exits 0.
+- */
+-import { readFileSync } from "node:fs";
+-import { runHook } from "../../lib/verifier-hook.mjs";
+-
+-// R-1944: Ignore every stdout error so a closed hook reader cannot fail the hook.
+-process.stdout.on("error", () => {});
+-// R-2014: Ignore every stderr error for the same fail-open contract.
+-process.stderr.on("error", () => {});
+-
+-try {
+-	runHook(readFileSync(0, "utf8"));
+-} catch (error) {
+-	process.stderr.write(`nana verifier-pipe: ${String(error)}; abstaining\n`);
+-}
+diff --git a/packages/nana-setup/lib/doctor.mjs b/packages/nana-setup/lib/doctor.mjs
+index a9c88ffb..ffd4aefb 100644
+--- a/packages/nana-setup/lib/doctor.mjs
++++ b/packages/nana-setup/lib/doctor.mjs
+@@ -66,7 +66,8 @@ function retiredSettingsCommands(settings) {
+ 			if (!Array.isArray(group?.hooks)) continue;
+ 			for (const hook of group.hooks) {
+ 				if (scripts.some((script) => commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) ||
+-					(event === "UserPromptSubmit" && (entryInvokes(hook, retiredKnowledgeHook().spec, "win32") || commandInvokes(hook?.command, retiredKnowledgeHook().spec))))
++					(event === "UserPromptSubmit" && (entryInvokes(hook, retiredKnowledgeHook().spec, "win32") || commandInvokes(hook?.command, retiredKnowledgeHook().spec))) ||
++					(event === "PreToolUse" && (entryInvokes(hook, { interpreters: ["node"], script: "verifier-pipe.mjs" }, "win32") || commandInvokes(hook?.command, { interpreters: ["node"], script: "verifier-pipe.mjs" }))))
+ 					findings.push({ event, command: [hook.command, ...(Array.isArray(hook.args) ? hook.args : [])].join(" ") });
+ 			}
+ 		}
+@@ -471,7 +472,7 @@ export function diagnose(layout, opts = {}) {
+ 		add(FAIL, "settings lock", `${settingsLock} is left over (${lockHolder(settingsLock)}) — install will not run until it is removed; if no nana-setup is running, remove it: ${fix}`);
+ 	}
+ 	for (const { event, command } of retiredSettingsCommands(settings))
+-		add(FAIL, `settings ${event} retired hook`, command.includes('nana-knowledge.ts')
++		add(FAIL, `settings ${event} retired hook`, /nana-knowledge\.ts|verifier-pipe\.mjs/.test(command)
+ 			? `retired hook still wired: ${command} — run \`nana-setup install\``
+ 			: `retired bash hook still wired: ${command}`);
+ 
+diff --git a/packages/nana-setup/lib/install-check-config.mjs b/packages/nana-setup/lib/install-check-config.mjs
+index 43091cef..202dea42 100644
+--- a/packages/nana-setup/lib/install-check-config.mjs
++++ b/packages/nana-setup/lib/install-check-config.mjs
+@@ -16,7 +16,6 @@ export const HOOKS = [
+   { label: "hook adoption", shortLabel: "adoption", event: "SessionStart", matcher: "startup", script: "nana-adoption.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
+   { label: "hook shared memory", shortLabel: "shared memory", event: "SessionStart", matcher: "startup", script: "nana-shared-memory.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
+   { label: "hook roster notice", shortLabel: "roster notice", event: "SessionStart", matcher: "startup", script: "nana-roster-notice.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
+-  { label: "hook verifier pipe", shortLabel: "verifier pipe", event: "PreToolUse", matcher: { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, tools: { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, script: "verifier-pipe.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
+ ];
+ // contract: R-1209 — independent of nana-pack's roster-notice-config.mjs (the install check's
+ // own sealed contract), so a notice-config change cannot silently loosen what the check accepts.
+@@ -55,9 +54,9 @@ export const DOCTOR_NOTES = {
+ export const SAMPLE_INPUTS = {
+   session: { source: "startup", transcript_path: "", cwd: "" },
+   prompt: "How does nana install-check validate this fixture?",
++  // Live pi-gate turn samples, not Claude hook samples (R-1999, R-2004).
+   verifier: {
+     bashHit: "npm test | tail -1 && git commit -m done",
+-    bashMiss: "git status",
+     powershellHit: "npm test | Select-Object -Last 5 && git commit -m x", // Chosen 2026-10-20: a `;` no longer asks (R-2350).
+   },
+   maxOutput: 10000,
+diff --git a/packages/nana-setup/lib/install-check.mjs b/packages/nana-setup/lib/install-check.mjs
+index a7a46031..af53f71d 100644
+--- a/packages/nana-setup/lib/install-check.mjs
++++ b/packages/nana-setup/lib/install-check.mjs
+@@ -473,7 +473,7 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
+     if (!mappedEntry) { report(label, structural?.code ?? "missing-entry", false); return; }
+     const entry = mappedEntry.entry;
+     if (structural) { report(label, structural.code, false, hookFailureReason(entry, expected, structural.code, platformName)); return; }
+-    const input = ["SessionStart", "SessionEnd"].includes(expected.event) ? sample : { hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command: tool === "PowerShell" ? SAMPLE_INPUTS.verifier.powershellHit : SAMPLE_INPUTS.verifier.bashHit } };
++    const input = sample;
+     const invocation = hookInvocation(entry, platformName, bash);
+     const hookEnv = { ...childEnv, CLAUDE_PROJECT_DIR: project };
+     for (const key of Object.keys(hookEnv)) if (expected.removeEnv?.some(name => name.toLowerCase() === key.toLowerCase())) delete hookEnv[key];
+@@ -491,17 +491,9 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
+     }
+     if (expected.event === "SessionEnd") passed &&= stdout === "" && (result.stderr ?? "") === "";
+     if (expected.shortLabel === "roster notice") passed &&= rosterNoticeOutputOk(stdout);
+-    let miss = null;
+-    if (expected.shortLabel === "verifier pipe") {
+-      const missInput = { hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command: tool === "PowerShell" ? "git status" : SAMPLE_INPUTS.verifier.bashMiss } };
+-      miss = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(missInput), env: hookEnv });
+-      const outputLines = stdout.trim().split(/\r?\n/).filter(Boolean); let valid = false;
+-      if (outputLines.length === 1) try { const payload = JSON.parse(outputLines[0]).hookSpecificOutput; valid = payload?.hookEventName === "PreToolUse" && payload?.permissionDecision === "ask"; } catch {}
+-      passed &&= valid && okay(miss) && (miss.stdout ?? "") === "";
+-    }
+-    let code = result.error?.code === "ETIMEDOUT" ? "timeout" : passed ? null : structural?.code ?? (!stdout ? "no-output" : "unexpected");
++    const code = result.error?.code === "ETIMEDOUT" ? "timeout" : passed ? null : structural?.code ?? (!stdout ? "no-output" : "unexpected");
+     let detail = "";
+-    if (!passed) detail = !okay(result) ? reason(result) : structural ? hookFailureReason(entry, expected, structural.code, platformName) : expected.shortLabel === "verifier pipe" ? `hit=${JSON.stringify(stdout)} miss=${JSON.stringify(miss?.stdout ?? "")}` : "required hook output or fixture condition was not observed";
++    if (!passed) detail = !okay(result) ? reason(result) : structural ? hookFailureReason(entry, expected, structural.code, platformName) : "required hook output or fixture condition was not observed";
+     report(label, code, passed, detail);
+   }));
+   await Promise.all(hookRuns);
+diff --git a/packages/nana-setup/lib/settings.mjs b/packages/nana-setup/lib/settings.mjs
+index 8917dd2a..82c16c52 100644
+--- a/packages/nana-setup/lib/settings.mjs
++++ b/packages/nana-setup/lib/settings.mjs
+@@ -6,7 +6,7 @@
+  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; entryInvokes() boolean;
+  *  desiredHooks(); hookTargets(); knowledgeHookHealthy(); mergeRepoHooks(); validateShape(); hasHook();
+  *  mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook();
+- *  removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); serialize() JSON text; WIN_VERIFIER_MATCHER; CLAUDE_CODE_EXEC_FLOOR
++ *  removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); isRetiredVerifierHook(); removeRetiredVerifierHook(); serialize() JSON text; CLAUDE_CODE_EXEC_FLOOR
+  * @effects disk (reads only)
+  * @errors none thrown — validateShape returns the reason the shape cannot be extended, and any
+  *  command that is unparseable or carries a shell operator reads as NOT installed
+@@ -25,9 +25,8 @@ import { MEMORY_END_ENTRY, MEMORY_END_TIMEOUT_SECONDS } from './memory-end-confi
+ //     as installed (sol r1);
+ //   - present means untouched — no rewrite, no reorder, no dedupe of anyone else's entries;
+ //   - a missing hook is APPENDED to the first group of that event that has no `matcher`
+-//     (foreign matcher-scoped groups are left alone), or a new group is added; the win32
+-//     exception moves an installer-shaped verifier from the POSIX installer's matcher to the
+-//     win32 verifier matcher while preserving that source group's foreign entries;
++//     (foreign matcher-scoped groups are left alone), or a new group is added;
++//   - retired verifier entries are removed only in their complete released shapes;
+ //   - on POSIX every path we WRITE is single-quoted, so a home or clone with a space in it still
+ //     runs (R-319); on win32 every hook entry is written in EXEC form instead — `command: "node"`
+ //     plus an `args` array Claude Code spawns directly with no shell, so no path ever needs
+@@ -161,12 +160,6 @@ export function entryInvokes(hook, spec, platform) {
+ 	return commandInvokes(hook?.command, spec);
+ }
+ 
+-/** The win32 verifier-pipe matcher. Contract value: hooks#powershell and hooks#matcher-patterns,
+- *  read 2026-10-12 — a hit from either the Bash tool or the PowerShell tool must fire it, and the
+- *  docs name an exact-name list rather than a regular expression. One test (R-1053) pins it by name. */
+-/** Existing POSIX installer contract, pinned by the desiredHooks fixture (R-1061, R-1208). */
+-const POSIX_VERIFIER_MATCHER = "Bash";
+-export const WIN_VERIFIER_MATCHER = "Bash|PowerShell";
+ /** The Claude Code version that added hook `args` (exec form), so a win32 hook entry without a
+  *  shell works at all. Contract value: the 2.1.139 changelog entry, read 2026-10-12. Doctor's
+  *  floor note (R-1060) and the Support lines' canonical sentence (R-684) read it by name — one
+@@ -174,11 +167,11 @@ export const WIN_VERIFIER_MATCHER = "Bash|PowerShell";
+ export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
+ 
+ /**
+- * The six active hook entries the nana experience needs, in the order they are added.
++ * The five active hook entries the nana experience needs, in the order they are added.
+  *
+  * When `platform` is absent or not "win32", the output is byte-identical to `main`: every hook
+  * runs in shell form from `hooksDir` (the live symlinks under `~/.claude/hooks`), paths are
+- * single-quoted, and the verifier matcher is plain `Bash`. The callers that pass no platform keep
++ * single-quoted. The callers that pass no platform keep
+  * this POSIX output: `uninstall.mjs`, `migrateLegacyHooks`, and the tests that call it bare.
+  *
+  * On win32 every entry is written in EXEC form instead — `command: "node"` plus an `args` array,
+@@ -187,9 +180,7 @@ export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
+  * win32 script path names the CHECKOUT's own copy directly: the five hooks under
+  * `<repoRoot>/packages/nana-setup/claude/hooks/`. No path is quoted or escaped — exec form passes each
+  * `args` element exactly as written. The retired knowledge entry is matched separately, never written.
+- * The verifier matcher on win32
+- * is WIN_VERIFIER_MATCHER ("Bash|PowerShell"), because Windows may route shell commands through
+- * either the Bash tool or the PowerShell tool.
++ * The retired verifier is matched separately and never installed.
+  */
+ export function desiredHooks({ hooksDir, repoRoot, platform }) {
+ 	const win32 = platform === "win32";
+@@ -208,24 +199,11 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
+ 	const shared = nodeHook("nana-shared-memory.mjs", "nana: shared memory index");
+ 	const rosterNotice = nodeHook("nana-roster-notice.mjs", "nana: roster notice");
+ 	const memoryEnd = nodeHook(MEMORY_END_ENTRY.file, MEMORY_END_ENTRY.statusMessage, MEMORY_END_TIMEOUT_SECONDS);
+-	const verifierPipeTarget = hookTarget("verifier-pipe.mjs");
+-	const verifierPipeSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
+-	const verifierPipeEntry = win32
+-		? { type: "command", command: "node", args: [verifierPipeTarget], timeout: 5, statusMessage: "nana: verifier pipe" }
+-		: { type: "command", command: `node ${shq(verifierPipeTarget)}`, timeout: 5, statusMessage: "nana: verifier pipe" };
+ 	return [
+ 		{ event: "SessionStart", label: "SessionStart objective", marker: "nana-objective.mjs", spec: objective.spec, entry: objective.entry },
+ 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: adoption.spec, entry: adoption.entry },
+ 		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: shared.spec, entry: shared.entry },
+ 		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: rosterNotice.spec, entry: rosterNotice.entry },
+-		{
+-			event: "PreToolUse",
+-			matcher: win32 ? WIN_VERIFIER_MATCHER : POSIX_VERIFIER_MATCHER,
+-			label: "PreToolUse verifier pipe",
+-			marker: "verifier-pipe.mjs",
+-			spec: verifierPipeSpec,
+-			entry: verifierPipeEntry,
+-		},
+ 		{ event: MEMORY_END_ENTRY.event, label: `${MEMORY_END_ENTRY.event} memory making`, marker: MEMORY_END_ENTRY.file, spec: memoryEnd.spec, entry: memoryEnd.entry },
+ 	];
+ }
+@@ -307,21 +285,43 @@ export function isRetiredKnowledgeHook(hook) {
+ 	return Boolean(installerTarget(hook, wanted, "win32") || installerTarget(hook, wanted));
+ }
+ 
++/** Match complete released verifier entries; owner variants are never removed. */
++export function isRetiredVerifierHook(hook) {
++	if (!hook || typeof hook !== "object" || hook.type !== "command" || hook.timeout !== 5 || hook.statusMessage !== "nana: verifier pipe") return false;
++	const keys = Object.keys(hook).sort().join(",");
++	if (keys === "args,command,statusMessage,timeout,type") {
++		const wanted = { marker: "verifier-pipe.mjs", spec: { interpreters: ["node"], script: "verifier-pipe.mjs" }, entry: { statusMessage: "nana: verifier pipe" } };
++		return Boolean(installerTarget(hook, wanted, "win32"));
++	}
++	if (keys !== "command,statusMessage,timeout,type") return false;
++	const argv = tokenize(hook.command);
++	const target = argv?.[1];
++	return argv?.length === 2 && argv[0] === "node" && typeof target === "string" && (path.isAbsolute(target) || path.win32.isAbsolute(target)) && target.endsWith("/hooks/verifier-pipe.mjs") && hook.command === `node ${shq(target)}`;
++}
++
++export function removeRetiredVerifierHook(settings) {
++	return removeRetiredHookEntries(settings, "PreToolUse", isRetiredVerifierHook);
++}
++
+ /** Remove retired knowledge commands in place and only the groups this removal empties. */
+ export function removeRetiredKnowledgeHook(settings) {
+-	const groups = settings?.hooks?.UserPromptSubmit;
++	return removeRetiredHookEntries(settings, "UserPromptSubmit", isRetiredKnowledgeHook);
++}
++
++function removeRetiredHookEntries(settings, event, matches) {
++	const groups = settings?.hooks?.[event];
+ 	if (!Array.isArray(groups)) return false;
+ 	let changed = false;
+ 	for (let i = groups.length - 1; i >= 0; i--) {
+ 		const group = groups[i];
+ 		if (!Array.isArray(group?.hooks)) continue;
+-		const kept = group.hooks.filter(hook => !isRetiredKnowledgeHook(hook));
++		const kept = group.hooks.filter(hook => !matches(hook));
+ 		if (kept.length === group.hooks.length) continue;
+ 		changed = true;
+ 		group.hooks = kept;
+ 		if (!kept.length) groups.splice(i, 1);
+ 	}
+-	if (changed && !groups.length) delete settings.hooks.UserPromptSubmit;
++	if (changed && !groups.length) delete settings.hooks[event];
+ 	return changed;
+ }
+ 
+@@ -368,7 +368,7 @@ function respelledKnowledgeEntry(entry, wanted) {
+  *  runs there (uninstall.mjs), so this pure case exists for a function that is already tested. */
+ export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } = {}) {
+ 	const wanted = [...desiredHooks({ hooksDir, repoRoot, platform }), retiredKnowledgeHook({ repoRoot, platform })];
+-	const removed = [];
++	const removed = removeRetiredVerifierHook(settings) ? ["PreToolUse verifier pipe (retired)"] : [];
+ 	const hooks = settings?.hooks;
+ 	if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) return removed;
+ 	for (const [event, groups] of Object.entries(hooks)) {
+@@ -495,7 +495,7 @@ export function installerTarget(hook, wanted, platform) {
+ /**
+  * Replace every stale or (on win32) wrongly-shaped repo-anchored entry in place, returning
+  * { [label]: { found, replaced } } for each one R-1056 names: the knowledge pull on every
+- * platform, and all six entries on win32.
++ * platform, and all active entries on win32.
+  *
+  * It scans entries under that entry's event; where the entry has a matcher, it scans only groups
+  * with that matcher, otherwise every group (as the knowledge scan always has). The timeout gate
+@@ -513,33 +513,6 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
+ 	const result = {};
+ 	for (const w of repoAnchored) {
+ 		const groups = settings?.hooks?.[w.event];
+-		let movedVerifier = false;
+-		if (win32 && w.matcher === WIN_VERIFIER_MATCHER && Array.isArray(groups)) {
+-			const alreadyAtWinMatcher = groups.some((group) => group?.matcher === WIN_VERIFIER_MATCHER && Array.isArray(group.hooks) && group.hooks.some((hook) => hook?.timeout === w.entry.timeout && installerTarget(hook, w, platform)));
+-			let moved;
+-			for (let gi = groups.length - 1; gi >= 0; gi--) {
+-				const group = groups[gi];
+-				if (group?.matcher !== POSIX_VERIFIER_MATCHER || !Array.isArray(group.hooks)) continue;
+-				let removedFromGroup = false;
+-				for (let i = group.hooks.length - 1; i >= 0; i--) {
+-					const hook = group.hooks[i];
+-					if (hook?.timeout !== w.entry.timeout || !installerTarget(hook, w, platform)) continue;
+-					const [removed] = group.hooks.splice(i, 1);
+-					moved ??= removed;
+-					movedVerifier = true;
+-					removedFromGroup = true;
+-				}
+-				if (removedFromGroup && group.hooks.length === 0) groups.splice(gi, 1);
+-			}
+-			if (movedVerifier && !alreadyAtWinMatcher) {
+-				let targetGroup = groups.find((group) => group?.matcher === WIN_VERIFIER_MATCHER && Array.isArray(group.hooks));
+-				if (!targetGroup) {
+-					targetGroup = { matcher: WIN_VERIFIER_MATCHER, hooks: [] };
+-					groups.push(targetGroup);
+-				}
+-				targetGroup.hooks.push({ ...moved, command: w.entry.command, args: w.entry.args });
+-			}
+-		}
+ 		const found = [];
+ 		if (Array.isArray(groups)) {
+ 			for (const group of groups) {
+@@ -574,7 +547,7 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
+ 				}
+ 			}
+ 		}
+-		let replaced = movedVerifier;
++		let replaced = false;
+ 		for (const item of found) {
+ 			if (item.healthy && (!win32 || item.form === "win32-exec") && !item.sameFile) continue;
+ 			const current = item.group.hooks[item.index];
+diff --git a/packages/nana-setup/lib/state-manifest.mjs b/packages/nana-setup/lib/state-manifest.mjs
+index 0ace6e6a..14e83ec6 100644
+--- a/packages/nana-setup/lib/state-manifest.mjs
++++ b/packages/nana-setup/lib/state-manifest.mjs
+@@ -59,7 +59,7 @@ export function stateRows(layout) {
+   seed("subagent config.json", layout.subagentConfig, SUBAGENT_CONFIG_SEED, "rebuildable");
+   seed("reviewer.md", layout.reviewerAgent, REVIEWER_SEED, "rebuildable");
+   rebuild("copy record", layout.copyRecord, "file");
+-  for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", MEMORY_END_ENTRY.file]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
++  for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", MEMORY_END_ENTRY.file]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
+   for (const name of ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE]) rebuild(`rule link ${name}`, p(layout.rulesDir, name));
+   rebuild(`pi rule link ${RULINGS_FILE}`, layout.piRulings);
+   rebuild(`pi rule link ${SEAT_GUIDE_FILE}`, layout.piSeatGuide);
+diff --git a/packages/nana-setup/lib/steps.mjs b/packages/nana-setup/lib/steps.mjs
+index 354c3df6..6f989bbd 100644
+--- a/packages/nana-setup/lib/steps.mjs
++++ b/packages/nana-setup/lib/steps.mjs
+@@ -43,7 +43,7 @@ import * as os from "node:os";
+ import * as path from "node:path";
+ import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeBytesWithBackup, writeIfChanged } from "./fsops.mjs";
+ import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
+-import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, serialize, validateShape } from "./settings.mjs";
++import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, removeRetiredVerifierHook, serialize, validateShape } from "./settings.mjs";
+ import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
+ import { matchesRetiredArtifact, retiredArtifacts } from "./retired.mjs";
+ import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
+@@ -58,8 +58,8 @@ import { MEMORY_END_ENTRY } from './memory-end-config.mjs';
+ 
+ export class SetupError extends Error {}
+ 
+-export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs", MEMORY_END_ENTRY.file];
+-const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
++export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", MEMORY_END_ENTRY.file];
++const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs"];
+ /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
+  *  except nana-writing.md and RULINGS_FILE, sourced from the pack (see ruleSource below;
+  *  Amendment 1, §A1; rulings-file lane, 2026-10-19). */
+@@ -631,6 +631,7 @@ export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
+ 			status: added.includes(w.label) ? CREATED : UNCHANGED,
+ 			detail: added.includes(w.label) ? "added" : "already wired",
+ 		})),
++		...(added.includes("PreToolUse verifier retirement") ? [{ label: "settings PreToolUse verifier retirement", status: UPDATED, detail: "removed retired nana-managed invocation" }] : []),
+ 		...(added.includes("UserPromptSubmit knowledge retirement") ? [{ label: "settings UserPromptSubmit knowledge retirement", status: UPDATED, detail: "removed retired nana-managed invocation" }] : []),
+ 		...(added.includes("UserPromptSubmit context-size retirement") ? [{ label: "settings UserPromptSubmit context-size retirement", status: UPDATED, detail: "removed exact nana-managed invocation" }] : []),
+ 		...(added.includes("SessionStart retired hook migration") ? [{ label: "settings SessionStart retired hook migration", status: UPDATED, detail: o.dryRun ? "would migrate managed entries in place" : "migrated managed entries in place" }] : []),
+@@ -639,6 +640,7 @@ export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
+ 	const merge = (settings) => {
+ 		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
+ 		const retiredKnowledge = removeRetiredKnowledgeHook(settings);
++		const retiredVerifier = removeRetiredVerifierHook(settings);
+ 		const migratedLegacy = !win() && migrateLegacyHooks(settings, { hooksDir: layout.hooksDir, claudeHome: layout.claudeHome });
+ 		// Active repo-anchored entries on win32 are repaired in place when stale or
+ 		// not yet in exec form (R-1056);
+@@ -649,6 +651,7 @@ export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
+ 		for (const w of wanted) if (repo[w.label]?.replaced) result.added.push(w.label);
+ 		if (retiredContext) result.added.push("UserPromptSubmit context-size retirement");
+ 		if (retiredKnowledge) result.added.push("UserPromptSubmit knowledge retirement");
++		if (retiredVerifier) result.added.push("PreToolUse verifier retirement");
+ 		if (migratedLegacy) result.added.push("SessionStart retired hook migration");
+ 		return result;
+ 	};
+diff --git a/packages/nana-setup/lib/verifier-hook.mjs b/packages/nana-setup/lib/verifier-hook.mjs
+deleted file mode 100644
+index e8f9a2f8..00000000
+--- a/packages/nana-setup/lib/verifier-hook.mjs
++++ /dev/null
+@@ -1,41 +0,0 @@
+-/**
+- * @module packages/nana-setup/lib/verifier-hook.mjs
+- * @purpose Convert Claude Code PreToolUse input into an ask decision or fail-open abstention.
+- * @inputs parsed hook JSON (tool_name Bash or PowerShell) and optionally an injected pipe-reason predicate.
+- * @outputs an optional hook response and an optional diagnostic; runHook writes protocol output.
+- * @effects process (runHook writes stdout and stderr).
+- * @errors predicate failures become abstentions with diagnostic text.
+- */
+-import { verifierPipeReason } from "../../nana-pack/lib/pipe-guard.mjs";
+-
+-/** Turn one hook event into a response; unrelated input and errors abstain. R-1054: a PowerShell
+- *  event is judged with the pipe guard's PowerShell dialect (R-1062) — the PowerShell tool's
+- *  input "fields match the Bash tool, with the command string in `command`" (hooks#powershell). */
+-export function decideHook(input, predicate = verifierPipeReason) {
+-	try {
+-		const tool = input?.tool_name;
+-		if (input?.hook_event_name !== "PreToolUse" || (tool !== "Bash" && tool !== "PowerShell") || typeof input?.tool_input?.command !== "string") {
+-			return { response: null, diagnostic: "malformed or unrelated hook input; abstaining" };
+-		}
+-		const reason = predicate(input.tool_input.command, tool === "PowerShell" ? "powershell" : "bash");
+-		return reason
+-			? { response: { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: reason } }, diagnostic: "" }
+-			: { response: null, diagnostic: "" };
+-	} catch (error) {
+-		return { response: null, diagnostic: `${String(error)}; abstaining` };
+-	}
+-}
+-
+-/** Run the protocol from already-read input; importing this module never reads stdin. */
+-export function runHook(rawInput, { predicate, stdout = process.stdout, stderr = process.stderr } = {}) {
+-	let input;
+-	try {
+-		input = JSON.parse(rawInput);
+-	} catch (error) {
+-		stderr.write(`nana verifier-pipe: ${String(error)}; abstaining\n`);
+-		return;
+-	}
+-	const { response, diagnostic } = decideHook(input, predicate);
+-	if (diagnostic) stderr.write(`nana verifier-pipe: ${diagnostic}\n`);
+-	if (response) stdout.write(`${JSON.stringify(response)}\n`);
+-}
+diff --git a/packages/nana-setup/tests/hook-producers.test.mjs b/packages/nana-setup/tests/hook-producers.test.mjs
+index 80027e9d..0be37e27 100644
+--- a/packages/nana-setup/tests/hook-producers.test.mjs
++++ b/packages/nana-setup/tests/hook-producers.test.mjs
+@@ -6,7 +6,6 @@
+  * @effects process (spawns an isolated Node child).
+  * @errors failed checks set a nonzero process exit code.
+  */
+-import { spawn } from "node:child_process";
+ import path from "node:path";
+ import { HOOK_DEADLINE_MS, HOOK_PRODUCER_TIMEOUT_MS, hookProducerConfig, runHookProducer } from "../lib/hook-producer.mjs";
+ import { desiredHooks } from "../lib/settings.mjs";
+@@ -115,15 +114,4 @@ check("both launcher configurations fail open when fallback cwd resolution throw
+ 	// req: R-687
+ 	check("spawn failure emits its marker and does not throw", output === "spawn marker");
+ }
+-{
+-	const child = spawn(process.execPath, ["--input-type=module", "-e", `await import(${JSON.stringify(new URL("../lib/verifier-hook.mjs", import.meta.url).href)})`], { stdio: ["pipe", "ignore", "pipe"] });
+-	let stderr = "";
+-	child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
+-	const outcome = await new Promise((resolve) => {
+-		const timer = setTimeout(() => { child.kill("SIGKILL"); resolve({ timeout: true }); }, 4500);
+-		child.on("exit", (code) => { clearTimeout(timer); resolve({ code }); });
+-	});
+-	// req: R-688
+-	check("importing verifier logic completes with open stdin and empty stderr", outcome.code === 0 && !outcome.timeout && stderr === "");
+-}
+ if (failures) process.exitCode = 1;
+diff --git a/packages/nana-setup/tests/hooks-closed-output.test.mjs b/packages/nana-setup/tests/hooks-closed-output.test.mjs
+index 827a3f79..2942c7e5 100644
+--- a/packages/nana-setup/tests/hooks-closed-output.test.mjs
++++ b/packages/nana-setup/tests/hooks-closed-output.test.mjs
+@@ -99,16 +99,6 @@ const cases = [
+ 		hook: "nana-roster-notice.mjs",
+ 		input: JSON.stringify({ source: "startup" }),
+ 	},
+-	{
+-		row: "R-1944",
+-		title: "verifier hook ignores a closed stdout and exits 0",
+-		hook: "verifier-pipe.mjs",
+-		input: JSON.stringify({
+-			hook_event_name: "PreToolUse",
+-			tool_name: "Bash",
+-			tool_input: { command: "npm test | tail -1 && git commit -m done" },
+-		}),
+-	},
+ ];
+ 
+ for (const testCase of cases) {
+@@ -133,21 +123,9 @@ for (const testCase of cases) {
+ 			// req: R-1943
+ 			check("roster-notice hook ignores a closed stdout and exits 0", ok, open, closed);
+ 			break;
+-		case "R-1944":
+-			// req: R-1944
+-			check("verifier hook ignores a closed stdout and exits 0", ok, open, closed);
+-			break;
+ 	}
+ }
+ 
+-{
+-	const script = path.join(hooksDir, "verifier-pipe.mjs");
+-	const open = await run(script, [], env, "not json", null);
+-	const closed = await run(script, [], env, "not json", "stderr");
+-	// req: R-2014
+-	check("verifier hook ignores a closed stderr and exits 0", open.code === 0 && /nana verifier-pipe:/.test(open.stderr) && closed.code === 0 && !open.timedOut && !closed.timedOut, open, closed);
+-}
+-
+ {
+ 	const knowledgeHome = path.join(home, "knowledge");
+ 	const knowledgeSource = path.join(home, "knowledge-source");
+diff --git a/packages/nana-setup/tests/hooks-win32-exec.test.mjs b/packages/nana-setup/tests/hooks-win32-exec.test.mjs
+index 1cdaeb07..4f88ea91 100644
+--- a/packages/nana-setup/tests/hooks-win32-exec.test.mjs
++++ b/packages/nana-setup/tests/hooks-win32-exec.test.mjs
+@@ -120,8 +120,6 @@ try {
+ 	check("every entry has command node, an args array and no shell key", wanted.every((w) => entries[w.spec.script]) && Object.values(entries).every(({ hook }) => hook.command === "node" && Array.isArray(hook.args) && !("shell" in hook)), JSON.stringify(entries));
+ 	// req: R-1056
+ 	check("the stale knowledge entry was retired, not twinned", !entries["nana-knowledge.ts"] && (settings.hooks.UserPromptSubmit ?? []).flatMap((g) => g.hooks).filter((h) => JSON.stringify(h).includes("nana-knowledge")).length === 0, JSON.stringify(settings.hooks.UserPromptSubmit));
+-	// req: R-1053
+-	check("the verifier group's matcher is Bash-or-PowerShell", entries["verifier-pipe.mjs"]?.matcher === "Bash|PowerShell", JSON.stringify(entries["verifier-pipe.mjs"]));
+ 
+ 	// final review r1 (sol MUST 3, astra MUST 4): spawn with the entry's OWN declared timeout ×
+ 	// 1000, no added slack — R-1058 says each hook "shall exit 0 within its timeout", and the old
+@@ -165,34 +163,6 @@ try {
+ 		// req: R-1063
+ 		check("shared memory: the project's memory/shared is a link to the shared folder", Boolean(junction) && fs.lstatSync(junction).isSymbolicLink(), junction ?? "(none found)");
+ 	}
+-	{
+-		const v = entries["verifier-pipe.mjs"].hook;
+-		const ev = (tool, command) => ({ hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command }, cwd: project, session_id: "win32-exec" });
+-		// final review r1 (sol MUST 4): exactly one non-empty line, parsed whole, naming
+-		// hookEventName PreToolUse and permissionDecision ask — not merely "first line parses".
+-		const askLine = (r) => {
+-			const lines = (r.stdout || "").split("\n").filter((l) => l.length > 0);
+-			if (lines.length !== 1) return null;
+-			try {
+-				const parsed = JSON.parse(lines[0]);
+-				return parsed?.hookSpecificOutput?.hookEventName === "PreToolUse" && parsed?.hookSpecificOutput?.permissionDecision === "ask" ? parsed : null;
+-			} catch { return null; }
+-		};
+-		const bashAsk = spawnEntry(v, ev("Bash", "npm test | tail -5 && git commit -m x"));
+-		// req: R-1058
+-		check("verifier: exit 0 within its own timeout, no module-resolution error", moduleOk(bashAsk), detail(bashAsk));
+-		// Windows only; the Windows CI leg passed it in run 39508818938.
+-		// req: R-1064
+-		check("verifier: Bash masked pipe gives exactly one ask line (hookEventName PreToolUse)", Boolean(askLine(bashAsk)), bashAsk.stdout + bashAsk.stderr);
+-		const psAsk = spawnEntry(v, ev("PowerShell", "set -o pipefail; npm test | Select-Object -Last 5 && git commit -m x"));
+-		// Windows only; the Windows CI leg passed it in run 39508818938.
+-		// req: R-1064
+-		check("verifier: PowerShell masked pipe gives exactly one ask line (hookEventName PreToolUse), Bash pipefail syntax stays inactive there", Boolean(askLine(psAsk)), psAsk.stdout + psAsk.stderr);
+-		const noMatch = spawnEntry(v, ev("Bash", "git status"));
+-		// Windows only; the Windows CI leg passed it in run 39508818938.
+-		// req: R-1064
+-		check("verifier: a non-matching command gives empty stdout", noMatch.status === 0 && (noMatch.stdout || "") === "", JSON.stringify(noMatch.stdout));
+-	}
+ 	{
+ 		const r = spawnEntry(entries["nana-roster-notice.mjs"].hook, session);
+ 		// req: R-1058
+@@ -281,7 +251,7 @@ try {
+ 	const doctorResult = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8", env }));
+ 	// req: R-1055
+ 	check("doctor: exit 0", doctorResult.status === 0, doctorResult.stdout);
+-	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice", "settings PreToolUse verifier pipe", "settings SessionEnd memory making", "node for the objective hook"]) {
++	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice", "settings SessionEnd memory making", "node for the objective hook"]) {
+ 		const line = doctorResult.stdout.split("\n").find((l) => l.includes(label)) ?? "";
+ 		// req: R-1055
+ 		check(`doctor: "${label}" is ✓`, line.trim().startsWith("✓"), line);
+diff --git a/packages/nana-setup/tests/install-check.test.mjs b/packages/nana-setup/tests/install-check.test.mjs
+index 24fa856f..e1e28c3d 100644
+--- a/packages/nana-setup/tests/install-check.test.mjs
++++ b/packages/nana-setup/tests/install-check.test.mjs
+@@ -48,9 +48,9 @@ async function runChecks() {
+ 
+ // req: R-1074
+ check("sealed hook table and allowed entry shape", () => {
+-  assert.equal(HOOKS.length, 6);
++  assert.equal(HOOKS.length, 5);
+   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
+-  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice", "hook verifier pipe"]);
++  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice"]);
+   assert.ok(HOOKS.every((h) => h.form.darwin && h.form.linux && h.form.win32));
+ });
+ 
+@@ -331,10 +331,6 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
+       return { status: 0, stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
+     }
+     if (joined.includes("nana-knowledge.ts")) return { status: 0, stdout: `${installConfig.PI_TURN.knowledgeMarker} ${installConfig.PI_TURN.noteFile}` };
+-    if (joined.includes("verifier-pipe.mjs")) {
+-      const input = JSON.parse(options.input);
+-      return { status: 0, stdout: input.tool_input.command === (input.tool_name === "PowerShell" ? installConfig.SAMPLE_INPUTS.verifier.powershellHit : "npm test | tail -1 && git commit -m done") ? `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n` : "" };
+-    }
+     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
+     return { status: 0, stdout: "" };
+   };
+@@ -460,10 +456,9 @@ check("spawn: every child goes through the injected spawn (git init twice, Git B
+       const joined = fixture.calls.map(({ command, args }) => `${command} ${args.join(" ")}`).join("\\n");
+       assert.equal(fixture.calls.filter((call) => call.args[0] === "init").length, 2);
+       if (platformName === "linux") {
+-        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) assert.ok(joined.includes(name), name);
++        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) assert.ok(joined.includes(name), name);
+         assert.ok(fixture.calls.some((call) => call.args[0] === "install" && call.args.some((arg) => arg.includes("pi-subagents"))));
+         assert.ok(fixture.calls.some((call) => call.args.includes("doctor")));
+-        assert.ok(fixture.calls.filter((call) => call.options.input?.includes("PreToolUse")).length >= 2);
+       } else assert.ok(fixture.calls.some((call) => call.command === "C:\\tools\\pi.exe"));
+     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+   }
+@@ -492,7 +487,7 @@ check("platform: NANA_SETUP_PLATFORM in the caller changes nothing", async () =>
+     assert.ok(!result.lines.some((line) => line.startsWith("Git Bash:")));
+     assert.ok(!fixture.calls.some((call) => call.options.input?.includes('"PowerShell"')));
+     const hooks = fixture.calls.filter((call) => hookScriptFileName(call) !== null);
+-    assert.ok(hooks.length >= 7);
++    assert.ok(hooks.length >= 5);
+     assert.ok(hooks.every((call) => call.command === "/bin/sh" && call.args[0] === "-c"));
+   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+ });
+@@ -606,26 +601,10 @@ check("hook set: a missing type, async true, a shell field, non-string args, or
+ check("hook set: a group without the matcher-and-hooks nesting fails", () => { expectBad([{ event: "SessionStart", group: { hooks: [] } }]); });
+ // req: R-1074
+ check("matcher: *, empty and omitted admit everything", () => {
+-  for (const matcher of ["*", "", undefined]) { const rows = hookGroups("darwin", { "hook verifier pipe": matcher }); assert.equal(mapHookEntries(rows, "darwin").failures.length, 0); }
+-});
+-// req: R-1074
+-check("matcher: 'Bash, PowerShell' and 'Bash|PowerShell' admit both tools", () => {
+-  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe": matcher }), "win32").failures.length, 0);
+-});
+-// req: R-1074
+-check("matcher: list separators admit only the exact listed tools", () => {
+-  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) {
+-    assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe": matcher }), "win32").failures.length, 0);
+-  }
++  for (const matcher of ["*", "", undefined]) { const rows = hookGroups("darwin", { "hook objective": matcher }); assert.equal(mapHookEntries(rows, "darwin").failures.length, 0); }
+ });
+ // req: R-1074
+-check("matcher: ^Bash$ admits Bash", () => { assert.equal(mapHookEntries(hookGroups("darwin", { "hook verifier pipe": "^Bash$" }), "darwin").failures.length, 0); });
+-// req: R-1074
+-check("matcher: NotBash does not admit Bash", () => { expectBad(hookGroups("darwin", { "hook verifier pipe": "NotBash" })); });
+-// req: R-1074
+ check("matcher: a resume SessionStart matcher fails", () => { expectBad(hookGroups("darwin", { "hook objective": "resume" })); });
+-// req: R-1074
+-check("matcher: win32 requires PowerShell in the verifier matcher", () => { expectBad(hookGroups("win32", { "hook verifier pipe": "Bash" }), "win32"); });
+ // req: R-1082
+ check("form: a shell-form entry under win32 fails", () => { const rows = hookGroups("win32"); delete rows[0].group.hooks[0].args; rows[0].group.hooks[0].command = `node ${HOOKS[0].script}`; expectBad(rows, "win32"); });
+ // req: R-1082
+@@ -644,7 +623,6 @@ check("pin R-1074 R-1082: the hook table with its form columns and the allowed e
+     ["hook adoption", "SessionStart", "startup", null, "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+     ["hook shared memory", "SessionStart", "startup", null, "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+     ["hook roster notice", "SessionStart", "startup", null, "nana-roster-notice.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+-    ["hook verifier pipe", "PreToolUse", { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
+   ]);
+   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
+ });
+@@ -683,7 +661,7 @@ check("dispatch: on win32 Git Bash discovery reads the path variable under any l
+ // req: R-1075
+ check("dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it", async () => {
+   const fixture = recordingRun();
+-  try { await fixture.run; const hooks = fixture.calls.filter(c => hookScriptFileName(c) !== null); assert.ok(hooks.length >= 7); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
++  try { await fixture.run; const hooks = fixture.calls.filter(c => hookScriptFileName(c) !== null); assert.ok(hooks.length >= 5); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
+   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+ });
+ // req: R-1075
+@@ -780,16 +758,6 @@ check("output: a 10,001-character stdout fails", async () => await assertOnlyHoo
+   const prefix = `[nana:objective] ${token} `;
+   return { stdout: prefix + "x".repeat(10001 - prefix.length) };
+ }), "hook objective"));
+-// req: R-1077
+-check("verifier: an allow decision fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" } })}\n` }), "hook verifier pipe (Bash)"));
+-// req: R-1077
+-check("verifier: a missing hookEventName fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { permissionDecision: "ask" } })}\n` }), "hook verifier pipe (Bash)"));
+-// req: R-1077
+-check("verifier: malformed JSON fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: "not-json\n" }), "hook verifier pipe (Bash)"));
+-// req: R-1077
+-check("verifier: two JSON lines fail", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n{}\n` }), "hook verifier pipe (Bash)"));
+-// req: R-1077
+-check("verifier: a miss sample that prints anything fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? { stdout: "unexpected" } : {}), "hook verifier pipe (Bash)"));
+ // req: R-1083
+ check("knowledge: no Claude hook output is required after retirement", async () => {
+   const fixture = scriptedFixture(hookIs("nana-knowledge.ts"), () => ({ stdout: "" }));
+@@ -979,39 +947,7 @@ check("pi list: runs from the fixture project with no PI_CODING_AGENT_DIR", asyn
+   try { await fixture.run; const call = fixture.calls.find(item => item.args[0] === "list"); assert.equal(call.options.cwd, path.join(fixture.home, "project")); assert.equal(Object.hasOwn(call.options.env, "PI_CODING_AGENT_DIR"), false); }
+   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+ });
+-// req: R-1074, R-1077
+-check("verifier row: on win32 one entry whose matcher admits Bash and PowerShell satisfies the hook set and both verifier lines", async () => {
+-  const fixture = recordingRun({ platformName: "win32" });
+-  try {
+-    const result = await fixture.run;
+-    assert.ok(result.lines.includes("PASS hook set"), result.lines.filter(line => line.includes("hook set") || line.includes("verifier pipe")).join("\n"));
+-    assert.equal(result.lines.filter(line => /^PASS hook verifier pipe \((Bash|PowerShell)\)$/.test(line)).length, 2, result.lines.filter(line => line.includes("verifier pipe")).join("\n"));
+-    const settings = JSON.parse(fs.readFileSync(path.join(fixture.home, ".claude/settings.json"), "utf8"));
+-    assert.equal(settings.hooks.PreToolUse.length, 1);
+-    assert.equal(settings.hooks.PreToolUse[0].matcher, "Bash|PowerShell");
+-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+-});
+-// req: R-1074, R-1077
+-check("verifier row: on win32 an entry whose matcher admits only Bash fails the PowerShell line", async () => {
+-  const fixture = recordingRun({ platformName: "win32", spawnOverride: async ({ command, args, options, spawn }) => {
+-    const result = await spawn(command, args, options);
+-    if (args.includes("install") && args.some(arg => arg.includes("nana-setup.mjs"))) {
+-      const file = path.join(fixture.home, ".claude/settings.json");
+-      const settings = JSON.parse(fs.readFileSync(file, "utf8"));
+-      settings.hooks.PreToolUse[0].matcher = "Bash";
+-      fs.writeFileSync(file, JSON.stringify(settings));
+-    }
+-    return result;
+-  }});
+-  try { const result = await fixture.run; assert.ok(result.lines.includes("PASS hook verifier pipe (Bash)"), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); assert.ok(result.lines.some(line => line.startsWith("FAIL hook verifier pipe (PowerShell) — bad-matcher:")), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); }
+-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+-});
+-// req: R-1074, R-1077
+-check("verifier row: on darwin one entry admitting Bash satisfies the verifier line and no PowerShell line is printed", async () => {
+-  const fixture = recordingRun({ platformName: "darwin" });
+-  try { const result = await fixture.run; assert.ok(result.lines.includes("PASS hook verifier pipe (Bash)")); assert.equal(result.lines.some(line => line.includes("PowerShell")), false); }
+-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
+-});
++
+ // req: R-1075
+ check("spawn adapter: a child killed at its timeout reports ETIMEDOUT and its duration", async () => {
+   const childSpawn = () => {
+diff --git a/packages/nana-setup/tests/install.test.mjs b/packages/nana-setup/tests/install.test.mjs
+index bee055eb..cfc219a2 100644
+--- a/packages/nana-setup/tests/install.test.mjs
++++ b/packages/nana-setup/tests/install.test.mjs
+@@ -205,7 +205,7 @@ const winFileCopy = (target, source) => {
+ 	}
+ };
+ if (process.platform !== "win32") {
+-	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
++	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) {
+ 		// req: R-301 R-985
+ 		check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
+ 	}
+@@ -213,7 +213,7 @@ if (process.platform !== "win32") {
+ 	check("adoption Node hook is installed as a repo symlink", link(path.join(home, ".claude", "hooks", "nana-adoption.mjs")) === path.join(pkg, "claude", "hooks", "nana-adoption.mjs"));
+ } else {
+ 	console.log("SKIP hook symlink checks (win32: stepHooks writes no ~/.claude/hooks file at all — every entry is wired in exec form from the checkout, pinned below by command/args shape)");
+-	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) {
++	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) {
+ 		// req: R-301 R-985
+ 		check(`hook ${h} is not installed as a file on win32`, !fs.existsSync(path.join(home, ".claude", "hooks", h)));
+ 	}
+diff --git a/packages/nana-setup/tests/restore.test.mjs b/packages/nana-setup/tests/restore.test.mjs
+index 5ea8aa29..62af4909 100644
+--- a/packages/nana-setup/tests/restore.test.mjs
++++ b/packages/nana-setup/tests/restore.test.mjs
+@@ -51,7 +51,7 @@ const sourceLayout = resolveLayout({ home });
+ const sourceRows = stateRows(sourceLayout);
+ const durable = sourceRows.filter((row) => row.class === "durable");
+ const NON_DURABLE_FIXTURE_STORES = [
+-  "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs",
++  "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs",
+   "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test",
+   "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "pi-subagents package manifest", "knowledge index", "project memory shared links",
+   "project trust", "review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal",
+diff --git a/packages/nana-setup/tests/retired-artifacts.test.mjs b/packages/nana-setup/tests/retired-artifacts.test.mjs
+index a54c4dc6..f5b6d69b 100644
+--- a/packages/nana-setup/tests/retired-artifacts.test.mjs
++++ b/packages/nana-setup/tests/retired-artifacts.test.mjs
+@@ -38,7 +38,7 @@ function home() {
+ 	return dir;
+ }
+ const run = (args, env = process.env) => {
+-	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...env, PATH: process.env.PATH } });
++	const invoke = () => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", timeout: 20_000, env: { ...env, PATH: process.env.PATH } });
+ 	return args[0] === "doctor" ? withPiStub(invoke) : invoke();
+ };
+ const install = (h, extra = []) => run(["install", "--home", h, ...extra]);
+@@ -68,6 +68,73 @@ function treeSnapshot(root) {
+ 	return JSON.stringify(entries);
+ }
+ 
++{
++  let timer, problem;
++  try {
++    await Promise.race([Promise.resolve().then(() => {
++      for (const platform of ['darwin', 'win32']) {
++        const h = home();
++        const layout = resolveLayout({ home: h });
++        fs.mkdirSync(layout.hooksDir, { recursive: true });
++        const target = path.join(layout.hooksDir, 'verifier-pipe.mjs');
++        fs.symlinkSync(path.join(pkg, 'claude/hooks/verifier-pipe.mjs'), target);
++        const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
++        const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
++        const foreign = { ...shell, timeout: 17 };
++        const groups = [{ matcher: 'Bash', owner: 'keep', hooks: [shell, foreign] }, { matcher: 'Bash|PowerShell', hooks: [exec] }];
++        fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: groups } }));
++        const env = { ...process.env, NANA_SETUP_PLATFORM: platform };
++        const before = run(['doctor', '--home', h], env);
++        if (!before.stdout.split('\n').some(l => l.includes('✗ settings PreToolUse retired hook') && l.includes('verifier-pipe.mjs') && l.includes('nana-setup install'))) throw new Error('doctor must name the retired hook and install fix');
++        const result = run(['install', '--home', h], env);
++        if (result.status !== 0) throw new Error(result.stdout + result.stderr);
++        const after = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
++        if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', owner: 'keep', hooks: [foreign] }])) throw new Error('managed verifier entries survive or foreign siblings changed');
++        if (fs.lstatSync(target, { throwIfNoEntry: false })) throw new Error('retired hook link remains installed');
++      }
++    }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('retirement case timeout')), 20_000); })]);
++  } catch (error) { problem = error.message; }
++  finally { clearTimeout(timer); }
++  // req: R-3799
++  check('M1: install retires released verifier forms and owned links while doctor names the fix', !problem, problem);
++}
++
++{
++  let timer, problem;
++  try {
++    await Promise.race([Promise.resolve().then(() => {
++      if (process.platform === 'win32') return; // uninstall is POSIX-only
++      const h = home();
++      const layout = resolveLayout({ home: h });
++      fs.mkdirSync(layout.claudeHome, { recursive: true });
++      const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
++      const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
++      const foreign = { type: 'command', command: 'echo owner', timeout: 9 };
++      fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [shell, foreign] }, { matcher: 'Bash|PowerShell', hooks: [exec] }] } }));
++      for (const [file, source] of [[layout.subagentConfig, 'subagent-config.seed.json'], [layout.reviewerAgent, 'reviewer.seed.md']]) {
++        fs.mkdirSync(path.dirname(file), { recursive: true });
++        fs.copyFileSync(path.join(pkg, 'pi', source), file);
++      }
++      const removed = run(['uninstall', '--yes', '--home', h], { ...process.env, NANA_SETUP_PLATFORM: 'darwin' });
++      if (removed.status !== 0) throw new Error(removed.stdout + removed.stderr);
++      if (fs.existsSync(layout.subagentConfig) || fs.existsSync(layout.reviewerAgent)) throw new Error('unchanged old seeds survived uninstall');
++      const remaining = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
++      if (JSON.stringify(remaining.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign] }])) throw new Error('uninstall left retired wiring or changed siblings');
++      fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [shell, exec, foreign] }] } }));
++      const installed = run(['install', '--home', h]);
++      if (installed.status !== 0) throw new Error(installed.stdout + installed.stderr);
++      const after = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
++      if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign] }])) throw new Error('install left a released verifier form or changed siblings');
++    }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('old-home retirement timeout')), 20_000); })]);
++  } catch (error) { problem = error.message; }
++  finally { clearTimeout(timer); }
++  if (process.platform === 'win32') console.log('SKIP M9: old-home uninstall is POSIX-only');
++  else {
++    // req: R-3807
++    check('M9: old-home uninstall removes retired wiring and unchanged seeds before install preserves only foreign siblings', !problem, problem);
++  }
++}
++
+ try {
+ 	{
+ 		const realLegacy = path.join(fixture, "dev-check");
+diff --git a/packages/nana-setup/tests/seat-pull-off.test.mjs b/packages/nana-setup/tests/seat-pull-off.test.mjs
+index 17bfb434..37adf846 100644
+--- a/packages/nana-setup/tests/seat-pull-off.test.mjs
++++ b/packages/nana-setup/tests/seat-pull-off.test.mjs
+@@ -67,8 +67,8 @@ await test('R-3739: fresh POSIX and win32 installs omit only the knowledge entry
+     const after = installSettings(layout, {}, platform);
+     assert.equal(promptEntries(after).length, 0);
+     const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot, platform });
+-    assert.equal(wanted.length, 6);
+-    assert.deepEqual(wanted.map(w => w.spec.script), ['nana-objective.mjs', 'nana-adoption.mjs', 'nana-shared-memory.mjs', 'nana-roster-notice.mjs', 'verifier-pipe.mjs', 'nana-memory-end.mjs']);
++    assert.equal(wanted.length, 5);
++    assert.deepEqual(wanted.map(w => w.spec.script), ['nana-objective.mjs', 'nana-adoption.mjs', 'nana-shared-memory.mjs', 'nana-roster-notice.mjs', 'nana-memory-end.mjs']);
+     for (const w of wanted) assert.deepEqual(after.hooks[w.event].find(g => g.matcher === w.matcher).hooks.find(h => h.statusMessage === w.entry.statusMessage), w.entry);
+   });
+ });
+diff --git a/packages/nana-setup/tests/settings-merge.test.mjs b/packages/nana-setup/tests/settings-merge.test.mjs
+index e9c92aa7..b9053999 100644
+--- a/packages/nana-setup/tests/settings-merge.test.mjs
++++ b/packages/nana-setup/tests/settings-merge.test.mjs
+@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
+ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+ const cli = path.join(pkg, "bin", "nana-setup.mjs");
+ const repo = path.resolve(pkg, "..", "..");
+-const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, WIN_VERIFIER_MATCHER, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
++const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+ const { SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+ const { resolveLayout, platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+ 
+@@ -36,7 +36,7 @@ const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
+ // Historical descriptors exercise public helpers, not install's active wanted set.
+ const historicalHooks = options => [...desiredHooks(options), retiredKnowledgeHook(options)];
+ const spec = (label) => (wanted.find((w) => w.label === label) ?? retiredKnowledgeHook()).spec;
+-check("six active hook entries are wanted", wanted.length === 6);
++check("five active hook entries are wanted", wanted.length === 5);
+ 
+ /* --- paths are quoted, so a space in the home or clone still runs --------------------- */
+ {
+@@ -150,7 +150,7 @@ check("six active hook entries are wanted", wanted.length === 6);
+ {
+ 	const s = {};
+ 	const r = mergeHooks(s, wanted);
+-	check("empty settings: all six active entries added", r.added.length === 6);
++	check("empty settings: all five active entries added", r.added.length === 5);
+ 	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit === undefined);
+ 	// req: R-316
+ 	check("empty settings: merging again adds nothing", mergeHooks(s, wanted).added.length === 0);
+@@ -171,7 +171,7 @@ check("six active hook entries are wanted", wanted.length === 6);
+ 	};
+ 	const before = JSON.stringify(s.hooks.Stop);
+ 	const r = mergeHooks(s, wanted);
+-	check("the other six are added", r.added.length === 6);
++	check("the other five are added", r.added.length === 5);
+ 	// req: R-316
+ 	check("foreign SessionStart hook still first", s.hooks.SessionStart[0].hooks[0].command.endsWith("session-start.sh"));
+ 	// req: R-316
+@@ -311,15 +311,11 @@ check("six active hook entries are wanted", wanted.length === 6);
+ 	// req: R-1050
+ 	check("win32 desiredHooks: every entry is exec form with no shell key", w32.every((w) => w.entry.command === "node" && Array.isArray(w.entry.args) && !("shell" in w.entry)));
+ 	// req: R-1051
+-	check("win32 desiredHooks: the five hook entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
++	check("win32 desiredHooks: the four SessionStart entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
+ 	// req: R-1050
+ 	check("win32 desiredHooks: no active entry adds a subcommand", w32.every(w => w.entry.args.length === 1));
+ 	// req: R-1050
+ 	check("win32 desiredHooks: no knowledge target is wanted", !w32.some(w => w.spec.script === 'nana-knowledge.ts'));
+-	// req: R-1053
+-	check("WIN_VERIFIER_MATCHER is Bash-or-PowerShell", WIN_VERIFIER_MATCHER === "Bash|PowerShell");
+-	// req: R-1053
+-	check("win32 desiredHooks: the verifier group's matcher is WIN_VERIFIER_MATCHER", w32.find((w) => w.label === "PreToolUse verifier pipe").matcher === WIN_VERIFIER_MATCHER);
+ 	// req: R-1060
+ 	check("CLAUDE_CODE_EXEC_FLOOR is 2.1.139", CLAUDE_CODE_EXEC_FLOOR === "2.1.139");
+ }
+@@ -333,7 +329,6 @@ check("six active hook entries are wanted", wanted.length === 6);
+ 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: { interpreters: ["node"], script: "nana-adoption.mjs" }, entry: { type: "command", command: "node '/h/nana-adoption.mjs'", timeout: 5, statusMessage: "nana: unadopted repositories" } },
+ 		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: { interpreters: ["node"], script: "nana-shared-memory.mjs" }, entry: { type: "command", command: "node '/h/nana-shared-memory.mjs'", timeout: 5, statusMessage: "nana: shared memory index" } },
+ 		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: { interpreters: ["node"], script: "nana-roster-notice.mjs" }, entry: { type: "command", command: "node '/h/nana-roster-notice.mjs'", timeout: 5, statusMessage: "nana: roster notice" } },
+-		{ event: "PreToolUse", matcher: "Bash", label: "PreToolUse verifier pipe", marker: "verifier-pipe.mjs", spec: { interpreters: ["node"], script: "verifier-pipe.mjs" }, entry: { type: "command", command: "node '/h/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" } },
+ 		{ event: E.event, label: `${E.event} memory making`, marker: E.file, spec: { interpreters: ['node'], script: E.file }, entry: { type: 'command', command: `node '/h/${E.file}'`, timeout, statusMessage: E.statusMessage } },
+ 	];
+ 	// req: R-1061
+@@ -428,7 +423,7 @@ check("six active hook entries are wanted", wanted.length === 6);
+ 	settings.hooks.SessionStart[0].hooks.push({ type: "command", command: "node", args: ["/repo/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5, statusMessage: "nana: objective + current priority" });
+ 	const removed = removeInstallerHooks(settings, { hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
+ 	// req: R-1050
+-	check("forced-win32 removeInstallerHooks removes exactly the six entries", removed.length === 6, JSON.stringify(removed));
++	check("forced-win32 removeInstallerHooks removes exactly the five entries", removed.length === 5, JSON.stringify(removed));
+ 	// Guarded with optional chaining, not a plain settings.hooks.SessionStart[0] read: a wrong
+ 	// removeInstallerHooks that over-removes can empty and delete the whole SessionStart group (or
+ 	// settings.hooks itself), and this case must still report FAIL rather than throw and abort
+@@ -567,9 +562,6 @@ const homeSnapshot = (root) => {
+ 	const after = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
+ 	check("model key survives", after.model === "fable");
+ 	const preTool = after.hooks.PreToolUse.flatMap((group) => group.hooks);
+-	const verifierSpec = { interpreters: ["node"], script: "verifier-pipe.mjs" };
+-	// req: R-985
+-	check("PreToolUse preserves the foreign hook and appends the Node verifier hook", preTool[0].command === original.hooks.PreToolUse[0].hooks[0].command && preTool.some((entry) => entryInvokes(entry, verifierSpec, platform())));
+ 	// req: R-660
+ 	check("exact nana context invocation is removed", !JSON.stringify(after).includes('"command": "bash ~/.claude/hooks/context-size-check.sh"'), JSON.stringify(after));
+ 	// req: R-660
+diff --git a/packages/nana-setup/tests/stale-copies.test.mjs b/packages/nana-setup/tests/stale-copies.test.mjs
+index 4344bc2d..97654251 100644
+--- a/packages/nana-setup/tests/stale-copies.test.mjs
++++ b/packages/nana-setup/tests/stale-copies.test.mjs
+@@ -172,9 +172,6 @@ function breakLegacyWin32(fixture) {
+ 
+ function breakPosixLinkOnly(fixture) {
+ 	fs.unlinkSync(path.join(fixture.layout.hooksDir, "nana-roster-notice.mjs"));
+-	const verifier = path.join(fixture.layout.hooksDir, "verifier-pipe.mjs");
+-	fs.unlinkSync(verifier);
+-	fs.writeFileSync(verifier, "regular file instead of hook link\n");
+ }
+ 
+ function breakPosixOccupied(fixture) {
+@@ -193,13 +190,6 @@ function breakPosixOccupied(fixture) {
+ 	editSettings(fixture, (hooks) => { delete hooks.PreToolUse; delete hooks.UserPromptSubmit; });
+ }
+ 
+-function breakWin32HookOnly(fixture) {
+-	editSettings(fixture, (hooks) => {
+-		for (const group of hooks.PreToolUse ?? []) group.matcher = "Bash";
+-		delete hooks.UserPromptSubmit;
+-	});
+-}
+-
+ function breakWin32Occupied(fixture) {
+ 	const requirements = path.join(fixture.layout.skillsDir, "requirements");
+ 	fs.rmSync(requirements, { recursive: true, force: true });
+@@ -216,8 +206,10 @@ function breakLinkedSkillsHealthy(fixture) {
+ 	const linkedSkills = path.join(fixture.home, "dotfiles-skills");
+ 	fs.renameSync(fixture.layout.skillsDir, linkedSkills);
+ 	fs.symlinkSync(linkedSkills, fixture.layout.skillsDir, process.platform === "win32" ? "junction" : "dir");
+-	// Break an active hook: missing retired knowledge wiring is no longer stale.
+-	editSettings(fixture, (hooks) => { delete hooks.PreToolUse; });
++	// Break objective wiring while retaining adoption's install record.
++	editSettings(fixture, (hooks) => {
++		for (const group of hooks.SessionStart ?? []) group.hooks = group.hooks.filter(hook => !JSON.stringify(hook).includes('nana-objective.mjs'));
++	});
+ }
+ 
+ function breakLinkedClaudeMissingSkills(fixture) {
+@@ -265,7 +257,6 @@ async function platformFixtures(platformName) {
+ 			broken.push(await buildBroken(platformName, "occupied", breakPosixOccupied));
+ 		} else {
+ 			broken.push(await buildBroken(platformName, "legacy", breakLegacyWin32));
+-			broken.push(await buildBroken(platformName, "hook-only", breakWin32HookOnly));
+ 			broken.push(await buildBroken(platformName, "occupied", breakWin32Occupied));
+ 		}
+ 		const moveFilter = await buildBroken(platformName, "linked-skills-filter", breakLinkedSkillsHealthy);
+diff --git a/packages/nana-setup/tests/state-manifest.test.mjs b/packages/nana-setup/tests/state-manifest.test.mjs
+index 4770ff7d..1c36d49c 100644
+--- a/packages/nana-setup/tests/state-manifest.test.mjs
++++ b/packages/nana-setup/tests/state-manifest.test.mjs
+@@ -68,7 +68,7 @@ const installTargets = [
+   ownerLayout.claudeSettings, path.join(ownerLayout.sharedMemoryDir, "MEMORY.md"),
+   path.join(ownerLayout.rulesDir, "nana-personal.md"), ownerLayout.piPackConfig, ownerLayout.piObjective,
+   ownerLayout.subagentConfig, ownerLayout.reviewerAgent, path.join(ownerLayout.knowledgeHome, "index.db"), ownerLayout.copyRecord,
+-  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
++  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+   ...["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE].map((name) => path.join(ownerLayout.rulesDir, name)),
+   ...["requirements", "spec", "py-lint", "py-review", "py-test"].map((name) => path.join(ownerLayout.skillsDir, name)),
+   ...["pi-review", "pi-worker", "nana-land", "nana-setup", "nana-writing"].map((name) => path.join(ownerLayout.binDir, name)),
+@@ -76,7 +76,7 @@ const installTargets = [
+   ownerLayout.piRulings,
+   ownerLayout.piSeatGuide,
+ ];
+-const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", "file", ...Array(20).fill("link"), ...Array(5).fill("shim"), "link", "link"];
++const installKinds = ["settings-entry", "seed", "seed", "seed", "seed", "seed", "seed", "generated", "file", ...Array(19).fill("link"), ...Array(5).fill("shim"), "link", "link"];
+ const uncoveredInstallTargets = installTargets.filter((target, index) => !installedRows.some((row) => row.owner === "nana-setup" && row.kind === installKinds[index] && (row.source.startsWith("packages/nana-setup/lib/steps.mjs") || row.source === "packages/nana-knowledge/lib/paths.ts" || path.isAbsolute(row.source)) && path.resolve(row.path) === path.resolve(target)));
+ // The manifest row for every "link" target exists on every platform (state-manifest.mjs lists
+ // every platform-owned path unconditionally) — the coverage check above holds either way. Actual
+@@ -84,7 +84,7 @@ const uncoveredInstallTargets = installTargets.filter((target, index) => !instal
+ // four .cmd companions. Rules and all five skill mirrors still land on Windows, so these sets keep
+ // only the platform-specific absences.
+ const posixOnlyInstallTargets = new Set([
+-  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
++  ...["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"].map((name) => path.join(ownerLayout.hooksDir, name)),
+ ].map((p) => path.resolve(p)));
+ const win32OnlyInstallTargets = new Set([
+   ownerLayout.copyRecord,
+diff --git a/packages/nana-setup/tests/uninstall.test.mjs b/packages/nana-setup/tests/uninstall.test.mjs
+index 8ecf229a..a1ab4d3d 100644
+--- a/packages/nana-setup/tests/uninstall.test.mjs
++++ b/packages/nana-setup/tests/uninstall.test.mjs
+@@ -97,10 +97,9 @@ if (process.platform !== "win32") {
+ 
+   const exact = desiredHooks({ hooksDir: "$TMPDIR/hooks", repoRoot: "/repo" });
+   const objective = exact.find((item) => item.label === "SessionStart objective").entry;
+-  const verifier = exact.find((item) => item.label === "PreToolUse verifier pipe").entry;
+   const misplaced = { hooks: {
+     UserPromptSubmit: [{ hooks: [objective] }],
+-    PreToolUse: [{ matcher: "Other", hooks: [verifier] }],
++    SessionStart: [{ matcher: "Other", hooks: [objective] }],
+   } };
+   const misplacedBefore = JSON.stringify(misplaced);
+   removeInstallerHooks(misplaced, { hooksDir: "$TMPDIR/hooks", repoRoot: "/repo" });
+@@ -296,7 +295,7 @@ if (process.platform !== "win32") {
+   const afterDry = snapshot(dryHome);
+   const dryRows = dryResult.stdout.split("\n").filter((line) => /^  [ +–✗·]/u.test(line));
+   const dryLabels = dryRows.map((line) => line.slice(4).split(/\s{2,}/u)[0]).sort();
+-  const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook verifier-pipe.mjs", "hook nana-memory-end.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "pi rule link nana-seat.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
++  const expectedLabels = ["settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "hook nana-memory-end.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "pi rule link nana-seat.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
+   const second = run(["uninstall", "--yes", "--home", dryHome]);
+   const third = run(["uninstall", "--yes", "--home", dryHome]);
+   // req: R-903 R-904 R-905 R-906 R-907
+@@ -444,7 +443,7 @@ if (process.platform !== "win32") {
+   fs.symlinkSync(decoy, path.join(layout.hooksDir, "nana-adoption.mjs"));
+   const regular = path.join(layout.hooksDir, "nana-shared-memory.mjs");
+   fs.writeFileSync(regular, "owner file");
+-  const directory = path.join(layout.hooksDir, "verifier-pipe.mjs");
++  const directory = path.join(layout.hooksDir, "nana-roster-notice.mjs");
+   fs.mkdirSync(directory);
+   const result = run(["uninstall", "--yes", "--home", home]);
+   // req: R-902
+diff --git a/packages/nana-setup/tests/verifier-pipe.test.mjs b/packages/nana-setup/tests/verifier-pipe.test.mjs
+index 2118b1c3..152c9cd1 100644
+--- a/packages/nana-setup/tests/verifier-pipe.test.mjs
++++ b/packages/nana-setup/tests/verifier-pipe.test.mjs
+@@ -1,152 +1,27 @@
+ /**
+  * @module packages/nana-setup/tests/verifier-pipe.test.mjs
+- * @purpose Pins Claude hook decisions, setup wiring, doctor health, and declared runtime coverage.
+- * @inputs the canonical verifier hook, settings and doctor modules, and shared runtime documentation.
++ * @purpose Preserve retired-bash doctor checks and live pi predicate documentation after Claude verifier retirement.
++ * @inputs Doctor, temporary settings, and shared runtime documentation.
+  * @outputs PASS/FAIL lines and a nonzero exit when any check fails.
+- * @effects disk (throwaway home), process (runs the hook with fixture stdin).
+- * @errors an assertion failure exits nonzero.
++ * @effects disk (temporary home), process (doctor probes through pi stub).
++ * @errors Failed checks set a nonzero exit code.
+  */
+ import { tmpDir } from "./tmp-dir.mjs";
+-import { spawnSync } from "node:child_process";
+ import * as fs from "node:fs";
+ import * as os from "node:os";
+ import * as path from "node:path";
+ import { fileURLToPath } from "node:url";
+-import { desiredHooks, WIN_VERIFIER_MATCHER } from "../lib/settings.mjs";
+ import { diagnose } from "../lib/doctor.mjs";
+-import { platform, resolveLayout } from "../lib/paths.mjs";
+-import { runHook } from "../lib/verifier-hook.mjs";
+-import { verifierPipeReason } from "../../nana-pack/lib/pipe-guard.mjs";
++import { resolveLayout } from "../lib/paths.mjs";
+ import { withPiStub } from "./stub-pi.mjs";
+-
+ let failures = 0;
+-const check = (title, pass, extra = "") => {
+-	console.log(pass ? "PASS" : "FAIL", title, pass ? "" : extra);
+-	if (!pass) failures++;
+-};
++const check = (title, pass, extra = "") => { console.log(pass ? "PASS" : "FAIL", title, pass ? "" : extra); if (!pass) failures++; };
+ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+ const root = path.resolve(pkg, "..", "..");
+-const hook = path.join(pkg, "claude", "hooks", "verifier-pipe.mjs");
+-const installedHome = tmpDir(path.join(os.tmpdir(), "nana-pipe-installed-"));
+-const install = spawnSync(process.execPath, [path.join(pkg, "bin", "nana-setup.mjs"), "install", "--home", installedHome], { encoding: "utf8" });
+-// win32 install writes no ~/.claude/hooks symlink (stepHooks is a no-op there); the verifier
+-// entry is wired in exec form straight at the checkout, so the installed script is read from
+-// the settings entry's own args[0] instead of a symlink.
+-const isWin32 = platform() === "win32";
+-let installedHook;
+-let installedHookMatches;
+-if (isWin32) {
+-	const installedSettings = JSON.parse(fs.readFileSync(path.join(installedHome, ".claude", "settings.json"), "utf8"));
+-	const verifierEntry = (installedSettings.hooks?.PreToolUse ?? []).flatMap((g) => g.hooks ?? []).find((h) => Array.isArray(h.args) && h.args[0]?.endsWith("verifier-pipe.mjs"));
+-	installedHook = verifierEntry?.args?.[0];
+-	// desiredHooks' win32 branch builds args[0] as `${repoRoot}/packages/...` with a literal
+-	// forward slash (settings.mjs's own documented backslash-root/forward-slash-suffix shape),
+-	// while `hook` here is built with path.join's native (all-backslash) separator — an exact
+-	// string compare would fail even though both name the same file; realpathSync resolves
+-	// either spelling to the same canonical path.
+-	installedHookMatches = Boolean(installedHook) && fs.realpathSync(installedHook) === fs.realpathSync(hook);
+-} else {
+-	installedHook = path.join(installedHome, ".claude", "hooks", "verifier-pipe.mjs");
+-	installedHookMatches = fs.realpathSync(installedHook) === hook;
+-}
+-const invokeInstalledHook = (input) => spawnSync(process.execPath, [installedHook], { input, encoding: "utf8" });
+-const hit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -1 && git commit -m done" } }));
+-// win32 install writes no symlink (the title named one; retitled since exec form points
+-// straight at the checkout there — no link exists to name).
+-// req: R-985
+-// req: R-984
+-check("installed hook asks on a verifier-pipe hit", install.status === 0 && installedHookMatches && hit.status === 0 && JSON.stringify(JSON.parse(hit.stdout).hookSpecificOutput) === JSON.stringify({ hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: verifierPipeReason("npm test | tail -1 && git commit -m done") }));
+-const discarded = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status | wc -l; git commit -m x" } }));
+-const gitExeHit = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "npm test | tail -5 && git.exe commit -m x" } }));
+-const gitExeLines = gitExeHit.stdout.split("\n").filter((line) => line.length > 0);
+-let gitExeAsk = null;
+-try { gitExeAsk = gitExeLines.length === 1 ? JSON.parse(gitExeLines[0]) : null; } catch {}
+-// req: R-2355
+-check("installed hook abstains on a discarded pipeline status and asks on git.exe commit", discarded.status === 0 && discarded.stdout === "" && discarded.stderr === "" && gitExeHit.status === 0 && gitExeHit.stderr === "" && gitExeAsk?.hookSpecificOutput?.permissionDecision === "ask");
+-const ordinary = invokeInstalledHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git status" } }));
+-// req: R-984
+-check("installed symlink abstains on an unrelated command", ordinary.status === 0 && ordinary.stdout === "" && ordinary.stderr === "");
+-const invalid = invokeInstalledHook("{");
+-// req: R-984
+-check("installed symlink abstains on malformed JSON with stderr note", invalid.status === 0 && invalid.stdout === "" && /nana verifier-pipe:/.test(invalid.stderr));
+-const malformedShape = invokeInstalledHook(JSON.stringify({ tool_name: "Bash", tool_input: { command: "git log | head && git commit" } }));
+-// req: R-984
+-check("installed hook reports malformed JSON shape on stderr", malformedShape.status === 0 && malformedShape.stdout === "" && /nana verifier-pipe:.*malformed/.test(malformedShape.stderr));
+-let protocolStdout = "";
+-let protocolStderr = "";
+-runHook(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: "git log | head; git commit" } }), {
+-	predicate: () => { throw new Error("predicate failure"); },
+-	stdout: { write: (text) => { protocolStdout += text; } },
+-	stderr: { write: (text) => { protocolStderr += text; } },
+-});
+-// req: R-984
+-check("protocol writer reports predicate errors on stderr", protocolStdout === "" && /nana verifier-pipe:.*predicate failure.*abstaining/.test(protocolStderr));
+-
+-// desiredHooks has no platform default (an omitted platform key always yields POSIX shape,
+-// never auto-detected) — the real OS is passed explicitly so this fixture and the doctor
+-// fixture built from it below match what install actually writes on win32.
+-const hooks = desiredHooks({ hooksDir: "$TMPDIR/claude/hooks", repoRoot: root, platform: isWin32 ? "win32" : undefined });
+-const pipe = hooks.find((entry) => entry.label === "PreToolUse verifier pipe");
+-// req: R-985
+-check("setup wants a Node PreToolUse hook with exact script spec", pipe?.event === "PreToolUse" && pipe.spec.interpreters.includes("node") && pipe.spec.script === "verifier-pipe.mjs" && (isWin32
+-	? pipe.matcher === WIN_VERIFIER_MATCHER && pipe.entry.command === "node" && Array.isArray(pipe.entry.args) && pipe.entry.args[0]?.endsWith("verifier-pipe.mjs")
+-	: pipe.matcher === "Bash" && pipe.entry.command.startsWith("node ")));
+-
+-{
+-	const { decideHook } = await import(new URL("../lib/verifier-hook.mjs", import.meta.url).href);
+-	const prefixed = "set -o pipefail; npm test | Select-Object -Last 1 && git commit -m x";
+-	const psHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: prefixed } });
+-	// req: R-1054
+-	check("decideHook judges a PowerShell event with the PowerShell dialect (bash pipefail syntax stays inactive)", psHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psHit));
+-	const bashNoHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command: prefixed } });
+-	// req: R-1054
+-	check("decideHook keeps the Bash dialect for a Bash event (the same pipefail prefix is exempted there)", bashNoHit.response === null, JSON.stringify(bashNoHit));
+-	// final review r1 MUST 1: the embedded-# fix (R-1062) pinned through decideHook, not only the
+-	// bare predicate.
+-	const embeddedHash = "npm test | Select-Object -Last 5 && Write-Output issue#123; git commit -m x";
+-	const psHashHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: embeddedHash } });
+-	// req: R-1054
+-	// req: R-1062
+-	check("decideHook: an embedded # inside a PowerShell word does not mask a live pipe before commit", psHashHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psHashHit));
+-	// final review r2 MUST 1: the embedded-<# fix (R-1062, sol r2 repro) pinned through
+-	// decideHook too, not only the bare predicate (pipe-guard.test.mjs).
+-	const embeddedBlock = "npm test | Select-Object -Last 1 && Write-Output issue<#123; git commit -m x";
+-	const psBlockHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: embeddedBlock } });
+-	// req: R-1054
+-	// req: R-1062
+-	check("decideHook: an embedded <# inside a PowerShell word does not mask a live pipe before commit", psBlockHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(psBlockHit));
+-	// final review r3 MUST 1 (R-1062, sol's repro): the boundary set omitted the closing single
+-	// quote named by §2.2.3/§2.3.3, so a ")" right after it could close a $(...) subexpression
+-	// early and hide the live pipe that follows — pinned through decideHook, not only the bare
+-	// predicate (pipe-guard.test.mjs).
+-	const solRepro = "\"$(Write-Output 'hi'# )\nnpm test | Select-Object -Last 1 && true\n)\"; git commit -m x";
+-	const solReproHit = decideHook({ hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: solRepro } });
+-	// req: R-1054
+-	// req: R-1062
+-	check("decideHook: sol's closing-quote repro does not mask a live pipe before commit", solReproHit.response?.hookSpecificOutput?.permissionDecision === "ask", JSON.stringify(solReproHit));
+-}
+-
+ const home = tmpDir(path.join(os.tmpdir(), "nana-pipe-doctor-"));
+ const layout = resolveLayout({ home });
+ fs.mkdirSync(layout.claudeHome, { recursive: true });
+-if (isWin32) {
+-	// win32 doctor reads only settings.json for this row (doctor.mjs's win branch above never
+-	// resolves a hooksDir symlink); skip creating one — Windows needs an elevated privilege for
+-	// fs.symlinkSync, and this row never looks at it.
+-} else {
+-	fs.mkdirSync(layout.hooksDir, { recursive: true });
+-	fs.symlinkSync(hook, path.join(layout.hooksDir, "verifier-pipe.mjs"));
+-}
+-const missing = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
+-// req: R-985
+-check("doctor reports the missing user hook wiring unhealthy", missing?.status === "fail");
+-// win32's exec-form entry needs its args array too (entryInvokes/hookTargets read it on win32);
+-// the POSIX shell-form command string alone is still enough there.
+-const settings = { hooks: { PreToolUse: [{ matcher: pipe.matcher, hooks: [{ type: "command", command: pipe.entry.command, ...(pipe.entry.args ? { args: pipe.entry.args } : {}) }] }] } };
+-fs.writeFileSync(layout.claudeSettings, JSON.stringify(settings));
+-const healthy = withPiStub(() => diagnose(layout, { projectDir: home })).find((item) => item.label === "settings PreToolUse verifier pipe");
+-// req: R-985
+-check("doctor accepts the installed Node hook wiring", healthy?.status === "ok", JSON.stringify(healthy));
++const settings = { hooks: {} };
+ settings.hooks.SessionStart = [{ hooks: [
+ 	{ type: "command", command: "/bin/bash /x/nana-objective.sh", timeout: 5, statusMessage: "nana: objective + current priority" },
+ 	{ type: "command", command: "/bin/sh /other/nana-adoption.sh", timeout: 5, statusMessage: "foreign retired hook" },
+@@ -188,27 +63,14 @@ for (const [name, group] of [["null group", null], ["string group", "bad"], ["ob
+ 	// req: R-909
+ 	check(`doctor diagnoses malformed retired-hook ${name} without throwing`, Array.isArray(rows) && rows.some((item) => item.label === "settings SessionStart objective" && item.status === "fail"), String(rows));
+ }
+-
+-const matrix = fs.readFileSync(path.join(root, "templates/_shared/working-under-nana-pi.md"), "utf8");
+ const packReadme = fs.readFileSync(path.join(root, "packages/nana-pack/README.md"), "utf8");
+ const setupReadme = fs.readFileSync(path.join(pkg, "README.md"), "utf8");
+-const claudeRow = matrix.split("\n").find((line) => line.startsWith("| Claude Code seat |")) ?? "";
+-const piRow = matrix.split("\n").find((line) => line.startsWith("| pi TUI or desk session |")) ?? "";
+-// req: R-985
+-check("runtime matrix declares verifier-pipe surfaces for pi and Claude Code", /Verifier pipe/.test(matrix) && /PreToolUse Node hook `verifier-pipe\.mjs`/.test(claudeRow) && /matcher `Bash` on macOS and Linux, `Bash\\\|PowerShell` on Windows/.test(claudeRow) && /nana-gate/.test(piRow) && /shared predicate/.test(piRow));
+ const packDeclaration = packReadme.split("\n").find((line) => line.includes("Verifier-pipe guard")) ?? "";
+ const setupDeclaration = setupReadme.split("\n").find((line) => line.includes("Verifier-pipe guard")) ?? "";
+-// req: R-985
+-check("both READMEs declare the user-scope live verifier-pipe change", /user-scope/.test(packDeclaration) && /every session/.test(packDeclaration) && /user-scope/.test(setupDeclaration) && /every session/.test(setupDeclaration));
+-// req: R-985, R-1053
+-check("pack README declares the Claude win32 verifier coverage", /Claude Code hook is wired on native Windows too/.test(packDeclaration) && /Bash\|PowerShell/.test(packDeclaration));
+ // req: R-2354
+ check("both READMEs declare the literal-text later-call gap and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /not present in the literal command text/.test(line) && /reached through a later call/.test(line) && /sandbox is the boundary/.test(line)));
+ // req: R-2356
+ check("both READMEs declare which pipelines the verifier-pipe guard asks on", [packDeclaration, setupDeclaration].every((line) => /a `;` or a newline/.test(line) && /does not prompt/.test(line) && /contains `errexit` anywhere/.test(line) && /in any case and even inside a longer word/.test(line) && /a `set` word at any position/.test(line) && /within the same simple command/.test(line) && /the next `;`, `&`, `\|`, newline or closing bracket/.test(line) && /option word made of `-` and letters including `e`/.test(line) && /`set \+e` or `set \+o errexit` never turns that text flag off/.test(line) && /`\+o errexit` itself counts as enabling/.test(line) && /`git\.exe`/.test(line) && /path/.test(line)));
+-// final review r2 (sol SHOULD 2, astra SHOULD 3): the migration sentence now opens "On POSIX" —
+-// Windows also recognizes the legacy and exec forms, covered in the sentence that follows it.
+-// req: R-985
++// req: R-660 R-3740
+ check("setup README retains context retirement and knowledge retirement guarantees", setupReadme.includes("Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved.") && setupReadme.includes("Install removes only complete installer-shaped knowledge entries in shell or exec form"));
+-
+ if (failures) process.exitCode = 1;
+diff --git a/packages/nana-setup/tests/win32-degrade.test.mjs b/packages/nana-setup/tests/win32-degrade.test.mjs
+index 3cbef1e3..d5402b28 100644
+--- a/packages/nana-setup/tests/win32-degrade.test.mjs
++++ b/packages/nana-setup/tests/win32-degrade.test.mjs
+@@ -22,7 +22,7 @@ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+ const cli = path.join(pkg, "bin", "nana-setup.mjs");
+ const repo = path.resolve(pkg, "..", "..");
+ const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+-const { CLAUDE_CODE_EXEC_FLOOR, WIN_VERIFIER_MATCHER, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
++const { CLAUDE_CODE_EXEC_FLOOR, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+ const { PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+ const { renderWinShims } = await import(new URL("../lib/win-shims.mjs", import.meta.url).href);
+ const { findGitBash } = await import(new URL("../lib/install-check.mjs", import.meta.url).href);
+@@ -163,7 +163,7 @@ const hookScriptNames = win32Wanted.filter((w) => fs.existsSync(path.join(pkg, "
+ const printedLabels = (output) => output.split("\n").flatMap((row) => row.match(/^\s*\S\s(.+?)\s{2,}/)?.[1] ?? []);
+ const printsNoHookFileRows = (output) => {
+ 	const labels = printedLabels(output);
+-	return hookScriptNames.length === 6 && hookScriptNames.every((script) => labels.every((label) => !label.includes(script))) && win32Wanted.every((w) => labels.includes(`settings ${w.label}`));
++	return hookScriptNames.length === 5 && hookScriptNames.every((script) => labels.every((label) => !label.includes(script))) && win32Wanted.every((w) => labels.includes(`settings ${w.label}`));
+ };
+ // req: R-1860
+ check("win32 install prints no row labelled with a Claude Code hook script", printsNoHookFileRows(r.stdout), r.stdout);
+@@ -174,9 +174,6 @@ for (const w of win32Wanted) {
+ 	// req: R-1051
+ 	check(`win32: ${w.label} args[0] is absolute, exists, and ends with the entry's script`, path.isAbsolute(found[0]?.hook.args?.[0] ?? "") && fs.existsSync(found[0]?.hook.args?.[0] ?? "") && (found[0]?.hook.args?.[0] ?? "").endsWith(w.spec.script));
+ }
+-// req: R-1053
+-check("win32: the verifier group's matcher is Bash-or-PowerShell", allEntries.find(({ hook }) => JSON.stringify(hook).includes("verifier-pipe.mjs"))?.group?.matcher === WIN_VERIFIER_MATCHER);
+-check("WIN_VERIFIER_MATCHER is Bash-or-PowerShell", WIN_VERIFIER_MATCHER === "Bash|PowerShell");
+ 
+ /* doctor agrees, and does not fail on what the platform cannot have */
+ const doctorCwd = tmpDir(path.join(os.tmpdir(), "nana-setup-doctor-cwd-"));
+@@ -316,15 +313,6 @@ for (const w of win32Wanted) {
+    checkout (distinct from the missing-target case above, which never reaches the
+    resolves-inside-checkout branch), and a healthy entry beside a stale duplicate under the same
+    event (every target must resolve, not just one) ----------------------------------------------- */
+-{
+-	const h2 = freshHome();
+-	const verifierWanted = win32Wanted.find((w) => w.label === "PreToolUse verifier pipe");
+-	fs.mkdirSync(path.join(h2, ".claude"), { recursive: true });
+-	fs.writeFileSync(path.join(h2, ".claude", "settings.json"), JSON.stringify({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [verifierWanted.entry] }] } }, null, 2) + "\n");
+-	const doc = run(["doctor", "--home", h2], { NANA_SETUP_PLATFORM: "win32" });
+-	// req: R-1055
+-	check("win32 doctor: a correctly-targeted entry under the wrong matcher reads ✗", new RegExp(`✗ settings ${verifierWanted.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(doc.stdout), doc.stdout);
+-}
+ {
+ 	const h2 = freshHome();
+ 	const objWanted = win32Wanted.find((w) => w.label === "SessionStart objective");
+diff --git a/packages/nana-setup/tests/win32-hook-repair.test.mjs b/packages/nana-setup/tests/win32-hook-repair.test.mjs
+index 1bdfc69d..f46dad62 100644
+--- a/packages/nana-setup/tests/win32-hook-repair.test.mjs
++++ b/packages/nana-setup/tests/win32-hook-repair.test.mjs
+@@ -19,7 +19,7 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
+ const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+ const { hookSettingsRows } = await import(new URL("../lib/hook-health.mjs", import.meta.url).href);
+ const { repoRoot } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+-const { WIN_VERIFIER_MATCHER, desiredHooks, retiredKnowledgeHook } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
++const { desiredHooks, retiredKnowledgeHook } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+ 
+ let fails = 0;
+ function check(name, ok, extra) {
+@@ -77,7 +77,8 @@ const foreignBeforeVerifier = { type: "command", command: "echo verifier-before"
+ const foreignAfterVerifier = { type: "command", command: "echo verifier-after", timeout: 11, statusMessage: "owner after" };
+ const sessionLabels = ["SessionStart objective", "SessionStart adoption", "SessionStart shared-memory", "SessionStart roster notice"];
+ const carriedSession = sessionLabels.map((label) => clone(byLabel(posixWanted, label).entry));
+-const carriedVerifier = clone(byLabel(posixWanted, "PreToolUse verifier pipe").entry);
++const carriedVerifier = { type: "command", command: "node '~/.claude/hooks/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" }; // historical fixture
++const WIN_VERIFIER_MATCHER = "Bash|PowerShell"; // historical fixture only
+ const carriedKnowledge = clone(retiredKnowledgeHook({ repoRoot: sourceRepoRoot }).entry);
+ 
+ const f1Home = freshHome();
+@@ -96,78 +97,16 @@ const f1SessionRepaired = sessionLabels.every((label, index) => sortedEqual(f1Se
+ // req: R-1880
+ check("win32 install: carried shell-form SessionStart entries become exec form in place", f1Install.status === 0 && f1SessionRepaired && byteEqual(f1Session[1], foreignSession), `${f1Install.stdout}\n${JSON.stringify(f1After.hooks.SessionStart)}`);
+ 
+-const f1VerifierGroups = f1After.hooks.PreToolUse;
+-const f1VerifierEntries = f1VerifierGroups.flatMap((group) => group.hooks.filter((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")).map((entry) => ({ group, entry })));
+-const f1VerifierExpected = byLabel(winWanted, "PreToolUse verifier pipe").entry;
+-const f1VerifierOne = f1VerifierEntries.length === 1 && f1VerifierEntries[0].group.matcher === WIN_VERIFIER_MATCHER && f1VerifierEntries[0].group.hooks.indexOf(f1VerifierEntries[0].entry) === 0 && sortedEqual(f1VerifierEntries[0].entry, f1VerifierExpected);
+-// req: R-1881
+-check("win32 install: a shell-form verifier under Bash ends as one exec-form verifier under WIN_VERIFIER_MATCHER", f1VerifierOne, JSON.stringify(f1VerifierGroups));
+-
+-const f2Home = freshHome();
+-seed(f2Home, { hooks: { PreToolUse: [
+-	{ matcher: "Bash", hooks: [clone(carriedVerifier)] },
+-	{ matcher: WIN_VERIFIER_MATCHER, hooks: [clone(f1VerifierExpected)] },
+-] } });
+-const f2Install = run(["install", "--home", f2Home]);
+-const f2After = JSON.parse(fs.readFileSync(settingsPath(f2Home), "utf8"));
+-const f2VerifierEntries = f2After.hooks.PreToolUse.flatMap((group) => group.hooks.filter((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")).map((entry) => ({ group, entry })));
+-const f2VerifierOne = f2Install.status === 0 && f2VerifierEntries.length === 1 && f2VerifierEntries[0].group.matcher === WIN_VERIFIER_MATCHER && sortedEqual(f2VerifierEntries[0].entry, f1VerifierExpected);
+-// req: R-1881
+-check("win32 install: a Bash verifier beside a WIN_VERIFIER_MATCHER verifier ends as one", f2VerifierOne, `${f2Install.stdout}\n${JSON.stringify(f2After.hooks.PreToolUse)}`);
+-
+-const f1Bash = f1After.hooks.PreToolUse.find((group) => group.matcher === "Bash");
+-const f1BashPreserved = f1Bash?.matcher === "Bash" && byteEqual(f1Bash.hooks, [foreignBeforeVerifier, foreignAfterVerifier]);
+-// req: R-1882
+-check("win32 install: the Bash group keeps its matcher and other entries when the verifier moves", f1BashPreserved, JSON.stringify(f1After.hooks.PreToolUse));
+-
+-const f5Home = freshHome();
+-const f5OwnerEmpty = { matcher: "Bash", owner: "keep-empty", hooks: [] };
+-seed(f5Home, { hooks: { PreToolUse: [
+-	clone(f5OwnerEmpty),
+-	{ matcher: "Bash", hooks: [clone(carriedVerifier)] },
+-] } });
+-const f5Install = run(["install", "--home", f5Home]);
+-const f5After = JSON.parse(fs.readFileSync(settingsPath(f5Home), "utf8"));
+-const f5BashGroups = f5After.hooks.PreToolUse.filter((group) => group.matcher === "Bash");
+-// req: R-1886
+-check("win32 install: preserves an owner-empty Bash group but drops the group its verifier move empties", f5Install.status === 0 && f5BashGroups.length === 1 && byteEqual(f5BashGroups[0], f5OwnerEmpty), `${f5Install.stdout}\n${JSON.stringify(f5After.hooks.PreToolUse)}`);
+-
+-const f6Home = freshHome();
+-seed(f6Home, { hooks: {
+-	SessionStart: [{ hooks: sessionLabels.map((label) => clone(byLabel(winWanted, label).entry)) }],
+-	PreToolUse: [
+-		{ matcher: WIN_VERIFIER_MATCHER, hooks: [clone(f1VerifierExpected)] },
+-		{ matcher: "Bash", hooks: [clone(carriedVerifier)] },
+-	],
+-	UserPromptSubmit: [{ hooks: [clone(retiredKnowledgeHook({ repoRoot, platform: 'win32' }).entry)] }],
+-} });
+-const f6Before = fs.readFileSync(settingsPath(f6Home));
+-const f6Install = run(["install", "--home", f6Home]);
+-const f6AfterBytes = fs.readFileSync(settingsPath(f6Home));
+-const f6After = JSON.parse(f6AfterBytes);
+-const f6VerifierEntries = f6After.hooks.PreToolUse.flatMap((group) => group.hooks.filter((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")).map((entry) => ({ group, entry })));
+-const f6MovedAndWritten = f6Install.status === 0 && !f6AfterBytes.equals(f6Before) && f6VerifierEntries.length === 1 && f6VerifierEntries[0].group.matcher === WIN_VERIFIER_MATCHER && !f6After.hooks.PreToolUse.some((group) => group.matcher === "Bash" && group.hooks.some((entry) => JSON.stringify(entry).includes("verifier-pipe.mjs")));
+-// req: R-1887
+-check("win32 install: a move-only verifier repair is written", f6MovedAndWritten, `${f6Install.stdout}\n${JSON.stringify(f6After.hooks.PreToolUse)}`);
+-
++// Retain the surviving owner-preservation half of the former verifier-move case.
+ const f7Home = freshHome();
+-const f7OwnerLookalike = { ...clone(f1VerifierExpected), timeout: 10 };
+-const f7Carried = { ...clone(carriedVerifier), ownerKey: { keep: "this value" } };
+-seed(f7Home, { hooks: {
+-	SessionStart: [{ hooks: sessionLabels.map((label) => clone(byLabel(winWanted, label).entry)) }],
+-	PreToolUse: [
+-		{ matcher: "Bash", hooks: [clone(f7Carried)] },
+-		{ matcher: WIN_VERIFIER_MATCHER, hooks: [clone(f7OwnerLookalike)] },
+-	],
+-	UserPromptSubmit: [{ hooks: [clone(retiredKnowledgeHook({ repoRoot, platform: 'win32' }).entry)] }],
+-} });
+-const f7Install = run(["install", "--home", f7Home]);
+-const f7After = JSON.parse(fs.readFileSync(settingsPath(f7Home), "utf8"));
+-const f7WinGroup = f7After.hooks.PreToolUse.find((group) => group.matcher === WIN_VERIFIER_MATCHER);
+-const f7ExpectedMoved = { ...f7Carried, command: f1VerifierExpected.command, args: f1VerifierExpected.args };
+-// req: R-1888
+-// req: R-1889
+-check("win32 install: an owner verifier look-alike stays before nana's moved verifier with its extra key", f7Install.status === 0 && f7WinGroup?.hooks.length === 2 && byteEqual(f7WinGroup.hooks[0], f7OwnerLookalike) && byteEqual(f7WinGroup.hooks[1], f7ExpectedMoved), `${f7Install.stdout}\n${JSON.stringify(f7After.hooks.PreToolUse)}`);
++const f7OwnerLookalike = { type: 'command', command: 'node', args: [`${repoRoot}/packages/nana-setup/claude/hooks/verifier-pipe.mjs`], timeout: 10, statusMessage: 'nana: verifier pipe' };
++const f7Carried = { ...clone(carriedVerifier), ownerKey: { keep: 'this value' } };
++const f7Groups = [{ matcher: 'Bash', hooks: [f7Carried] }, { matcher: WIN_VERIFIER_MATCHER, hooks: [f7OwnerLookalike] }];
++seed(f7Home, { hooks: { PreToolUse: clone(f7Groups) } });
++const f7Install = run(['install', '--home', f7Home]);
++const f7After = JSON.parse(fs.readFileSync(settingsPath(f7Home), 'utf8'));
++// req: R-1888 R-1889
++check('win32 install: owner verifier look-alikes and their extra keys stay byte-identical', f7Install.status === 0 && byteEqual(f7After.hooks.PreToolUse, f7Groups), f7Install.stdout);
+ 
+ const f1Doctor = run(["doctor", "--home", f1Home]);
+ const f1BeforeSecond = fs.readFileSync(settingsPath(f1Home));
+@@ -176,12 +115,12 @@ const f1AfterSecond = fs.readFileSync(settingsPath(f1Home));
+ const f1SecondLines = f1Second.stdout.split("\n");
+ const allSixUnchanged = winWanted.every((wanted) => f1SecondLines.some((line) => line.includes(`settings ${wanted.label}`) && line.includes("already wired")));
+ // req: R-1883
+-check("win32 install: a second install over the repaired home reports all six settings rows unchanged", f1Second.status === 0 && allSixUnchanged && f1AfterSecond.equals(f1BeforeSecond), f1Second.stdout);
++check("win32 install: a second install over the repaired home reports all five settings rows unchanged", f1Second.status === 0 && allSixUnchanged && f1AfterSecond.equals(f1BeforeSecond), f1Second.stdout);
+ 
+ const allSixHealthy = winWanted.every((wanted) => new RegExp(`✓ settings ${regexEscape(wanted.label)}\\b`).test(f1Doctor.stdout));
+ const f1KnowledgeAtIndex = f1After.hooks.UserPromptSubmit === undefined;
+ // req: R-1884
+-check("win32 doctor: all six settings rows read ✓ after one install over the carried home", allSixHealthy && f1KnowledgeAtIndex, f1Doctor.stdout);
++check("win32 doctor: all five settings rows read ✓ after one install over the carried home", allSixHealthy && f1KnowledgeAtIndex, f1Doctor.stdout);
+ 
+ const f3Home = freshHome();
+ const f3Foreign = { type: "command", command: "echo knowledge-owner", timeout: 8, statusMessage: "owner knowledge" };
+@@ -226,12 +165,10 @@ const adviceDeadPaths = [
+ 	`${adviceDeadRoot}/nana-memory-end.mjs`,
+ ];
+ const vEntries = sessionLabels.map((label, index) => ({ ...clone(byLabel(winWanted, label).entry), args: [adviceDeadPaths[index]] }));
+-const vVerifier = { ...clone(byLabel(winWanted, "PreToolUse verifier pipe").entry), args: [adviceDeadPaths[4]] };
+ const vKnowledge = { ...clone(retiredKnowledgeHook({ repoRoot, platform: 'win32' }).entry), args: [adviceDeadPaths[5], "hook"] };
+ const vHome = freshHome();
+ seed(vHome, { hooks: {
+ 	SessionStart: [{ hooks: vEntries }],
+-	PreToolUse: [{ matcher: WIN_VERIFIER_MATCHER, hooks: [vVerifier] }],
+ 	UserPromptSubmit: [{ hooks: [vKnowledge] }],
+ 	SessionEnd: [{ hooks: [{...clone(byLabel(winWanted, 'SessionEnd memory making').entry), args:[adviceDeadPaths[6]]}] }],
+ } });
+@@ -306,5 +243,5 @@ const noInspectionCrash = (result) => result.status === 1 && !result.stderr.incl
+ // req: R-2412
+ check("win32 doctor: only an accepted settings shape gets dead-entry advice without inspection crashes", acceptedLines.every((line) => line?.trimStart().startsWith("✗ ")) && acceptedLines[0].includes(shapeDeadPath) && acceptedLines[0].includes(safeRoute) && refusedLines.every((line) => line?.trimStart().startsWith("✗ ") && !line.includes(safeRoute)) && nestedLines.every((line) => line?.trimStart().startsWith("✗ ") && !line.includes(safeRoute)) && !refusedLines[0].includes(shapeDeadPath) && !nestedLines[0].includes(shapeDeadPath) && [acceptedDoctor, refusedDoctor, nestedDoctor].every(noInspectionCrash), `${acceptedDoctor.stdout}\n${acceptedDoctor.stderr}\n--- refused shape ---\n${refusedDoctor.stdout}\n${refusedDoctor.stderr}\n--- deeply nested ---\n${nestedDoctor.stdout}\n${nestedDoctor.stderr}`);
+ 
+-console.log(`SUMMARY  PASS=${14 - fails} FAIL=${fails} SKIP=0`);
++console.log(`SUMMARY  PASS=${9 - fails} FAIL=${fails} SKIP=0`);
+ process.exit(fails);
+diff --git a/templates/_shared/working-under-nana-pi.md b/templates/_shared/working-under-nana-pi.md
+index 4bac9119..ac22d2a0 100644
+--- a/templates/_shared/working-under-nana-pi.md
++++ b/templates/_shared/working-under-nana-pi.md
+@@ -4,9 +4,9 @@ The bullets below describe pi sessions; other runtimes receive only the surfaces
+ 
+ | Runtime | Objective | Shared memory | nana-soul / nana-standards | Writing rule / rulings | Knowledge pull | Gate | Verifier pipe | Post-edit | Compaction summary | Notify |
+ |---|---|---|---|---|---|---|---|---|---|---|
+-| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |
+-| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | No nana notify; `nana-roster-notice` extension shows the roster notice as a widget |
+-| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | No nana notify; `nana-roster-notice` extension runs but shows nothing (no UI) |
++| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | No nana verifier hook | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |
++| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction | No nana notify; `nana-roster-notice` extension shows the roster notice as a widget |
++| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; pi-owned compaction | No nana notify; `nana-roster-notice` extension runs but shows nothing (no UI) |
+ | Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |
+ 
+ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul are Claude-only. Requirements-first practice is shared through project `AGENTS.md` and the requirements skill. The separate nana-knowledge extension serves pi; Claude Code uses explicit `nana-knowledge query` search.

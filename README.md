@@ -8,8 +8,8 @@ Sibling repo to `~/nana-agent-loop`.
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
   (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
   deep-research artifacts it was distilled from.
-- `packages/` — our pi packages, chiefly the nana extension pack: ten extensions (gate,
-  post-edit, lifecycle, notify, handoff, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
+- `packages/` — our pi packages, chiefly the nana extension pack: eight extensions (gate,
+  lifecycle, adoption, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
   dev-workflow skills. Installable via
   `pi install git:` or a local path — which ships `nana-pack` extensions and skills.
   Knowledge search remains an explicit CLI, with no pi extension.
@@ -17,7 +17,7 @@ Sibling repo to `~/nana-agent-loop`.
 - `templates/` — copier project templates behind the `scaffold-py`/`scaffold-ts` skills
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
   emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
-  folder-by-feature, nested AGENTS.md, post-edit quality gates, and the three frontier seeds
+  folder-by-feature, nested AGENTS.md, explicit project checks, and the three frontier seeds
   (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/`) from the one `templates/_shared` source
   every path shares. The copier src is the
   REPO ROOT (root `copier.yml`, `language` question) — canonically
@@ -101,7 +101,7 @@ and how long it took. `npm run map:impact` lists the artifacts a named file writ
 recorded readers, the measured tests under each named file, the measured tip, time, age, checkout
 drift and main's movement; it marks stale only a test that ran a file which has since changed or been removed. Copies run from a temporary folder and children stopped by a signal
 are not counted. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`; its `scripts/deliverables.mjs` check also prints report-only notes when a product deliverable's `Made by:` or `Read by:` claim is missing, unreadable or names a path not tracked at HEAD, and its count line leaves out a deliverable held by a `Parked:` line, then says how many it holds. `node scripts/known-bugs.mjs --root <dir>` checks `docs/known-bugs` entry names against active or frozen features, reports over-window file sizes without failing for them, and exits 1 on a name finding. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems, or a `0 problems` line followed by any deliverable count and notes. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
-`node "$HOME/nana-pi/scripts/requirements-moved.mjs" --root <dir> --base <rev>` prints, per feature, which rows <dir>'s REQUIREMENTS.md added, removed, re-statused, reworded or moved since the merge base of `<rev>` and HEAD.
+The report commands share the bounded read-only Git runner in `scripts/git-runner.mjs`.
 `scripts/requirements-regroup.mjs` checks a drafted and reviewed proposal (a lift mapping plus one `regroup` object) against the lift and the regroup rules and writes the owner's review page: `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root <dir> --proposal <file> --out <page>`.
 `node scripts/identity-scan.mjs [--root <dir>]` scans tracked paths and content against digest counts; add a pinned allowlist entry by hand with its path, counts, reason and manifest-backed pin. With `--stdin`, it scans standard input instead, prints only each hit's word index and count, and exits 0 clean, 1 on a hit or 2 on bad use. It never echoes input text.
 `scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
@@ -167,9 +167,8 @@ The experience has **two halves**, and both are installed from this repo:
 3. Run `git clone https://github.com/j-wanger/nana-pi ~/nana-pi`; keep the clone.
 4. Run `cd ~/nana-pi`, then `node packages/nana-setup/bin/nana-setup.mjs install` (`--desk` adds the desk service).
 5. Run `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile`, then open a new terminal.
-6. Run `pi install npm:pi-subagents@0.75.0`.
-7. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
-8. Run `cd ~/nana-pi`, then `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor`; expect `all good`.
+6. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
+7. Run `cd ~/nana-pi`, then `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor`; expect `all good`.
 
 `uv` (both templates) and `pnpm` (TypeScript) are needed only to scaffold or adopt.
 
@@ -182,9 +181,8 @@ The experience has **two halves**, and both are installed from this repo:
 3. Run `git clone https://github.com/j-wanger/nana-pi "%USERPROFILE%\nana-pi"`; keep the clone.
 4. Run `cd /d "%USERPROFILE%\nana-pi"`, then `node packages/nana-setup/bin/nana-setup.mjs install`.
 5. Add `%USERPROFILE%\.local\bin` to the user Path in Environment Variables, then open a new Command Prompt.
-6. Run `pi install npm:pi-subagents@0.75.0`.
-7. Write your objective and current-priority lines over the placeholders in `%USERPROFILE%\.pi\agent\nana-objective.md`, or set `objective.path` in `%USERPROFILE%\.pi\agent\nana-pack.json` to an umbrella repo's `OBJECTIVE.md`; write paths with forward slashes because JSON reads a single backslash as an escape, and `~/` means your user folder, for example `{ "objective": { "projectFile": "OBJECTIVE.md", "path": "~/umbrella/OBJECTIVE.md" } }`.
-8. Run `cd /d "%USERPROFILE%\nana-pi"`, then `nana-setup trust "%USERPROFILE%\nana-pi"` (it asks before it records), then `nana-setup doctor`; expect `all good`.
+6. Write your objective and current-priority lines over the placeholders in `%USERPROFILE%\.pi\agent\nana-objective.md`, or set `objective.path` in `%USERPROFILE%\.pi\agent\nana-pack.json` to an umbrella repo's `OBJECTIVE.md`; write paths with forward slashes because JSON reads a single backslash as an escape, and `~/` means your user folder, for example `{ "objective": { "projectFile": "OBJECTIVE.md", "path": "~/umbrella/OBJECTIVE.md" } }`.
+7. Run `cd /d "%USERPROFILE%\nana-pi"`, then `nana-setup trust "%USERPROFILE%\nana-pi"` (it asks before it records), then `nana-setup doctor`; expect `all good`.
 
 ### A blank folder → a nana project
 
@@ -221,7 +219,7 @@ with Linux paths.
 ### From git (pack-only use; no clone needed)
 
 ```bash
-# 1. the nana-pack — all ten extensions + every skill (the root package.json
+# 1. the nana-pack — all eight extensions + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
 pi install git:github.com/j-wanger/nana-pi        # pack-only use; add -l for project-local
 

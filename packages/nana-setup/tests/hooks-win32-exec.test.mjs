@@ -120,8 +120,6 @@ try {
 	check("every entry has command node, an args array and no shell key", wanted.every((w) => entries[w.spec.script]) && Object.values(entries).every(({ hook }) => hook.command === "node" && Array.isArray(hook.args) && !("shell" in hook)), JSON.stringify(entries));
 	// req: R-1056
 	check("the stale knowledge entry was retired, not twinned", !entries["nana-knowledge.ts"] && (settings.hooks.UserPromptSubmit ?? []).flatMap((g) => g.hooks).filter((h) => JSON.stringify(h).includes("nana-knowledge")).length === 0, JSON.stringify(settings.hooks.UserPromptSubmit));
-	// req: R-1053
-	check("the verifier group's matcher is Bash-or-PowerShell", entries["verifier-pipe.mjs"]?.matcher === "Bash|PowerShell", JSON.stringify(entries["verifier-pipe.mjs"]));
 
 	// final review r1 (sol MUST 3, astra MUST 4): spawn with the entry's OWN declared timeout ×
 	// 1000, no added slack — R-1058 says each hook "shall exit 0 within its timeout", and the old
@@ -164,34 +162,6 @@ try {
 		const junction = projectDirs.map((d) => path.join(link, d, "memory", "shared")).find((p) => fs.existsSync(p));
 		// req: R-1063
 		check("shared memory: the project's memory/shared is a link to the shared folder", Boolean(junction) && fs.lstatSync(junction).isSymbolicLink(), junction ?? "(none found)");
-	}
-	{
-		const v = entries["verifier-pipe.mjs"].hook;
-		const ev = (tool, command) => ({ hook_event_name: "PreToolUse", tool_name: tool, tool_input: { command }, cwd: project, session_id: "win32-exec" });
-		// final review r1 (sol MUST 4): exactly one non-empty line, parsed whole, naming
-		// hookEventName PreToolUse and permissionDecision ask — not merely "first line parses".
-		const askLine = (r) => {
-			const lines = (r.stdout || "").split("\n").filter((l) => l.length > 0);
-			if (lines.length !== 1) return null;
-			try {
-				const parsed = JSON.parse(lines[0]);
-				return parsed?.hookSpecificOutput?.hookEventName === "PreToolUse" && parsed?.hookSpecificOutput?.permissionDecision === "ask" ? parsed : null;
-			} catch { return null; }
-		};
-		const bashAsk = spawnEntry(v, ev("Bash", "npm test | tail -5 && git commit -m x"));
-		// req: R-1058
-		check("verifier: exit 0 within its own timeout, no module-resolution error", moduleOk(bashAsk), detail(bashAsk));
-		// Windows only; the Windows CI leg passed it in run 39508818938.
-		// req: R-1064
-		check("verifier: Bash masked pipe gives exactly one ask line (hookEventName PreToolUse)", Boolean(askLine(bashAsk)), bashAsk.stdout + bashAsk.stderr);
-		const psAsk = spawnEntry(v, ev("PowerShell", "set -o pipefail; npm test | Select-Object -Last 5 && git commit -m x"));
-		// Windows only; the Windows CI leg passed it in run 39508818938.
-		// req: R-1064
-		check("verifier: PowerShell masked pipe gives exactly one ask line (hookEventName PreToolUse), Bash pipefail syntax stays inactive there", Boolean(askLine(psAsk)), psAsk.stdout + psAsk.stderr);
-		const noMatch = spawnEntry(v, ev("Bash", "git status"));
-		// Windows only; the Windows CI leg passed it in run 39508818938.
-		// req: R-1064
-		check("verifier: a non-matching command gives empty stdout", noMatch.status === 0 && (noMatch.stdout || "") === "", JSON.stringify(noMatch.stdout));
 	}
 	{
 		const r = spawnEntry(entries["nana-roster-notice.mjs"].hook, session);
@@ -281,7 +251,7 @@ try {
 	const doctorResult = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8", env }));
 	// req: R-1055
 	check("doctor: exit 0", doctorResult.status === 0, doctorResult.stdout);
-	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice", "settings PreToolUse verifier pipe", "settings SessionEnd memory making", "node for the objective hook"]) {
+	for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice", "settings SessionEnd memory making", "node for the objective hook"]) {
 		const line = doctorResult.stdout.split("\n").find((l) => l.includes(label)) ?? "";
 		// req: R-1055
 		check(`doctor: "${label}" is ✓`, line.trim().startsWith("✓"), line);

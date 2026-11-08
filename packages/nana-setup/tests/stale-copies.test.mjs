@@ -172,9 +172,6 @@ function breakLegacyWin32(fixture) {
 
 function breakPosixLinkOnly(fixture) {
 	fs.unlinkSync(path.join(fixture.layout.hooksDir, "nana-roster-notice.mjs"));
-	const verifier = path.join(fixture.layout.hooksDir, "verifier-pipe.mjs");
-	fs.unlinkSync(verifier);
-	fs.writeFileSync(verifier, "regular file instead of hook link\n");
 }
 
 function breakPosixOccupied(fixture) {
@@ -193,13 +190,6 @@ function breakPosixOccupied(fixture) {
 	editSettings(fixture, (hooks) => { delete hooks.PreToolUse; delete hooks.UserPromptSubmit; });
 }
 
-function breakWin32HookOnly(fixture) {
-	editSettings(fixture, (hooks) => {
-		for (const group of hooks.PreToolUse ?? []) group.matcher = "Bash";
-		delete hooks.UserPromptSubmit;
-	});
-}
-
 function breakWin32Occupied(fixture) {
 	const requirements = path.join(fixture.layout.skillsDir, "requirements");
 	fs.rmSync(requirements, { recursive: true, force: true });
@@ -216,8 +206,10 @@ function breakLinkedSkillsHealthy(fixture) {
 	const linkedSkills = path.join(fixture.home, "dotfiles-skills");
 	fs.renameSync(fixture.layout.skillsDir, linkedSkills);
 	fs.symlinkSync(linkedSkills, fixture.layout.skillsDir, process.platform === "win32" ? "junction" : "dir");
-	// Break an active hook: missing retired knowledge wiring is no longer stale.
-	editSettings(fixture, (hooks) => { delete hooks.PreToolUse; });
+	// Break objective wiring while retaining adoption's install record.
+	editSettings(fixture, (hooks) => {
+		for (const group of hooks.SessionStart ?? []) group.hooks = group.hooks.filter(hook => !JSON.stringify(hook).includes('nana-objective.mjs'));
+	});
 }
 
 function breakLinkedClaudeMissingSkills(fixture) {
@@ -265,7 +257,6 @@ async function platformFixtures(platformName) {
 			broken.push(await buildBroken(platformName, "occupied", breakPosixOccupied));
 		} else {
 			broken.push(await buildBroken(platformName, "legacy", breakLegacyWin32));
-			broken.push(await buildBroken(platformName, "hook-only", breakWin32HookOnly));
 			broken.push(await buildBroken(platformName, "occupied", breakWin32Occupied));
 		}
 		const moveFilter = await buildBroken(platformName, "linked-skills-filter", breakLinkedSkillsHealthy);

@@ -6,10 +6,9 @@ project scaffolding, and dev-workflow skills.
 **Dependencies:** none at runtime beyond pi itself — `@earendil-works/pi-coding-agent`
 is an *optional* `peerDependency` (the extensions run inside pi, which is the host, not
 something they install), and `package.json` declares no `dependencies` or
-`devDependencies`. The review launchers and review-ledger keep start the repository's `../../scripts/requirements-moved.mjs`, which needs Node's type stripping, Node 22.18 or later. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in. Session-start issue reads also use signed-in `gh`; without it, the frontier keeps its local lines and reports the unavailable issue read.
+`devDependencies`. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in. Session-start issue reads also use signed-in `gh`; without it, the frontier keeps its local lines and reports the unavailable issue read.
 Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests
-FAIL naming the locations tried when pi is absent. The post-edit UTF-8 test FAILs, naming `python3`
-and `python`, when neither is Python 3.7 or later. `DESK_PI_ROOT` points the suite at another install.
+FAIL naming the locations tried when pi is absent. `DESK_PI_ROOT` points the suite at another install.
 
 Residual: the update-path legs in `tests/templates-update.test.mjs` do not assert three brief-named outcomes directly (no drift line on a fresh render; a Part G status survives an update; deleting a project's REQUIREMENTS-general.md restores exactly the nine legacy problems); focused fixtures in the same file pin the behaviour.
 
@@ -19,9 +18,9 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 
 | Skill | What it does |
 |---|---|
-| `scaffold-py` / `scaffold-ts` | Generate a project via copier from <https://github.com/j-wanger/nana-pi> (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck). Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists. |
+| `scaffold-py` / `scaffold-ts` | Generate a project via copier from <https://github.com/j-wanger/nana-pi> (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a legacy `.pi/nana-pack.json` preset (ignored by the pack; run the generated checks explicitly). Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists. |
 | `adopt-py` / `adopt-ts` | Retrofit the same stack onto an EXISTING project (template adopt mode: configs only, source tree untouched). Clean-tree overlay, reconcile from `git diff`, staged strictness with recorded ratchets (py: measured coverage floor + mypy per-module overrides; ts: `@ts-expect-error` ratchets), ends git-tracked on the same `copier update` relationship, then closes on `nana-setup project <dir> --check`. |
-| `adopt-structure` | Add the agent-navigation layer to an EXISTING project of ANY language — a lean root `AGENTS.md`, per-folder `AGENTS.md`, a postEdit-only starter `.pi/nana-pack.json`, and the three frontier seeds (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/README.md`) copied from `templates/_shared` **only when absent**. Docs only: no language stack, no copier, no source/config/CI changes (that's `adopt-py` / `adopt-ts`). Safe on re-run (reconciles). Closes on `nana-setup project <dir> --check`. |
+| `adopt-structure` | Add the agent-navigation layer to an EXISTING project of ANY language — a lean root `AGENTS.md`, per-folder `AGENTS.md`, a legacy starter `.pi/nana-pack.json` (ignored by the pack), and the three frontier seeds (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/README.md`) copied from `templates/_shared` **only when absent**. Docs only: no language stack, no copier, no source/config/CI changes (that's `adopt-py` / `adopt-ts`). Safe on re-run (reconciles). Closes on `nana-setup project <dir> --check`. |
 | `py-lint` / `py-test` | Run the ruff/mypy and pytest gates and report concisely (ported from nana-dev-kit) |
 | `py-review` | 8-point AI-PR review checklist on the current diff (ported from nana-dev-kit) |
 | `spec` | 9-section contract before non-trivial work, with adversarial pass + machine-checkable exit criteria (ported lean from nana-dev-kit) |
@@ -29,22 +28,20 @@ The skill-claim suite checks applicable paths; package-script commands, includin
 
 The Product view gives each deliverable one line: whether code makes and reads it, its readable reader kinds, a parked mark and its oldest artifact's age. Product cards also name active or frozen features with no deliverable and their artifacts; constraint cards name their features' artifacts. The Artifacts view lists artifacts no other feature reads or deliverable names and manual artifacts read by code, each linked to its maker feature. Feature details name the artifacts they register and read, then show each deliverable's written claims and artifact block and one age-bearing card per live registry entry. `age not measured` is a class rule by design, while `age unknown` means an attempted age measurement failed.
 
-Ten extensions giving pi the hook coverage we require (Claude Code parity classes):
+Eight extensions provide pi's runtime surfaces:
 
 | Extension | Hook class | Events used |
 |---|---|---|
 | `nana-gate` | Pre-tool permission gating | `tool_call` (blocking) |
-| `nana-post-edit` | Post-edit format/lint/test | `tool_result` (modifying) |
 | `nana-lifecycle` | Session lifecycle observability + `/reload-runtime` | `session_start/…compact…/shutdown`, `registerCommand` |
-| `nana-notify` | Outward notifications | `agent_settled`, `ui_prompt_start` |
-| `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
+| `nana-adoption` | Journal unadopted repository roots for the seat | `session_start` (startup, new) |
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-frontier-summary` | Bounded Next titles, open asks and the HANDOFF frontier check | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-writing` | The adopted writing-for-the-owner rule, on by default; user-scope `writing.enabled: false` turns it off | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-roster-notice` | The roster notice, shown above the editor | `session_start` (startup, new, resume, fork) |
 | `nana-rulings` | Nana's standing rulings, installed into pi's agent dir, plus an adopted project's failing file rows and their project or by-hand remedy | `session_start` (all reasons) + `before_agent_start` (inject) |
 
-**Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command when a masked pipeline's exit status can reach the commit without earlier active `pipefail`. Earlier live Bash text also makes that pipeline prompt when it contains `errexit` anywhere, in any case and even inside a longer word, or contains a `set` word at any position followed within the same simple command—before the next `;`, `&`, `|`, newline or closing bracket—by an option word made of `-` and letters including `e`. A later `set +e` or `set +o errexit` never turns that text flag off, and `+o errexit` itself counts as enabling, even before a status-discarding `;` or newline. Without that earlier Bash errexit text, a `;` or a newline that discards the status does not prompt, and `git.exe` and path spellings count as git. Claude Code's hook abstains with empty stdout on non-matches and errors, leaving its normal permission flow in place; errors are diagnosed on stderr. The Claude Code hook is wired on native Windows too (Claude Code ≥ 2.1.139), with matcher `Bash|PowerShell`; its PowerShell judgments use the pipe guard's own PowerShell dialect, the same one the pi seat's `nana-gate` already uses for PowerShell. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`. Wherever PowerShell is installed (on CI, always the Windows leg), a test compares the PowerShell dialect's comment and string spans with PowerShell's own tokenizer over generated commands. A comment glued to an operator, a redirection or a member access, and nested strings inside a string's `$( … )`, are known gaps.
+**Verifier-pipe guard (pi, user-scope):** every pi session will prompt before running a bash or PowerShell command when a masked pipeline's exit status can reach the commit without earlier active `pipefail`. Earlier live Bash text also makes that pipeline prompt when it contains `errexit` anywhere, in any case and even inside a longer word, or contains a `set` word at any position followed within the same simple command—before the next `;`, `&`, `|`, newline or closing bracket—by an option word made of `-` and letters including `e`. A later `set +e` or `set +o errexit` never turns that text flag off, and `+o errexit` itself counts as enabling, even before a status-discarding `;` or newline. Without that earlier Bash errexit text, a `;` or a newline that discards the status does not prompt, and `git.exe` and path spellings count as git. Only pi's `nana-gate` uses this predicate; Claude Code has no nana verifier hook. This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`. Wherever PowerShell is installed (on CI, always the Windows leg), a test compares the PowerShell dialect's comment and string spans with PowerShell's own tokenizer over generated commands. A comment glued to an operator, a redirection or a member access, and nested strings inside a string's `$( … )`, are known gaps.
 
 ## Install
 
@@ -376,8 +373,7 @@ non-empty *and* contains a case-sensitive line-start `VERDICT` word (the predica
 in `bin/review-shape.mjs` and is passed in by `pi-review`; the watchdog itself carries none);
 exit 0 means the review is in `--out` with a non-empty recorded verdict; exit 1 means every attempt failed or the completed review recorded an empty verdict. `pi-review` passes the captured review string to completion, which parses and keeps those exact UTF-8 bytes even if `--out` later disappears or changes.
 
-It also enforces the **review round cap** (`bin/review-round.mjs`): three rounds **per item**,
-counted in a user-scope ledger — never from the output file name, and the same for every launcher.
+Both launchers record reviews through `bin/review-round.mjs`, the user-scope review store.
 
 - **Item** = `{repository, slug}`. `--item <slug>` is **required**; a call without it is refused
   loudly. The slug is canonicalized — NFKC, trimmed, lowercased (JavaScript `toLowerCase`, not Unicode case folding), internal whitespace collapsed
@@ -392,8 +388,7 @@ counted in a user-scope ledger — never from the output file name, and the same
 - **A round is a revision.** Revision = the reviewed tree's git `HEAD`, as a full sha.
   Any number of reviews on one revision — sol and astra, ten reviewers, the same role twice — are
   **one** round: a round is one review pass over one state of the work, and a fix makes a new
-  commit, hence a new round. Re-reviewing a revision earns no round (and is governed by budget,
-  not by this cap). A **dirty tree** is its own state (W7c amend, 2026-10-18): the revision is the
+  commit, hence a new round. Re-reviewing a revision earns no new round. A **dirty tree** is its own state (W7c amend, 2026-10-18): the revision is the
   tree `git add -A` would record on top of HEAD, plus any dirty or new nested repository; when that
   differs from HEAD, the revision is `<HEAD sha>+snap:<full sha256 of the working-state snapshot>`.
   Derivation adds and removes nothing in the repository, never writes its real index, and runs
@@ -425,25 +420,20 @@ counted in a user-scope ledger — never from the output file name, and the same
   `completedAs: <new revision>`). A tree edited mid-review was read in no single state, so no state
   can own the verdict; counting nothing instead would make every review free for anyone editing
   during it.
-- **Over the cap** → refused ("land with residuals, subtract, or instrument/implement first")
-  unless `--over-cap "<what changed>"`. The reason must be non-blank and not a flag
-  (`--over-cap --retries` is refused). Every override is written to the audit log with a
-  timestamp at admission — also when that review then fails.
 - **Ledger** (`~/.pi/agent/` — always; `PI_CODING_AGENT_DIR` does not move it, so a shell variable cannot reset the tally):
-  - `review-ledger.rounds.jsonl` — **the tally**, permanent, never rotated: version-1 legacy records remain readable, and every newly completed verdict appends one version-2 record with `ts`, `kind:"round"`, `repo`, `item`, `revision`, `head`, `snapshot`, `role`, and launcher metadata. Repeated verdicts on one revision remain one round for the cap.
-    Optional fields include `override` (the admission reason), `unverified` (tree drift at completion), `completedAs` (the observed later revision), and `completedError` (why that revision could not be derived). Legacy `path:` repository keys remain readable but new admissions require a git tree. The cap reads only this and the live reservations. A malformed line **refuses** admission
+  - `review-ledger.rounds.jsonl` — **the tally**, permanent, never rotated: version-1 legacy records remain readable, and every newly completed verdict appends one version-2 record with `ts`, `kind:"round"`, `repo`, `item`, `revision`, `head`, `snapshot`, `role`, and launcher metadata. Repeated verdicts on one revision remain one round.
+    Optional fields include `override` (the admission reason), `unverified` (tree drift at completion), `completedAs` (the observed later revision), and `completedError` (why that revision could not be derived). Legacy `path:` repository keys remain readable but new admissions require a git tree. Admission reads this and the live reservations. A malformed line **refuses** admission
     with `file:line` — a corrupted record never grants a free review.
   - **review-ledger.texts/** — the captured UTF-8 review texts, named by their full sha256 with a `.md` extension. Completion hashes and stores the launcher's captured string before either ledger line, then adds `text: { sha256, bytes }` to the tally. It does not re-read `--out`; missing or changed output files cannot change the recorded verdict. The folder is permanent and unbounded, like the tally.
-  - `review-ledger.jsonl` — the verbose audit log (every verdict and override). Before **every**
-    append (a verdict, or an override at admission — including one whose review then fails), a log
+  - `review-ledger.jsonl` — the verbose audit log (every verdict). Before **every**
+    append, a log
     past 1 MiB is renamed to `.jsonl.1`, replacing the previous one, so the audit is bounded at about
-    2 MiB. Rotation never touches the tally, so it cannot reset a cap.
+    2 MiB. Rotation never touches the tally, so history survives rotation.
   - **Storage is NOT bounded overall.** The tally grows by one line per completed verdict, forever, and is read in full at every admission. Only the audit is bounded. Removing tally lines removes verdict evidence used by the land check; do not prune them casually (see Trust model).
   - Every ledger path must be a regular file: a symlink (or directory) is refused before a review
     runs, and files are opened `O_NOFOLLOW`.
 - **Atomic:** an in-flight review holds a reservation (`review-ledger.reservations/<id>.json`)
-  taken under an O_EXCL lock (`review-ledger.lock`), so two concurrent launchers cannot both take
-  the last round. The launcher **renews** its reservation (a heartbeat every 2 min); a live,
+  taken under an O_EXCL lock (`review-ledger.lock`), so land checks see every live review and every recorded verdict. The launcher **renews** its reservation (a heartbeat every 2 min); a live,
   renewing review never expires, however long it runs. **Crash recovery:** a reservation whose
   launcher pid is dead, not renewed for 10 min, or dated in the future is pruned at the next
   admission; a lock is taken over only when its holder
@@ -458,9 +448,8 @@ pi-review --item <slug> --role sol --out "$scratch/sol-r1.md" -- --provider open
 **The review standard.** Before admission, `pi-review` and `claude-review` read `prompts/review-standard.md` and refuse —
 exit 1, no reservation and no reviewer child — when the file is missing, not a regular file, or blank
 after trimming. `pi-review` appends its text once after the immutable-checkout sentence. `claude-review`
-puts its text once between the brief and its reviewer sentence. pi-review appends a tree movement section file outside the checkout after the standard, or a not-computed line with a reason when computation or writing fails, without refusing the review. A review brief therefore states only
-the threat model and never repeats the bar. Every lane gets one reviewer plus CI. Both launchers refuse `--role land` before admission with a one reviewer message. `review-ledger run` wraps any other launcher
-command as given and does **not** inject this text; a hand-rolled review brief must paste it itself.
+puts its text once between the brief and its reviewer sentence. Both launchers add known bugs selected by the brief's Feature line. A review brief therefore states only
+the threat model and never repeats the bar. Every lane gets one reviewer plus CI. Both launchers refuse `--role land` before admission with a one reviewer message.
 
 ### Claude Code reviewer (`bin/claude-review.mjs`)
 
@@ -468,14 +457,14 @@ When the roster's `reviewer` slot is a Claude Code entry, run its review through
 
 ```bash
 scratch=$(mktemp -d)
-node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs" --item <slug> --tree <worktree> --brief <file-relative-to-tree> --out "$scratch/claude-r1.md" [--role R] [--over-cap WHY]
+node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs" --item <slug> --tree <worktree> --brief <file-relative-to-tree> --out "$scratch/claude-r1.md" [--role R]
 ```
 
 The launcher requires `--item`, `--tree`, `--brief` and `--out`; it resolves the brief against the
-reviewed tree and passes the output path through unchanged. It reads the reviewer model from the
+reviewed tree and resolves the output path against the launcher folder. It reads the reviewer model from the
 machine roster, sends the brief, shared review standard and read-only reviewer sentence on standard
 input, then runs `claude -p --model <model> --allowedTools Read,Grep,Glob,Bash --disallowedTools Edit,Write,NotebookEdit`
-through `review-ledger run`. It adds the tree movement section between the brief and the standard, or a not-computed line with a reason when computation fails, without refusing the review. It exits with the ledger's status. A pi reviewer entry is refused before
+directly through `lib/review-run.mjs`, which admits, spawns, records and releases the review. It preserves a nonzero reviewer exit status and refuses an unread or unverified verdict. A pi reviewer entry is refused before
 admission and must use `pi-review`; there is no fallback model. Set the Claude Code reviewer from a
 terminal or Claude Code shell, not a pi model shell:
 
@@ -483,7 +472,7 @@ terminal or Claude Code shell, not a pi model shell:
 node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set reviewer claude-code opus
 ```
 
-The reviewer adds `--setting-sources project,local`, an external `--settings` file and `--strict-mcp-config` after its tool lists. The settings file sets `claudeMdExcludes` to absolute ancestor paths for CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md and .claude/rules/**, from the reviewed tree's parent through the filesystem root. The cwd stays the reviewed tree; its own `AGENTS.md`/`CLAUDE.md` and rules remain eligible. This requires Claude Code's supported `claudeMdExcludes` setting (confirmed in 2.1.310); managed/policy instructions cannot be excluded. `project,local` alone is insufficient: Claude can label home rules as ancestor Project memory. It no longer inherits user rules, user CLAUDE.md, user hooks, user MCP instructions or auto-memory. In particular it loses the rulings, objective, verifier-pipe hook and user `permissions.defaultMode`; tools outside its allowlist are denied in print mode. Its inputs are the brief, tree movement, feature known bugs and review standard, plus project/local context. Its settings seal `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`. `--effort` comes from the exact roster model key in user `modelSettings`, else top-level `effortLevel`, else no flag; aliases are not expanded. The shared carry helper prints a value-free `claude-review:` diagnostic. Normal exit, ledger failure and handled SIGINT, SIGTERM and SIGHUP remove the settings folder. Windows also starts the existing detached cleanup watcher, without a build record or lane lock, because its SIGTERM forcibly stops the process. A POSIX hard kill, or a kill before the Windows watcher starts, can leave the folder.
+The reviewer adds `--setting-sources project,local`, an external `--settings` file and `--strict-mcp-config` after its tool lists. The settings file sets `claudeMdExcludes` to absolute ancestor paths for CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md and .claude/rules/**, from the reviewed tree's parent through the filesystem root. The cwd stays the reviewed tree; its own `AGENTS.md`/`CLAUDE.md` and rules remain eligible. This requires Claude Code's supported `claudeMdExcludes` setting (confirmed in 2.1.310); managed/policy instructions cannot be excluded. `project,local` alone is insufficient: Claude can label home rules as ancestor Project memory. It no longer inherits user rules, user CLAUDE.md, user hooks, user MCP instructions or auto-memory. In particular it loses the rulings, objective and user `permissions.defaultMode`; tools outside its allowlist are denied in print mode. Its inputs are the brief, feature known bugs and review standard, plus project/local context. Its settings seal `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`. `--effort` comes from the exact roster model key in user `modelSettings`, else top-level `effortLevel`, else no flag; aliases are not expanded. The shared carry helper prints a value-free `claude-review:` diagnostic. Normal exit, recording failure and handled SIGINT, SIGTERM and SIGHUP remove the settings folder. Windows also starts the existing detached cleanup watcher, without a build record or lane lock, because its SIGTERM forcibly stops the process. A POSIX hard kill, or a kill before the Windows watcher starts, can leave the folder.
 
 Known limits: the reviewer uses the live tree, not an immutable checkout, so a reviewer or concurrent
 builder edit makes the verdict unverified and consumes the round. It has no liveness watchdog, launcher
@@ -494,31 +483,6 @@ instruction rather than enforcement because Bash is allowed. Only the reviewer s
 and the ledger returns the reservation. A killed launcher can leave `claude` running and a dead-pid
 reservation, which the next admission prunes. Claude print mode supplies only its final assistant turn,
 so a verdict written before a last tool call may be absent from the output.
-
-**Any other launcher** (e.g. a hand-rolled `claude -p … > "$scratch/out.md"`) prefixes the same check —
-`bin/review-ledger.mjs run` reserves the round, runs the command with stdout → `--out`, and records the verdict only if it exits 0 with a review-shaped output. It keeps and parses the stdout string it captured, rather than reading `--out` back. It starts the command with `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`, as `pi-review` does, and starts a first word `pi` the way `pi-review` starts pi. If the command cannot start, stderr and `--out` begin `cannot start <command>: <reason>`, and no reservation or round remains. A recorded empty verdict keeps the output and consumed round, prints why `nana-land` will refuse it, and exits 1; a non-empty verdict retains the verdict-recorded line and exit 0. The reviewed tree defaults to the launcher cwd; pass `--tree <path>` when launching from scratch:
-
-```bash
-scratch=$(mktemp -d)
-node ~/nana-pi/packages/nana-pack/bin/review-ledger.mjs run --item <slug> --role opus --out "$scratch/out.md" -- claude -p --model <model> "$(cat brief.md)"
-```
-
-On Windows, a `.cmd` reviewer such as npm-installed claude or codex starts through cmd.exe. Cmd.exe cannot carry `"`, `%`, `!`, a line break or a trailing backslash in an argument, and caps its line at 8191 characters. Give such a reviewer its brief on stdin from Command Prompt or Git Bash:
-
-```bat
-set "scratch=%TEMP%\nana-review-%RANDOM%"
-mkdir "%scratch%"
-node packages/nana-pack/bin/review-ledger.mjs run --item <slug> --out "%scratch%\out.md" -- claude -p --model <model> < brief.md
-```
-
-`review-ledger check --item <slug> [--tree <path>]` answers "would a review of this tree's revision be admitted?"
-(exit 0/1): it takes the lock and writes nothing — no reservation, no pruning.
-
-`review-ledger report [--item <slug>] [--repo <path>]` prints one read-only line per recorded verdict:
-item, short revision, role, model, duration, attempts, verdict and over-cap reason. Provider/model and
-launch/end timestamps are recorded in the tally; old rows show `-` where fields are unavailable.
-
-`review-ledger keep --item <slug> --into <dir> [--repo <path>]` copies every available kept text for that item and repository into the lane folder as `r<round>-<role>-<sha8>.md`. It leaves an equal existing file unchanged. It checks every destination before writing and refuses the whole command when any same-named file differs. When the repository's HEAD commit holds a REQUIREMENTS.md, keep also writes tree-movement.md into the folder: the tree movement section the review launchers send, for HEAD against main. Each keep replaces it, so the folder holds the movement of the last kept tip. With no committed ledger keep writes no movement file and says nothing about it. A movement that cannot be computed or written gets one warning and no file, and the review texts are still kept. An item with no kept text exits 1 unless keep writes the movement file. Run it with each fix commit and once before the final review round, never while a review of that worktree is live.
 
 `node bin/review-timeline.mjs --item <slug> [--repo <path>]` prints one lane's review timeline as
 markdown: every round the ledger recorded for that item in the selected repository (the current
@@ -532,7 +496,7 @@ item form seen in it (a deeper heading, a numbered item, a bullet, or a bold-led
 text is not a label ending in `:`); or a line that, after an optional list marker and emphasis marks,
 starts with `MUST —`. No SHOULD or NOTE item is ever listed. A sent-back review with no recorded file,
 a gone file, a disagreeing last verdict, or no readable MUST states which of those holds instead of
-findings. An unverified, over-cap, no-verdict or older (version 1) review line is marked rather than
+findings. An unverified, no-verdict or older (version 1) review line is marked rather than
 guessed. Every field collapses whitespace to one space, and every review file is named by its file
 name alone — never an absolute path. Known limits: a relative recorded path, a rotated-away audit
 generation, or an older tally line with no end time reads as no file recorded; a review file moved or
@@ -543,7 +507,7 @@ only, no diagram.
 
 ### Land helper: `bin/nana-land.mjs`
 
-`nana-land merge --tree <integration-worktree> --main <main-checkout> --suite "<command>" --reviewed <sha>=<item> [--reviewed <sha>=<item> ...]` accepts only those four options; no option bypasses review. Keep a clean source tree and a clean tracked state in the checkout on `main`; both checkouts must share one Git repository. Every lane-authored commit the merge adds must be covered by a named reviewed revision, and each named revision needs a verified `LAND` review at version 2 for its canonical item and SHA. At least one matching LAND record must predate kept texts or name a kept text that still exists with its recorded hash and byte count. Missing, altered and malformed matching texts are notes when another record holds; when none holds, the helper refuses and tells the seat to re-run that item on the same revision. Any verified non-LAND verdict for a named commit or snapshot refuses the merge, even under another item; an in-flight review also refuses. Where `origin` is on github.com and the tip tracks a workflow under `.github/workflows`, the helper refuses until the newest CI run of each workflow for the tip has passed at its latest attempt. It refuses before the suite when `gh` cannot read the runs, a run is absent or unfinished, or a newest run did not succeed. With no run, it diagnoses the origin-matched upstream PR state. It stays a one-read gate (plus the clean-merge identity re-read), with no polling or gh write. For a capacity-cancelled run it points to `nana-ci-wait --tip <tip>` (`bin/nana-ci-wait.mjs`), the separate bounded waiter; use `--branch <remote-head>` when the source has no origin upstream, and optionally `--repo <owner/repo>` matching origin. The waiter targets github.com and origin explicitly, checks the PR head and mergeability, then polls for up to two hours. It re-runs failed jobs at most twice per workflow only with complete attempt-matched cancellation evidence, waiting for each attempt to advance. Skipped and neutral jobs are harmless; the tip's `.github/workflows/ci.yml` Linux suite failure is advisory only under its declared continue-on-error rule and a cancelled run. Blocking failures, timeouts and incomplete job evidence never authorize a re-run. A manual cancellation also matches this rule. The command needs Node.js, Git and an authenticated GitHub CLI, like the land tool; its tests inject Node fake gh commands. A successful land prints one `ci:` line per workflow; elsewhere one land note says why CI was not read. After a CI-checked merge, it reads the tip's CI suite records, keeps them in the clone's ci-runs store, and prints the reader's lines. It notes each non-skipped file at or above half its record's per-file limit. The records read stops after its total budget; a read or store failure becomes one land note and never refuses the completed land. The helper retries a nonzero run-list exit once, never a timeout or spawn error. Passing CI stands in for the local suite only when every highest-attempt same-platform leg record from a judged run has an empty `filters` array, final files and exit 0. On the fast-forward path, missing or old records and failed or over-budget reads require the local suite. A lane changing a workflow or the canonical test runner also requires it, even with passing CI. The helper prints one `suite:` line naming CI's run, attempt and platform, or local with its reason. End records carry `suite` and `suiteWhy`; CI lands have null `suiteMs`, and record readers show `suite ci`. Otherwise the helper runs the suite in the source tree with `NANA_LAND_TIP` set to the source tip's full SHA. Off Windows, the locked suite measures the runtime map; on Windows, it runs once without measuring and prints a land note. After a passing local suite it also writes the product report for the tip and prints a land note naming the page. CI lands refresh neither the runtime map, the land report nor local suite records; hand runs and fallback lands refresh them. Lines the suite prints with the `[nana-land]` land-note prefix appear in success output too. Immediately before merging it rechecks both checkouts, the kept texts and main's captured HEAD under the ledger lock. It notes each earlier kept text for a reviewed item whose Git blob is absent from the tip, and its success report names every kept text used to authorize the land. It performs one `git merge --ff-only`, verifies containment, and requires the main ref equal to the tip or its merge commit with clean tracked state before success. Do not operate the main checkout during a land: a branch switch in the instant between the final check and merge is not defended, but a detected switch prevents success and the helper refuses afterwards without success records. Git refuses an untracked collision with a landed path. The helper never pushes or writes HANDOFF/session archive text. A legacy version-1 LAND does not authorize a land; every pre-change revision needs a fresh review. On success the helper prints the push command and release status. An attempt that reaches land recording writes a start and, when ended, an end record; an interrupted attempt may leave only its start, while argument refusals and a `--main` outside any repository write nothing, and each ended attempt ends with one `[nana-land] land record:` line. After a successful merge it prints the shared local `releaseStatus` result, which exports `selectReleaseTag` and `countTemplateCommits`, reports main against origin/main as of the last fetch, never fetches, and never runs `git tag` because its named form creates a tag.
+`nana-land merge --tree <integration-worktree> --main <main-checkout> --suite "<command>" --reviewed <sha>=<item> [--reviewed <sha>=<item> ...]` accepts only those four options; no option bypasses review. Keep a clean source tree and a clean tracked state in the checkout on `main`; both checkouts must share one Git repository. Every lane-authored commit the merge adds must be covered by a named reviewed revision, and each named revision needs a verified `LAND` review at version 2 for its canonical item and SHA. Any verified non-LAND verdict for a named commit or snapshot refuses the merge, even under another item; an in-flight review also refuses. Where `origin` is on github.com and the tip tracks a workflow under `.github/workflows`, the helper refuses until the newest CI run of each workflow for the tip has passed at its latest attempt. It refuses before the suite when `gh` cannot read the runs, a run is absent or unfinished, or a newest run did not succeed. With no run, it diagnoses the origin-matched upstream PR state. It stays a one-read gate (plus the clean-merge identity re-read), with no polling or gh write. For a capacity-cancelled run it points to `nana-ci-wait --tip <tip>` (`bin/nana-ci-wait.mjs`), the separate bounded waiter; use `--branch <remote-head>` when the source has no origin upstream, and optionally `--repo <owner/repo>` matching origin. The waiter targets github.com and origin explicitly, checks the PR head and mergeability, then polls for up to two hours. It re-runs failed jobs at most twice per workflow only with complete attempt-matched cancellation evidence, waiting for each attempt to advance. Skipped and neutral jobs are harmless; the tip's `.github/workflows/ci.yml` Linux suite failure is advisory only under its declared continue-on-error rule and a cancelled run. Blocking failures, timeouts and incomplete job evidence never authorize a re-run. A manual cancellation also matches this rule. The command needs Node.js, Git and an authenticated GitHub CLI, like the land tool; its tests inject Node fake gh commands. A successful land prints one `ci:` line per workflow; elsewhere one land note says why CI was not read. After a CI-checked merge, it reads the tip's CI suite records, keeps them in the clone's ci-runs store, and prints the reader's lines. It notes each non-skipped file at or above half its record's per-file limit. The records read stops after its total budget; a read or store failure becomes one land note and never refuses the completed land. The helper retries a nonzero run-list exit once, never a timeout or spawn error. Passing CI stands in for the local suite only when every highest-attempt same-platform leg record from a judged run has an empty `filters` array, final files and exit 0. On the fast-forward path, missing or old records and failed or over-budget reads require the local suite. A lane changing a workflow or the canonical test runner also requires it, even with passing CI. The helper prints one `suite:` line naming CI's run, attempt and platform, or local with its reason. End records carry `suite` and `suiteWhy`; CI lands have null `suiteMs`, and record readers show `suite ci`. Otherwise the helper runs the suite in the source tree with `NANA_LAND_TIP` set to the source tip's full SHA. Off Windows, the locked suite measures the runtime map; on Windows, it runs once without measuring and prints a land note. After a passing local suite it also writes the product report for the tip and prints a land note naming the page. CI lands refresh neither the runtime map, the land report nor local suite records; hand runs and fallback lands refresh them. Lines the suite prints with the `[nana-land]` land-note prefix appear in success output too. Immediately before merging it rechecks both checkouts, the verdicts, live reservations and main's captured HEAD under the ledger lock. Kept review text is not a land prerequisite and produces no land notes. It performs one `git merge --ff-only`, verifies containment, and requires the main ref equal to the tip or its merge commit with clean tracked state before success. Do not operate the main checkout during a land: a branch switch in the instant between the final check and merge is not defended, but a detected switch prevents success and the helper refuses afterwards without success records. Git refuses an untracked collision with a landed path. The helper never pushes or writes HANDOFF/session archive text. A legacy version-1 LAND does not authorize a land; every pre-change revision needs a fresh review. On success the helper prints the push command and release status. An attempt that reaches land recording writes a start and, when ended, an end record; an interrupted attempt may leave only its start, while argument refusals and a `--main` outside any repository write nothing, and each ended attempt ends with one `[nana-land] land record:` line. After a successful merge it prints the shared local `releaseStatus` result, which exports `selectReleaseTag` and `countTemplateCommits`, reports main against origin/main as of the last fetch, never fetches, and never runs `git tag` because its named form creates a tag.
 
 In nana-pi, lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands. The toolkit manifest selects this policy; other projects keep their existing workflow contract. The lane requires the macOS suite and both macOS install checks; Windows seats also use that macOS suite proof instead of waiting for a Windows lane run. Before landing, the helper reads the newest main push run and requires it to match captured main, with every macOS and Windows suite and install-check leg successful. Missing runs or required jobs refuse; Linux remains advisory for lands. Main's report and the land gate share required-job validation and shard completeness checks.
 
@@ -563,7 +527,7 @@ A **worker** (a build agent, not a review) runs under the same watchdog through 
 which records no review round and can admit no verdict. `pi-review` has no
 worker mode — `--worker` was removed, because a caller-controlled exemption on the review command
 was itself the bypass (sol r1: five `VERDICT: LAND` outputs under `--worker`, zero recorded).
-`pi-worker` refuses review options (`--item`, `--role`, `--revision`, `--over-cap`, `--worker`) in either mode, before it reads a brief, the roster or Claude settings, or writes a temporary file. A worker succeeds when `pi` exits 0 with non-empty output; no review shape is required. Every worker child gets `NANA_ROLE=worker`, so the knowledge pull prints and logs nothing for it; `nana-knowledge query` still answers.
+`pi-worker` refuses review options (`--item`, `--role`, `--revision`, `--worker`) in either mode, before it reads a brief, the roster or Claude settings, or writes a temporary file. A worker succeeds when `pi` exits 0 with non-empty output; no review shape is required. Every worker child gets `NANA_ROLE=worker`, so the knowledge pull prints and logs nothing for it; `nana-knowledge query` still answers.
 
 **A worker is not retried by default** (`--retries 0`). **Retrying a worker can repeat file
 mutations**: a stalled or failed attempt may already have edited, written or run commands, and a
@@ -619,7 +583,7 @@ node "$HOME/nana-pi/packages/nana-pack/bin/brief-check.mjs" --brief <file> --tre
 
 Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`; a Claude Code launch also sets the sealed child values described above. The gate refuses edit/write targets outside that root and the temporary roots it counts: the real `os.tmpdir()`, and on Windows a differing `TMP` too — except a temp folder that resolves to a drive or filesystem root, the home folder, or a folder above the home folder, which does not count. `/tmp` is a separate rule on every system but Windows: it counts as a temporary root regardless, even when it resolves under the home folder. Each target is judged at the path pi's own edit/write tools actually write it to — pi's `~`, `@` and `file://` forms are expanded first — and every root and target is compared by its true on-disk spelling (case, 8.3 short names, and symlinks all fold to the same real path), not by the literal string typed. This does not cover writes performed by bash or another process. The gate is advisory; the sandbox/container is the boundary.
 
-Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; a later launch never reclaims it automatically. The hard-stop watcher releases only a lock that still names its pi-worker and only after the recorded builder group is gone; on Windows it keeps the lock for a builder launched through `cmd.exe`. A builder's tool command in its own process group can still outlive that builder group. Before removing a lock by hand, confirm that no builder process group or tool process for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire builder process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory. After taking the lock, a lane build appends a start record before the builder starts and an end record before releasing the lock on each handled exit. Its final build-record stderr line gives this build's outcome, elapsed minutes and recorded cost, followed by the lane summary.
+Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; a later launch never reclaims it automatically. The hard-stop watcher releases only a lock that still names its pi-worker and only after the recorded builder group is gone; on Windows it keeps the lock for a builder launched through `cmd.exe`. A builder's tool command in its own process group can still outlive that builder group. Before removing a lock by hand, confirm that no builder process group or tool process for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire builder process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints a legacy `trust: none for <worktree>` notice and continues. The pack no longer runs per-edit commands. After taking the lock, a lane build appends a start record before the builder starts and an end record before releasing the lock on each handled exit. Its final build-record stderr line gives this build's outcome, elapsed minutes and recorded cost, followed by the lane summary.
 
 #### Role launches
 
@@ -685,12 +649,12 @@ Known limits: no lock, so a writer racing `set` (the desk, the installer, an edi
 
 #### Windows
 
-`nana-setup install` writes `pi-worker` and `pi-review` sh and `.cmd` shims into `~/.local/bin`; that folder must be on the user Path. The node forms remain a fallback when it is not. On win32 both launchers start pi through its own npm Node entry, not by name: a `.cmd`/`.bat` npm shim runs as the Node process already running it, plus the npm package's `pi` bin entry found beside the shim (the global layout) or one level up through `node_modules\.bin` (the local layout), with the pi arguments unchanged after it; a located `.exe`/`.com` pi starts directly. A pnpm global install, Volta and the pi.dev managed installer are refused, named — only an npm-installed pi is supported. Arguments reach pi unchanged, a multi-line brief included. From PowerShell, pass a brief as a quoted `"@<full path>"` argument, which pi reads itself: PowerShell's own `"$(Get-Content …)"` joins a multi-line file's lines with spaces and Windows PowerShell 5.1 drops embedded quotes. `review-ledger run` sends any bare spelling of pi through that pi launch, finds another bare reviewer through Path and PATHEXT, starts a found `.cmd` or `.bat` through cmd.exe and a found `.exe` or `.com` directly, and takes a command containing `\`, `/` or `:` as a path. A relative path is read from the reviewed tree, and a `.cmd` or `.bat` path that names no file there is refused with the cannot-start line before cmd.exe starts.
+`nana-setup install` writes `pi-worker` and `pi-review` sh and `.cmd` shims into `~/.local/bin`; that folder must be on the user Path. The node forms remain a fallback when it is not. On win32 both launchers start pi through its own npm Node entry, not by name: a `.cmd`/`.bat` npm shim runs as the Node process already running it, plus the npm package's `pi` bin entry found beside the shim (the global layout) or one level up through `node_modules\.bin` (the local layout), with the pi arguments unchanged after it; a located `.exe`/`.com` pi starts directly. A pnpm global install, Volta and the pi.dev managed installer are refused, named — only an npm-installed pi is supported. Arguments reach pi unchanged, a multi-line brief included. From PowerShell, pass a brief as a quoted `"@<full path>"` argument, which pi reads itself: PowerShell's own `"$(Get-Content …)"` joins a multi-line file's lines with spaces and Windows PowerShell 5.1 drops embedded quotes. Claude review uses `bin/review-launch.mjs` to resolve claude through Path and PATHEXT, starting a `.cmd` or `.bat` through cmd.exe. Its multi-line prompt travels on stdin, not argv.
 
 ### Trust model
 
 **This is a self-governance device against the fix-review treadmill, not a security control.**
-Formal review rounds are admitted only through `pi-review` or `review-ledger run`. Agent-tool and
+Formal review rounds are admitted only through `pi-review` or `claude-review`. Agent-tool and
 hand-run reviews are supplemental and earn no round; do not describe them as formal counted reviews.
 Each `pi-review` review runs from a detached checkout under the OS temporary directory; ignored files such as
 `node_modules` are not copied, so a reviewer that needs them must install dependencies or review read-only.
@@ -699,27 +663,22 @@ and stale checkouts from dead reviews are reclaimed at startup.
 Any number of reviews, by any roles, on one revision is one round.
 A review of a new revision is a round regardless of role.
 The ledger lives in the same user's home directory as the agents it governs. Anyone who can
-write it can exhaust an item (three fabricated round lines) or extend one (delete lines); deleting
-verdict records also changes what the land check reads. Pruning the kept-text store blocks a revision
-when every matching LAND text is gone until those reviews re-run on that revision. Anyone can run a launcher by hand and never
-touch it. `NANA_ROLE=reviewer` is a context-isolation convenience, not a security boundary: a worker
-or user can spoof or clear it. What the ledger buys is that every completed verdict and override is
-recorded — a bypass must be explicit. The land helper checks every recorded verdict but does not
-prove reviewer independence or review scope; those remain conventions. Not every admission is: an ordinary
-(non-override) admission whose review fails leaves **no durable record** once its reservation is
+write it can fabricate or delete verdict evidence. Removing stored review text does not change a LAND record's eligibility.
+Anyone can run a launcher by hand and never touch it. `NANA_ROLE=reviewer` is a context-isolation convenience,
+not a security boundary: a worker or user can spoof or clear it. The store records every completed verdict. The land helper checks every recorded verdict but does not
+prove reviewer independence or review scope; those remain conventions. Not every admission is: an admission whose review fails leaves **no durable record** once its reservation is
 returned. During deployment, stop all old land and review processes: an already-loaded old completion
 can append only to the audit log before the first version-2 row exists. **Budget is not enforced here:** these wrappers do not read, pass or enforce
 `--max-budget-usd` (or any spend limit); budget control is external — the caller's own flags and
 the provider's limits. **Repair:** to reset an item, remove its
 lines from `review-ledger.rounds.jsonl` only with the understanding that this erases the verdict history
-used by the land check (and clear stale files under `review-ledger.reservations/`);
-to go past the cap, run with `--over-cap "<what changed>"`, which is recorded.
+used by the land check (and clear stale files under `review-ledger.reservations/`). Reviews have no round limit; the retired override flag is refused.
 
 ### Migration (callers outside this repo — document only)
 
 - **`roundFromOutPath` is deprecated.** It is still exported (pure, unchanged) only so
   `~/nana-agent-loop/app/scripts/review-round.mjs`'s named re-export keeps linking; nothing in the
-  cap reads file names any more. Drop the re-export there, then remove it here.
+  store reads file names any more. Drop the re-export there, then remove it here.
 - `~/jev-research/docs/reviews/local-tool-judge-2026-09-19/launch-workers.sh:11` and
   `~/jev-research/experiments/launch-wp-h-after-primary.sh:7` launch **workers**: replace
   `pi-review` with `pi-worker` **and delete their `--retries 2`** (both pass it today). A retried
@@ -743,7 +702,7 @@ an external caller that does should subtract one — and a **worker** caller sho
 (see Migration above). `pi-review` and `pi-worker` print a one-line
 notice whenever `--retries` is passed explicitly.
 
-**Keep review logs outside the reviewed tree.** At admission, `pi-review` and `review-ledger`
+**Keep review logs outside the reviewed tree.** At admission, `pi-review` and `claude-review`
 inspect stdout and stderr file identities. If either regular file is the same device and inode as
 a non-ignored path in the reviewed tree, admission refuses with the path named. This covers tracked
 and untracked files; closed descriptors and platforms without device/inode identities degrade to
@@ -955,21 +914,14 @@ provenance, and the check is report-only.
 In TUI and RPC sessions (the desk included) the pack is quiet by design but not invisible.
 Print/JSON mode (`-p`) has no UI to draw on, so none of this appears there:
 
-- **Chips** (TUI footer / desk header): `nana-pack ✓` at session start · `post-edit ✓ 2 checks · foo.ts`
-  after each checked edit (`✗ 1/2` on failure, `⏱ timeout`, `– skipped (lock|aborted)` when a check
-  could not run) · `gate ✓ 12 checked · 1 gated` — tool calls the gate inspected, and the ones it stopped on.
-- **Toasts**: post-edit check failures, compaction summary written/picked up/refused, context compacted.
+- **Chips** (TUI footer / desk header): `nana-pack ✓` at session start and `gate ✓ 12 checked · 1 gated` — inspected and gated tool calls.
+- **Toasts**: context compacted.
 - **Widget** (above the editor, TUI and RPC/desk): the roster notice at every session start —
-  startup, new, resume and fork — staying until the next widget show or an extension-UI reset; the
-  compaction-summary toast above still shows, because the notice is a widget, not a toast. It names
+  startup, new, resume and fork — staying until the next widget show or an extension-UI reset. It names
   the builder, any larger-lane builder and the reviewer by model and thinking, never a
   provider (`nana-roster` prints it); a set scout and the resolved planner and adversary follow reviewer, and reads `roster unknown: …` while
   `PI_CODING_AGENT_DIR` is relative.
-- **OS notification** when the agent settles and waits for you. If the OS notifier fails or hangs —
-  the usual Windows cases: no WinRT toast registration, PowerShell locked down, an 8 s deadline hit —
-  you get an in-app "Ready for input" notification instead, plus a `notify_fallback` journal line
-  saying why. (A notifier that exits 0 after printing a *localized* PowerShell error record can still
-  slip through; the spawn/exit-code/deadline paths do not.)
+Nana sends no desktop notification when the agent settles or requests approval.
 
 **Is it actually installed on this machine?** `pi install` writes to *user* settings
 (`~/.pi/agent/settings.json`) by default, so it applies everywhere; `-l` writes project settings
@@ -1046,15 +998,7 @@ project config never contributes to either one, trusted or not.
 		"allowPatterns": ["^git push --force-with-lease origin (?!main)"],
 		"protectedPaths": ["secrets/"]
 	},
-	"postEdit": {
-		"commands": [
-			{ "match": "\\.ts$", "run": "npx prettier --write {file}" },
-			{ "match": "\\.py$", "run": "ruff check {file}", "timeoutMs": 20000 }
-		]
-	},
-	"notify": { "enabled": true, "headless": false },
 	"journal": { "enabled": true, "path": null },
-	"handoff": { "enabled": true, "path": null },
 	"objective": { "enabled": true, "path": null, "projectFile": null },
 	"writing": { "enabled": true },
 	"receipts": { "enabled": true, "dir": null }
@@ -1194,10 +1138,7 @@ project config never contributes to either one, trusted or not.
   assignment syntax; paths produced by shell expansion or execution remain outside its guarantee.
   Matching more command text would not close that class (each form invites another), so none is added.
   **Mitigation, and its limit:** *gate loosening* from such a write waits for the next
-  `session_start`. The **other blocks in the same file, including `postEdit.commands`, apply
-  live**, so a write that evades the gate's text scan can run code in the **same** session
-  through a post-edit command. That is a residual; **what closes it** is the OS sandbox /
-  container layer. The agent edits policy files only through you:
+  `session_start`. Other active configuration blocks may apply live. The retired `postEdit` and `handoff` blocks do nothing. The OS sandbox or container remains the enforcement boundary. The agent edits policy files only through you:
   `nana-setup`, the desk settings window, or "Allow once". The compaction summary store
   `~/.pi/agent/handoffs/**` is not a policy file. Script files are not inspected, so sandboxing
   remains the enforcement boundary.
@@ -1247,77 +1188,12 @@ project config never contributes to either one, trusted or not.
   what a variable (other than the `$PI_CODING_AGENT_DIR` spelling above) does, an alias, a script file or `python`/`node` code does at run time, nor
   follow a `cd` earlier in the command (see the policy-file residual above). The `read` tool is not gated. Unattended enforcement
   stays at the container/sandbox layer.
-- **Subagent children and nana-gate (architecture-ruling.md, 2026-10-04).** `nana-setup`'s
-  subagent config seed (`extensions/subagent/config.json` in the pi agent dir) sets
-  `forceTopLevelAsync: true`, which keeps an ORDINARY, model-driven top-level `subagent` tool
-  launch backgrounded — and therefore inside the detached runner process that loads this pack,
-  gate included, with default extension inheritance — no matter what the model asks for. A
-  hand-edited copy of that file that flips the key back reopens a foreground, ungated top-level
-  child: same posture as every other residual above, advisory, not a security boundary. A NESTED
-  child (depth ≥ 1) the model launches with an explicit `async:false` is not reached by
-  `forceTopLevelAsync` either — pi-subagents' own docs say nested calls keep their own inherited
-  settings — and runs foreground, ungated, at any depth `maxSubagentDepth` still permits.
-- **The structured delegation bridge bypasses `forceTopLevelAsync` too** (astra review r1/r2,
-  2026-10-04, pi-subagents 0.75.0): `src/slash/delegation-adapters.js:170-189` builds its launch
-  params with `foregroundOnly: true` for a structured delegation request handled by
-  `src/slash/prompt-template-bridge.js:144-176`, which `forceTopLevelAsync`'s own depth-0 check
-  skips outright — and a foreground child never loads ambient extensions (nana-gate included)
-  regardless of how it was launched. Traced no further than that bridge: the package's command
-  registrations name no `/delegate`, and its `/run` slash command builds a different launch
-  request (`src/slash/slash-commands.js:598-643`) — so no slash command is named here without
-  being traced to the `foregroundOnly` path first.
-- **An explicit `extensions` override, or a capability ceiling that denies extensions, disables
-  ambient extensions on a child outright** (same review, pi-subagents 0.75.0
-  `src/runs/shared/child-tool-plan.js:271-273`) — background or not. Background alone is never
-  proof nana-gate loaded; both exceptions above are real gaps this lane's config does not close.
-- **A background subagent child shares its parent's cwd-derived state.** pi-subagents' detached
-  runner process is a second nana-pack session in the SAME working directory as its parent, so the
-  compaction summary store key (`sha256(cwd)`) and desktop notify are shared between parent and child.
-  Short-lived review children do not compact, so this is safe in practice today; a
-  `NANA_HANDOFF=off` switch for subagent children is a follow-up if that observation ever changes.
-- **post-edit failures are appended to the tool result** so the model sees and fixes them;
-  successes stay out of its context and are reported by the status chip instead. Each failure
-  is ONE line (`- check <command> exited N: <output>`, output line breaks shown as ` ⏎ `, the
-  last 2000 chars kept and a truncation stated); the edited path is `promptPath`-rendered. `{file}` is
-  shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort. Every check gets
-  `PYTHONUTF8=1` when pi's `PYTHONUTF8` is unset or empty; non-empty `PYTHONUTF8` and every
-  `PYTHONIOENCODING` from the owner pass through, with Python giving its non-empty I/O value precedence.
-  `LANG` and every `LC_*` value pass through
-  unchanged, set or unset. On Windows, Python before 3.15 therefore opens encoding-unspecified files
-  as UTF-8 under post-edit even when the owner's terminal uses an ANSI code page, so a check can differ.
-  On Windows, a failed check is reclassified as `error` only when it exits 1 and begins with a simple literal
-  command name absent from the working folder, PATH and the sealed cmd.exe internal-command list.
-  This check is conservative: commands later in a compound expression and names outside its internal
-  vocabulary may remain ordinary `checks_failed` or be reported as `error`; neither result passes.
-- **post-edit checks run inside pi's own file-mutation queue** (2026-09-08, commit `2efd435`).
-  pi runs sibling tool calls in parallel and releases the edit tool's lock *before* the
-  `tool_result` handler, so two edits to one file in a single assistant message could race a
-  formatter's read-modify-write. Two outcomes you can see:
-  - **The queue exists but the lock cannot be taken** → the checker does **NOT** run, and
-    the model is told ``  `<command>` did not run — could
-    not lock <file> for checking: <reason> ``. A skipped check is always reported; it is never
-    reported as passing.
-  - **The queue module cannot be resolved** (running outside pi — another host, a bare test
-    harness) → the check **does** run, unserialized, and the absence is announced once per
-    process: a `postedit_file_queue_unavailable` journal line plus the warning "checks are not
-    serialized against edits".
-- **A checker that ignores SIGTERM no longer hangs the turn** (same commit): its process group
-  gets SIGTERM (win32: `taskkill /T /F`), SIGKILL 2 s later, and the run **settles either way**
-  with `status: "timeout"` (deadline) or `"not_run"` (turn aborted) rather than leaving the tool
-  handler pending forever. A command that sets no `timeoutMs` gets 30 seconds;
-  `timeoutMs: 0` still means no deadline. CI's Windows leg runs the win32 branch: a timed-out or aborted check's process and its child are ended through `taskkill /T /F`; with `taskkill` off PATH only the shell is killed, and the check's own processes keep running.
+- **Child sessions** have the gate only when their runtime loads the pack. Setup no longer installs or configures a third-party delegation runtime.
 - **Journal** is best-effort JSONL at `<agent dir>/nana-journal.jsonl` (override via
   `journal.path`); one line per session event.
-- **Notify** writes OSC 777 only in TUI mode, so RPC stdout stays clean even when it has a UI.
-  Headless notifications are opt-in (`notify.headless`). `ui_prompt_start` sends the fixed body
-  "Approval needed in pi"; notification titles never expose dialog text. A failing OS
-  notifier (execFile error, non-zero exit, or a PowerShell exception on stderr) falls back to the
-  in-app notification and journals `notify_fallback` with the reason. The notifier also runs under
-  an 8 s deadline, so a hung one fails over instead of holding the pipe open.
-- **Adoption signal** (L5, 2026-09-29). When a fresh session's store entry is *missing* (never
-  merely unreadable), no `handoff.path` is configured, and the session runs inside a git
+- **Adoption signal** (L5, 2026-09-29). When a fresh session runs inside a git
   repository (`.git` directory or file — a linked worktree is its own root) whose **root** is not
-  adopted, the handoff extension journals
+  adopted, the adoption extension journals
   `{"event":"directory_unadopted","cwd":"<repo root>","has":{"handoff","objective","agents","sessions"}}`
   — at most once per root per 24 h (a 256 KiB journal tail is checked). **Journal only**: nothing
   is added to any prompt. This line is **user-scope state**: it goes to the user-scope
@@ -1331,7 +1207,7 @@ project config never contributes to either one, trusted or not.
   a code span (`lib/display.mjs` `codeSpan`: nothing escaped); a claim that is relative, the filesystem root, over 512
   characters, holds a control, line-separator or bidi character or a backtick, or carries a future/unparseable `ts` is never printed —
   only counted (`N entries were not printable`). Counting is the READER's, not end-to-end: the
-  producer (`extensions/nana-handoff.ts`) checks the same `printable(root)` before journaling, so a root it
+  producer (`extensions/nana-adoption.ts`) checks the same `printable(root)` before journaling, so a root it
   refuses is never written and never reaches that count. A journal that exists but cannot be read prints
   `ADOPTION UNAVAILABLE: <why>`; only an absent one is silent. A dismissal marker of any type
   (file, directory, symlink) counts: it is a decision record whose content is never read. A root is
@@ -1341,111 +1217,7 @@ project config never contributes to either one, trusted or not.
   operating-system temporary directory are excluded; on POSIX, the canonical `/tmp` root is excluded too.
   `NANA_TEST_TEMP_ROOTS` is a test seam, not configuration: when set, the reader prints a warning; on a STARTUP session, the producer journals the override once per process. Resume, fork and reload sessions do not journal it. Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
   The reader says listed repositories lack the complete Nana structure: a regular root `HANDOFF.md`, root `AGENTS.md`, and `docs/sessions/`. A `HANDOFF.md`-only repository remains listed, and the text does not claim it lacks that file.
-- **Compaction summary store** (L3, 2026-09-28), unless `handoff.enabled` is false (see below), writes the latest
-  compaction summary to a store — **by default the user-scope store fixed at**
-  `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` **regardless of
-  `PI_CODING_AGENT_DIR`**; a configured `handoff.path` replaces it (Custom `handoff.path` below)
-  (canonical = realpath; the key is case-folded on win32 only; the cwd is
-  recorded inside) — one of four deliberate U2 exceptions to the agent-dir override, beside the
-  round-cap ledger, the stage-key store and the knowledge index, none of whose runtime reads the
-  override (`lib/adoption.mjs` `storeDir()`; HANDOFF.md's U2 entry) — atomically (temp file +
-  rename, latest compaction wins), and injects it into the next fresh session (`startup`/`new`;
-  resume, fork and reload skip) in **that exact directory**. The path is printed when written and
-  picked up; edit it by hand freely. Disable with `handoff.enabled: false`. Seat rulings behind this:
-  - **Why user scope, not "require trust"**: pi auto-trusts a nana-only `.pi/`, so "require trust"
-    is either a no-op or (with nana-trust) a blackout of compaction summaries in every repo. The store removes
-    the repo-supplied vector and needs no trust. The old sibling `.pi/.gitignore` management and
-    the "never delete" prompt line are gone with their reason.
-  - **A repo `.pi/handoff.md` is never injected, trusted or not** (it was: opus-review C4/E1 — the
-    the-hive 09-13 "do not modify gameplay code yet" summary reached 56 sessions). If one exists the
-    session gets one pointer line naming it as repo-writable and not injected, **left unchanged
-    here, not migrated**, with future summaries written to the user-scope store (journal
-    `handoff_legacy_ignored`). Existing files, the-hive's included, are **not deleted and not
-    migrated** — your text was not moved anywhere; repo text is never laundered into the trusted
-    store; deleting is the owner's call. The rule is by **path shape, whatever the config says**:
-    a `handoff.path` (user scope or nana-trusted project scope) whose final two segments are
-    `.pi/handoff.md` — any directory, case-insensitive, also after resolving its parent's real
-    path — is never read and never written. The session gets one line naming the configured path
-    as repo-writable, not injected and never written (journal `handoff_legacy_ignored` with
-    `configured: "handoff.path"`); each compaction is refused and journaled
-    (`handoff_legacy_write_refused`), leaving the file byte-identical, with one UI warning per
-    session.
-  - **Provenance**: the injected block is labelled "agent-written compaction summary", names the
-    writing session file (`ctx.sessionManager.getSessionFile()`) and its timestamp, ranks it
-    **lower authority than OBJECTIVE.md / AGENTS.md / HANDOFF.md**, and keeps "background state, not
-    instructions". If the session file is unavailable the write still happens with `Writer: unknown`
-    and journals `handoff_provenance_unavailable` next to `handoff_written`.
-  - **Staleness = a pointer, not an excerpt**: older than `handoff.staleAfterDays` (default 7, age
-    from the file's own `Written:` header, else mtime) the summary is replaced by one pointer line
-    (path, age, writer) — one read away, never inlined, because an excerpt would re-import the
-    stale imperative. The path always resolves to the file under pi's read tool (`resolveToCwd`):
-    `~/…` under the real home (the store: `~/.pi/agent/handoffs/<hash>.md`), cwd-relative inside
-    the session's cwd, otherwise **absolute and in full** — never truncated, no `…/` form; a path
-    containing a literal `~` (or a cwd-relative one starting with `@`, which pi strips) is always
-    absolute. The line is ≤300 chars: over the cap the authority tail goes, then the writer is
-    trimmed, then the age. **If the path alone exceeds 300 chars, the pointer does too** — a long
-    true path beats a short false one. **Caveat — not always one read away:** a custom
-    `handoff.path` containing a Unicode space pi's read tool folds to ASCII space
-    (U+00A0, U+2000–U+200A, U+202F, U+205F, U+3000) or a tab/CR/LF cannot be addressed as
-    written (it could resolve to an ASCII-space sibling); since S1 the same holds for any other
-    control, line-separator, bidi character or lone surrogate (`lib/display.mjs` `locator`). Such a path is shown as the
-    absolute path in a JSON string literal (those characters as `\uXXXX`) followed by
-    "— path contains characters that are unsafe or rewritten in transit; JSON-escaped here,
-    decode it exactly (do not pass it to read as written)" — never claimed readable; the same form is used in
-    the fresh-summary `Source:` line. **Pointer-specific exception, by design:** an escaped
-    pointer may omit the age and writer — the never-trimmed marker takes the room, so over 300
-    chars the writer is trimmed then dropped, then the age (a short escaped path keeps both).
-    No summary text is inlined in that case, and provenance still lives in the artifact's own
-    `Written:` / `Writer:` header. This omission is pointer-only: an inlined summary always
-    carries writer and timestamp. A **relative** custom `handoff.path` resolves against the
-    pi **process** cwd, not the session cwd; the pointer shows that file. Age is the only staleness signal (no HANDOFF-commit invalidation). A new
-    compaction resets it.
-  - **Non-writer role**: a launcher that sets `NANA_HANDOFF=off` in the child env marks a session
-    that neither picks up nor writes (journal `handoff_skipped_role`); `pi-review` and `review-ledger run`
-    set it for every child. Never inferred from the tool list or `hasUI` (the desk runs pi sessions). Only the exact
-    lowercase value `off` is honored (`OFF`, `0`, `false`, empty behave normally). The marker is an
-    ordinary env var, so it is **inherited**: any pi or desk process a review child spawns also has
-    handoff off unless the launcher clears `NANA_HANDOFF`.
-  - **Exact directory only**: a nested cwd or worktree with no compaction summary of its own never gets an
-    ancestor's text. If an ancestor directory has one, the session is told "no compaction summary for this
-    directory" plus that file's path; if no ancestor has one, nothing is added to the
-    session — but the fact is not discarded: an unadopted directory is a signal addressed to the
-    SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
-    objective and start accumulating its knowledge (the owner's ruling 2026-09-28;
-    `docs/directory-adoption-design-2026-09-28.md`). L5 landed on 2026-09-29 (**Adoption signal** above) and it is journal-only, so the session still sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. `missing` means genuinely absent: an ENOENT caused by a dangling link — the entry itself (`dangling_symlink`) or a directory above it such as a dangling `handoffs/` link (`dangling_parent`) — is an `error` and journals `handoff_pickup_failed`, never `handoff_missing`. A resolving `handoffs/` link is still honored. A store entry whose recorded `Cwd:` is another directory is not injected
-    (`handoff_cwd_mismatch`).
-  - **Compatibility change (S1) — some directories lose automatic pickup.** `Cwd:` is written
-    through `fileField` so a directory name cannot forge a header field; pickup from the default
-    store requires the recorded value to equal the canonical cwd exactly. A canonical cwd holding
-    a control character (tab, newline, ESC, C1), U+2028/U+2029 or a bidi control, a lone
-    surrogate, leading/trailing whitespace, or over 4096 UTF-16 code units cannot be recorded
-    losslessly, so its compaction summary is written but never picked up automatically. The write says so at
-    that moment: a warning notification ("compaction summary written to `<path>`, but this directory's name
-    contains characters that cannot be recorded losslessly — a future session here will not pick
-    it up automatically") and journal `handoff_cwd_unrecordable` (`path`, rendered `recorded`).
-    The artifact is retained at `<path>` and can be read by hand. A custom `handoff.path` is not
-    affected (no `Cwd:` check). A versioned lossless encoding is deferred.
-  - **Custom `handoff.path`**: honored from user scope always, from project scope only under
-    nana-trust (L1). No header `Cwd:` check applies to it (the owner chose one file).
-  - **Failures never throw**: an unreadable/unwritable store degrades to "no compaction summary" with a
-    journal line (`handoff_pickup_failed` / `handoff_write_failed`; a store file that is not valid
-    UTF-8 is a failed pickup, never injected with replacement characters); a failed write leaves the prior
-    file intact. win32: `rename` over an existing file is assumed atomic enough on NTFS —
-    **unverified**.
-- **The compaction summary store refuses to read or write through a symlink** (2026-09-08, commit `2efd435`; scoped by
-  L3 to custom paths). The user-scope store has no symlink policy — it is the owner's directory, so
-  a deliberately symlinked `handoffs/` is honored (a write renames over an entry, so it never
-  writes through a linked entry). Custom `handoff.path`: a repo could commit the
-  configured file, or a directory above it, as a link to something like `~/.ssh/id_rsa`:
-  - **Unconditional — not trust-gated.** Point `handoff.path` at the real destination instead of
-    linking to it.
-  - **Scope is every path component BELOW the workspace root.** Components at or above the root
-    are deliberately not checked (macOS `/tmp` → `/private/tmp` is your filesystem). A
-    `handoff.path` **outside** the workspace has only its final component checked.
-  - **Refusals are loud** — a `handoff_symlink_refused` journal line (`op: "read" | "write"`) plus
-    a UI warning.
-  - **Advisory, not a security boundary**: the `lstat` checks are not atomic with the open that
-    follows.
+- **Compaction** belongs to pi. Nana neither writes nor injects compaction summaries. Existing summaries remain untouched and still count as adoption evidence. Legacy `handoff` and `postEdit` configuration blocks are accepted and ignored. `NANA_HANDOFF=off` continues to suppress adoption journaling in reviewer and worker children.
 - **Objective** injects the user's objective + current priority file into every system
   prompt, under `## Objective and current priority (nana)` plus one line charging the session
   to say which of those lines its spend serves. Default source `nana-objective.md` in pi's active
@@ -1589,13 +1361,13 @@ project config never contributes to either one, trusted or not.
     behaviour and it defeated the point — the one artifact every session must see went missing
     invisibly.
   - **Symlinks are refused only when the resolved path is INSIDE the workspace** (every
-    component below the root is checked, as in the handoff). A path in the user's own home is
+    component below the root is checked). A path in the user's own home is
     not checked: linking `~/.pi/agent/nana-objective.md` at a repo's real `OBJECTIVE.md` is the
     intended setup, not a repo-supplied link. One addition for a `projectFile` hit *above* the
     workspace root: its own final component is checked, because nobody typed that path — the
     walk found it. Advisory, not a security boundary.
 - **Receipt settings compatibility:** `receipts.enabled` and `receipts.dir` remain accepted
-  but ignored for one release; post-edit checks no longer write or read receipts.
+  but ignored; the pack neither writes nor reads receipts.
 - **Writing trial residuals, recorded at landing rather than fixed further (astra r3, 2026-10-04):**
   - The read ceiling is a BYTE budget; the injected block's cap is a CHARACTER budget. A
     multi-byte-heavy rule (e.g. 2,000 Chinese characters) can be cut well short of

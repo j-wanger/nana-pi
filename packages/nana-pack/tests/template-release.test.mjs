@@ -37,7 +37,9 @@ check("release CLI runs its in-process gate from spaced and percent-looking chec
     const repo = path.join(root, name); mkdirSync(path.join(repo, "scripts"), { recursive: true });
     mkdirSync(path.join(repo, "packages/nana-pack/lib"), { recursive: true });
     for (const file of ["template-release.mjs", "template-acceptance.mjs"]) writeFileSync(path.join(repo, "scripts", file), readFileSync(path.join(repoRoot, "scripts", file), "utf8"));
-    writeFileSync(path.join(repo, "packages/nana-pack/lib/release-status.mjs"), readFileSync(path.join(repoRoot, "packages/nana-pack/lib/release-status.mjs"), "utf8"));
+    for (const file of ["release-status.mjs", "win-command.mjs", "win-command-config.mjs"]) {
+      writeFileSync(path.join(repo, "packages/nana-pack/lib", file), readFileSync(path.join(repoRoot, "packages/nana-pack/lib", file), "utf8"));
+    }
     git(repo, "init", "-b", "main"); git(repo, "config", "user.email", "release@test"); git(repo, "config", "user.name", "Release Test");
     writeFileSync(path.join(repo, "copier.yml"), "source\n"); mkdirSync(path.join(repo, "templates")); writeFileSync(path.join(repo, "templates/base"), "base\n");
     git(repo, "add", "."); git(repo, "commit", "-m", "base"); git(repo, "tag", "-a", "v0.6.3", "-m", "v0.6.3");

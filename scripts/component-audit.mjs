@@ -13,7 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ASK_LABELS } from "../packages/nana-pack/lib/ask-shape.mjs";
 import { trackedAtHead } from "../packages/nana-pack/lib/brief-precedent.mjs";
-import { MAX_GIT_BUFFER, defaultGit } from "./requirements-moved.mjs";
+import { MAX_GIT_BUFFER, defaultGit } from "./git-runner.mjs";
 import { parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { repoGraph } from "./code-map.mjs";
 import { readComponentContract, checkComponentData } from "./component-contract.mjs";

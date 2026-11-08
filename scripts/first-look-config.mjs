@@ -13,7 +13,7 @@ export const PAGE_SHAPING_PATHS = Object.freeze([
   "scripts/deliverables.mjs",
   "scripts/requirements-tree.mjs",
   "scripts/requirements-trace.mjs",
-  "scripts/requirements-moved.mjs",
+  "scripts/git-runner.mjs",
   "packages/nana-pack/lib/handoff-asks.mjs",
   "packages/nana-pack/lib/handoff-issues.mjs",
   "packages/nana-pack/lib/land-config.mjs",

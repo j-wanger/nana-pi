@@ -1,0 +1,943 @@
+Scanned 274 tests for 446 removed sentences and paths.
+Matches below include intentional compatibility fixtures and named map-edge retirement reasons.
+REMOVED "Approval needed in pi"; notification titles never expose dialog text.
+0 matches
+REMOVED "commands": [
+0 matches
+REMOVED "handoff": { "enabled": true, "path": null },
+0 matches
+REMOVED "notify": { "enabled": true, "headless": false },
+0 matches
+REMOVED "postEdit": {
+0 matches
+REMOVED "— path contains characters that are unsafe or rewritten in transit; JSON-escaped here,
+0 matches
+REMOVED ## The nana-owned reviewer agent — why `agents/reviewer.md` shadows the builtin
+0 matches
+REMOVED ## pi-subagents' version, and mcp.json — read-only checks
+0 matches
+REMOVED (A notifier that exits 0 after printing a *localized* PowerShell error record can still
+0 matches
+REMOVED (U+00A0, U+2000–U+200A, U+202F, U+205F, U+3000) or a tab/CR/LF cannot be addressed as
+0 matches
+REMOVED (`handoff_cwd_mismatch`).
+0 matches
+REMOVED (`handoff_legacy_write_refused`), leaving the file byte-identical, with one UI warning per
+0 matches
+REMOVED (canonical = realpath; the key is case-folded on win32 only; the cwd is
+0 matches
+REMOVED (path, age, writer) — one read away, never inlined, because an excerpt would re-import the
+0 matches
+REMOVED **Caveat — not always one read away:** a custom
+0 matches
+REMOVED **If the path alone exceeds 300 chars, the pointer does too** — a long
+0 matches
+REMOVED **Pointer-specific exception, by design:** an escaped
+0 matches
+REMOVED **Verifier-pipe guard (user-scope):** every session will prompt before running a Claude Code Bash or PowerShell command when a masked pipeline's exit status can reach the commit without earlier active `pipefail`.
+0 matches
+REMOVED **Verifier-pipe guard (user-scope):** every session will prompt before running a bash or PowerShell command when a masked pipeline's exit status can reach the commit without earlier active `pipefail`.
+0 matches
+REMOVED **lower authority than OBJECTIVE.md / AGENTS.md / HANDOFF.md**, and keeps "background state, not
+0 matches
+REMOVED **unverified**.
+0 matches
+REMOVED - **A background subagent child shares its parent's cwd-derived state.** pi-subagents' detached
+0 matches
+REMOVED - **A checker that ignores SIGTERM no longer hangs the turn** (same commit): its process group
+0 matches
+REMOVED - **A repo `.pi/handoff.md` is never injected, trusted or not** (it was: opus-review C4/E1 — the
+0 matches
+REMOVED - **Adoption signal** (L5, 2026-09-29).
+0 matches
+REMOVED - **Advisory, not a security boundary**: the `lstat` checks are not atomic with the open that
+0 matches
+REMOVED - **An explicit `extensions` override, or a capability ceiling that denies extensions, disables
+0 matches
+REMOVED - **Chips** (TUI footer / desk header): `nana-pack ✓` at session start · `post-edit ✓ 2 checks · foo.ts`
+0 matches
+REMOVED - **Compaction summary store** (L3, 2026-09-28), unless `handoff.enabled` is false (see below), writes the latest
+0 matches
+REMOVED - **Compatibility change (S1) — some directories lose automatic pickup.** `Cwd:` is written
+0 matches
+REMOVED - **Custom `handoff.path`**: honored from user scope always, from project scope only under
+0 matches
+REMOVED - **Exact directory only**: a nested cwd or worktree with no compaction summary of its own never gets an
+0 matches
+REMOVED - **Failures never throw**: an unreadable/unwritable store degrades to "no compaction summary" with a
+0 matches
+REMOVED - **Install never removes or reorders** existing settings entries except installer-shaped retired knowledge entries, the two exact retired context-hook forms and the Windows repair of POSIX-installer entries: active shell-form hooks become exec form in place, while the verifier moves from `Bash` to `Bash\|PowerShell` without disturbing foreign entries or duplicating an existing verifier.
+0 matches
+REMOVED - **Journal and notify:** journal records session events; notify is a pi extension and may be disabled or silent headlessly.
+0 matches
+REMOVED - **Never runs `pi install` or `npm` for you** to bring `pi-subagents` to the version `doctor`
+0 matches
+REMOVED - **Non-writer role**: a launcher that sets `NANA_HANDOFF=off` in the child env marks a session
+0 matches
+REMOVED - **Notify** writes OSC 777 only in TUI mode, so RPC stdout stays clean even when it has a UI.
+0 matches
+REMOVED - **OS notification** when the agent settles and waits for you.
+0 matches
+REMOVED - **Post-edit:** configured checks run after successful edits only in pi; absent commands mean no checks.
+0 matches
+REMOVED - **Provenance**: the injected block is labelled "agent-written compaction summary", names the
+0 matches
+REMOVED - **Refusals are loud** — a `handoff_symlink_refused` journal line (`op: "read" | "write"`) plus
+0 matches
+REMOVED - **Scope is every path component BELOW the workspace root.** Components at or above the root
+0 matches
+REMOVED - **Staleness = a pointer, not an excerpt**: older than `handoff.staleAfterDays` (default 7, age
+0 matches
+REMOVED - **Subagent children and nana-gate (architecture-ruling.md, 2026-10-04).** `nana-setup`'s
+0 matches
+REMOVED - **The compaction summary store refuses to read or write through a symlink** (2026-09-08, commit `2efd435`; scoped by
+0 matches
+REMOVED - **The queue exists but the lock cannot be taken** → the checker does **NOT** run, and
+0 matches
+REMOVED - **The queue module cannot be resolved** (running outside pi — another host, a bare test
+0 matches
+REMOVED - **The structured delegation bridge bypasses `forceTopLevelAsync` too** (astra review r1/r2,
+0 matches
+REMOVED - **Toasts**: post-edit check failures, compaction summary written/picked up/refused, context compacted.
+0 matches
+REMOVED - **Unconditional — not trust-gated.** Point `handoff.path` at the real destination instead of
+0 matches
+REMOVED - **Why user scope, not "require trust"**: pi auto-trusts a nana-only `.pi/`, so "require trust"
+0 matches
+REMOVED - **`pi pi-subagents`** — the installed `pi-subagents` package (`<agent dir>/npm/node_modules/
+0 matches
+REMOVED - **post-edit checks run inside pi's own file-mutation queue** (2026-09-08, commit `2efd435`).
+0 matches
+REMOVED - **post-edit failures are appended to the tool result** so the model sees and fixes them;
+0 matches
+REMOVED - An unmarked reviewer.md reads ✗ because it is not nana's seed, not because it is broken.
+0 matches
+REMOVED - `packages/` — our pi packages, chiefly the nana extension pack: ten extensions (gate,
+0 matches
+REMOVED - `packages/nana-pack/` — the pi extension pack: gate, post-edit checks,
+0 matches
+REMOVED - doctor's `pi reviewer agent` line reads any read error as missing and suggests install.
+0 matches
+REMOVED 2026-10-04, pi-subagents 0.75.0): `src/slash/delegation-adapters.js:170-189` builds its launch
+0 matches
+REMOVED A **relative** custom `handoff.path` resolves against the
+0 matches
+REMOVED A POSIX hard kill, or a kill before the Windows watcher starts, can leave the folder.
+0 matches
+REMOVED A Windows green result is not a substitute for a rehearsal on the owner's Windows machine.
+0 matches
+REMOVED A builder's tool command in its own process group can still outlive that builder group.
+0 matches
+REMOVED A canonical cwd holding
+0 matches
+REMOVED A command that sets no `timeoutMs` gets 30 seconds;
+0 matches
+REMOVED A comment glued to an operator, a redirection or a member access, and nested strings inside a string's `$( … )`, are known gaps.
+0 matches
+REMOVED A custom `handoff.path` is not
+0 matches
+REMOVED A failed build line names pi-worker's refusal or pi's own first error line.
+0 matches
+REMOVED A hook counts as present only when
+0 matches
+REMOVED A later `set +e` or `set +o errexit` never turns that text flag off, and `+o errexit` itself counts as enabling, even before a status-discarding `;` or newline.
+0 matches
+REMOVED A path in the user's own home is
+0 matches
+REMOVED A pi-review run fails on a timeout, launch or exit failure, a missing or non-LAND final verdict, a missing single LAND tally for its item, or a fixture record missing the whole review standard, run token or reviewer role.
+0 matches
+REMOVED A pi-worker run fails on a timeout, launch or exit failure, wrong final answer and verdict lines, missing rendered preamble, brief, writing tag or worker role, a missing or wrong build-record pair, or a wrong or unreleased lane lock.
+0 matches
+REMOVED A resolving `handoffs/` link is still honored.
+0 matches
+REMOVED A reviewer you wrote reads ✗ by design.
+0 matches
+REMOVED A skipped check is always reported; it is never
+0 matches
+REMOVED A store entry whose recorded `Cwd:` is another directory is not injected
+0 matches
+REMOVED A versioned lossless encoding is deferred.
+0 matches
+REMOVED Adding the marker by hand turns it ✓ without the bash and evidence rules.
+0 matches
+REMOVED After doctor it starts one offline lane build through each installed pi-worker launcher, in its own linked worktree of that throwaway repository.
+0 matches
+REMOVED After taking the lock, a lane build appends a start record before the builder starts and an end record before releasing the lock on each handled exit.
+0 matches
+REMOVED Age is the only staleness signal (no HANDOFF-commit invalidation).
+0 matches
+REMOVED Any existing lock refuses the launch, naming its path and recorded pid when readable; a later launch never reclaims it automatically.
+0 matches
+REMOVED Background alone is never
+0 matches
+REMOVED Before removing a lock by hand, confirm that no builder process group or tool process for that worktree is running.
+0 matches
+REMOVED Before the builds, the check points the temporary home's roster builder at the test model and lists the review fixture in pi's user settings.
+0 matches
+REMOVED CI's Windows leg runs the win32 branch: a timed-out or aborted check's process and its child are ended through `taskkill /T /F`; with `taskkill` off PATH only the shell is killed, and the check's own processes keep running.
+0 matches
+REMOVED Claude Code documents the no-decision behavior: “If no decision is returned, Claude Code continues with its normal permission flow” ([PreToolUse decision control](https://code.claude.com/docs/en/hooks#pretooluse-decision-control)).
+0 matches
+REMOVED Claude Code documents the response shape as `hookSpecificOutput` with `hookEventName: "PreToolUse"`, `permissionDecision: "ask"`, and `permissionDecisionReason` ([PreToolUse hook output](https://docs.anthropic.com/en/docs/claude-code/hooks#pretooluse-decision-control)).
+0 matches
+REMOVED Claude Code has no nana per-edit checks.
+0 matches
+REMOVED Claude Code's hook abstains with empty stdout on non-matches and errors, leaving its normal permission flow in place; errors are diagnosed on stderr.
+0 matches
+REMOVED Closes on `nana-setup project <dir> --check`.
+0 matches
+REMOVED Custom `handoff.path`: a repo could commit the
+0 matches
+REMOVED Customized commands—including environment prefixes, interpreters, or arguments—are preserved as complete entries.
+0 matches
+REMOVED Disable with `handoff.enabled: false`.
+0 matches
+REMOVED Docs only: no language stack, no copier, no source/config/CI changes (that's `adopt-py` / `adopt-ts`).
+0 matches
+REMOVED Doctor reports remaining knowledge wiring as a retired-hook failure until install removes it.
+0 matches
+REMOVED Each build adds only `PI_OFFLINE=1`.
+0 matches
+REMOVED Earlier live Bash text also makes that pipeline prompt when it contains `errexit` anywhere, in any case and even inside a longer word, or contains a `set` word at any position followed within the same simple command—before the next `;`, `&`, `|`, newline or closing bracket—by an option word made of `-` and letters including `e`.
+0 matches
+REMOVED Every check gets
+0 matches
+REMOVED Existing files, the-hive's included, are **not deleted and not
+0 matches
+REMOVED Existing gate checks keep precedence; this floor cannot be exempted by `allowPatterns`.
+0 matches
+REMOVED FAIL naming the locations tried when pi is absent.
+0 matches
+REMOVED Generated projects record the template tag, re-sync via `uvx copier update`, and carry a CI `template-drift` job that goes red when a newer template tag exists.
+0 matches
+REMOVED Headless notifications are opt-in (`notify.headless`).
+0 matches
+REMOVED If an ancestor directory has one, the session is told "no compaction summary for this
+0 matches
+REMOVED If no affirmative trust record covers the worktree, the launcher prints `trust: none for <worktree> — project post-edit checks are inert (nana-setup trust <dir>)` and continues; project post-edit commands are inert until pi trusts the directory.
+0 matches
+REMOVED If one exists the
+0 matches
+REMOVED If the OS notifier fails or hangs —
+0 matches
+REMOVED If the session file is unavailable the write still happens with `Writer: unknown`
+0 matches
+REMOVED In particular it loses the rulings, objective, verifier-pipe hook and user `permissions.defaultMode`; tools outside its allowlist are denied in print mode.
+0 matches
+REMOVED Install removes only complete installer-shaped knowledge entries in shell or exec form, including quoted paths with spaces, and drops a matcher group only when that removal empties it.
+0 matches
+REMOVED Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved.
+packages/nana-setup/tests/verifier-pipe.test.mjs:75: check("setup README retains context retirement and knowledge retirement guarantees", setupReadme.includes("Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved.") && setupReadme.includes("Install removes only complete installer-shaped knowledge entries in shell or exec form"));
+REMOVED Install's own row then names what is there, such as a directory or an unreadable file.
+0 matches
+REMOVED Installed Windows hooks run directly in exec form (`node` with arguments, no shell).
+0 matches
+REMOVED It does not cover the UI confirmation path.
+0 matches
+REMOVED It does not start Claude Code or prove the result on every machine.
+0 matches
+REMOVED It no longer inherits user rules, user CLAUDE.md, user hooks, user MCP instructions or auto-memory.
+0 matches
+REMOVED It updates only the command field of exact managed retired SessionStart hooks, in place.
+0 matches
+REMOVED Its child processes receive the temporary home and temporary/cache folders; the sanitized base environment removes `PI_CODING_AGENT_DIR`, `PI_CODING_AGENT_SESSION_DIR`, `CLAUDE_CONFIG_DIR`, nana's override variables and caller npm configuration.
+0 matches
+REMOVED Its final build-record stderr line gives this build's outcome, elapsed minutes and recorded cost, followed by the lane summary.
+0 matches
+REMOVED Its inputs are the brief, tree movement, feature known bugs and review standard, plus project/local context.
+0 matches
+REMOVED Its settings seal `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`.
+0 matches
+REMOVED L3 to custom paths).
+0 matches
+REMOVED L5 landed on 2026-09-29 (**Adoption signal** above) and it is journal-only, so the session still sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory.
+0 matches
+REMOVED Lane mode holds an exclusive-create pid lock file for the worker lifetime.
+0 matches
+REMOVED Never inferred from the tool list or `hasUI` (the desk runs pi sessions).
+0 matches
+REMOVED No header `Cwd:` check applies to it (the owner chose one file).
+0 matches
+REMOVED No summary text is inlined in that case, and provenance still lives in the artifact's own
+0 matches
+REMOVED Non-matches and hook errors abstain (empty stdout), so Claude Code's normal permission flow continues; errors write a diagnostic to stderr.
+0 matches
+REMOVED Normal exit, ledger failure and handled SIGINT, SIGTERM and SIGHUP remove the settings folder.
+0 matches
+REMOVED On FAIL, the check prints the hooks block and the last knowledge-pull record after the result lines.
+0 matches
+REMOVED On Windows the turn enables pi's PowerShell tool, and nana-gate must block the PowerShell verifier sample.
+0 matches
+REMOVED On Windows, Python before 3.15 therefore opens encoding-unspecified files
+0 matches
+REMOVED On Windows, a failed check is reclassified as `error` only when it exits 1 and begins with a simple literal
+0 matches
+REMOVED On native Windows (Claude Code ≥ 2.1.139), setup wires every hook entry in exec form instead — `"command": "node"` plus an `args` array Claude Code spawns directly with no shell — naming the checkout's own active scripts under `packages/nana-setup/claude/hooks/` with no path quoted, escaped or refused; an installer-shaped entry whose script no longer resolves inside the checkout, in either form, is replaced in place the next time install runs — a hand-written entry naming a different, customized target is left untouched.
+0 matches
+REMOVED Only the exact
+0 matches
+REMOVED Retired script invocations outside those exact entries are preserved and doctor reports them as problems.
+0 matches
+REMOVED Run `cd /d "%USERPROFILE%\nana-pi"`, then `nana-setup trust "%USERPROFILE%\nana-pi"` (it asks before it records), then `nana-setup doctor`; expect `all good`.
+0 matches
+REMOVED Run `cd ~/nana-pi`, then `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor`; expect `all good`.
+0 matches
+REMOVED Run `doctor`.
+0 matches
+REMOVED Run `install --desk` if the desk is used.
+0 matches
+REMOVED Run `node packages/nana-setup/bin/install-check.mjs` from the repository root.
+0 matches
+REMOVED Run `pi install npm:pi-subagents@0.75.0`.
+0 matches
+REMOVED SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
+0 matches
+REMOVED Safe on re-run (reconciles).
+0 matches
+REMOVED Seat rulings behind this:
+0 matches
+REMOVED Short-lived review children do not compact, so this is safe in practice today; a
+0 matches
+REMOVED Such a path is shown as the
+0 matches
+REMOVED Ten extensions giving pi the hook coverage we require (Claude Code parity classes):
+0 matches
+REMOVED That guarantee covers the ordinary case only — see `packages/nana-pack/README.md` Behavior
+0 matches
+REMOVED That is a residual; **what closes it** is the OS sandbox /
+0 matches
+REMOVED The **other blocks in the same file, including `postEdit.commands`, apply
+0 matches
+REMOVED The Claude Code hook is wired on native Windows too (Claude Code ≥ 2.1.139), with matcher `Bash|PowerShell`; its PowerShell judgments use the pipe guard's own PowerShell dialect, the same one the pi seat's `nana-gate` already uses for PowerShell.
+0 matches
+REMOVED The Claude Code knowledge hook is retired (#342); use `nana-knowledge query`.
+0 matches
+REMOVED The Node PreToolUse hook (matcher `Bash` on macOS and Linux, `Bash\|PowerShell` on Windows) asks only when a masked pipeline's exit status can reach the commit without active `pipefail`; a `;` or a newline that discards it does not prompt, and `git.exe` and path spellings count as git; a non-match or hook error abstains with empty stdout, and errors write a diagnostic to stderr.
+0 matches
+REMOVED The adoption hook fails on a stale-install or stale-check-unavailable line.
+0 matches
+REMOVED The agent edits policy files only through you:
+0 matches
+REMOVED The artifact is retained at `<path>` and can be read by hand.
+0 matches
+REMOVED The ceiling kills the entire builder process group and reports FAILED.
+0 matches
+REMOVED The check depends on Node, Git, pi and npm registry access.
+0 matches
+REMOVED The check does not install nana into the caller's real home.
+0 matches
+REMOVED The check installs nana into a temporary home, registers the checked-out pi extensions, installs pi-subagents, starts a pi RPC session, runs one scripted pi turn, runs one offline review through each installed pi-review launcher against a throwaway repository, simulates Claude Code hook dispatch, and runs doctor.
+0 matches
+REMOVED The check proves that the documented installation and selected installed hooks run in this fixture on the current runner.
+0 matches
+REMOVED The check sets one failing post-edit command in the temporary home's nana-pack.json.
+0 matches
+REMOVED The cwd stays the reviewed tree; its own `AGENTS.md`/`CLAUDE.md` and rules remain eligible.
+0 matches
+REMOVED The hard-stop watcher releases only a lock that still names its pi-worker and only after the recorded builder group is gone; on Windows it keeps the lock for a builder launched through `cmd.exe`.
+0 matches
+REMOVED The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch.
+0 matches
+REMOVED The line is ≤300 chars: over the cap the authority tail goes, then the writer is
+0 matches
+REMOVED The marker is an
+0 matches
+REMOVED The notifier also runs under
+0 matches
+REMOVED The old sibling `.pi/.gitignore` management and
+0 matches
+REMOVED The path always resolves to the file under pi's read tool (`resolveToCwd`):
+0 matches
+REMOVED The path is printed when written and
+0 matches
+REMOVED The pi session fails on an extension error or an unavailable notice, widget or status.
+0 matches
+REMOVED The pi-subagents install is retried up to three times, five seconds apart, after an exit failure, and each failed attempt prints a NOTE line with npm's error-code line.
+0 matches
+REMOVED The post-edit UTF-8 test FAILs, naming `python3`
+0 matches
+REMOVED The review and build ledgers belong to the temporary home, not the caller's home.
+0 matches
+REMOVED The reviewer adds `--setting-sources project,local`, an external `--settings` file and `--strict-mcp-config` after its tool lists.
+0 matches
+REMOVED The rule is by **path shape, whatever the config says**:
+0 matches
+REMOVED The scripted turn covers pi's objective, rulings, writing and knowledge prompt injections, nana-gate blocking the Bash verifier sample, and a file write whose result must carry that post-edit check's failure line.
+0 matches
+REMOVED The scripted turn, reviews and builds use local test models: they make no network request and call no real model.
+0 matches
+REMOVED The session gets one line naming the configured path
+0 matches
+REMOVED The settings file sets `claudeMdExcludes` to absolute ancestor paths for CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md and .claude/rules/**, from the reviewed tree's parent through the filesystem root.
+0 matches
+REMOVED The shared carry helper prints a value-free `claude-review:` diagnostic.
+0 matches
+REMOVED The store removes
+0 matches
+REMOVED The user-scope store has no symlink policy — it is the owner's directory, so
+0 matches
+REMOVED The write says so at
+0 matches
+REMOVED This check is conservative: commands later in a compound expression and names outside its internal
+0 matches
+REMOVED This is an additive best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary.
+0 matches
+REMOVED This omission is pointer-only: an inlined summary always
+0 matches
+REMOVED This requires Claude Code's supported `claudeMdExcludes` setting (confirmed in 2.1.310); managed/policy instructions cannot be excluded.
+0 matches
+REMOVED Traced no further than that bridge: the package's command
+0 matches
+REMOVED Two outcomes you can see:
+0 matches
+REMOVED UTF-8 is a failed pickup, never injected with replacement characters); a failed write leaves the prior
+0 matches
+REMOVED When a fresh session's store entry is *missing* (never
+0 matches
+REMOVED When the version is missing or too old, `doctor` reads
+0 matches
+REMOVED Wherever PowerShell is installed (on CI, always the Windows leg), a test compares the PowerShell dialect's comment and string spans with PowerShell's own tokenizer over generated commands.
+0 matches
+REMOVED Windows also repairs the POSIX installer's active shell-form hook entries to exec form in place, and moves its verifier from `Bash` to `Bash\|PowerShell` without duplicating one already there.
+0 matches
+REMOVED Windows also starts the existing detached cleanup watcher, without a build record or lane lock, because its SIGTERM forcibly stops the process.
+0 matches
+REMOVED Without that earlier Bash errexit text, a `;` or a newline that discards the status does not prompt, and `git.exe` and path spellings count as git.
+0 matches
+REMOVED Without that earlier Bash errexit text, a `;` or a newline that discards the status does not prompt, and `git.exe` and path spellings count as git; on native Windows the guard covers PowerShell too, through the pipe guard's own PowerShell dialect (string, here-string and comment rules).
+0 matches
+REMOVED Write your objective and current-priority lines over the placeholders in `%USERPROFILE%\.pi\agent\nana-objective.md`, or set `objective.path` in `%USERPROFILE%\.pi\agent\nana-pack.json` to an umbrella repo's `OBJECTIVE.md`; write paths with forward slashes because JSON reads a single backslash as an escape, and `~/` means your user folder, for example `{ "objective": { "projectFile": "OBJECTIVE.md", "path": "~/umbrella/OBJECTIVE.md" } }`.
+0 matches
+REMOVED Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
+0 matches
+REMOVED `--effort` comes from the exact roster model key in user `modelSettings`, else top-level `effortLevel`, else no flag; aliases are not expanded.
+0 matches
+REMOVED `.pi/handoff.md` — any directory, case-insensitive, also after resolving its parent's real
+0 matches
+REMOVED `<agent dir>/nana-pack.json` is the user-scope equivalent, always
+0 matches
+REMOVED `DESK_PI_ROOT` points the suite at another install.
+0 matches
+REMOVED `LANG` and every `LC_*` value pass through
+0 matches
+REMOVED `NANA_HANDOFF=off` switch for subagent children is a follow-up if that observation ever changes.
+0 matches
+REMOVED `PI_CODING_AGENT_DIR`**; a configured `handoff.path` replaces it (Custom `handoff.path` below)
+0 matches
+REMOVED `PYTHONIOENCODING` from the owner pass through, with Python giving its non-empty I/O value precedence.
+0 matches
+REMOVED `PYTHONUTF8=1` when pi's `PYTHONUTF8` is unset or empty; non-empty `PYTHONUTF8` and every
+0 matches
+REMOVED `Written:` / `Writer:` header.
+0 matches
+REMOVED `agents/reviewer.md` doesn't add a new agent — it REPLACES pi-subagents' builtin `reviewer` for
+0 matches
+REMOVED `bash` here is instructed-read-only, not sandboxed enforcement: this agent runs as a LEAF — the
+0 matches
+REMOVED `configured: "handoff.path"`); each compaction is refused and journaled
+0 matches
+REMOVED `docs/directory-adoption-design-2026-09-28.md`).
+0 matches
+REMOVED `doctor` also reads three things `install` never writes, because they belong to pieces outside its
+0 matches
+REMOVED `doctor` names, for you to run.
+0 matches
+REMOVED `doctor` reads ✗ naming the key and its required value when either is wrong, or when the file is missing or invalid — and never rewrites a file you already have |
+0 matches
+REMOVED `doctor` reads ✗ when the file is absent or its body's first line is not the nana marker comment |
+0 matches
+REMOVED `forceTopLevelAsync: true`, which keeps an ORDINARY, model-driven top-level `subagent` tool
+0 matches
+REMOVED `forceTopLevelAsync` either — pi-subagents' own docs say nested calls keep their own inherited
+0 matches
+REMOVED `handoff.path` **outside** the workspace has only its final component checked.
+0 matches
+REMOVED `handoff.path` containing a Unicode space pi's read tool folds to ASCII space
+0 matches
+REMOVED `handoff_legacy_ignored`).
+0 matches
+REMOVED `install` never runs `pi install` or
+0 matches
+REMOVED `missing` means genuinely absent: an ENOENT caused by a dangling link — the entry itself (`dangling_symlink`) or a directory above it such as a dangling `handoffs/` link (`dangling_parent`) — is an `error` and journals `handoff_pickup_failed`, never `handoff_missing`.
+0 matches
+REMOVED `npm` on your behalf for this — that is a network fetch of third-party install code, a new class
+0 matches
+REMOVED `project,local` alone is insufficient: Claude can label home rules as ancestor Project memory.
+0 matches
+REMOVED `session_start`.
+0 matches
+REMOVED `src/runs/shared/child-tool-plan.js:271-273`) — background or not.
+0 matches
+REMOVED `src/slash/prompt-template-bridge.js:144-176`, which `forceTopLevelAsync`'s own depth-0 check
+0 matches
+REMOVED `timeoutMs: 0` still means no deadline.
+0 matches
+REMOVED `tool_result` handler, so two edits to one file in a single assistant message could race a
+0 matches
+REMOVED `ui_prompt_start` sends the fixed body
+0 matches
+REMOVED `uninstall` removes exact desired hook objects and a knowledge entry that differs only by another spelling of the same file; variants and foreign entries stay.
+0 matches
+REMOVED `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` **regardless of
+0 matches
+REMOVED `~/…` under the real home (the store: `~/.pi/agent/handoffs/<hash>.md`), cwd-relative inside
+0 matches
+REMOVED a UI warning.
+0 matches
+REMOVED a `handoff.path` (user scope or nana-trusted project scope) whose final two segments are
+0 matches
+REMOVED a control character (tab, newline, ESC, C1), U+2028/U+2029 or a bidi control, a lone
+0 matches
+REMOVED a deliberately symlinked `handoffs/` is honored (a write renames over an entry, so it never
+0 matches
+REMOVED a hand-edited `extensions/subagent/config.json` and `agents/reviewer.md`), `doctor` exit codes, `--dry-run` writing nothing, a home with a space (the generated hook commands are executed), the gated objective seed, the subagent config and reviewer agent seeded only when absent, and the private rule as a **symlink** — install ✗ with the fix **and exit 1** (dry run too), a summary that does not claim everything is in place, nothing written through the link, doctor ✗ and exit 1, both green again once it is a regular file |
+0 matches
+REMOVED absolute path in a JSON string literal (those characters as `\uXXXX`) followed by
+0 matches
+REMOVED added) and three rule changes (architecture-ruling.md, 2026-10-04): the review role gathers its
+0 matches
+REMOVED adopted, the handoff extension journals
+0 matches
+REMOVED affected (no `Cwd:` check).
+0 matches
+REMOVED after each checked edit (`✗ 1/2` on failure, `⏱ timeout`, `– skipped (lock|aborted)` when a check
+0 matches
+REMOVED ambient extensions on a child outright** (same review, pi-subagents 0.75.0
+0 matches
+REMOVED an 8 s deadline, so a hung one fails over instead of holding the pipe open.
+0 matches
+REMOVED ancestor's text.
+0 matches
+REMOVED and `python`, when neither is Python 3.7 or later.
+0 matches
+REMOVED and journals `handoff_provenance_unavailable` next to `handoff_written`.
+0 matches
+REMOVED and the handoff path.
+0 matches
+REMOVED anyone using this pack, because pi loads a user-scope agent file of the same name instead of the
+0 matches
+REMOVED are deliberately not checked (macOS `/tmp` → `/private/tmp` is your filesystem).
+0 matches
+REMOVED as UTF-8 under post-edit even when the owner's terminal uses an ANSI code page, so a check can differ.
+0 matches
+REMOVED as repo-writable, not injected and never written (journal `handoff_legacy_ignored` with
+0 matches
+REMOVED background subagent.
+0 matches
+REMOVED being traced to the `foregroundOnly` path first.
+0 matches
+REMOVED boundary; real enforcement is the sandbox or container boundary, exactly as everywhere else in this
+0 matches
+REMOVED builtin (`docs/agents.md`'s own documented precedence: builtin → package → user → project).
+0 matches
+REMOVED but ignored for one release; post-edit checks no longer write or read receipts.
+0 matches
+REMOVED can set `postEdit.commands`, gate patterns (`extraPatterns` / `allowPatterns` / `protectedPaths`),
+0 matches
+REMOVED carries writer and timestamp.
+0 matches
+REMOVED chars the writer is trimmed then dropped, then the age (a short escaped path keeps both).
+0 matches
+REMOVED checks for, and never edits `mcp.json` — both are read-only checks (above); the fix is a command
+0 matches
+REMOVED child (depth ≥ 1) the model launches with an explicit `async:false` is not reached by
+0 matches
+REMOVED child: same posture as every other residual above, advisory, not a security boundary.
+0 matches
+REMOVED command name absent from the working folder, PATH and the sealed cmd.exe internal-command list.
+0 matches
+REMOVED compaction resets it.
+0 matches
+REMOVED compaction summary store key (`sha256(cwd)`) and desktop notify are shared between parent and child.
+0 matches
+REMOVED compaction summary to a store — **by default the user-scope store fixed at**
+0 matches
+REMOVED compaction-summary toast above still shows, because the notice is a widget, not a toast.
+0 matches
+REMOVED component below the root is checked, as in the handoff).
+0 matches
+REMOVED configured file, or a directory above it, as a link to something like `~/.ssh/id_rsa`:
+0 matches
+REMOVED container layer.
+0 matches
+REMOVED containing a literal `~` (or a cwd-relative one starting with `@`, which pi strips) is always
+0 matches
+REMOVED contains characters that cannot be recorded losslessly — a future session here will not pick
+0 matches
+REMOVED control, line-separator, bidi character or lone surrogate (`lib/display.mjs` `locator`).
+0 matches
+REMOVED could not run) · `gate ✓ 12 checked · 1 gated` — tool calls the gate inspected, and the ones it stopped on.
+0 matches
+REMOVED decode it exactly (do not pass it to read as written)" — never claimed readable; the same form is used in
+0 matches
+REMOVED directory" plus that file's path; if no ancestor has one, nothing is added to the
+0 matches
+REMOVED extension and inspects every command and edit target before it runs, the same as any other
+0 matches
+REMOVED folder-by-feature, nested AGENTS.md, post-edit quality gates, and the three frontier seeds
+0 matches
+REMOVED formatter's read-modify-write.
+0 matches
+REMOVED from the file's own `Written:` header, else mtime) the summary is replaced by one pointer line
+0 matches
+REMOVED gap under "Could not verify" rather than blocking on a supervisor reply.
+0 matches
+REMOVED gate included, with default extension inheritance — no matter what the model asks for.
+0 matches
+REMOVED gets SIGTERM (win32: `taskkill /T /F`), SIGKILL 2 s later, and the run **settles either way**
+0 matches
+REMOVED hand-edited copy of that file that flips the key back reopens a foreground, ungated top-level
+0 matches
+REMOVED handler pending forever.
+0 matches
+REMOVED handoff off unless the launcher clears `NANA_HANDOFF`.
+0 matches
+REMOVED handoff-artifact.test.mjs
+0 matches
+REMOVED handoff-staleness.test.mjs
+0 matches
+REMOVED handoff-store.test.mjs
+0 matches
+REMOVED handoff-symlink.test.mjs
+0 matches
+REMOVED handoff-trust.test.mjs
+0 matches
+REMOVED harness) → the check **does** run, unserialized, and the absence is announced once per
+0 matches
+REMOVED here, not migrated**, with future summaries written to the user-scope store (journal
+0 matches
+REMOVED in-app notification and journals `notify_fallback` with the reason.
+0 matches
+REMOVED instructions".
+0 matches
+REMOVED is ONE line (`- check <command> exited N: <output>`, output line breaks shown as ` ⏎ `, the
+0 matches
+REMOVED is either a no-op or (with nana-trust) a blackout of compaction summaries in every repo.
+0 matches
+REMOVED it up automatically") and journal `handoff_cwd_unrecordable` (`path`, rendered `recorded`).
+0 matches
+REMOVED its nana-gate analysis were verified only against that version (0.75.0's own CHANGELOG: background
+0 matches
+REMOVED journal line (`handoff_pickup_failed` / `handoff_write_failed`; a store file that is not valid
+0 matches
+REMOVED last 2000 chars kept and a truncation stated); the edited path is `promptPath`-rendered.
+0 matches
+REMOVED launch backgrounded — and therefore inside the detached runner process that loads this pack,
+0 matches
+REMOVED linking to it.
+0 matches
+REMOVED live**, so a write that evades the gate's text scan can run code in the **same** session
+0 matches
+REMOVED losslessly, so its compaction summary is written but never picked up automatically.
+0 matches
+REMOVED lowercase value `off` is honored (`OFF`, `0`, `false`, empty behave normally).
+0 matches
+REMOVED merely unreadable), no `handoff.path` is configured, and the session runs inside a git
+0 matches
+REMOVED migrated** — your text was not moved anywhere; repo text is never laundered into the trusted
+0 matches
+REMOVED nana-gate is advisory by doctrine — a load-path convenience, not a security
+0 matches
+REMOVED nana-handoff.ts
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/handoff-artifact.test.mjs:10: const ext = (await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href)).default;
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/handoff-symlink.test.mjs:10: const ext = (await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href)).default;
+packages/nana-pack/tests/code-map-launch.test.mjs:202: ...['extensions/nana-handoff.ts', ...['handoff-artifact', 'handoff-store', 'handoff-staleness', 'handoff-trust', 'handoff-symlink'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires compaction storage and pickup; adoption survives separately.']),
+packages/nana-pack/tests/code-map-launch.test.mjs:217: for (const file of ['display-surfaces', 'config-handlers-malformed', 'writing-injection', 'handoff-writer-role', 'adoption-producer']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-handoff.ts`, 'FEAT-013 removes handoff-only calls; adoption now imports nana-adoption.');
+packages/nana-pack/tests/handoff-writer-role.test.mjs:4: * @inputs extensions/nana-handoff.ts, bin/pi-review.mjs, a stub `pi` on PATH (./fake-pi.mjs on win32), a temp HOME and a scratch git repository
+packages/nana-pack/tests/requirements-deliverables.test.mjs:142: "Artifact: A-002 · handoff · user-home store: ~/.pi/agent/handoffs/ · extension: packages/nana-pack/extensions/nana-handoff.ts",
+packages/nana-pack/tests/requirements-deliverables.test.mjs:147: const bindingTracked = ["packages/nana-pack/extensions/nana-handoff.ts", "packages/nana-pack/lib/suite-records.mjs", "scripts/test.mjs"];
+packages/nana-pack/tests/requirements-deliverables.test.mjs:154: ["valid home", "Made by: R-001 · extension: packages/nana-pack/extensions/nana-handoff.ts · A-002", null, "not tracked at HEAD"],
+packages/nana-pack/tests/setup-retire.test.mjs:52: for (const name of ['nana-handoff.ts', 'nana-post-edit.ts', 'nana-notify.ts']) {
+REMOVED nana-notify.ts
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/notify-fallback.test.mjs:20: const mod = await import(new URL("../extensions/nana-notify.ts", import.meta.url).href);
+packages/nana-pack/tests/code-map-launch.test.mjs:204: ['packages/nana-pack/extensions/nana-notify.ts', 'FEAT-013 setup-retire removes desktop notification behavior.'],
+packages/nana-pack/tests/setup-retire.test.mjs:52: for (const name of ['nana-handoff.ts', 'nana-post-edit.ts', 'nana-notify.ts']) {
+REMOVED nana-post-edit.ts
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-file-queue.test.mjs:51: const ext = await jiti.import(new URL("../extensions/nana-post-edit.ts", import.meta.url).pathname, { default: true });
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-hardening.test.mjs:32: const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-status.test.mjs:13: const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-status.test.mjs:195: const lockExt = await jiti.import(new URL("../extensions/nana-post-edit.ts", import.meta.url).pathname, { default: true });
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/receipt-binding.test.mjs:11: const ext = (await import(new URL("../extensions/nana-post-edit.ts", import.meta.url).href)).default;
+packages/nana-pack/tests/code-map-launch.test.mjs:203: ...['extensions/nana-post-edit.ts', 'lib/post-edit-config.mjs', ...['post-edit-default-timeout', 'post-edit-file-queue', 'post-edit-hardening', 'post-edit-status', 'post-edit-utf8', 'post-edit-values-named'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires the post-edit extension and its dedicated checks.']),
+packages/nana-pack/tests/code-map-launch.test.mjs:216: for (const file of ['display-surfaces', 'config-handlers-malformed']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-post-edit.ts`, 'FEAT-013 removes the post-edit-only cases; surviving cases remain.');
+packages/nana-pack/tests/setup-retire.test.mjs:52: for (const name of ['nana-handoff.ts', 'nana-post-edit.ts', 'nana-notify.ts']) {
+REMOVED nana-trust (L1).
+0 matches
+REMOVED not lock <file> for checking: <reason> ``.
+0 matches
+REMOVED notes for the two documented cases where a child does NOT load nana-gate even under this seeded
+0 matches
+REMOVED notifier (execFile error, non-zero exit, or a PowerShell exception on stderr) falls back to the
+0 matches
+REMOVED notify-dispatch.test.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:205: ['packages/nana-pack/tests/notify-dispatch.test.mjs', 'FEAT-013 retires notifier-only dispatch checks with their extension.'],
+REMOVED notify-fallback.test.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:206: ['packages/nana-pack/tests/notify-fallback.test.mjs', 'FEAT-013 retires notifier-only failure checks with their extension.'],
+REMOVED objective and start accumulating its knowledge (the owner's ruling 2026-09-28;
+0 matches
+REMOVED of effect this installer does not take on.
+0 matches
+REMOVED ordinary env var, so it is **inherited**: any pi or desk process a review child spawns also has
+0 matches
+REMOVED override (`lib/adoption.mjs` `storeDir()`; HANDOFF.md's U2 entry) — atomically (temp file +
+0 matches
+REMOVED own `git`/test evidence with that `bash` tool instead of asking the parent for it, and reports a
+0 matches
+REMOVED own job: pi's installed scoped dependencies, a third-party npm package, and pi's own MCP config.
+0 matches
+REMOVED packages/nana-pack/extensions/nana-handoff.ts
+packages/nana-pack/tests/code-map-launch.test.mjs:217: for (const file of ['display-surfaces', 'config-handlers-malformed', 'writing-injection', 'handoff-writer-role', 'adoption-producer']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-handoff.ts`, 'FEAT-013 removes handoff-only calls; adoption now imports nana-adoption.');
+packages/nana-pack/tests/requirements-deliverables.test.mjs:142: "Artifact: A-002 · handoff · user-home store: ~/.pi/agent/handoffs/ · extension: packages/nana-pack/extensions/nana-handoff.ts",
+packages/nana-pack/tests/requirements-deliverables.test.mjs:147: const bindingTracked = ["packages/nana-pack/extensions/nana-handoff.ts", "packages/nana-pack/lib/suite-records.mjs", "scripts/test.mjs"];
+packages/nana-pack/tests/requirements-deliverables.test.mjs:154: ["valid home", "Made by: R-001 · extension: packages/nana-pack/extensions/nana-handoff.ts · A-002", null, "not tracked at HEAD"],
+REMOVED packages/nana-pack/extensions/nana-notify.ts
+packages/nana-pack/tests/code-map-launch.test.mjs:204: ['packages/nana-pack/extensions/nana-notify.ts', 'FEAT-013 setup-retire removes desktop notification behavior.'],
+REMOVED packages/nana-pack/extensions/nana-post-edit.ts
+packages/nana-pack/tests/code-map-launch.test.mjs:216: for (const file of ['display-surfaces', 'config-handlers-malformed']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-post-edit.ts`, 'FEAT-013 removes the post-edit-only cases; surviving cases remain.');
+REMOVED packages/nana-pack/lib/post-edit-config.mjs
+0 matches
+REMOVED packages/nana-pack/tests/handoff-artifact.test.mjs
+0 matches
+REMOVED packages/nana-pack/tests/handoff-staleness.test.mjs
+0 matches
+REMOVED packages/nana-pack/tests/handoff-store.test.mjs
+0 matches
+REMOVED packages/nana-pack/tests/handoff-symlink.test.mjs
+0 matches
+REMOVED packages/nana-pack/tests/handoff-trust.test.mjs
+0 matches
+REMOVED packages/nana-pack/tests/notify-dispatch.test.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:205: ['packages/nana-pack/tests/notify-dispatch.test.mjs', 'FEAT-013 retires notifier-only dispatch checks with their extension.'],
+REMOVED packages/nana-pack/tests/notify-fallback.test.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:206: ['packages/nana-pack/tests/notify-fallback.test.mjs', 'FEAT-013 retires notifier-only failure checks with their extension.'],
+REMOVED packages/nana-pack/tests/post-edit-default-timeout.test.mjs
+0 matches
+REMOVED packages/nana-pack/tests/post-edit-file-queue.test.mjs
+0 matches
+REMOVED packages/nana-pack/tests/post-edit-hardening.test.mjs
+packages/nana-pack/tests/test-runner.test.mjs:207: "packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
+packages/nana-pack/tests/test-runner.test.mjs:287: "packages/nana-pack/tests/post-edit-hardening.test.mjs": 'console.log("PASS prerequisite fixture ran");\n',
+packages/nana-pack/tests/test-runner.test.mjs:543: "packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
+packages/nana-pack/tests/test-runner.test.mjs:565: ["packages/nana-pack/tests/post-edit-hardening.test.mjs", posix ? "SKIP" : "PASS"],
+REMOVED packages/nana-pack/tests/post-edit-status.test.mjs
+0 matches
+REMOVED packages/nana-pack/tests/post-edit-utf8.test.mjs
+0 matches
+REMOVED packages/nana-pack/tests/post-edit-values-named.test.mjs
+0 matches
+REMOVED packages/nana-setup/claude/hooks/verifier-pipe.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:201: ...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+packages/nana-setup/tests/retired-artifacts.test.mjs:83: const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/retired-artifacts.test.mjs:112: const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/win32-hook-repair.test.mjs:102: const f7OwnerLookalike = { type: 'command', command: 'node', args: [`${repoRoot}/packages/nana-setup/claude/hooks/verifier-pipe.mjs`], timeout: 10, statusMessage: 'nana: verifier pipe' };
+REMOVED packages/nana-setup/lib/verifier-hook.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:201: ...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+packages/nana-pack/tests/code-map-launch.test.mjs:219: for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
+packages/nana-pack/tests/code-map-launch.test.mjs:220: losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
+REMOVED params with `foregroundOnly: true` for a structured delegation request handled by
+0 matches
+REMOVED path — is never read and never written.
+0 matches
+REMOVED pi **process** cwd, not the session cwd; the pointer shows that file.
+0 matches
+REMOVED pi config, subagent config, the reviewer agent and PATH entries all run while it is held.
+0 matches
+REMOVED pi runs sibling tool calls in parallel and releases the edit tool's lock *before* the
+0 matches
+REMOVED pi-subagents/package.json`) must be at least `0.75.0`; this pack's subagent config seed above and
+0 matches
+REMOVED picked up; edit it by hand freely.
+0 matches
+REMOVED pointer may omit the age and writer — the never-trimmed marker takes the room, so over 300
+0 matches
+REMOVED post-edit, lifecycle, notify, handoff, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
+0 matches
+REMOVED post-edit-config.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:203: ...['extensions/nana-post-edit.ts', 'lib/post-edit-config.mjs', ...['post-edit-default-timeout', 'post-edit-file-queue', 'post-edit-hardening', 'post-edit-status', 'post-edit-utf8', 'post-edit-values-named'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires the post-edit extension and its dedicated checks.']),
+REMOVED post-edit-default-timeout.test.mjs
+0 matches
+REMOVED post-edit-file-queue.test.mjs
+apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/post-edit-status.test.mjs:172: // own loader does — same setup as post-edit-file-queue.test.mjs), POSIX mode bits
+REMOVED post-edit-hardening.test.mjs
+packages/nana-pack/tests/test-runner.test.mjs:207: "packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
+packages/nana-pack/tests/test-runner.test.mjs:278: check("a file declared unrunnable on this platform SKIPs with its reason printed", labelFor(A.out, "post-edit-hardening.test.mjs") === "SKIP" && lineFor(A.out, "post-edit-hardening.test.mjs").includes("needs `pgrep` on POSIX"));
+packages/nana-pack/tests/test-runner.test.mjs:281: check("a file whose declared skip condition does not hold runs instead of skipping", labelFor(A.out, "post-edit-hardening.test.mjs") === "PASS");
+packages/nana-pack/tests/test-runner.test.mjs:284: check("a declared tool prerequisite skips only when absent on POSIX", labelFor(A.out, "post-edit-hardening.test.mjs") === (posix ? "SKIP" : "PASS"));
+packages/nana-pack/tests/test-runner.test.mjs:287: "packages/nana-pack/tests/post-edit-hardening.test.mjs": 'console.log("PASS prerequisite fixture ran");\n',
+packages/nana-pack/tests/test-runner.test.mjs:293: check("a tool-dependent file runs when its declared prerequisite exists", labelFor(prerequisitePresent.out, "post-edit-hardening.test.mjs") === "PASS" && prerequisitePresent.out.includes("PASS prerequisite fixture ran") && prerequisitePresent.code === 0);
+packages/nana-pack/tests/test-runner.test.mjs:543: "packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
+packages/nana-pack/tests/test-runner.test.mjs:565: ["packages/nana-pack/tests/post-edit-hardening.test.mjs", posix ? "SKIP" : "PASS"],
+REMOVED post-edit-status.test.mjs
+0 matches
+REMOVED post-edit-utf8.test.mjs
+0 matches
+REMOVED post-edit-values-named.test.mjs
+0 matches
+REMOVED process: a `postedit_file_queue_unavailable` journal line plus the warning "checks are not
+0 matches
+REMOVED producer (`extensions/nana-handoff.ts`) checks the same `printable(root)` before journaling, so a root it
+0 matches
+REMOVED proof nana-gate loaded; both exceptions above are real gaps this lane's config does not close.
+0 matches
+REMOVED recorded inside) — one of four deliberate U2 exceptions to the agent-dir override, beside the
+0 matches
+REMOVED regardless of how it was launched.
+0 matches
+REMOVED registrations name no `/delegate`, and its `/run` slash command builds a different launch
+0 matches
+REMOVED rename, latest compaction wins), and injects it into the next fresh session (`startup`/`new`;
+0 matches
+REMOVED reported as passing.
+0 matches
+REMOVED request (`src/slash/slash-commands.js:598-643`) — so no slash command is named here without
+0 matches
+REMOVED resume, fork and reload skip) in **that exact directory**.
+0 matches
+REMOVED round-cap ledger, the stage-key store and the knowledge index, none of whose runtime reads the
+0 matches
+REMOVED runner process is a second nana-pack session in the SAME working directory as its parent, so the
+0 matches
+REMOVED runner process, where nana-gate (`packages/nana-pack`'s own `tool_call` hook) loads as an ambient
+0 matches
+REMOVED seed is the upstream reviewer persona and output format verbatim, with one tools change (`bash`
+0 matches
+REMOVED serialized against edits".
+0 matches
+REMOVED session gets one pointer line naming it as repo-writable and not injected, **left unchanged
+0 matches
+REMOVED session lifecycle/handoff, notify, `nana-objective`; `skills/` (scaffold, adopt-py,
+0 matches
+REMOVED session — but the fact is not discarded: an unadopted directory is a signal addressed to the
+0 matches
+REMOVED set it for every child.
+0 matches
+REMOVED settings — and runs foreground, ungated, at any depth `maxSubagentDepth` still permits.
+0 matches
+REMOVED shell-quoted; exotic path characters on Windows cmd.exe are quoted best-effort.
+0 matches
+REMOVED skips outright — and a foreground child never loads ambient extensions (nana-gate included)
+0 matches
+REMOVED slip through; the spawn/exit-code/deadline paths do not.)
+0 matches
+REMOVED stale imperative.
+0 matches
+REMOVED startup, new, resume and fork — staying until the next widget show or an extension-UI reset; the
+0 matches
+REMOVED store requires the recorded value to equal the canonical cwd exactly.
+0 matches
+REMOVED store; deleting is the owner's call.
+0 matches
+REMOVED subagent config seed (`extensions/subagent/config.json` in the pi agent dir) sets
+0 matches
+REMOVED subagent config seed above caps `maxSubagentDepth` at 1 — inside pi-subagents' detached background
+0 matches
+REMOVED subagents were broken on 0.74.0 and fixed again there).
+0 matches
+REMOVED successes stay out of its context and are reported by the status chip instead.
+0 matches
+REMOVED surrogate, leading/trailing whitespace, or over 4096 UTF-16 code units cannot be recorded
+0 matches
+REMOVED that moment: a warning notification ("compaction summary written to `<path>`, but this directory's name
+0 matches
+REMOVED that neither picks up nor writes (journal `handoff_skipped_role`); `pi-review` and `review-ledger run`
+0 matches
+REMOVED the "never delete" prompt line are gone with their reason.
+0 matches
+REMOVED the fresh-summary `Source:` line.
+0 matches
+REMOVED the model is told ``  `<command>` did not run — could
+0 matches
+REMOVED the nana-pack — all ten extensions, the knowledge pull + every skill (the root package.json
+0 matches
+REMOVED the repo-supplied vector and needs no trust.
+0 matches
+REMOVED the session's cwd, otherwise **absolute and in full** — never truncated, no `…/` form; a path
+0 matches
+REMOVED the usual Windows cases: no WinRT toast registration, PowerShell locked down, an 8 s deadline hit —
+0 matches
+REMOVED the-hive 09-13 "do not modify gameplay code yet" summary reached 56 sessions).
+0 matches
+REMOVED through `fileField` so a directory name cannot forge a header field; pickup from the default
+0 matches
+REMOVED through a post-edit command.
+0 matches
+REMOVED trimmed, then the age.
+0 matches
+REMOVED true path beats a short false one.
+0 matches
+REMOVED unchanged, set or unset.
+0 matches
+REMOVED verifier-hook.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:201: ...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+packages/nana-pack/tests/code-map-launch.test.mjs:219: for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
+packages/nana-pack/tests/code-map-launch.test.mjs:220: losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
+REMOVED verifier-pipe.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs:201: ...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+packages/nana-pack/tests/templates-render.test.mjs:460: "verifier-pipe.mjs": "verifier-pipe.mjs",
+packages/nana-setup/tests/retired-artifacts.test.mjs:80: const target = path.join(layout.hooksDir, 'verifier-pipe.mjs');
+packages/nana-setup/tests/retired-artifacts.test.mjs:81: fs.symlinkSync(path.join(pkg, 'claude/hooks/verifier-pipe.mjs'), target);
+packages/nana-setup/tests/retired-artifacts.test.mjs:82: const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/retired-artifacts.test.mjs:83: const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/retired-artifacts.test.mjs:89: if (!before.stdout.split('\n').some(l => l.includes('✗ settings PreToolUse retired hook') && l.includes('verifier-pipe.mjs') && l.includes('nana-setup install'))) throw new Error('doctor must name the retired hook and install fix');
+packages/nana-setup/tests/retired-artifacts.test.mjs:111: const shell = { type: 'command', command: `node '${h}/.claude/hooks/verifier-pipe.mjs'`, timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/retired-artifacts.test.mjs:112: const exec = { type: 'command', command: 'node', args: ['C:/old checkout/packages/nana-setup/claude/hooks/verifier-pipe.mjs'], timeout: 5, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/win32-hook-repair.test.mjs:80: const carriedVerifier = { type: "command", command: "node '/Users/someone/.claude/hooks/verifier-pipe.mjs'", timeout: 5, statusMessage: "nana: verifier pipe" }; // historical fixture
+packages/nana-setup/tests/win32-hook-repair.test.mjs:102: const f7OwnerLookalike = { type: 'command', command: 'node', args: [`${repoRoot}/packages/nana-setup/claude/hooks/verifier-pipe.mjs`], timeout: 10, statusMessage: 'nana: verifier pipe' };
+packages/nana-setup/tests/win32-hook-repair.test.mjs:163: `${adviceDeadRoot}/verifier-pipe.mjs`,
+packages/nana-setup/tests/win32-hook-repair.test.mjs:219: `${sourceHooksDir}/verifier-pipe.mjs`,
+REMOVED vocabulary may remain ordinary `checks_failed` or be reported as `error`; neither result passes.
+0 matches
+REMOVED win32: `rename` over an existing file is assumed atomic enough on NTFS —
+0 matches
+REMOVED with `status: "timeout"` (deadline) or `"not_run"` (turn aborted) rather than leaving the tool
+0 matches
+REMOVED writes through a linked entry).
+0 matches
+REMOVED writing session file (`ctx.sessionManager.getSessionFile()`) and its timestamp, ranks it
+0 matches
+REMOVED written (it could resolve to an ASCII-space sibling); since S1 the same holds for any other
+0 matches
+REMOVED you get an in-app "Ready for input" notification instead, plus a `notify_fallback` journal line
+0 matches
+REMOVED { "match": "\\.py$", "run": "ruff check {file}", "timeoutMs": 20000 }
+0 matches
+REMOVED { "match": "\\.ts$", "run": "npx prettier --write {file}" },
+0 matches
+REMOVED | Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |
+0 matches
+REMOVED | Hook, rule, skill and bin launchers; subagent config and reviewer seed | rebuildable | Run `nana-setup install`.
+0 matches
+REMOVED | Knowledge index, pi-subagents package and desk plist | rebuildable | Build knowledge, install pi-subagents from the network, and use `install --desk` when needed.
+0 matches
+REMOVED | SessionStart + PreToolUse + SessionEnd hooks (retired UserPromptSubmit cleanup) | `~/.claude/settings.json` | missing active entries are added without reordering foreign entries; exact managed legacy SessionStart bash entries are migrated in place.
+0 matches
+REMOVED | `.pi/nana-pack.json` | `{"postEdit":{"commands":[]}}` — an empty on-ramp, so nothing runs until you fill it in | when it exists, **and** when you have user-scope `postEdit.commands`: project config replaces user config per key group, so an empty project block would shadow your global checks in this repo |
+0 matches
+REMOVED | `adopt-structure` | Add the agent-navigation layer to an EXISTING project of ANY language — a lean root `AGENTS.md`, per-folder `AGENTS.md`, a postEdit-only starter `.pi/nana-pack.json`, and the three frontier seeds (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/README.md`) copied from `templates/_shared` **only when absent**.
+0 matches
+REMOVED | `agents/reviewer.md` (shadows pi-subagents' builtin `reviewer` agent by name) | the pi agent dir | seeded **only when absent** — the upstream reviewer persona verbatim, with `bash` added to its tools and three rule changes: it gathers its own `git`/test evidence instead of asking the parent for it, and reports a gap under "Could not verify" rather than blocking on a supervisor reply.
+0 matches
+REMOVED | `claude/hooks/nana-objective.mjs`, `claude/hooks/nana-adoption.mjs`, `claude/hooks/nana-shared-memory.mjs`, `claude/hooks/nana-roster-notice.mjs`, `claude/hooks/verifier-pipe.mjs`, `claude/hooks/nana-memory-end.mjs` | `~/.claude/hooks/` | **symlink** into `claude/hooks/` on POSIX — a `git pull` updates them |
+0 matches
+REMOVED | `extensions/subagent/config.json` (pi-subagents' own config — a third-party vendor extension nana-pi only consumes) | the pi agent dir | seeded **only when absent**, exactly `{"asyncByDefault":true,"forceTopLevelAsync":true,"maxSubagentDepth":1}` — `forceTopLevelAsync` is the key that forces an ORDINARY, model-driven top-level `subagent` tool launch into the background (the gated runner process) regardless of what the model asks for (see `packages/nana-pack/README.md` Behavior notes for the exceptions it does not reach); `maxSubagentDepth` caps nested fan-out at one level.
+0 matches
+REMOVED | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
+0 matches
+REMOVED | `nana-notify` | Outward notifications | `agent_settled`, `ui_prompt_start` |
+0 matches
+REMOVED | `nana-post-edit` | Post-edit format/lint/test | `tool_result` (modifying) |
+0 matches
+REMOVED | `scaffold-py` / `scaffold-ts` | Generate a project via copier from <https://github.com/j-wanger/nana-pi> (`--data language=python\|typescript`; the repo root is the versioned template src, cloned at the latest v* tag) — uv/ruff/mypy-strict/pytest or pnpm/strict-tsconfig/Biome/Vitest, folder-by-feature, lean nested AGENTS.md, and a `.pi/nana-pack.json` post-edit preset (format+lint each edit, file-size caps 500py/300ts, typecheck).
+0 matches
+REMOVED | `tests/fresh-machine.test.mjs` | ordered README checklist and sourced Node, pi and pi-subagents versions |
+0 matches
+REMOVED | `tests/install.test.mjs` | a fresh machine, the second run changing nothing, printing no retired skill-link row and adding no skipped rows, backup on collision, what is never overwritten (incl.
+0 matches
+REMOVED | `tests/win32-hook-repair.test.mjs` | Windows repair of carried POSIX shell-form hooks and the first unquoted knowledge form; verifier relocation and deduplication; second-install and doctor health; owner look-alikes preserved byte-identically; doctor naming dead entries install leaves, excluding entries install repairs, and tolerating refused settings shapes |
+0 matches
+REMOVED | pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension; `nana-roster-notice` extension shows the roster notice as a widget |
+0 matches
+REMOVED | pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension; `nana-roster-notice` extension runs but shows nothing (no UI) |
+0 matches
+REMOVED ✗ naming the exact fix: `pi install npm:pi-subagents@0.75.0`.
+0 matches

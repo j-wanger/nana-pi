@@ -20,7 +20,7 @@ const root = fileURLToPath(new URL('../../../', import.meta.url));
 function judge(text) {
  const rows = text.split(/\r?\n/).filter(line => line.startsWith('| '));
  const preserved = rows.map(line => line.split(/(?<!\\)\|/).filter((_, i) => i !== 6).join('|')).join('\n');
- assert.equal(crypto.createHash('sha256').update(preserved).digest('hex'), 'f0447ae09f8de188b8f8d59d37411b695a00f02fbcc6ed66c2bc7207906b13aa');
+ assert.equal(crypto.createHash('sha256').update(preserved).digest('hex'), '781130e0d650bc7feec0c9858a4eaa92473ccbbd8aed3438f1a2338156e5aea2');
  const supported = rows.filter(line => /^\| (?:Claude Code|pi )/.test(line));
  assert.equal(supported.length, 3);
  for (const row of supported) assert.equal(row.split(/(?<!\\)\|/)[6].trim(), 'Search only: `nana-knowledge query`');

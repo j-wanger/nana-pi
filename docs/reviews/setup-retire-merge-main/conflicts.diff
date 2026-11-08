@@ -1,0 +1,285 @@
+diff --cc code-map.config.json
+index 9774372b,d0baa3c7..00000000
+--- a/code-map.config.json
++++ b/code-map.config.json
+@@@ -48,7 -48,8 +48,12 @@@
+      { "path": "apps/desk/test/pi-rpc-contract.test.mjs", "reason": "Pi executable comes from the runtime resolver." },
+      { "path": "packages/nana-pack/bin/nana-land.mjs", "reason": "Injected git command runner has caller-bound programs." },
+      { "path": "packages/nana-pack/bin/pi-watchdog.mjs", "reason": "Shell command text and chosen pi executable do not trace." },
+++<<<<<<< HEAD
+ +    { "path": "packages/nana-pack/bin/review-ledger.mjs", "reason": "Review command program comes from command arguments." },
+++=======
++     { "path": "packages/nana-pack/lib/review-run.mjs", "reason": "Review command program comes from command arguments." },
++     { "path": "packages/nana-pack/extensions/nana-notify.ts", "reason": "PowerShell notification may run repository code." },
+++>>>>>>> main
+      { "path": "packages/nana-pack/lib/gh-runner-async.mjs", "reason": "Injected executable is resolved at its callers." },
+      { "path": "packages/nana-pack/lib/gh-runner.mjs", "reason": "Injected executable is resolved at its callers." },
+      { "path": "packages/nana-pack/lib/profile-sync.mjs", "reason": "Injected git executable is resolved at its callers, like gh-runner." },
+diff --cc docs/code-map.md
+index 6781343e,d07cab43..00000000
+--- a/docs/code-map.md
++++ b/docs/code-map.md
+@@@ -857,9 -857,9 +857,15 @@@ The desk, the bench and this repo's ow
+  - **outputs** — one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red file in non-verbose mode, one counted FAIL line when a finished file's temporary folder remains busy, a totals line with warnings and the self-test verdict, and the exit code; with --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and, per file, a coverage folder with a path/label/seconds record, plus one completion record naming the collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 whole-run record with the default per-file limit
+  - **effects** — process (spawns each file as `node --experimental-strip-types` in its own group with a child env scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test fixtures, with each finished file's removals retried and all removed on every exit path when possible; while NANA_COVERAGE_DIR is set, a record and a completion file under that folder, never removed by this runner; while NANA_SUITE_RECORD_FILE is set, its run record)
+  - **errors** — exit 1 when any file failed, timed out, died on a signal, matched nothing, left a temporary folder that survived its retries, or a self-test fixture missed its expected verdict; exit 130 on SIGINT and 143 on SIGTERM; exit 0 otherwise
+++<<<<<<< HEAD
+ +- **callers** — `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`
+ +- **callees** — `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`
+ +- **unresolved launches** — line 258: spawn; binding line 482; binding line 540
+++=======
++ - **callers** — `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`
++ - **callees** — `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-setup/tests/checkout-converge.test.mjs`, `packages/nana-setup/tests/checkout-spelling.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`
++ - **unresolved launches** — line 281: spawn; binding line 505; binding line 563
+++>>>>>>> main
+  
+  ### `scripts/ts-syntax-check.mjs`
+  
+@@@ -1390,19 -1379,9 +1385,19 @@@ The pi extension pack, the knowledge pu
+  - **outputs** — Lane/watchdog and lane-watcher limits and files, default builder and roster values, Claude Code builder flags, tools, carry allowlists and env, roster slot/runtime tokens, reviewer child env, Windows npm-layout values, and pi package identity.
+  - **effects** — none
+  - **errors** — none
+- - **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/lib/claude-settings-carry.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/pi-package.mjs`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/lib/roster-roles.mjs`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/visual-reader.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-setup/lib/pi-dependencies.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/install-check-builder-env.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
++ - **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/lib/claude-settings-carry.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/pi-package.mjs`, `packages/nana-pack/lib/review-run.mjs`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/lib/roster-roles.mjs`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/visual-reader.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-setup/lib/pi-dependencies.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/install-check-builder-env.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
+  - **callees** — —
+  
+ +### `packages/nana-pack/extensions/nana-adoption.ts`
+ +
+ +- **purpose** — Journal unadopted repository roots for the seat's adoption reader.
+ +- **inputs** — Fresh session starts, cwd, user-scope adoption settings and root state.
+ +- **outputs** — directory_unadopted and test-override journal records; no prompt content.
+ +- **effects** — disk (root inspection, bounded journal reads and best-effort appends).
+ +- **errors** — Never throws; adoption observability cannot interrupt a session.
+ +- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`
+ +- **callees** — `packages/nana-pack/lib/adoption.mjs`
+ +
+  ### `packages/nana-pack/extensions/nana-frontier-summary.ts`
+  
+  - **purpose** — Inject the current project frontier and deliver live owner issue comments to UI seat sessions.
+@@@ -4230,7 -4366,7 +4221,11 @@@
+  - **outputs** — The created temporary directory path.
+  - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
+  - **errors** — Propagates directory creation errors and ignores cleanup errors.
+++<<<<<<< HEAD
+ +- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/blast-radius.test.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-handlers-malformed.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/credential-gate.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/gate-config-robustness.test.mjs`, `packages/nana-pack/tests/gate-corpus.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-rm-inside.test.mjs`, `packages/nana-pack/tests/gate-rm-outside.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/gate-status.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/identity-scan.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/keep-movement.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-watcher.test.mjs`, `packages/nana-pack/tests/lane-write-guard.test.mjs`, `packages/nana-pack/tests/leak-scan.test.mjs`, `packages/nana-pack/tests/lifecycle-journal.test.mjs`, `packages/nana-pack/tests/lifecycle-reload.test.mjs`, `packages/nana-pack/tests/line-endings.test.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/main-ci.test.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-replay.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/pwsh-oracle.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-pack/tests/release-status.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/requirements-unclaimed.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-standard.test.mjs`, `packages/nana-pack/tests/review-test-waits.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-pack/tests/skill-claims.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/template-release.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/ts-syntax-check.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-pack/tests/writing-trial-extractor.test.mjs`
+++=======
++ - **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/blast-radius.test.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-handlers-malformed.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/credential-gate.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/data-pack.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/gate-config-robustness.test.mjs`, `packages/nana-pack/tests/gate-corpus.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-rm-inside.test.mjs`, `packages/nana-pack/tests/gate-rm-outside.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/gate-status.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-artifact.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/handoff-store.test.mjs`, `packages/nana-pack/tests/handoff-symlink.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/identity-scan.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-watcher.test.mjs`, `packages/nana-pack/tests/lane-write-guard.test.mjs`, `packages/nana-pack/tests/leak-scan.test.mjs`, `packages/nana-pack/tests/lifecycle-journal.test.mjs`, `packages/nana-pack/tests/lifecycle-reload.test.mjs`, `packages/nana-pack/tests/line-endings.test.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/main-ci.test.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-replay.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/notify-dispatch.test.mjs`, `packages/nana-pack/tests/notify-fallback.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`, `packages/nana-pack/tests/post-edit-default-timeout.test.mjs`, `packages/nana-pack/tests/post-edit-file-queue.test.mjs`, `packages/nana-pack/tests/post-edit-hardening.test.mjs`, `packages/nana-pack/tests/post-edit-status.test.mjs`, `packages/nana-pack/tests/post-edit-utf8.test.mjs`, `packages/nana-pack/tests/post-edit-values-named.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/pwsh-oracle.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-pack/tests/release-status.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/requirements-unclaimed.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-paperwork.test.mjs`, `packages/nana-pack/tests/review-standard.test.mjs`, `packages/nana-pack/tests/review-test-waits.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/skill-claims.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/template-release.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/ts-syntax-check.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-pack/tests/writing-trial-extractor.test.mjs`
+++>>>>>>> main
+  - **callees** — —
+  
+  ### `packages/nana-pack/tests/ts-syntax-check.test.mjs`
+diff --cc docs/requirements-tree.md
+index c0843f17,7303a137..00000000
+--- a/docs/requirements-tree.md
++++ b/docs/requirements-tree.md
+@@@ -106,9 -106,9 +106,15 @@@ Generated from `REQUIREMENTS.md`; featu
+    - **FEAT-007 · Review a specific revision independently**
+      Purpose: Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.
+      Status: active
+++<<<<<<< HEAD
+ +    Also applies: R-2603, R-1125
+ +    Parent: CAP-02 · Rows: 173 · IDs: R-139, R-192, R-246, R-249, R-620–R-625, R-700–R-731, R-831–R-846, R-850–R-855, R-919, R-967–R-974, R-992, R-1008, R-1010, R-1105–R-1108, R-1350–R-1354, R-1370–R-1378, R-1390–R-1395, R-1560–R-1565, R-1620–R-1623, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2430–R-2432, R-2560–R-2576, R-2660, R-2900–R-2908, R-2910–R-2913, R-3757–R-3764
+ +    Artifacts: A-007, A-008, A-056, A-057, A-058
+++=======
++     Also applies: R-137, R-2603, R-1125
++     Parent: CAP-02 · Rows: 183 · IDs: R-139, R-192, R-246, R-249, R-620–R-625, R-700–R-731, R-831–R-846, R-850–R-855, R-919, R-967–R-974, R-992, R-1008, R-1010, R-1105–R-1108, R-1350–R-1354, R-1370–R-1378, R-1390–R-1395, R-1560–R-1565, R-1620–R-1623, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2430–R-2432, R-2560–R-2576, R-2660, R-2900–R-2908, R-2910–R-2913, R-3757–R-3774
++     Artifacts: A-007, A-008, A-056, A-058
+++>>>>>>> main
+      Reads: A-011
+      - **SUB-006 · Identify and freeze the review target**
+        Purpose: Name the review item, derive its content revision and materialize the intended snapshot with explicit scope limits.
+diff --cc packages/nana-pack/README.md
+index 70e2d60e,b5f7272c..00000000
+--- a/packages/nana-pack/README.md
++++ b/packages/nana-pack/README.md
+@@@ -6,9 -6,10 +6,9 @@@ project scaffolding, and dev-workflow s
+  **Dependencies:** none at runtime beyond pi itself — `@earendil-works/pi-coding-agent`
+  is an *optional* `peerDependency` (the extensions run inside pi, which is the host, not
+  something they install), and `package.json` declares no `dependencies` or
+- `devDependencies`. The review launchers and review-ledger keep start the repository's `../../scripts/requirements-moved.mjs`, which needs Node's type stripping, Node 22.18 or later. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in. Session-start issue reads also use signed-in `gh`; without it, the frontier keeps its local lines and reports the unavailable issue read.
++ `devDependencies`. Where GitHub CI applies, `nana-land` also needs the GitHub CLI `gh`, signed in. Session-start issue reads also use signed-in `gh`; without it, the frontier keeps its local lines and reports the unavailable issue read.
+  Tests are zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests
+ -FAIL naming the locations tried when pi is absent. The post-edit UTF-8 test FAILs, naming `python3`
+ -and `python`, when neither is Python 3.7 or later. `DESK_PI_ROOT` points the suite at another install.
+ +FAIL naming the locations tried when pi is absent. `DESK_PI_ROOT` points the suite at another install.
+  
+  Residual: the update-path legs in `tests/templates-update.test.mjs` do not assert three brief-named outcomes directly (no drift line on a fresh render; a Part G status survives an update; deleting a project's REQUIREMENTS-general.md restores exactly the nine legacy problems); focused fixtures in the same file pin the behaviour.
+  
+@@@ -631,7 -626,7 +623,11 @@@ terminal or Claude Code shell, not a p
+  node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set reviewer claude-code opus
+  ```
+  
+++<<<<<<< HEAD
+ +The reviewer adds `--setting-sources project,local`, an external `--settings` file and `--strict-mcp-config` after its tool lists. The settings file sets `claudeMdExcludes` to absolute ancestor paths for CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md and .claude/rules/**, from the reviewed tree's parent through the filesystem root. The cwd stays the reviewed tree; its own `AGENTS.md`/`CLAUDE.md` and rules remain eligible. This requires Claude Code's supported `claudeMdExcludes` setting (confirmed in 2.1.310); managed/policy instructions cannot be excluded. `project,local` alone is insufficient: Claude can label home rules as ancestor Project memory. It no longer inherits user rules, user CLAUDE.md, user hooks, user MCP instructions or auto-memory. In particular it loses the rulings, objective and user `permissions.defaultMode`; tools outside its allowlist are denied in print mode. Its inputs are the brief, tree movement, feature known bugs and review standard, plus project/local context. Its settings seal `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`. `--effort` comes from the exact roster model key in user `modelSettings`, else top-level `effortLevel`, else no flag; aliases are not expanded. The shared carry helper prints a value-free `claude-review:` diagnostic. Normal exit, ledger failure and handled SIGINT, SIGTERM and SIGHUP remove the settings folder. Windows also starts the existing detached cleanup watcher, without a build record or lane lock, because its SIGTERM forcibly stops the process. A POSIX hard kill, or a kill before the Windows watcher starts, can leave the folder.
+++=======
++ The reviewer adds `--setting-sources project,local`, an external `--settings` file and `--strict-mcp-config` after its tool lists. The settings file sets `claudeMdExcludes` to absolute ancestor paths for CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md and .claude/rules/**, from the reviewed tree's parent through the filesystem root. The cwd stays the reviewed tree; its own `AGENTS.md`/`CLAUDE.md` and rules remain eligible. This requires Claude Code's supported `claudeMdExcludes` setting (confirmed in 2.1.310); managed/policy instructions cannot be excluded. `project,local` alone is insufficient: Claude can label home rules as ancestor Project memory. It no longer inherits user rules, user CLAUDE.md, user hooks, user MCP instructions or auto-memory. In particular it loses the rulings, objective, verifier-pipe hook and user `permissions.defaultMode`; tools outside its allowlist are denied in print mode. Its inputs are the brief, feature known bugs and review standard, plus project/local context. Its settings seal `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `NANA_ROLE=reviewer` and `NANA_HANDOFF=off`. `--effort` comes from the exact roster model key in user `modelSettings`, else top-level `effortLevel`, else no flag; aliases are not expanded. The shared carry helper prints a value-free `claude-review:` diagnostic. Normal exit, recording failure and handled SIGINT, SIGTERM and SIGHUP remove the settings folder. Windows also starts the existing detached cleanup watcher, without a build record or lane lock, because its SIGTERM forcibly stops the process. A POSIX hard kill, or a kill before the Windows watcher starts, can leave the folder.
+++>>>>>>> main
+  
+  Known limits: the reviewer uses the live tree, not an immutable checkout, so a reviewer or concurrent
+  builder edit makes the verdict unverified and consumes the round. It has no liveness watchdog, launcher
+@@@ -1406,7 -1457,111 +1375,115 @@@ project config never contributes to eit
+    operating-system temporary directory are excluded; on POSIX, the canonical `/tmp` root is excluded too.
+    `NANA_TEST_TEMP_ROOTS` is a test seam, not configuration: when set, the reader prints a warning; on a STARTUP session, the producer journals the override once per process. Resume, fork and reload sessions do not journal it. Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
+    The reader says listed repositories lack the complete Nana structure: a regular root `HANDOFF.md`, root `AGENTS.md`, and `docs/sessions/`. A `HANDOFF.md`-only repository remains listed, and the text does not claim it lacks that file.
+++<<<<<<< HEAD
+ +- **Compaction** belongs to pi. Nana neither writes nor injects compaction summaries. Existing summaries remain untouched and still count as adoption evidence. Legacy `handoff` and `postEdit` configuration blocks are accepted and ignored. `NANA_HANDOFF=off` continues to suppress adoption journaling in reviewer and worker children.
+++=======
++ - **Compaction summary store** (L3, 2026-09-28), unless `handoff.enabled` is false (see below), writes the latest
++   compaction summary to a store — **by default the user-scope store fixed at**
++   `~/.pi/agent/handoffs/<sha256(canonical cwd)>.md` **regardless of
++   `PI_CODING_AGENT_DIR`**; a configured `handoff.path` replaces it (Custom `handoff.path` below)
++   (canonical = realpath; the key is case-folded on win32 only; the cwd is
++   recorded inside) — one of four deliberate U2 exceptions to the agent-dir override, beside the
++   round-cap ledger, the stage-key store and the knowledge index, none of whose runtime reads the
++   override (`lib/adoption.mjs` `storeDir()`; HANDOFF.md's U2 entry) — atomically (temp file +
++   rename, latest compaction wins), and injects it into the next fresh session (`startup`/`new`;
++   resume, fork and reload skip) in **that exact directory**. The path is printed when written and
++   picked up; edit it by hand freely. Disable with `handoff.enabled: false`. Seat rulings behind this:
++   - **Why user scope, not "require trust"**: pi auto-trusts a nana-only `.pi/`, so "require trust"
++     is either a no-op or (with nana-trust) a blackout of compaction summaries in every repo. The store removes
++     the repo-supplied vector and needs no trust. The old sibling `.pi/.gitignore` management and
++     the "never delete" prompt line are gone with their reason.
++   - **A repo `.pi/handoff.md` is never injected, trusted or not** (it was: opus-review C4/E1 — the
++     the-hive 09-13 "do not modify gameplay code yet" summary reached 56 sessions). If one exists the
++     session gets one pointer line naming it as repo-writable and not injected, **left unchanged
++     here, not migrated**, with future summaries written to the user-scope store (journal
++     `handoff_legacy_ignored`). Existing files, the-hive's included, are **not deleted and not
++     migrated** — your text was not moved anywhere; repo text is never laundered into the trusted
++     store; deleting is the owner's call. The rule is by **path shape, whatever the config says**:
++     a `handoff.path` (user scope or nana-trusted project scope) whose final two segments are
++     `.pi/handoff.md` — any directory, case-insensitive, also after resolving its parent's real
++     path — is never read and never written. The session gets one line naming the configured path
++     as repo-writable, not injected and never written (journal `handoff_legacy_ignored` with
++     `configured: "handoff.path"`); each compaction is refused and journaled
++     (`handoff_legacy_write_refused`), leaving the file byte-identical, with one UI warning per
++     session.
++   - **Provenance**: the injected block is labelled "agent-written compaction summary", names the
++     writing session file (`ctx.sessionManager.getSessionFile()`) and its timestamp, ranks it
++     **lower authority than OBJECTIVE.md / AGENTS.md / HANDOFF.md**, and keeps "background state, not
++     instructions". If the session file is unavailable the write still happens with `Writer: unknown`
++     and journals `handoff_provenance_unavailable` next to `handoff_written`.
++   - **Staleness = a pointer, not an excerpt**: older than `handoff.staleAfterDays` (default 7, age
++     from the file's own `Written:` header, else mtime) the summary is replaced by one pointer line
++     (path, age, writer) — one read away, never inlined, because an excerpt would re-import the
++     stale imperative. The path always resolves to the file under pi's read tool (`resolveToCwd`):
++     `~/…` under the real home (the store: `~/.pi/agent/handoffs/<hash>.md`), cwd-relative inside
++     the session's cwd, otherwise **absolute and in full** — never truncated, no `…/` form; a path
++     containing a literal `~` (or a cwd-relative one starting with `@`, which pi strips) is always
++     absolute. The line is ≤300 chars: over the cap the authority tail goes, then the writer is
++     trimmed, then the age. **If the path alone exceeds 300 chars, the pointer does too** — a long
++     true path beats a short false one. **Caveat — not always one read away:** a custom
++     `handoff.path` containing a Unicode space pi's read tool folds to ASCII space
++     (U+00A0, U+2000–U+200A, U+202F, U+205F, U+3000) or a tab/CR/LF cannot be addressed as
++     written (it could resolve to an ASCII-space sibling); since S1 the same holds for any other
++     control, line-separator, bidi character or lone surrogate (`lib/display.mjs` `locator`). Such a path is shown as the
++     absolute path in a JSON string literal (those characters as `\uXXXX`) followed by
++     "— path contains characters that are unsafe or rewritten in transit; JSON-escaped here,
++     decode it exactly (do not pass it to read as written)" — never claimed readable; the same form is used in
++     the fresh-summary `Source:` line. **Pointer-specific exception, by design:** an escaped
++     pointer may omit the age and writer — the never-trimmed marker takes the room, so over 300
++     chars the writer is trimmed then dropped, then the age (a short escaped path keeps both).
++     No summary text is inlined in that case, and provenance still lives in the artifact's own
++     `Written:` / `Writer:` header. This omission is pointer-only: an inlined summary always
++     carries writer and timestamp. A **relative** custom `handoff.path` resolves against the
++     pi **process** cwd, not the session cwd; the pointer shows that file. Age is the only staleness signal (no HANDOFF-commit invalidation). A new
++     compaction resets it.
++   - **Non-writer role**: a launcher that sets `NANA_HANDOFF=off` in the child env marks a session
++     that neither picks up nor writes (journal `handoff_skipped_role`); `pi-review` and `claude-review`
++     set it for every child. Never inferred from the tool list or `hasUI` (the desk runs pi sessions). Only the exact
++     lowercase value `off` is honored (`OFF`, `0`, `false`, empty behave normally). The marker is an
++     ordinary env var, so it is **inherited**: any pi or desk process a review child spawns also has
++     handoff off unless the launcher clears `NANA_HANDOFF`.
++   - **Exact directory only**: a nested cwd or worktree with no compaction summary of its own never gets an
++     ancestor's text. If an ancestor directory has one, the session is told "no compaction summary for this
++     directory" plus that file's path; if no ancestor has one, nothing is added to the
++     session — but the fact is not discarded: an unadopted directory is a signal addressed to the
++     SEAT, not to the session, and lane L5 journals it so the seat can assign that directory an
++     objective and start accumulating its knowledge (the owner's ruling 2026-09-28;
++     `docs/directory-adoption-design-2026-09-28.md`). L5 landed on 2026-09-29 (**Adoption signal** above) and it is journal-only, so the session still sees nothing either way; the journal already separates `handoff_missing` (no entry) from `handoff_pickup_failed` (an entry that could not be read), and `readHandoff()` returns `{kind:"missing"}` / `{kind:"error",reason}` / `{kind:"ok",text}` so L5 cannot mistake a broken store for an unadopted directory. `missing` means genuinely absent: an ENOENT caused by a dangling link — the entry itself (`dangling_symlink`) or a directory above it such as a dangling `handoffs/` link (`dangling_parent`) — is an `error` and journals `handoff_pickup_failed`, never `handoff_missing`. A resolving `handoffs/` link is still honored. A store entry whose recorded `Cwd:` is another directory is not injected
++     (`handoff_cwd_mismatch`).
++   - **Compatibility change (S1) — some directories lose automatic pickup.** `Cwd:` is written
++     through `fileField` so a directory name cannot forge a header field; pickup from the default
++     store requires the recorded value to equal the canonical cwd exactly. A canonical cwd holding
++     a control character (tab, newline, ESC, C1), U+2028/U+2029 or a bidi control, a lone
++     surrogate, leading/trailing whitespace, or over 4096 UTF-16 code units cannot be recorded
++     losslessly, so its compaction summary is written but never picked up automatically. The write says so at
++     that moment: a warning notification ("compaction summary written to `<path>`, but this directory's name
++     contains characters that cannot be recorded losslessly — a future session here will not pick
++     it up automatically") and journal `handoff_cwd_unrecordable` (`path`, rendered `recorded`).
++     The artifact is retained at `<path>` and can be read by hand. A custom `handoff.path` is not
++     affected (no `Cwd:` check). A versioned lossless encoding is deferred.
++   - **Custom `handoff.path`**: honored from user scope always, from project scope only under
++     nana-trust (L1). No header `Cwd:` check applies to it (the owner chose one file).
++   - **Failures never throw**: an unreadable/unwritable store degrades to "no compaction summary" with a
++     journal line (`handoff_pickup_failed` / `handoff_write_failed`; a store file that is not valid
++     UTF-8 is a failed pickup, never injected with replacement characters); a failed write leaves the prior
++     file intact. win32: `rename` over an existing file is assumed atomic enough on NTFS —
++     **unverified**.
++ - **The compaction summary store refuses to read or write through a symlink** (2026-09-08, commit `2efd435`; scoped by
++   L3 to custom paths). The user-scope store has no symlink policy — it is the owner's directory, so
++   a deliberately symlinked `handoffs/` is honored (a write renames over an entry, so it never
++   writes through a linked entry). Custom `handoff.path`: a repo could commit the
++   configured file, or a directory above it, as a link to something like `~/.ssh/id_rsa`:
++   - **Unconditional — not trust-gated.** Point `handoff.path` at the real destination instead of
++     linking to it.
++   - **Scope is every path component BELOW the workspace root.** Components at or above the root
++     are deliberately not checked (macOS `/tmp` → `/private/tmp` is your filesystem). A
++     `handoff.path` **outside** the workspace has only its final component checked.
++   - **Refusals are loud** — a `handoff_symlink_refused` journal line (`op: "read" | "write"`) plus
++     a UI warning.
++   - **Advisory, not a security boundary**: the `lstat` checks are not atomic with the open that
++     follows.
+++>>>>>>> main
+  - **Objective** injects the user's objective + current priority file into every system
+    prompt, under `## Objective and current priority (nana)` plus one line charging the session
+    to say which of those lines its spend serves. Default source `nana-objective.md` in pi's active
+diff --cc packages/nana-pack/tests/code-map-launch.test.mjs
+index d0d4b704,49bc2785..00000000
+--- a/packages/nana-pack/tests/code-map-launch.test.mjs
++++ b/packages/nana-pack/tests/code-map-launch.test.mjs
+@@@ -198,13 -200,14 +200,20 @@@ await check("R-3156: every fixed-base c
+  	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
+  	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
+  	const retiredSources = new Map([
+ +		...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
+ +		...['extensions/nana-handoff.ts', ...['handoff-artifact', 'handoff-store', 'handoff-staleness', 'handoff-trust', 'handoff-symlink'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires compaction storage and pickup; adoption survives separately.']),
+ +		...['extensions/nana-post-edit.ts', 'lib/post-edit-config.mjs', ...['post-edit-default-timeout', 'post-edit-file-queue', 'post-edit-hardening', 'post-edit-status', 'post-edit-utf8', 'post-edit-values-named'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires the post-edit extension and its dedicated checks.']),
+ +		['packages/nana-pack/extensions/nana-notify.ts', 'FEAT-013 setup-retire removes desktop notification behavior.'],
+ +		['packages/nana-pack/tests/notify-dispatch.test.mjs', 'FEAT-013 retires notifier-only dispatch checks with their extension.'],
+ +		['packages/nana-pack/tests/notify-fallback.test.mjs', 'FEAT-013 retires notifier-only failure checks with their extension.'],
+  		['scripts/lane-class.mjs', 'Lane classification is retired by R-3761.'],
++ 		['scripts/requirements-moved.mjs', 'R-3770 removes the movement command; git-runner preserves its git helpers.'],
++ 		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves review execution into review-run and claude-review.'],
++ 		['packages/nana-pack/lib/review-movement.mjs', 'R-3770 removes movement context.'],
++ 		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3770 removes movement context configuration.'],
++ 		['packages/nana-pack/tests/requirements-moved.test.mjs', 'R-3770 removes movement-only tests with the command.'],
++ 		['packages/nana-pack/tests/review-movement.test.mjs', 'R-3770 removes movement-only tests with the prompt producer.'],
++ 		['packages/nana-pack/tests/keep-movement.test.mjs', 'R-3770 removes keep-only tests with the command.'],
+  		['packages/nana-pack/lib/mutation-runner-config.mjs', 'Seat mutation runner is retired by R-3761.'],
+  		['packages/nana-pack/lib/mutation-runner.mjs', 'Seat mutation runner is retired by R-3761.'],
+  		['packages/nana-pack/tests/lane-class.test.mjs', 'Classifier tests retired with their code by R-3761.'],
+@@@ -213,14 -216,14 +222,23 @@@
+  	]);
+  	losses.set('packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/lane-class-config.mjs', 'R-3761 removes lane classification from build output.');
+  	losses.set('packages/nana-pack/bin/pi-worker.mjs -> scripts/lane-class.mjs', 'R-3761 removes lane classification from build output.');
+++<<<<<<< HEAD
+ +	for (const file of ['display-surfaces', 'config-handlers-malformed']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-post-edit.ts`, 'FEAT-013 removes the post-edit-only cases; surviving cases remain.');
+ +	for (const file of ['display-surfaces', 'config-handlers-malformed', 'writing-injection', 'handoff-writer-role', 'adoption-producer']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-handoff.ts`, 'FEAT-013 removes handoff-only calls; adoption now imports nana-adoption.');
+ +	losses.set('packages/nana-pack/tests/adoption-producer.test.mjs -> packages/nana-pack/lib/config.ts', 'FEAT-013 adoption now reads only user-scope adoptionSettings; the test still exercises config via its dynamic import.');
+ +	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
+ +	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
+ +	for (const caller of ['lib/install-check.mjs', 'tests/install-check.test.mjs']) losses.set(`packages/nana-setup/${caller} -> packages/nana-setup/lib/doctor.mjs`, 'FEAT-013 removes the delegation-runtime floor import with the vendor install and retry.');
+++=======
++ 	const retiredTargets = new Map([
++ 		['scripts/requirements-moved.mjs', 'R-3770 rehomes the shared runner in git-runner.mjs and removes movement.'],
++ 		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves execution into review-run.mjs, shared with the test harness.'],
++ 		['packages/nana-pack/lib/review-movement.mjs', 'R-3766 removes movement from reviewer prompts.'],
++ 		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3766 removes movement configuration and its test imports.'],
++ 	]);
+++>>>>>>> main
+  	const graph = checkRepo().graph;
+- 	for (const entry of gitShow("57167e92", "docs/code-map.md").split(/^### `/m).slice(1)) {
++ 	for (const entry of gitShow("57167e92",  "docs/code-map.md").split(/^### `/m).slice(1)) {
+  		const path = entry.split("`")[0];
+  		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
+  			const edge = `${path} -> ${match[1]}`;

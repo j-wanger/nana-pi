@@ -46,8 +46,8 @@ function repo(extra = {}) {
 	for (const [rel, body] of Object.entries(extra)) fs.writeFileSync(path.join(td, rel), body);
 	return td;
 }
-const honored = (c) => c.gate.allowPatterns.length === 1 && c.postEdit.commands.length === 1 && c.handoff.path === "/etc/hosts";
-const ignored = (c) => c.gate.allowPatterns.length === 0 && c.postEdit.commands.length === 0 && c.handoff.path === null;
+const honored = (c) => c.gate.allowPatterns.length === 1;
+const ignored = (c) => c.gate.allowPatterns.length === 0;
 
 let fails = 0;
 const check = (n, ok) => { console.log(ok ? "PASS" : "FAIL", n); if (!ok) fails++; };
@@ -57,13 +57,9 @@ const td = repo();
 const untrusted = loadConfig({ cwd: td, isProjectTrusted: () => false });
 // req: R-079
 check("untrusted: allowPatterns ignored", untrusted.gate.allowPatterns.length === 0);
-// req: R-079
-check("untrusted: postEdit commands ignored", untrusted.postEdit.commands.length === 0);
-// req: R-079
-check("untrusted: handoff path ignored", untrusted.handoff.path === null);
 const noApi = loadConfig({ cwd: td });
 // req: R-077
-check("no trust API: fail-closed", noApi.gate.allowPatterns.length === 0 && noApi.handoff.path === null);
+check("no trust API: fail-closed", noApi.gate.allowPatterns.length === 0);
 
 // bare harness: pi's module is not resolvable → nothing can vouch → closed, even
 // with a trust-requiring resource and isProjectTrusted() true
