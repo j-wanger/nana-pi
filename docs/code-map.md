@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 582 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 583 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -3017,14 +3017,24 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callees** — `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/credential-strip-config.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`
 - **repo-code launches** — line 44: spawnSync; binding line 117; binding line 135
 
+### `packages/nana-pack/tests/data-pack-land.test.mjs`
+
+- **purpose** — Guard the eight data-check contracts without running template release acceptance.
+- **inputs** — Current data-check source and temporary Python fixtures.
+- **outputs** — One awaited bounded PASS/FAIL verdict.
+- **effects** — disk (temporary fixtures), process (bounded Python child).
+- **errors** — Failed assertions set exit status 1.
+- **callers** — —
+- **callees** — `packages/nana-pack/tests/data-pack.test.mjs`, `packages/nana-pack/tests/pack-fixtures.mjs`
+
 ### `packages/nana-pack/tests/data-pack.test.mjs`
 
-- **purpose** — Exercise the eight data-pack must-meets on temporary rendered projects and small data fixtures.
+- **purpose** — Exercise data-pack release acceptance and expose its bounded Python fixture runner.
 - **inputs** — Current template sources, Copier, uv and the acceptance runner.
-- **outputs** — Eight PASS/FAIL verdicts.
+- **outputs** — Seven PASS/FAIL verdicts and the public py fixture runner.
 - **effects** — disk (temporary fixtures), process (bounded synchronous Python and Copier children).
 - **errors** — Any failed assertion sets exit status 1.
-- **callers** — —
+- **callers** — `packages/nana-pack/tests/data-pack-land.test.mjs`
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/template-acceptance.mjs`
 
 ### `packages/nana-pack/tests/display-surfaces.test.mjs`
@@ -3818,7 +3828,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Temporary roots, bounded runner results and awaited case verdicts.
 - **effects** — disk (OS temp fixtures), process (bounded node and git children).
 - **errors** — Assertions for failed children; case failures set exit 1.
-- **callers** — `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/test-packs-ci.test.mjs`, `packages/nana-pack/tests/test-packs-core.test.mjs`, `packages/nana-pack/tests/test-packs-runner.test.mjs`
+- **callers** — `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/data-pack-land.test.mjs`, `packages/nana-pack/tests/test-packs-ci.test.mjs`, `packages/nana-pack/tests/test-packs-core.test.mjs`, `packages/nana-pack/tests/test-packs-runner.test.mjs`
 - **callees** — `packages/nana-pack/lib/test-packs-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/test.mjs`
 - **unresolved launches** — line 49: spawnSync
 

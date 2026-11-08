@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/tests/data-pack.test.mjs
- * @purpose Exercise the eight data-pack must-meets on temporary rendered projects and small data fixtures.
+ * @purpose Exercise data-pack release acceptance and expose its bounded Python fixture runner.
  * @inputs Current template sources, Copier, uv and the acceptance runner.
- * @outputs Eight PASS/FAIL verdicts.
+ * @outputs Seven PASS/FAIL verdicts and the public py fixture runner.
  * @effects disk (temporary fixtures), process (bounded synchronous Python and Copier children).
  * @errors Any failed assertion sets exit status 1.
  */
@@ -24,7 +24,7 @@ const run = (cmd, args, cwd = root) => {
   return r.stdout;
 };
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (e) { failures++; console.log("FAIL", title, e.message); } };
-const py = (mode) => run("uvx", ["--with", "pytest", "python", "-B", path.join(repo, "packages/nana-pack/tests/data-pack-fixtures.py"), repo, root, mode]);
+export const py = (mode) => run("uvx", ["--with", "pytest", "python", "-B", path.join(repo, "packages/nana-pack/tests/data-pack-fixtures.py"), repo, root, mode]);
 let source;
 function snapshot() {
   if (source) return source;
@@ -41,6 +41,8 @@ function render(name, data = []) {
   return dest;
 }
 const packFiles = ["scripts/data_checks.py", "data-checks.json", "tests/test_data_checks.py"];
+// Importing py for the fast land guard must not run release acceptance.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
 // req: R-3840
 check("M1 optional Python scaffold ships exactly the opt-in pack", () => {
   const off = render("off"); const on = render("on", ["data_checks=true"]);
@@ -49,8 +51,6 @@ check("M1 optional Python scaffold ships exactly the opt-in pack", () => {
   assert.equal(fs.readFileSync(path.join(on, "tests/test_smoke.py"), "utf8"), before);
   run("uv", ["run", "pytest"], on);
 });
-// req: R-3841
-check("M2 eight checks detect defects and accept clean fixtures", () => { py("contracts"); });
 // req: R-3842
 check("M3 unsafe normalizer never changes project bytes", () => { py("readonly"); });
 // req: R-3843
@@ -119,3 +119,4 @@ check("M8 release acceptance runs native opt-in scaffold and adoption gates", ()
   assert.equal(runAcceptance({ src: snapshot(), ref: "HEAD", tmpRoot: root, log: (line) => logs.push(line) }), 0, logs.join("\n"));
 });
 if (failures) process.exitCode = 1;
+}

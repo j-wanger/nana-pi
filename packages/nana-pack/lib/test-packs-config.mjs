@@ -72,7 +72,9 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/context-anatomy.test.mjs": "main",
   "packages/nana-pack/tests/credential-gate.test.mjs": "land",
   "packages/nana-pack/tests/credential-strip.test.mjs": "main",
-  "packages/nana-pack/tests/data-pack.test.mjs": "land",
+  // measured 2026-11-07 (build brief 2): M1–M7 take 178.7 s; M2 alone takes 0.12 s.
+  "packages/nana-pack/tests/data-pack.test.mjs": "release",
+  "packages/nana-pack/tests/data-pack-land.test.mjs": "land",
   "packages/nana-pack/tests/display-surfaces.test.mjs": "module",
   "packages/nana-pack/tests/env-path.test.mjs": "module",
   "packages/nana-pack/tests/first-look.test.mjs": "land",
@@ -213,7 +215,8 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/watchdog-cpu.test.mjs": "main",
   "packages/nana-pack/tests/watchdog-exit.test.mjs": "main",
   "packages/nana-pack/tests/win-command.test.mjs": "main",
-  "packages/nana-pack/tests/win-main-only.test.mjs": "land",
+  // measured 2026-11-07 (build brief 2): 56.8 s; event/platform policy, not a core-contract guard.
+  "packages/nana-pack/tests/win-main-only.test.mjs": "main",
   "packages/nana-pack/tests/win-shards.test.mjs": "land",
   "packages/nana-pack/tests/win32-launch.test.mjs": "main",
   "packages/nana-pack/tests/windows-skip-lines.test.mjs": "module",
