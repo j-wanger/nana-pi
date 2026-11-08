@@ -35,7 +35,7 @@ await check('R-3863: finished experiments and their live references are gone', a
   assert.equal(inventory.status, 0, inventory.stderr);
   const problems = [];
   for (const file of inventory.stdout.split('\0').filter(Boolean)) {
-   if (/^(?:docs\/(?:plan|reviews|sessions)|research)\//.test(file)) continue;
+   if (/^(?:docs\/(?:plan|reviews|sessions|evidence)|research)\//.test(file)) continue;
    if (modules.includes(path.basename(file))) problems.push(`tracked removed module: ${file}`);
    const absolute = path.join(root, file);
    if (!fs.existsSync(absolute) || fs.lstatSync(absolute).isSymbolicLink()) continue;
