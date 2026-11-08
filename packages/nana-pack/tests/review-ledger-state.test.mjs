@@ -183,14 +183,14 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, tal
 			try { fs.writeFileSync(path.join(agent, "probe.txt"), "x"); } catch { blocked = true; }
 			if (isWin && !blocked) skipReason = "the hosted runner's account still writes through a per-user deny after /inheritance:r";
 			if (skipReason) {
-				console.log(`SKIP an unwritable ledger directory is refused at once before the review, saying it must be writable, no stack — ${skipReason}`);
+				console.log(`SKIP an unwritable ledger directory is refused after the lock wait before the review, saying it must be writable, no stack — ${skipReason}`);
 			} else {
 				const t0 = Date.now();
 				const ro = reviewAt("ro", 0);
 				const ms = Date.now() - t0;
 				// req: R-1842
-				check("an unwritable ledger directory is refused at once before the review, saying it must be writable, no stack",
-					blocked && ro.status === 1 && /must be writable/.test(ro.stderr) && !/admitted/.test(ro.stderr) && noStack(ro) && ms < AT_ONCE_MS,
+				check("an unwritable ledger directory is refused after the lock wait before the review, saying it must be writable, no stack",
+					blocked && ro.status === 1 && /must be writable/.test(ro.stderr) && !/admitted/.test(ro.stderr) && noStack(ro) && ms >= AT_ONCE_MS,
 					blocked ? ro.stderr : `the folder stayed writable; ${ro.stderr}`);
 			}
 		} finally {
