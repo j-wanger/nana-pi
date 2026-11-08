@@ -1,0 +1,5 @@
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs  11 pass  0.0s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs     68 pass  31.2s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs      21 pass  0.0s
+
+3 files: 3 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 100 pass, 0 fail, 0 skip · 31.6s
