@@ -61,6 +61,7 @@ await test('M2: real pi discovery loads the pack without retired extensions', ()
 // req: R-3801
 await test('M3: real discovery journals one canonical root per day and the real hook lists only unadopted roots', () => fixture(async ({ base, agent, cwd }) => {
   const pi = await import(pathToFileURL(path.join(piRoot, 'dist', 'index.js')).href);
+  const canonicalCwd = fs.realpathSync.native(cwd);
   const journal = path.join(agent, 'nana-journal.jsonl');
   const projectJournal = path.join(base, 'project.jsonl');
   fs.writeFileSync(path.join(agent, 'nana-pack.json'), JSON.stringify({ handoff: { enabled: false } }));
@@ -84,20 +85,21 @@ await test('M3: real discovery journals one canonical root per day and the real 
     return result.stdout;
   };
   await fire(cwd); await fire(sub);
-  assert.deepEqual(events().map(e => e.cwd), [cwd]);
+  assert.deepEqual(events().map(e => e.cwd), [canonicalCwd]);
   assert.ok(!fs.existsSync(projectJournal) || !fs.readFileSync(projectJournal, 'utf8').includes('directory_unadopted'));
-  assert.ok(hook().includes(cwd));
+  assert.ok(hook().includes(canonicalCwd));
   const RealDate = Date;
   const future = RealDate.now() + 25 * 3_600_000;
   globalThis.Date = class extends RealDate { constructor(...args) { super(...(args.length ? args : [future])); } static now() { return future; } };
-  try { await fire(sub); await fire(cwd); assert.deepEqual(events().map(e => e.cwd), [cwd, cwd]); }
+  try { await fire(sub); await fire(cwd); assert.deepEqual(events().map(e => e.cwd), [canonicalCwd, canonicalCwd]); }
   finally { globalThis.Date = RealDate; }
   const adopted = path.join(base, 'adopted');
   fs.mkdirSync(path.join(adopted, '.git'), { recursive: true });
   fs.writeFileSync(path.join(adopted, 'OBJECTIVE.md'), 'Adopted.\n');
   await fire(adopted);
-  assert.equal(events().filter(e => e.cwd === adopted).length, 0);
-  assert.ok(!hook().includes(adopted));
+  const canonicalAdopted = fs.realpathSync.native(adopted);
+  assert.equal(events().filter(e => e.cwd === canonicalAdopted).length, 0);
+  assert.ok(!hook().includes(canonicalAdopted));
 }));
 
 // req: R-3804

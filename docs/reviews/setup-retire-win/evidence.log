@@ -1,0 +1,79 @@
+## Symlink injection, old comparisons
+Exit: 1
+PASS M2: real pi discovery loads the pack without retired extensions
+FAIL M3: real discovery journals one canonical root per day and the real hook lists only unadopted roots AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
++   '$TMPDIR/nana-test-55734-ipyOb7/setup-retire-F4L6A6/project'
+-   '$TMPDIR/nana-test-55734-ipyOb7/setup-retire-F4L6A6/project-alias'
+  ]
+
+    at file://packages/nana-pack/tests/setup-retire.test.mjs:89:10
+    at async fixture (file://packages/nana-pack/tests/setup-retire.test.mjs:41:9)
+    at async withinCaseLimit (file://packages/nana-pack/tests/report-fixtures.mjs:22:12)
+    at async test (file://packages/nana-pack/tests/setup-retire.test.mjs:25:9)
+    at async file://packages/nana-pack/tests/setup-retire.test.mjs:64:1
+PASS M6: both scopes ignore legacy blocks without warnings errors or gate fallback
+PASS M4: pi gate imports the shared pipe predicate which blocks masking and allows standalone verification
+PASS M7: active docs retired rows artifacts and component status pass the contract checks
+(node:56301) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:56301) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://packages/nana-pack/lib/config.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to packages/nana-pack/package.json.
+FAIL  packages/nana-pack/tests/setup-retire.test.mjs  4 pass, 1 fail  9.3s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 4 pass, 1 fail, 0 skip · 9.8s
+failed: packages/nana-pack/tests/setup-retire.test.mjs
+
+## Symlink injection, canonical expectations
+Exit: 0
+PASS M2: real pi discovery loads the pack without retired extensions
+PASS M3: real discovery journals one canonical root per day and the real hook lists only unadopted roots
+PASS M6: both scopes ignore legacy blocks without warnings errors or gate fallback
+PASS M4: pi gate imports the shared pipe predicate which blocks masking and allows standalone verification
+PASS M7: active docs retired rows artifacts and component status pass the contract checks
+(node:82049) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:82049) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://packages/nana-pack/lib/config.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to packages/nana-pack/package.json.
+PASS  packages/nana-pack/tests/setup-retire.test.mjs  5 pass  8.7s
+
+1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 5 pass, 0 fail, 0 skip · 9.2s
+
+## Final touched tests
+Exit: 0
+PASS  packages/nana-pack/tests/setup-retire.test.mjs  5 pass  8.6s
+
+1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 5 pass, 0 fail, 0 skip · 9.1s
+
+## Map check
+Exit: 0
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 543 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+
+## Requirements tree
+Exit: 0
+
+> nana-pi@0.5.0 req:tree
+> node scripts/requirements-tree.mjs --write
+
+requirements tree: 0 problems; rows 2658; features 43
+deliverables: 19 of 21 made and read by code, 12 more parked
+
+## README check
+Exit: 0
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 846 claims checked; 0 problem(s)
