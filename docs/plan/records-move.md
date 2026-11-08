@@ -10,11 +10,13 @@ Requirement IDs: R-3928–R-3934.
 
 ## Must-meet tests
 
-- M1. After the move, every folder left under `docs/reviews/` is named by a tracked file outside `docs/reviews/` (code, tests, READMEs, `REQUIREMENTS.md`, `AGENTS.md`, `HANDOFF.md`, the plan folder), or belongs to a lane with an open pull request. A check lists any other folder by name and fails.
-- M2. `docs/reviews/README.md` names the commit that last held the removed folders and gives the one git command that lists and reads a removed folder from it; the readme check runs that command and it succeeds.
-- M3. Every path under `docs/reviews/` named by `REQUIREMENTS.md`, a README, code or a test still exists (the requirements trace, readme check and map check stay green, and a new check covers code and test comments).
-- M4. The lane launchers still read a lane's review brief from `docs/reviews/<lane>/` and the memory-run reader still finds a lane folder on main: their existing tests pass unchanged.
+- M1. Before deleting, the lane derives the protected folder set: every `docs/reviews/<folder>` named by a tracked file outside `docs/reviews/` and `docs/sessions/`, counting full paths, a folder name alone, brace forms such as `tranche{1,2}-2026-09-28` expanded, and a folder named only through a file basename that exists in exactly one folder. Folders last changed on or after 2026-11-01 are also protected (they may hold pending memory inputs, R-3293). A check fails when a protected folder is missing, and fails when an unprotected folder remains that is not a lane with an open pull request.
+- M2. Protected folders keep every tracked file byte for byte: the check compares the tree's blob ids for those folders against the commit before the move.
+- M3. `docs/reviews/README.md` names the commit that last held the removed folders and gives the one git command that lists and reads a removed folder from it; the readme check runs that command and it succeeds.
+- M4. The memory-run reader returns the same pending evidence keys, with readable evidence, before and after the move, on a fixture with two eligible landed lanes including an earlier pending one; the lane launchers still read a brief from `docs/reviews/<lane>/`.
 - M5. The current priority line in `OBJECTIVE.md` carries the code-lines measure; the objective output prints it in full.
+
+Changed after the adversary (2026-11-08): M1 now protects folders named anywhere outside the records, including basename and brace forms, plus recent folders; M2 keeps protected folders whole; M4 pins pending memory inputs.
 
 Session logs under `docs/sessions/` keep their dated references to removed folders; they are history, and M2's pointer resolves them.
 
