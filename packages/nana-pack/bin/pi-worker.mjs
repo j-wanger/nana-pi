@@ -29,7 +29,7 @@ import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
 import { digestKnownBugs } from '../lib/known-bug-digest.mjs';
-import { appendContextLoad, contextPart } from '../lib/context-load-log.mjs';
+import { appendContextLoad, contextPart, claudeInstructionParts } from '../lib/context-load-log.mjs';
 import { piContextLoad } from '../lib/pi-context-load.mjs';
 import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from '../lib/claude-review-config.mjs';
 import { reviewLaunch } from './review-launch.mjs';
@@ -356,11 +356,12 @@ try {
 		const preambleDir = path.dirname(preambleFile);
 		const builderPidFile = path.join(preambleDir, LANE_BUILDER_PID_FILE);
 		if (contextLoad.runtime === 'pi') {
-			const measured = await piContextLoad({ cwd: contextLoad.cwd, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv }, args: w.piArgs });
+			const measured = await piContextLoad({ cwd: contextLoad.cwd, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv }, args: w.piArgs, sections: true });
 			contextLoad.piVersion = measured.piVersion;
-			contextLoad.parts.push(...measured.parts);
+			contextLoad.parts.push(...measured.parts, ...measured.sections);
 			if (measured.signal) r = { ok: false, text: '', attempt: 0, signal: measured.signal };
 		}
+		if (contextLoad.runtime === CLAUDE_CODE_RUNTIME) contextLoad.parts.push(...claudeInstructionParts({ cwd: contextLoad.cwd }));
 		const onSpawn = (child) => {
 			child.once('spawn', () => appendContextLoad(contextLoad));
 			if (!laneMode) return;

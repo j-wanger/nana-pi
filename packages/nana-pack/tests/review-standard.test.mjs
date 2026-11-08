@@ -64,6 +64,9 @@ const BLANK_TITLE = "blank review standard is refused before admission";
 	const pack = path.join(scratch, "pack-copy");
 	for (const dir of ["bin", "prompts"]) fs.cpSync(path.join(PACK, dir), path.join(pack, dir), { recursive: true });
 	fs.cpSync(path.join(PACK, 'lib'), path.join(pack, 'lib'), { recursive: true });
+	const setupLib = path.resolve(pack, '../nana-setup/lib');
+	fs.mkdirSync(setupLib, { recursive: true });
+	for (const file of ['stale-copies-config.mjs', 'claude-config-home.mjs']) fs.copyFileSync(path.resolve(PACK, '../nana-setup/lib', file), path.join(setupLib, file));
 	const copyBin = path.join(pack, "bin", "pi-review.mjs");
 	const copyStandard = path.join(pack, "prompts", "review-standard.md");
 

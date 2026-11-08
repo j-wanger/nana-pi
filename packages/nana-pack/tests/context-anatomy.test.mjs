@@ -234,7 +234,7 @@ test('R-3215: launchers log once before outcomes with exact part counts and defa
     const r = launch(f, launcher, [], { ...f.env, CHILD_EXIT: '1' }); assert.equal(r.status, 1, r.stderr);
     const log = rows(f.log); assert.equal(log.length, 1); const e = log[0]; assert.equal(e.v,1); assert.equal(e.launcher,launcher); assert.equal(e.role,launcher==='pi-worker'?'worker':'reviewer'); assert.ok(Date.parse(e.at)); assert.ok(e.cwd); assert.ok(e.model); assert.ok(e.runtime); assert.ok(e.lane||e.item);
     const part = e.parts.find(p=>p.name==='brief'); assert.equal(part.fullChars,f.briefText.length); assert.equal(part.deliveredChars,f.briefText.length); assert.equal(part.source,f.brief);
-    for (const p of e.parts) { assert.equal(typeof p.source,'string'); assert.ok(Number.isInteger(p.fullChars)); assert.ok(Number.isInteger(p.deliveredChars)); }
+    for (const p of e.parts) { assert.equal(typeof p.source,'string'); assert.ok(Number.isInteger(p.fullChars) || p.fullChars === 'unavailable'); assert.ok(Number.isInteger(p.deliveredChars) || p.deliveredChars === 'unavailable'); }
     const known=e.parts.find(p=>p.name==='known bugs'); assert.equal(known.fullChars, '# Bugs\n\n- bug\n'.length); assert.equal(known.deliveredChars, known.fullChars);
     if (launcher==='pi-worker') { const pre=e.parts.find(p=>p.name==='preamble'); assert.equal(pre.deliveredChars,r.call.prompts[0].text.length); assert.equal(pre.fullChars,pre.deliveredChars); }
     else { const standard=e.parts.find(p=>p.name==='standard'); assert.equal(standard.fullChars,fs.readFileSync(path.join(pack,'prompts/review-standard.md'),'utf8').length); assert.equal(standard.deliveredChars,standard.fullChars); }
@@ -302,6 +302,7 @@ function alteredWorker(f, oldText, newText) {
   // Preserve the checkout-relative scanner dependency used by the lane-end warning.
   write(path.join(checkout,'scripts','identity-scan.mjs'),fs.readFileSync(path.join(root,'scripts','identity-scan.mjs')));
   write(path.join(checkout,'identity-scan.config.json'),fs.readFileSync(path.join(root,'identity-scan.config.json')));
+  for(const file of ['stale-copies-config.mjs','claude-config-home.mjs']) write(path.join(checkout,'packages/nana-setup/lib',file),fs.readFileSync(path.join(root,'packages/nana-setup/lib',file)));
   for(const dir of ['lib','prompts']) fs.cpSync(path.join(pack,dir),path.join(copy,dir),{recursive:true});
   for(const file of ['pi-worker.mjs','pi-watchdog.mjs','worker-config.mjs','nana-roster.mjs','review-launch.mjs']) write(path.join(copy,'bin',file),fs.readFileSync(path.join(pack,'bin',file)));
   const script=path.join(copy,'bin/pi-worker.mjs'), source=fs.readFileSync(script,'utf8');
@@ -405,7 +406,7 @@ test('R-3732: unavailable pi context preserves launch delivery and other parts',
   const {piContextLoad}=await import('../lib/pi-context-load.mjs');
   const absent=await piContextLoad({cwd:f.lane,env:{...f.env,PATH:path.join(f.dir,'absent')},args:[]}); assert.match(absent.parts[0].name,/^context files: unavailable \(.+\)$/);
   write(path.join(pkg,'dist/index.js'),`export function loadProjectContextFiles() { throw new Error('PRIVATE-CONTENT'); }`);
-  const thrown=launch(f,'pi-worker'); good(thrown); const line=rows(f.log).at(-1); assert.match(line.parts.at(-1).name,/^context files: unavailable \(.+\)$/); assert.ok(!JSON.stringify(line).includes('PRIVATE-CONTENT'));
+  const thrown=launch(f,'pi-worker'); good(thrown); const line=rows(f.log).at(-1); assert.match(line.parts.find(p=>p.name.startsWith('context files:')).name,/^context files: unavailable \(.+\)$/); assert.ok(!JSON.stringify(line).includes('PRIVATE-CONTENT'));
 });
 // req: R-3732 R-3809 R-3812
 test('R-3732: stalled measurement is killed and both launchers proceed within the deadline', async () => {

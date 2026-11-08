@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/extensions/nana-writing.ts
- * @purpose Append the "Writing for the owner" rule to each enabled turn's system prompt, reading
+ * @purpose Append the "Writing for the owner" rule to enabled non-launcher turns' system prompts, reading
  *  the rule fresh at every session_start and config before every agent start — the seventh pack extension.
  * @inputs pi `session_start` (every reason) and `before_agent_start` events; live user-scope
- *  writing.enabled; an injectable rule path (opts.rulePath, defaulting to the shipped rule); ctx (cwd)
+ *  writing.enabled and NANA_ROLE; an injectable rule path (opts.rulePath, defaulting to the shipped rule); ctx (cwd)
  * @outputs when writing.enabled is true for the turn, the rule block under "## Writing for the owner (nana)"; one journal line
  *  (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when
  *  the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread
@@ -54,6 +54,7 @@ import { appendJournal, loadConfig } from "../lib/config.ts";
 import { head } from "../lib/display.mjs";
 import { WRITING_INJECT_CAP } from "../lib/writing-config.mjs";
 import { orderNanaSections } from "../lib/prompt-sections.mjs";
+import { LAUNCHER_ROLES } from "../lib/frontier-summary-config.mjs";
 
 /** The shipped rule file — the default when no path is injected. */
 export const RULE_PATH = fileURLToPath(new URL("../rules/nana-writing.md", import.meta.url));
@@ -205,6 +206,7 @@ export default function (pi: ExtensionAPI, opts: { rulePath?: string } = {}) {
 	});
 
 	pi.on("before_agent_start", async (event, ctx) => {
+		if (LAUNCHER_ROLES.includes(process.env.NANA_ROLE)) return undefined;
 		if (!block) return undefined;
 		try {
 			if (!loadConfig(ctx).writing.enabled) return undefined;

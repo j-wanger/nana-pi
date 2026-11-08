@@ -207,6 +207,9 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 		if (standardMutation) {
 			const copy = path.join(temp, `pack-copy-${label}`);
 			for (const dir of ["bin", "lib", "prompts"]) fs.cpSync(path.join(PACK, dir), path.join(copy, dir), { recursive: true });
+			const setupLib = path.resolve(copy, '../nana-setup/lib');
+			fs.mkdirSync(setupLib, { recursive: true });
+			for (const file of ['stale-copies-config.mjs', 'claude-config-home.mjs']) fs.copyFileSync(path.resolve(PACK, '../nana-setup/lib', file), path.join(setupLib, file));
 			standardMutation(path.join(copy, "prompts", "review-standard.md"));
 			actualLauncher = path.join(copy, "bin", "claude-review.mjs");
 		}

@@ -304,8 +304,7 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
         const branch = `${build.branchPrefix}${lane}`;
         const preamble = fs.readFileSync(path.join(root, build.preamble.file), "utf8").replaceAll(build.preamble.worktree, worktree).replaceAll(build.preamble.branch, branch);
         const brief = fs.readFileSync(briefFile, "utf8");
-        const packages = Array.isArray(piSettings.packages) ? piSettings.packages : [];
-        fs.writeFileSync(path.join(home, installConfig.PI_REVIEW.record), JSON.stringify({ system: `${preamble}\n${brief}${packages.some((entry) => String(entry).includes("nana-pack")) ? `\n${installConfig.PI_TURN.writingTag}` : ""}`, userMessages: ["fixture"], role: build.role }));
+        fs.writeFileSync(path.join(home, installConfig.PI_REVIEW.record), JSON.stringify({ system: `${preamble}\n${brief}`, userMessages: ["fixture"], role: build.role }));
       }
       const ledger = path.join(home, installConfig.PI_REVIEW.repoFolder, ...build.ledger);
       fs.mkdirSync(path.dirname(ledger), { recursive: true });
@@ -1441,7 +1440,7 @@ function passingWorkerJudgment(overrides = {}) {
   return {
     launch: { status: 0, error: null },
     outputText: `${installConfig.PI_REVIEW.answer}\r\n\r\n${installConfig.PI_REVIEW.verdictLine}\r\n \t`,
-    record: { system: `${preamble}\n${brief}\n${installConfig.PI_TURN.writingTag}`, role: build.role },
+    record: { system: `${preamble}\n${brief}`, role: build.role },
     preamble,
     brief,
     ledgerText,
@@ -1562,7 +1561,7 @@ check("pi-worker lines: one line per run, PASS only when the run exits 0 in time
 });
 
 // req: R-2684
-check("pi-worker record: a record missing the rendered builder preamble, the whole brief, the writing tag or the worker role fails, and on win32 the cmd run's record cannot pass the sh run", async () => {
+check("pi-worker record: missing preamble brief or worker role, or a present writing tag fails, and cmd cannot pass sh", async () => {
   const good = passingWorkerJudgment();
   const build = installConfig.PI_BUILD;
   const otherBranch = good.preamble.replace(`${build.branchPrefix}${good.lane}`, `${build.branchPrefix}other`);
@@ -1571,7 +1570,7 @@ check("pi-worker record: a record missing the rendered builder preamble, the who
     [{ ...good.record, system: good.record.system.replace(good.preamble, good.preamble.replace(path.join("/tmp", build.worktreeFolder, good.lane), "/tmp/other")) }, "preamble"],
     [{ ...good.record, system: good.record.system.replace(good.preamble, otherBranch) }, "preamble"],
     [{ ...good.record, system: good.record.system.replace(`installcheck_judge-${good.lane}`, `installcheck_judge-${good.lane.slice(0, -1)}`) }, "brief"],
-    [{ ...good.record, system: good.record.system.replace(installConfig.PI_TURN.writingTag, "") }, "writing"],
+    [{ ...good.record, system: `${good.record.system}\n${installConfig.PI_TURN.writingTag}` }, "writing"],
     [{ ...good.record, role: "reviewer" }, "role"],
     [{ system: good.record.system }, "role"],
   ]) assert.equal(installCheck.judgePiWorker({ ...good, record }).code, code);

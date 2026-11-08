@@ -9,7 +9,7 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { piAgentDir } from './agent-dir.mjs';
-import { contextPart } from './context-load-log.mjs';
+import { contextPart, promptSectionParts } from './context-load-log.mjs';
 import { locatePiPackage } from './pi-package.mjs';
 
 // Pi's own diagnostics must never share the metadata channel or reach the launcher.
@@ -35,4 +35,30 @@ async function measure() {
   } catch { return unavailable('pi context lookup failed'); }
 }
 const result = await measure();
+if (process.argv[3] === 'sections') {
+  result.sections = promptSectionParts();
+  try {
+    const cwd = process.cwd(), args = JSON.parse(process.argv[2]);
+    const located = locatePiPackage({ env: process.env, cwd });
+    if (located.refused) throw new Error('pi unavailable');
+    const pi = await import(pathToFileURL(join(located.packageDir, 'dist', 'index.js')).href);
+    const additionalExtensionPaths = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '-e' || args[i] === '--extension') additionalExtensionPaths.push(args[++i]);
+      else if (args[i].startsWith('--extension=')) additionalExtensionPaths.push(args[i].slice('--extension='.length));
+    }
+    const loader = new pi.DefaultResourceLoader({ cwd, agentDir: piAgentDir(),
+      noExtensions: args.includes('-ne') || args.includes('--no-extensions'), additionalExtensionPaths,
+      noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
+    await loader.reload();
+    const loaded = loader.getExtensions();
+    if (loaded.errors.length) throw new Error('extension discovery failed');
+    const extensions = loaded.extensions.filter(ext => /(?:^|[/\\])nana-(?:objective|rulings|writing)\.[cm]?[jt]s$/.test(ext.resolvedPath));
+    const ctx = { cwd, hasUI: false, isProjectTrusted: () => false };
+    const event = { systemPromptOptions: { sections: {} } };
+    for (const ext of extensions) for (const handler of ext.handlers.get('session_start') ?? []) await handler({ reason: 'startup' }, ctx);
+    for (const ext of extensions) for (const handler of ext.handlers.get('before_agent_start') ?? []) await handler(event, ctx);
+    result.sections = promptSectionParts(event.systemPromptOptions.sections);
+  } catch { /* Unknown is never reported as a skipped section. */ }
+}
 emit(JSON.stringify(result), () => process.exit(0));
