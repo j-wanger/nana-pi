@@ -218,9 +218,11 @@
       "gap": null,
       "ask": null,
       "evidence": [
-        "packages/nana-setup/"
+        "packages/nana-setup/",
+        "packages/nana-setup/tests/setup-tail.test.mjs",
+        "packages/nana-setup/tests/install-check.test.mjs"
       ],
-      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
+      "auditedAt": "d8f5840cfc17120e2108fcd54f85832b33d7e271",
       "anchors": []
     },
     {
