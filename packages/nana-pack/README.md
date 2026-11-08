@@ -36,7 +36,6 @@ Ten extensions giving pi the hook coverage we require (Claude Code parity classe
 | `nana-gate` | Pre-tool permission gating | `tool_call` (blocking) |
 | `nana-post-edit` | Post-edit format/lint/test | `tool_result` (modifying) |
 | `nana-lifecycle` | Session lifecycle observability + `/reload-runtime` | `session_start/…compact…/shutdown`, `registerCommand` |
-| `nana-notify` | Outward notifications | `agent_settled`, `ui_prompt_start` |
 | `nana-handoff` | Session continuity across compaction | `session_compact` (write) / `session_start` + `before_agent_start` (inject) |
 | `nana-objective` | The owner's objective + current priority in every system prompt | `session_start` (all reasons) + `before_agent_start` (inject) |
 | `nana-frontier-summary` | Bounded Next titles, open asks and the HANDOFF frontier check | `session_start` (all reasons) + `before_agent_start` (inject) |
@@ -1113,11 +1112,7 @@ Print/JSON mode (`-p`) has no UI to draw on, so none of this appears there:
   the builder, any larger-lane builder and the reviewer by model and thinking, never a
   provider (`nana-roster` prints it); a set scout and the resolved planner and adversary follow reviewer, and reads `roster unknown: …` while
   `PI_CODING_AGENT_DIR` is relative.
-- **OS notification** when the agent settles and waits for you. If the OS notifier fails or hangs —
-  the usual Windows cases: no WinRT toast registration, PowerShell locked down, an 8 s deadline hit —
-  you get an in-app "Ready for input" notification instead, plus a `notify_fallback` journal line
-  saying why. (A notifier that exits 0 after printing a *localized* PowerShell error record can still
-  slip through; the spawn/exit-code/deadline paths do not.)
+Nana sends no desktop notification when the agent settles or requests approval.
 
 **Is it actually installed on this machine?** `pi install` writes to *user* settings
 (`~/.pi/agent/settings.json`) by default, so it applies everywhere; `-l` writes project settings
@@ -1200,7 +1195,6 @@ project config never contributes to either one, trusted or not.
 			{ "match": "\\.py$", "run": "ruff check {file}", "timeoutMs": 20000 }
 		]
 	},
-	"notify": { "enabled": true, "headless": false },
 	"journal": { "enabled": true, "path": null },
 	"handoff": { "enabled": true, "path": null },
 	"objective": { "enabled": true, "path": null, "projectFile": null },
@@ -1423,7 +1417,7 @@ project config never contributes to either one, trusted or not.
   proof nana-gate loaded; both exceptions above are real gaps this lane's config does not close.
 - **A background subagent child shares its parent's cwd-derived state.** pi-subagents' detached
   runner process is a second nana-pack session in the SAME working directory as its parent, so the
-  compaction summary store key (`sha256(cwd)`) and desktop notify are shared between parent and child.
+  compaction summary store key (`sha256(cwd)`) is shared between parent and child.
   Short-lived review children do not compact, so this is safe in practice today; a
   `NANA_HANDOFF=off` switch for subagent children is a follow-up if that observation ever changes.
 - **post-edit failures are appended to the tool result** so the model sees and fixes them;
@@ -1459,12 +1453,6 @@ project config never contributes to either one, trusted or not.
   `timeoutMs: 0` still means no deadline. CI's Windows leg runs the win32 branch: a timed-out or aborted check's process and its child are ended through `taskkill /T /F`; with `taskkill` off PATH only the shell is killed, and the check's own processes keep running.
 - **Journal** is best-effort JSONL at `<agent dir>/nana-journal.jsonl` (override via
   `journal.path`); one line per session event.
-- **Notify** writes OSC 777 only in TUI mode, so RPC stdout stays clean even when it has a UI.
-  Headless notifications are opt-in (`notify.headless`). `ui_prompt_start` sends the fixed body
-  "Approval needed in pi"; notification titles never expose dialog text. A failing OS
-  notifier (execFile error, non-zero exit, or a PowerShell exception on stderr) falls back to the
-  in-app notification and journals `notify_fallback` with the reason. The notifier also runs under
-  an 8 s deadline, so a hung one fails over instead of holding the pipe open.
 - **Adoption signal** (L5, 2026-09-29). When a fresh session's store entry is *missing* (never
   merely unreadable), no `handoff.path` is configured, and the session runs inside a git
   repository (`.git` directory or file — a linked worktree is its own root) whose **root** is not
