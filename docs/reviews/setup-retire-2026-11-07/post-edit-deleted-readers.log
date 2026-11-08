@@ -1,0 +1,8 @@
+packages/nana-pack/tests/test-runner.test.mjs:207: 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
+packages/nana-pack/tests/test-runner.test.mjs:278: 	check("a file declared unrunnable on this platform SKIPs with its reason printed", labelFor(A.out, "post-edit-hardening.test.mjs") === "SKIP" && lineFor(A.out, "post-edit-hardening.test.mjs").includes("needs `pgrep` on POSIX"));
+packages/nana-pack/tests/test-runner.test.mjs:281: 	check("a file whose declared skip condition does not hold runs instead of skipping", labelFor(A.out, "post-edit-hardening.test.mjs") === "PASS");
+packages/nana-pack/tests/test-runner.test.mjs:284: check("a declared tool prerequisite skips only when absent on POSIX", labelFor(A.out, "post-edit-hardening.test.mjs") === (posix ? "SKIP" : "PASS"));
+packages/nana-pack/tests/test-runner.test.mjs:287: 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": 'console.log("PASS prerequisite fixture ran");\n',
+packages/nana-pack/tests/test-runner.test.mjs:293: check("a tool-dependent file runs when its declared prerequisite exists", labelFor(prerequisitePresent.out, "post-edit-hardening.test.mjs") === "PASS" && prerequisitePresent.out.includes("PASS prerequisite fixture ran") && prerequisitePresent.code === 0);
+packages/nana-pack/tests/test-runner.test.mjs:543: 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": POST_EDIT_HARDENING_FIXTURE,
+packages/nana-pack/tests/test-runner.test.mjs:565: 	["packages/nana-pack/tests/post-edit-hardening.test.mjs", posix ? "SKIP" : "PASS"],

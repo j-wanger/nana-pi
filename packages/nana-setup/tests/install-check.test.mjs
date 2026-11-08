@@ -187,14 +187,12 @@ check("reporting matches known-red fingerprint and expiry and rejects unexpected
 function tempHome() { return tmpDir(path.join(os.tmpdir(), "install-check-test-")); }
 function passingTurnRecord(token) {
   const turn = installConfig.PI_TURN;
-  const edit = installConfig.PI_TURN_EDIT;
   const powershell = installConfig.PI_TURN_POWERSHELL;
   return {
     system: `${token}\n${turn.rulingsHeading}\n${turn.seatGuideHeading}\n${turn.writingTag}`,
     userMessages: [`${turn.knowledgeMarker} ~/notes/docs/${turn.noteFile}`],
     toolResults: [
       { toolName: turn.tool, isError: true, text: `${turn.gateBlockPrefix} sample` },
-      ...(edit ? [{ toolName: edit.tool, isError: false, text: `${edit.failureLead}fixture ${edit.exitText}: ${token}` }] : []),
       ...(powershell ? [{ toolName: powershell.tool, isError: true, text: `${turn.gateBlockPrefix} sample` }] : []),
     ],
   };
@@ -1224,90 +1222,6 @@ check("pin R-1790 to R-1796: the turn's sealed fixture path, provider, model, ar
   assert.deepEqual(installConfig.PI_SESSION, { unavailableWord: "unavailable", maxOutput: 100000 });
 });
 
-// req: R-2000
-check("pi post-edit config: before the turn, the installed nana-pack.json keeps its other keys and holds one post-edit command that matches only the fixture file and, run as nana-post-edit runs it, makes the running node print the file and exit with the sealed code", async () => {
-  const seed = { objective: { projectFile: "OBJECTIVE.md" }, notify: { enabled: false } };
-  let captured = null;
-  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
-    const result = await spawn(command, args, options);
-    const configPath = path.join(fixture.home, ".pi", "agent", "nana-pack.json");
-    if (`${command} ${args.join(" ")}`.includes("nana-setup.mjs") && args.includes("install")) fs.writeFileSync(configPath, JSON.stringify(seed));
-    if (`${command} ${args.join(" ")}`.includes(installConfig.PI_TURN.provider)) captured = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    return result;
-  } });
-  try {
-    await fixture.run;
-    assert.deepEqual(captured.objective, seed.objective);
-    assert.deepEqual(captured.notify, seed.notify);
-    assert.deepEqual(Object.keys(captured).sort(), ["notify", "objective", "postEdit"]);
-    assert.equal(captured.postEdit.commands.length, 1);
-    const command = captured.postEdit.commands[0];
-    const matcher = new RegExp(command.match);
-    assert.equal(matcher.test(installConfig.PI_TURN_EDIT.file), true);
-    assert.equal(matcher.test("other.txt"), false);
-    assert.equal(matcher.test(`${installConfig.PI_TURN_EDIT.file}.bak`), false);
-    assert.ok(command.run.includes(process.execPath));
-    const target = path.join(fixture.home, installConfig.PI_TURN_EDIT.file);
-    const contents = "fixture text\r\ntrailing tab\t";
-    fs.writeFileSync(target, contents);
-    const replacement = process.platform === "win32" ? '"%NANA_PI_FILE%"' : `"${target}"`;
-    const commandLine = command.run.replaceAll(installConfig.PI_TURN_EDIT.placeholder, () => replacement);
-    const commandEnv = process.platform === "win32" ? { ...process.env, NANA_PI_FILE: target } : process.env;
-    const ran = spawnSync(commandLine, { shell: true, encoding: "utf8", env: commandEnv });
-    assert.equal(ran.stdout, contents);
-    assert.equal(ran.status, installConfig.PI_TURN_EDIT.exitCode);
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-
-// req: R-2001
-check("pi post-edit config: a missing, unparseable or non-object installed nana-pack.json is left as install left it", async () => {
-  for (const original of [null, "{ not json", "[]"]) {
-    const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
-      const result = await spawn(command, args, options);
-      if (`${command} ${args.join(" ")}`.includes("nana-setup.mjs") && args.includes("install")) {
-        const configPath = path.join(fixture.home, ".pi", "agent", "nana-pack.json");
-        if (original === null) fs.rmSync(configPath, { force: true });
-        else fs.writeFileSync(configPath, original);
-      }
-      return result;
-    } });
-    const configPath = path.join(fixture.home, ".pi", "agent", "nana-pack.json");
-    try {
-      await fixture.run;
-      if (original === null) assert.equal(fs.existsSync(configPath), false);
-      else assert.equal(fs.readFileSync(configPath, "utf8"), original);
-    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-  }
-});
-
-// req: R-2002
-check("pi post-edit: one line per run, PASS only when a write result not marked as an error holds a check line with the sealed exit text and the run token", async () => {
-  const token = "installcheck_postedit";
-  const edit = installConfig.PI_TURN_EDIT;
-  const good = passingTurnRecord(token);
-  const accepted = { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: false, text: `noise\r\n${edit.failureLead}fixture ${edit.exitText}: ${token} \t` }] };
-  assert.equal(installCheck.judgePiPostEdit({ record: accepted, token }).passed, true);
-  const variants = [
-    { record: { ...good, toolResults: [good.toolResults[0]] }, detail: `no ${edit.tool} tool result` },
-    { record: { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: true, text: `${edit.failureLead}${edit.exitText} ${token}` }] }, detail: "marked as an error" },
-    { record: { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: false, text: `not ${edit.failureLead}${edit.exitText} ${token}` }] }, detail: `starts with ${edit.failureLead}` },
-    { record: { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: false, text: `${edit.failureLead}missing exit ${token}` }] }, detail: edit.exitText },
-    { record: { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: false, text: `${edit.failureLead}fixture ${edit.exitText}` }] }, detail: "run token" },
-  ];
-  for (const variant of variants) {
-    const judged = installCheck.judgePiPostEdit({ record: variant.record, token });
-    assert.equal(judged.passed, false);
-    assert.ok(judged.detail.includes(variant.detail), judged.detail);
-  }
-  for (const platformName of ["linux", "win32"]) {
-    const fixture = recordingRun({ platformName });
-    try {
-      const result = await fixture.run;
-      assert.deepEqual(result.lines.filter((line) => line.includes(edit.item)), [`PASS ${edit.item}`]);
-    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-  }
-});
-
 // req: R-2003
 check("pi turn tools: on win32 the sealed tool list naming powershell comes before the sealed turn arguments, and linux and darwin carry no tool list", async () => {
   const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -1806,18 +1720,7 @@ check("pin R-2681 to R-2687: the build's sealed runs, lanes, labels, folders, br
   assert.ok(Number(installConfig.PI_BUILD.launcherArgs.at(-1)) * 1000 < installConfig.SPAWN_TIMEOUT_MS.build);
 });
 
-check("pin R-2000 to R-2004: the post-edit item, tool, fixture file, match, placeholder, failure lead, check source and exit code, and the PowerShell item, tool, platforms and tool list", () => {
-  assert.deepEqual(installConfig.PI_TURN_EDIT, {
-    item: "pi post-edit",
-    tool: "write",
-    file: "install-check-post-edit.txt",
-    match: "install-check-post-edit\\.txt$",
-    placeholder: "{file}",
-    failureLead: "- check ",
-    exitCode: 3,
-    source: "process.stdout.write(require('fs').readFileSync(process.argv[1],'utf8'));process.exitCode=3",
-    exitText: "exited 3",
-  });
+check("pin R-2003 to R-2004: the PowerShell item, tool, platforms and tool list", () => {
   assert.deepEqual(installConfig.PI_TURN_POWERSHELL, {
     item: "pi powershell gate",
     tool: "powershell",

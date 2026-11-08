@@ -63,7 +63,6 @@
     { "path": "packages/nana-pack/tests/pack-config-utf16.test.mjs", "reason": "Pi executable is resolved at runtime." },
     { "path": "packages/nana-pack/tests/path-spelling.test.mjs", "reason": "Shell sources generated path-spelling commands." },
     { "path": "packages/nana-pack/tests/pi-install.mjs", "reason": "Pi can load repository extensions and manifest folders." },
-    { "path": "packages/nana-pack/tests/post-edit-utf8.test.mjs", "reason": "Pi executable comes from its installed package." },
     { "path": "packages/nana-pack/tests/pwsh-oracle.mjs", "reason": "PowerShell program is selected by runtime discovery." },
     { "path": "packages/nana-pack/tests/requirements-deliverables.test.mjs", "reason": "Fixture command runner accepts a program parameter." },
     { "path": "packages/nana-pack/tests/requirements-lift.test.mjs", "reason": "Shell invokes the requirements skill fixture." },

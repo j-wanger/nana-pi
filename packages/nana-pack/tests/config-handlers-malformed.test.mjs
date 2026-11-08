@@ -18,7 +18,7 @@ import * as path from "node:path";
 // shown as one UI warning per session when a UI exists.
 // Each variant: fresh temp HOME + USERPROFILE, fresh workspace, fresh registrations.
 // Run: node --experimental-strip-types <this file>
-const EXT = ["nana-gate", "nana-post-edit", "nana-objective", "nana-handoff", "nana-lifecycle", "nana-writing", "nana-roster-notice"];
+const EXT = ["nana-gate", "nana-objective", "nana-handoff", "nana-lifecycle", "nana-writing", "nana-roster-notice"];
 const exts = {};
 for (const n of EXT) exts[n] = (await import(new URL(`../extensions/${n}.ts`, import.meta.url).href)).default;
 
@@ -30,8 +30,8 @@ const VARIANTS = [
 	...[null, 7, "x", [], true].map((v) => [`whole file = ${JSON.stringify(v)}`, JSON.stringify(v), 1]),
 	["trailing-comma file (Opus)", '{ "notify": { "headless": false }, }', 1],
 	["binary garbage", "\u0000ÿ{{", 1],
-	...["gate", "postEdit", "notify", "journal", "handoff", "objective", "receipts"].map((b) => [`${b} = 7`, JSON.stringify({ [b]: 7 }), 1]),
-	["sol postEdit.commands = null", JSON.stringify({ postEdit: { commands: null } }), 1],
+	...["gate", "notify", "journal", "handoff", "objective", "receipts"].map((b) => [`${b} = 7`, JSON.stringify({ [b]: 7 }), 1]),
+	["sol postEdit.commands = null", JSON.stringify({ postEdit: { commands: null } }), 0],
 	["sol objective.path = 7", JSON.stringify({ objective: { path: 7 } }), 1],
 	["handoff.path = []", JSON.stringify({ handoff: { path: [] } }), 1],
 	["journal.path = 7", JSON.stringify({ journal: { path: 7 } }), 1],
@@ -99,7 +99,7 @@ for (const [label, text, expectLines] of VARIANTS) {
 	process.env.USERPROFILE = home;
 	fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 	const userCfg = path.join(home, ".pi", "agent", "nana-pack.json");
-	fs.writeFileSync(userCfg, JSON.stringify({ postEdit: { commands: null } }));
+	fs.writeFileSync(userCfg, JSON.stringify({ journal: { path: 7 } }));
 	const h = {};
 	for (const n of EXT) exts[n]({ on: (ev, fn) => (h[ev] ??= []).push(fn), registerCommand() {} });
 	const warnings = [];
@@ -115,7 +115,7 @@ for (const [label, text, expectLines] of VARIANTS) {
 		const event = ev === "session_start" ? { reason: "startup" } : ev === "before_agent_start" ? { systemPromptOptions: { sections: {} } } : { compactionEntry: { summary: "s" } };
 		for (const fn of h[ev] ?? []) await fn(event, ctx);
 	}
-	const mine = () => warnings.filter((w) => w.m.includes(userCfg) && w.m.includes("postEdit.commands"));
+	const mine = () => warnings.filter((w) => w.m.includes(userCfg) && w.m.includes("journal.path"));
 	// req: R-082
 	check("UI: exactly one warning for the problem in a session", mine().length === 1 && mine()[0].t === "warning", JSON.stringify(warnings));
 	for (const fn of h.session_start) await fn({ reason: "startup" }, mk("s2"));
@@ -158,22 +158,16 @@ for (const [label, text, expectLines] of VARIANTS) {
 		};
 
 		await fire("session_start", { reason: "startup" });
-		const editResults = await fire("tool_result", { toolName: "edit", isError: false, input: { path: "a.ts" }, content: [{ type: "text", text: "edited" }] });
-
-		const postEditText = editResults.map((r) => (r?.content ?? []).map((c) => c.text).join("\n")).join("\n");
-		const postEditPass = postEditText.includes("[nana-post-edit] 1 check(s) failed");
 		const journal = path.join(agent, "nana-journal.jsonl");
 		const journalText = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8") : "";
 		const lifecyclePass = journalText.split("\n").some((l) => l.includes('"event":"session_start"'));
 
-		// A stopped gate blocks every edit before post-edit ever runs — so in pi, post-edit's own
-		// feedback is unreachable under gate = 7, and only lifecycle is asserted for that variant.
-		const variantOk = lifecyclePass && (label === "gate = 7" || postEditPass);
+		const variantOk = lifecyclePass;
 		if (!variantOk) r781Pass = false;
-		r781Detail.push(`${label}: lifecycle=${lifecyclePass} postEdit=${postEditPass}`);
+		r781Detail.push(`${label}: lifecycle=${lifecyclePass}`);
 	}
 	// req: R-781
-	check("with an unrelated block malformed, post-edit still feeds back its check's failure and lifecycle still journals the session start",
+	check("with an unrelated block malformed, lifecycle still journals the session start",
 		r781Pass,
 		r781Detail.join(" | "),
 	);

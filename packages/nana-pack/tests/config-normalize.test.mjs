@@ -35,7 +35,6 @@ const VALUES = [null, 7, "x", [], true, {}, { unexpected: 1 }];
 // leaf → [kind, a valid NON-default sibling value used to prove siblings survive]
 const LEAVES = {
 	gate: { extraPatterns: ["regex", ["\\bterraform\\s+destroy\\b"]], allowPatterns: ["regex", ["^ls\\b"]], protectedPaths: ["regex", ["secrets\\.txt"]] },
-	postEdit: { commands: ["commands", [{ match: "\\.ts$", run: "true" }]] },
 	notify: { enabled: ["bool", false], headless: ["bool", true] },
 	journal: { enabled: ["bool", false], path: ["path", path.join(tmpDir(path.join(os.tmpdir(), "norm-j-")), "j.jsonl")] },
 	handoff: { enabled: ["bool", false], path: ["path", "/tmp/nana-h.md"], staleAfterDays: ["days", 3] },
@@ -45,7 +44,6 @@ const LEAVES = {
 };
 const DEFAULTS = {
 	gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [] },
-	postEdit: { commands: [] },
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
 	handoff: { enabled: true, path: null, staleAfterDays: 7 },
@@ -73,7 +71,6 @@ function isTyped(c) {
 	const nul = (v) => v === null || typeof v === "string";
 	return arrStr(c.gate.extraPatterns) && arrStr(c.gate.allowPatterns) && arrStr(c.gate.protectedPaths)
 		&& (c.gate.stopReason === null || typeof c.gate.stopReason === "string")
-		&& Array.isArray(c.postEdit.commands) && c.postEdit.commands.every((x) => typeof x.match === "string" && typeof x.run === "string")
 		&& typeof c.notify.enabled === "boolean" && typeof c.notify.headless === "boolean"
 		&& typeof c.journal.enabled === "boolean" && nul(c.journal.path)
 		&& typeof c.handoff.enabled === "boolean" && nul(c.handoff.path) && typeof c.handoff.staleAfterDays === "number" && c.handoff.staleAfterDays > 0
@@ -201,25 +198,24 @@ for (const v of [0, -1, 1e400]) {
 	named(`handoff.staleAfterDays=${v}: not a positive finite number → default 7`, !r.threw && r.cfg.handoff.staleAfterDays === 7);
 }
 {
-	const r = load(env({ user: { postEdit: { commands: null } } }));
-	named("sol {postEdit:{commands:null}}: no throw, commands = []", !r.threw && eq(r.cfg.postEdit.commands, []));
-}
-{
 	const r = load(env({ user: { objective: { path: 7 } } }));
 	named("sol {objective:{path:7}}: no throw, path = null (default)", !r.threw && r.cfg.objective.path === null && r.cfg.objective.enabled === true);
 }
 {
 	const text = '{\n  "notify": { "headless": true },\n  "gate": { "extraPatterns": ["x"], },\n}\n';
 	const r = load(env({ userText: text }));
-	named("Opus trailing-comma file: no throw, file contributes nothing", !r.threw && r.cfg.notify.headless === false && eq(r.cfg.postEdit.commands, []));
+	named("Opus trailing-comma file: no throw, file contributes nothing", !r.threw && r.cfg.notify.headless === false);
 	named("Opus trailing-comma file: gate stops conservatively (no valid policy in this process)", PARSE_STOP.test(r.cfg?.gate.stopReason ?? ""));
 	const p = load(env({ user: VALID, projectText: text }));
 	named("trailing-comma PROJECT file: contributes nothing, user config intact", !p.threw && eq(p.cfg.gate.allowPatterns, VALID.gate.allowPatterns) && eq(p.cfg.notify, VALID.notify));
 	named("trailing-comma PROJECT file: gate stops conservatively (no valid project policy in this process)", PARSE_PSTOP.test(p.cfg?.gate.stopReason ?? ""));
 }
 {
-	const r = load(env({ user: { postEdit: { commands: [{ match: "\\.ts$", run: "ok" }, 7, { match: "(", run: "x" }, { run: "nomatch" }, { match: "a", run: "t", timeoutMs: -1 }, { match: "b", run: "u", timeoutMs: 50 }] } } }));
-	named("malformed array ENTRIES dropped, valid ones kept", !r.threw && eq(r.cfg.postEdit.commands, [{ match: "\\.ts$", run: "ok" }, { match: "b", run: "u", timeoutMs: 50 }]));
+	// Moved from post-edit-status: receipts compatibility belongs to the config loader.
+	const e = env({ user: { receipts: { enabled: true, dir: "legacy-receipts" } } });
+	const r = load(e);
+	// req: R-865
+	check("legacy receipts config is accepted without diagnostics or receipt files", !r.threw && r.cfg.receipts.enabled === true && r.cfg.receipts.dir === "legacy-receipts" && !fs.existsSync(path.join(e.home, ".pi", "agent", "nana-journal.jsonl")) && !fs.existsSync(path.join(e.ctx.cwd, "legacy-receipts")));
 }
 {
 	const r = load(env({ userText: "﻿" + JSON.stringify({ notify: { headless: true } }) }));

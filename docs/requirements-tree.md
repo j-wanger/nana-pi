@@ -326,9 +326,8 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   - **FEAT-030 · Get trustworthy feedback after edits**
     Purpose: Run matching checks after file edits and communicate failures, timeouts, skipped work and evidence state correctly.
     Status: active
-    Also applies: R-079, R-186, R-781
+    Also applies: R-079, R-781
     Parent: CAP-07 · Rows: 62 · IDs: R-084–R-107, R-243, R-247, R-644, R-782–R-794, R-866, R-868, R-993, R-994, R-1038, R-1700–R-1703, R-1740–R-1743, R-1820, R-2150, R-2151, R-2210–R-2215
-    Reads: A-011, A-069
   - **FEAT-031 · Run checks reliably and without contaminating work**
     Purpose: Execute the test suite with appropriate collection, isolation, liveness, output and environmental controls.
     Status: active
@@ -423,7 +422,6 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-183 | FEAT-012 | FEAT-010 | 1 |
 | R-184 | FEAT-012 | FEAT-010 | 1 |
 | R-185 | FEAT-012 | FEAT-002 | 1 |
-| R-186 | FEAT-012 | FEAT-030 | 1 |
 | R-188 | FEAT-012 | FEAT-011 | 1 |
 | R-191 | FEAT-013 | FEAT-001 | 1 |
 | R-193 | FEAT-011 | FEAT-015 | 1 |

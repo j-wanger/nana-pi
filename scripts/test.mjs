@@ -203,9 +203,8 @@ const onPath = (cmd) => {
 const SKIPS = {
 	"packages/nana-setup/tests/checkout-spelling.test.mjs": checkoutSpellingSkipReason,
 	"packages/nana-setup/tests/checkout-converge.test.mjs": () => process.platform === "win32" ? "POSIX-only: skill links are copies on win32 and uninstall refuses there" : null,
-	// On POSIX it proves no child was left running with `pgrep -f`, and reads "pgrep missing" as
-	// "nothing left" — so without pgrep it would pass without proving anything. On win32 it does
-	// not use pgrep (it guards its own POSIX cases), so it always runs there.
+	// Historical fixture key used by test-runner.test.mjs to exercise a missing tool.
+	// The real post-edit test is retired; only OS-temporary runner fixtures use this entry.
 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": () =>
 		posix && !onPath("pgrep") ? "needs `pgrep` on POSIX (not on PATH)" : null,
 	// Windows-leg-only (R-1058): spawns exec-form hook entries exactly as the real platform would;
