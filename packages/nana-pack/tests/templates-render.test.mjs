@@ -438,12 +438,14 @@ function checkAgentsMdMirrorsWorkingUnderNanaPi() {
 	check("M2: shared land guidance drops pre-review notes and keeps the post-land writing ban",
 		block === shared && !/Put HANDOFF and session notes|Notes go in before the final round/.test(shared) &&
 		shared.includes("Nothing is written after a land."));
-	// M3 is partial: builder scope forbids editing the live HANDOFF.
-	check("M3: authorized narrative and session-archive references are removed", (() => {
+	// req: R-3896
+	check("M3: narrative and session-archive references are removed", (() => {
+		const handoff = fs.readFileSync(path.join(REPO, "HANDOFF.md"), "utf8");
 		const seed = fs.readFileSync(path.join(REPO, "templates/_shared/HANDOFF.md"), "utf8");
-		const scope = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8").split("\nTests\n")[0];
-		return !/narrative lives in `docs\/sessions\/`/i.test(seed) &&
-			!agents.includes("(this repo's narrative, newest first)") && !scope.includes("session archives");
+		const scope = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8").split(/\r?\nTests[ \t]*\r?\n/)[0];
+		return [handoff, seed, agents].every((text) =>
+			!/narrative lives in `docs\/sessions\/`/i.test(text) &&
+			!text.includes("(this repo's narrative, newest first)")) && !scope.includes("session archives");
 	})());
 	const prefix = agents.slice(0, agents.indexOf("<!-- nana:working-under-nana-pi begin -->"));
 	const paragraph = prefix.trimEnd().split(/\n\s*\n/).at(-1) ?? "";
