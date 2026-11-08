@@ -207,6 +207,58 @@ check('M8: documented manual checks pass clean and reject broken fixtures', () =
   }
 }));
 
+// req: R-3889
+check('M5: uninstall removes only an owned retired verifier link', () => fixture(({ root, home, run }) => {
+  if (process.platform === 'win32') return; // Uninstall is explicitly POSIX-only.
+  const hooks = path.join(home, '.claude/hooks');
+  fs.mkdirSync(hooks, { recursive: true });
+  const retired = path.join(hooks, 'verifier-pipe.mjs');
+  const ownedTarget = path.join(repo, 'packages/nana-setup/claude/hooks/verifier-pipe.mjs');
+  const foreign = path.join(root, 'foreign.mjs');
+  fs.writeFileSync(foreign, 'foreign bytes');
+  for (const kind of ['owned', 'foreign-link', 'foreign-dangling', 'regular']) {
+    fs.symlinkSync(path.join(repo, 'packages/nana-setup/claude/hooks/nana-objective.mjs'), path.join(hooks, 'nana-objective.mjs'));
+    if (kind === 'regular') fs.writeFileSync(retired, 'user bytes');
+    else fs.symlinkSync(kind === 'owned' ? ownedTarget : kind === 'foreign-link' ? foreign : path.join(root, 'missing'), retired);
+    const result = run('uninstall', '--yes');
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    if (kind === 'owned') assert.throws(() => fs.lstatSync(retired), { code: 'ENOENT' });
+    else {
+      assert.ok(fs.lstatSync(retired));
+      if (kind === 'regular') assert.equal(fs.readFileSync(retired, 'utf8'), 'user bytes');
+      else assert.equal(fs.readlinkSync(retired), kind === 'foreign-link' ? foreign : path.join(root, 'missing'));
+      fs.unlinkSync(retired);
+    }
+    assert.equal(fs.readFileSync(foreign, 'utf8'), 'foreign bytes');
+  }
+}));
+
+// req: R-3893
+check('M9: a sole retired link supports dry run repeat and foreign refusal', () => fixture(({ root, home, run }) => {
+  if (process.platform === 'win32') return; // Uninstall is explicitly POSIX-only.
+  const hooks = path.join(home, '.claude/hooks');
+  fs.mkdirSync(hooks, { recursive: true });
+  const link = path.join(hooks, 'verifier-pipe.mjs');
+  const target = path.join(repo, 'packages/nana-setup/claude/hooks/verifier-pipe.mjs');
+  fs.symlinkSync(target, link);
+  const dry = run('uninstall', '--dry-run');
+  assert.equal(dry.status, 0, dry.stdout + dry.stderr);
+  assert.equal(fs.readlinkSync(link), target);
+  assert.match(dry.stdout, /would unlink/);
+  assert.deepEqual(fs.readdirSync(hooks), ['verifier-pipe.mjs']);
+  assert.equal(fs.existsSync(path.join(home, '.claude/settings.json')), false);
+  const remove = run('uninstall', '--yes');
+  assert.equal(remove.status, 0, remove.stdout + remove.stderr);
+  assert.deepEqual(fs.readdirSync(hooks), []);
+  assert.equal(run('uninstall', '--yes').status, 0);
+  fs.symlinkSync(path.join(root, 'missing-foreign'), link);
+  const before = fs.readlinkSync(link);
+  const refused = run('uninstall', '--yes');
+  assert.equal(refused.status, 1, refused.stdout + refused.stderr);
+  assert.match(refused.stdout, /inventory links do not resolve inside/);
+  assert.equal(fs.readlinkSync(link), before);
+}));
+
 let failures = 0;
 for (const { title, fn } of cases) {
   let timer;

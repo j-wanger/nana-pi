@@ -349,6 +349,15 @@ export function linkSkill(target, source, o = {}) {
 	return { status: CREATED, detail: null };
 }
 
+/** Recognize a retired hook by its existing canonical parent, even after its leaf was deleted. */
+export function retiredHookLinkOwned(link, name) {
+	if (!lstatSafe(link)?.isSymbolicLink()) return false;
+	try {
+		const target = path.resolve(path.dirname(link), fs.readlinkSync(link));
+		return path.basename(target) === name && realPath(path.dirname(target), { mustExist: true }) === realPath(path.join(pkgRoot, "claude", "hooks"), { mustExist: true });
+	} catch { return false; }
+}
+
 export function stepRetiredArtifacts(layout, o) {
 	const out = [];
 	const date = new Date().toISOString().slice(0, 10);
@@ -399,15 +408,7 @@ export function stepRetiredArtifacts(layout, o) {
 			out.push({ label: `retired ${old} link`, status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
 			continue;
 		}
-		let owned = false;
-		if (st.isSymbolicLink()) {
-			try {
-				const target = path.resolve(path.dirname(link), fs.readlinkSync(link));
-				const targetParent = path.dirname(target);
-				owned = path.basename(target) === old && realPath(targetParent, { mustExist: true }) === realPath(path.join(pkgRoot, "claude", "hooks"), { mustExist: true });
-			} catch { owned = false; }
-		}
-		if (owned) {
+		if (retiredHookLinkOwned(link, old)) {
 			if (!o.dryRun) fs.unlinkSync(link);
 			out.push({ label: `retired ${old} link`, status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
 		} else out.push({ label: `retired ${old} link`, status: PROBLEM, detail: `${old} is not a repository-managed symlink — left untouched` });
