@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 563 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 562 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -902,18 +902,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — build counts, source/root and index-damage markers, query hits or JSON, index/root status, and the hook frozen-index notice and pointer block on stdout; usage and query failures on stderr
 - **effects** — disk (builds and reads the index, writes the shown files and pull.log), database, process (sets the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
 - **errors** — exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it, and 0 otherwise — including reported index damage, source-file problems, every `hook` failure, and a build that lost the lock
-- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/build-busy.test.mjs`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/sources-file.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/hooks-closed-output.test.mjs`
+- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/build-busy.test.mjs`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/pull-cut.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/sources-file.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/hooks-closed-output.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources-file.mjs`, `packages/nana-knowledge/lib/sources.ts`
-
-### `packages/nana-knowledge/extensions/nana-knowledge.ts`
-
-- **purpose** — pi extension that injects the prompt's knowledge pointers by running the pull CLI out-of-process, fail-open.
-- **inputs** — pi `before_agent_start` events (prompt), the session id from ctx.sessionManager, ctx.cwd, and bin/nana-knowledge.ts invoked through node
-- **outputs** — a `nana-knowledge` custom message (display: true) carrying whatever the CLI printed, or nothing
-- **effects** — process (spawns the CLI with the prompt on stdin under a TIMEOUT_MS deadline, then SIGKILLs it best-effort)
-- **errors** — none — a spawn throw, ENOENT, non-zero exit, deadline kill, blown maxBuffer, a non-string prompt or a missing session id all yield no pointers
-- **callers** — `packages/nana-knowledge/tests/extension.test.mjs`
-- **callees** — `packages/nana-knowledge/lib/tokenize.ts`
 
 ### `packages/nana-knowledge/lib/build.ts`
 
@@ -922,7 +912,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — BuildStats (per-root counts, totals, preserved and removed rows, source and damage outcomes, timing and db size), the index's meta rows, the index age, and a doc count
 - **effects** — disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row transactions, a WAL truncate checkpoint)
 - **errors** — BuildLockedError when another live builder holds the lock; unrecoverable node:sqlite errors; a sources problem or unreadable root/folder keeps its indexed rows
-- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/build-busy.test.mjs`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
+- **callers** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/tests/build-busy.test.mjs`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
 - **callees** — `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/parse.ts`, `packages/nana-knowledge/lib/paths.ts`, `packages/nana-knowledge/lib/sources.ts`
 
 ### `packages/nana-knowledge/lib/db.ts`
@@ -1002,7 +992,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — lowercased alnum tokens, the meaningful (non-stopword, len>2, deduped) tokens, an OR-joined quoted FTS5 MATCH string, and a skip reason or null
 - **effects** — none
 - **errors** — none — a non-string prompt yields the skip reason `not-a-string`, alongside too-short, slash-command, harness-notification and too-few-tokens
-- **callers** — `packages/nana-knowledge/extensions/nana-knowledge.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/tokenize.test.mjs`
+- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/tests/tokenize.test.mjs`
 - **callees** — —
 
 ### `packages/nana-knowledge/tests/build-busy.test.mjs`
@@ -1025,17 +1015,6 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/db.ts`, `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-knowledge/lib/sources.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
-
-### `packages/nana-knowledge/tests/extension.test.mjs`
-
-- **purpose** — Pins that the pi extension is ONE thin wrapper around the hook CLI — fail-open on every child failure, never a reject out of before_agent_start, and no sqlite inside pi's process
-- **inputs** — extensions/nana-knowledge.ts, bin/nana-knowledge.ts, and a temp NANA_KNOWLEDGE_HOME with a markdown source tree
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp home, source tree and index, plus a copied extension tree under td and the stub CLIs it writes), process (sets NANA_KNOWLEDGE_HOME, spawns the hook CLI and the copied extension's stub CLI)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `packages/nana-knowledge/extensions/nana-knowledge.ts`, `packages/nana-knowledge/lib/build.ts`, `packages/nana-knowledge/lib/tokenize.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
-- **unresolved launches** — line 274: execFileSync · line 286: execFileSync
 
 ### `packages/nana-knowledge/tests/hook.test.mjs`
 
@@ -1067,6 +1046,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-knowledge/lib/parse.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`
+
+### `packages/nana-knowledge/tests/pull-cut.test.mjs`
+
+- **purpose** — Prove prompt-time knowledge delivery is absent while explicit query retains its pointers.
+- **inputs** — Package manifests, extension sources and an OS-temporary built index.
+- **outputs** — Bounded awaited PASS or FAIL result.
+- **effects** — disk (temporary fixture), process (build and query children)
+- **errors** — Assertions fail the case.
+- **callers** — —
+- **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/tests/tmp-dir.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
 
 ### `packages/nana-knowledge/tests/recover.test.mjs`
 
@@ -1105,7 +1094,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `packages/nana-knowledge/tests/build-busy.test.mjs`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/extension.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/ledger-parse.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/sources-file.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
+- **callers** — `packages/nana-knowledge/tests/build-busy.test.mjs`, `packages/nana-knowledge/tests/discovery.test.mjs`, `packages/nana-knowledge/tests/hook.test.mjs`, `packages/nana-knowledge/tests/incremental-build.test.mjs`, `packages/nana-knowledge/tests/ledger-parse.test.mjs`, `packages/nana-knowledge/tests/pull-cut.test.mjs`, `packages/nana-knowledge/tests/recover.test.mjs`, `packages/nana-knowledge/tests/render.test.mjs`, `packages/nana-knowledge/tests/sources-file.test.mjs`, `packages/nana-knowledge/tests/unreadable-root.test.mjs`
 - **callees** — —
 
 ### `packages/nana-knowledge/tests/tokenize.test.mjs`
@@ -3920,7 +3909,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Fixture paths, CLI and git runners, and record readers.
 - **effects** — disk, process
 - **errors** — Throws on failed fixture commands.
-- **callers** — `packages/nana-pack/tests/ci-wait.test.mjs`, `packages/nana-pack/tests/land-clean-merge-race.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-regenerate.test.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-pack/tests/profile-store-guards.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`, `packages/nana-setup/tests/memory-end-hook.test.mjs`, `packages/nana-setup/tests/memory-end-wiring.test.mjs`
+- **callers** — `packages/nana-knowledge/tests/pull-cut.test.mjs`, `packages/nana-pack/tests/ci-wait.test.mjs`, `packages/nana-pack/tests/land-clean-merge-race.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-regenerate.test.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-pack/tests/profile-store-guards.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/profile-sync.test.mjs`, `packages/nana-setup/tests/memory-end-hook.test.mjs`, `packages/nana-setup/tests/memory-end-wiring.test.mjs`
 - **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/profile-store-guards.test.mjs`
