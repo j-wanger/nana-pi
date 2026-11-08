@@ -45,7 +45,10 @@ function cli(argv) {
 function copierArgs(language, answers, dest, sha, adopt = false) {
   const args = ["copier", "copy", "--trust", "--defaults", "--vcs-ref", sha];
   for (const [key, value] of Object.entries({ language, ...answers, adopt })) args.push("-d", `${key}=${value}`);
-  if (adopt) args.push("--overwrite");
+  if (adopt) {
+    args.push("--overwrite");
+    if (language === "python") args.push("--skip", "scripts/data_checks.py", "--skip", "tests/test_data_checks.py");
+  }
   args.push(".", dest);
   return args;
 }
@@ -79,19 +82,29 @@ export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), run = defaultRu
   const failures = [];
   const childEnv = { ...process.env, GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "gc.auto", GIT_CONFIG_VALUE_0: "0" };
   try {
-    for (const language of ["python", "typescript"]) {
-      const scaffold = path.join(root, `${language}-scaffold`);
-      const render = runChecked(run, "uvx", copierArgs(language, ANSWERS[language], scaffold, sha), src, childEnv);
+    for (const [language, dataChecks] of [["python", false], ["typescript", false], ["python", true]]) {
+      const prefix = dataChecks ? "python-data" : language;
+      const answers = { ...ANSWERS[language], ...(dataChecks ? { data_checks: true } : {}) };
+      const scaffold = path.join(root, `${prefix}-scaffold`);
+      const render = runChecked(run, "uvx", copierArgs(language, answers, scaffold, sha), src, childEnv);
       if (!render.ok) failures.push({ language, mode: "scaffold", command: "uvx copier copy", code: render.result?.status, output: textOf(render.result) });
-      const adopt = path.join(root, `${language}-adopt`);
+      const adopt = path.join(root, `${prefix}-adopt`);
       if (render.ok) {
         fs.mkdirSync(adopt, { recursive: true });
         seedAdopt(scaffold, adopt, language);
       }
-      const overlay = runChecked(run, "uvx", copierArgs(language, ANSWERS[language], adopt, sha, true), src, childEnv);
+      const overlay = runChecked(run, "uvx", copierArgs(language, answers, adopt, sha, true), src, childEnv);
       if (!overlay.ok) failures.push({ language, mode: "adopt", command: "uvx copier copy --overwrite", code: overlay.result?.status, output: textOf(overlay.result) });
       for (const [mode, dir] of [["scaffold", scaffold], ["adopt", adopt]]) {
         if (!fs.existsSync(dir)) continue;
+        if (dataChecks) {
+          fs.writeFileSync(path.join(dir, "data-checks.json"), JSON.stringify({
+            project_root: ".", source_globs: ["src/**/*.py"], databases: [{ label: "fixture", path: "fixture.sqlite" }],
+            identifiers: { item_id: "INTEGER" }, keys: [{ db: "fixture", table: "items", columns: ["item_id"] }],
+            normalizer: {}, connectors: { network_patterns: [], network_modules: [], db_modules: [] },
+            lineage: { report_dirs: [], extensions: [], provenance_key: "provenance", required_fields: ["input_db"] },
+          }));
+        }
         if (mode === "adopt") {
           const map = language === "python" ? ["uv", ["run", "python", "scripts/code_map.py"]] : [process.execPath, ["scripts/code-map.mjs"]];
           const mapped = runChecked(run, map[0], map[1], dir);
@@ -99,7 +112,17 @@ export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), run = defaultRu
         }
         for (const [cmd, args] of ACCEPTANCE_COMMANDS[language]) {
           const result = runChecked(run, cmd, args, dir);
-          if (!result.ok) failures.push({ language, mode, command: [cmd, ...args].join(" "), code: result.result?.status ?? 1, output: textOf(result.result) });
+          if (!result.ok) failures.push({ language: prefix, mode, command: [cmd, ...args].join(" "), code: result.result?.status ?? 1, output: textOf(result.result) });
+          if (dataChecks && cmd === "uv" && args.join(" ") === "sync") {
+            const fixtureArgs = ["run", "python", "-c", "import sqlite3; c=sqlite3.connect('fixture.sqlite'); c.execute('CREATE TABLE items(item_id INTEGER PRIMARY KEY)'); c.execute('INSERT INTO items VALUES (1)'); c.commit(); c.close()"];
+            const fixture = runChecked(run, "uv", fixtureArgs, dir);
+            if (!fixture.ok) failures.push({ language: prefix, mode, command: "uv run python fixture", code: fixture.result?.status ?? 1, output: textOf(fixture.result) });
+          }
+        }
+        if (dataChecks) {
+          const args = ["run", "pytest", "-s", "-o", "addopts=", "tests/test_data_checks.py"];
+          const result = runChecked(run, "uv", args, dir);
+          if (!result.ok || /\b\d+ skipped\b/.test(textOf(result.result))) failures.push({ language: prefix, mode, command: ["uv", ...args].join(" "), code: result.result?.status || 1, output: textOf(result.result) });
         }
       }
     }

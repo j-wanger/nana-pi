@@ -1,0 +1,17 @@
+Real data project branch: main
+Shipped CLI exit: 1
+| check | error | warn | info | ok |
+|---|---:|---:|---:|---:|
+| identifier-types | 2 | 0 | 0 | 0 |
+| keys-hold | 1 | 0 | 0 | 0 |
+| one-normalizer | 1 | 0 | 0 | 0 |
+| connectors | 4 | 10 | 0 | 1 |
+| stable-ids | 0 | 0 | 0 | 1 |
+| lineage | 40 | 0 | 1 | 0 |
+| reusable-processing | 1 | 0 | 0 | 0 |
+| row-wise-ops | 0 | 8 | 0 | 0 |
+Crosswalk duplicate reported: True
+Builtin hash identifier error count: 0
+Scoped project bytes unchanged: True
+Files compared: 154
+Validation harness exit: 0

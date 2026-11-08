@@ -1,0 +1,53 @@
+Using CPython 3.14.4
+Creating virtual environment at: .venv
+   Building fixture @ file://$TMPDIR/render/on
+      Built fixture @ file://$TMPDIR/render/on
+Installed 25 packages in 34ms
+============================= test session starts ==============================
+platform darwin -- Python 3.14.4, pytest-9.2.0, pluggy-1.7.0
+rootdir: $TMPDIR/render/on
+configfile: pyproject.toml
+testpaths: tests
+plugins: platformdirs-4.14.5, cov-7.1.0
+collected 66 items
+
+tests/test_code_map.py ...............F                                  [ 24%]
+tests/test_data_checks.py .                                              [ 25%]
+tests/test_readme_check.py ...............                               [ 48%]
+tests/test_requirements_trace.py .................................       [ 98%]
+tests/test_smoke.py .                                                    [100%]
+
+requirements: 23 total (9 implemented · 14 untested); 9 traced by tests
+ears: 0 rows off form (allowance 0)
+
+=================================== FAILURES ===================================
+________________ test_this_project_headers_and_map_are_current _________________
+
+    def test_this_project_headers_and_map_are_current() -> None:
+        graph, _markdown, problems, line = check_project(PROJECT)
+        print(line)  # the suite's own summary line
+>       assert problems == [], f"{line}\n" + "\n".join(problems)
+E       AssertionError: code map: 10 modules over src/fixture, scripts, tests; 0 without a usable contract header; 3 problem(s)
+E         scripts/data_checks.py has no entry in docs/code-map.md; run 'uv run python scripts/code_map.py'
+E         tests/test_data_checks.py has no entry in docs/code-map.md; run 'uv run python scripts/code_map.py'
+E         docs/code-map.md is stale against the code; run 'uv run python scripts/code_map.py'
+E       assert ["scripts/dat...code_map.py'"] == []
+E         
+E         Left contains 3 more items, first extra item: "scripts/data_checks.py has no entry in docs/code-map.md; run 'uv run python scripts/code_map.py'"
+E         Use -v to get more diff
+
+tests/test_code_map.py:509: AssertionError
+----------------------------- Captured stdout call -----------------------------
+code map: 10 modules over src/fixture, scripts, tests; 0 without a usable contract header; 3 problem(s)
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.14.4-final-0 _______________
+
+Name                      Stmts   Miss Branch BrPart  Cover   Missing
+---------------------------------------------------------------------
+src/fixture/__init__.py       1      0      0      0   100%
+---------------------------------------------------------------------
+TOTAL                         1      0      0      0   100%
+Required test coverage of 85% reached. Total coverage: 100.00%
+=========================== short test summary info ============================
+FAILED tests/test_code_map.py::test_this_project_headers_and_map_are_current
+========================= 1 failed, 65 passed in 2.61s =========================

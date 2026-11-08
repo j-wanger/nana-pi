@@ -18,7 +18,7 @@ import graph and the contract header at the top of each module;
 disagree (G-009, G-010). `--impact <file...>` prints a change's transitive callers
 and callees (G-011).
 
-Covers `src/{{ package_name }}`, `scripts`, `tests` — 8 modules, as declared in
+Covers `src/{{ package_name }}`, `scripts`, `tests` — {% if data_checks %}10{% else %}8{% endif %} modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -56,7 +56,17 @@ The suite. Its root is layerExempt, so a test may import any layer (G-007) - but
 - **callers** — —
 - **callees** — —
 
-### `tests/test_readme_check.py`
+{% if data_checks %}### `tests/test_data_checks.py`
+
+- **purpose** — Run the optional data baseline against this project's configured real data
+- **inputs** — data-checks.json beside the project root
+- **outputs** — a findings table and pytest pass, fail or skip
+- **effects** — disk (immutable data and source reads)
+- **errors** — pytest failure on any error finding; skip when settings are absent
+- **callers** — —
+- **callees** — —
+
+{% endif %}### `tests/test_readme_check.py`
 
 - **purpose** — Pin the README checker -- the claim readers, every problem class it reports, and this project's own README.
 - **inputs** — the functions of scripts/readme_check.py, fixture README text, scratch projects carrying the real CLI, and this project root
@@ -100,7 +110,17 @@ Entry-point scripts and generators. They may import the package; the package may
 - **callers** — —
 - **callees** — —
 
-### `scripts/readme_check.py`
+{% if data_checks %}### `scripts/data_checks.py`
+
+- **purpose** — Run the generic data-standards checks against one project described by a manifest dict
+- **inputs** — settings for project root, databases, identifiers, keys, normalizer, connectors, lineage and budgets
+- **outputs** — a list of findings, each {check, severity, location, detail}
+- **effects** — disk (reads source files, report files and immutable SQLite databases), process (CLI exit status)
+- **errors** — a check that cannot run returns one 'error' finding naming why, never raises
+- **callers** — —
+- **callees** — —
+
+{% endif %}### `scripts/readme_check.py`
 
 - **purpose** — Check that every command, path, flag and script name a README states exists and runs as written, and that a reader can install, run and test from it alone (G-012).
 - **inputs** — README.md (plus any README named in readme-check.config.json), package.json or the files under scripts/, and the project root
