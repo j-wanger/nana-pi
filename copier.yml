@@ -10,6 +10,10 @@ _subdirectory: "templates/{{ language }}/template"
 # The project-frontier seeds are emitted in BOTH modes (scaffold and adopt) but never
 # overwrite a real one: in an adopted repo these files already carry live content, and copier
 # would otherwise prompt-or-clobber. Paths are destination-relative and post-render.
+# Apply the exclusion to the old render too, so update never deletes project policy.
+_exclude:
+  - ".pi/nana-pack.json"
+
 _skip_if_exists:
   - "OBJECTIVE.md"
   - "HANDOFF.md"

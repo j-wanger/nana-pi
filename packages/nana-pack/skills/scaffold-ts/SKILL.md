@@ -1,6 +1,6 @@
 ---
 name: scaffold-ts
-description: Scaffold a new TypeScript project from the nana-pi copier template (pnpm + strict tsconfig + Biome + Vitest, folder-by-feature, nested AGENTS.md, post-edit gates). Use when the user wants to start/init/scaffold a TypeScript/Node project.
+description: Scaffold a new TypeScript project from the nana-pi copier template (pnpm + strict tsconfig + Biome + Vitest, folder-by-feature, nested AGENTS.md, manual checks). Use when the user wants to start/init/scaffold a TypeScript/Node project.
 ---
 
 # Scaffold a TypeScript project
@@ -9,14 +9,15 @@ Generate from the nana-pi TypeScript template via copier. The template pins the
 opinionated stack: pnpm, ESM + NodeNext, tsconfig `strict` plus
 `noUncheckedIndexedAccess`/`exactOptionalPropertyTypes`, Biome (lint+format,
 cognitive-complexity cap 15), Vitest, folder-by-feature with lean per-folder
-AGENTS.md files, and a `.pi/nana-pack.json` post-edit preset (biome fix on every
-edit, 300-line file cap, `tsc --noEmit`).
+AGENTS.md files, and named manual checks for lint, format, types, tests,
+map, README and the 300-line file cap. Run AGENTS.md's checks before committing;
+nana runs no per-edit checks.
 
 It also ships the **requirements-first** rail: a `REQUIREMENTS.md` with the
 standard general-engineering feature (sealed tunables
 with provenance, the six-tag module header, named exports, injected resources,
 layer direction, the code map, the README contract), the `// req: R-` trace (three or four ASCII digits; four-digit IDs never start with zero)
-check in the suite, and `scripts/code-map.mjs` with `--check` wired into post-edit checks on code edits (`pnpm map:check`) plus the README check on README edits. Run `--impact` yourself before touching a mapped module.
+check in the suite, and manual `pnpm map:check` and `pnpm readme:check` commands. Run `--impact` yourself before touching a mapped module.
 
 ## Steps
 

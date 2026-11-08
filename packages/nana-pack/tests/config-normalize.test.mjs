@@ -35,7 +35,6 @@ const VALUES = [null, 7, "x", [], true, {}, { unexpected: 1 }];
 // leaf → [kind, a valid NON-default sibling value used to prove siblings survive]
 const LEAVES = {
 	gate: { extraPatterns: ["regex", ["\\bterraform\\s+destroy\\b"]], allowPatterns: ["regex", ["^ls\\b"]], protectedPaths: ["regex", ["secrets\\.txt"]] },
-	notify: { enabled: ["bool", false], headless: ["bool", true] },
 	journal: { enabled: ["bool", false], path: ["path", path.join(tmpDir(path.join(os.tmpdir(), "norm-j-")), "j.jsonl")] },
 	objective: { enabled: ["bool", false], path: ["path", "/tmp/nana-o.md"], projectFile: ["path", "OBJECTIVE.md"] },
 	writing: { enabled: ["bool", false] },
@@ -43,7 +42,6 @@ const LEAVES = {
 };
 const DEFAULTS = {
 	gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [] },
-	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
 	objective: { enabled: true, path: null, projectFile: null },
 	writing: { enabled: true },
@@ -69,7 +67,6 @@ function isTyped(c) {
 	const nul = (v) => v === null || typeof v === "string";
 	return arrStr(c.gate.extraPatterns) && arrStr(c.gate.allowPatterns) && arrStr(c.gate.protectedPaths)
 		&& (c.gate.stopReason === null || typeof c.gate.stopReason === "string")
-		&& typeof c.notify.enabled === "boolean" && typeof c.notify.headless === "boolean"
 		&& typeof c.journal.enabled === "boolean" && nul(c.journal.path)
 		&& typeof c.objective.enabled === "boolean" && nul(c.objective.path) && nul(c.objective.projectFile)
 		&& typeof c.writing.enabled === "boolean"
@@ -184,9 +181,9 @@ for (const [block, leaves] of Object.entries(LEAVES)) {
 for (const v of VALUES) {
 	const r = load(env({ user: VALID, projectText: JSON.stringify(v) }));
 	// req: R-008
-	check(`project file = ${JSON.stringify(v)}: no throw, typed, user config intact`, !r.threw && isTyped(r.cfg) && eq(r.cfg.notify, VALID.notify));
+	check(`project file = ${JSON.stringify(v)}: no throw, typed, user config intact`, !r.threw && isTyped(r.cfg) && eq(r.cfg.journal, VALID.journal));
 }
-console.log(`${fails ? "FAIL" : "PASS"} matrix: ${total - failed.length}/${total} checks (8 blocks × leaves × ${VALUES.length} values, user + trusted project)`);
+console.log(`${fails ? "FAIL" : "PASS"} matrix: ${total - failed.length}/${total} checks (${Object.keys(LEAVES).length} blocks × leaves × ${VALUES.length} values, user + trusted project)`);
 for (const f of failed.slice(0, 20)) console.log("  FAIL", f);
 
 // ── named cases ──
@@ -197,10 +194,10 @@ for (const f of failed.slice(0, 20)) console.log("  FAIL", f);
 {
 	const text = '{\n  "notify": { "headless": true },\n  "gate": { "extraPatterns": ["x"], },\n}\n';
 	const r = load(env({ userText: text }));
-	named("Opus trailing-comma file: no throw, file contributes nothing", !r.threw && r.cfg.notify.headless === false);
+	named("Opus trailing-comma file: no throw, file contributes nothing", !r.threw && r.cfg.journal.enabled === true);
 	named("Opus trailing-comma file: gate stops conservatively (no valid policy in this process)", PARSE_STOP.test(r.cfg?.gate.stopReason ?? ""));
 	const p = load(env({ user: VALID, projectText: text }));
-	named("trailing-comma PROJECT file: contributes nothing, user config intact", !p.threw && eq(p.cfg.gate.allowPatterns, VALID.gate.allowPatterns) && eq(p.cfg.notify, VALID.notify));
+	named("trailing-comma PROJECT file: contributes nothing, user config intact", !p.threw && eq(p.cfg.gate.allowPatterns, VALID.gate.allowPatterns) && eq(p.cfg.journal, VALID.journal));
 	named("trailing-comma PROJECT file: gate stops conservatively (no valid project policy in this process)", PARSE_PSTOP.test(p.cfg?.gate.stopReason ?? ""));
 }
 {
@@ -211,8 +208,8 @@ for (const f of failed.slice(0, 20)) console.log("  FAIL", f);
 	check("legacy receipts config is accepted without diagnostics or receipt files", !r.threw && r.cfg.receipts.enabled === true && r.cfg.receipts.dir === "legacy-receipts" && !fs.existsSync(path.join(e.home, ".pi", "agent", "nana-journal.jsonl")) && !fs.existsSync(path.join(e.ctx.cwd, "legacy-receipts")));
 }
 {
-	const r = load(env({ userText: "﻿" + JSON.stringify({ notify: { headless: true } }) }));
-	named("BOM-prefixed file parses", !r.threw && r.cfg.notify.headless === true);
+	const r = load(env({ userText: "﻿" + JSON.stringify({ journal: { enabled: false } }) }));
+	named("BOM-prefixed file parses", !r.threw && r.cfg.journal.enabled === false);
 }
 for (const bytes of ["", "\u0000\u0001", "null", "[1,2]", '"str"', "{", "{}}"]) {
 	const r = load(env({ userText: bytes }));

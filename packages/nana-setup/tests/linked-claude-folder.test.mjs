@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/linked-claude-folder.test.mjs
  * @purpose Pin install's and doctor's behavior for linked Claude folders, including retired-artifact advice, healthy-row parity, and unreachable-folder preflight refusals.
- * @inputs The nana-setup CLI, `bin/stale-copies.mjs`, scratch homes and working folders, a pi stub, and PI_SUBAGENTS_FLOOR.
+ * @inputs The nana-setup CLI, `bin/stale-copies.mjs`, scratch homes and working folders, a pi stub, and a historical pi-subagents fixture.
  * @outputs PASS/FAIL lines for R-2290 through R-2294 and R-2701 through R-2705, and a final SUMMARY line.
  * @effects disk (temporary fixtures, including directory junctions/symlinks and file symlinks), process (runs install, doctor and stale-copies with sanitized environments).
  * @errors Failed assertions print their observed output; the test process exits nonzero on any failure.
@@ -11,7 +11,6 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
 import { pkgRoot } from "../lib/paths.mjs";
 import { CLAUDE_SKILLS } from "../lib/steps.mjs";
 import { STALE_PREFIX } from "../lib/stale-copies-config.mjs";
@@ -38,7 +37,7 @@ function fixtureHome(name) {
 	fs.writeFileSync(path.join(home, ".pi", "agent", "nana-knowledge", "sources.json"), '{"roots":[]}');
 	const packageDir = path.join(home, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(packageDir, { recursive: true });
-	fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+	fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	return home;
 }
 

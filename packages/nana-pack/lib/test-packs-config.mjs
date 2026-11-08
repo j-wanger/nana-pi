@@ -261,6 +261,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-setup/tests/seat-pull-off.test.mjs": "module",
   "packages/nana-setup/tests/seat-rule.test.mjs": "module",
   "packages/nana-setup/tests/settings-lock.test.mjs": "main",
+  "packages/nana-setup/tests/setup-tail.test.mjs": "release",
   "packages/nana-setup/tests/settings-merge.test.mjs": "land",
   "packages/nana-setup/tests/shared-link-state.test.mjs": "module",
   "packages/nana-setup/tests/shared-memory-budget.test.mjs": "module",

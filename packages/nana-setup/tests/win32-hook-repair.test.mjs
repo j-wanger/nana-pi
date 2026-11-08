@@ -16,7 +16,6 @@ import { fileURLToPath } from "node:url";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
-const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { hookSettingsRows } = await import(new URL("../lib/hook-health.mjs", import.meta.url).href);
 const { repoRoot } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 const { desiredHooks, retiredKnowledgeHook } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
@@ -33,7 +32,7 @@ function freshHome() {
 	fs.writeFileSync(path.join(home, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
 	const subagents = path.join(home, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(subagents, { recursive: true });
-	fs.writeFileSync(path.join(subagents, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+	fs.writeFileSync(path.join(subagents, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	return home;
 }
 

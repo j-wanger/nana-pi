@@ -1,24 +1,22 @@
 ---
 name: adopt-structure
-description: Add the nana-pi agent-navigation layer to an EXISTING project of ANY language — a coherent root AGENTS.md, lean per-folder AGENTS.md files, a starter .pi/nana-pack.json, and the three frontier seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/) when absent. Pure docs; no language stack, no copier, no source/config/CI changes. Use when the user wants the nana AGENTS.md navigation structure without adopting a language toolchain (that's adopt-py / adopt-ts).
+description: Add the nana-pi agent-navigation layer to an EXISTING project of ANY language — a coherent root AGENTS.md, lean per-folder AGENTS.md files, manual project checks, and the three frontier seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/) when absent. Pure docs; no language stack, no copier, no source/config/CI changes. Use when the user wants the nana AGENTS.md navigation structure without adopting a language toolchain (that's adopt-py / adopt-ts).
 ---
 
 # Add the nana navigation layer to an existing project
 
 Give a real project the agent-navigation layer pi relies on: a lean root
-`AGENTS.md`, a one-screen `AGENTS.md` in each major folder, a starter
-`.pi/nana-pack.json` on-ramp for the post-edit gate, and — only when they are
-missing — the three files a session here is steered by: `OBJECTIVE.md`,
+`AGENTS.md`, a one-screen `AGENTS.md` in each major folder, manual check
+instructions, and — only when they are missing — the three files a session here is steered by: `OBJECTIVE.md`,
 `HANDOFF.md` and `docs/sessions/README.md`. Language-agnostic and
 documentation-only — this NEVER touches source, language configs, or CI, and it
 does not run copier or create a template-update relationship. For the pinned
-toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
+toolchain overlay (pyproject/tsconfig, manual checks, `copier update`), use
 `adopt-py` / `adopt-ts` instead; the two are complementary.
 
 ## Hard rules
 
-- The ONLY files this skill writes are `AGENTS.md` files, one
-  `.pi/nana-pack.json`, and the three frontier seeds of step 6 (`OBJECTIVE.md`,
+- The ONLY files this skill writes are `AGENTS.md` files and the three frontier seeds of step 6 (`OBJECTIVE.md`,
   `HANDOFF.md`, `docs/sessions/README.md`) **when they are absent**. Never edit or
   create source files, language/build configs (pyproject, package.json, tsconfig,
   biome, ruff…), lockfiles, or CI.
@@ -124,33 +122,15 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    purpose, so the "only these files" hard rule above still holds. The same
    throwaway render also carries the step-6 seeds, so one render serves both.
 
-5. **Starter `.pi/nana-pack.json`** — the post-edit on-ramp. FIRST check the user-scope config — `$PI_CODING_AGENT_DIR/nana-pack.json` when
-   `PI_CODING_AGENT_DIR` is set, else `~/.pi/agent/nana-pack.json` (that is the one the pack
-   reads; a file in the other location is ignored): if the user
-   already has user-scope `postEdit.commands`, do NOT write this starter —
-   project config replaces user config per key-group, so a project `postEdit`
-   block would SHADOW their global checks in this project; say the global checks
-   stay active and skip the file. Otherwise, if no project config exists, write this
-   starter at the project root. It is a SAFE on-ramp: the canonical starter is `{"postEdit":{"commands":[]}}`;
-   nothing runs until a command is added. Its shape is in the pack README Config section. The
-   starter carries ONLY `postEdit` — omit the `gate` and `handoff` keys on purpose:
-   they default correctly, and empty project arrays / `handoff.enabled` would only
-   shadow the user's user-scope gate patterns or re-enable a globally-disabled
-   handoff in this one project.
-
-   ```json
-   {"postEdit":{"commands":[]}}
-   ```
-
-   Post-edit stays inert until a real command is added.
-
-   If a `.pi/nana-pack.json` already exists, RECONCILE — leave a user-defined
-   `postEdit.commands` and any gate/handoff settings untouched; only add the
-   `postEdit` placeholder if it is missing. Never overwrite real commands with the placeholder. Tell the
-   user where to fill in their real `match`/`run`, and that this file takes effect
-   **only in a trusted project** (pi's project-trust gate) — an untrusted repo's
-   **project** config is ignored, though any user-scope `nana-pack.json` commands (the one in pi's
-   active agent dir, as above) still run. The folder-trust step is `nana-setup trust <dir>`; do not direct the user to `/trust` in pi.
+5. **Manual project checks.** Nana runs no per-edit checks. Read the project's
+   actual scripts and configs, then name its runnable lint, format, type, test,
+   map, README and file-length checks in root `AGENTS.md`. Run them yourself
+   before committing. For Python or TypeScript, use the corresponding
+   `adopt-py` or `adopt-ts` manual-check list, adapted to the real toolchain.
+   Do not invent commands for other languages; report missing checks.
+   Write no .pi/nana-pack.json starter and leave any existing file byte-identical.
+   Legacy `postEdit` settings do nothing; gate patterns still require recorded
+   folder trust with `nana-setup trust <dir>`.
 
 6. **The three frontier seeds — only when absent.** A project the pack can
    actually run a session in needs `OBJECTIVE.md` (what session start prints and
@@ -182,7 +162,7 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words only over seeded placeholder lines and their DRAFT suffix, leave owner-written lines unchanged, and never invent words.
    2. Trust the folder: `nana-setup trust <dir>`.
 
-   `nana-setup project <dir>` is a broader alternative outside this skill's hard rule. It also runs `git init`, writes an AGENTS.md stub and CLAUDE.md link when neither exists, refreshes a marked AGENTS.md region, seeds `.pi/nana-pack.json`, writes the month log and refreshes the knowledge index.
+   `nana-setup project <dir>` is a broader alternative outside this skill's hard rule. It also runs `git init`, writes an AGENTS.md stub and CLAUDE.md link when neither exists, refreshes a marked AGENTS.md region, writes the month log and refreshes the knowledge index.
 
 7. **Run the requirements audit mode — before the report, not after it.** What
    the audit finds is the most important thing the report carries, and a report
@@ -209,10 +189,8 @@ toolchain overlay (pyproject/tsconfig, gates wired, `copier update`), use
    repair only with the owner's yes. Then list the `AGENTS.md` files
    written/refreshed, the seeds created
    vs. left alone (and, when you used the fallback render, that the seeds carry
-   this project's name and today's date), whether the `.pi/nana-pack.json` was
-   created or reconciled, and what the audit left behind (rows drafted, conflicts
-   open, rows that are honestly `violated`). Tell the user whether the empty
-   post-edit list needs real commands.
+   this project's name and today's date), which manual checks ran, and what
+   the audit left behind (rows drafted, conflicts open, rows honestly `violated`).
 
 ## Notes
 

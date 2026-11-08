@@ -100,4 +100,42 @@ Long output stays in this evidence directory. Logs normalize home paths to `~` a
 The repository delegates the full suite to CI in AGENTS.md. No redundant local full suite, CI read, push, GitHub write, credential lookup or live model call. Install checks use the repository's instrumented fixture provider.
 No known-bug line was edited. The complete FEAT-031 known-bug file was read; no listed bug is claimed fixed. Pack integration preserves the main-CI and record limitations already recorded there.
 
+## Main moved during verification: setup-tail
+
+Main advanced to `08b8c5f2684c02ee9bb324cb69e95f80dadf5984` during the first merge's seat checks. A second merge commit retains it too. The first merge is `cffbc8d800f16072eda161624f5de9722fac314e`.
+
+Checks on that first merge all passed: land 71 files / 2,413 checks / 81.74 seconds real; selected 192 files / 5,999 checks / 460.28 seconds real; runner 64 checks; fixes-red plus land-ci 34 checks; map, tree, README, trace, audit and install all exit 0. The first merge's memory-cut checks also pass (12 checks across all seven new files). Evidence: `*-committed.log`. These close the precommit HEAD-dependent failures without a code change.
+
+The second merge has only generated-map conflicts. `conflicts-setup-tail.diff` records all six blocks, resolved by the generator:
+
+| docs/code-map.md block | Resolution |
+|---|---|
+| 1, old lane line 10 | Regenerate coverage count. |
+| 2, line 755 | Regenerate template-acceptance callers. |
+| 3, line 3548 | Regenerate pi-install helper callers. |
+| 4, line 4404 | Regenerate setup paths callers. |
+| 5, line 4473 | Regenerate setup project callers and callees. |
+| 6, line 5460 | Regenerate setup temporary-directory helper callers. |
+
+`packages/nana-setup/tests/setup-tail.test.mjs` is the eighth new file; pack **release**, because it renders both templates, updates copier projects and runs their installed manual toolchains. No land guard or helper was copied. All setup-tail requirement rows survive, with zero missing IDs from either parent (`preservation-setup-tail.log`); merged total 2,704. No extra requirement change or authored test change was needed for this merge.
+
+Before assigning this file, M1 fails (exit 1, `setup-tail-membership-wrong.log`). After assignment, all pack, runner, setup-tail and writing-injection tests pass (exit 0, `setup-tail-resolution-green.log`; 8 files, 115 checks).
+
+Second-merge precommit checks:
+
+| Command | Exit | Evidence / result |
+|---|---:|---|
+| npm run map | 0 | map-setup-tail.log. |
+| npm run req:tree | 0 | tree-setup-tail.log. |
+| npm test -- --pack=land --jobs=4 | 0 | land-setup-tail.log; 71 files, 2,413 checks, 49.06 seconds real. |
+| npm test -- --pack=land,module --changed-from=main --jobs=4 | 1 | selected-setup-tail.log; 193 files, 6,009 passing checks, 3 failures only from component-audit's HEAD ancestry/tracking prerequisites. |
+| node scripts/test.mjs win-main-only land-ci | 0 | land-ci-setup-tail.log. |
+| npm run map:check | 0 | map-check-setup-tail.log. |
+| npm run readme:check | 0 | readme-setup-tail.log. |
+| node scripts/requirements-trace.mjs | 0 | trace-setup-tail.log; 2,704 rows. |
+| node scripts/component-audit.mjs --check | 1 | component-setup-tail.log; setup's main audit commit is not yet an ancestor of premerge HEAD and its new test is not tracked there. Repeat after merge commit. |
+| node packages/nana-setup/bin/install-check.mjs | 0 | install-setup-tail.log. |
+
+The component-audit and page-retire test failures name only those same HEAD prerequisites. No assertion is weakened. `removed-text-setup-tail-grep.log` covers the second merge's removed text and paths.
+
 Final-tip seat results and full SHA are reported after committing. Windows execution and CI remain the seat's responsibility.

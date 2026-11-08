@@ -104,7 +104,7 @@ are not counted. Generate the capability outline with `npm run req:tree` using `
 The report commands share the bounded read-only Git runner in `scripts/git-runner.mjs`.
 `scripts/requirements-regroup.mjs` checks a drafted and reviewed proposal (a lift mapping plus one `regroup` object) against the lift and the regroup rules and writes the owner's review page: `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root <dir> --proposal <file> --out <page>`.
 `node scripts/identity-scan.mjs [--root <dir>]` scans tracked paths and content against digest counts; add a pinned allowlist entry by hand with its path, counts, reason and manifest-backed pin. With `--stdin`, it scans standard input instead, prints only each hit's word index and count, and exits 0 clean, 1 on a hit or 2 on bad use. It never echoes input text.
-`scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; the seat wires it as a post-edit check for `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
+`scripts/ts-syntax-check.mjs` compiles TypeScript without evaluating it; run it by hand for changed `.ts` files. `nana-setup` installs the `requirements` skill that drives all of it (including an audit mode that
 extracts rows from a project that has none yet) into both pi and Claude Code, plus a
 `packages/nana-setup/claude/rules/nana-standards.md` rule carrying the same bar in prose. The pattern was proven in a work project
 (2026-10-01/02) before it was promoted here.

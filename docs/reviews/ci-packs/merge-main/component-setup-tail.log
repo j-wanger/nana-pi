@@ -1,0 +1,31 @@
+setup: auditedAt is not an ancestor of HEAD (d8f5840cfc17120e2108fcd54f85832b33d7e271)
+setup: cited path is not tracked at HEAD (packages/nana-setup/tests/setup-tail.test.mjs)
+stale: compass 27 commits since a2ad3f21
+stale: notice-board 22 commits since a2ad3f21
+stale: key-cabinet 812 commits since a2ad3f21
+stale: night-shift 812 commits since a2ad3f21
+stale: land-gate 21 commits since a2ad3f21
+stale: requirement-contract 249 commits since a2ad3f21
+stale: code-map 30 commits since a2ad3f21
+stale: command-gate 109 commits since a2ad3f21
+unclaimed: packages/nana-pack/bin/leak-scan.mjs
+unclaimed: packages/nana-pack/bin/nana-ci-wait.mjs
+unclaimed: packages/nana-pack/bin/nana-curate.mjs
+unclaimed: packages/nana-pack/bin/nana-main-ci.mjs
+unclaimed: packages/nana-pack/bin/nana-memory.mjs
+unclaimed: packages/nana-pack/bin/nana-profile.mjs
+unclaimed: scripts/code-map-launch-config.mjs
+unclaimed: scripts/glob-match.mjs
+unclaimed: scripts/memory-curate.mjs
+unclaimed: scripts/memory-make.mjs
+unclaimed: scripts/memory-run.mjs
+unclaimed: scripts/memory-shape-runners.mjs
+unclaimed: scripts/memory-shape.mjs
+unclaimed: scripts/reader-common.mjs
+unclaimed: scripts/visual-reader-config.mjs
+unclaimed: scripts/visual-reader.mjs
+unclaimed: 16 of 248 mapped modules
+(node:22218) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://./templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to ./package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

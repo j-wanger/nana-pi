@@ -56,7 +56,6 @@ if (process.platform !== "darwin") {
 	process.exit(fails);
 }
 
-const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 
 const tmps = [];
 function freshHome() {
@@ -68,7 +67,7 @@ function freshHome() {
 	// installs — seed it at the floor so this fixture reads as an already-set-up machine.
 	const subagentsDir = path.join(td, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(subagentsDir, { recursive: true });
-	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	return td;
 }
 const run = (args) => args[0] === "doctor"

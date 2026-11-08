@@ -604,6 +604,22 @@ check("matcher: *, empty and omitted admit everything", () => {
 });
 // req: R-1074
 check("matcher: a resume SessionStart matcher fails", () => { expectBad(hookGroups("darwin", { "hook objective": "resume" })); });
+// req: R-1074, R-3888
+check("matcher: pipe list admits the live SessionStart hook", () => {
+  assert.equal(mapHookEntries(hookGroups("darwin", { "hook objective": "startup|resume" }), "darwin").failures.length, 0);
+});
+// req: R-1074, R-3888
+check("matcher: startup, clear admits the live SessionStart hook", () => {
+  assert.equal(mapHookEntries(hookGroups("darwin", { "hook objective": "startup, clear" }), "darwin").failures.length, 0);
+});
+// req: R-1074, R-3888
+check("matcher: anchored startup regex admits the live SessionStart hook", () => {
+  assert.equal(mapHookEntries(hookGroups("darwin", { "hook objective": "^startup$" }), "darwin").failures.length, 0);
+});
+// req: R-1074, R-3888
+check("matcher: NotStartup rejects the live SessionStart hook", () => {
+  assert.ok(mapHookEntries(hookGroups("darwin", { "hook objective": "NotStartup" }), "darwin").failures.some(row => row.item === "hook objective" && row.code === "bad-matcher"));
+});
 // req: R-1082
 check("form: a shell-form entry under win32 fails", () => { const rows = hookGroups("win32"); delete rows[0].group.hooks[0].args; rows[0].group.hooks[0].command = `node ${HOOKS[0].script}`; expectBad(rows, "win32"); });
 // req: R-1082

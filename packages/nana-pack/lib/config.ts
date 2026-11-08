@@ -5,7 +5,7 @@
  * @inputs <pi's active agent dir>/nana-pack.json (user scope) and <cwd>/.pi/nana-pack.json (project scope,
  *  nana-trusted only), pi's trust module and trust.json, and the extension ctx (cwd, isProjectTrusted,
  *  hasUI, ui, sessionManager)
- * @outputs a NanaPackConfig (gate, notify, journal, objective, writing, legacy receipts) with
+ * @outputs a NanaPackConfig (gate, journal, objective, writing, legacy receipts) with
  *  gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled
  *  allow/extra/protected regexes, user-only objective and writing blocks, and safe shared parse-failure detail in a gate stop or the user-scope objective block
  * @effects disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the
@@ -26,7 +26,7 @@
  *            session (`config_agent_dir_mismatch`), and the gate runs without a user config.
  *   project: <cwd>/.pi/nana-pack.json — NANA-TRUSTED PROJECTS ONLY. Project config can
  *   relax the gate (allowPatterns), so a repo must not
- *   be able to supply it by itself. Retired postEdit and handoff sections are ignored. pi auto-trusts
+ *   be able to supply it by itself. Retired postEdit, handoff and notify sections are ignored. pi auto-trusts
  *   a folder whose `.pi/` holds nothing pi considers trust-requiring (pi 0.87.1
  *   dist/main.js:585, dist/core/trust-manager.js:150-169), so `ctx.isProjectTrusted()`
  *   alone is not a decision. nana-trust = isProjectTrusted() AND (pi would have asked,
@@ -84,7 +84,6 @@ export interface GateConfig {
 
 export interface NanaPackConfig {
 	gate: GateConfig;
-	notify: { enabled: boolean; headless: boolean };
 	journal: { enabled: boolean; path: string | null };
 	/**
 	 * The owner's objective + current priority, injected into every system prompt.
@@ -103,7 +102,6 @@ export interface NanaPackConfig {
 
 const DEFAULTS: NanaPackConfig = {
 	gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [], stopReason: null },
-	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
 	objective: { enabled: true, path: null, projectFile: null },
 	writing: { enabled: true },
@@ -230,7 +228,6 @@ export function normalizePostEditCommands(value: unknown): PostEditCommand[] {
 /** The config-file schema: block → leaf → validator. `gate.stopReason` is deliberately absent. */
 const SCHEMA: Record<string, Record<string, Leaf>> = {
 	gate: { extraPatterns: regexList("i"), allowPatterns: regexList("i"), protectedPaths: regexList("i") },
-	notify: { enabled: bool, headless: bool },
 	journal: { enabled: bool, path: pathOrNull },
 	objective: { enabled: bool, path: pathOrNull, projectFile: fileNameOrDefault },
 	writing: { enabled: bool },
@@ -555,7 +552,6 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 				: projectStop
 					? { ...gate, stopReason: projectStop }
 					: { ...gate, ...(pg as Record<string, string[]> | undefined) },
-			notify: merge("notify", u.notify, project.notify),
 			journal: merge("journal", u.journal, project.journal),
 			// USER SCOPE ONLY — `project` is deliberately absent from this one merge.
 			// objective.path names a file whose contents go into EVERY session's system

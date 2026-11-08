@@ -22,14 +22,25 @@
 - `uv run python scripts/code_map.py` (add `--check` or `--impact <file...>`) — the code map
 - `uv run python scripts/readme_check.py` (add `--list`) — the README contract (G-012)
 
+## Before committing
+
+Run these checks yourself; nana runs no per-edit checks. Replace `{file}` with each changed Python file, quoted for your shell.
+
+- **Manual lint:** `uv run ruff check .`
+- **Manual format:** `uv run ruff format --check .` (repair with `uv run ruff format .`)
+- **Manual types:** `uv run mypy`
+- **Manual tests:** `uv run pytest`
+- **Manual map:** `uv run python scripts/code_map.py --check`
+- **Manual readme:** `uv run python scripts/readme_check.py`
+- **Manual length:** `uv run python -c "import sys; n = sum(1 for _ in open(sys.argv[1], encoding='utf-8')); sys.exit(sys.argv[1] + ': ' + str(n) + ' lines exceeds the 500-line module cap - split it' if n > 500 else 0)" {file}`
+
 ## Rules
 
 - One function, one job. If a docstring needs "and", split the function.
 - Modules stay under **500 lines**. Complexity caps (mccabe 10, PLR too-many-*)
-  are enforced by ruff, so lint and CI catch them; the 500-line cap is checked
-  only by the post-edit gate, per file as you edit it — nothing re-checks it at
-  commit or in CI, so code that lands another way (bulk move, merge, hand edit)
-  is on you. Decompose instead of suppressing.
+  are enforced by ruff, so lint and CI catch them. Run the manual length check
+  above for each changed Python file before committing; CI does not enforce it.
+  Decompose instead of suppressing.
 - Every function fully typed; mypy runs strict.
 - No `print` in library code (ruff T20) — use `logging`.
 - New feature = new folder {% if adopt %}in the package{% else %}under `src/{{ package_name }}/`{% endif %}, not new code

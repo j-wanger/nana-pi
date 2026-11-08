@@ -104,7 +104,7 @@ uv run python scripts/code_map.py --impact <files>
 
 Spelled with the project's runner: `pnpm map:check` / `npm run map:check` over
 `scripts/code-map.mjs`, or `uv run python scripts/code_map.py --check` / `--impact` in a Python
-project. The post-edit check runs `--check` for you where the project wires one.
+project. Run the map and README checks yourself before committing; nana runs no per-edit checks.
 
 **Before touching a mapped module, run the impact command on it** and work from the blast radius
 it reports, upstream and downstream. At every land, the check is green: a stale map entry, a

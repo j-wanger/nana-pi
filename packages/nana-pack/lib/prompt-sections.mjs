@@ -6,7 +6,7 @@
  * @effects none
  * @errors none
  */
-const NANA_ORDER = ["nana-objective", "nana-handoff", "nana-writing"];
+const NANA_ORDER = ["nana-objective", "nana-writing"];
 const NANA_KEYS = new Set(NANA_ORDER);
 
 export function orderNanaSections(event) {
