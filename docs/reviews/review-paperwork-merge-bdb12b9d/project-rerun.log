@@ -1,0 +1,81 @@
+PASS project exits 0
+PASS created OBJECTIVE.md
+PASS created HANDOFF.md
+PASS created docs/sessions/README.md
+PASS created docs/sessions/2026-11.md
+PASS created AGENTS.md
+PASS created .pi/nana-pack.json
+PASS git initialized
+PASS CLAUDE.md is a regular file holding the one-line import @AGENTS.md
+PASS AGENTS.md carries the canonical section verbatim
+PASS project-created AGENTS stub wraps the section in both markers
+PASS AGENTS.md has the empty Layout + Rules sections
+PASS pack starter is an empty postEdit list
+PASS knowledge refresh is skipped with a reason when there is no index
+PASS <name> filled from the folder basename
+PASS <date> filled with today
+PASS no <date>/<name> placeholder survives
+PASS the DRAFT lines are left to ratify
+PASS the objective hook's two lines are greppable
+PASS HANDOFF is frontier-only with the drop rule
+PASS HANDOFF has Where things stand / Open / NEXT
+PASS sessions README keeps its own <headline> placeholder
+PASS month file is a header only
+PASS project --check warns on an empty checker set and undecided trust
+PASS --check summarizes effective warnings with actionable repairs
+PASS project --check accepts an existing prior-month YYYY-MM log
+PASS project --check rejects an impossible month filename
+PASS second run says nothing to do
+PASS second run changed no bytes
+PASS --name is used for the title
+PASS existing OBJECTIVE.md untouched
+PASS existing AGENTS.md untouched
+PASS existing sessions README untouched
+PASS no CLAUDE.md written next to an AGENTS.md the project already had
+PASS the missing HANDOFF.md is still seeded
+PASS what was left alone is reported
+PASS CLAUDE.md-only: no AGENTS.md written
+PASS CLAUDE.md-only: the file is untouched
+PASS CLAUDE.md-only: --check keeps the navigation file healthy while warning about empty checkers
+PASS no project pack config written over user-scope commands
+PASS and the reason is reported
+PASS project skips .pi/nana-pack.json when a user nana-pack.json saved with a byte-order mark has postEdit.commands
+PASS --check counts post-edit commands from a .pi/nana-pack.json saved with a byte-order mark
+PASS --check counts post-edit commands from a UTF-16LE project or user nana-pack.json as from UTF-8
+PASS dry run exits 0
+PASS dry run reports what it would do
+PASS dry run wrote nothing
+PASS --check on an empty folder exits 1
+PASS dangling symlink: exits 0
+PASS dangling symlink: nothing written through it
+PASS dangling symlink: the link itself is untouched
+PASS dangling symlink: reported as skipped, naming what was found
+PASS directory at a seed path: still a directory
+PASS directory at a seed path: reported as skipped
+PASS the seeds that WERE absent still landed
+PASS --check warns when effective post-edit commands are empty
+PASS --check warns when project config has no affirmative trust decision
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '~/.hermes/node/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/trust-manager.js' imported from packages/nana-setup/tests/project.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:861:10)
+    at defaultResolve (node:internal/modules/esm/resolve:985:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file://~/.hermes/node/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/trust-manager.js'
+}
+
+Node.js v22.22.2
+FAIL  packages/nana-setup/tests/project.test.mjs  57 pass  2.3s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 57 pass, 0 fail, 0 skip · 2.7s
+failed: packages/nana-setup/tests/project.test.mjs

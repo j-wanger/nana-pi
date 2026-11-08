@@ -1,0 +1,27 @@
+PASS M1: real file shards are stable disjoint and complete across path spellings
+PASS M2: bad shards refuse before any file executes
+PASS M3: CI runs three Windows shards with distinct artifacts and unchanged other legs
+FAIL M4: land and main require every successful Windows shard AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+false !== true
+
+    at file://./packages/nana-pack/tests/win-shards.test.mjs:119:35
+    at check (file://./packages/nana-pack/tests/win-shards.test.mjs:28:14)
+    at file://./packages/nana-pack/tests/win-shards.test.mjs:118:7
+PASS M5: historical single-record Windows runs still pass both readers
+FAIL M6: CI reports each Windows shard's wall time and warns without failing at 20 minutes AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 0
+
+    at file://./packages/nana-pack/tests/win-shards.test.mjs:138:10
+    at check (file://./packages/nana-pack/tests/win-shards.test.mjs:28:14)
+    at file://./packages/nana-pack/tests/win-shards.test.mjs:130:7
+PASS M7: release blocks each failed cancelled or skipped Windows shard and Linux stays advisory
+FAIL M8: partial reruns select the latest execution per shard and count each file once AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+false !== true
+
+    at file://./packages/nana-pack/tests/win-shards.test.mjs:162:47
+    at check (file://./packages/nana-pack/tests/win-shards.test.mjs:28:14)
+    at file://./packages/nana-pack/tests/win-shards.test.mjs:161:7
+PASS M9: real sharded two-job runner executes only assigned files and isolates RUN_ALONE

@@ -1,0 +1,23 @@
+"""@module tests/test_data_checks.py
+@purpose Run the optional data baseline against this project's configured real data
+@inputs data-checks.json beside the project root
+@outputs a findings table and pytest pass, fail or skip
+@effects disk (immutable data and source reads)
+@errors pytest failure on any error finding; skip when settings are absent
+"""
+
+from pathlib import Path
+
+import pytest
+from data_checks import format_findings, load_settings, run_all
+
+
+def test_data_checks() -> None:
+    """Data errors block the suite; advisory findings remain visible with pytest -s."""
+    settings = Path(__file__).resolve().parents[1] / "data-checks.json"
+    if not settings.exists():
+        pytest.skip("Enable data checks: add data-checks.json at the project root.")
+    findings = run_all(load_settings(settings))
+    table = format_findings(findings)
+    print(table)
+    assert not any(f["severity"] == "error" for f in findings), table

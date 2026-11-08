@@ -13,14 +13,15 @@ import { realpathSync, readFileSync, lstatSync, mkdirSync, mkdtempSync, rmSync }
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { canonicalItem, reviewTextEvidence, withReviewLedgerLock, repoKeyOf } from "./review-round.mjs";
+import { canonicalItem, withReviewLedgerLock, repoKeyOf } from "./review-round.mjs";
 import { releaseStatus } from "../lib/release-status.mjs";
 import { realPath } from "../lib/real-path.mjs";
-import { changedSuitePaths, ciScope, githubRepoOf, judgeRuns, proveCiSuite } from "../lib/land-ci.mjs";
+import { changedSuitePaths, ciScope, ciSuiteLegs, githubRepoOf, judgeRuns, proveCiSuite, requiredCiJobs, toolkitCi } from "../lib/land-ci.mjs";
 import { ciReadiness, ciTarget, ciRunJobs, classifyRun } from "../lib/ci-wait.mjs";
 import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
-import { CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, CI_ADVISORY_WORKFLOW, CI_DONE_STATUS, CI_PASS_CONCLUSION, TIP_DIGITS, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
+import { mainCi } from "../lib/main-ci.mjs";
+import { CI_LANE_PLATFORM, CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, CI_ADVISORY_WORKFLOW, CI_DONE_STATUS, CI_PASS_CONCLUSION, TIP_DIGITS, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
 import { CLEAN_MERGE_MESSAGE, CLEAN_MERGE_PREFIX, CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_GENERATED_PATHS, CLEAN_MERGE_GIT_CONFIG, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
 import { GENERATOR_CONTRACT, GENERATOR_TIMEOUT_MS, GENERATOR_REASONS } from "../lib/land-config.mjs";
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
@@ -208,34 +209,15 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		});
 		const reviewRefs = refs.map((r) => r.sha);
 		const firstRead = lockReviews(home, ({ rounds, reservations }) => ({ rounds: rounds.filter((r) => r.repo === repo), reservations: reservations.filter((r) => r.repo === repo) }));
-		const textName = (evidence, row) => evidence.file ? path.basename(evidence.file) : `${row.text?.sha256 ?? "malformed-text-reference"}.md`;
 		const checkRecords = (rounds, reservations) => {
-			const notes = [], relied = [];
 			for (const { sha, item } of refs) {
 				const matching = rounds.filter((r) => r.v === 2 && r.revision === sha && r.item === item && r.verdict === "LAND" && r.unverified !== true);
 				if (!matching.length) throw new Error(`no verified version-2 LAND review for item ${item} at revision ${sha}`);
-				let holds = 0;
-				for (const row of matching) {
-					if (!Object.hasOwn(row, "text")) {
-						holds++;
-						notes.push(`${LAND_NOTE_PREFIX} note: pre-store LAND record has no kept text for item ${item} at revision ${sha}`);
-						continue;
-					}
-					const evidence = reviewTextEvidence(home, row.text);
-					if (evidence.status === "intact") {
-						holds++;
-						relied.push(textName(evidence, row));
-					} else {
-						notes.push(`${LAND_NOTE_PREFIX} note: ${evidence.status} kept review text ${textName(evidence, row)} for item ${item} at revision ${sha}`);
-					}
-				}
-				if (!holds) throw new Error(`item ${item} at revision ${sha} has no matching verified LAND record with an intact kept text or a pre-store record; re-run that review on the same revision to recover it`);
 				const bad = rounds.filter((r) => r.unverified !== true && (r.revision === sha || r.head === sha) && Object.hasOwn(r, "verdict") && r.verdict !== "LAND");
 				if (bad.length) throw new Error(`non-LAND verdict record(s) for ${sha}: ${bad.map((r) => `${r.item}/${r.revision}/${r.verdict ?? "empty"}`).join(", ")}`);
 				const inflight = reservations.filter((r) => r.revision === sha || String(r.revision).split("+snap:")[0] === sha);
 				if (inflight.length) throw new Error(`review in flight for ${sha}`);
 			}
-			return { notes, relied };
 		};
 		checkRecords(firstRead.rounds, firstRead.reservations);
 		const unreviewed = git(runGit, tree, "rev-list", tip, "--not", capturedMain, ...reviewRefs).split(/\r?\n/).filter(Boolean);
@@ -313,25 +295,41 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			const verdict = readRuns();
 			judgedRuns = verdict.runs;
 			const env = ghEnvironment(process.env);
+			// The toolkit's platform policy must not impose nana-pi job names on adopted projects.
+			const manifest = runGit(tree, ["show", `${tip}:package.json`]);
+			const toolkit = manifest.status === 0 && toolkitCi(manifest.stdout);
+			if (toolkit) {
+				const lines = [];
+				const current = mainCi({ cwd: main, env, runGit, runGh, expectedSha: capturedMain, advisoryLinux: true, writeLine: (line) => lines.push(line) });
+				if (current.red !== false || current.code !== 0) throw new Error(lines.join("\n") || "Main CI: unreadable main push run");
+			}
 			ciLines = verdict.lines;
 			ciReadPassed = true;
 			lifecycle.ci = "passed";
 			lifecycle.ciWaitMs = landCiWaitMs(verdict.runs);
 			suiteProof = needsMerge ? { ok: true } : changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", capturedMain, tip));
-			if (suiteProof.ok) {
-				try {
-					const budget = budgetedGh({ runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env }), now: recordsNow });
-					const records = readCiRecords([tip], { cwd: tree, runGit, runGh: budget.runGh, writeLine: () => {} });
-					suiteProof = proveCiSuite({ ...records, budgetStopped: budget.budgetStopped }, verdict.runs, platform);
-				} catch { suiteProof = { ok: false, reason: "CI suite records could not be read" }; }
-			}
+			let shardFailure = null;
+			try {
+				const budget = budgetedGh({ runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env }), now: recordsNow });
+				const records = readCiRecords([tip], { cwd: tree, runGit, runGh: budget.runGh, writeLine: () => {} });
+				const judged = new Set(verdict.runs.map((run) => String(run.id)));
+				if (toolkit) {
+					const legs = requiredCiJobs((records.jobs ?? []).filter((item) => judged.has(String(item.run.id))).map(({ job }) => job));
+					if (!legs.ok) shardFailure = legs.problems.join("; ");
+				}
+				const shards = ciSuiteLegs({ ...records, parsed: records.parsed.filter((item) => judged.has(String(item.run.id))), jobs: records.jobs?.filter((item) => judged.has(String(item.run.id))) });
+				if (!shards.ok) shardFailure = shards.reason;
+				if (suiteProof.ok) suiteProof = proveCiSuite({ ...records, budgetStopped: budget.budgetStopped }, verdict.runs, toolkit && platform === "win32" ? CI_LANE_PLATFORM : platform);
+			} catch { if (suiteProof.ok) suiteProof = { ok: false, reason: "CI suite records could not be read" }; }
+			// A known incomplete/red sharded leg is CI failure, not permission to substitute locally.
+			if (shardFailure) { lifecycle.ci = "refused"; throw new Error(shardFailure); }
 		}
 		if (needsMerge && !suiteProof.ok) throw mergeRefusal("suite", suiteProof.reason);
 		lifecycle.stage = "suite";
 		lifecycle.suite = suiteProof.ok ? "ci" : "local";
 		lifecycle.suiteWhy = suiteProof.ok ? null : suiteProof.reason;
 		const suiteLine = suiteProof.ok
-			? `${SUITE_LINE_PREFIX} ci ${suiteProof.records.map((item) => `run ${item.run.id} attempt ${item.attempt} platform ${platform}`).join("; ")}`
+			? `${SUITE_LINE_PREFIX} ci ${suiteProof.records.map((item) => `run ${item.run.id} attempt ${item.attempt} platform ${item.record.platform}`).join("; ")}`
 			: `${SUITE_LINE_PREFIX} local ${suiteProof.reason}`;
 		let suiteResult = {};
 		if (!suiteProof.ok) {
@@ -343,7 +341,6 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 			if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
 		}
 		lifecycle.stage = "merge";
-		let reviewEvidence;
 		if (needsMerge) {
 			landedTip = git(runGit, main, "commit-tree", merge.tree, "-p", tip, "-p", capturedMain, "-m", CLEAN_MERGE_MESSAGE);
 			if (!objectId(landedTip)) throw mergeRefusal("git", "git commit-tree returned malformed output");
@@ -355,18 +352,7 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 		}
 		lockReviews(home, ({ rounds, reservations }) => {
 			const repoRounds = rounds.filter((r) => r.repo === repo);
-			reviewEvidence = checkRecords(repoRounds, reservations.filter((r) => r.repo === repo));
-			const tipBlobs = new Set(git(runGit, tree, "ls-tree", "-r", tip).split(/\r?\n/).filter(Boolean).map((line) => line.match(/^\d+\s+blob\s+(\S+)/)?.[1]).filter(Boolean));
-			const reviewedItems = new Set(refs.map((r) => r.item));
-			const seenEarlier = new Set();
-			for (const row of repoRounds) {
-				if (!reviewedItems.has(row.item) || row.revision === tip || !Object.hasOwn(row, "text")) continue;
-				const evidence = reviewTextEvidence(home, row.text);
-				if (evidence.status !== "intact" || seenEarlier.has(row.text.sha256)) continue;
-				seenEarlier.add(row.text.sha256);
-				const blob = git(runGit, tree, "hash-object", evidence.file);
-				if (!tipBlobs.has(blob)) reviewEvidence.notes.push(`${LAND_NOTE_PREFIX} note: earlier kept review text ${textName(evidence, row)} for item ${row.item} is not in the tip's tree`);
-			}
+			checkRecords(repoRounds, reservations.filter((r) => r.repo === repo));
 			if (git(runGit, main, "branch", "--show-current") !== "main") throw new Error("main checkout is not on branch main immediately before merge");
 			assertCleanTracked(runGit, main, "main checkout");
 			if (git(runGit, main, "rev-parse", "HEAD") !== capturedMain) throw new Error("main checkout HEAD changed during suite");
@@ -398,9 +384,8 @@ function runLandCore({ tree, main, suite, reviewed = [], home = os.homedir(), ru
 				recordLines = result.lines.map(String); recordNotes = result.notes.map(String);
 			} catch (error) { recordNotes = [`${LAND_NOTE_PREFIX} note: CI records failed: ${error?.message ?? "unknown error"}`]; }
 		}
-		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...(reviewEvidence?.notes ?? []), ...recordNotes];
-		const relied = [...new Set(reviewEvidence?.relied ?? [])].map((name) => `review text relied on: ${name}`);
-		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${relied.length ? `${relied.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${needsMerge ? `${CLEAN_MERGE_PREFIX} ${capturedMain} into ${tip} as ${landedTip}\n` : ""}${merge?.regenerated ? `regenerated: ${merge.regenerated.join(", ")}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
+		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...recordNotes];
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${needsMerge ? `${CLEAN_MERGE_PREFIX} ${capturedMain} into ${tip} as ${landedTip}\n` : ""}${merge?.regenerated ? `regenerated: ${merge.regenerated.join(", ")}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

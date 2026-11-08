@@ -126,8 +126,6 @@ function matrix(entries) {
     if (entry === 'pi-worker' || entry === 'claude-worker') args = ['pi-worker.mjs', '--poll', '60', '--out', out, '--lane', 'fixture', '--brief', path.join(repo, 'brief.md'), '--lane-size', entry === 'claude-worker' ? 'larger' : 'small'];
     if (entry === 'pi-review') { cwd = repo; args = ['pi-review.mjs', '--poll', '60', '--retries', '0', '--out', out, '--tree', repo, '--item', `fixture-${serial}`, '--', '-p', 'fixture']; }
     if (entry === 'claude-review') args = ['claude-review.mjs', '--out', out, '--tree', lane, '--brief', path.join(repo, 'brief.md'), '--item', `fixture-${serial}`];
-    if (entry === 'ledger') args = ['review-ledger.mjs', 'run', '--out', out, '--tree', lane, '--item', `fixture-${serial}`, '--', process.execPath, probe];
-    if (entry === 'ledger-claude') args = ['review-ledger.mjs', 'run', '--out', out, '--tree', lane, '--item', `fixture-${serial}`, '--', 'claude', '-p'];
     const installed = args[0] === 'pi-worker.mjs' || args[0] === 'pi-review.mjs';
     const target = installed ? path.join(layout.binDir, args[0].replace('.mjs', process.platform === 'win32' ? '.cmd' : '')) : null;
     const launch = installed ? reviewLaunch([target, ...args.slice(1)], { env, cwd }) : { command: process.execPath, args: [path.join(pack, 'bin', args[0]), ...args.slice(1)] };
@@ -147,7 +145,7 @@ function matrix(entries) {
 // req: R-3660
 await check('M1: builder children suppress fixture credential dispatch', () => matrix(['plain-worker', 'pi-worker', 'claude-worker']));
 // req: R-3661
-await check('M2: reviewer entry points suppress fixture credential dispatch', () => matrix(['pi-review', 'claude-review', 'ledger', 'ledger-claude']));
+await check('M2: reviewer entry points suppress fixture credential dispatch', () => matrix(['pi-review', 'claude-review']));
 // req: R-3662
 await check('M3: unrelated inherited git configuration keeps its effect', async () => {
   const { credentialStripEnv } = await import('../lib/credential-strip.mjs');

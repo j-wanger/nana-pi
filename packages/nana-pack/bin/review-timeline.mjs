@@ -115,7 +115,6 @@ function reviewLine(row) {
 	const duration = formatDuration(row.durationMs);
 	const marks = [];
 	if (row.unverified) marks.push(MARK_UNVERIFIED);
-	if (row.overCap) marks.push(`over cap: ${collapse(row.overCap)}`);
 	const markText = marks.length ? ` (${marks.join("; ")})` : "";
 	return `- role: ${collapse(row.role) || MISSING_FIELD} · model: ${model} · verdict: ${verdict} · duration: ${duration ?? MISSING_FIELD}${markText}`;
 }

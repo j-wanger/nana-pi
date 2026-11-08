@@ -2,7 +2,7 @@
 
 Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge pull, and project templates.
 
-Support: macOS tested; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
+Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
 Sibling repo to `~/nana-agent-loop`.
 
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
@@ -24,6 +24,12 @@ Sibling repo to `~/nana-agent-loop`.
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
   via `uvx copier update`; tags are cut only by `npm run release -- [--ref <rev>] [--push]`, which runs the acceptance gate first. CI runs that release step after the suite and install-check jobs pass on main; the Linux suite leg is non-blocking, while the Windows suite leg and the Windows install check block release. Generated CI
   carries a `template-drift` job that goes red when the project is behind the latest tag.
+Python templates offer a default-off `data_checks` answer. Opting in adds a standard-library
+read-only checker, settings and a pytest entry point for eight data checks. Adoption preserves
+existing pack files. Release acceptance runs default-off templates plus opted-in Python scaffold
+and adoption projects through their native toolchains; the suite exercises this on macOS and
+Windows too. Configure real inputs before treating a green data test as validation.
+
 - `packages/nana-knowledge/` — knowledge pull: a local BM25 (FTS5) index over the
   markdown knowledge stores on this machine, queried from a Claude Code
   `UserPromptSubmit` hook and from pi's `before_agent_start` through one shared hook CLI,
@@ -104,7 +110,7 @@ drift and main's movement; it marks stale only a test that ran a file which has 
 are not counted. Nana-pi's own `npm run req:rows -- <file...>` tool in
 `scripts/requirement-rows.mjs` is not shipped by the templates, and its result is neither complete
 nor exact. Generate the capability outline with `npm run req:tree` using `scripts/requirements-tree.mjs`; its `scripts/deliverables.mjs` check also prints report-only notes when a product deliverable's `Made by:` or `Read by:` claim is missing, unreadable or names a path not tracked at HEAD, and its count line leaves out a deliverable held by a `Parked:` line, then says how many it holds. `node scripts/known-bugs.mjs --root <dir>` checks `docs/known-bugs` entry names against active or frozen features, reports over-window file sizes without failing for them, and exits 1 on a name finding. Any other nana project checks its own tree with `node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root <dir>` — no outline, just its problems, or a `0 problems` line followed by any deliverable count and notes. A flat ledger with no tree yet lifts into it with `node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root <dir>`, a dry run that prints the plan and a proof line and writes nothing until `--write` is given on a ledger git tracks and that matches HEAD in every worktree; `scripts/requirements-lift-proof.mjs` holds the proof it calls, independent of the apply step.
-`node "$HOME/nana-pi/scripts/requirements-moved.mjs" --root <dir> --base <rev>` prints, per feature, which rows <dir>'s REQUIREMENTS.md added, removed, re-statused, reworded or moved since the merge base of `<rev>` and HEAD.
+The report commands share the bounded read-only Git runner in `scripts/git-runner.mjs`.
 `node "$HOME/nana-pi/scripts/blast-radius.mjs" --root <dir> --base <rev> --out <page>` writes one self-contained HTML page whose SVG draws, from the code map alone, every module changed since the merge base of `<rev>` and HEAD, their transitive callers and callees in four columns (tests, upstream, changed, downstream), the edges between them, the changed files the map does not hold, and which changed modules carry no linked test.
 `scripts/requirements-regroup.mjs` checks a drafted and reviewed proposal (a lift mapping plus one `regroup` object) against the lift and the regroup rules and writes the owner's review page: `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root <dir> --proposal <file> --out <page>`.
 `node scripts/identity-scan.mjs [--root <dir>]` scans tracked paths and content against digest counts; add a pinned allowlist entry by hand with its path, counts, reason and manifest-backed pin. With `--stdin`, it scans standard input instead, prints only each hit's word index and count, and exits 0 clean, 1 on a hit or 2 on bad use. It never echoes input text.

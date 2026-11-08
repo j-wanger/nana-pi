@@ -18,6 +18,9 @@ _skip_if_exists:
   # the code map is GENERATED: the template only ever seeds it (a rendered seed in
   # scaffold mode, a placeholder in adopt mode), and must never overwrite the real one
   - "docs/code-map.md"
+  # Settings remain project-owned; the adoption command skips existing checker/test files
+  # only during copy, so later template updates can refresh template-owned code.
+  - "data-checks.json"
 
 language:
   type: str
@@ -50,6 +53,12 @@ adopt:
   type: bool
   default: false
   help: Applying to an EXISTING project? (skips the README/src/tests starters — drive this via the adopt-py / adopt-ts skill)
+
+data_checks:
+  type: bool
+  default: false
+  when: "{{ language == 'python' }}"
+  help: Add the optional read-only data baseline (configure data-checks.json)?
 
 _message_after_copy: |
   {% if adopt -%}

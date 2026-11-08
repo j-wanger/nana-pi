@@ -1,0 +1,23 @@
+PASS  packages/nana-pack/tests/ci-records.test.mjs               6 pass  3.6s
+PASS  packages/nana-pack/tests/ci-wait.test.mjs                  6 pass  8.7s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs              25 pass  0.0s
+PASS  packages/nana-pack/tests/land-ci-edge.test.mjs             2 pass  19.6s
+PASS  packages/nana-pack/tests/land-ci-read.test.mjs             6 pass  14.9s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs          7 pass  12.4s
+PASS  packages/nana-pack/tests/land-ci-suite.test.mjs            6 pass  31.7s
+PASS  packages/nana-pack/tests/land-clean-merge-race.test.mjs    2 pass  14.8s
+PASS  packages/nana-pack/tests/land-clean-merge.test.mjs         12 pass  36.9s
+PASS  packages/nana-pack/tests/land-merge.test.mjs               27 pass  25.3s
+PASS  packages/nana-pack/tests/land-records.test.mjs             7 pass  16.7s
+PASS  packages/nana-pack/tests/land-regenerate.test.mjs          6 pass  56.2s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                  1 pass  0.1s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs       61 pass  4.5s
+FAIL  packages/nana-pack/tests/templates-render.test.mjs         172 pass, 1 fail  67.9s  — exit 1
+      | FAIL AGENTS.md carries the macOS install check outside the shared region 
+PASS  packages/nana-pack/tests/win-main-only.test.mjs            5 pass  46.2s
+PASS  packages/nana-pack/tests/win-shards.test.mjs               9 pass  12.1s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs  28 pass  0.2s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs         12 pass  3.6s
+
+19 files: 18 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 400 pass, 1 fail, 0 skip · 376.0s
+failed: packages/nana-pack/tests/templates-render.test.mjs

@@ -1,0 +1,37 @@
+{
+  "project": "example-data",
+  "project_root": "<project root>",
+  "source_globs": ["src/example_data/**/*.py", "scripts/**/*.py"],
+  "databases": [{"label": "main", "path": "data/example.sqlite"}],
+  "identifiers": {
+    "person_id": {"type": "INTEGER", "namespace": "people"},
+    "external_id": "TEXT"
+  },
+  "namespaces": {
+    "people": {"db": "main", "table": "people", "column": "person_id"}
+  },
+  "keys": [{"db": "main", "table": "people", "columns": ["person_id"]}],
+  "crosswalk_unique": [{"db": "main", "table": "crosswalk", "columns": ["external_id"]}],
+  "normalizer": {
+    "canonical": "src/example_data/names.py:normalize_name",
+    "function_name_pattern": "norm",
+    "arg_name_pattern": "name",
+    "samples": ["Ana Example", "Ana Example Jr.", "Éva Example"]
+  },
+  "connectors": {
+    "network_patterns": ["^requests(\\.|$)", "^urllib\\.request", "^httpx"],
+    "network_modules": ["src/example_data/network.py"],
+    "db_modules": ["src/example_data/database.py"]
+  },
+  "id_name_pattern": "(^|_)id$",
+  "lineage": {
+    "report_dirs": ["reports"],
+    "extensions": [".json", ".jsonl", ".md"],
+    "provenance_key": "provenance",
+    "required_fields": ["input_db"],
+    "exclude_globs": [],
+    "markdown_marker": "<!-- provenance: (\\{[^\\n]*\\}) -->"
+  },
+  "duplicates": {"min_ast_nodes": 40},
+  "rowwise": {"budget": 0, "top_sites": 5}
+}

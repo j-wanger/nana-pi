@@ -100,7 +100,7 @@ check("R-2590: a repository or tip without GitHub CI skips the CI read and notes
 		runGh: () => { if (!suiteStarted) ghCalls++; return { status: 0, stdout: runList([workflowRun()]), stderr: "" }; },
 		runCommand: () => { suiteStarted = true; return { status: 0, stdout: "", stderr: "" }; },
 	});
-	assert.equal(out.code, 0, out.text); assert.equal(ghCalls, 1);
+	assert.equal(out.code, 0, out.text); assert.equal(ghCalls, 2); // verdict, then shard-record discovery before local fallback
 });
 
 process.exit(failures ? 1 : 0);

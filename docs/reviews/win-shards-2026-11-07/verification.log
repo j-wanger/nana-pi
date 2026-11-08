@@ -1,0 +1,25 @@
+PASS  packages/nana-pack/tests/ci-records.test.mjs             6 pass  3.3s
+PASS  packages/nana-pack/tests/ci-wait.test.mjs                6 pass  7.6s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs            25 pass  0.0s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs        12 pass  1.8s
+PASS  packages/nana-pack/tests/code-map.test.mjs               48 pass  3.2s
+PASS  packages/nana-pack/tests/land-ci-edge.test.mjs           2 pass  19.9s
+PASS  packages/nana-pack/tests/land-ci-read.test.mjs           6 pass  15.0s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs        7 pass  13.3s
+PASS  packages/nana-pack/tests/land-ci-suite.test.mjs          6 pass  31.2s
+PASS  packages/nana-pack/tests/land-clean-merge-race.test.mjs  2 pass  15.1s
+PASS  packages/nana-pack/tests/land-clean-merge.test.mjs       12 pass  36.2s
+PASS  packages/nana-pack/tests/land-regenerate.test.mjs        6 pass  56.6s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                1 pass  0.1s
+PASS  packages/nana-pack/tests/readme-check.test.mjs           11 pass  0.3s
+PASS  packages/nana-pack/tests/requirement-rows.test.mjs       5 pass  0.6s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs     61 pass  4.6s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs      98 pass  2.7s
+PASS  packages/nana-pack/tests/runtime-map.test.mjs            15 pass  23.0s
+PASS  packages/nana-pack/tests/suite-records.test.mjs          9 pass  12.3s
+PASS  packages/nana-pack/tests/template-release.test.mjs       5 pass  3.1s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs   11 pass  33.1s
+PASS  packages/nana-pack/tests/test-runner.test.mjs            53 pass  31.2s
+PASS  packages/nana-pack/tests/win-shards.test.mjs             9 pass  10.7s
+
+23 files: 23 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 416 pass, 0 fail, 0 skip · 325.3s

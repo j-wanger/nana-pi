@@ -28,6 +28,7 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-22: Every plan and brief names its precedent, the nearest existing code for each part. Builders follow it and report each departure. A `Card: fix` brief may omit the section (owner, 2026-11-06, #338); plans and other briefs still require it. pi-worker refuses an unmarked brief without it.
 - 2026-10-22: A helper's second caller imports it rather than copying it. A plan's Precedent section names any move of a private helper to a shared module.
 - 2026-10-28: Before the seat plans new capability, it brings the owner two or three readings of the intent, once per request; a fix that restores agreed behaviour plans straight away.
+- 2026-11-07: In nana-pi, lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands.
 - 2026-11-07: Every lane gets one reviewer plus CI.
 - 2026-11-07: The roster names a slot for the scout, planner and adversary; a seat starts each through its slot.
 - 2026-11-02: In nana-pi, a tip's passing GitHub CI stands in for the local full suite for builders, seats and lands. Builders do not push; the seat pushes after verifying, then waits for CI. The local locked suite runs only when CI cannot stand in.

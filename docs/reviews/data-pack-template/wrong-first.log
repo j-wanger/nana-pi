@@ -1,0 +1,11 @@
+FAIL  packages/nana-pack/tests/data-pack.test.mjs  1 pass, 7 fail  48.6s  — exit 1
+      | FAIL M1 optional Python scaffold ships exactly the opt-in pack scripts/data_checks.py
+      | FAIL M3 unsafe normalizer never changes project bytes uvx: Traceback (most recent call last):
+      | FAIL M4 pytest prints errors and warnings and skips absent settings uvx: Traceback (most recent call last):
+      | FAIL M5 real-run false-positive patterns stay clean without suppressions uvx: Traceback (most recent call last):
+      | FAIL M6 adoption preserves pack files and previous release updates cleanly scripts/data_checks.py
+      | FAIL M7 live WAL cannot produce a clean keys verdict uvx: Traceback (most recent call last):
+      | FAIL M8 release acceptance runs native opt-in scaffold and adoption gates python-data-scaffold: uv sync
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 1 pass, 7 fail, 0 skip · 49.2s
+failed: packages/nana-pack/tests/data-pack.test.mjs

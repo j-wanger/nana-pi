@@ -90,7 +90,7 @@ function gitAt(root) {
 		);
 }
 
-/** The injected git runner `main` takes: same shape as scripts/requirements-moved.mjs's defaultGit. */
+/** The injected git runner `main` takes: same shape as scripts/git-runner.mjs's defaultGit. */
 function testGit(root, args) {
 	return spawnSync("git", args, { cwd: root, encoding: "utf8", env });
 }

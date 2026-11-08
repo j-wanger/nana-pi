@@ -24,7 +24,7 @@ import { dataPath, hashFile, loadRuntime, runtimeEntryChanged } from "../package
 import { NOT_COUNTED } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { GITHUB_REMOTE } from "../packages/nana-pack/lib/land-ci.mjs";
 import { TIP_DIGITS } from "../packages/nana-pack/lib/land-config.mjs";
-import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
+import { MAX_GIT_BUFFER } from "./git-runner.mjs";
 import { gitCommonDir, readSuiteRecords } from "../packages/nana-pack/lib/suite-records.mjs";
 import { buildRecordsPath, readBuildLedger } from "../packages/nana-pack/lib/build-records.mjs";
 import { globMatch } from "./glob-match.mjs";

@@ -1,0 +1,24 @@
+{
+  "project_root": ".",
+  "source_globs": ["src/**/*.py"],
+  "import_roots": ["src"],
+  "databases": [],
+  "identifiers": {},
+  "keys": [],
+  "crosswalk_unique": [],
+  "normalizer": {},
+  "connectors": {
+    "network_patterns": ["^requests(\\.|$)", "^urllib\\.request", "^httpx(\\.|$)", "^http\\.client"],
+    "network_modules": [],
+    "db_modules": []
+  },
+  "lineage": {
+    "report_dirs": [],
+    "extensions": [".json", ".jsonl", ".md", ".txt"],
+    "provenance_key": "provenance",
+    "required_fields": ["input_db"],
+    "markdown_marker": "<!-- provenance: (\\{[^\\n]*\\}) -->"
+  },
+  "duplicates": {"min_ast_nodes": 40},
+  "rowwise": {"budget": 0, "top_sites": 5}
+}

@@ -21,7 +21,7 @@ const treeFixture = (...args) => treeFixtureIn(temp, ...args);
 const commitAt = (...args) => commitAtIn(temp, ...args);
 import * as productReportModule from "../../../scripts/product-report.mjs";
 import * as deliverablesModule from "../../../scripts/deliverables.mjs";
-import { MAX_GIT_BUFFER } from "../../../scripts/requirements-moved.mjs";
+import { MAX_GIT_BUFFER } from "../../../scripts/git-runner.mjs";
 import { OPEN_SECTION_NAME, OPEN_SECTION_PREFIX } from "../lib/frontier-config.mjs";
 import { readHandoffIssues } from "../lib/handoff-issues.mjs";
 import { ISSUES_FETCH_CAP } from "../lib/frontier-summary-config.mjs";

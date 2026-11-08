@@ -390,7 +390,7 @@
         "packages/nana-pack/bin/review-round.mjs",
         "packages/nana-pack/prompts/review-standard.md",
         "packages/nana-pack/bin/review-launch.mjs",
-        "packages/nana-pack/bin/review-ledger.mjs",
+        "packages/nana-pack/lib/review-run.mjs",
         "packages/nana-pack/bin/review-shape.mjs",
         "packages/nana-pack/bin/review-timeline.mjs"
       ],
@@ -417,14 +417,14 @@
       "features": [
         "FEAT-008"
       ],
-      "status": "sound",
-      "gap": null,
+      "status": "partial",
+      "gap": "Windows shard wall time awaits the post-land main push run (R-3820).",
       "ask": null,
       "evidence": [
         "packages/nana-pack/bin/nana-land.mjs"
       ],
       "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
-      "anchors": []
+      "anchors": ["R-3820"]
     },
     {
       "id": "requirement-contract",
@@ -440,7 +440,7 @@
         "scripts/component-contract.mjs",
         "scripts/deliverables.mjs",
         "scripts/known-bugs.mjs",
-        "scripts/requirements-moved.mjs",
+        "scripts/git-runner.mjs",
         "scripts/requirements-regroup.mjs",
         "scripts/requirements-lift.mjs",
         "scripts/requirements-lift-proof.mjs",

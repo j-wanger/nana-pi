@@ -152,7 +152,7 @@ const compatibility = [
 	["- REQUIREMENTS.md:788-791 — R-2573, R-2574 and R-2576; R-2905 at `:727`; R-1460's lines at `:2217-2219`.", "REQUIREMENTS.md", "path"],
 	["- `apps/bench/lib/anatomy.mjs`", "apps/bench/lib/anatomy.mjs", "path"],
 	["- AGENTS.md — \"Shared-machine test runs\" is nana-pi's own section after the markers; \"CI covers this repository's suite\" goes there only (S7). \"Install check before a land\" is left alone.", "AGENTS.md", "path"],
-	["- packages/nana-pack/bin/review-ledger.mjs — the `report` subcommand's `--repo` handling, line shape and not-a-repository message.", "packages/nana-pack/bin/review-ledger.mjs", "path"],
+	["- packages/nana-pack/lib/review-run.mjs — admission, command launch and verdict recording.", "packages/nana-pack/lib/review-run.mjs", "path"],
 	["- none: no tracked code calls gh today, so the gh runner and its JSON handling are new.", "none:", "none"],
 	["- apps/bench/lib/usage.mjs — the Usage sum helpers to move into `packages/nana-pack/lib/pi-usage.mjs` and re-export.", "apps/bench/lib/usage.mjs", "path"],
 	["- packages/nana-pack/bin/review-round.mjs — `repoKeyOf`, and the tally's field names.", "packages/nana-pack/bin/review-round.mjs", "path"],

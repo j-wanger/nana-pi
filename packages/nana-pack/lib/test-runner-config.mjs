@@ -1,12 +1,13 @@
 /**
  * @module packages/nana-pack/lib/test-runner-config.mjs
- * @purpose Declare the test runner's parallel tunables and volume-dependent file preconditions.
+ * @purpose Declare runner scheduling policy, stable shard assignment and volume-dependent file preconditions.
  * @inputs os.tmpdir(), or a caller-supplied temporary root for the checkout-spelling probe
- * @outputs JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder
+ * @outputs JOBS_FLAG, SHARD_FLAG, shardFiles, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder
  *  removal retry count and delay, and checkoutSpellingSkipReason
  * @effects disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
  * @errors checkoutSpellingSkipReason propagates temporary-folder creation errors
  */
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -17,6 +18,18 @@ import * as path from "node:path";
 
 // contract (R-1470, R-1477): the test runner's --jobs argument prefix.
 export const JOBS_FLAG = "--jobs=";
+
+// contract (R-3816): Jest-compatible one-based i/N syntax, chosen 2026-11-07.
+export const SHARD_FLAG = "--shard=";
+
+/** Stable path hashing needs no OS-specific ordering or runtime baseline. Preserve collection order. */
+export function shardFiles(files, shard, key = (file) => file) {
+	if (!shard) return files;
+	return files.filter((file) => {
+		const digest = createHash("sha256").update(key(file).replaceAll("\\", "/")).digest("hex");
+		return Number(BigInt(`0x${digest}`) % BigInt(shard.count)) === shard.index - 1;
+	});
+}
 
 /** Declare checkout-spelling unrunnable only where its own case-swap probe finds no second spelling. */
 export function checkoutSpellingSkipReason(tmpRoot = os.tmpdir()) {

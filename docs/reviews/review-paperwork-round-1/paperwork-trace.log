@@ -1,0 +1,4 @@
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs  61 pass  4.4s
+PASS  packages/nana-pack/tests/review-paperwork.test.mjs    10 pass  22.6s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 71 pass, 0 fail, 0 skip · 27.5s

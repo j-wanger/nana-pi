@@ -140,6 +140,8 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		['packages/nana-pack/tests/claude-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes the movement-only repository fixtures from launcher tests.'],
+		['packages/nana-pack/tests/immutable-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes movement-only repository fixtures; immutable snapshot checks remain.'],
 		...[
 			"apps/desk/public/app.js -> apps/desk/public/changes.js",
 			"apps/desk/public/app.js -> apps/desk/public/desk-client.mjs",
@@ -205,6 +207,13 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 		['packages/nana-pack/tests/notify-dispatch.test.mjs', 'FEAT-013 retires notifier-only dispatch checks with their extension.'],
 		['packages/nana-pack/tests/notify-fallback.test.mjs', 'FEAT-013 retires notifier-only failure checks with their extension.'],
 		['scripts/lane-class.mjs', 'Lane classification is retired by R-3761.'],
+		['scripts/requirements-moved.mjs', 'R-3770 removes the movement command; git-runner preserves its git helpers.'],
+		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves review execution into review-run and claude-review.'],
+		['packages/nana-pack/lib/review-movement.mjs', 'R-3770 removes movement context.'],
+		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3770 removes movement context configuration.'],
+		['packages/nana-pack/tests/requirements-moved.test.mjs', 'R-3770 removes movement-only tests with the command.'],
+		['packages/nana-pack/tests/review-movement.test.mjs', 'R-3770 removes movement-only tests with the prompt producer.'],
+		['packages/nana-pack/tests/keep-movement.test.mjs', 'R-3770 removes keep-only tests with the command.'],
 		['packages/nana-pack/lib/mutation-runner-config.mjs', 'Seat mutation runner is retired by R-3761.'],
 		['packages/nana-pack/lib/mutation-runner.mjs', 'Seat mutation runner is retired by R-3761.'],
 		['packages/nana-pack/tests/lane-class.test.mjs', 'Classifier tests retired with their code by R-3761.'],
@@ -219,15 +228,21 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
 	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
 	for (const caller of ['lib/install-check.mjs', 'tests/install-check.test.mjs']) losses.set(`packages/nana-setup/${caller} -> packages/nana-setup/lib/doctor.mjs`, 'FEAT-013 removes the delegation-runtime floor import with the vendor install and retry.');
+	const retiredTargets = new Map([
+		['scripts/requirements-moved.mjs', 'R-3770 rehomes the shared runner in git-runner.mjs and removes movement.'],
+		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves execution into review-run.mjs, shared with the test harness.'],
+		['packages/nana-pack/lib/review-movement.mjs', 'R-3766 removes movement from reviewer prompts.'],
+		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3766 removes movement configuration and its test imports.'],
+	]);
 	const graph = checkRepo().graph;
-	for (const entry of gitShow("57167e92", "docs/code-map.md").split(/^### `/m).slice(1)) {
+	for (const entry of gitShow("57167e92",  "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];
 		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
 			const edge = `${path} -> ${match[1]}`;
 			if (retiredStudyModules.has(path)) losses.set(edge, `FEAT-034 retired study module ${path} and its runner-only tests; frozen records remain.`);
 			// Owner retirement (2026-11-07): the preview and all of its consumers left together.
 			const retiredPreview = [path, match[1]].some(file => file.startsWith(['apps', 'hive', ''].join('/')) || /^hive-/.test(file.split('/').at(-1)));
-			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || retiredPreview || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
+			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || retiredPreview || (!graph.modules.has(match[1]) && retiredTargets.get(match[1])) || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
 		}
 	}
 });

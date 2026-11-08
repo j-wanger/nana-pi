@@ -1,0 +1,27 @@
+PASS legacy forwarder named imports preserve pure compatibility
+PASS no verdicts, no rounds
+PASS sol + astra on one revision = ONE round
+PASS ten roles on one revision = ONE round
+PASS the same role twice on one revision = ONE round (a revision, not a role count)
+PASS three revisions = three rounds
+PASS slug: trim + casefold + collapse whitespace
+PASS slug: CaseItem ≡ caseitem
+PASS slug: NFKC (fullwidth ≡ ascii)
+PASS slug "../item" rejected
+PASS slug "a/b" rejected
+PASS slug "a\\b" rejected
+PASS slug ".." rejected
+PASS slug "x..y" rejected
+PASS slug "" rejected
+PASS slug "   " rejected
+PASS slug "a\u0000b" rejected
+PASS slug "xxxxxxxxxxxx"… rejected
+PASS slug bound is 128 (exactly 128 accepted)
+PASS roundFromOutPath (deprecated) still reads both conventions
+PASS roundFromOutPath (deprecated) null cases unchanged
+PASS absent option is undefined
+PASS --over-cap --retries: a flag is not a reason
+PASS --over-cap '   ': blank is not a reason
+PASS --over-cap at the end: nothing is not a reason
+PASS --item --role: a flag is not an item
+PASS a real reason passes, trimmed

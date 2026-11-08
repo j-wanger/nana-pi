@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/review-standard.test.mjs
  * @purpose Pins the review standard's required verdict and MUST text, and pi-review's refusal before admission when the standard file is missing, not a regular file, or blank.
- * @inputs packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/review-standard.mjs, lib/review-movement.mjs, lib/review-movement-config.mjs, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs, lib/process-tree.mjs, lib/rename-retry.mjs, lib/real-path.mjs and prompts/, a stub pi executable (./fake-pi.mjs on win32), and a temporary git repository.
+ * @inputs packages/nana-pack/prompts/review-standard.md, a temporary copy of bin/, lib/review-standard.mjs, lib/verdict-config.mjs, lib/win-command.mjs, lib/win-command-config.mjs, lib/process-tree.mjs, lib/rename-retry.mjs, lib/real-path.mjs and prompts/, a stub pi executable (./fake-pi.mjs on win32), and a temporary git repository.
  * @outputs PASS/FAIL lines per check on stdout, and a nonzero exit when any check fails.
  * @effects disk (a pack copy, a scratch HOME and a scratch git repository under the OS temp dir), process (spawns the copied pi-review.mjs against a stub pi)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -50,7 +50,7 @@ check("R-1108: the review standard makes a missing or empty must-meet test, a br
 	STANDARD_TEXT);
 
 // ---------------------------------------------------------------- R-1106/R-1680-1682: refusal before admission from a pack copy
-// A copy of bin/, lib/review-standard.mjs, lib/review-movement.mjs, lib/review-movement-config.mjs,
+// A copy of bin/, lib/review-standard.mjs, retained review libraries,
 // lib/verdict-config.mjs, lib/win-command.mjs,
 // lib/win-command-config.mjs, lib/process-tree.mjs, lib/rename-retry.mjs, lib/real-path.mjs and prompts/ lets each variant mutate the copy's own
 // review-standard.md without ever touching the real file. win32 lays the stub out as an npm

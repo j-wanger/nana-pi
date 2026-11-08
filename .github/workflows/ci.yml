@@ -24,7 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        # contract (R-3824): Windows runs only after a land, on main pushes.
+        os: ${{ fromJSON(github.event_name == 'push' && '["macos-latest","windows-latest"]' || '["macos-latest"]') }}
         pi: [ceiling, floor]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
@@ -53,10 +54,18 @@ jobs:
         run: node packages/nana-setup/bin/install-check.mjs
 
   suite:
+    name: suite (${{ matrix.leg }})
+    outputs:
+      shard1: ${{ steps.shard-result.outputs.shard1 }}
+      shard2: ${{ steps.shard-result.outputs.shard2 }}
+      shard3: ${{ steps.shard-result.outputs.shard3 }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        # chosen 2026-11-07 (R-3817): three shards from the plan's measured Windows
+        # 1,790–1,860 s at four jobs; ideal 597–620 s leaves room below 20 min for skew.
+        # contract (R-3824): select jobs, not steps, so PRs allocate no Windows runner.
+        include: ${{ fromJSON(github.event_name == 'push' && '[{"os":"macos-latest","leg":"macos-latest","shard":""},{"os":"ubuntu-latest","leg":"ubuntu-latest","shard":""},{"os":"windows-latest","leg":"windows-latest-shard-1-of-3","shard":"1/3"},{"os":"windows-latest","leg":"windows-latest-shard-2-of-3","shard":"2/3"},{"os":"windows-latest","leg":"windows-latest-shard-3-of-3","shard":"3/3"}]' || '[{"os":"macos-latest","leg":"macos-latest","shard":""},{"os":"ubuntu-latest","leg":"ubuntu-latest","shard":""}]') }}
     runs-on: ${{ matrix.os }}
     # chosen 2026-10-20 (R-2061): 90 minutes, not GitHub's 360-minute default, so a hung leg stops
     # within 90 minutes. Measured job wall times, every CI run from 2026-10-16 to 2026-10-20: slowest
@@ -77,6 +86,8 @@ jobs:
       NANA_TEST_TIMEOUT_MS: "900000"
       # chosen: one stable name in each leg's temporary folder, outside the checkout
       NANA_CI_RECORD_NAME: "nana-suite-record.json"
+      # contract (R-3820): report-only 20-minute warning; measured per shard, not summed.
+      NANA_CI_SHARD_MAX_SECONDS: "1200"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -96,20 +107,43 @@ jobs:
         if: matrix.os != 'windows-latest'
         env:
           NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
-      - run: npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }}
+      - run: npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }} --shard=${{ matrix.shard }}
         if: matrix.os == 'windows-latest'
         env:
           NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
+      - name: Report Windows shard wall time
+        if: ${{ !cancelled() && matrix.os == 'windows-latest' }}
+        env:
+          NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
+        run: |
+          node --input-type=module <<'NODE'
+          // win-shards wall check begin
+          import fs from "node:fs";
+          const record = JSON.parse(fs.readFileSync(process.env.NANA_SUITE_RECORD_FILE, "utf8"));
+          const seconds = record.wallSeconds;
+          const line = `Windows shard ${record.shard?.index}/${record.shard?.count}: ${seconds}s`;
+          console.log(line);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\n`);
+          if (!Number.isFinite(seconds) || seconds < 0) console.log("::warning::Windows shard wall time is unavailable or invalid");
+          else if (seconds >= Number(process.env.NANA_CI_SHARD_MAX_SECONDS)) console.log(`::warning::${line} exceeds the report-only wall-time bound`);
+          // win-shards wall check end
+          NODE
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         continue-on-error: true
         with:
-          name: suite-record-${{ matrix.os }}-${{ github.run_attempt }}
+          name: suite-record-${{ matrix.leg }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}
+      - name: Record successful Windows shard
+        id: shard-result
+        if: ${{ success() && matrix.os == 'windows-latest' }}
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: echo "shard${SHARD%%/*}=success" >> "$GITHUB_OUTPUT"
 
   release:
     needs: [suite, install-check]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.suite.result == 'success' && needs.install-check.result == 'success' && needs.suite.outputs.shard1 == 'success' && needs.suite.outputs.shard2 == 'success' && needs.suite.outputs.shard3 == 'success'
     permissions:
       contents: write
     concurrency:
