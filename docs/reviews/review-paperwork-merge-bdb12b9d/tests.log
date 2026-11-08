@@ -1,0 +1,64 @@
+PASS  packages/nana-pack/tests/adoption-producer.test.mjs        62 pass  0.2s
+PASS  packages/nana-pack/tests/adoption-reader.test.mjs          56 pass  2.0s
+PASS  packages/nana-pack/tests/brief-check.test.mjs              8 pass  28.5s
+PASS  packages/nana-pack/tests/ci-records.test.mjs               6 pass  3.2s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs              25 pass  0.0s
+PASS  packages/nana-pack/tests/code-map.test.mjs                 48 pass  2.8s
+PASS  packages/nana-pack/tests/component-audit.test.mjs          11 pass  47.0s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs          24 pass  57.7s
+PASS  packages/nana-pack/tests/credential-strip.test.mjs         6 pass  15.9s
+PASS  packages/nana-pack/tests/frontier.test.mjs                 53 pass  1.6s
+PASS  packages/nana-pack/tests/handoff-staleness.test.mjs        78 pass  0.2s
+PASS  packages/nana-pack/tests/land-ci-edge.test.mjs             2 pass  19.0s
+PASS  packages/nana-pack/tests/land-ci-read.test.mjs             6 pass  16.2s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs          7 pass  12.6s
+PASS  packages/nana-pack/tests/land-clean-merge.test.mjs         12 pass  38.0s
+PASS  packages/nana-pack/tests/land-merge.test.mjs               24 pass  16.6s
+PASS  packages/nana-pack/tests/leak-scan.test.mjs                12 pass  15.8s
+PASS  packages/nana-pack/tests/line-endings.test.mjs             1 pass  2.8s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                  1 pass  0.1s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs             8 pass  2.5s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs           11 pass  0.0s
+PASS  packages/nana-pack/tests/readme-check.test.mjs             11 pass  0.2s
+PASS  packages/nana-pack/tests/review-paperwork.test.mjs         10 pass  21.4s
+PASS  packages/nana-pack/tests/rulings.test.mjs                  23 pass  0.1s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs             30 pass  0.1s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs      12 pass  12.2s
+PASS  packages/nana-pack/tests/templates-render.test.mjs         173 pass  69.7s
+PASS  packages/nana-pack/tests/win-main-only.test.mjs            5 pass  39.5s
+PASS  packages/nana-pack/tests/win-shards.test.mjs               9 pass  10.8s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs              68 pass  31.3s
+PASS  packages/nana-setup/tests/entry-guidance.test.mjs          17 pass  0.3s
+PASS  packages/nana-setup/tests/install.test.mjs                 110 pass  9.0s
+PASS  packages/nana-setup/tests/pi-launch-limits.test.mjs        24 pass, 2 skip  67.2s
+PASS  packages/nana-setup/tests/project-odd-seeds.test.mjs       8 pass  3.4s
+PASS  packages/nana-setup/tests/project-stale.test.mjs           11 pass  4.3s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs  28 pass  0.2s
+FAIL  packages/nana-setup/tests/project.test.mjs                 57 pass  2.3s  — exit 1
+      | PASS project exits 0
+      | PASS created OBJECTIVE.md
+      | PASS created HANDOFF.md
+      | PASS created docs/sessions/README.md
+      | PASS created docs/sessions/2026-11.md
+      | PASS created AGENTS.md
+      | PASS created .pi/nana-pack.json
+      | PASS git initialized
+      | PASS CLAUDE.md is a regular file holding the one-line import @AGENTS.md
+      | PASS AGENTS.md carries the canonical section verbatim
+      | PASS project-created AGENTS stub wraps the section in both markers
+      | PASS AGENTS.md has the empty Layout + Rules sections
+      | PASS pack starter is an empty postEdit list
+      | PASS knowledge refresh is skipped with a reason when there is no index
+      | PASS <name> filled from the folder basename
+      | PASS <date> filled with today
+      | PASS no <date>/<name> placeholder survives
+      | PASS the DRAFT lines are left to ratify
+      | PASS the objective hook's two lines are greppable
+      | PASS HANDOFF is frontier-only with the drop rule
+PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs      31 pass  1.8s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs               21 pass  0.0s
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs           31 pass  2.5s
+PASS  packages/nana-setup/tests/writing-rule.test.mjs            4 pass  0.0s
+
+41 files: 40 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 1144 pass, 0 fail, 2 skip · 559.9s
+failed: packages/nana-setup/tests/project.test.mjs

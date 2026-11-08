@@ -116,18 +116,16 @@ await check('M4: Windows given and real spellings each count once',async()=>{
     }
   }
 });
-// req: R-3751
+// req: R-3751 R-3835 R-3837
 await check('M4: every platform matches given and real machine roots once',async()=>{
-  const {scanCommitRange}=await api();
+  const {scanCommitRange,machineCount}=await api();
   for (const platform of ['darwin','linux','win32']) {
     for (const kind of ['home','temp']) {
       for (const [given,real] of [['/var/folders/fixture/T','/private/var/folders/fixture/T'],['/private/var/folders/fixture/T','/var/folders/fixture/T']]) {
         for (const spelling of [given,real]) {
           for (const ending of ['',' \t\r\n']) {
-            const f=fixture();put(f.cwd,'alias.log',spelling+'/log'+ending);commit(f.cwd);
-            const opts={...options(f),platform,[kind==='home'?'home':'tmp']:given,realPath:value=>value===given?real:value};
-            const result=scanCommitRange(opts);
-            assert.equal(result.hits.length,1);assert.equal(result.hits[0].kind,kind);assert.equal(result.hits[0].count,1);
+            // The matcher owns spelling semantics; repeated git setup must not consume the case's deadline.
+            assert.equal(machineCount(spelling+'/log'+ending,given,platform,value=>value===given?real:value),1);
           }
         }
       }

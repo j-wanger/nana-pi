@@ -431,7 +431,7 @@ So a brand-new repo links itself on its first session. `/Users/example/a-work-pr
 
 ## Platforms
 
-Support: macOS tested; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
+Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
 
 On native Windows, nana-setup wires every Claude Code hook entry in exec form from the checkout, needing Claude Code 2.1.139 or later to run at all. Windows gets no hook file copy, so install and doctor list each hook only by its settings row. It writes extensionless sh and `.cmd` launchers for the five PATH commands; `~/.local/bin` is not on the Windows user Path by default, so add it through Environment Variables before bare names resolve.
 

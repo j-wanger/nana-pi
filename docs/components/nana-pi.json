@@ -417,14 +417,14 @@
       "features": [
         "FEAT-008"
       ],
-      "status": "sound",
-      "gap": null,
+      "status": "partial",
+      "gap": "Windows shard wall time awaits the post-land main push run (R-3820).",
       "ask": null,
       "evidence": [
         "packages/nana-pack/bin/nana-land.mjs"
       ],
       "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
-      "anchors": []
+      "anchors": ["R-3820"]
     },
     {
       "id": "requirement-contract",

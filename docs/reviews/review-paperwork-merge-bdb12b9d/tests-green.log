@@ -1,0 +1,43 @@
+PASS  packages/nana-pack/tests/adoption-producer.test.mjs        62 pass  0.3s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs              25 pass  0.0s
+PASS  packages/nana-pack/tests/code-map.test.mjs                 48 pass  3.0s
+PASS  packages/nana-pack/tests/ci-records.test.mjs               6 pass  3.6s
+PASS  packages/nana-pack/tests/brief-check.test.mjs              8 pass  28.3s
+PASS  packages/nana-pack/tests/credential-strip.test.mjs         6 pass  16.8s
+PASS  packages/nana-pack/tests/frontier.test.mjs                 53 pass  1.7s
+PASS  packages/nana-pack/tests/handoff-staleness.test.mjs        78 pass  0.2s
+PASS  packages/nana-pack/tests/component-audit.test.mjs          11 pass  48.8s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs          24 pass  57.9s
+PASS  packages/nana-pack/tests/land-ci-edge.test.mjs             2 pass  20.6s
+PASS  packages/nana-pack/tests/land-ci-read.test.mjs             6 pass  16.6s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs          7 pass  14.3s
+PASS  packages/nana-pack/tests/land-merge.test.mjs               24 pass  19.6s
+PASS  packages/nana-pack/tests/line-endings.test.mjs             1 pass  3.7s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                  1 pass  0.1s
+PASS  packages/nana-pack/tests/leak-scan.test.mjs                12 pass  18.5s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs           11 pass  0.0s
+PASS  packages/nana-pack/tests/readme-check.test.mjs             11 pass  0.3s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs             8 pass  2.7s
+PASS  packages/nana-pack/tests/rulings.test.mjs                  23 pass  0.1s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs             30 pass  0.1s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs      12 pass  13.9s
+PASS  packages/nana-pack/tests/land-clean-merge.test.mjs         12 pass  45.4s
+PASS  packages/nana-pack/tests/review-paperwork.test.mjs         10 pass  24.1s
+PASS  packages/nana-pack/tests/win-shards.test.mjs               9 pass  12.3s
+PASS  packages/nana-pack/tests/win-main-only.test.mjs            5 pass  45.9s
+PASS  packages/nana-setup/tests/entry-guidance.test.mjs          17 pass  0.3s
+PASS  packages/nana-pack/tests/worker-lane.test.mjs              68 pass  33.9s
+PASS  packages/nana-setup/tests/install.test.mjs                 110 pass  8.9s
+PASS  packages/nana-setup/tests/project-odd-seeds.test.mjs       8 pass  3.6s
+PASS  packages/nana-setup/tests/project-stale.test.mjs           11 pass  4.6s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs  28 pass  0.3s
+PASS  packages/nana-pack/tests/templates-render.test.mjs         173 pass  76.9s
+PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs      31 pass  2.0s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs               21 pass  0.0s
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs           31 pass  2.7s
+PASS  packages/nana-setup/tests/writing-rule.test.mjs            4 pass  0.0s
+PASS  packages/nana-setup/tests/project.test.mjs                 124 pass  32.3s
+PASS  packages/nana-setup/tests/pi-launch-limits.test.mjs        24 pass, 2 skip  66.8s
+PASS  packages/nana-pack/tests/adoption-reader.test.mjs          56 pass  2.0s
+
+41 files: 41 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 1211 pass, 0 fail, 2 skip · 234.1s

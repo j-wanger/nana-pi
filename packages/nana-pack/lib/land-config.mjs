@@ -44,6 +44,18 @@ export const CI_ADVISORY_WORKFLOW = ".github/workflows/ci.yml";
 export const CI_ADVISORY_JOB = "suite (ubuntu-latest)";
 export const CI_ADVISORY_RULE = /^  suite:[ \t]*\r?\n(?:(?:    [^\r\n]*|[ \t]*|    #[^\r\n]*)\r?\n)*?    continue-on-error: \$\{\{ matrix\.os == 'ubuntu-latest' \}\}[ \t]*(?:\r?\n|$)/m;
 
+// contract (R-3825, R-3826), chosen 2026-11-07: toolkit-only job policy; other repositories retain their workflow contract.
+export const CI_TOOLKIT_NAME = "nana-pi";
+// contract (R-3825): a Windows seat also uses the required non-Windows lane proof.
+export const CI_LANE_PLATFORM = "darwin";
+export const CI_LANE_JOBS = Object.freeze(["suite (macos-latest)", "install-check (macos-latest, ceiling)", "install-check (macos-latest, floor)"]);
+export const CI_WINDOWS_JOBS = Object.freeze([
+	"suite (windows-latest-shard-1-of-3)", "suite (windows-latest-shard-2-of-3)", "suite (windows-latest-shard-3-of-3)",
+	"install-check (windows-latest, ceiling)", "install-check (windows-latest, floor)",
+]);
+// contract (R-3819): runs before sharding used one Windows suite job.
+export const CI_LEGACY_WINDOWS_JOB = "suite (windows-latest)";
+
 // chosen 2026-10-22 (R-2589): about 60 times the measured 0.47-second runs call.
 export const CI_READ_TIMEOUT_MS = 30_000;
 

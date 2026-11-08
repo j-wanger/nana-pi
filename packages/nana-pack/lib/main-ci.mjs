@@ -1,17 +1,20 @@
 /**
  * @module packages/nana-pack/lib/main-ci.mjs
- * @purpose Report the newest finished non-cancelled main push CI run and optionally post one scanned seat issue.
- * @inputs Repository cwd, environment, injected gh and optional git runners, scanner and temporary root.
+ * @purpose Report the newest main push CI run and its required legs, optionally posting one scanned seat issue.
+ * @inputs Repository cwd, environment, injected gh and optional git runners, scanner, temporary root, expected main SHA and advisory-Linux land mode.
  * @outputs A verdict, per-leg failed paths and jobs, unfinished-run notice and exact posting command.
  * @effects disk (temporary CI downloads), process (local gh and identity scan), network (gh).
  * @errors Unreadable CI, scan failures, launcher posting and gh failures return code 1 with a named line.
  */
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { readCiRecords } from "./ci-records.mjs";
+import { ciSuiteLegs, requiredCiJobs, toolkitCi } from "./land-ci.mjs";
 import { finalFiles } from "./suite-records.mjs";
 import { ghDefault, ghResult } from "./gh-runner.mjs";
-import { CI_HOST, CI_READ_TIMEOUT_MS, CI_DONE_STATUS, CI_PASS_CONCLUSION, MAIN_REF, TIP_DIGITS } from "./land-config.mjs";
+import { CI_HOST, CI_READ_TIMEOUT_MS, CI_DONE_STATUS, CI_PASS_CONCLUSION, CI_ADVISORY_JOB, MAIN_REF, TIP_DIGITS } from "./land-config.mjs";
 import { GH_PAGE_SIZE, CI_WORKFLOW_RUN_PATH, GH_OUTPUT_MAX_BYTES } from "./suite-records-config.mjs";
 import { MAIN_CI_COMMAND_PREFIX, WATCH_COMMAND_PREFIX, WATCH_SEAT_MARKER, LAUNCHER_ROLES } from "./frontier-summary-config.mjs";
 import { watchCommand } from "./issue-watch.mjs";
@@ -27,7 +30,7 @@ const defaultScan = (text) => spawnSync(process.execPath, [scanner, "--stdin", "
 	input: text, encoding: "utf8", timeout: CI_READ_TIMEOUT_MS, maxBuffer: GH_OUTPUT_MAX_BYTES,
 });
 
-export function mainCi({ cwd = process.cwd(), post = false, env = process.env, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), runGit, scanText = defaultScan, tempRoot, writeLine = console.log } = {}) {
+export function mainCi({ cwd = process.cwd(), post = false, env = process.env, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), runGit, scanText = defaultScan, tempRoot, expectedSha, advisoryLinux = false, writeLine = console.log } = {}) {
 	const line = (text) => writeLine(`Main CI: ${text}`);
 	if (post && LAUNCHER_ROLES.includes(env.NANA_ROLE)) { line("posting refused under launcher role"); return { code: 1 }; }
 	try {
@@ -41,27 +44,20 @@ export function mainCi({ cwd = process.cwd(), post = false, env = process.env, r
 		if (!result.ok) throw new Error(result.reason);
 		const runs = JSON.parse(result.stdout).workflow_runs;
 		if (!Array.isArray(runs)) throw new Error("unreadable workflow runs");
-		const pushes = runs.filter((run) => run.event === "push" && run.head_branch === branch && run.path === CI_WORKFLOW_RUN_PATH).sort((a, b) => Number(b.id) - Number(a.id));
-		const finished = pushes.filter((item) => item.status === CI_DONE_STATUS);
-		const run = finished.find((item) => item.conclusion !== "cancelled");
-		for (const pending of pushes.filter((item) => item.status !== CI_DONE_STATUS && (!run || Number(item.id) > Number(run.id)))) line(`run ${pending.id} unfinished (${pending.status})`);
-		if (!run) {
-			if (finished.length) { line(`all ${finished.length} finished main push runs cancelled; nothing to report or post`); return { code: 0 }; }
-			line("no finished main push run"); return { code: 1 };
-		}
-		const skipped = finished.filter((item) => item.conclusion === "cancelled" && Number(item.id) > Number(run.id)).length;
-		if (skipped) line(`skipped ${skipped} newer cancelled main push runs`);
+		const pushes = runs.filter((run) => run.event === "push" && run.head_branch === branch && run.path === CI_WORKFLOW_RUN_PATH).sort((a, b) => Number(b.id) - Number(a.id) || Number(b.run_attempt) - Number(a.run_attempt));
+		const run = pushes[0];
+		if (!run) { line("no main push run"); return { code: 1, red: true }; }
+		if (expectedSha && run.head_sha !== expectedSha) { line(`no main push run for current main ${expectedSha.slice(0, TIP_DIGITS)}`); return { code: 1, red: true }; }
+		if (run.status !== CI_DONE_STATUS) { line(`run ${run.id} unfinished (${run.status})`); return { code: 1, red: true, run }; }
 		if (!/^[a-f0-9]{40,64}$/i.test(run.head_sha)) throw new Error(`run ${run.id}: unreadable SHA`);
 		const records = readCiRecords([run.head_sha], { cwd, runGh: (root, args) => runGh(root, args, { env }), ...(runGit ? { runGit } : {}), ...(tempRoot ? { tempRoot } : {}), runId: run.id, writeLine: () => {} });
-		const failures = [];
-		// An attempt can copy older successful legs: choose each leg's newest readable record.
-		const newest = new Map();
-		for (const item of records.parsed) {
-			if (String(item.run.id) !== String(run.id)) continue;
-			const prior = newest.get(item.leg);
-			if (!prior || item.attempt > prior.attempt) newest.set(item.leg, item);
-		}
-		for (const { leg, record } of newest.values()) {
+		let toolkit = Boolean(expectedSha);
+		try { toolkit ||= toolkitCi(readFileSync(path.join(cwd, "package.json"), "utf8")); } catch { /* Adopted projects need no toolkit manifest. */ }
+		const failures = toolkit ? requiredCiJobs((records.jobs ?? []).map(({ job }) => job), { main: true }).problems : [];
+		// Land and main use the same per-shard latest-execution and completeness decision.
+		const selected = ciSuiteLegs(records);
+		if (!selected.ok) failures.push(selected.reason);
+		for (const { leg, record } of selected.records) {
 			const files = finalFiles(record).filter((file) => file.label === "FAIL").map((file) => file.path);
 			if (files.length) for (const file of files) failures.push(`${leg}: ${file}`);
 			else if (record.exitCode !== 0 || record.unnamedFailures?.length) failures.push(`${leg}: suite`);
@@ -72,16 +68,18 @@ export function mainCi({ cwd = process.cwd(), post = false, env = process.env, r
 			if (job.status === CI_DONE_STATUS && ![CI_PASS_CONCLUSION, "skipped", "neutral"].includes(job.conclusion)) failures.push(job.name);
 		}
 		if (run.conclusion !== CI_PASS_CONCLUSION && !failures.length) failures.push("ci");
-		const red = failures.length > 0 || Boolean(records.problems?.length) || records.code !== 0;
+		const blocking = (text) => !advisoryLinux || !(text.startsWith("ubuntu-latest:") || text === CI_ADVISORY_JOB || /^run \S+ ubuntu-latest:/.test(text));
+		const red = run.conclusion !== CI_PASS_CONCLUSION || failures.some(blocking) || Boolean(records.problems?.some(blocking)) || records.code !== 0;
 		line(`run ${run.id} ${run.head_sha.slice(0, TIP_DIGITS)} ${red ? "red" : "green"}`);
 		for (const failure of failures) line(failure);
-		if (!red) return { code: 0, red };
+		if (run.conclusion === "cancelled") { line("cancelled main run; nothing to post"); return { code: 1, red: true, run }; }
+		if (!red) return { code: 0, red, run };
 		line(`post: ${mainCiCommand(cwd)} --post`);
 		// Missing inputs are not permission to claim a known failure in a public issue.
-		if (!failures.length) return { code: 1, red };
+		if (!failures.length) return { code: 1, red, run };
 		const title = `main CI: ${failures[0].replace(/^[^:]+: /, "")}`;
 		const body = `${WATCH_SEAT_MARKER}\nRun: ${run.id}\nSHA: ${run.head_sha.slice(0, TIP_DIGITS)}\n${[...new Set(failures)].join("\n")}`;
-		if (!post) return { code: 0, red, title, body };
+		if (!post) return { code: 0, red, run, title, body };
 		const scanned = scanText(`${title}\n${body}`);
 		if (scanned?.error || scanned?.status !== 0) throw new Error("identity scan refused the issue");
 		const account = ghResult(runGh, cwd, ["api", "--hostname", CI_HOST, "user"], { env });

@@ -1,0 +1,21 @@
+PASS  packages/nana-pack/tests/ci-records.test.mjs               6 pass  3.6s
+PASS  packages/nana-pack/tests/ci-wait.test.mjs                  6 pass  9.8s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs              25 pass  0.0s
+PASS  packages/nana-pack/tests/land-ci-edge.test.mjs             2 pass  24.1s
+PASS  packages/nana-pack/tests/land-ci-read.test.mjs             6 pass  17.5s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs          7 pass  15.3s
+PASS  packages/nana-pack/tests/land-ci-suite.test.mjs            6 pass  36.2s
+PASS  packages/nana-pack/tests/land-clean-merge-race.test.mjs    2 pass  19.1s
+PASS  packages/nana-pack/tests/land-clean-merge.test.mjs         12 pass  45.2s
+PASS  packages/nana-pack/tests/land-merge.test.mjs               27 pass  27.7s
+PASS  packages/nana-pack/tests/land-records.test.mjs             7 pass  17.8s
+PASS  packages/nana-pack/tests/land-regenerate.test.mjs          6 pass  58.4s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                  1 pass  0.1s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs       61 pass  4.7s
+PASS  packages/nana-pack/tests/templates-render.test.mjs         173 pass  72.7s
+PASS  packages/nana-pack/tests/win-main-only.test.mjs            5 pass  41.5s
+PASS  packages/nana-pack/tests/win-shards.test.mjs               9 pass  10.5s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs  28 pass  0.2s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs         12 pass  3.3s
+
+19 files: 19 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 401 pass, 0 fail, 0 skip · 408.3s

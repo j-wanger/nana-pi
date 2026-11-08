@@ -1,0 +1,40 @@
+FAIL M10: PR matrices omit Windows and main push matrices include every leg AssertionError [ERR_ASSERTION]: event-selected matrices required, not skipped steps on Windows runners
+    at file://packages/nana-pack/tests/win-main-only.test.mjs:69:2
+    at check (file://packages/nana-pack/tests/win-main-only.test.mjs:23:14)
+    at file://packages/nana-pack/tests/win-main-only.test.mjs:64:7
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+FAIL M11: lanes require macOS legs but not Windows and Linux stays advisory AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+ci: ci run 71 attempt 1 (pull_request) success at dc7c09ba
+suite: ci run 71 attempt 1 platform darwin
+push command: git push
+release status: ready
+[nana-land] land record: landed, stage -, 0 min total, suite ci, - CI wait; no lane
+
+
+0 !== 1
+
+    at file://packages/nana-pack/tests/win-main-only.test.mjs:85:59
+    at check (file://packages/nana-pack/tests/win-main-only.test.mjs:23:14)
+    at file://packages/nana-pack/tests/win-main-only.test.mjs:82:7
+FAIL M12: red or missing newest main legs block lands and match the main report AssertionError [ERR_ASSERTION]: review text relied on: acff8d612246e101e023e7cd67db5470c3972a44d4648095520df8887a965af7.md
+ci: ci run 71 attempt 1 (pull_request) success at 114ddfeb
+suite: ci run 71 attempt 1 platform darwin
+push command: git push
+release status: ready
+[nana-land] land record: landed, stage -, 0 min total, suite ci, - CI wait; no lane
+
+
+0 !== 1
+
+    at file://packages/nana-pack/tests/win-main-only.test.mjs:92:59
+    at check (file://packages/nana-pack/tests/win-main-only.test.mjs:23:14)
+    at file://packages/nana-pack/tests/win-main-only.test.mjs:90:7
+FAIL M13: main-only release still needs Windows and all rule surfaces agree AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(read("packages/nana-pack/rules/nana-rulings.md").includes(`- 2026-11-07: ${sentence}`))
+
+    at file://packages/nana-pack/tests/win-main-only.test.mjs:115:2
+    at check (file://packages/nana-pack/tests/win-main-only.test.mjs:23:14)
+    at file://packages/nana-pack/tests/win-main-only.test.mjs:102:7

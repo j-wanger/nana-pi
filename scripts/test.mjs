@@ -3,7 +3,7 @@
  * @module scripts/test.mjs
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
- * @inputs argv (--verbose, --self-test, --jobs=N, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
+ * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
  *  NANA_COVERAGE_DIR (runtime-map's coverage knob), NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
  *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
@@ -63,6 +63,9 @@
 //   npm test -- --jobs=N         keep up to N collected files running at once (default 1); a file
 //                                on the declared run-alone list (test-runner-config.mjs) still runs
 //                                alone, after the pool of every other file drains
+//   npm test -- --shard=i/N      run the one-based stable path-hash shard after path filtering;
+//                                shards partition the collection, including RUN_ALONE files.
+//                                Cannot combine with self-test. Records carry {index, count}.
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
@@ -76,6 +79,8 @@ import { WINDOWS_SKIPS } from "../packages/nana-pack/lib/windows-skips-config.mj
 import {
 	checkoutSpellingSkipReason,
 	JOBS_FLAG,
+	SHARD_FLAG,
+	shardFiles,
 	RUN_ALONE,
 	TEMP_REMOVE_RETRIES,
 	TEMP_REMOVE_RETRY_DELAY_MS,
@@ -108,6 +113,23 @@ function parseJobs(args) {
 	return n;
 }
 const jobs = parseJobs(argv);
+
+// Follow --jobs' early, named refusal; self-test fixtures have no shard assignment.
+function parseShard(args) {
+	let shard = null;
+	for (const arg of args) {
+		if (!arg.startsWith("--shard")) continue;
+		const match = arg.startsWith(SHARD_FLAG) ? /^(\d+)\/(\d+)$/.exec(arg.slice(SHARD_FLAG.length)) : null;
+		const index = Number(match?.[1]), count = Number(match?.[2]);
+		if (shard || selfTest || !match || !Number.isSafeInteger(index) || !Number.isSafeInteger(count) || index < 1 || count < 1 || index > count) {
+			console.log(`[runner] bad --shard argument: ${arg}${selfTest ? " (cannot combine with --self-test)" : ""}`);
+			process.exit(1);
+		}
+		shard = { index, count };
+	}
+	return shard;
+}
+const shard = parseShard(argv);
 
 const rel = (p) => path.relative(root, p).split(path.sep).join("/");
 const isDir = (p) => {
@@ -341,7 +363,7 @@ const BASE_ENV = (() => {
 })();
 
 // ── main ─────────────────────────────────────────────────────────────────────────────────────
-const files = collect();
+const files = shardFiles(collect(), shard, rel);
 scratch = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-runner-${process.pid}-`));
 const trackedSnapshot = () => {
 	const listed = spawnSync("git", ["ls-files", "-s", "-z"], { cwd: root, encoding: "buffer" });
@@ -616,6 +638,7 @@ if (suiteRecordFile) {
 		fs.writeFileSync(suiteRecordFile, JSON.stringify({
 			schema: RECORD_SCHEMA,
 			filters,
+			...(shard ? { shard } : {}),
 			files: suiteFiles.filter(Boolean),
 			unnamedFailures,
 			exitCode: finalExitCode,

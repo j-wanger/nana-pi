@@ -67,7 +67,8 @@ check("R-2588: the newest run of each workflow at its latest attempt decides, an
 		assert.equal(out.code, 0, out.text); assert.equal(out.suiteRan, true); for (const pattern of patterns) assert.match(out.text, pattern);
 		assert.equal((out.text.match(/^ci: /gm) ?? []).length, patterns.length); assert(events.findIndex((event) => event.kind === "gh") < events.findIndex((event) => event.kind === "suite"));
 		const beforeSuite = events.slice(0, events.findIndex((event) => event.kind === "suite"));
-		assert.equal(beforeSuite.filter((event) => event.kind === "gh").length, 1); assert.equal(beforeSuite.filter((event) => event.kind === "gh").some((event) => event.args.some((arg) => /\/jobs|\/attempts\//.test(arg))), false);
+		assert.equal(beforeSuite.filter((event) => event.kind === "gh").length, 2); // verdict plus shard-record discovery
+		assert.equal(beforeSuite.filter((event) => event.kind === "gh").some((event) => event.args.some((arg) => /\/jobs|\/attempts\//.test(arg))), false);
 	}
 });
 

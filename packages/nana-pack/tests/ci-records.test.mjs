@@ -189,7 +189,7 @@ check("R-2633: a record the runner writes under CI's arguments reads back in ci-
 	assert.equal(commands.length, 2);
 	for (const [index, command] of commands.entries()) {
 		spawnSync("git", ["checkout", "--", "tracked.txt"], { cwd: root });
-		const args = command.replace("${{ env.NANA_CI_JOBS }}", jobsValue).trim().split(/\s+/);
+		const args = command.replace("${{ env.NANA_CI_JOBS }}", jobsValue).replace("${{ matrix.shard }}", "1/3").trim().split(/\s+/);
 		const outputRecord = path.join(TD, `runner-output-${index}.json`);
 		const runner = spawnSync(process.execPath, [path.join(root, "scripts", "test.mjs"), ...args], {
 			cwd: root,

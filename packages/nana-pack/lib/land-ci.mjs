@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/land-ci.mjs
- * @purpose Decide whether GitHub CI applies to a land and judge one workflow-runs response.
+ * @purpose Judge land CI scope, workflow verdicts and complete latest-attempt suite evidence.
  * @inputs Remote names and URL, tip workflow paths, a workflow-runs JSON string, the source tip, and its parsed GitHub repository.
- * @outputs A GitHub repository or skip note, and CI success lines or a refusal reason.
+ * @outputs A GitHub repository or skip note, CI success lines or refusal, and aggregated suite-leg records.
  * @effects none
  * @errors Malformed workflow-run data is returned as a named refusal reason.
  */
@@ -18,6 +18,7 @@ import {
 	TIP_DIGITS,
 	SUITE_FALLBACK_PATHS,
 	SUITE_CHANGED_REASON,
+	CI_TOOLKIT_NAME, CI_LANE_JOBS, CI_WINDOWS_JOBS, CI_LEGACY_WINDOWS_JOB,
 } from "./land-config.mjs";
 
 // contract (R-1511): strict GitHub origin spellings, with no credentials and an optional .git suffix.
@@ -51,24 +52,102 @@ export function changedSuitePaths(changedPaths) {
 	return changed ? { ok: false, reason: SUITE_CHANGED_REASON } : { ok: true };
 }
 
+/** Keep the toolkit's named-job contract out of adopted projects. */
+export function toolkitCi(manifest) {
+	try { return JSON.parse(manifest).name === CI_TOOLKIT_NAME; } catch { return false; }
+}
+
+/** Require named jobs independently of a workflow's aggregate conclusion; Linux remains advisory. */
+export function requiredCiJobs(jobs, { main = false } = {}) {
+	const historical = main && jobs.some((job) => job.name === CI_LEGACY_WINDOWS_JOB);
+	const windows = historical ? [CI_LEGACY_WINDOWS_JOB, ...CI_WINDOWS_JOBS.filter((name) => !name.startsWith("suite ("))] : CI_WINDOWS_JOBS;
+	const required = [...CI_LANE_JOBS, ...(main ? windows : [])];
+	const problems = [];
+	for (const name of required) {
+		const job = jobs.find((item) => item.name === name);
+		if (!job) problems.push(`${name}: missing`);
+		else if (job.status !== CI_DONE_STATUS || job.conclusion !== CI_PASS_CONCLUSION) problems.push(`${name}: ${job.status === CI_DONE_STATUS ? job.conclusion : job.status}`);
+	}
+	return { ok: problems.length === 0, problems };
+}
+
+/** Select each leg's newest record, then combine complete shard groups without counting old attempts. */
+export function ciSuiteLegs(result) {
+	const newest = new Map();
+	for (const item of result?.parsed ?? []) {
+		const key = `${item.run.id}/${item.leg}`;
+		if (!newest.has(key) || newest.get(key).attempt < item.attempt) newest.set(key, item);
+	}
+	const records = [], groups = new Map(), problems = [];
+	const identity = (leg) => /^(.*)-shard-(\d+)-of-(\d+)$/.exec(leg);
+	const groupFor = (run, leg) => {
+		const match = identity(leg);
+		if (!match) return null;
+		const [, base, indexText, countText] = match;
+		const index = Number(indexText), count = Number(countText), key = `${run.id}/${base}`;
+		if (!groups.has(key)) groups.set(key, { run, base, count, items: new Map(), jobs: new Map() });
+		const group = groups.get(key);
+		if (!Number.isSafeInteger(count) || count < 1 || index < 1 || index > count || group.count !== count) problems.push(`${base}: invalid shard identity ${leg}`);
+		return { group, index };
+	};
+	for (const item of newest.values()) {
+		const shard = groupFor(item.run, item.leg);
+		if (shard) shard.group.items.set(shard.index, item);
+		else records.push(item);
+	}
+	for (const { run, job, leg } of result?.jobs ?? []) {
+		const shard = groupFor(run, leg);
+		if (!shard) continue;
+		const prior = shard.group.jobs.get(shard.index);
+		if (!prior || Number(job.run_attempt ?? run.run_attempt) >= Number(prior.run_attempt ?? run.run_attempt)) shard.group.jobs.set(shard.index, job);
+	}
+	for (const group of groups.values()) {
+		const { run, base, count, items, jobs } = group;
+		// Compare sizes before walking: an honest missing leg cannot turn into a huge loop.
+		if (items.size !== count || jobs.size !== count) problems.push(`${base}: missing shard (expected ${count} records and jobs)`);
+		const members = [...items].sort(([a], [b]) => a - b);
+		for (const [index, item] of members) {
+			const job = jobs.get(index), record = item.record;
+			if (!job || job.status !== CI_DONE_STATUS || job.conclusion !== CI_PASS_CONCLUSION) problems.push(`${item.leg}: shard job did not pass`);
+			// GitHub can report the newest run_attempt even for carried jobs.
+			// Only an older started_at proves carry-forward; no timestamp fails closed.
+			const latestAttempt = Number(job?.run_attempt ?? run.run_attempt);
+			const carried = Date.parse(job?.started_at) < Date.parse(item.artifact?.created_at);
+			if (latestAttempt > item.attempt && !carried) problems.push(`${item.leg}: attempt ${latestAttempt} left no record`);
+			if (record.shard?.index !== index || record.shard?.count !== count) problems.push(`${item.leg}: record shard identity differs`);
+			if (record.platform !== members[0][1].record.platform || !Array.isArray(record.filters) || record.filters.length || !finalFiles(record).length || record.exitCode !== 0 || record.unnamedFailures?.length || finalFiles(record).some((file) => file.label === "FAIL")) problems.push(`${item.leg}: shard record did not pass an unfiltered suite`);
+		}
+		if (!members.length) continue;
+		if (records.some((item) => String(item.run.id) === String(run.id) && item.leg === base)) problems.push(`${base}: mixed sharded and unsharded records`);
+		const values = members.map(([, item]) => item);
+		const files = values.flatMap((item) => finalFiles(item.record));
+		if (new Set(files.map((file) => file.path)).size !== files.length) problems.push(`${base}: duplicate file across shards`);
+		const first = values[0];
+		records.push({ ...first, leg: base, attempt: Math.max(...values.map((item) => item.attempt)), record: {
+			...first.record, shard: undefined,
+			shards: values.map((item) => ({ leg: item.leg, attempt: item.attempt, wallSeconds: item.record.wallSeconds })),
+			files, wallSeconds: values.reduce((sum, item) => sum + Number(item.record.wallSeconds), 0),
+			unnamedFailures: values.flatMap((item) => item.record.unnamedFailures ?? []),
+			exitCode: values.some((item) => item.record.exitCode !== 0) ? 1 : 0,
+		} });
+	}
+	return { ok: problems.length === 0, reason: problems.join("; "), records };
+}
+
 /** Require every highest-attempt same-platform leg from a judged run to prove an unfiltered successful suite. */
 export function proveCiSuite(result, runs, platform) {
 	if (result?.code !== 0 || !Array.isArray(result?.parsed) || result?.problems?.length || result?.budgetStopped) return { ok: false, reason: result?.budgetStopped ? "CI suite records exceeded their budget" : "CI suite records could not be read" };
 	const judged = new Set(runs.map((run) => String(run.id)));
-	const legs = new Map();
-	for (const item of result.parsed) {
-		if (!judged.has(String(item.run?.id)) || item.record?.platform !== platform) continue;
-		const key = `${item.run.id}/${item.leg}`;
-		const prior = legs.get(key);
-		if (!prior || item.attempt > prior.attempt) legs.set(key, item);
-	}
-	if (!legs.size) return { ok: false, reason: `no CI suite record for platform ${platform}` };
-	for (const { record } of legs.values()) {
+	const selected = ciSuiteLegs({ ...result, parsed: result.parsed.filter((item) => judged.has(String(item.run?.id))), jobs: result.jobs?.filter((item) => judged.has(String(item.run?.id))) });
+	if (!selected.ok) return { ok: false, reason: selected.reason };
+	const legs = selected.records.filter((item) => item.record?.platform === platform);
+	if (!legs.length) return { ok: false, reason: `no CI suite record for platform ${platform}` };
+	for (const { record } of legs) {
 		if (!Array.isArray(record.filters) || record.filters.length !== 0) return { ok: false, reason: "CI suite record does not prove an unfiltered run" };
 		if (finalFiles(record).length === 0) return { ok: false, reason: "CI suite record has no final files" };
 		if (record.exitCode !== 0) return { ok: false, reason: "CI suite record did not exit 0" };
 	}
-	return { ok: true, records: [...legs.values()] };
+	return { ok: true, records: legs };
 }
 
 const isId = (value) => (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) || (typeof value === "string" && value.length > 0);
