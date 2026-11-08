@@ -1,0 +1,78 @@
+## records-wrong-first
+FAIL  packages/nana-pack/tests/records-move.test.mjs  1 pass, 2 fail  0.3s  — exit 1
+      | FAIL M1: derive protections and reject missing or excess folders AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL M2: protected folders keep all tracked paths and blobs AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 1 pass, 2 fail, 0 skip · 0.6s
+failed: packages/nana-pack/tests/records-move.test.mjs
+
+## records-policy-wrong
+FAIL  packages/nana-pack/tests/records-move.test.mjs  2 pass, 1 fail  1.3s  — exit 1
+      | FAIL records policy seal AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 2 pass, 1 fail, 0 skip · 1.7s
+failed: packages/nana-pack/tests/records-move.test.mjs
+
+## records-m3-m5-wrong
+FAIL  packages/nana-pack/tests/records-move.test.mjs  3 pass, 2 fail  1.7s  — exit 1
+      | FAIL M3: archive README command lists and reads removed records AssertionError [ERR_ASSERTION]: an unreadable archive must fail
+      | FAIL M5: objective prints the full code-lines priority AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 3 pass, 2 fail, 0 skip · 1.9s
+failed: packages/nana-pack/tests/records-move.test.mjs
+
+## records-m4-wrong
+PASS  packages/nana-pack/tests/memory-run-recovery.test.mjs  7 pass  24.0s
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs     16 pass  1.4s
+FAIL  packages/nana-pack/tests/memory-run.test.mjs           7 pass, 2 fail  45.9s  — exit 1
+      | FAIL M4: moving records preserves earlier pending evidence and lane briefs AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL R-3291: pending units survive busy caps failures and stale locks AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+
+3 files: 2 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 30 pass, 2 fail, 0 skip · 71.5s
+failed: packages/nana-pack/tests/memory-run.test.mjs
+
+## records-runner-green
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  33.2s
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  29.9s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 64 pass, 0 fail, 0 skip · 63.5s
+
+## records-third-green
+PASS  packages/nana-pack/tests/memory-making.test.mjs        24 pass  0.2s
+PASS  packages/nana-pack/tests/memory-run-recovery.test.mjs  7 pass  21.7s
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs     16 pass  1.2s
+PASS  packages/nana-pack/tests/memory-run.test.mjs           9 pass  39.0s
+PASS  packages/nana-pack/tests/readme-check.test.mjs         11 pass  0.3s
+PASS  packages/nana-pack/tests/records-move.test.mjs         5 pass  51.8s
+
+6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 72 pass, 0 fail, 0 skip · 114.3s
+
+## records-check-third
+records: 126 protected, 0 problems
+
+## records-map-check
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 526 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+
+## records-readme
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 784 claims checked; 0 problem(s)
+review archive: 0 problems
+
+## records-trace
+requirements: 2707 total (2004 implemented · 8 planned · 567 retired · 125 untested · 3 violated); 2017 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:86443) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://./templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to ./package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+## records-tree-check
+requirements tree: 0 problems; rows 2707; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked

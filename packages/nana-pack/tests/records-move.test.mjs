@@ -14,6 +14,8 @@ import { spawnSync } from 'node:child_process';
 import { tmpDir } from "./tmp-dir.mjs";
 import { check } from './profile-fixture.mjs';
 import { deriveProtected, checkRecords, POLICY } from '../../../scripts/records-move.mjs';
+import { checkReviewArchive, REPO_ROOT } from '../../../scripts/readme-check.mjs';
+import { produceObjective } from '../lib/objective.ts';
 
 function fixture(fn) {
  const root=tmpDir(path.join(os.tmpdir(),'records-move-'));
@@ -22,7 +24,9 @@ function fixture(fn) {
  try {git('init','--initial-branch=main');return fn({root,git,put});} finally {fs.rmSync(root,{recursive:true,force:true});}
 }
 // req: R-3928, R-3929
-await check('M1: derive protections and reject missing or excess folders',()=>fixture(({root,git,put})=>{
+await check('M1: derive protections and reject missing or excess folders',()=>{
+ if(fs.existsSync(path.join(REPO_ROOT,'docs/reviews/README.md')))assert.deepEqual(checkRecords(REPO_ROOT).problems,[]);
+ return fixture(({root,git,put})=>{
  const names=['full-2026-10-01','bare-2026-10-01','tranche1-2026-09-28','tranche2-2026-09-28','unique-2026-10-01','recent-2026-10-01','discard-2026-10-01','ci-packs-2026-11-08','ambiguous-a','ambiguous-b','windows-2026-10-01'];
  for(const name of names)put(`docs/reviews/${name}/common.md`,'record');
  put('docs/reviews/unique-2026-10-01/only-here.txt','unique');
@@ -42,7 +46,8 @@ await check('M1: derive protections and reject missing or excess folders',()=>fi
  assert.deepEqual(checkRecords(root,policy).problems,[]);
  git('rm','-r','-q','--','docs/reviews/bare-2026-10-01');
  assert.ok(checkRecords(root,policy).problems.some(p=>p.includes('missing')&&p.includes('bare-')));
-}));
+ });
+});
 // req: R-3930
 await check('M2: protected folders keep all tracked paths and blobs',()=>fixture(({root,git,put})=>{
  put('docs/reviews/kept-2026-10-01/a.md','first');put('docs/reviews/kept-2026-10-01/b.md','second');put('refs.md','kept-2026-10-01');git('add','.');git('commit','-m','before');
@@ -54,6 +59,26 @@ await check('M2: protected folders keep all tracked paths and blobs',()=>fixture
  assert.ok(checkRecords(root,policy).problems.some(p=>p.includes('changed')));
  git('checkout',policy.baseline,'--','docs/reviews');put('docs/reviews/kept-2026-10-01/c.md','extra');git('add','.');
  assert.ok(checkRecords(root,policy).problems.some(p=>p.includes('changed')));
+}));
+// req: R-3931
+await check('M3: archive README command lists and reads removed records',()=>{
+ const text=fs.readFileSync(path.join(REPO_ROOT,'docs/reviews/README.md'),'utf8');
+ assert.match(text,/git show [a-f0-9]{40}:docs\/reviews\//u);
+ assert.deepEqual(checkReviewArchive(REPO_ROOT),[]);
+ fixture(({root,put})=>{
+  put('docs/reviews/README.md',text.replaceAll(/\b[a-f0-9]{40}\b/gu,'0'.repeat(40)));
+  assert.ok(checkReviewArchive(root).length>0,'an unreadable archive must fail');
+ });
+});
+// req: R-3933
+await check('M5: objective prints the full code-lines priority',()=>fixture(({root,put})=>{
+ const text=fs.readFileSync(path.join(REPO_ROOT,'OBJECTIVE.md'),'utf8');
+ const priority=text.split(/\r?\n/u).find(line=>line.startsWith('**Current priority'));
+ assert.ok(priority.includes('net code lines removed from packages, apps, scripts and templates since 2026-11-07'));
+ put('OBJECTIVE.md',text);
+ const output=produceObjective(root,{path:null});
+ assert.equal(output.unavailable,false);
+ assert.ok(output.text.includes(priority),'full priority survives the output cap');
 }));
 // req: R-3934
 await check('records policy seal',()=>{
