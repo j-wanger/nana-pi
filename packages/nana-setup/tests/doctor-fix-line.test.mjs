@@ -173,9 +173,10 @@ check("R-1995: doctor on a home install would change leaves every file, folder a
 const handHome = fixtureHome("hand-home", { subagents: false });
 const handCwd = freshCwd("hand-cwd");
 const handInstall = run(["install", "--home", handHome], { home: handHome, cwd: handCwd });
+fs.writeFileSync(path.join(handHome, '.pi', 'agent', 'mcp.json'), '{ invalid');
 const handDoctor = run(["doctor", "--home", handHome], { home: handHome, cwd: handCwd });
 // req: R-1991
-check("R-1991: when no ✗ row is install's, the summary lists each as a fix by hand and never names install", handInstall.status === 0 && handDoctor.status === 1 && summary(handDoctor) === "1 missing — fix by hand as each ✗ line says: pi pi-subagents", `install ${handInstall.status}\n${handInstall.stdout}\n${handInstall.stderr}\ndoctor ${handDoctor.status}\n${handDoctor.stdout}\n${handDoctor.stderr}`);
+check("R-1991: when no ✗ row is install's, the summary lists each as a fix by hand and never names install", handInstall.status === 0 && handDoctor.status === 1 && summary(handDoctor) === "1 missing — fix by hand as each ✗ line says: pi mcp.json", `install ${handInstall.status}\n${handInstall.stdout}\n${handInstall.stderr}\ndoctor ${handDoctor.status}\n${handDoctor.stdout}\n${handDoctor.stderr}`);
 
 const mixedHome = fixtureHome("mixed-home");
 const mixedCwd = freshCwd("mixed-cwd");
@@ -261,7 +262,7 @@ const mixedWarnCwd = freshCwd("mixed-warn-cwd", true);
 const handWarn = run(["doctor", "--home", handHome], { home: handHome, cwd: handWarnCwd });
 const mixedWarn = run(["doctor", "--home", mixedHome], { home: mixedHome, cwd: mixedWarnCwd });
 // req: R-1996
-check("R-1996: with a ! row, both by-hand summary forms still end with the ! count", handWarn.status === 1 && mixedWarn.status === 1 && summary(handWarn) === "1 missing — fix by hand as each ✗ line says: pi pi-subagents (and see the 1 ! above)" && summary(mixedWarn) === "3 missing — fix by hand as each ✗ line says: skill spec; then run: nana-setup install for the other 2 (and see the 1 ! above)", `hand ${handWarn.status}\n${handWarn.stdout}\n${handWarn.stderr}\nmixed ${mixedWarn.status}\n${mixedWarn.stdout}\n${mixedWarn.stderr}`);
+check("R-1996: with a ! row, both by-hand summary forms still end with the ! count", handWarn.status === 1 && mixedWarn.status === 1 && summary(handWarn) === "1 missing — fix by hand as each ✗ line says: pi mcp.json (and see the 1 ! above)" && summary(mixedWarn) === "3 missing — fix by hand as each ✗ line says: skill spec; then run: nana-setup install for the other 2 (and see the 1 ! above)", `hand ${handWarn.status}\n${handWarn.stdout}\n${handWarn.stderr}\nmixed ${mixedWarn.status}\n${mixedWarn.stdout}\n${mixedWarn.stderr}`);
 
 const unexpectedHome = fixtureHome("unexpected-home");
 const unexpectedCwd = freshCwd("unexpected-cwd");

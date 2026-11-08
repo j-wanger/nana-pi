@@ -8,8 +8,8 @@ Sibling repo to `~/nana-agent-loop`.
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
   (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
   deep-research artifacts it was distilled from.
-- `packages/` — our pi packages, chiefly the nana extension pack: ten extensions (gate,
-  post-edit, lifecycle, notify, handoff, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
+- `packages/` — our pi packages, chiefly the nana extension pack: eight extensions (gate,
+  lifecycle, adoption, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
   dev-workflow skills. Installable via
   `pi install git:` or a local path — which ships the extensions of `nana-pack` and
   `nana-knowledge` (the two the root `package.json` manifests) plus the pack's skills.
@@ -17,7 +17,7 @@ Sibling repo to `~/nana-agent-loop`.
 - `templates/` — copier project templates behind the `scaffold-py`/`scaffold-ts` skills
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
   emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
-  folder-by-feature, nested AGENTS.md, post-edit quality gates, and the three frontier seeds
+  folder-by-feature, nested AGENTS.md, explicit project checks, and the three frontier seeds
   (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/`) from the one `templates/_shared` source
   every path shares. The copier src is the
   REPO ROOT (root `copier.yml`, `language` question) — canonically
@@ -177,9 +177,8 @@ The experience has **two halves**, and both are installed from this repo:
 3. Run `git clone https://github.com/j-wanger/nana-pi ~/nana-pi`; keep the clone.
 4. Run `cd ~/nana-pi`, then `node packages/nana-setup/bin/nana-setup.mjs install` (`--desk` adds the desk service).
 5. Run `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile`, then open a new terminal.
-6. Run `pi install npm:pi-subagents@0.75.0`.
-7. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
-8. Run `cd ~/nana-pi`, then `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor`; expect `all good`.
+6. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
+7. Run `cd ~/nana-pi`, then `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor`; expect `all good`.
 
 `uv` (both templates) and `pnpm` (TypeScript) are needed only to scaffold or adopt.
 
@@ -192,9 +191,8 @@ The experience has **two halves**, and both are installed from this repo:
 3. Run `git clone https://github.com/j-wanger/nana-pi "%USERPROFILE%\nana-pi"`; keep the clone.
 4. Run `cd /d "%USERPROFILE%\nana-pi"`, then `node packages/nana-setup/bin/nana-setup.mjs install`.
 5. Add `%USERPROFILE%\.local\bin` to the user Path in Environment Variables, then open a new Command Prompt.
-6. Run `pi install npm:pi-subagents@0.75.0`.
-7. Write your objective and current-priority lines over the placeholders in `%USERPROFILE%\.pi\agent\nana-objective.md`, or set `objective.path` in `%USERPROFILE%\.pi\agent\nana-pack.json` to an umbrella repo's `OBJECTIVE.md`; write paths with forward slashes because JSON reads a single backslash as an escape, and `~/` means your user folder, for example `{ "objective": { "projectFile": "OBJECTIVE.md", "path": "~/umbrella/OBJECTIVE.md" } }`.
-8. Run `cd /d "%USERPROFILE%\nana-pi"`, then `nana-setup trust "%USERPROFILE%\nana-pi"` (it asks before it records), then `nana-setup doctor`; expect `all good`.
+6. Write your objective and current-priority lines over the placeholders in `%USERPROFILE%\.pi\agent\nana-objective.md`, or set `objective.path` in `%USERPROFILE%\.pi\agent\nana-pack.json` to an umbrella repo's `OBJECTIVE.md`; write paths with forward slashes because JSON reads a single backslash as an escape, and `~/` means your user folder, for example `{ "objective": { "projectFile": "OBJECTIVE.md", "path": "~/umbrella/OBJECTIVE.md" } }`.
+7. Run `cd /d "%USERPROFILE%\nana-pi"`, then `nana-setup trust "%USERPROFILE%\nana-pi"` (it asks before it records), then `nana-setup doctor`; expect `all good`.
 
 ### A blank folder → a nana project
 
@@ -231,7 +229,7 @@ with Linux paths.
 ### From git (pack-only use; no clone needed)
 
 ```bash
-# 1. the nana-pack — all ten extensions, the knowledge pull + every skill (the root package.json
+# 1. the nana-pack — all eight extensions, the knowledge pull + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
 pi install git:github.com/j-wanger/nana-pi        # pack-only use; add -l for project-local
 

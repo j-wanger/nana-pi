@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/adoption-producer.test.mjs
  * @purpose Pins the L5 adoption producer — `directory_unadopted` is journaled once per repository root per day, only for the shapes that qualify, and nothing about adoption reaches the prompt
- * @inputs extensions/nana-handoff.ts, lib/adoption.mjs, a nana-pack.json journal config under a temp HOME, and throwaway git repositories
+ * @inputs extensions/nana-adoption.ts, lib/adoption.mjs, a nana-pack.json journal config under a temp HOME, and throwaway git repositories
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, journal and repository fixtures under the OS temp dir), process (sets HOME and USERPROFILE, spawns git)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -28,9 +28,9 @@ fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
 const cfg = (extra = {}) => fs.writeFileSync(USER_CFG, JSON.stringify({ journal: { enabled: true, path: JOURNAL }, ...extra }));
 cfg();
 
-const mod = await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href);
+const mod = await import(new URL("../extensions/nana-adoption.ts", import.meta.url).href);
 const lib = await import(new URL("../lib/adoption.mjs", import.meta.url).href);
-const HANDOFF_SOURCE = fs.readFileSync(new URL("../extensions/nana-handoff.ts", import.meta.url), "utf8");
+const HANDOFF_SOURCE = fs.readFileSync(new URL("../extensions/nana-adoption.ts", import.meta.url), "utf8");
 let fails = 0;
 const check = (n, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : why); if (!ok) fails++; };
 const reports = () =>
@@ -43,11 +43,10 @@ function session(m, cwd) {
 	m.default({ on: (name, fn) => { handlers[name] = fn; } });
 	const ctx = { cwd, hasUI: false, isProjectTrusted: () => true, sessionManager: { getSessionFile: () => "/sessions/s1.jsonl" } };
 	return {
-		compact: (summary) => handlers.session_compact({ compactionEntry: { summary }, reason: "manual" }, ctx),
 		prompt: async (reason = "startup") => {
 			await handlers.session_start({ reason }, ctx);
 			const event = { systemPrompt: "BASE", systemPromptOptions: { sections: {} } };
-			const result = await handlers.before_agent_start(event, ctx);
+			const result = await handlers.before_agent_start?.(event, ctx);
 			const section = event.systemPromptOptions.sections["nana-handoff"];
 			return section ? `BASE${section}` : result?.systemPrompt ?? "BASE";
 		},
@@ -69,8 +68,8 @@ check("adoption: design comment names complete Nana structure and temporary-root
 // ONE store resolver (sol r1 MUST 3): the extension re-exports lib/adoption.mjs's functions — the
 // same objects, not an agreeing copy — and its source no longer hashes a store key of its own.
 {
-	const src = fs.readFileSync(new URL("../extensions/nana-handoff.ts", import.meta.url), "utf8");
-	check("one store: extension storePathFor/storeDir/canonicalCwd ARE lib/adoption.mjs's", mod.storePathFor === lib.storePathFor && mod.storeDir === lib.storeDir && mod.canonicalCwd === lib.canonicalCwd);
+	const src = fs.readFileSync(new URL("../extensions/nana-adoption.ts", import.meta.url), "utf8");
+	check("one store: extension uses lib/adoption.mjs's root predicate", src.includes('rootState(root, objectiveFile)') && src.includes("../lib/adoption.mjs"));
 	check("one store: no createHash / storeDir definition left in the extension", !src.includes("createHash") && !/(const|function) (storeDir|storePathFor|canonicalCwd)\b/.test(src));
 	// req: R-108
 	check("one store: the store stays fixed at ~/.pi/agent/handoffs", lib.storeDir() === path.join(NANA_HOME, ".pi", "agent", "handoffs"));
@@ -90,7 +89,7 @@ check("adoption: design comment names complete Nana structure and temporary-root
 	cfg();
 	const output = await prompt(r);
 	// req: R-647
-	check("adoption: test seam override is journaled once with its value when a stored handoff exists", output.includes("stored summary") && overrideJournal().length === 1 && overrideJournal()[0].value === "");
+	check("adoption: test seam override is journaled once with its value when a stored handoff exists", output === "BASE" && overrideJournal().length === 1 && overrideJournal()[0].value === "");
 }
 // (a) written once for a repo root with nothing — the line as emitted
 {
@@ -192,29 +191,21 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 // a root with a store entry: a subdir session is missing but the ROOT is adopted
 {
 	const r = repo("stored");
-	await session(mod, r).compact("ROOT-STATE");
+	fs.mkdirSync(path.dirname(lib.storePathFor(r)), { recursive: true });
+	fs.writeFileSync(lib.storePathFor(r), "ROOT-STATE");
 	await prompt(r);
 	const sp = await prompt(mk(path.join(r, "src")));
 	check("a: a root with a store entry → no line (subdir session)", reports().every((x) => !x.cwd.startsWith(r)));
-	check("a: …and the in-session ancestor line is still there", sp.includes(`An ancestor directory (${r}) has one`));
+	check("a: stored root adds nothing to the prompt", sp === "BASE");
 }
 // an unreadable store entry (read.kind === "error") never reports
 {
 	const r = repo("unreadable");
-	fs.mkdirSync(path.dirname(mod.storePathFor(r)), { recursive: true });
-	fs.writeFileSync(mod.storePathFor(r), Buffer.from([0xff, 0xfe, 0x41]));
+	fs.mkdirSync(path.dirname(lib.storePathFor(r)), { recursive: true });
+	fs.writeFileSync(lib.storePathFor(r), Buffer.from([0xff, 0xfe, 0x41]));
 	await prompt(r);
 	// req: R-147
-	check("a: unreadable store → handoff_pickup_failed, no line", fs.readFileSync(JOURNAL, "utf-8").includes('"handoff_pickup_failed"') && reportsFor(r).length === 0);
-}
-// a configured handoff.path is a deliberate adoption
-{
-	const r = repo("custom");
-	cfg({ handoff: { path: path.join(base, "nowhere", "h.md") } });
-	await prompt(r);
-	cfg();
-	// req: R-147
-	check("a: configured handoff.path → no line", reportsFor(r).length === 0);
+	check("a: existing unreadable store is adoption evidence, no line", reportsFor(r).length === 0);
 }
 // NANA_HANDOFF=off returns before it
 {
@@ -293,8 +284,6 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	check("journal: project journal.path does NOT capture directory_unadopted", !(fs.existsSync(projJ) && fs.readFileSync(projJ, "utf8").includes('"directory_unadopted"')));
 	// req: R-148
 	check("journal: …the user-scope journal does", reportsFor(r).length === 1);
-	// req: R-810 R-159
-	check("journal: …other events still follow the project journal.path", fs.existsSync(projJ) && fs.readFileSync(projJ, "utf8").includes('"handoff_missing"'));
 	// req: R-160
 	check("journal: …and the reader lists it", listed(reader(base).stdout, r), reader(base).stdout);
 	// relative user-scope path: producer (pi cwd = r2) and reader (another cwd) both use the default
@@ -395,38 +384,28 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	check("adoption: a nana-pack.json saved with a byte-order mark keeps journal.enabled false, journal.path and objective.projectFile", observations.every(({ counts, expected }) => JSON.stringify(counts) === JSON.stringify(expected)), JSON.stringify(observations));
 }
 
-// (e) the session prompt is byte-identical to the pre-L5 extension (eca3de4), same scenarios
+// Surviving resolver cases relocated from the retired handoff-store suite.
 {
-	const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-	const old = spawnSync("git", ["-C", repoRoot, "show", "eca3de4:packages/nana-pack/extensions/nana-handoff.ts"], { encoding: "utf8" });
-	const golden = async (m, cwd) => session(m, cwd).prompt();
-	const cases = [];
 	const r1 = repo("golden-bare");
-	cases.push(r1, mk(path.join(r1, "a", "b")));
-	const r2 = repo("golden-stored");
-	await session(mod, r2).compact("G-STATE");
-	cases.push(mk(path.join(r2, "src")));
-	// exact goldens (no git needed)
 	// req: R-144
-	check("e: unadopted repo root → prompt exactly BASE", (await golden(mod, r1)) === "BASE");
-	check(
-		"e: subdir of a stored root → the exact ancestor block",
-		(await golden(mod, cases[2])) ===
-			`BASE\n\n## Compaction summary (nana — agent-written compaction summary)\n\nNo compaction summary for this directory. An ancestor directory (${r2}) has one at ${mod.storePathFor(r2)} — NOT injected; read it only if relevant.\n`,
-	);
-	if (old.status !== 0) console.log("SKIP e: A/B vs eca3de4 (git history unavailable)");
-	else {
-		const tmp = mk(path.join(base, "old-pack", "extensions"));
-		fs.symlinkSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "lib"), path.join(base, "old-pack", "lib"));
-		fs.writeFileSync(path.join(tmp, "nana-handoff.ts"), old.stdout);
-		const oldMod = await import(new URL(`file://${path.join(tmp, "nana-handoff.ts")}`).href);
-		for (const c of cases) {
-			const [a, b] = [await golden(oldMod, c), await golden(mod, c)];
-			// The only intended prompt delta is the explicit compaction-summary vocabulary.
-			const comparable = a.replaceAll("## Handoff (nana — agent-written compaction summary)", "## Compaction summary (nana — agent-written compaction summary)").replaceAll("No handoff for this directory.", "No compaction summary for this directory.");
-			// req: R-144
-			check(`e: unchanged from eca3de4 except compaction-summary wording — ${path.relative(base, c)}`, comparable === b, JSON.stringify({ a: comparable, b }));
-		}
+	check("e: unadopted repo root → prompt exactly BASE", (await prompt(r1)) === "BASE");
+	const a = repo("sib-a"), b = repo("sib-b");
+	// req: R-113
+	check("siblings: distinct keys", lib.storePathFor(a) !== lib.storePathFor(b));
+	const git = (...args) => spawnSync('git', ['-C', a, ...args], { encoding: 'utf8', timeout: 10_000 });
+	git('init', '-q');
+	git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'i');
+	const wt = path.join(base, 'gitmain-wt');
+	const added = git('worktree', 'add', '-q', wt);
+	// req: R-113
+	check("worktree: distinct key", added.status === 0 && lib.storePathFor(lib.canonicalCwd(wt)) !== lib.storePathFor(a));
+	if (process.platform === "darwin") {
+		const alias = `/tmp/nana-l3-${process.pid}-${Date.now()}`;
+		fs.mkdirSync(alias);
+		try {
+			// req: R-797
+			check("darwin: /tmp/x and /private/tmp/x → same key", lib.storePathFor(lib.canonicalCwd(alias)) === lib.storePathFor(lib.canonicalCwd(`/private${alias}`)));
+		} finally { fs.rmSync(alias, { recursive: true, force: true }); }
 	}
 }
 

@@ -14,7 +14,7 @@ import os from "node:os";
 import { EventEmitter } from "node:events";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_SUBAGENTS_RETRY, PULL_LOG_PATH, README_REHEARSAL } from "../lib/install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, README_REHEARSAL } from "../lib/install-check-config.mjs";
 import * as installConfig from "../lib/install-check-config.mjs";
 import { MEMORY_END_ENTRY, MEMORY_END_TIMEOUT_SECONDS, MEMORY_MAKING_NOTE } from '../lib/memory-end-config.mjs';
 import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck, rosterNoticeOutputOk } from "../lib/install-check.mjs";
@@ -48,9 +48,9 @@ async function runChecks() {
 
 // req: R-1074
 check("sealed hook table and allowed entry shape", () => {
-  assert.equal(HOOKS.length, 6);
+  assert.equal(HOOKS.length, 5);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
-  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice", "hook verifier pipe"]);
+  assert.deepEqual(HOOKS.map((h) => h.label), ["hook memory making", "hook objective", "hook adoption", "hook shared memory", "hook roster notice"]);
   assert.ok(HOOKS.every((h) => h.form.darwin && h.form.linux && h.form.win32));
 });
 
@@ -187,14 +187,12 @@ check("reporting matches known-red fingerprint and expiry and rejects unexpected
 function tempHome() { return tmpDir(path.join(os.tmpdir(), "install-check-test-")); }
 function passingTurnRecord(token) {
   const turn = installConfig.PI_TURN;
-  const edit = installConfig.PI_TURN_EDIT;
   const powershell = installConfig.PI_TURN_POWERSHELL;
   return {
     system: `${token}\n${turn.rulingsHeading}\n${turn.seatGuideHeading}\n${turn.writingTag}`,
     userMessages: [`${turn.knowledgeMarker} ~/notes/docs/${turn.noteFile}`],
     toolResults: [
       { toolName: turn.tool, isError: true, text: `${turn.gateBlockPrefix} sample` },
-      ...(edit ? [{ toolName: edit.tool, isError: false, text: `${edit.failureLead}fixture ${edit.exitText}: ${token}` }] : []),
       ...(powershell ? [{ toolName: powershell.tool, isError: true, text: `${turn.gateBlockPrefix} sample` }] : []),
     ],
   };
@@ -333,10 +331,6 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       return { status: 0, stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
     }
     if (joined.includes("nana-knowledge.ts")) return { status: 0, stdout: `${installConfig.PI_TURN.knowledgeMarker} ${installConfig.PI_TURN.noteFile}` };
-    if (joined.includes("verifier-pipe.mjs")) {
-      const input = JSON.parse(options.input);
-      return { status: 0, stdout: input.tool_input.command === (input.tool_name === "PowerShell" ? installConfig.SAMPLE_INPUTS.verifier.powershellHit : "npm test | tail -1 && git commit -m done") ? `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n` : "" };
-    }
     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
     return { status: 0, stdout: "" };
   };
@@ -462,10 +456,8 @@ check("spawn: every child goes through the injected spawn (git init twice, Git B
       const joined = fixture.calls.map(({ command, args }) => `${command} ${args.join(" ")}`).join("\\n");
       assert.equal(fixture.calls.filter((call) => call.args[0] === "init").length, 2);
       if (platformName === "linux") {
-        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "verifier-pipe.mjs"]) assert.ok(joined.includes(name), name);
-        assert.ok(fixture.calls.some((call) => call.args[0] === "install" && call.args.some((arg) => arg.includes("pi-subagents"))));
+        for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) assert.ok(joined.includes(name), name);
         assert.ok(fixture.calls.some((call) => call.args.includes("doctor")));
-        assert.ok(fixture.calls.filter((call) => call.options.input?.includes("PreToolUse")).length >= 2);
       } else assert.ok(fixture.calls.some((call) => call.command === "C:\\tools\\pi.exe"));
     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
   }
@@ -494,13 +486,13 @@ check("platform: NANA_SETUP_PLATFORM in the caller changes nothing", async () =>
     assert.ok(!result.lines.some((line) => line.startsWith("Git Bash:")));
     assert.ok(!fixture.calls.some((call) => call.options.input?.includes('"PowerShell"')));
     const hooks = fixture.calls.filter((call) => hookScriptFileName(call) !== null);
-    assert.ok(hooks.length >= 7);
+    assert.ok(hooks.length >= 5);
     assert.ok(hooks.every((call) => call.command === "/bin/sh" && call.args[0] === "-c"));
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
 // req: R-1079
-check("pi launch: on win32, pi install, pi list and the session go through findPi and winCommand", async () => {
+check("pi launch: on win32, pi list and the session go through findPi and winCommand", async () => {
   const fixture = recordingRun({ platformName: "win32", piShim: "C:\\tools\\pi.cmd" });
   try {
     await fixture.run;
@@ -513,8 +505,8 @@ check("pi launch: on win32, pi install, pi list and the session go through findP
     assert.equal(launch.command, "C:\\Windows\\cmd.exe");
     assert.equal(launch.options.windowsVerbatimArguments, true);
     assert.deepEqual(launch.args, ["/d", "/v:off", "/s", "/c", '\"\"C:\\tools\\pi.cmd\" \"list\"\"']);
-    const piCommands = fixture.calls.filter((call) => call.command.toLowerCase().endsWith("\\cmd.exe") && (call.args.join(" ").includes("pi-subagents") || call.args.join(" ").includes('"list"') || call.args.join(" ").includes('"--mode" "rpc"')));
-    assert.equal(piCommands.length, 3);
+    const piCommands = fixture.calls.filter((call) => call.command.toLowerCase().endsWith("\\cmd.exe") && (call.args.join(" ").includes('"list"') || call.args.join(" ").includes('"--mode" "rpc"')));
+    assert.equal(piCommands.length, 2);
     assert.ok(piCommands.every((call) => call.command.toLowerCase().endsWith("\\cmd.exe")));
     assert.ok(piCommands.every((call) => call.args[0] === "/d" && call.args.includes("/c") && call.args.some((arg) => arg.includes("C:\\tools\\pi.cmd"))));
     assert.equal(fixture.calls.some((call) => call.command === "C:\\tools\\pi.cmd"), false);
@@ -608,26 +600,10 @@ check("hook set: a missing type, async true, a shell field, non-string args, or 
 check("hook set: a group without the matcher-and-hooks nesting fails", () => { expectBad([{ event: "SessionStart", group: { hooks: [] } }]); });
 // req: R-1074
 check("matcher: *, empty and omitted admit everything", () => {
-  for (const matcher of ["*", "", undefined]) { const rows = hookGroups("darwin", { "hook verifier pipe": matcher }); assert.equal(mapHookEntries(rows, "darwin").failures.length, 0); }
+  for (const matcher of ["*", "", undefined]) { const rows = hookGroups("darwin", { "hook objective": matcher }); assert.equal(mapHookEntries(rows, "darwin").failures.length, 0); }
 });
-// req: R-1074
-check("matcher: 'Bash, PowerShell' and 'Bash|PowerShell' admit both tools", () => {
-  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe": matcher }), "win32").failures.length, 0);
-});
-// req: R-1074
-check("matcher: list separators admit only the exact listed tools", () => {
-  for (const matcher of ["Bash, PowerShell", "Bash|PowerShell"]) {
-    assert.equal(mapHookEntries(hookGroups("win32", { "hook verifier pipe": matcher }), "win32").failures.length, 0);
-  }
-});
-// req: R-1074
-check("matcher: ^Bash$ admits Bash", () => { assert.equal(mapHookEntries(hookGroups("darwin", { "hook verifier pipe": "^Bash$" }), "darwin").failures.length, 0); });
-// req: R-1074
-check("matcher: NotBash does not admit Bash", () => { expectBad(hookGroups("darwin", { "hook verifier pipe": "NotBash" })); });
 // req: R-1074
 check("matcher: a resume SessionStart matcher fails", () => { expectBad(hookGroups("darwin", { "hook objective": "resume" })); });
-// req: R-1074
-check("matcher: win32 requires PowerShell in the verifier matcher", () => { expectBad(hookGroups("win32", { "hook verifier pipe": "Bash" }), "win32"); });
 // req: R-1082
 check("form: a shell-form entry under win32 fails", () => { const rows = hookGroups("win32"); delete rows[0].group.hooks[0].args; rows[0].group.hooks[0].command = `node ${HOOKS[0].script}`; expectBad(rows, "win32"); });
 // req: R-1082
@@ -646,7 +622,6 @@ check("pin R-1074 R-1082: the hook table with its form columns and the allowed e
     ["hook adoption", "SessionStart", "startup", null, "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook shared memory", "SessionStart", "startup", null, "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
     ["hook roster notice", "SessionStart", "startup", null, "nana-roster-notice.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook verifier pipe", "PreToolUse", { darwin: "Bash", linux: "Bash", win32: "Bash|PowerShell" }, { darwin: ["Bash"], linux: ["Bash"], win32: ["Bash", "PowerShell"] }, "verifier-pipe.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
   ]);
   assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
 });
@@ -685,7 +660,7 @@ check("dispatch: on win32 Git Bash discovery reads the path variable under any l
 // req: R-1075
 check("dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it", async () => {
   const fixture = recordingRun();
-  try { await fixture.run; const hooks = fixture.calls.filter(c => hookScriptFileName(c) !== null); assert.ok(hooks.length >= 7); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
+  try { await fixture.run; const hooks = fixture.calls.filter(c => hookScriptFileName(c) !== null); assert.ok(hooks.length >= 5); for (const c of hooks) { assert.equal(c.options.cwd, path.join(fixture.home, "project")); assert.equal(c.options.env.CLAUDE_PROJECT_DIR, path.join(fixture.home, "project")); } }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1075
@@ -782,16 +757,6 @@ check("output: a 10,001-character stdout fails", async () => await assertOnlyHoo
   const prefix = `[nana:objective] ${token} `;
   return { stdout: prefix + "x".repeat(10001 - prefix.length) };
 }), "hook objective"));
-// req: R-1077
-check("verifier: an allow decision fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" } })}\n` }), "hook verifier pipe (Bash)"));
-// req: R-1077
-check("verifier: a missing hookEventName fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { permissionDecision: "ask" } })}\n` }), "hook verifier pipe (Bash)"));
-// req: R-1077
-check("verifier: malformed JSON fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: "not-json\n" }), "hook verifier pipe (Bash)"));
-// req: R-1077
-check("verifier: two JSON lines fail", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? {} : { stdout: `${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask" } })}\n{}\n` }), "hook verifier pipe (Bash)"));
-// req: R-1077
-check("verifier: a miss sample that prints anything fails", async () => await assertOnlyHookFails(scriptedFixture(hookIs("verifier-pipe.mjs"), (result, options) => JSON.parse(options.input).tool_input.command === "git status" ? { stdout: "unexpected" } : {}), "hook verifier pipe (Bash)"));
 // req: R-1083
 check("knowledge: no Claude hook output is required after retirement", async () => {
   const fixture = scriptedFixture(hookIs("nana-knowledge.ts"), () => ({ stdout: "" }));
@@ -864,17 +829,6 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       if (platformName === "win32") assert.equal(pathKey, "Path");
     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
   }
-});
-// req: R-1072
-check("checklist: pi install npm:pi-subagents uses doctor's floor, from the fixture project, launched as install launches pi", async () => {
-  const fixture = recordingRun();
-  try {
-    await fixture.run;
-    const call = fixture.calls.find(item => item.args.some(arg => arg.startsWith("npm:pi-subagents@")));
-    assert.ok(call.args.includes(`npm:pi-subagents@${(await import("../lib/doctor.mjs")).PI_SUBAGENTS_FLOOR}`));
-    assert.equal(call.options.cwd, path.join(fixture.home, "project"));
-    assert.ok(call.options.env.HOME === fixture.home);
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1081
 check("doctor: exit 1 with only check and ! marks is a FAIL", async () => {
@@ -981,39 +935,7 @@ check("pi list: runs from the fixture project with no PI_CODING_AGENT_DIR", asyn
   try { await fixture.run; const call = fixture.calls.find(item => item.args[0] === "list"); assert.equal(call.options.cwd, path.join(fixture.home, "project")); assert.equal(Object.hasOwn(call.options.env, "PI_CODING_AGENT_DIR"), false); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
-// req: R-1074, R-1077
-check("verifier row: on win32 one entry whose matcher admits Bash and PowerShell satisfies the hook set and both verifier lines", async () => {
-  const fixture = recordingRun({ platformName: "win32" });
-  try {
-    const result = await fixture.run;
-    assert.ok(result.lines.includes("PASS hook set"), result.lines.filter(line => line.includes("hook set") || line.includes("verifier pipe")).join("\n"));
-    assert.equal(result.lines.filter(line => /^PASS hook verifier pipe \((Bash|PowerShell)\)$/.test(line)).length, 2, result.lines.filter(line => line.includes("verifier pipe")).join("\n"));
-    const settings = JSON.parse(fs.readFileSync(path.join(fixture.home, ".claude/settings.json"), "utf8"));
-    assert.equal(settings.hooks.PreToolUse.length, 1);
-    assert.equal(settings.hooks.PreToolUse[0].matcher, "Bash|PowerShell");
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-// req: R-1074, R-1077
-check("verifier row: on win32 an entry whose matcher admits only Bash fails the PowerShell line", async () => {
-  const fixture = recordingRun({ platformName: "win32", spawnOverride: async ({ command, args, options, spawn }) => {
-    const result = await spawn(command, args, options);
-    if (args.includes("install") && args.some(arg => arg.includes("nana-setup.mjs"))) {
-      const file = path.join(fixture.home, ".claude/settings.json");
-      const settings = JSON.parse(fs.readFileSync(file, "utf8"));
-      settings.hooks.PreToolUse[0].matcher = "Bash";
-      fs.writeFileSync(file, JSON.stringify(settings));
-    }
-    return result;
-  }});
-  try { const result = await fixture.run; assert.ok(result.lines.includes("PASS hook verifier pipe (Bash)"), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); assert.ok(result.lines.some(line => line.startsWith("FAIL hook verifier pipe (PowerShell) — bad-matcher:")), result.lines.filter(line => line.includes("verifier pipe")).join("\n")); }
-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-// req: R-1074, R-1077
-check("verifier row: on darwin one entry admitting Bash satisfies the verifier line and no PowerShell line is printed", async () => {
-  const fixture = recordingRun({ platformName: "darwin" });
-  try { const result = await fixture.run; assert.ok(result.lines.includes("PASS hook verifier pipe (Bash)")); assert.equal(result.lines.some(line => line.includes("PowerShell")), false); }
-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
+
 // req: R-1075
 check("spawn adapter: a child killed at its timeout reports ETIMEDOUT and its duration", async () => {
   const childSpawn = () => {
@@ -1222,90 +1144,6 @@ check("pin R-1790 to R-1796: the turn's sealed fixture path, provider, model, ar
   });
   assert.equal(installConfig.SPAWN_TIMEOUT_MS.turn, 60000);
   assert.deepEqual(installConfig.PI_SESSION, { unavailableWord: "unavailable", maxOutput: 100000 });
-});
-
-// req: R-2000
-check("pi post-edit config: before the turn, the installed nana-pack.json keeps its other keys and holds one post-edit command that matches only the fixture file and, run as nana-post-edit runs it, makes the running node print the file and exit with the sealed code", async () => {
-  const seed = { objective: { projectFile: "OBJECTIVE.md" }, notify: { enabled: false } };
-  let captured = null;
-  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
-    const result = await spawn(command, args, options);
-    const configPath = path.join(fixture.home, ".pi", "agent", "nana-pack.json");
-    if (`${command} ${args.join(" ")}`.includes("nana-setup.mjs") && args.includes("install")) fs.writeFileSync(configPath, JSON.stringify(seed));
-    if (`${command} ${args.join(" ")}`.includes(installConfig.PI_TURN.provider)) captured = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    return result;
-  } });
-  try {
-    await fixture.run;
-    assert.deepEqual(captured.objective, seed.objective);
-    assert.deepEqual(captured.notify, seed.notify);
-    assert.deepEqual(Object.keys(captured).sort(), ["notify", "objective", "postEdit"]);
-    assert.equal(captured.postEdit.commands.length, 1);
-    const command = captured.postEdit.commands[0];
-    const matcher = new RegExp(command.match);
-    assert.equal(matcher.test(installConfig.PI_TURN_EDIT.file), true);
-    assert.equal(matcher.test("other.txt"), false);
-    assert.equal(matcher.test(`${installConfig.PI_TURN_EDIT.file}.bak`), false);
-    assert.ok(command.run.includes(process.execPath));
-    const target = path.join(fixture.home, installConfig.PI_TURN_EDIT.file);
-    const contents = "fixture text\r\ntrailing tab\t";
-    fs.writeFileSync(target, contents);
-    const replacement = process.platform === "win32" ? '"%NANA_PI_FILE%"' : `"${target}"`;
-    const commandLine = command.run.replaceAll(installConfig.PI_TURN_EDIT.placeholder, () => replacement);
-    const commandEnv = process.platform === "win32" ? { ...process.env, NANA_PI_FILE: target } : process.env;
-    const ran = spawnSync(commandLine, { shell: true, encoding: "utf8", env: commandEnv });
-    assert.equal(ran.stdout, contents);
-    assert.equal(ran.status, installConfig.PI_TURN_EDIT.exitCode);
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-
-// req: R-2001
-check("pi post-edit config: a missing, unparseable or non-object installed nana-pack.json is left as install left it", async () => {
-  for (const original of [null, "{ not json", "[]"]) {
-    const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
-      const result = await spawn(command, args, options);
-      if (`${command} ${args.join(" ")}`.includes("nana-setup.mjs") && args.includes("install")) {
-        const configPath = path.join(fixture.home, ".pi", "agent", "nana-pack.json");
-        if (original === null) fs.rmSync(configPath, { force: true });
-        else fs.writeFileSync(configPath, original);
-      }
-      return result;
-    } });
-    const configPath = path.join(fixture.home, ".pi", "agent", "nana-pack.json");
-    try {
-      await fixture.run;
-      if (original === null) assert.equal(fs.existsSync(configPath), false);
-      else assert.equal(fs.readFileSync(configPath, "utf8"), original);
-    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-  }
-});
-
-// req: R-2002
-check("pi post-edit: one line per run, PASS only when a write result not marked as an error holds a check line with the sealed exit text and the run token", async () => {
-  const token = "installcheck_postedit";
-  const edit = installConfig.PI_TURN_EDIT;
-  const good = passingTurnRecord(token);
-  const accepted = { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: false, text: `noise\r\n${edit.failureLead}fixture ${edit.exitText}: ${token} \t` }] };
-  assert.equal(installCheck.judgePiPostEdit({ record: accepted, token }).passed, true);
-  const variants = [
-    { record: { ...good, toolResults: [good.toolResults[0]] }, detail: `no ${edit.tool} tool result` },
-    { record: { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: true, text: `${edit.failureLead}${edit.exitText} ${token}` }] }, detail: "marked as an error" },
-    { record: { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: false, text: `not ${edit.failureLead}${edit.exitText} ${token}` }] }, detail: `starts with ${edit.failureLead}` },
-    { record: { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: false, text: `${edit.failureLead}missing exit ${token}` }] }, detail: edit.exitText },
-    { record: { ...good, toolResults: [good.toolResults[0], { toolName: edit.tool, isError: false, text: `${edit.failureLead}fixture ${edit.exitText}` }] }, detail: "run token" },
-  ];
-  for (const variant of variants) {
-    const judged = installCheck.judgePiPostEdit({ record: variant.record, token });
-    assert.equal(judged.passed, false);
-    assert.ok(judged.detail.includes(variant.detail), judged.detail);
-  }
-  for (const platformName of ["linux", "win32"]) {
-    const fixture = recordingRun({ platformName });
-    try {
-      const result = await fixture.run;
-      assert.deepEqual(result.lines.filter((line) => line.includes(edit.item)), [`PASS ${edit.item}`]);
-    } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-  }
 });
 
 // req: R-2003
@@ -1806,82 +1644,13 @@ check("pin R-2681 to R-2687: the build's sealed runs, lanes, labels, folders, br
   assert.ok(Number(installConfig.PI_BUILD.launcherArgs.at(-1)) * 1000 < installConfig.SPAWN_TIMEOUT_MS.build);
 });
 
-check("pin R-2000 to R-2004: the post-edit item, tool, fixture file, match, placeholder, failure lead, check source and exit code, and the PowerShell item, tool, platforms and tool list", () => {
-  assert.deepEqual(installConfig.PI_TURN_EDIT, {
-    item: "pi post-edit",
-    tool: "write",
-    file: "install-check-post-edit.txt",
-    match: "install-check-post-edit\\.txt$",
-    placeholder: "{file}",
-    failureLead: "- check ",
-    exitCode: 3,
-    source: "process.stdout.write(require('fs').readFileSync(process.argv[1],'utf8'));process.exitCode=3",
-    exitText: "exited 3",
-  });
+check("pin R-2003 to R-2004: the PowerShell item, tool, platforms and tool list", () => {
   assert.deepEqual(installConfig.PI_TURN_POWERSHELL, {
     item: "pi powershell gate",
     tool: "powershell",
     platforms: ["win32"],
     toolList: ["--tools", "read,bash,edit,write,powershell"],
   });
-});
-
-// req: R-2480
-check("R-2480: a pi-subagents install that exits 1 and then 0 prints PASS pi-subagents after one sealed pause", async () => {
-  const sleeps = [];
-  let subCalls = 0;
-  const fixture = recordingRun({ sleep: async (ms) => sleeps.push(ms), spawnOverride: async ({ command, args, options, spawn }) => {
-    if (args.some((arg) => arg.includes("pi-subagents@"))) return ++subCalls === 1
-      ? { status: 1, stderr: "npm error code ECONNRESET\nnpm error network aborted\nError: npm install pi-subagents failed with code 1" }
-      : { status: 0 };
-    return spawn(command, args, options);
-  }});
-  try {
-    const result = await fixture.run;
-    assert.ok(result.lines.includes("PASS pi-subagents"));
-    assert.ok(!result.lines.some((line) => line.startsWith("FAIL pi-subagents")));
-    assert.equal(subCalls, 2);
-    assert.deepEqual(sleeps, [PI_SUBAGENTS_RETRY.pauseMs]);
-    assert.equal(result.exitCode, 0);
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-
-// req: R-2481
-check("R-2481: each pi-subagents install attempt that exits 1 prints one NOTE line naming its number, the attempt count and that attempt's npm error-code line", async () => {
-  const codes = ["npm error code ECONNRESET", "npm ERR! code EPERM", "npm error code ETIMEDOUT"];
-  assert.ok(codes.length >= PI_SUBAGENTS_RETRY.attempts, "fixture must cover every sealed attempt");
-  let subCalls = 0;
-  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
-    if (args.some((arg) => arg.includes("pi-subagents@"))) { const n = ++subCalls; return { status: 1, stderr: `${codes[n - 1]}\nError: pi install failed` }; }
-    return spawn(command, args, options);
-  }});
-  try {
-    const result = await fixture.run;
-    const notes = result.lines.filter((line) => line.startsWith("NOTE pi-subagents"));
-    assert.deepEqual(notes, codes.slice(0, PI_SUBAGENTS_RETRY.attempts).map((code, i) => `NOTE pi-subagents attempt ${i + 1} of ${PI_SUBAGENTS_RETRY.attempts} failed — ${code}`));
-    assert.ok(notes.every((line) => result.lines.indexOf(line) < result.lines.findIndex((item) => item.startsWith("FAIL pi-subagents"))));
-    assert.equal(subCalls, PI_SUBAGENTS_RETRY.attempts);
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-
-// req: R-2480 R-2481
-check("R-2480: the pi-subagents retry is sealed at three attempts, a five-second pause and npm's two error-code line leads", () => {
-  assert.deepEqual(PI_SUBAGENTS_RETRY, { attempts: 3, pauseMs: 5000, codeLeads: ["npm error code ", "npm ERR! code "] });
-});
-
-// req: R-2486
-check("R-2486: a pi-subagents install that times out runs once and prints FAIL pi-subagents with its timeout", async () => {
-  let subCalls = 0; const sleeps = [];
-  const fixture = recordingRun({ sleep: async (ms) => sleeps.push(ms), spawnOverride: async ({ command, args, options, spawn }) => {
-    if (args.some((arg) => arg.includes("pi-subagents@"))) { subCalls++; return { status: null, error: { code: "ETIMEDOUT" }, ms: 300000 }; }
-    return spawn(command, args, options);
-  }});
-  try {
-    const result = await fixture.run;
-    assert.equal(subCalls, 1); assert.deepEqual(sleeps, []);
-    assert.ok(!result.lines.some((line) => line.startsWith("NOTE pi-subagents")));
-    assert.ok(result.lines.some((line) => line.startsWith("FAIL pi-subagents — timeout: timed out after 300000 ms")));
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
 await runChecks();

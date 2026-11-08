@@ -67,8 +67,8 @@ await test('R-3739: fresh POSIX and win32 installs omit only the knowledge entry
     const after = installSettings(layout, {}, platform);
     assert.equal(promptEntries(after).length, 0);
     const wanted = desiredHooks({ hooksDir: layout.hooksDir, repoRoot, platform });
-    assert.equal(wanted.length, 6);
-    assert.deepEqual(wanted.map(w => w.spec.script), ['nana-objective.mjs', 'nana-adoption.mjs', 'nana-shared-memory.mjs', 'nana-roster-notice.mjs', 'verifier-pipe.mjs', 'nana-memory-end.mjs']);
+    assert.equal(wanted.length, 5);
+    assert.deepEqual(wanted.map(w => w.spec.script), ['nana-objective.mjs', 'nana-adoption.mjs', 'nana-shared-memory.mjs', 'nana-roster-notice.mjs', 'nana-memory-end.mjs']);
     for (const w of wanted) assert.deepEqual(after.hooks[w.event].find(g => g.matcher === w.matcher).hooks.find(h => h.statusMessage === w.entry.statusMessage), w.entry);
   });
 });
