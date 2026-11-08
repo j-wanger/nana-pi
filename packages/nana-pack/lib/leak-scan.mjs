@@ -20,7 +20,7 @@ function machineForms(value, platform) {
   if (platform === 'win32' && /^[a-z]:\//i.test(slash)) forms.push(`/${slash[0]}/${slash.slice(3)}`);
   return [...new Set(forms)].filter(Boolean);
 }
-function machineCount(text, value, platform, resolveRealPath) {
+export function machineCount(text, value, platform, resolveRealPath) {
   const spellings = value ? [value, resolveRealPath(value)] : [value];
   const forms = [...new Set(spellings.flatMap(spelling=>machineForms(spelling, platform)))];
   if (!forms.length) return 0;
