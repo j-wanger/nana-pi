@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 repo, temp, case = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
-source = Path(sys.argv[4]) if len(sys.argv) > 4 else repo / "docs/plan/data-pack-template/seed-checks.py"
+source = Path(sys.argv[4]) if len(sys.argv) > 4 else repo / "templates/python/data_checks.py"
 api = runpy.run_path(str(source))
 root = temp / case
 root.mkdir()
@@ -89,8 +89,7 @@ if case == "contracts":
     # Read-only local URI assignment is advisory, not a writable connector error.
     put("src/reader.py", "import sqlite3\ndef read():\n    uri = 'file:example?mode=ro'\n    return sqlite3.connect(uri, uri=True)\n")
     assert [f["severity"] for f in findings("connectors")] == ["warn"]
-    forbidden = ("basket" + "ball", "geek")
-    assert not any(word in source.read_text().lower() for word in forbidden)
+    assert not any(name in source.read_text() for name in m["normalizer"]["samples"])
 elif case == "readonly":
     put("src/norm.py", "from pathlib import Path\nPath('outside-db.txt').write_text('side effect')\ndef norm_name(name):\n    return name.lower()\n")
     put("data-checks.json", json.dumps(m))
@@ -123,6 +122,15 @@ elif case == "real-patterns":
     conn.executescript("CREATE TABLE other_domain(item_id TEXT); INSERT INTO other_domain VALUES ('external');")
     conn.close()
     assert not findings("identifier-types", scoped), findings("identifier-types", scoped)
+    # Inferred same-domain columns must not silently accept missing reference members.
+    conn = sqlite3.connect(root / "fixture.sqlite")
+    conn.executescript("CREATE TABLE observations(item_id INTEGER); INSERT INTO observations VALUES (1), (2), (NULL);")
+    conn.close()
+    membership = findings("identifier-types", scoped)
+    assert len(membership) == 1 and "1 values missing from namespace" in membership[0]["detail"], membership
+    conn = sqlite3.connect(root / "fixture.sqlite")
+    conn.execute("DROP TABLE observations")
+    conn.close()
     # A prose mention is not provenance; a structured marker is, even with Windows text endings.
     for suffix in ["\r\n", " \t\r\n", ""]:
         put("reports/out.md", '<!-- provenance: {"input_db": "fixture.sqlite"} -->' + suffix)

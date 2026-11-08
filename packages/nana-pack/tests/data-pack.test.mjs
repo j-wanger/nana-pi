@@ -29,7 +29,7 @@ let source;
 function snapshot() {
   if (source) return source;
   source = path.join(root, "source"); fs.mkdirSync(source);
-  for (const rel of ["copier.yml", "templates", "docs/plan/data-pack-template"]) fs.cpSync(path.join(repo, rel), path.join(source, rel), { recursive: true });
+  for (const rel of ["copier.yml", "templates"]) fs.cpSync(path.join(repo, rel), path.join(source, rel), { recursive: true });
   run("git", ["init"], source);
   run("git", ["add", "."], source);
   run("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "fixture"], source);
@@ -54,7 +54,7 @@ check("M2 eight checks detect defects and accept clean fixtures", () => { py("co
 check("M3 unsafe normalizer never changes project bytes", () => { py("readonly"); });
 // req: R-3843
 check("M4 pytest prints errors and warnings and skips absent settings", () => { py("pytest"); });
-// req-candidate: R-3844
+// req: R-3844
 check("M5 real-run false-positive patterns stay clean without suppressions", () => { py("real-patterns"); });
 // req: R-3845
 check("M6 adoption preserves pack files and previous release updates cleanly", () => {
@@ -67,7 +67,7 @@ check("M6 adoption preserves pack files and previous release updates cleanly", (
   const previous = run("git", ["describe", "--tags", "--abbrev=0", "--match", "v*"], old).trim();
   run("git", ["checkout", previous], old);
   // Advance the same source repository so Copier retains its update relationship.
-  for (const rel of ["copier.yml", "templates", "docs/plan/data-pack-template"]) fs.cpSync(path.join(snapshot(), rel), path.join(old, rel), { recursive: true });
+  for (const rel of ["copier.yml", "templates"]) fs.cpSync(path.join(snapshot(), rel), path.join(old, rel), { recursive: true });
   run("git", ["add", "."], old); run("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "next"], old);
   for (const adopt of [false, true]) {
     const updated = path.join(root, `updated-${adopt}`);
@@ -79,7 +79,7 @@ check("M6 adoption preserves pack files and previous release updates cleanly", (
     run("git", ["add", "."], updated);
     run("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "pack added"], updated);
   }
-  fs.appendFileSync(path.join(old, "docs/plan/data-pack-template/seed-checks.py"), "\n# pack update fixture\n");
+  fs.appendFileSync(path.join(old, "templates/python/data_checks.py"), "\n# pack update fixture\n");
   run("git", ["add", "."], old); run("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "pack revision"], old);
   for (const adopt of [false, true]) {
     const updated = path.join(root, `updated-${adopt}`);

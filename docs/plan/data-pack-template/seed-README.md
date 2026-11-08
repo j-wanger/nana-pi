@@ -1,8 +1,8 @@
 # Data pack implementation
 
-The original prototype now supplies the canonical implementation in `seed-checks.py`.
+The canonical implementation ships from `templates/python/data_checks.py`.
 The optional Python template includes it into the rendered script rather than maintaining
-another copy. `seed-run.py` records the historical prototype runner; it is not shipped or used.
+another copy. The v0 engine and runner remain in git history only.
 
 The Python-only Copier answer `data_checks` defaults to false. An opted-in render adds
 `data-checks.json`, `scripts/data_checks.py` and `tests/test_data_checks.py`. Configure the
@@ -14,7 +14,8 @@ uses the standard library and the template already supplies pytest.
 - Identifier SQL declarations and stored types; identifier descriptors may carry namespace metadata.
   A declared namespace anchors its source column. Other columns with that name are checked
   when their non-null values overlap the anchor; disjoint domains and empty non-anchor columns
-  do not establish namespace membership. This is inferred scope, not a foreign-key check.
+  do not establish namespace membership. Within an inferred domain, every non-null value must
+  occur in its reference column; diagnostics count missing values without exposing them.
 - Declared key duplicates and non-null crosswalk uniqueness; diagnostics expose counts, not key values.
 - Additional normalizer definitions, inspected statically. Project code is never imported or evaluated;
   sample equivalence is explicitly unavailable for additional definitions. Initialisation calls in
@@ -33,5 +34,6 @@ and never writes a report into the inspected project. It exits 1 for error findi
 settings errors. Pytest prints the table, fails on errors, passes on warnings and skips when
 settings are absent. Use pytest's `-s` option to see passing warning tables.
 
-Finding suppressions are not applied. The example settings are retained unchanged as grounding
-for the private target; the build report records only check names and counts.
+Finding suppressions are not applied. The committed settings describe fictional `example-data`;
+settings for the real data project stay in an OS-temporary file. The build report records only
+check names and counts.

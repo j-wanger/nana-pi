@@ -1,0 +1,12 @@
+PASS  packages/nana-pack/tests/code-map.test.mjs              48 pass  3.2s
+PASS  packages/nana-pack/tests/readme-check.test.mjs          11 pass  0.3s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs    61 pass  4.6s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs   12 pass  13.3s
+PASS  packages/nana-pack/tests/template-release.test.mjs      5 pass  3.6s
+PASS  packages/nana-pack/tests/templates-render.test.mjs      173 pass  77.5s
+PASS  packages/nana-pack/tests/data-pack.test.mjs             8 pass  219.9s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  32.7s
+PASS  packages/nana-pack/tests/templates-update.test.mjs      35 pass  152.5s
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  30.1s
+
+10 files: 10 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 417 pass, 0 fail, 0 skip · 284.2s

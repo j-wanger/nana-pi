@@ -150,6 +150,13 @@ def check_identifier_types(m: dict[str, Any]) -> list[Finding]:
                     out.extend(
                         _f(c, "error", loc, detail) for detail in _identifier_column(conn, t, col, typ, declared[col])
                     )
+                    if values is not None:
+                        query = f"SELECT {_quoted(col)} FROM {_quoted(t)}"  # noqa: S608 - quoted identifiers
+                        missing = sum(
+                            1 for row in conn.execute(query) if row[0] is not None and str(row[0]) not in values
+                        )
+                        if missing:
+                            out.append(_f(c, "error", loc, f"{missing} values missing from namespace"))
         finally:
             conn.close()
     if not out:
