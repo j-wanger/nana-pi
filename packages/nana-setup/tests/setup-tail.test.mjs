@@ -26,7 +26,7 @@ const cases = [];
 const SKIP = Symbol('skip');
 const check = (title, fn) => cases.push({ title, fn });
 function fixture(fn) {
-  const root = tmpDir(path.join(os.tmpdir(), 'setup-tail-'));
+  const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'setup-tail-')));
   const dir = path.join(root, 'project');
   const home = path.join(root, 'home');
   fs.mkdirSync(dir);
@@ -153,6 +153,7 @@ check('M1: shipped guidance makes no automatic post-edit claim', () => {
 // req: R-3887
 check('M3: fresh scaffolds omit pack config and updates preserve project bytes', () => fixture(({ root }) => {
   if (!toolsAvailable(['uvx'])) return SKIP;
+  assert.equal(root, fs.realpathSync.native(root), 'render root must use its canonical filesystem spelling');
   const source = path.join(root, 'history');
   fs.mkdirSync(source);
   const archive = command('git', ['archive', 'v0.6.51', 'copier.yml', 'templates'], repo, 0, { encoding: null }).stdout;

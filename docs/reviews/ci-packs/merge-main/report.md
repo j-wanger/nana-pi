@@ -150,4 +150,14 @@ On `12d613e3f703e8928019b92e44846a7a8ca84848`, every requested seat command pass
 
 The precommit component/page-retire failures disappear once the merged main ancestry and new tracked file reach HEAD. No further code or assertion change was made.
 
-A final evidence-only commit records these successful runs and this conclusion. Its exact tip is rechecked with every requested seat command and reported in the final response. The worktree remains clean; main is contained. Windows execution and CI remain the seat's responsibility. No push was performed.
+Evidence-only commit `68adb0acb6d5ed360734b47a48fb428fd1effb3a` records these successful runs. Every requested command also passed on that exact tip: land 49.29 seconds wall, selected 492.77 seconds wall, 6,012 passing selected checks, runner 64 checks and fixes-red/land-ci 34 checks. Its output is preserved in `evidence-tip-checks.log`.
+
+## Main moved again: setup-tail Windows test fixes
+
+Main advanced to `f34ad00b9a9a0f7e3e3555a764964a4e914427c1` during the evidence tip's checks. A third merge retains its fixture canonicalization and run-alone credential timing probes. No new test file or pack assignment; all eight assignments above remain unchanged. Both parents' requirement IDs survive (`preservation-setup-tail-win.log`).
+
+There is exactly one additional conflict block: `docs/code-map.md`, old lane line 2351, runner-config callers. The map generator resolves it; `conflicts-setup-tail-win.diff` records the original block. The requirements tree is regenerated too. Total across all three merges: 25 conflict blocks, all accounted for here.
+
+`node scripts/test.mjs credential-strip setup-tail test-packs.test test-runner` passes before the third merge commit: exit 0, 5 files, 81 checks (`setup-tail-win-green.log`). This includes the new main fixes and membership, with no authored assertion edit. Map and tree generators exit 0. `removed-text-setup-tail-win-grep.log` searches the latest removed text against tests.
+
+The third merge's exact tip is rechecked with every requested seat command and reported in the final response. Windows execution and CI remain the seat's responsibility. No push was performed.
