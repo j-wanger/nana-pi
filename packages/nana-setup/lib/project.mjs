@@ -3,12 +3,12 @@
  * @purpose Seed projects and combine shared file-state rows with readiness checks while refreshing only the marked working region.
  * @inputs the target dir; a layout (knowledgeHome, piPackConfig); { name, date, dryRun }; the
  *  templates/_shared seeds (OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
- *  working-under-nana-pi.md); the user-scope nana-pack.json (for postEdit.commands) and the pack trust reader;
+ *  working-under-nana-pi.md); existing project config presence and the pack trust reader;
  *  NANA_SETUP_KNOWLEDGE_CLI, NANA_SETUP_KNOWLEDGE_DEADLINE_MS, NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS
  * @outputs setupProject() reports change and by-hand rows and checkProject() asynchronously reports readiness rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md,
  *  docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`,
- *  every platform), .pi/nana-pack.json ({"postEdit":{"commands":[]}}), the .nana-not-a-project marker; also
- *  re-exports SHARED_DIR, WORKING_BEGIN, WORKING_END, today() and CLAUDE_IMPORT; exports fillSeed(), monthHeader(), agentsStub(), PACK_STARTER,
+ *  every platform), the .nana-not-a-project marker; also
+ *  re-exports SHARED_DIR, WORKING_BEGIN, WORKING_END, today() and CLAUDE_IMPORT; exports fillSeed(), monthHeader(), agentsStub(),
  *  BUILD_LOCK_MARK, REFRESH_DEADLINE_MS and REFRESH_KILL_GRACE_MS
  * @effects disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a
  *  parent-side deadline — SIGTERM then SIGKILL after the grace)
@@ -37,8 +37,7 @@ import { CREATED, SKIPPED, UNCHANGED, seedFile } from "./fsops.mjs";
 import { repoRoot, SHARED_DIR } from "./paths.mjs";
 import { WORKING_BEGIN, WORKING_END, markerLines, readSharedWorking } from "./working-region.mjs";
 import { CLAUDE_IMPORT, PLACEHOLDER_RE, lstat, projectFileRows, seedEntry, today } from "./project-rows.mjs";
-import { parseJsonBytes } from "../../nana-pack/lib/json-text.mjs";
-import { KNOWLEDGE_CLI, SetupError, readPiPackConfig } from "./steps.mjs";
+import { KNOWLEDGE_CLI, SetupError } from "./steps.mjs";
 
 export { CLAUDE_IMPORT, SHARED_DIR, WORKING_BEGIN, WORKING_END, today };
 
@@ -315,27 +314,12 @@ export function stepClaudeImportRefresh(dir, o) {
 
 /* ------------------------------------------------------------------- .pi/nana-pack.json */
 
-export const PACK_STARTER = `${JSON.stringify({ postEdit: { commands: [] } }, null, 2)}\n`;
-
-/**
- * The post-edit on-ramp — empty, so nothing runs until the owner fills it in. Skipped when the
- * user has user-scope `postEdit.commands`: project config REPLACES user config per key group, so
- * an empty project block would silently disable their global checks in this one repo.
- */
-export function stepPackConfig(dir, o, layout) {
-	const target = path.join(dir, ".pi", "nana-pack.json");
+/** Preserve existing gate configuration; no default-only project config is needed. */
+export function stepPackConfig(dir) {
 	const entry = seedEntry(dir, ".pi/nana-pack.json");
 	if (entry.kind === "odd") return oddSeedRow(".pi/nana-pack.json", entry);
 	if (entry.kind === "file") return { label: ".pi/nana-pack.json", status: UNCHANGED, detail: "already present, left untouched" };
-	const user = readPiPackConfig(layout);
-	if (Array.isArray(user?.postEdit?.commands) && user.postEdit.commands.length) {
-		return {
-			label: ".pi/nana-pack.json",
-			status: SKIPPED,
-			detail: "you have user-scope postEdit.commands — an empty project block would shadow them here",
-		};
-	}
-	return { label: ".pi/nana-pack.json", ...seedFile(target, PACK_STARTER, o) };
+	return { label: ".pi/nana-pack.json", status: UNCHANGED, detail: "not needed — defaults apply without a project config" };
 }
 
 /* ------------------------------------------------------------------------ knowledge pull */
@@ -471,7 +455,7 @@ export async function setupProject(dir, layout, opts = {}) {
 	if (agentRows.some((row) => row.label === "AGENTS.md" && row.status === CREATED)) {
 		results.push({ label: "AGENTS.md working region", status: UNCHANGED, detail: "comes with the new AGENTS.md stub" });
 	} else results.push(refreshWorkingRegion(dir, o));
-	results.push(stepPackConfig(dir, o, layout));
+	results.push(stepPackConfig(dir));
 	results.push(await stepKnowledgeRefresh(layout, o));
 	return results;
 }
@@ -496,37 +480,19 @@ export async function checkProject(dir, layout = {}) {
 
 	checks.push(...projectFileRows(dir, { readText: (file) => fs.readFileSync(file, "utf8") }));
 
-	const user = readPiPackConfig(layout);
-	const shadowed = Array.isArray(user?.postEdit?.commands) && user.postEdit.commands.length > 0;
 	const packEntry = seedEntry(dir, ".pi/nana-pack.json");
 	const pack = packEntry.kind === "file"
 		? { ok: true, found: null }
 		: { ok: false, found: packEntry.kind === "odd" ? packEntry.found : null };
 	checks.push({
 		label: ".pi/nana-pack.json",
-		ok: pack.ok || (!pack.found && shadowed),
+		ok: pack.ok || !pack.found,
 		detail: pack.ok
 			? "file present"
 			: pack.found
 				? `${pack.found} is there — not a readable .pi/nana-pack.json; move or remove it by hand`
-				: shadowed
-					? "omitted on purpose — your user-scope postEdit.commands would be shadowed by it"
-					: "post-edit on-ramp",
+				: "not needed — defaults apply without a project config",
 	});
-	let projectConfig = null;
-	if (pack.ok) {
-		try { projectConfig = parseJsonBytes(fs.readFileSync(path.join(dir, ".pi", "nana-pack.json"))); } catch { /* the file-presence row reports existence; diagnostics fail closed */ }
-	}
-	let commands = user?.postEdit?.commands;
-	try {
-		const config = await import(pathToFileURL(path.join(repoRoot, "packages", "nana-pack", "lib", "config.ts")).href);
-		const normalize = config.normalizePostEditCommands;
-		const normalizeFile = (raw) => normalize(raw?.postEdit?.commands);
-		commands = pack.ok ? normalizeFile(projectConfig) : normalizeFile(user);
-		if (pack.ok && !Array.isArray(projectConfig?.postEdit?.commands)) commands = normalizeFile(user);
-	} catch { commands = []; /* if the pack parser cannot be loaded, report no effective checks */ }
-	const starter = commands.length === 0 || commands.every((entry) => entry.match === "(?!)");
-	checks.push({ label: "post-edit commands", ok: !starter, detail: starter ? "effective checker set is empty or still the starter placeholder — configure real postEdit.commands" : `${commands.length} effective checker command(s)` });
 	if (pack.ok) {
 		let vouched = false;
 		try {
