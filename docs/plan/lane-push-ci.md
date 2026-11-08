@@ -14,6 +14,8 @@ A fix that restores agreed behaviour. The 2026-11-02 ruling says a conflict only
 - A4. Serialized after ci-packs, which also changes `ci.yml`, `land-ci.mjs` and the CI tests.
 - A5. One reviewer plus CI. Changes the land tool and CI, so nana-land runs the local suite at its land, and the macOS install check runs.
 
+Requirement IDs: R-3935–R-3944.
+
 ## Open choices
 
 - O1. A1's de-duplication mechanism.
@@ -34,6 +36,7 @@ Honest variation in GitHub's mergeability, run events and timing. Forgery out.
 - `packages/nana-pack/lib/land-ci.mjs`: run reading and judging.
 - `packages/nana-pack/bin/nana-land.mjs`: `cleanMergeTree`, the merge-tree precedent.
 - `packages/nana-pack/lib/land-config.mjs`: `CLEAN_MERGE_GENERATED_PATHS`.
+- `packages/nana-pack/lib/test-packs-config.mjs`: pack selection that M9's Windows job reuses.
 
 ## Outside precedent
 
@@ -48,6 +51,6 @@ none: in-house CI wiring.
 - M5 (main unchanged). Main's push runs, Windows legs and the red-main rule behave exactly as before.
 - M6 (adversary 1: skipped duplicates never decide). With a skipped duplicate run newer than the real suite run, in both event orders: a failing real suite makes the waiter exit 1 and nana-land refuse; a passing suite with complete records lets both succeed without the local fallback. (Replaces M4's proof.)
 - M7 (adversary 2: no PR loses coverage). Same-repository feature PRs, same-repository non-feature PRs and fork PRs each get exactly one executed macOS and Linux suite and the macOS install checks for their tip.
-- M8 (adversary 3: no Windows on lane pushes). Evaluating the workflow's matrix expressions for each event and ref: feature pushes and PRs allocate no Windows jobs; main pushes allocate the Windows suite shards and install checks; a feature push cannot release.
+- M8 (adversary 3, amended by M9). Evaluating the workflow's matrix expressions for each event and ref: feature pushes and PRs allocate no Windows suite shards and no Windows install checks, only M9's selected-test job; main pushes allocate the Windows suite shards and install checks; a feature push cannot release.
 
 - M9 (Windows for selected tests). A lane's CI also runs, on Windows, the test files its pack selection picks. It never runs the whole Windows suite. A lane whose selection is empty starts no Windows job. Seat call, 2026-11-08: since Windows moved to main only, lane changes turned main red on Windows five times, each in a test the lane changed or reached.
