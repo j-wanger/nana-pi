@@ -1,0 +1,5 @@
+FAIL  packages/nana-pack/tests/data-pack.test.mjs  7 pass, 1 fail  183.6s  — exit 1
+      | FAIL M6 adoption preserves pack files and previous release updates cleanly later pack revision reaches both update modes
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 7 pass, 1 fail, 0 skip · 185.0s
+failed: packages/nana-pack/tests/data-pack.test.mjs

@@ -40,7 +40,7 @@ reconciliation surface — nothing is lost because the tree starts clean.
 3. **Overlay**:
 
    ```bash
-   uvx copier copy --defaults --overwrite --data language=python --data adopt=true --data project_name="<name>" --data package_name="<import_name>" https://github.com/j-wanger/nana-pi.git .
+   uvx copier copy --defaults --overwrite --skip scripts/data_checks.py --skip tests/test_data_checks.py --data language=python --data adopt=true --data project_name="<name>" --data package_name="<import_name>" https://github.com/j-wanger/nana-pi.git .
    ```
 
    (One line on purpose — it must work in PowerShell too, where bash's `\`
@@ -89,6 +89,24 @@ No README/src/tests starters are emitted.
 First two steps:
 1. Ratify `OBJECTIVE.md`: ask the owner for one objective line and one current-priority line; write their words over the placeholders and DRAFT suffix, fill `<date>`, and never invent either line. If the owner defers, leave the DRAFT lines and say so in the handover.
 2. Trust the folder: `nana-setup trust <dir>`.
+
+### Optional data baseline
+
+For a data project, offer the Python-only `data_checks=true` Copier answer (default false).
+Add `--data data_checks=true` to the overlay command after the owner opts in. This adds
+`data-checks.json`, `scripts/data_checks.py` and `tests/test_data_checks.py` only when absent.
+Keep the overlay command's two `--skip` flags even with `--overwrite`; these preserve
+existing checker and test files during adoption. Settings stay project-owned at every update.
+Do not pass those two skip flags to later `copier update` runs: template-owned checker and test
+files then receive normal three-way updates.
+Do not replace the project's settings or checker to force adoption. Record any collision,
+then let the owner reconcile it. The same Copier update relationship carries later pack versions.
+Document `scripts/data_checks.py` in the project's README before running the README check.
+Fill the settings with the project's actual database paths, identifier types, keys, canonical
+normalizer, connector modules, report folders and row-wise budget. Empty lists check no data.
+The existing pytest command discovers the data test. Errors fail, warnings pass (use `pytest -s`
+for the findings table), and absent settings skip with an enable message. The pack imports no
+project code and refuses nonempty WAL databases rather than claiming a stale clean verdict.
 
 4. **Reconcile from `git diff`** — merge THEIR content into OUR structure,
    file by file:

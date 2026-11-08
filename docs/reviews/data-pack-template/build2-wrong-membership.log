@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "packages/nana-pack/tests/data-pack-fixtures.py", line 131, in <module>
+    assert len(membership) == 1 and "1 values missing from namespace" in membership[0]["detail"], membership
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: []

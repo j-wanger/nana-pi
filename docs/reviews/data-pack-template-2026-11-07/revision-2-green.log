@@ -1,0 +1,5 @@
+PASS  packages/nana-pack/tests/data-pack.test.mjs            8 pass  202.2s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs  12 pass  11.7s
+PASS  packages/nana-pack/tests/template-release.test.mjs     5 pass  3.0s
+
+3 files: 3 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 25 pass, 0 fail, 0 skip · 218.5s
