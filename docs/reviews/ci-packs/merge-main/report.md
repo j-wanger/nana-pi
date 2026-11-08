@@ -138,4 +138,16 @@ Second-merge precommit checks:
 
 The component-audit and page-retire test failures name only those same HEAD prerequisites. No assertion is weakened. `removed-text-setup-tail-grep.log` covers the second merge's removed text and paths.
 
-Final-tip seat results and full SHA are reported after committing. Windows execution and CI remain the seat's responsibility.
+## Final merged-code verification
+
+On `12d613e3f703e8928019b92e44846a7a8ca84848`, every requested seat command passed (exit 0). Full sanitized output is `final-seat-checks.log`:
+
+- Land: 71 files, 2,413 checks, **49.40 seconds wall**.
+- Changed selection: 193 files, 191 PASS / 2 platform SKIP, 6,012 passing checks, **519.58 seconds wall**. Selection prints `[packs] fail-safe: policy path changed: code-map.config.json`, complete module reasons and changed-test reasons; release is included for release inputs.
+- Runner: 2 files, 64 checks.
+- Existing land-fix-red cases (`win-main-only`) and all land-ci files: 5 files, 34 checks.
+- Map, tree, README, trace, component audit and install: all exit 0. Trace has 2,704 rows. The audit's remaining stale/unclaimed notes are report-only.
+
+The precommit component/page-retire failures disappear once the merged main ancestry and new tracked file reach HEAD. No further code or assertion change was made.
+
+A final evidence-only commit records these successful runs and this conclusion. Its exact tip is rechecked with every requested seat command and reported in the final response. The worktree remains clean; main is contained. Windows execution and CI remain the seat's responsibility. No push was performed.
