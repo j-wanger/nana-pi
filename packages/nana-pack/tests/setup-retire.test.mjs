@@ -15,6 +15,7 @@ import { spawnSync } from 'node:child_process';
 import { findPiRoot } from './pi-install.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
 import { withinCaseLimit } from './report-fixtures.mjs';
+import { verifierPipeReason } from '../lib/pipe-guard.mjs';
 
 const piRoot = findPiRoot().root;
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -118,10 +119,29 @@ await test('M6: both scopes ignore legacy blocks without warnings errors or gate
   assert.ok(!fs.existsSync(path.join(agent, 'nana-journal.jsonl')));
 }));
 // req: R-3802
-await test('M4: existing pi gate and pipe-guard suites remain green', () => {
-  const result = spawnSync(process.execPath, [path.join(root, 'scripts/test.mjs'), 'pipe-guard', 'gate'], { cwd: root, encoding: 'utf8', timeout: 60_000 });
-  assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.match(result.stdout, /0 FAIL/);
+await test('M4: shared pi pipe predicate blocks masking and allows standalone verification with regression files discoverable', () => {
+  // Exercise the same public predicate nana-gate imports, not a nested suite.
+  assert.match(verifierPipeReason('npm test | tail -5 && git commit -m checked'), /pipeline/i);
+  assert.equal(verifierPipeReason('npm test && git commit -m checked'), null);
+
+  // Pin the retained files and the runner's direct package-test discovery pattern.
+  // The outer suite runs these files once and supplies their behavioral coverage.
+  const runner = fs.readFileSync(path.join(root, 'scripts/test.mjs'), 'utf8');
+  assert.ok(runner.includes('testsIn(path.join(pkgs, name, "tests"))'));
+  assert.ok(runner.includes('e.isFile() && e.name.endsWith(".test.mjs")'));
+  const tests = path.join(root, 'packages/nana-pack/tests');
+  const discoverable = fs.readdirSync(tests, { withFileTypes: true })
+    .filter(entry => entry.isFile() && entry.name.endsWith('.test.mjs'))
+    .map(entry => entry.name);
+  for (const name of [
+    'config-gate-fallback.test.mjs', 'config-project-gate-fallback.test.mjs',
+    'credential-gate.test.mjs', 'gate-config-robustness.test.mjs',
+    'gate-corpus.test.mjs', 'gate-policy-paths.test.mjs',
+    'gate-rm-inside.test.mjs', 'gate-rm-outside.test.mjs',
+    'gate-self-protection.test.mjs', 'gate-status.test.mjs',
+    'gate-survives-mutation.test.mjs', 'pipe-guard-pwsh-oracle.test.mjs',
+    'pipe-guard.test.mjs',
+  ]) assert.ok(discoverable.includes(name), `runner discovery retains ${name}`);
 });
 // req: R-3805
 await test('M7: active docs retired rows artifacts and component status pass the contract checks', () => {

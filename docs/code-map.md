@@ -2242,7 +2242,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — verifierPipeReason and PowerShell comment/string spans.
 - **effects** — none
 - **errors** — none; non-string input is treated as an empty command.
-- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`
+- **callers** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`
 - **callees** — `packages/nana-pack/lib/pwsh-lexer-config.mjs`
 
 ### `packages/nana-pack/lib/process-tree.mjs`
@@ -4087,8 +4087,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (OS temporary fixtures), process (bounded hook child).
 - **errors** — Assertions and case deadlines fail the run.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-adoption.mjs`, `scripts/test.mjs`
-- **unresolved launches** — line 149: spawnSync
+- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/pipe-guard.mjs`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-adoption.mjs`, `scripts/test.mjs`
+- **unresolved launches** — line 169: spawnSync
 
 ### `packages/nana-pack/tests/skill-claims.mjs`
 

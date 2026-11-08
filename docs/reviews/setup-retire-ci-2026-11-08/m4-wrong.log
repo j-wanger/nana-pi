@@ -1,0 +1,20 @@
+PASS M2: real pi discovery loads the pack without retired extensions
+PASS M3: real discovery journals one canonical root per day and the real hook lists only unadopted roots
+PASS M6: both scopes ignore legacy blocks without warnings errors or gate fallback
+FAIL M4: shared pi pipe predicate blocks masking and allows standalone verification with regression files discoverable AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type object (null)
+    at file://./packages/nana-pack/tests/setup-retire.test.mjs:124:10
+    at async withinCaseLimit (file://./packages/nana-pack/tests/report-fixtures.mjs:22:12)
+    at async test (file://./packages/nana-pack/tests/setup-retire.test.mjs:24:9)
+    at async file://./packages/nana-pack/tests/setup-retire.test.mjs:122:1
+PASS M7: active docs retired rows artifacts and component status pass the contract checks
+(node:42559) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://./templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to ./package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42559) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://./packages/nana-pack/lib/config.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to ./packages/nana-pack/package.json.
+FAIL  packages/nana-pack/tests/setup-retire.test.mjs  4 pass, 1 fail  8.8s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 4 pass, 1 fail, 0 skip · 9.3s
+failed: packages/nana-pack/tests/setup-retire.test.mjs
