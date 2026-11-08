@@ -1,6 +1,6 @@
 ---
 name: scaffold-py
-description: Scaffold a new Python project from the nana-pi copier template (uv + ruff + mypy strict + pytest, src layout, nested AGENTS.md, post-edit gates). Use when the user wants to start/init/scaffold a Python project.
+description: Scaffold a new Python project from the nana-pi copier template (uv + ruff + mypy strict + pytest, src layout, nested AGENTS.md, manual checks). Use when the user wants to start/init/scaffold a Python project.
 ---
 
 # Scaffold a Python project
@@ -8,14 +8,17 @@ description: Scaffold a new Python project from the nana-pi copier template (uv 
 Generate from the nana-pi Python template via copier. The template pins the
 opinionated stack: uv, ruff (lint+format, complexity caps), mypy strict, pytest
 with an 85% coverage floor, src/ layout, folder-by-feature, lean per-folder
-AGENTS.md files, and a `.pi/nana-pack.json` post-edit preset (format+lint on
-every edit, 500-line module cap, mypy).
+AGENTS.md files, and named manual checks for lint, format, types, tests,
+map, README and the 500-line module cap. Run AGENTS.md's checks before committing;
+nana runs no per-edit checks.
 
 It also ships the **requirements-first** rail: a `REQUIREMENTS.md` with the
 standard general-engineering feature (sealed tunables
 with provenance, the six-tag module header, named exports, injected resources,
 layer direction, the code map, the README contract), the `# req: R-` trace (three or four ASCII digits; four-digit IDs never start with zero)
-check in the suite, and `scripts/code_map.py` with `--check` wired into post-edit checks on code edits (`uv run python scripts/code_map.py --check`) plus the README check on README edits. Run `--impact` yourself before touching a mapped module.
+check in the suite, and manual `uv run python scripts/code_map.py --check`
+commands. Run `uv run python scripts/code_map.py --impact <file...>` before
+touching a mapped module. Run `uv run python scripts/readme_check.py` before committing.
 
 ## Steps
 

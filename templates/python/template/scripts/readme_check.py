@@ -15,7 +15,7 @@ its row. This checks the five things that make one honest: its commands exist, i
 exist, it says how to install / run / test and what the project is for, the flags it shows
 exist in the script it shows them for, and every script the project ships is mentioned.
 
-Dependency-free on purpose (stdlib only), so it runs from the post-edit gate before the
+Dependency-free on purpose (stdlib only), so it runs manually before the
 environment exists. Everything except ``load_config``, ``check_project`` and ``main`` is
 pure over text, so the claim readers are testable on fixture strings.
 """

@@ -51,7 +51,7 @@ export function retireSeed(row, { dryRun = false, root } = {}) {
 
 export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
   if (platform() === "win32") throw new SetupError("uninstall is POSIX-only");
-  const rows = [...installerRows(layout), ...RETIRED_HOOK_FILES.map(file => ({ kind: 'link', store: `retired hook ${file}`, path: path.join(layout.hooksDir, file) }))];
+  const rows = [...installerRows(layout), { store: 'retired verifier link', kind: 'link', path: path.join(layout.hooksDir, 'verifier-pipe.mjs'), retiredHook: 'verifier-pipe.mjs' }, ...RETIRED_HOOK_FILES.map(file => ({ kind: 'link', store: `retired hook ${file}`, path: path.join(layout.hooksDir, file), retiredHook: file }))];
   const removable = rows.filter((r) => r.kind !== "settings-entry");
   const settingsRow = rows.find((r) => r.kind === "settings-entry" && path.resolve(r.path) === path.resolve(layout.claudeSettings));
   const settingsLayout = settingsRow ? { ...layout, claudeSettings: settingsRow.path } : layout;
@@ -75,12 +75,16 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
   const targets = [];
   for (const row of inventoryLinks) {
     if (!exists(row.path)?.isSymbolicLink()) continue;
-    if (RETIRED_HOOK_FILES.includes(path.basename(row.path)) && retiredHookLinkOwned(row.path, path.join(pkgRoot, 'claude/hooks'))) continue;
     hasLink = true;
+    if (row.retiredHook && retiredHookLinkOwned(row.path, path.join(pkgRoot, 'claude', 'hooks'))) {
+      inRepoLink = true;
+      targets.push(`${row.path} -> retired repository hook`);
+      continue;
+    }
     try {
       const target = realPath(row.path, { mustExist: true });
       targets.push(`${row.path} -> ${target}`);
-      if (inside(repoReal, target)) inRepoLink = true;
+      if (!row.retiredHook && inside(repoReal, target)) inRepoLink = true;
     } catch { targets.push(`${row.path} -> unresolved`); }
   }
   if (hasLink && !inRepoLink) throw new SetupError(`inventory links do not resolve inside ${repoReal}: ${targets.join("; ")}. Nothing was changed.`);
@@ -126,9 +130,10 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
     if (row.kind === "link") {
       if (!st) { out.push(result(row.store, "unchanged", "absent")); continue; }
       if (!st.isSymbolicLink()) { out.push(result(row.store, "skipped", `left — found ${st.isDirectory() ? "directory" : "regular file"}: ${row.path}`)); continue; }
-      if (RETIRED_HOOK_FILES.includes(path.basename(row.path)) && retiredHookLinkOwned(row.path, path.join(pkgRoot, 'claude/hooks'))) {
+      if (row.retiredHook) {
+        if (!retiredHookLinkOwned(row.path, path.join(pkgRoot, 'claude', 'hooks'))) { out.push(result(row.store, 'skipped', 'left — foreign retired hook link')); continue; }
         if (!dryRun) fs.unlinkSync(row.path);
-        out.push(result(row.store, dryRun ? 'created' : 'updated', 'retired managed hook link'));
+        out.push(result(row.store, dryRun ? 'created' : 'updated', `${dryRun ? 'would unlink' : 'unlinked'} retired repository hook`));
         continue;
       }
       let target;

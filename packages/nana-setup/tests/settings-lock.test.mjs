@@ -11,7 +11,6 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PI_SUBAGENTS_FLOOR } from "../lib/doctor.mjs";
 import { removalCommands, SETTINGS_LOCK_NAME } from "../lib/settings-lock.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -36,7 +35,7 @@ function fixtureHome(name, { subagents = true } = {}) {
 	if (subagents) {
 		const packageDir = path.join(home, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 		fs.mkdirSync(packageDir, { recursive: true });
-		fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+		fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	}
 	return home;
 }

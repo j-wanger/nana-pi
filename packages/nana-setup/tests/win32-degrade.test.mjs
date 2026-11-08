@@ -21,7 +21,6 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { PI_SUBAGENTS_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const { CLAUDE_CODE_EXEC_FLOOR, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { renderWinShims } = await import(new URL("../lib/win-shims.mjs", import.meta.url).href);
@@ -43,7 +42,7 @@ function freshHome() {
 	// installs — seed it at the floor so this fixture reads as an already-set-up machine.
 	const subagentsDir = path.join(td, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(subagentsDir, { recursive: true });
-	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: PI_SUBAGENTS_FLOOR }));
+	fs.writeFileSync(path.join(subagentsDir, "package.json"), JSON.stringify({ name: "pi-subagents", version: "0.75.0" }));
 	return td;
 }
 const run = (args, env = {}, cwd = process.cwd()) => {

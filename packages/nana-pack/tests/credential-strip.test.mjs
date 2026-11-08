@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
 import { CLAUDE_CODE_SUBAGENT_MODELS } from '../bin/worker-config.mjs';
+import { RUN_ALONE } from '../lib/test-runner-config.mjs';
 import { reviewLaunch } from '../bin/review-launch.mjs';
 import { resolveLayout } from '../../nana-setup/lib/paths.mjs';
 import { stepPath } from '../../nana-setup/lib/steps.mjs';
@@ -145,7 +146,10 @@ function matrix(entries) {
 // req: R-3660
 await check('M1: builder children suppress fixture credential dispatch', () => matrix(['plain-worker', 'pi-worker', 'claude-worker']));
 // req: R-3661
-await check('M2: reviewer entry points suppress fixture credential dispatch', () => matrix(['pi-review', 'claude-review']));
+await check('M2: reviewer entry points suppress fixture credential dispatch', () => {
+  assert.equal(RUN_ALONE['packages/nana-pack/tests/credential-strip.test.mjs'], 'load-sensitive fixture credential probes bounded by 3000 ms');
+  matrix(['pi-review', 'claude-review']);
+});
 // req: R-3662
 await check('M3: unrelated inherited git configuration keeps its effect', async () => {
   const { credentialStripEnv } = await import('../lib/credential-strip.mjs');

@@ -13,7 +13,7 @@
 //
 // The failure paths run through the REAL CLI: a temp project gets a copy of
 // scripts/code-map.mjs plus a code-map.config.json, and the test spawns it
-// there, so what is checked is the command the suite and the post-edit gate
+// there, so what is checked is the command the suite and manual checks
 // actually run, including its exit code.
 import { execFileSync } from "node:child_process";
 import {

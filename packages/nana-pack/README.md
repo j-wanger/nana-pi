@@ -1138,7 +1138,7 @@ project config never contributes to either one, trusted or not.
   assignment syntax; paths produced by shell expansion or execution remain outside its guarantee.
   Matching more command text would not close that class (each form invites another), so none is added.
   **Mitigation, and its limit:** *gate loosening* from such a write waits for the next
-  `session_start`. Other active configuration blocks may apply live. The retired `postEdit` and `handoff` blocks do nothing. The OS sandbox or container remains the enforcement boundary. The agent edits policy files only through you:
+  `session_start`. Other active configuration blocks may apply live. The retired `postEdit`, `handoff` and `notify` blocks do nothing. The OS sandbox or container remains the enforcement boundary. The agent edits policy files only through you:
   `nana-setup`, the desk settings window, or "Allow once". The compaction summary store
   `~/.pi/agent/handoffs/**` is not a policy file. Script files are not inspected, so sandboxing
   remains the enforcement boundary.
@@ -1217,7 +1217,7 @@ project config never contributes to either one, trusted or not.
   operating-system temporary directory are excluded; on POSIX, the canonical `/tmp` root is excluded too.
   `NANA_TEST_TEMP_ROOTS` is a test seam, not configuration: when set, the reader prints a warning; on a STARTUP session, the producer journals the override once per process. Resume, fork and reload sessions do not journal it. Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
   The reader says listed repositories lack the complete Nana structure: a regular root `HANDOFF.md`, root `AGENTS.md`, and `docs/sessions/`. A `HANDOFF.md`-only repository remains listed, and the text does not claim it lacks that file.
-- **Compaction** belongs to pi. Nana neither writes nor injects compaction summaries. Existing summaries remain untouched and still count as adoption evidence. Legacy `handoff` and `postEdit` configuration blocks are accepted and ignored. `NANA_HANDOFF=off` continues to suppress adoption journaling in reviewer and worker children.
+- **Compaction** belongs to pi. Nana neither writes nor injects compaction summaries. Existing summaries remain untouched and still count as adoption evidence. Legacy `handoff`, `postEdit` and `notify` configuration blocks are accepted and ignored. `NANA_HANDOFF=off` continues to suppress adoption journaling in reviewer and worker children.
 - **Objective** injects the user's objective + current priority file into every system
   prompt, under `## Objective and current priority (nana)` plus one line charging the session
   to say which of those lines its spend serves. Default source `nana-objective.md` in pi's active
