@@ -49,3 +49,5 @@ none: in-house CI wiring.
 - M6 (adversary 1: skipped duplicates never decide). With a skipped duplicate run newer than the real suite run, in both event orders: a failing real suite makes the waiter exit 1 and nana-land refuse; a passing suite with complete records lets both succeed without the local fallback. (Replaces M4's proof.)
 - M7 (adversary 2: no PR loses coverage). Same-repository feature PRs, same-repository non-feature PRs and fork PRs each get exactly one executed macOS and Linux suite and the macOS install checks for their tip.
 - M8 (adversary 3: no Windows on lane pushes). Evaluating the workflow's matrix expressions for each event and ref: feature pushes and PRs allocate no Windows jobs; main pushes allocate the Windows suite shards and install checks; a feature push cannot release.
+
+- M9 (Windows for selected tests). A lane's CI also runs, on Windows, the test files its pack selection picks. It never runs the whole Windows suite. A lane whose selection is empty starts no Windows job. Seat call, 2026-11-08: since Windows moved to main only, lane changes turned main red on Windows five times, each in a test the lane changed or reached.
