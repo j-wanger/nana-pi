@@ -338,6 +338,14 @@ desk or bench file on the declared Windows skip list
 (`packages/nana-pack/lib/windows-skips-config.mjs`), printing that file's reason without
 starting it.
 
+`npm test -- --pack=land` runs the land pack. `--pack=land,module --changed-from=main`
+adds affected module tests and prints their selection reasons. `scripts/test-packs.mjs`
+uses import and launch reach, blind reach and text-input watches; uncertainty runs every module test.
+`packages/nana-pack/lib/test-packs-config.mjs` declares membership and sealed selection policy.
+Every collected file needs a pack. Browser tests stay manual. A complete-pack
+`npm run test:locked -- --pack=land` holds the machine lock and keeps its record;
+adding a path substring still bypasses the lock.
+
 `npm test -- --jobs=N` keeps up to N collected files running at once (default 1), reporting
 matching labels, counts, excerpts, warnings, failed list, self-test verdict, totals and exit
 code as a serial run, apart from timings and the order file blocks print in; a file on the

@@ -3,7 +3,7 @@
  * @module scripts/test.mjs
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
- * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
+ * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, --pack=list, --changed-from=ref, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
  *  NANA_COVERAGE_DIR (runtime-map's coverage knob), NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
  *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
@@ -140,6 +140,16 @@ const isDir = (p) => {
 	}
 };
 
+// --pack=land runs complete land membership. --pack=land,module --changed-from=main
+// additionally selects affected module tests and records each reason before sharding.
+const packArgs = argv.filter(arg => arg.startsWith("--pack"));
+const changedArgs = argv.filter(arg => arg.startsWith("--changed-from"));
+if (packArgs.length > 1 || changedArgs.length > 1 || packArgs.some(arg => !/^--pack=.+$/.test(arg)) || changedArgs.some(arg => !/^--changed-from=.+$/.test(arg)) || (changedArgs.length && !packArgs.length)) {
+	console.log("[runner] bad --pack/--changed-from argument");
+	process.exit(1);
+}
+let packRun = null;
+
 // ── cleanup: every active child's tree and the scratch dir, on EVERY exit path ──────────────
 // Sets, not a single slot: at --jobs=N greater than 1 several files run at once, so more than
 // one child and one file temp root can be active together.
@@ -213,7 +223,7 @@ function collect() {
 	}
 	files.push(...testsIn(path.join(root, "apps", "desk", "test")));
 	files.push(...testsIn(path.join(root, "apps", "bench", "test")));
-	return files.filter((f) => !excluded(f)).filter((f) => !filters.length || filters.some((s) => rel(f).includes(s)));
+	return files.filter((f) => !excluded(f));
 }
 
 const onPath = (cmd) => {
@@ -363,7 +373,22 @@ const BASE_ENV = (() => {
 })();
 
 // ── main ─────────────────────────────────────────────────────────────────────────────────────
-const files = shardFiles(collect(), shard, rel);
+let collected = collect();
+if (packArgs.length) {
+	try {
+		const { selectPackFiles } = await import("./test-packs.mjs");
+		const selected = await selectPackFiles({ root, files: collected.map(rel), packs: packArgs[0].slice("--pack=".length).split(","), changedFrom: changedArgs[0]?.slice("--changed-from=".length) ?? null });
+		packRun = { packs: selected.packs, selection: selected.selection, complete: !filters.length && !selfTest };
+		if (selected.selection.failSafe) console.log(`[packs] fail-safe: ${selected.selection.failSafe}`);
+		for (const item of selected.selection.module) console.log(`[packs] module ${item.path}: ${item.reasons.join("; ")}`);
+		console.log(`[packs] ${selected.packs.join(",")}: ${selected.files.length} selected files`);
+		collected = selected.files.map(file => path.join(root, file));
+	} catch (error) {
+		console.log(`[packs] ${error.message}`);
+		process.exit(1);
+	}
+}
+const files = shardFiles(collected.filter(file => !filters.length || filters.some(filter => rel(file).includes(filter))), shard, rel);
 scratch = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-runner-${process.pid}-`));
 const trackedSnapshot = () => {
 	const listed = spawnSync("git", ["ls-files", "-s", "-z"], { cwd: root, encoding: "buffer" });
@@ -639,6 +664,7 @@ if (suiteRecordFile) {
 			schema: RECORD_SCHEMA,
 			filters,
 			...(shard ? { shard } : {}),
+			...(packRun ? { packRun } : {}),
 			files: suiteFiles.filter(Boolean),
 			unnamedFailures,
 			exitCode: finalExitCode,
