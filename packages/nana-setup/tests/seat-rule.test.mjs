@@ -45,7 +45,7 @@ const RULE_16 = "- On an enabled personal machine, automatically save quoted pre
 const RULE_17 = "- On a lane that builds or reshapes a page a person looks at, write the build brief from `$HOME/nana-pi/docs/ui-brief-template.md`. The seat picks references by default. The owner's starred references from the library replace those picks when the owner wants a say.";
 const ROLE_RULE = fs.readFileSync(GUIDE, 'utf8').split(/\r?\n/).find(line => line.startsWith('- Start scout '));
 const PUSH_RULE = '- Before pushing a lane branch, run `node "$HOME/nana-pi/packages/nana-pack/bin/leak-scan.mjs" --base main --tip HEAD` chained with `&&` to the push; on a hit, fix the commit before any push.';
-const RULES = [PUSH_RULE, ROLE_RULE, RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_17, RULE_5, RULE_6, RULE_9, RULE_11, RULE_12, RULE_10, RULE_7, RULE_8, RULE_16];
+const RULES = [PUSH_RULE, ROLE_RULE, RULE_1, RULE_2, RULE_3, RULE_4, RULE_13, RULE_14, RULE_15, RULE_17, RULE_5, RULE_6, RULE_9, RULE_10, RULE_7, RULE_8, RULE_16];
 
 const raw = (() => { try { return fs.readFileSync(GUIDE, "utf8"); } catch { return ""; } })();
 const text = raw.replace(/\r/g, "");
@@ -120,7 +120,7 @@ check("seat guide carries: preamble and review standard named, not restated", li
 	const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
 	const seatLine = shared.split("\n").find((line) => line.startsWith("- Seat guide:"));
 	// req: R-3026
-	check("pi seat guide explains parallel builds and the shared working pattern names both guide loaders", guide.split(sentence).length === 2 && guide.indexOf(sentence) > guide.indexOf(RULE_9) && guide.indexOf(sentence) < guide.indexOf(RULES.find((rule) => rule === RULE_11)) && seatLine?.includes("Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions") && agents.includes(seatLine), JSON.stringify({ seatLine, guideHasSentence: guide.includes(sentence), agentsHasLine: agents.includes(seatLine ?? "") }));
+	check("pi seat guide explains parallel builds and the shared working pattern names both guide loaders", guide.split(sentence).length === 2 && guide.indexOf(sentence) > guide.indexOf(RULE_9) && guide.indexOf(sentence) < guide.indexOf(RULE_10) && seatLine?.includes("Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions") && agents.includes(seatLine), JSON.stringify({ seatLine, guideHasSentence: guide.includes(sentence), agentsHasLine: agents.includes(seatLine ?? "") }));
 }
 
 // req: R-3536
@@ -131,5 +131,14 @@ check('MM9: role launch guidance names commands slots seat exceptions scheduling
 		/launch.*role.*background/.test(text) && /In pi.*foreground/.test(text) &&
 		[shared,agents].every(t=>t.includes('pi-worker --slot')&&t.includes('scout')&&t.includes('planner')&&t.includes('adversary')&&!t.includes('adversary and checker')&&t.includes('seat')&&t.includes('none')) &&
 		ruling.includes('2026-11-07: The roster names a slot for the scout, planner and adversary; a seat starts each through its slot.');
+})());
+// req: R-3894
+check("M1: plan questions stay in the planner without seat posting or answer waits", (() => {
+	const planner = fs.readFileSync(path.join(ROOT, "packages/nana-pack/prompts/planner.md"), "utf8");
+	const requirements = fs.readFileSync(path.join(ROOT, "REQUIREMENTS.md"), "utf8");
+	return !text.includes(RULE_11) && !text.includes(RULE_12) &&
+		!/Post a plan's questions|blocking build waits|optional build starts/.test(text) &&
+		planner.includes("Questions for the owner") && ["R-3012", "R-3013"].every(id =>
+			requirements.split("\n").some(line => line.startsWith(`| ${id} |`) && line.includes("| retired |")));
 })());
 process.exit(fails ? 1 : 0);

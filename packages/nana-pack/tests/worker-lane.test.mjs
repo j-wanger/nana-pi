@@ -402,7 +402,7 @@ check("lane preamble forbids the named package-manager operations at a worktree 
 const preambleText = prompt1Text;
 const RULE_LINE = {
 	storedCredential: "- Never read, print or use a stored credential: no `git credential fill` or `get`, no token from a keychain, file or environment variable, and no direct GitHub API call. If a step needs a credential or `gh` is missing, report it and stop.",
-	knownBugsFolder: `- Never edit \`HANDOFF.md\`, \`${KNOWN_BUGS_DIR}/\` or session archives.`,
+	knownBugsFolder: `- Never edit \`HANDOFF.md\` or \`${KNOWN_BUGS_DIR}/\`.`, 
 	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
 	reuseNotCopy: "- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private, drop the leading underscore, update its existing callers, and import the public name; never import a private name from another module. A move to a shared module needs the brief to name it.",
 	knownBugsContext: "- The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches.",
@@ -422,7 +422,7 @@ const RULE_LINE = {
 };
 const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
 // req: R-2510
-check("R-2510: the builder preamble forbids editing HANDOFF.md, the known-bugs folder and session archives", preambleOnce(RULE_LINE.knownBugsFolder), RULE_LINE.knownBugsFolder);
+check("R-2510: the builder preamble forbids editing HANDOFF.md and the known-bugs folder", preambleOnce(RULE_LINE.knownBugsFolder), RULE_LINE.knownBugsFolder);
 // req: R-3650
 check("R-3650: the builder preamble forbids reading, printing or using a stored credential exactly once", preambleOnce(RULE_LINE.storedCredential), RULE_LINE.storedCredential);
 // req: R-2582

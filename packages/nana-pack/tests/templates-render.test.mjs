@@ -434,6 +434,17 @@ function checkAgentsMdMirrorsWorkingUnderNanaPi() {
 	const block = markerBlock(agents);
 	// req: R-859
 	check("AGENTS.md marker-owned section is byte-identical to the shared file", block === shared);
+	// req: R-3895
+	check("M2: shared land guidance drops pre-review notes and keeps the post-land writing ban",
+		block === shared && !/Put HANDOFF and session notes|Notes go in before the final round/.test(shared) &&
+		shared.includes("Nothing is written after a land."));
+	// M3 is partial: builder scope forbids editing the live HANDOFF.
+	check("M3: authorized narrative and session-archive references are removed", (() => {
+		const seed = fs.readFileSync(path.join(REPO, "templates/_shared/HANDOFF.md"), "utf8");
+		const scope = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8").split("\nTests\n")[0];
+		return !/narrative lives in `docs\/sessions\/`/i.test(seed) &&
+			!agents.includes("(this repo's narrative, newest first)") && !scope.includes("session archives");
+	})());
 	const prefix = agents.slice(0, agents.indexOf("<!-- nana:working-under-nana-pi begin -->"));
 	const paragraph = prefix.trimEnd().split(/\n\s*\n/).at(-1) ?? "";
 	// req: R-859
@@ -797,6 +808,11 @@ if (!version) {
 			// req: R-737
 			check(`${language}: copier renders the template`, ok, log.slice(-800));
 			if (!ok) continue;
+			const working = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
+			// req: R-3899
+			check(`${language}: M6 rendered working region equals the shared bytes without a notes step`,
+				markerBlock(fs.readFileSync(path.join(dest, "AGENTS.md"), "utf8")) === working &&
+				!working.includes("Put HANDOFF and session notes") && working.includes("Nothing is written after a land."));
 			if (language === "python") {
 				const cp1252 = runCp1252(dest);
 				if (!cp1252.available) {

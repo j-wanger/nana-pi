@@ -206,7 +206,7 @@ await check('M9: shared guidance, rendered region, README and ruling agree on th
  for(const phrase of ['without new CI or review','merge.renormalize=false','check-attr --source','git ≥ 2.40','bors-ng']) assert(readme.includes(phrase),phrase);
  const exception='a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict';
  for(const text of [shared,readme])assert(text.includes(exception),exception);
- const ruling='- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review; a generated file the land contract names, changed on both sides and rebuilt by its own generator, counts as no conflict. Nobody commits to main directly. Notes go in before the final round, and nothing is written after a land. The fix lands through `nana-land` with `--fixes-red <run-id>`.';
+ const ruling='- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review; a generated file the land contract names, changed on both sides and rebuilt by its own generator, counts as no conflict. Nobody commits to main directly, and nothing is written after a land. The fix lands through `nana-land` with `--fixes-red <run-id>`.';
  const rulings=read('packages/nana-pack/rules/nana-rulings.md');
  assert.equal(rulings.split('\n').filter(line=>line===ruling).length,1);
  assert(!rulings.includes('- 2026-10-10: An independent reviewer'));
