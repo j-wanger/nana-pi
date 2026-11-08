@@ -409,18 +409,13 @@ const TIME_LIMIT_MS = 5000;
  fs.writeFileSync(rulePath, "Compose fixture text.\n");
  const objSession = session(objectiveExt);
  await objSession.handlers.session_start({ reason: "startup" }, objSession.ctx);
- const handoffExt = (await import(new URL("../extensions/nana-handoff.ts", import.meta.url).href)).default;
- const handoffSession = session(handoffExt);
- await handoffSession.handlers.session_compact({ compactionEntry: { summary: "composition handoff fixture" } }, handoffSession.ctx);
- await handoffSession.handlers.session_start({ reason: "startup" }, handoffSession.ctx);
  const writingSession = session(writingExt, { rulePath });
  await writingSession.handlers.session_start({ reason: "startup" }, writingSession.ctx);
  const handlers = [
   [objSession.handlers.before_agent_start, objSession.ctx],
-  [handoffSession.handlers.before_agent_start, handoffSession.ctx],
   [writingSession.handlers.before_agent_start, writingSession.ctx],
  ];
- const orders = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+ const orders = [[0,1],[1,0]];
  let allStable = true;
  for (const order of orders) {
   const foreignFirst = { kept: "first" };
@@ -434,11 +429,10 @@ const TIME_LIMIT_MS = 5000;
    if (i === 0) objectiveValue = event.systemPromptOptions.sections["nana-objective"];
   }
   const sections = event.systemPromptOptions.sections;
-  allStable &&= JSON.stringify(Object.keys(sections)) === JSON.stringify(["z-foreign", "a-foreign", "nana-objective", "nana-handoff", "nana-writing"])
+  allStable &&= JSON.stringify(Object.keys(sections)) === JSON.stringify(["z-foreign", "a-foreign", "nana-objective", "nana-writing"])
    && sections["z-foreign"] === foreignFirst && sections["a-foreign"] === foreignLast
    && sections["nana-objective"] === objectiveValue && sections["nana-objective"] !== objectiveSection && sections["nana-objective"].includes("ship the writing trial.")
    && sections["nana-objective"].includes("close astra r2.")
-   && sections["nana-handoff"].includes("composition handoff fixture")
    && sections["nana-writing"].includes(HEADING) && sections["nana-writing"].includes("Compose fixture text.")
    && results.every((result) => result === undefined)
    && !("systemPrompt" in event) && !("forceSystemPrompt" in event.systemPromptOptions);

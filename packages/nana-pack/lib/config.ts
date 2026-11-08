@@ -5,7 +5,7 @@
  * @inputs <pi's active agent dir>/nana-pack.json (user scope) and <cwd>/.pi/nana-pack.json (project scope,
  *  nana-trusted only), pi's trust module and trust.json, and the extension ctx (cwd, isProjectTrusted,
  *  hasUI, ui, sessionManager)
- * @outputs a NanaPackConfig (gate, notify, journal, handoff, objective, writing, legacy receipts) with
+ * @outputs a NanaPackConfig (gate, notify, journal, objective, writing, legacy receipts) with
  *  gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled
  *  allow/extra/protected regexes, user-only objective and writing blocks, and safe shared parse-failure detail in a gate stop or the user-scope objective block
  * @effects disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the
@@ -25,8 +25,8 @@
  *            ~/.pi/agent while the active dir has none is NOT read — it is announced once per
  *            session (`config_agent_dir_mismatch`), and the gate runs without a user config.
  *   project: <cwd>/.pi/nana-pack.json — NANA-TRUSTED PROJECTS ONLY. Project config can
- *   relax the gate (allowPatterns) and redirect the handoff path, so a repo must not
- *   be able to supply it by itself. Retired postEdit sections are ignored. pi auto-trusts
+ *   relax the gate (allowPatterns), so a repo must not
+ *   be able to supply it by itself. Retired postEdit and handoff sections are ignored. pi auto-trusts
  *   a folder whose `.pi/` holds nothing pi considers trust-requiring (pi 0.87.1
  *   dist/main.js:585, dist/core/trust-manager.js:150-169), so `ctx.isProjectTrusted()`
  *   alone is not a decision. nana-trust = isProjectTrusted() AND (pi would have asked,
@@ -86,8 +86,6 @@ export interface NanaPackConfig {
 	gate: GateConfig;
 	notify: { enabled: boolean; headless: boolean };
 	journal: { enabled: boolean; path: string | null };
-	/** `staleAfterDays`: a summary older than this is injected as a bounded pointer, not its text. */
-	handoff: { enabled: boolean; path: string | null; staleAfterDays: number };
 	/**
 	 * The owner's objective + current priority, injected into every system prompt.
 	 * USER SCOPE ONLY — project config never contributes (see loadConfig).
@@ -107,7 +105,6 @@ const DEFAULTS: NanaPackConfig = {
 	gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [], stopReason: null },
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
-	handoff: { enabled: true, path: null, staleAfterDays: 7 },
 	objective: { enabled: true, path: null, projectFile: null },
 	writing: { enabled: true },
 	receipts: { enabled: true, dir: null },
@@ -167,12 +164,6 @@ const fileNameOrDefault: Leaf = (v, where, problems) => {
 		return { ok: false };
 	}
 	problems.push(`${where}: expected a filename, null or false, got ${kind(v)} — using the default (OBJECTIVE.md)`);
-	return { ok: false };
-};
-
-const positiveNumber: Leaf = (v, where, problems) => {
-	if (typeof v === "number" && Number.isFinite(v) && v > 0) return { ok: true, value: v };
-	problems.push(`${where}: expected a positive number, got ${kind(v)} — using the default`);
 	return { ok: false };
 };
 
@@ -241,7 +232,6 @@ const SCHEMA: Record<string, Record<string, Leaf>> = {
 	gate: { extraPatterns: regexList("i"), allowPatterns: regexList("i"), protectedPaths: regexList("i") },
 	notify: { enabled: bool, headless: bool },
 	journal: { enabled: bool, path: pathOrNull },
-	handoff: { enabled: bool, path: pathOrNull, staleAfterDays: positiveNumber },
 	objective: { enabled: bool, path: pathOrNull, projectFile: fileNameOrDefault },
 	writing: { enabled: bool },
 	receipts: { enabled: bool, dir: pathOrNull },
@@ -567,7 +557,6 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 					: { ...gate, ...(pg as Record<string, string[]> | undefined) },
 			notify: merge("notify", u.notify, project.notify),
 			journal: merge("journal", u.journal, project.journal),
-			handoff: merge("handoff", u.handoff, project.handoff),
 			// USER SCOPE ONLY — `project` is deliberately absent from this one merge.
 			// objective.path names a file whose contents go into EVERY session's system
 			// prompt, so a repo that could set it would be writing the standing

@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 549 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 545 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -1393,6 +1393,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/review-ledger.mjs`, `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/lib/claude-settings-carry.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/pi-context-load.mjs`, `packages/nana-pack/lib/pi-package.mjs`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/lib/roster-roles.mjs`, `packages/nana-pack/lib/roster-set.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/outside-reader.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/visual-reader.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-setup/lib/pi-dependencies.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/install-check-builder-env.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
 - **callees** — —
 
+### `packages/nana-pack/extensions/nana-adoption.ts`
+
+- **purpose** — Journal unadopted repository roots for the seat's adoption reader.
+- **inputs** — Fresh session starts, cwd, user-scope adoption settings and root state.
+- **outputs** — directory_unadopted and test-override journal records; no prompt content.
+- **effects** — disk (root inspection, bounded journal reads and best-effort appends).
+- **errors** — Never throws; adoption observability cannot interrupt a session.
+- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`
+- **callees** — `packages/nana-pack/lib/adoption.mjs`
+
 ### `packages/nana-pack/extensions/nana-frontier-summary.ts`
 
 - **purpose** — Inject the current project frontier and deliver live owner issue comments to UI seat sessions.
@@ -1412,16 +1422,6 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — never throws — a failed policy load becomes a stopReason and a failed analysis becomes the hit `gate analysis failed`, and both block; headless hits block fail-closed
 - **callers** — `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/config-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/credential-gate.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/gate-config-robustness.test.mjs`, `packages/nana-pack/tests/gate-corpus.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-rm-inside.test.mjs`, `packages/nana-pack/tests/gate-rm-outside.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/gate-status.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/lane-write-guard.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`
 - **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/credential-gate-config.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/gate-rm-inside.ts`, `packages/nana-pack/lib/gate-rm-outside.ts`, `packages/nana-pack/lib/gate-shell.ts`, `packages/nana-pack/lib/gate-temp-roots.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/pipe-guard.mjs`
-
-### `packages/nana-pack/extensions/nana-handoff.ts`
-
-- **purpose** — Carry a compaction summary across sessions through the user-scope handoff store, injecting it only into a fresh session in the same directory.
-- **inputs** — pi `session_start` / `before_agent_start` / `session_compact` events (reason, compactionEntry.summary, systemPromptOptions.sections), the handoff config block, env NANA_HANDOFF, and the store file for the canonical cwd (or an ancestor's, or a configured path)
-- **outputs** — a labelled handoff block in the nana-handoff system-prompt section (≤ INJECT_CAP) or a bounded pointer line (≤ POINTER_CAP) when it is stale, an ancestor's or a legacy repo file, the summary written atomically to the store, and journal lines (handoff_pickup_failed, handoff_skipped_role, handoff_legacy_ignored, handoff_legacy_write_refused, directory_unadopted)
-- **effects** — disk (reads the store, writes it temp-file-plus-rename, lstats the configured path and the repo root, appends the journal)
-- **errors** — never throws — every pickup or write failure, invalid UTF-8 included, degrades to no handoff plus one journal line
-- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/handoff-artifact.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/handoff-store.test.mjs`, `packages/nana-pack/tests/handoff-symlink.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`
-- **callees** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/prompt-sections.mjs`
 
 ### `packages/nana-pack/extensions/nana-lifecycle.ts`
 
@@ -1490,7 +1490,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the store dir and the per-root store path, the adoption settings (journal path, objective file name), a root's state with its isAdopted verdict, the journal's tail and window lines, and the newest report per canonical root with a `dropped` count of refused claims
 - **effects** — disk (reads nana-pack.json and the journal tail, lstats / stats the handed-in root and its ancestors)
 - **errors** — tailLines rethrows the fs error for a journal that exists but is not a readable regular file (ENOTFILE for a non-file); an absent journal is [] and every other function is total
-- **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-adoption.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/json-text.mjs`
 
 ### `packages/nana-pack/lib/agent-dir.mjs`
@@ -1530,7 +1530,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — a Buffer containing at most the requested limit plus one bytes, and stable user-facing read-failure causes
 - **effects** — disk (opens and reads one file descriptor)
 - **errors** — throws filesystem errors, ERR_NOT_REGULAR, or ERR_TOO_LARGE
-- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/record-ledger.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/review-timeline.mjs`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/record-ledger.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/brief-config.mjs`
@@ -1647,10 +1647,10 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 - **purpose** — Load, normalize and merge the nana-pack user and project config into a fully typed value no file bytes can make throw.
 - **inputs** — <pi's active agent dir>/nana-pack.json (user scope) and <cwd>/.pi/nana-pack.json (project scope, nana-trusted only), pi's trust module and trust.json, and the extension ctx (cwd, isProjectTrusted, hasUI, ui, sessionManager)
-- **outputs** — a NanaPackConfig (gate, notify, journal, handoff, objective, writing, legacy receipts) with gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled allow/extra/protected regexes, user-only objective and writing blocks, and safe shared parse-failure detail in a gate stop or the user-scope objective block
+- **outputs** — a NanaPackConfig (gate, notify, journal, objective, writing, legacy receipts) with gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled allow/extra/protected regexes, user-only objective and writing blocks, and safe shared parse-failure detail in a gate stop or the user-scope objective block
 - **effects** — disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the journal), process (dynamically imports pi's trust module; keeps the per-session dedupe, trust decisions and last-valid gate on globalThis)
 - **errors** — never throws — a malformed leaf falls back and is surfaced once per session as a `config_invalid` or `config_agent_dir_mismatch` journal line plus one UI warning, and a malformed gate block with no last-good policy yields gate.stopReason, which blocks every gated tool
-- **callers** — `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-lifecycle.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-setup/lib/project.mjs`
+- **callers** — `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-lifecycle.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-setup/lib/project.mjs`
 - **callees** — `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/objective.ts`
 
 ### `packages/nana-pack/lib/context-load-log.mjs`
@@ -1700,7 +1700,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — one bounded rendering per surface — promptPath/uiPath (one line, JSON-escaped when unsafe, ≤ PATH_CAP, middle-elided), promptText/uiText/fileField (controls, breaks and bidi marks replaced by a space), codeSpan (or null when it would close the span), locator ({text, escaped}, exact and never elided)
 - **effects** — none
 - **errors** — none — every renderer is total: an unprintable value renders as `[unprintable]`, and an unsafe code span is refused with null rather than escaped
-- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
+- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/frontier-check.mjs`
@@ -2315,7 +2315,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — the same sections object with canonical Nana keys and foreign keys kept relatively ordered
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-writing.ts`
+- **callers** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-writing.ts`
 - **callees** — —
 
 ### `packages/nana-pack/lib/pwsh-lexer-config.mjs`
@@ -2602,12 +2602,12 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 ### `packages/nana-pack/tests/adoption-producer.test.mjs`
 
 - **purpose** — Pins the L5 adoption producer — `directory_unadopted` is journaled once per repository root per day, only for the shapes that qualify, and nothing about adoption reaches the prompt
-- **inputs** — extensions/nana-handoff.ts, lib/adoption.mjs, a nana-pack.json journal config under a temp HOME, and throwaway git repositories
+- **inputs** — extensions/nana-adoption.ts, lib/adoption.mjs, a nana-pack.json journal config under a temp HOME, and throwaway git repositories
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
 - **effects** — disk (temp HOME, journal and repository fixtures under the OS temp dir), process (sets HOME and USERPROFILE, spawns git)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-adoption.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/adoption-reader.test.mjs`
 
@@ -2932,7 +2932,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME and written surfaces), process (sets HOME, spawns the surfaces that run as child processes)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/env-path.mjs`
 
@@ -3107,16 +3107,6 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/template-release.test.mjs`
 - **callees** — —
 
-### `packages/nana-pack/tests/handoff-artifact.test.mjs`
-
-- **purpose** — Pins the continuity path — compaction writes the handoff artifact to the user-scope store and the next fresh session picks it up, told to update it in place
-- **inputs** — extensions/nana-handoff.ts, a nana-pack.json and the handoff store under a temp HOME
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, config file, handoff store), process (sets HOME and USERPROFILE)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
-
 ### `packages/nana-pack/tests/handoff-asks.test.mjs`
 
 - **purpose** — Pins Open for the owner entry splitting and the independent frontier-tag and report-title grammars.
@@ -3137,46 +3127,6 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/nana-frontier-summary.mjs`, `packages/nana-pack/extensions/nana-frontier-summary.ts`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
-### `packages/nana-pack/tests/handoff-staleness.test.mjs`
-
-- **purpose** — Pins handoff provenance and staleness — a fresh file is injected in full with its provenance, and one older than the staleness window becomes a bounded pointer instead of text
-- **inputs** — extensions/nana-handoff.ts, handoff files whose `Written:` header carries the injected clock, and the required installed pi path resolver
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME and handoff files), process (sets HOME)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
-
-### `packages/nana-pack/tests/handoff-store.test.mjs`
-
-- **purpose** — Pins the user-scope handoff store — written atomically, keyed per exact canonical directory so nothing borrows an ancestor's, and skipped by resume, fork and reload
-- **inputs** — extensions/nana-handoff.ts, a nana-pack.json and the handoff store under a temp HOME, and throwaway repositories and worktrees
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, store files, repository fixtures), process (sets HOME, PI_CODING_AGENT_DIR for one block, spawns a child session)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
-
-### `packages/nana-pack/tests/handoff-symlink.test.mjs`
-
-- **purpose** — Pins that a custom handoff.path is never read or written THROUGH a symlink the repository controls, so no link target reaches the system prompt or gets overwritten
-- **inputs** — extensions/nana-handoff.ts, a nana-pack.json naming a symlinked handoff path, and a temp HOME
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, symlinks and their targets), process (sets HOME and USERPROFILE)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
-
-### `packages/nana-pack/tests/handoff-trust.test.mjs`
-
-- **purpose** — Pins that a repository-committed `.pi/handoff.md` never reaches the system prompt even when pi calls the folder trusted — the session gets one bounded pointer and a journal line
-- **inputs** — extensions/nana-handoff.ts, a committed legacy handoff file in a temp project, and a temp HOME
-- **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (temp HOME, temp project, journal), process (sets HOME and USERPROFILE)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
-- **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/tmp-dir.mjs`
-
 ### `packages/nana-pack/tests/handoff-writer-role.test.mjs`
 
 - **purpose** — Pins that a session whose launcher set NANA_HANDOFF=off neither picks up nor writes the handoff, and that the role is never inferred from the tool list or the UI
@@ -3185,7 +3135,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, store files, a scratch git repository under the OS temp dir), process (sets HOME and NANA_HANDOFF, spawns pi-review with the stub pi on PATH, cwd the scratch repo)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/identity-scan.test.mjs`
 
@@ -3685,7 +3635,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The validated package root and the source used to resolve it.
 - **effects** — process (runs npm or PATH lookup commands), disk (reads package metadata).
 - **errors** — Throws an Error naming each candidate that could not be resolved.
-- **callers** — `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-setup/tests/install-check-builder-env.test.mjs`
+- **callers** — `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-setup/tests/install-check-builder-env.test.mjs`
 - **callees** — —
 - **repo-code launches** — line 30: spawn · line 38: spawn
 
@@ -3890,7 +3840,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Repository helpers, ledger builders, a caller-scoped page writer, the artifact-flow ledger, assessment fixtures, runtime files, rendered nodes and bounded async results.
 - **effects** — disk (temporary fixture files), process (git and isolated VM scripts).
 - **errors** — Fixture errors and per-case timeouts throw to the calling test.
-- **callers** — `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`
+- **callers** — `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`
 - **callees** — `scripts/product-report.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/requirement-rows.test.mjs`
@@ -3921,7 +3871,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (creates fixtures under the OS temp directory), process (runs git and the tree checker)
 - **errors** — A failed check prints its reason and exits non-zero.
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/requirements-tree.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
+- **callees** — `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/requirements-tree.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
 - **repo-code launches** — line 50: spawnSync
 
 ### `packages/nana-pack/tests/requirements-lift.test.mjs`
@@ -4144,6 +4094,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-pack/tests/blast-radius.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map-launch-config.mjs`, `scripts/code-map-launch.mjs`, `scripts/code-map.mjs`, `scripts/code-search-config.mjs`, `scripts/code-search.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`, `scripts/test.mjs`
 - **unresolved launches** — line 113: spawn · line 512: spawn · line 621: spawnSync · line 633: spawnSync
 
+### `packages/nana-pack/tests/setup-retire.test.mjs`
+
+- **purpose** — Pin adoption discovery and legacy configuration compatibility during setup retirement.
+- **inputs** — Real pi resource discovery, temporary homes and repositories, real adoption hook.
+- **outputs** — Awaited bounded PASS/FAIL cases.
+- **effects** — disk (OS temporary fixtures), process (bounded hook child).
+- **errors** — Assertions and case deadlines fail the run.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-adoption.mjs`
+
 ### `packages/nana-pack/tests/skill-claims.mjs`
 
 - **purpose** — Judge path, package-script, flag, and nana-command claims on one declared surface.
@@ -4269,7 +4229,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/blast-radius.test.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-handlers-malformed.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/credential-gate.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/gate-config-robustness.test.mjs`, `packages/nana-pack/tests/gate-corpus.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-rm-inside.test.mjs`, `packages/nana-pack/tests/gate-rm-outside.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/gate-status.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-artifact.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/handoff-staleness.test.mjs`, `packages/nana-pack/tests/handoff-store.test.mjs`, `packages/nana-pack/tests/handoff-symlink.test.mjs`, `packages/nana-pack/tests/handoff-trust.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/identity-scan.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/keep-movement.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-watcher.test.mjs`, `packages/nana-pack/tests/lane-write-guard.test.mjs`, `packages/nana-pack/tests/leak-scan.test.mjs`, `packages/nana-pack/tests/lifecycle-journal.test.mjs`, `packages/nana-pack/tests/lifecycle-reload.test.mjs`, `packages/nana-pack/tests/line-endings.test.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/main-ci.test.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-replay.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/pwsh-oracle.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-pack/tests/release-status.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/requirements-unclaimed.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-standard.test.mjs`, `packages/nana-pack/tests/review-test-waits.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/skill-claims.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/template-release.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/ts-syntax-check.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-pack/tests/writing-trial-extractor.test.mjs`
+- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/blast-radius.test.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/build-report.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-handlers-malformed.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/credential-gate.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/gate-config-robustness.test.mjs`, `packages/nana-pack/tests/gate-corpus.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-rm-inside.test.mjs`, `packages/nana-pack/tests/gate-rm-outside.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/gate-status.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/identity-scan.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/keep-movement.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-watcher.test.mjs`, `packages/nana-pack/tests/lane-write-guard.test.mjs`, `packages/nana-pack/tests/leak-scan.test.mjs`, `packages/nana-pack/tests/lifecycle-journal.test.mjs`, `packages/nana-pack/tests/lifecycle-reload.test.mjs`, `packages/nana-pack/tests/line-endings.test.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/main-ci.test.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-replay.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/outcome-meter.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/pwsh-oracle.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-pack/tests/release-status.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-moved.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/requirements-unclaimed.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-standard.test.mjs`, `packages/nana-pack/tests/review-test-waits.test.mjs`, `packages/nana-pack/tests/review-timeline.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-pack/tests/skill-claims.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/template-release.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/ts-syntax-check.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-pack/tests/writing-trial-extractor.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/tests/ts-syntax-check.test.mjs`
@@ -4386,7 +4346,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temp HOME, agent dirs, journal and disposable rule/config fixtures only — the shipped rule file is read at most, never written), process (sets HOME/USERPROFILE/PI_CODING_AGENT_DIR, clears the worker handoff override; spawns bounded Node subprocesses for config, FIFO and oversized-file fixtures; dynamically imports the installed pi package when present)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-handoff.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/writing-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/writing-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/writing-trial-extractor.test.mjs`
 
@@ -4435,7 +4395,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — adoption and stale-copy output, or each producer's fail-open marker.
 - **effects** — process (runs the adoption and stale-copy CLIs).
 - **errors** — producer failures become unavailable markers; a stdout error, such as a reader that closed it, is ignored and the hook exits 0.
-- **callers** — `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`
+- **callers** — `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`
 - **callees** — `packages/nana-setup/lib/hook-producer.mjs`
 - **repo-code launches** — line 17: runHookProducer · line 18: runHookProducer
 

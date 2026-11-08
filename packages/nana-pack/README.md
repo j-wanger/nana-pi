@@ -1470,7 +1470,7 @@ project config never contributes to either one, trusted or not.
   a code span (`lib/display.mjs` `codeSpan`: nothing escaped); a claim that is relative, the filesystem root, over 512
   characters, holds a control, line-separator or bidi character or a backtick, or carries a future/unparseable `ts` is never printed —
   only counted (`N entries were not printable`). Counting is the READER's, not end-to-end: the
-  producer (`extensions/nana-handoff.ts`) checks the same `printable(root)` before journaling, so a root it
+  producer (`extensions/nana-adoption.ts`) checks the same `printable(root)` before journaling, so a root it
   refuses is never written and never reaches that count. A journal that exists but cannot be read prints
   `ADOPTION UNAVAILABLE: <why>`; only an absent one is silent. A dismissal marker of any type
   (file, directory, symlink) counts: it is a decision record whose content is never read. A root is

@@ -1,0 +1,54 @@
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 545 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+
+> nana-pi@0.5.0 req:tree
+> node scripts/requirements-tree.mjs --write
+
+line 114: FEAT-001 Also applies: R-122 is retired
+line 171: FEAT-002 Also applies: R-185 is retired
+line 814: FEAT-006 Also applies: R-137 is retired
+line 965: FEAT-007 Also applies: R-137 is retired
+line 90: CAP-01 Deliverables: R-001, R-108, R-873, R-201, R-217, R-749 R-108 is retired
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 872 claims checked; 1 problem(s)
+  packages/nana-pack/README.md:1473: 'extensions/nana-handoff.ts' does not exist
+setup: row anchor must exist and be planned, untested or violated (R-3801)
+setup: row anchor must exist and be planned, untested or violated (R-3804)
+stale: compass 26 commits since a2ad3f21
+stale: setup 33 commits since a2ad3f21
+stale: key-cabinet 706 commits since a2ad3f21
+stale: night-shift 706 commits since a2ad3f21
+stale: requirement-contract 195 commits since a2ad3f21
+stale: command-gate 83 commits since a2ad3f21
+unclaimed: packages/nana-pack/bin/leak-scan.mjs
+unclaimed: packages/nana-pack/bin/nana-ci-wait.mjs
+unclaimed: packages/nana-pack/bin/nana-curate.mjs
+unclaimed: packages/nana-pack/bin/nana-main-ci.mjs
+unclaimed: packages/nana-pack/bin/nana-memory.mjs
+unclaimed: packages/nana-pack/bin/nana-profile.mjs
+unclaimed: scripts/code-map-launch-config.mjs
+unclaimed: scripts/glob-match.mjs
+unclaimed: scripts/memory-curate.mjs
+unclaimed: scripts/memory-make.mjs
+unclaimed: scripts/memory-replay.mjs
+unclaimed: scripts/memory-run.mjs
+unclaimed: scripts/memory-score.mjs
+unclaimed: scripts/memory-shape-runners.mjs
+unclaimed: scripts/memory-shape.mjs
+unclaimed: scripts/outcome-compare.mjs
+unclaimed: scripts/outcome-meter.mjs
+unclaimed: scripts/outcome-score.mjs
+unclaimed: scripts/reader-common.mjs
+unclaimed: scripts/visual-reader-config.mjs
+unclaimed: scripts/visual-reader.mjs
+unclaimed: 21 of 270 mapped modules
+(node:22881) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://./templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to ./package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

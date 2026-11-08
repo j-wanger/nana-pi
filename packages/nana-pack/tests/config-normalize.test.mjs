@@ -37,7 +37,6 @@ const LEAVES = {
 	gate: { extraPatterns: ["regex", ["\\bterraform\\s+destroy\\b"]], allowPatterns: ["regex", ["^ls\\b"]], protectedPaths: ["regex", ["secrets\\.txt"]] },
 	notify: { enabled: ["bool", false], headless: ["bool", true] },
 	journal: { enabled: ["bool", false], path: ["path", path.join(tmpDir(path.join(os.tmpdir(), "norm-j-")), "j.jsonl")] },
-	handoff: { enabled: ["bool", false], path: ["path", "/tmp/nana-h.md"], staleAfterDays: ["days", 3] },
 	objective: { enabled: ["bool", false], path: ["path", "/tmp/nana-o.md"], projectFile: ["path", "OBJECTIVE.md"] },
 	writing: { enabled: ["bool", false] },
 	receipts: { enabled: ["bool", false], dir: ["path", "/tmp/nana-r"] },
@@ -46,7 +45,6 @@ const DEFAULTS = {
 	gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [] },
 	notify: { enabled: true, headless: false },
 	journal: { enabled: true, path: null },
-	handoff: { enabled: true, path: null, staleAfterDays: 7 },
 	objective: { enabled: true, path: null, projectFile: null },
 	writing: { enabled: true },
 	receipts: { enabled: true, dir: null },
@@ -73,7 +71,6 @@ function isTyped(c) {
 		&& (c.gate.stopReason === null || typeof c.gate.stopReason === "string")
 		&& typeof c.notify.enabled === "boolean" && typeof c.notify.headless === "boolean"
 		&& typeof c.journal.enabled === "boolean" && nul(c.journal.path)
-		&& typeof c.handoff.enabled === "boolean" && nul(c.handoff.path) && typeof c.handoff.staleAfterDays === "number" && c.handoff.staleAfterDays > 0
 		&& typeof c.objective.enabled === "boolean" && nul(c.objective.path) && nul(c.objective.projectFile)
 		&& typeof c.writing.enabled === "boolean"
 		&& typeof c.receipts.enabled === "boolean" && nul(c.receipts.dir);
@@ -193,10 +190,6 @@ console.log(`${fails ? "FAIL" : "PASS"} matrix: ${total - failed.length}/${total
 for (const f of failed.slice(0, 20)) console.log("  FAIL", f);
 
 // ── named cases ──
-for (const v of [0, -1, 1e400]) {
-	const r = load(env({ user: { handoff: { staleAfterDays: v } } }));
-	named(`handoff.staleAfterDays=${v}: not a positive finite number → default 7`, !r.threw && r.cfg.handoff.staleAfterDays === 7);
-}
 {
 	const r = load(env({ user: { objective: { path: 7 } } }));
 	named("sol {objective:{path:7}}: no throw, path = null (default)", !r.threw && r.cfg.objective.path === null && r.cfg.objective.enabled === true);

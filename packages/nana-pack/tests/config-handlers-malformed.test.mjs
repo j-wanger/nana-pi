@@ -18,7 +18,7 @@ import * as path from "node:path";
 // shown as one UI warning per session when a UI exists.
 // Each variant: fresh temp HOME + USERPROFILE, fresh workspace, fresh registrations.
 // Run: node --experimental-strip-types <this file>
-const EXT = ["nana-gate", "nana-objective", "nana-handoff", "nana-lifecycle", "nana-writing", "nana-roster-notice"];
+const EXT = ["nana-gate", "nana-objective", "nana-adoption", "nana-lifecycle", "nana-writing", "nana-roster-notice"];
 const exts = {};
 for (const n of EXT) exts[n] = (await import(new URL(`../extensions/${n}.ts`, import.meta.url).href)).default;
 
@@ -30,10 +30,10 @@ const VARIANTS = [
 	...[null, 7, "x", [], true].map((v) => [`whole file = ${JSON.stringify(v)}`, JSON.stringify(v), 1]),
 	["trailing-comma file (Opus)", '{ "notify": { "headless": false }, }', 1],
 	["binary garbage", "\u0000ÿ{{", 1],
-	...["gate", "notify", "journal", "handoff", "objective", "receipts"].map((b) => [`${b} = 7`, JSON.stringify({ [b]: 7 }), 1]),
+	...["gate", "notify", "journal", "objective", "receipts"].map((b) => [`${b} = 7`, JSON.stringify({ [b]: 7 }), 1]),
 	["sol postEdit.commands = null", JSON.stringify({ postEdit: { commands: null } }), 0],
 	["sol objective.path = 7", JSON.stringify({ objective: { path: 7 } }), 1],
-	["handoff.path = []", JSON.stringify({ handoff: { path: [] } }), 1],
+	["handoff.path = []", JSON.stringify({ handoff: { path: [] } }), 0],
 	["journal.path = 7", JSON.stringify({ journal: { path: 7 } }), 1],
 	["receipts.dir = 42", JSON.stringify({ receipts: { dir: 42 } }), 1],
 	["notify.enabled = \"x\"", JSON.stringify({ notify: { enabled: "x" } }), 1],

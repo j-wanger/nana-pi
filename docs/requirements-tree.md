@@ -6,20 +6,20 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
   Parent: — · Rows: 494 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863, R-2970–R-2977, R-2979, R-2990–R-2999, R-3188–R-3219, R-3230–R-3269, R-3290–R-3336, R-3340–R-3342, R-3350–R-3362, R-3370–R-3389, R-3410, R-3411, R-3437, R-3470–R-3474, R-3526–R-3529, R-3532–R-3537, R-3560–R-3577, R-3650, R-3698–R-3705, R-3726–R-3738, R-3747–R-3756, R-3835–R-3839
   Kind: product
-  Deliverables: R-001, R-108, R-873, R-201, R-217, R-749
+  Deliverables: R-001, R-873, R-201, R-217, R-749
   - **FEAT-001 · Keep goals and priorities in view**
     Purpose: Provide the governing project objective and preserve its precedence over background context.
     Status: active
-    Also applies: R-021, R-022, R-122, R-191, R-634, R-687, R-781, R-819
+    Also applies: R-021, R-022, R-191, R-634, R-687, R-781, R-819
     Parent: CAP-01 · Rows: 43 · IDs: R-001–R-020, R-641, R-659, R-758, R-1410–R-1418, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2283–R-2285, R-3437
     Artifacts: A-001, A-049, A-050
     Reads: A-010, A-011, A-014
   - **FEAT-002 · Resume decisions and next actions**
     Purpose: Carry compaction summaries and a clear handoff frontier into later work without presenting past agent output as authority.
     Status: active
-    Also applies: R-079, R-139, R-185, R-634, R-641, R-781
+    Also applies: R-079, R-139, R-634, R-641, R-781
     Parent: CAP-01 · Rows: 105 · IDs: R-108–R-138, R-140–R-142, R-189, R-244, R-245, R-248, R-682, R-795–R-803, R-805–R-808, R-828, R-830, R-873–R-880, R-2160, R-2470–R-2473, R-2504–R-2510, R-2606–R-2613, R-2970–R-2977, R-2979, R-2990–R-2999, R-3650, R-3703–R-3705
-    Artifacts: A-002, A-003, A-084, A-051
+    Artifacts: A-003, A-084, A-051
     Reads: A-011, A-030, A-046, A-069
     - **SUB-001 · Write and identify a compaction summary**
       Purpose: Find the correct store, write the summary atomically and report its origin and any write failure.
@@ -99,14 +99,14 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   - **FEAT-006 · Launch builders with execution limits**
     Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits, and keep one record of each build; semantic change scope is a separate proposed feature.
     Status: active
-    Also applies: R-137, R-623, R-700, R-702, R-728, R-831, R-846, R-1890, R-1891, R-1892, R-1893, R-2584, R-2652
+    Also applies: R-623, R-700, R-702, R-728, R-831, R-846, R-1890, R-1891, R-1892, R-1893, R-2584, R-2652
     Parent: CAP-02 · Rows: 133 · IDs: R-285, R-286, R-628, R-732–R-735, R-847, R-960–R-963, R-965, R-966, R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1400–R-1407, R-1430–R-1433, R-1634, R-1636, R-2270–R-2273, R-2578–R-2583, R-2585, R-2596–R-2603, R-2616–R-2621, R-2646–R-2651, R-2653–R-2655, R-2662, R-2664, R-2665, R-2691–R-2694, R-2720–R-2728, R-2803, R-2950–R-2956, R-3010–R-3013, R-3020–R-3026, R-3030, R-3031, R-3070, R-3436, R-3520–R-3522, R-3524, R-3525, R-3660–R-3667, R-3685, R-3686, R-3716–R-3719
     Artifacts: A-006, A-079, A-080, A-083
     Reads: A-010, A-011, A-023, A-051, A-061
   - **FEAT-007 · Review a specific revision independently**
     Purpose: Review an identified snapshot with controlled rounds, role isolation, liveness and attributable verdicts.
     Status: active
-    Also applies: R-137, R-2603, R-1125
+    Also applies: R-2603, R-1125
     Parent: CAP-02 · Rows: 173 · IDs: R-139, R-192, R-246, R-249, R-620–R-625, R-700–R-731, R-831–R-846, R-850–R-855, R-919, R-967–R-974, R-992, R-1008, R-1010, R-1105–R-1108, R-1350–R-1354, R-1370–R-1378, R-1390–R-1395, R-1560–R-1565, R-1620–R-1623, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2430–R-2432, R-2560–R-2576, R-2660, R-2900–R-2908, R-2910–R-2913, R-3757–R-3764
     Artifacts: A-007, A-008, A-056, A-057, A-058
     Reads: A-011
@@ -194,7 +194,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: R-345, R-383, R-578, R-579, R-583, R-673, R-674, R-681, R-687, R-740, R-1000, R-1001
     Parent: CAP-04 · Rows: 116 · IDs: R-143–R-158, R-327–R-340, R-385, R-395, R-581, R-582, R-590–R-592, R-640, R-645–R-647, R-676, R-683, R-737, R-738, R-741, R-809–R-813, R-849, R-858, R-859, R-928–R-931, R-986–R-989, R-1100–R-1104, R-1126, R-1127, R-1142, R-1150–R-1153, R-1193, R-1213, R-1214, R-1300, R-1310–R-1312, R-1321, R-1360, R-1440–R-1443, R-1670, R-1780–R-1782, R-2050–R-2052, R-2420–R-2423, R-2559, R-2584, R-2623–R-2628, R-2652, R-2760–R-2765, R-2850–R-2852
     Artifacts: A-014, A-015, A-046, A-047, A-067, A-068, A-069, A-070
-    Reads: A-002, A-003, A-004, A-011, A-025, A-038
+    Reads: A-003, A-004, A-011, A-025, A-038
     - **SUB-016 · Recognize projects that need adoption**
       Purpose: Detect eligible repository roots and report actionable adoption candidates with bounded, honest and safely rendered signals.
       Parent: FEAT-014 · Rows: 37 · IDs: R-143–R-157, R-640, R-645–R-647, R-809–R-813, R-2623–R-2627, R-2760, R-2761, R-2763–R-2765, R-2850–R-2852
@@ -403,7 +403,6 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-781 | FEAT-011 | FEAT-001, FEAT-002, FEAT-023, FEAT-030 | 4 |
 | R-079 | FEAT-009 | FEAT-002, FEAT-010, FEAT-030 | 3 |
 | R-190 | FEAT-013 | FEAT-009, FEAT-010, FEAT-011 | 3 |
-| R-137 | FEAT-002 | FEAT-006, FEAT-007 | 2 |
 | R-378 | FEAT-013 | FEAT-015, FEAT-018 | 2 |
 | R-634 | FEAT-011 | FEAT-001, FEAT-002 | 2 |
 | R-641 | FEAT-001 | FEAT-002, FEAT-005 | 2 |
@@ -417,11 +416,9 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-074 | FEAT-009 | FEAT-011 | 1 |
 | R-078 | FEAT-009 | FEAT-011 | 1 |
 | R-081 | FEAT-011 | FEAT-010 | 1 |
-| R-122 | FEAT-002 | FEAT-001 | 1 |
 | R-139 | FEAT-007 | FEAT-002 | 1 |
 | R-183 | FEAT-012 | FEAT-010 | 1 |
 | R-184 | FEAT-012 | FEAT-010 | 1 |
-| R-185 | FEAT-012 | FEAT-002 | 1 |
 | R-188 | FEAT-012 | FEAT-011 | 1 |
 | R-191 | FEAT-013 | FEAT-001 | 1 |
 | R-193 | FEAT-011 | FEAT-015 | 1 |
