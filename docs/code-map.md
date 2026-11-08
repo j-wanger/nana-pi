@@ -821,7 +821,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 ### `scripts/template-acceptance.mjs`
 
 - **purpose** — Render and run every native check job for both templates and adoption modes at one immutable commit.
-- **inputs** — CLI source/ref and injectable child-process runner.
+- **inputs** — CLI source/ref, optional programmatic mode-prefix filter and injectable child-process runner.
 - **outputs** — One failure report per failed command and a process exit status.
 - **effects** — process (git, copier, and package-manager children), disk (temporary renders).
 - **errors** — Missing tools, render failures, timeouts, or check failures return status 1.
