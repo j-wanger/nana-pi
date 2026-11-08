@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/path-spelling.test.mjs
  * @purpose Pins GP1-GP7 (W7c): the land and review tools treat two spellings of one folder — another
  *  letter case, an 8.3 short name, a link, a `\\?\` prefix or another Unicode form — as one folder.
- * @inputs bin/review-ledger.mjs, bin/pi-review.mjs, bin/nana-land.mjs, bin/review-round.mjs, a fake pi on
+ * @inputs lib/review-run.mjs, bin/pi-review.mjs, bin/nana-land.mjs, bin/review-round.mjs, a fake pi on
  *  PATH, and temporary git repositories and worktrees built under a temporary HOME
  * @outputs PASS/FAIL/SKIP lines per check on stdout, and a nonzero exit when any check fails
  * @effects disk (temp HOME, git repositories, worktrees, symlinks/junctions, ledger files), process
@@ -11,6 +11,7 @@
  *  propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { reviewRunHarness } from './review-run-harness.mjs';
 import { writeFakePi } from "./fake-pi.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -20,9 +21,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin");
 const PI_REVIEW = path.join(bin, "pi-review.mjs");
-const LEDGER_CLI = path.join(bin, "review-ledger.mjs");
 const { runLand, runCleanup } = await import(pathToFileURL(path.join(bin, "nana-land.mjs")).href);
-const { admit, complete, readRounds } = await import(pathToFileURL(path.join(bin, "review-round.mjs")).href);
+const { admit, complete, readRounds, repoKeyOf } = await import(pathToFileURL(path.join(bin, "review-round.mjs")).href);
 
 const win32 = process.platform === "win32";
 // chosen: an impossible owner outside the platform pid range.
@@ -32,6 +32,7 @@ const IMPOSSIBLE_PID = 2_147_483_647;
 // spelling every repo and home built under it inherits for free. Each "canonical" ground truth
 // below is still resolved explicitly, on its own, where it is declared.
 const tmpRoot = tmpDir(path.join(os.tmpdir(), "path-spelling-test-"));
+const LEDGER_CLI = reviewRunHarness(tmpRoot);
 
 // ---------------------------------------------------------------- the fake pi (every launch "LAND"s)
 // MODE=lock (GP5): the fake pi locks its own cwd (the review checkout) before answering, so
@@ -140,7 +141,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
 
 // ================================================================= GP1 (R-1350)
 // WHEN --out names a tracked file of the reviewed tree through a second spelling of a folder on
-// its path, review-ledger run/check and pi-review shall refuse it before the review runs.
+// its path, shared review runner/check and pi-review shall refuse it before the review runs.
 {
   const gp1Repo = repo(tmpRoot, "gp1-repo");
   commit(gp1Repo, "tracked.md", "keep\n", "base");
@@ -149,7 +150,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   // MUST 4 (brief 2): `\\?\` is GP1-only (must-meet.md), not a general otherSpellings() kind.
   if (win32) spellings.push({ kind: "unc-prefix", path: `\\\\?\\${canonical}` });
   // req: R-1350
-  if (spellings.length) check("GP1: a tracked --out reached through a second spelling of a folder on its path is refused before the review runs (review-ledger run, review-ledger check, pi-review)", () => {
+  if (spellings.length) check("GP1: a tracked --out reached through a second spelling of a folder on its path is refused before the review runs (shared review runner, review-ledger check, pi-review)", () => {
    for (const { kind, path: spelled } of spellings) {
     printSpelling("GP1", kind, canonical, spelled);
     const outPath = path.join(spelled, "tracked.md");
@@ -179,7 +180,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     }
    }
   });
-  else console.log(skipMsg("GP1: a tracked --out reached through a second spelling of a folder on its path is refused before the review runs (review-ledger run, review-ledger check, pi-review)"));
+  else console.log(skipMsg("GP1: a tracked --out reached through a second spelling of a folder on its path is refused before the review runs (shared review runner, review-ledger check, pi-review)"));
 }
 
 // -- GP1 case divergence (MUST 1 of brief 2): a case-only folder rename (`git mv X tmp; git mv tmp
@@ -238,7 +239,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
 
 // ================================================================= GP2 (R-1351)
 // WHEN --out names an untracked, non-ignored in-tree file through a second spelling of a folder
-// on its path, pi-review and review-ledger run shall warn, run the review and leave the file out
+// on its path, pi-review and shared review runner shall warn, run the review and leave the file out
 // of the review's snapshot and (pi-review) out of the review checkout.
 {
   const gp2Repo = repo(tmpRoot, "gp2-repo");
@@ -350,7 +351,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
 }
 
 // ================================================================= GP3 (R-1352)
-// WHEN one repository is reviewed through two spellings of its folder, review-ledger run,
+// WHEN one repository is reviewed through two spellings of its folder, shared review runner,
 // pi-review and review-ledger report --repo shall use one repository key.
 {
   const gp3Repo = repo(tmpRoot, "gp3-repo");
@@ -379,12 +380,10 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     ok(repoKeys.size === 1, `expected one repo key across all three rounds, got ${[...repoKeys]}`);
     commit(gp3Repo, `c4-${kind}.txt`, "c4\n", "c4");
     const r4 = spawnSync(process.execPath, [LEDGER_CLI, "run", "--item", item, "--tree", spelled, "--out", path.join(tmpRoot, `gp3-out4-${kind}.md`), "--", process.execPath, "-e", "console.log('VERDICT: LAND')"], { cwd: scratch, env: env(home), encoding: "utf8" });
-    ok(r4.status === 1, `round 4 should be over the cap, got exit ${r4.status}`);
-    ok(/over the cap/.test(r4.stderr), `round 4 did not refuse over the cap: ${r4.stderr}`);
+    ok(r4.status === 0, `round 4 should record without a cap: ${r4.stderr}`);
     for (const repoArg of [spelled, canonical]) {
-      const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", item, "--repo", repoArg], { cwd: canonical, env: env(home), encoding: "utf8" });
-      const lines = report.stdout.trim().split(/\r?\n/).filter(Boolean);
-      ok(report.status === 0 && lines.length === 3, `report --repo ${repoArg} printed ${lines.length} lines, expected 3: ${report.stdout} ${report.stderr}`);
+      const reported = readRounds(home, {item, repo: repoKeyOf(repoArg)});
+      ok(reported.length === 4, `store reader under either spelling must return four records: ${reported.length}`);
     }
    }
   });

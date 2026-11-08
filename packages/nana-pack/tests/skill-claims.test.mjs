@@ -127,7 +127,7 @@ check("a missing script flag is rejected by the reused flag judge", judgeClaims(
 // req: R-629
 check("a missing nana-command flag is rejected", judgeClaims({ surface: actualShared, root: REPO, targets: cwdTargets, text: working.replace("--brief <file>", "--brieff <file>") }).flagProblems.some((p) => p.includes("--brieff")));
 // req: R-629
-check("a declared nana subcommand absent from its source is rejected", judgeClaims({ surface: "requirements", root: REPO, targets: cwdTargets, text: "`review-ledger reports`" }).flagProblems.some((p) => p.includes("reports")));
+check("a declared nana subcommand absent from its source is rejected", judgeClaims({ surface: "requirements", root: REPO, targets: cwdTargets, text: "`pi-review reports`" }).flagProblems.some((p) => p.includes("reports")));
 const claimCount = checkoutJudgements.reduce((n, { result }) => n + result.claims, 0);
 const unjudged = checkoutJudgements.flatMap(({ result }) => result.unjudgedCommands);
 // req: R-599

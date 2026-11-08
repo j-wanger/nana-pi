@@ -13,7 +13,7 @@
 // DISK (case, long name, resolved symlink), which is what git already prints, while JS realpathSync keeps
 // a typed case, an 8.3 short name or a lowercase drive letter. No case folding: native already returns the
 // case on disk, and folding would change every Windows ledger key once (see review-round.mjs, nana-land.mjs,
-// review-ledger.mjs). Where native lookup fails, the fallback uses typed spelling, so spelling guarantees
+// review-run.mjs). Where native lookup fails, the fallback uses typed spelling, so spelling guarantees
 // hold only where native lookup works. No `\\?\` strip: libuv's native resolver is believed to remove it
 // already (inferred; a Windows-only spelling in the must-meet tests measures this).
 import { realpathSync, lstatSync } from 'node:fs';

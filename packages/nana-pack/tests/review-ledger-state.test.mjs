@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/review-ledger-state.test.mjs
  * @purpose Pins the per-item review ledger's identity, tally, audit, snapshot, completion and report through REAL processes against real git repositories
- * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, bin/review-ledger.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME, all set up by review-ledger-fixture.mjs
+ * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, lib/review-run.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME, all set up by review-ledger-fixture.mjs
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi, git, and icacls on Windows)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -16,9 +16,9 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, tal
 {
 	freshHome("3");
 	for (let i = 0; i < 3; i++) reviewAt("CaseItem", i);
-	check("'caseitem' after 3 rounds of 'CaseItem' refused (one item)", reviewAt("caseitem", 3).status === 1);
+	check("'caseitem' shares canonical item after three rounds", reviewAt("caseitem", 3).status === 0 && roundsOf("caseitem").length === 4);
 	for (let i = 0; i < 3; i++) reviewAt("scope one", i);
-	check("'scope  one' after 3 rounds of 'scope one' refused", reviewAt(" Scope  ONE ", 3).status === 1);
+	check("'scope  one' shares the canonical item", reviewAt(" Scope  ONE ", 3).status === 0 && roundsOf("scope one").length === 4);
 	// chosen 20000: over SLUG_MAX (128, so still refused) and under Windows' 32,767-character
 	// command-line limit (CreateProcess), so the refusal is observed rather than a spawn error.
 	for (const bad of ["../item", "a/b", "..", "x".repeat(20000)]) {
@@ -44,7 +44,7 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, tal
 	A.at(3, W);
 	const w4 = ledgerRun(["--item", "wt"], { cwd: W });
 	// req: R-705
-	check("worktree W2 at a 4th revision: refused (the item is shared)", w4.status === 1 && /over the cap/.test(w4.stderr), `${w4.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
+	check("worktree W2 at a 4th revision: same item and admitted", w4.status === 0 && roundsOf("wt").length === 4, `${w4.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	// req: R-624
 	check("outside git refuses admission unless --tree names a reviewed repository",
 		ledgerRun(["--item", "plain", "--revision", "abc"], { cwd: plain }).status === 1 &&
@@ -69,7 +69,6 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, tal
 	const nestedOut = out(), selectedOut = out();
 	const fromNestedLauncher = ledgerRun(["--item", "cwd-default"], { cwd: nestedLauncher, cmd: cwdCommand, outFile: nestedOut });
 	const fromSelectedTree = ledgerRun(["--item", "cwd-tree", "--tree", nestedTree], { cwd: nestedLauncher, cmd: cwdCommand, outFile: selectedOut });
-	// req: R-729
 	check("review-ledger child executes from selected directory, not repository root",
 		fromNestedLauncher.status === 0 && fromSelectedTree.status === 0 &&
 		fs.readFileSync(nestedOut, "utf8").split(/\r?\n/)[0] === nestedLauncher &&
@@ -94,9 +93,9 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, tal
 		gen1.some((r) => r.item === "other0") && !gen1.some((r) => r.item === "rot") && !jsonl(auditFile).some((r) => r.item === "rot"));
 	const r = reviewAt("rot", 3);
 	// req: R-722
-	check("after two rotations, item rot's 4th revision is still refused", r.status === 1 && /3 round\(s\) used/.test(r.stderr), r.stderr);
+	check("after two rotations the prior three revisions remain counted", r.status === 0 && /3 round\(s\) used/.test(r.stderr), r.stderr);
 	// req: R-721
-	check("the tally never rotates", !fs.existsSync(tallyFile + ".1") && roundsOf("rot").length === 3);
+	check("the tally never rotates", !fs.existsSync(tallyFile + ".1") && roundsOf("rot").length === 4);
 }
 
 // 9. malformed tally → admission refused with the line number (sol r1 #7)
@@ -107,7 +106,7 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, tal
 	ls[1] = ls[1].slice(0, 25);
 	fs.writeFileSync(tallyFile, ls.join("\n"));
 	const r = reviewAt("mal", 4);
-	// req: R-843 R-3455
+	// req: R-843
 	check("a corrupted round line refuses admission with file:line", r.status === 1 && /rounds\.jsonl:2: malformed record/.test(r.stderr) && noStack(r), r.stderr);
 	fs.writeFileSync(tallyFile, ls.filter((_, i) => i !== 1).join("\n"));
 	check("…deleting the line is the documented repair (2 rounds left → admitted)", reviewAt("mal", 4).status === 0);
@@ -222,36 +221,14 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, tal
 	A.at(1);
 	const c = ledgerCheck(["--item", "ck"]);
 	fs.chmodSync(resDir, 0o755);
-	// req: R-726
-	check("check with a read-only reservations dir succeeds (it writes nothing)", c.status === 0 && /would be round 2\/3/.test(c.stdout), c.stderr + c.stdout);
-	// req: R-726
+	check("check with a read-only reservations dir succeeds (it writes nothing)", c.status === 0 && /would be round 2/.test(c.stdout), c.stderr + c.stdout);
 	check("check changed neither the tally, the audit nor the reservations (captured before check)",
 		tallyBefore.length > 0 && tallyBefore === fs.readFileSync(tallyFile, "utf8") && auditBefore === fs.readFileSync(auditFile, "utf8") &&
 		resBefore === "held.json" && fs.readdirSync(resDir).sort().join(",") === resBefore);
 	fs.rmSync(path.join(resDir, "held.json"));
 	freshHome("11b");
 	const c2 = ledgerCheck(["--item", "nothing"]);
-	// req: R-726
 	check("check on a machine with no ledger creates nothing", c2.status === 0 && !fs.existsSync(agent), c2.stderr);
-}
-
-// 12. --over-cap: a flag is not a reason; a real reason is recorded with a timestamp
-{
-	freshHome("12");
-	for (let i = 0; i < 3; i++) reviewAt("over", i);
-	A.at(3);
-	const spoof = piReview(["--item", "over", "--out", out(), "--over-cap", "--retries", "1"]);
-	check("--over-cap --retries is refused (a flag is not a reason)", spoof.status === 1 && /--over-cap needs a value/.test(spoof.stderr), spoof.stderr);
-	const blank = piReview(["--item", "over", "--out", out(), "--over-cap", "  "]);
-	check("--over-cap '  ' is refused", blank.status === 1);
-	check("no override was recorded by the spoofs", !jsonl(auditFile).some((l) => l.kind === "override"));
-	const ok = piReview(["--item", "over", "--out", out(), "--over-cap", "instrumented X"]);
-	const ov = jsonl(auditFile).filter((l) => l.kind === "override" && l.item === "over");
-	check("--over-cap 'instrumented X' runs", ok.status === 0, ok.stderr);
-	check("the override is recorded with reason, round and timestamp",
-		ov.length === 1 && ov[0].reason === "instrumented X" && ov[0].round === 4 && !Number.isNaN(Date.parse(ov[0].ts)), `${JSON.stringify(ov)} compared: ${pathForms(path.join(A.d, ".git"))}`);
-	check("the over-cap round carries the override in the tally", roundsOf("over").at(-1)?.override === "instrumented X" && roundsOf("over").length === 4,
-		`rounds=${JSON.stringify(roundsOf("over"))} compared: ${pathForms(path.join(A.d, ".git"))}`);
 }
 
 // Repo A as the original file left it for the blocks below: the redirect block's untracked log
@@ -269,15 +246,15 @@ fs.writeFileSync(path.join(A.d, "redirect.log"), "untouched");
 	const t1 = rev();
 	// req: R-708
 	check("dirty tree review → round 1, ledger line {revision:<sha>+snap:<64hex>, head:<sha>, snapshot:<64hex>}",
-		r1.status === 0 && /round 1\/3/.test(r1.stderr) && roundsOf("dirty").length === 1 &&
+		r1.status === 0 && /round 1/.test(r1.stderr) && roundsOf("dirty").length === 1 &&
 		t1.head === D.shas[1] && /^[0-9a-f]{64}$/.test(t1.snapshot) && t1.revision === `${D.shas[1]}+snap:${t1.snapshot}`, r1.stderr + JSON.stringify(t1));
 	fs.writeFileSync(f, "fix two");
 	const r2 = ledgerRun(["--item", "dirty"], { cwd: D.d });
-	check("edit a tracked file (uncommitted) → round 2", r2.status === 0 && /round 2\/3/.test(r2.stderr) && roundsOf("dirty").length === 2 && rev().snapshot !== t1.snapshot, r2.stderr);
+	check("edit a tracked file (uncommitted) → round 2", r2.status === 0 && /round 2/.test(r2.stderr) && roundsOf("dirty").length === 2 && rev().snapshot !== t1.snapshot, r2.stderr);
 	fs.writeFileSync(f, "fix one");
 	const r3 = ledgerRun(["--item", "dirty"], { cwd: D.d });
 	// req: R-711
-	check("revert the edit → original revision recognised, no new round", r3.status === 0 && /round 1\/3/.test(r3.stderr) && /already counted/.test(r3.stderr) && roundsOf("dirty").length === 2, r3.stderr);
+	check("revert the edit → original revision recognised, no new round", r3.status === 0 && /round 1/.test(r3.stderr) && /already counted/.test(r3.stderr) && roundsOf("dirty").length === 2, r3.stderr);
 	gitIn(D.d, "add", "f");
 	const r4 = ledgerRun(["--item", "dirty"], { cwd: D.d });
 	// req: R-710
@@ -286,11 +263,11 @@ fs.writeFileSync(path.join(A.d, "redirect.log"), "untouched");
 	const r5 = ledgerRun(["--item", "dirty"], { cwd: D.d });
 	// req: R-708
 	check("commit the change → a new revision (clean sha, snapshot null), a new round",
-		r5.status === 0 && /round 3\/3/.test(r5.stderr) && roundsOf("dirty").length === 3 && rev().revision === gitIn(D.d, "rev-parse", "HEAD") && rev().snapshot === null, r5.stderr + JSON.stringify(rev()));
+		r5.status === 0 && /round 3/.test(r5.stderr) && roundsOf("dirty").length === 3 && rev().revision === gitIn(D.d, "rev-parse", "HEAD") && rev().snapshot === null, r5.stderr + JSON.stringify(rev()));
 	fs.writeFileSync(f, "fix three");
 	const r6 = ledgerRun(["--item", "dirty", "--revision", "HEAD"], { cwd: D.d });
 	// req: R-713
-	check("explicit --revision HEAD on a dirty tree still carries the snapshot (4th state → refused)", r6.status === 1 && /round 4, over the cap/.test(r6.stderr), r6.stderr);
+	check("explicit --revision HEAD on a dirty tree still carries the snapshot (fourth state admitted)", r6.status === 0 && roundsOf("dirty").length === 4 && /\+snap:/.test(roundsOf("dirty").at(-1).revision), r6.stderr);
 	gitIn(D.d, "checkout", "-q", "--", "f");
 }
 
@@ -647,66 +624,11 @@ fs.writeFileSync(path.join(A.d, "redirect.log"), "untouched");
 		mod.relUnder("/r", "/r") === null && mod.relUnder("/r", "/r/a/..b") === "a/..b");
 }
 
-// 22. the audit is bounded on EVERY append path (T2b r5, astra MUST): a FAILED over-cap launch
-// appends its override and must rotate too. Before the fix only a completed verdict rotated.
-{
-	freshHome("22");
-	for (let i = 0; i < 3; i++) reviewAt("aud", i);
-	A.at(3);
-	fs.writeFileSync(auditFile, '{"v":1,"kind":"pad"}\n'.repeat(Math.ceil((mod.LEDGER_MAX_BYTES + 1) / 21)));
-	const FAIL_CMD = [process.execPath, "-e", "process.exit(1)"];
-	const sizes = [];
-	for (let i = 0; i < 3; i++) {
-		const f = ledgerRun(["--item", "aud", "--over-cap", `retry ${i}`], { cwd: A.d, cmd: FAIL_CMD });
-		sizes.push([f.status, fs.statSync(auditFile).size]);
-	}
-	const rotated = path.join(agent, "review-ledger.jsonl.1");
-	// req: R-722
-	check("repeated FAILED over-cap launches: the audit rotates (never above the cap), overrides still recorded",
-		sizes.every(([st, sz]) => st === 1 && sz <= mod.LEDGER_MAX_BYTES) && fs.existsSync(rotated) &&
-		jsonl(auditFile).filter((l) => l.kind === "override" && l.item === "aud").length === 3 && roundsOf("aud").length === 3, JSON.stringify(sizes));
-}
-
-// 23. round metadata and report are read-only; absent legacy fields render as dashes
-{
-	freshHome("23");
-	A.at(0);
-	const launch = ledgerRun(["--item", "report-item", "--role", "sol", "--over-cap", "not actually over cap"], {
-		cmd: [process.execPath, "-e", "console.log('VERDICT: LAND')", "--", "--provider", "anthropic", "--model", "claude-test-1"],
-	});
-	const current = roundsOf("report-item")[0];
-	const second = ledgerRun(["--item", "report-item", "--role", "astra"], { cmd: [process.execPath, "-e", "console.log('VERDICT: SEND-BACK')"] });
-	const before = fs.readFileSync(tallyFile, "utf8");
-	const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-item"], { cwd: A.d, env: env(), encoding: "utf8" });
-	const repoReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--repo", A.d, "--item", "report-item"], { cwd: A.d, env: env(), encoding: "utf8" });
-	const reportTally = fs.readFileSync(tallyFile, "utf8");
-	for (let i = 0; i < 3; i++) reviewAt("report-over-cap", i);
-	A.at(3);
-	const overCap = ledgerRun(["--item", "report-over-cap", "--over-cap", "approved exception"], { cwd: A.d });
-	const overCapRow = roundsOf("report-over-cap").at(-1);
-	const overCapReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-over-cap"], { cwd: A.d, env: env(), encoding: "utf8" });
-	// req: R-970
-	check("report records metadata, omits unused override reasons, and reports real over-cap reason read-only",
-		launch.status === 0 && current.provider === "anthropic" && current.model === "claude-test-1" &&
-		Date.parse(current.startedAt) <= Date.parse(current.endedAt) && Number.isFinite(current.durationMs) && current.attempts === 1 &&
-		current.role === "sol" && current.overCap === null &&
-		/^report-item \| [a-f0-9]{12} \| sol \| claude-test-1 \| \d+ms \| 1 \| LAND \| -\nreport-item \| [a-f0-9]{12} \| astra \| - \| \d+ms \| 1 \| SEND-BACK \| -\n$/.test(report.stdout) &&
-		second.status === 0 && report.status === 0 && repoReport.status === 0 && repoReport.stdout === report.stdout && reportTally === before &&
-		overCap.status === 0 && overCapRow?.overCap === "approved exception" && /\| approved_exception\n$/.test(overCapReport.stdout),
-		JSON.stringify({ current, report: report.stdout, repoReport: repoReport.stdout, overCapRow, overCapReport: overCapReport.stdout }));
-	const legacy = { v: 1, kind: "round", repo: current.repo, item: "legacy-report", revision: A.shas[1], role: "reviewer" };
-	fs.appendFileSync(tallyFile, JSON.stringify(legacy) + "\n");
-	const oldReport = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "legacy-report"], { cwd: A.d, env: env(), encoding: "utf8" });
-	// req: R-970
-	check("legacy rounds print - for every unavailable report field", oldReport.status === 0 &&
-		oldReport.stdout === `legacy-report | ${A.shas[1].slice(0, 12)} | reviewer | - | - | - | - | -\n`, oldReport.stdout);
-}
-
 const trustText = fs.readFileSync(path.join(bin, "..", "README.md"), "utf8").replace(/\s+/g, " ");
 // req: R-971
 // req: R-972
 check("Trust model declares wrapper-only formal rounds, supplemental reviews and revision-based counting",
-	trustText.includes("Formal review rounds are admitted only through `pi-review` or `review-ledger run`. Agent-tool and hand-run reviews are supplemental and earn no round") &&
+	trustText.includes("Formal review rounds are admitted only through `pi-review` or `claude-review`. Agent-tool and hand-run reviews are supplemental and earn no round") &&
 	trustText.includes("Any number of reviews, by any roles, on one revision is one round") &&
 	trustText.includes("A review of a new revision is a round regardless of role"));
 

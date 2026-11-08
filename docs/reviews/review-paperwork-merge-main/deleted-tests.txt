@@ -1,0 +1,17 @@
+apps/bench/test/agentdir.test.mjs
+apps/bench/test/aggregate.test.mjs
+apps/bench/test/argv.test.mjs
+apps/bench/test/catch-ledger.test.mjs
+apps/bench/test/checkers.test.mjs
+apps/bench/test/evaluator-hardening.test.mjs
+apps/bench/test/integration.test.mjs
+apps/bench/test/nested.test.mjs
+apps/bench/test/ops.test.mjs
+apps/bench/test/orchestration-paths.test.mjs
+apps/bench/test/plan.test.mjs
+apps/bench/test/study-tasks.test.mjs
+apps/bench/test/timeout.test.mjs
+apps/bench/test/usage.test.mjs
+packages/nana-pack/tests/keep-movement.test.mjs
+packages/nana-pack/tests/requirements-moved.test.mjs
+packages/nana-pack/tests/review-movement.test.mjs

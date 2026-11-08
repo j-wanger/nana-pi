@@ -13,7 +13,7 @@ import { DATA_SUBPATH } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { STORE_SUBPATH } from "../packages/nana-pack/lib/suite-records-config.mjs";
 import { BUILD_RECORDS_SUBPATH } from "../packages/nana-pack/lib/build-records-config.mjs";
 import { globMatch } from "./glob-match.mjs";
-import { MAX_GIT_BUFFER } from "./requirements-moved.mjs";
+import { MAX_GIT_BUFFER } from "./git-runner.mjs";
 
 // Contract: the owner's 2026-10-22 approval; R-2537.
 export const DELIVERABLE_FIELD_LABELS = Object.freeze(["Made by", "Read by"]);

@@ -1,16 +1,17 @@
 /**
  * @module packages/nana-pack/tests/review-ledger-fixture.mjs
  * @purpose Shared setup of the review-ledger test files: the stub pi, the temp home, repos A and B, and the launchers
- * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, bin/review-ledger.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME
+ * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, lib/review-run.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME
  * @outputs the helpers each review-ledger test file imports, and finish() that removes the temp folder and exits with the failure count
  * @effects disk (temp HOME, git repositories), process (git; the stub pi is written once per importing file)
  * @errors a failed check prints FAIL and counts; finish() exits with the count
  */
 // Gate: the per-item review ledger (T2b + fix round after sol r1), executed through REAL processes
-// — pi-review / pi-worker with a stub `pi` on PATH, and review-ledger run/check — against real git
+// — pi-review / pi-worker with a stub `pi` on PATH, and shared review runner/check — against real git
 // repositories and worktrees, under a temp HOME. Each sol r1 bypass is pinned as a refusal here.
 // Run: node packages/nana-pack/tests/review-ledger.test.mjs (and its -launch, -verdicts and -state siblings)
 import { tmpDir } from "./tmp-dir.mjs";
+import { reviewRunHarness } from './review-run-harness.mjs';
 import { writeFakePi } from "./fake-pi.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -21,9 +22,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 export const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin");
 export const PI_REVIEW = path.join(bin, "pi-review.mjs");
 export const PI_WORKER = path.join(bin, "pi-worker.mjs");
-export const LEDGER_CLI = path.join(bin, "review-ledger.mjs");
 export const mod = await import(pathToFileURL(path.join(bin, "review-round.mjs")).href);
 export const tmp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "review-ledger-test-")));
+export const LEDGER_CLI = reviewRunHarness(tmp);
 export const stubs = path.join(tmp, "stubs");
 export const outs = path.join(tmp, "outs");
 for (const d of [stubs, outs]) fs.mkdirSync(d, { recursive: true });
@@ -116,7 +117,6 @@ export const VERDICT_CMD = [process.execPath, "-e", "console.log('VERDICT: LAND'
 export const ledgerRun = (args, { cwd = A.d, cmd = VERDICT_CMD, extraEnv = {}, outFile = out() } = {}) =>
 	spawnSync(process.execPath, [LEDGER_CLI, "run", ...args, "--out", outFile, "--", ...cmd], { cwd, env: env(extraEnv), encoding: "utf8", timeout: 30000 });
 export const ledgerCheck = (args, cwd = A.d) => spawnSync(process.execPath, [LEDGER_CLI, "check", ...args], { cwd, env: env(), encoding: "utf8" });
-export const ledgerKeep = (args, cwd = A.d) => spawnSync(process.execPath, [LEDGER_CLI, "keep", ...args], { cwd, env: env(), encoding: "utf8" });
 export const noStack = (r) => !/\n\s+at .+:\d+:\d+/.test(r.stderr);
 export const reviewAt = (item, i, extra = [], r = A) => { r.at(i); return ledgerRun(["--item", item, ...extra], { cwd: r.d }); };
 

@@ -2,7 +2,7 @@
 /**
  * @module scripts/blast-radius.mjs
  * @purpose Draw a change's blast radius as one self-contained HTML page, from the code map and the git-diffed changed set against the merge base, with no script, no external reference and no machine-specific content.
- * @inputs argv (--root <dir> --base <rev> --out <file>); the code map's config, modules and graph through scripts/code-map.mjs; working-tree git state read through the injected git runner (default scripts/requirements-moved.mjs's defaultGit)
+ * @inputs argv (--root <dir> --base <rev> --out <file>); the code map's config, modules and graph through scripts/code-map.mjs; working-tree git state read through the injected git runner (default scripts/git-runner.mjs's defaultGit)
  * @outputs the HTML page written to <file>; one stdout line naming the per-column counts, the unmapped count and the out path
  * @effects disk (reads module sources and code-map.config.json through the shim, creates the out file's folder and writes the page), process (runs read-only git commands: merge-base, diff, ls-files)
  * @errors exit 2 for a usage error, naming --root, --base and --out; exit 1 for an unresolvable revision or no merge base, naming the cause, writing nothing
@@ -10,7 +10,7 @@
 // Plan of record: docs/reviews/blast-radius-2026-10-19/must-meet.md, rows R-1550 to R-1557.
 // Graph facts come ONLY from loadConfig, collectModules, buildGraph, impact, isLayerExempt and
 // untracedTests, all through the scripts/code-map.mjs shim — this command infers no node or
-// edge the map itself does not already carry. The git runner is requirements-moved.mjs's own
+// edge the map itself does not already carry. The git runner is git-runner.mjs's own
 // exported defaultGit, imported by name rather than a second buffer constant.
 import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -24,7 +24,7 @@ import {
 	loadConfig,
 	untracedTests,
 } from "./code-map.mjs";
-import { defaultGit } from "./requirements-moved.mjs";
+import { defaultGit } from "./git-runner.mjs";
 import {
 	BG_DARK,
 	BG_LIGHT,

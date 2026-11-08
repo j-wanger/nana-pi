@@ -4,7 +4,7 @@
  *  real checkout path or through a symlinked or junctioned link to that checkout, so a detached
  *  checkout reached through the OS temp folder's own link (macOS /var, a reviewer's worktree)
  *  cannot read a silent exit 0 as a real pass.
- * @inputs scripts/requirements-moved.mjs, scripts/requirements-tree.mjs,
+ * @inputs scripts/requirements-tree.mjs,
  *  scripts/requirement-rows.mjs, scripts/product-report.mjs and
  *  packages/nana-pack/bin/nana-roster.mjs, spawned by real path and through one link to the
  *  checkout root built under the OS temp directory.
@@ -67,11 +67,6 @@ function detail({ real, linked }) {
 }
 
 try {
-  {
-    const result = runBoth("scripts/requirements-moved.mjs", ["--root", realRoot, "--base", "HEAD"]);
-    // req: R-1630
-    check("R-1630: requirements-moved started through a linked checkout folder exits and prints as it does by its real path", sameAndPrinted(result), detail(result));
-  }
 
   {
     const flatDir = tmpDir(join(tmpdir(), "linked-launch-flat-"));

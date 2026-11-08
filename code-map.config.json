@@ -48,7 +48,7 @@
     { "path": "apps/desk/test/pi-rpc-contract.test.mjs", "reason": "Pi executable comes from the runtime resolver." },
     { "path": "packages/nana-pack/bin/nana-land.mjs", "reason": "Injected git command runner has caller-bound programs." },
     { "path": "packages/nana-pack/bin/pi-watchdog.mjs", "reason": "Shell command text and chosen pi executable do not trace." },
-    { "path": "packages/nana-pack/bin/review-ledger.mjs", "reason": "Review command program comes from command arguments." },
+    { "path": "packages/nana-pack/lib/review-run.mjs", "reason": "Review command program comes from command arguments." },
     { "path": "packages/nana-pack/extensions/nana-notify.ts", "reason": "PowerShell notification may run repository code." },
     { "path": "packages/nana-pack/lib/gh-runner-async.mjs", "reason": "Injected executable is resolved at its callers." },
     { "path": "packages/nana-pack/lib/gh-runner.mjs", "reason": "Injected executable is resolved at its callers." },

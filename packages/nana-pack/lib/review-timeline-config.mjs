@@ -9,7 +9,7 @@
  * @errors none
  */
 
-/** contract: the R-970 report (`review-ledger report`) already prints a 12-character revision. */
+/** chosen (review-timeline): 12 characters keep a revision recognizable in a compact timeline. */
 export const SHORT_REVISION_CHARS = 12;
 
 /** chosen (2026-10-19): long enough to keep a reviewer's own finding title readable end to end,

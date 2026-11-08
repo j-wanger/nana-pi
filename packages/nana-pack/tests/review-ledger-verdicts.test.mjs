@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/review-ledger-verdicts.test.mjs
  * @purpose Pins the per-item review ledger's verdict reading, kept review texts, redirect refusal and shape check through REAL processes
- * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, bin/review-ledger.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME, all set up by review-ledger-fixture.mjs
+ * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, lib/review-run.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME, all set up by review-ledger-fixture.mjs
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi, git, and icacls on Windows)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -12,7 +12,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD } from "../lib/verdict-config.mjs";
-import { tmp, outs, PI_REVIEW, LEDGER_CLI, mod, home, agent, tallyFile, auditFile, freshHome, env, jsonl, roundsOf, storedTextFile, check, repo, A, B, plain, out, piReview, ledgerRun, ledgerKeep, finish } from "./review-ledger-fixture.mjs";
+import { tmp, outs, PI_REVIEW, LEDGER_CLI, mod, home, agent, tallyFile, auditFile, freshHome, env, jsonl, roundsOf, storedTextFile, check, repo, A, B, plain, out, piReview, ledgerRun, finish } from "./review-ledger-fixture.mjs";
 
 {
 	freshHome("verdict-position"); A.at(0);
@@ -96,8 +96,7 @@ import { tmp, outs, PI_REVIEW, LEDGER_CLI, mod, home, agent, tallyFile, auditFil
 	const unread = ledgerRun(["--item", "unread-ledger"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(unreadText)})`] });
 	const unreadRow = jsonl(tallyFile).at(-1);
 	const readable = ledgerRun(["--item", "readable-ledger"], { cmd: [process.execPath, "-e", "process.stdout.write('notes\\nVERDICT: LAND')"] });
-	// req: R-1620
-	check("review-ledger run exits 1 when the recorded verdict is empty and 0 when it is a word",
+	check("shared review runner exits 1 when the recorded verdict is empty and 0 when it is a word",
 		unread.status === 1 && !/verdict recorded/.test(unread.stderr) && roundsOf("unread-ledger").length === 1 && unreadRow?.item === "unread-ledger" && unreadRow?.verdict === null &&
 		readable.status === 0 && /verdict recorded/.test(readable.stderr) && !/verdict unread/.test(readable.stderr),
 		JSON.stringify({ unread: { status: unread.status, stderr: unread.stderr }, readable: { status: readable.status, stderr: readable.stderr }, tally: jsonl(tallyFile).slice(-2) }));
@@ -143,29 +142,10 @@ import { tmp, outs, PI_REVIEW, LEDGER_CLI, mod, home, agent, tallyFile, auditFil
 }
 
 {
-	freshHome("unread-rounds-left");
-	const CAP = mod.REVIEW_ROUND_CAP;
-	const roundsRepo = repo("unread-rounds-left-repo", CAP + 1);
-	const failures = [];
-	for (let i = 0; i < CAP + 1; i++) {
-		roundsRepo.at(i);
-		const extra = i === CAP ? ["--over-cap", "final confirmation"] : [];
-		const result = ledgerRun(["--item", "unread-rounds-left", ...extra], { cwd: roundsRepo.d, cmd: [process.execPath, "-e", "process.stdout.write('notes\\n\\nVERDICT: LAND!\\t')"] });
-		const expected = `${Math.max(0, CAP - (i + 1))} of ${CAP} rounds remain for the item`;
-		if (!(result.status === 1 && result.stderr.includes("nana-land will refuse this revision for good") &&
-			result.stderr.includes("make a new commit and review it") && result.stderr.includes(expected) && result.stderr.includes("review kept at "))) {
-			failures.push({ i, expected, status: result.status, stderr: result.stderr });
-		}
-	}
-	A.at(0);
-	const pi = piReview(["--item", "unread-rounds-left-pi", "--out", out()], { stub: "plain-review", extra: "notes\n\nVERDICT: LAND!\t" });
-	if (!(pi.status === 1 && pi.stderr.includes("nana-land will refuse this revision for good") &&
-		pi.stderr.includes("make a new commit and review it") && pi.stderr.includes(`${CAP - 1} of ${CAP} rounds remain for the item`) &&
-		pi.stderr.includes("review kept at "))) {
-		failures.push({ i: "pi-review", status: pi.status, stderr: pi.stderr });
-	}
-	// req: R-1623
-	check("the empty-verdict line says nana-land refuses the revision and counts the rounds left", failures.length === 0, JSON.stringify(failures));
+ freshHome("unread-guidance"); A.at(0);
+ const result = ledgerRun(["--item", "unread-guidance"], {cmd:[process.execPath,"-e","console.log('notes\\nVERDICT: LAND!')"]});
+ // req: R-1623
+ check("the empty-verdict line directs a new commit and names the output without rounds-left paperwork", result.status === 1 && result.stderr.includes("nana-land will refuse this revision for good") && result.stderr.includes("make a new commit and review it") && result.stderr.includes("review kept at ") && !result.stderr.includes("rounds remain"),result.stderr);
 }
 
 {
@@ -184,19 +164,6 @@ import { tmp, outs, PI_REVIEW, LEDGER_CLI, mod, home, agent, tallyFile, auditFil
 	check("complete appends every verdict at v2 and returns the revision ordinal",
 		first.every((x) => x.admitted.ok && x.completed.ok && x.completed.round === 1) && second.ok && secondComplete.ok && secondComplete.round === 2 && rows.length === 4 &&
 		rows.every((r) => r.v === 2 && r.item === "ordinal" && r.role && r.model) && rows.slice(0, 3).every((r) => r.revision === A.shas[0]) && rows[3].revision === A.shas[1]);
-}
-
-{
-	freshHome("report-verdicts"); A.at(0);
-	let completed = true;
-	for (const verdict of ["LAND", "SEND-BACK"]) {
-		const admitted = mod.admit(["--item", "report-two", "--role", "reviewer"], { home, cwd: A.d, launcher: "test", model: "model-report" });
-		completed &&= admitted.ok && mod.complete(admitted.res, `VERDICT: ${verdict}`, { home }).ok;
-	}
-	const report = spawnSync(process.execPath, [LEDGER_CLI, "report", "--item", "report-two", "--repo", A.d], { cwd: A.d, env: env(), encoding: "utf8" });
-	const lines = report.stdout.trim().split(/\r?\n/);
-	// req: R-970
-	check("report prints one line per verdict on a revision", completed && report.status === 0 && lines.length === 2 && lines.every((line) => line.includes("report-two") && line.includes("model-report")) && lines[0].includes("LAND") && lines[1].includes("SEND-BACK"), report.stderr || report.stdout);
 }
 
 {
@@ -301,64 +268,6 @@ import { tmp, outs, PI_REVIEW, LEDGER_CLI, mod, home, agent, tallyFile, auditFil
 		JSON.stringify({ completed, tally: jsonl(tallyFile), audit: jsonl(auditFile) }));
 }
 
-{
-	freshHome("keep-item-scope");
-	const keepTextOne = "first kept text\r\nVERDICT: LAND\r\n";
-	const keepTextTwo = "second kept text \t\nVERDICT: LAND";
-	const otherItemText = "other item\nVERDICT: LAND\n";
-	const otherRepoText = "other repo\nVERDICT: LAND\n";
-	A.at(0);
-	const first = ledgerRun(["--item", "keep-target", "--role", "SoL"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(keepTextOne)})`] });
-	A.at(1);
-	const second = ledgerRun(["--item", "keep-target", "--role", "ASTRA"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(keepTextTwo)})`] });
-	const otherItem = ledgerRun(["--item", "other-item", "--role", "sol"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(otherItemText)})`] });
-	B.at(0);
-	const otherRepo = ledgerRun(["--item", "keep-target", "--role", "sol"], { cwd: B.d, cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(otherRepoText)})`] });
-	const into = path.join(tmp, "kept-lane-folder");
-	const kept = ledgerKeep(["--item", "keep-target", "--into", into, "--repo", A.d], B.d);
-	const hashOne = createHash("sha256").update(Buffer.from(keepTextOne)).digest("hex");
-	const hashTwo = createHash("sha256").update(Buffer.from(keepTextTwo)).digest("hex");
-	const names = [`r1-sol-${hashOne.slice(0, 8)}.md`, `r2-astra-${hashTwo.slice(0, 8)}.md`].sort();
-	const wroteExpected = names.every((name) => fs.existsSync(path.join(into, name)));
-	const beforeTimes = wroteExpected ? Object.fromEntries(names.map((name) => {
-		const file = path.join(into, name); fs.utimesSync(file, new Date(1_000), new Date(1_000)); return [name, fs.statSync(file).mtimeMs];
-	})) : {};
-	const again = ledgerKeep(["--item", "keep-target", "--into", into, "--repo", A.d], B.d);
-	const afterTimes = wroteExpected ? Object.fromEntries(names.map((name) => [name, fs.statSync(path.join(into, name)).mtimeMs])) : {};
-	const legacy = { v: 2, kind: "round", repo: mod.repoKeyOf(A.d), item: "legacy-no-text", revision: A.shas[0], role: "old", verdict: "LAND" };
-	fs.appendFileSync(tallyFile, `${JSON.stringify(legacy)}\n`);
-	// R-2573's empty case exits 1 because repository A commits no ledger; R-2913 owns the no-text exit rule.
-	const empty = ledgerKeep(["--item", "legacy-no-text", "--into", path.join(tmp, "legacy-kept"), "--repo", A.d], A.d);
-	// req: R-2573
-	check("R-2573: keep writes each kept review text of the item into the lane folder",
-		first.status === 0 && second.status === 0 && otherItem.status === 0 && otherRepo.status === 0 && kept.status === 0 && again.status === 0 &&
-		mod.KEEP_NAME_HASH_CHARS === 8 && wroteExpected && JSON.stringify(fs.readdirSync(into).sort()) === JSON.stringify(names) &&
-		fs.readFileSync(path.join(into, names[0]), "utf8") === keepTextOne && fs.readFileSync(path.join(into, names[1]), "utf8") === keepTextTwo &&
-		JSON.stringify(afterTimes) === JSON.stringify(beforeTimes) && empty.status === 1 && /no kept text/i.test(empty.stderr),
-		JSON.stringify({ kept: kept.stderr, again: again.stderr, empty: empty.stderr, names: fs.existsSync(into) ? fs.readdirSync(into) : [] }));
-}
-
-{
-	freshHome("keep-conflict");
-	const texts = ["first conflict fixture\nVERDICT: LAND\n", "last conflict fixture\nVERDICT: LAND\n"];
-	for (const [i, text] of texts.entries()) {
-		A.at(i);
-		const result = ledgerRun(["--item", "keep-conflict", "--role", `role${i + 1}`], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(text)})`] });
-		if (result.status !== 0) throw new Error(result.stderr);
-	}
-	const rows = jsonl(tallyFile).filter((row) => row.item === "keep-conflict");
-	const names = rows.map((row, index) => `r${index + 1}-role${index + 1}-${row.text.sha256.slice(0, 8)}.md`);
-	const into = path.join(tmp, "kept-conflict-folder"); fs.mkdirSync(into);
-	const differing = Buffer.from("different bytes\r\nwith trailing tab\t");
-	fs.writeFileSync(path.join(into, names.at(-1)), differing);
-	const kept = ledgerKeep(["--item", "keep-conflict", "--into", into, "--repo", A.d], A.d);
-	// req: R-2574
-	check("R-2574: keep refuses a differing file and writes nothing",
-		kept.status === 1 && /different bytes|differs|refus/i.test(kept.stderr) && !fs.existsSync(path.join(into, names[0])) &&
-		fs.readFileSync(path.join(into, names.at(-1))).equals(differing) && fs.readdirSync(into).length === 1,
-		JSON.stringify({ stderr: kept.stderr, files: fs.readdirSync(into) }));
-}
-
 // Repo A as the original file left it for this block: detached at its first commit.
 A.at(0);
 // 4. regular stdout/stderr redirection into either tracked or untracked reviewed files refuses admission
@@ -383,7 +292,7 @@ A.at(0);
 				!fs.existsSync(invoked) && (stdioSlot === 2 || fs.readFileSync(target).equals(before));
 		}
 	}
-	// req: R-620 R-3455
+	// req: R-620
 	check("tracked stdout and untracked stderr redirects into the reviewed tree are refused through both launchers", redirectsRefused);
 }
 

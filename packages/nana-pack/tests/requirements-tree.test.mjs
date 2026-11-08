@@ -476,7 +476,7 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   mkdirSync(docsDir, { recursive: true });
   mkdirSync(traceTemplateDir, { recursive: true });
   mkdirSync(packLibDir, { recursive: true });
-  for (const name of ["requirements-tree.mjs", "requirements-trace.mjs", "requirements-moved.mjs", "deliverables.mjs", "glob-match.mjs"])
+  for (const name of ["requirements-tree.mjs", "requirements-trace.mjs", "git-runner.mjs", "deliverables.mjs", "glob-match.mjs"])
     copyFileSync(fileURLToPath(new URL(`../../../scripts/${name}`, import.meta.url)), join(scriptsDir, name));
   for (const name of ["brief-precedent.mjs", "brief-config.mjs", "frontier-config.mjs", "known-bugs-config.mjs", "markdown-list-sections.mjs", "runtime-map-config.mjs", "suite-records-config.mjs", "build-records-config.mjs", "land-config.mjs"])
     copyFileSync(fileURLToPath(new URL(`../lib/${name}`, import.meta.url)), join(packLibDir, name));

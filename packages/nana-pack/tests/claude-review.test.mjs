@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/claude-review.test.mjs
  * @purpose Pin the Claude Code review launcher from roster selection through prompt assembly, ledger admission, platform launch and exit pass-through.
- * @inputs bin/claude-review.mjs, the standard and movement helpers/config, shared ledger fixtures, temporary HOME rosters, injected stderr forms and fake claude commands on PATH.
+ * @inputs bin/claude-review.mjs, the standard helpers/config, shared ledger fixtures, temporary HOME rosters, injected stderr forms and fake claude commands on PATH.
  * @outputs named PASS/FAIL checks, with one Windows-only skip off win32.
  * @effects disk (temporary homes, repositories, pack copies, outputs and fake-command records), process (spawns launchers, git and fake Claude Code commands).
  * @errors failed checks or timed-out launcher cases exit nonzero; unexpected setup errors throw.
@@ -12,14 +12,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { makeLedgerBranch, ledgerText, reportToFile } from "./ledger-repo.mjs";
-import { MOVEMENT_HEADING, MOVEMENT_LEAD, MOVEMENT_NOT_COMPUTED } from "../lib/review-movement-config.mjs";
 import { STANDARD_HEADING, renderReviewerSentence } from "../lib/claude-review-config.mjs";
-import { reviewMovementSection } from "../lib/review-movement.mjs";
 
 const PACK = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLAUDE_REVIEW = path.join(PACK, "bin", "claude-review.mjs");
-const LEDGER = path.join(PACK, "bin", "review-ledger.mjs");
 const STANDARD = path.join(PACK, "prompts", "review-standard.md");
 const CASE_TIMEOUT_MS = 30_000;
 const temp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "claude-review-test-")));
@@ -188,36 +184,12 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 
 	const missingText = fs.existsSync(missingOut) ? fs.readFileSync(missingOut, "utf8") : "";
 	// req: R-2565
-	check("R-2565: claude-review passes review-ledger's outcome through",
-		missing.status === 1 && /review-ledger: cannot start claude:/.test(missing.stderr) && missingText.startsWith("cannot start claude:") && ledgerState(noClaudeHome.home, "outcome-missing").rounds.length === 0 &&
+	check("R-2565: claude-review passes the reviewer's outcome through",
+		missing.status === 1 && /claude-review: cannot start claude:/.test(missing.stderr) && missingText.startsWith("cannot start claude:") && ledgerState(noClaudeHome.home, "outcome-missing").rounds.length === 0 &&
 		formatted.status === 1 && /verdict unread/i.test(formatted.stderr) && fs.readFileSync(formattedOut, "utf8") === formattedAnswer &&
 		plain.status === 0 && fs.readFileSync(plainOut, "utf8") === plainAnswer &&
 		large.status === 1 && fs.readFileSync(trackedOut, "utf8") === "original\n" && !/EPIPE|write after end/i.test(large.stderr) && noStack(large.stderr),
 		JSON.stringify({ missing, missingText, formatted, plain, large }));
-}
-
-{
-	const item = "claude-over-cap";
-	const repo = makeRepo("over-cap-tree");
-	fs.writeFileSync(path.join(repo, "brief.md"), "Review cap.\n");
-	const home = makeHome("over-cap");
-	const fakeBin = path.join(temp, "fake-over-cap");
-	const record = writeFakeClaude(fakeBin, path.join(temp, "over-cap-record.jsonl"));
-	const env = baseEnv(home, fakeBin, record);
-	const seeded = [];
-	for (let i = 1; i <= 3; i++) {
-		commitChange(repo, `state ${i}\n`);
-		seeded.push(runLauncher({ cwd: temp, tree: repo, out: path.join(temp, `cap-${i}.md`), item, env }));
-	}
-	commitChange(repo, "state 4\n");
-	const refused = runLauncher({ cwd: temp, tree: repo, out: path.join(temp, "cap-refused.md"), item, env });
-	const reason = "confirmation round on the final tip after fixes to named findings or a merge of current main";
-	const admitted = runLauncher({ cwd: temp, tree: repo, out: path.join(temp, "cap-admitted.md"), item, env, extra: ["--over-cap", reason] });
-	const state = ledgerState(home.home, item);
-	// req: R-2566
-	check("R-2566: --over-cap reaches the ledger",
-		seeded.every((result) => result.status === 0) && refused.status === 1 && /over the cap/.test(refused.stderr) && admitted.status === 0 && state.rounds.length === 4 && state.rounds.at(-1)?.overCap === reason,
-		JSON.stringify({ seeded, refused, admitted, state }));
 }
 
 {
@@ -257,69 +229,6 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 		[missingStandard, directoryStandard, blankStandard].every(({ result }) => /review-standard\.md/.test(result.stderr)) && !fs.existsSync(record),
 		JSON.stringify(cases));
 }
-
-// measured 2026-10-25: the macOS stdout pipe cut with process.exit(main()).
-const PIPE_CUT_BYTES = 65_536;
-const movementCase = (label, options = {}) => {
-	const repo = path.join(temp, `movement-${label}`);
-	makeLedgerBranch(repo, options);
-	const expected = reportToFile(repo, path.join(temp, `expected-${label}.txt`));
-	const briefText = "Review movement.\r\nKeep trailing tab\t";
-	fs.writeFileSync(path.join(repo, "brief.md"), briefText);
-	const home = makeHome(`movement-${label}`);
-	const fakeBin = path.join(temp, `fake-movement-${label}`);
-	const record = writeFakeClaude(fakeBin, path.join(temp, `movement-${label}.jsonl`));
-	const item = `movement-${label}`;
-	const result = runLauncher({ cwd: temp, tree: repo, out: path.join(temp, `${item}-out.md`), item, env: baseEnv(home, fakeBin, record) });
-	return { repo, expected, briefText, home, item, result, prompt: rows(record)[0]?.stdin ?? "" };
-};
-const expectedPrompt = (c, section = null) => `${c.briefText}\n\n${section === null ? "" : `${section}\n\n`}${STANDARD_HEADING}\n\n${fs.readFileSync(STANDARD, "utf8")}\n\n${renderReviewerSentence(c.item, c.repo)}\n`;
-const smallMovement = movementCase("small");
-const smallSection = `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${smallMovement.expected.stdout.replace(/[\r\n]+$/, "")}`;
-// req: R-2900
-check("R-2900: claude-review sends one tree movement section, computed in the reviewed tree against main, between the brief and the review standard",
-	smallMovement.expected.status === 0 && smallMovement.expected.stdout.includes("R-002 new") && smallMovement.result.status === 0 && smallMovement.prompt === expectedPrompt(smallMovement, smallSection),
-	JSON.stringify({ status: smallMovement.result.status, stderr: smallMovement.result.stderr, prompt: smallMovement.prompt, expected: smallSection }));
-
-const trunkMovement = movementCase("trunk", { trunk: true });
-const reason = trunkMovement.expected.stderr.split(/\r?\n/).find((line) => line.trim());
-const refusedSection = `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${MOVEMENT_NOT_COMPUTED} ${reason}`;
-// The same single-line failure under CRLF, trailing blanks and no final newline.
-const stderrForms = ["reason\r\n", "reason \t\n", "reason", "\r\n\t\r\nreason \t"];
-const stderrFormsCorrect = stderrForms.every((stderr) => {
-	const reasonLine = stderr.split(/\r?\n/).find((line) => line.trim());
-	try {
-		const section = reviewMovementSection(trunkMovement.repo, { run: (command) => command === "git" ? { status: 0 } : { status: 1, stderr } });
-		return section === `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${MOVEMENT_NOT_COMPUTED} ${reasonLine}`;
-	} catch { return false; }
-});
-// req: R-2902
-check("R-2902: a movement that cannot be computed reaches the reviewer as one not-computed line and the review still records its round",
-	stderrFormsCorrect && trunkMovement.expected.status !== 0 && Boolean(reason) && trunkMovement.result.status === 0 && trunkMovement.prompt === expectedPrompt(trunkMovement, refusedSection) && ledgerState(trunkMovement.home.home, trunkMovement.item).rounds.length === 1,
-	JSON.stringify({ status: trunkMovement.result.status, stderr: trunkMovement.result.stderr, prompt: trunkMovement.prompt }));
-
-{
-	const repo = makeRepo("movement-untracked");
-	fs.writeFileSync(path.join(repo, "REQUIREMENTS.md"), ledgerText());
-	const briefText = "Review without a committed ledger. \t";
-	fs.writeFileSync(path.join(repo, "brief.md"), briefText);
-	const item = "movement-untracked";
-	const home = makeHome(item);
-	const fakeBin = path.join(temp, "fake-untracked");
-	const record = writeFakeClaude(fakeBin, path.join(temp, "untracked.jsonl"));
-	const result = runLauncher({ cwd: temp, tree: repo, out: path.join(temp, "untracked-out.md"), item, env: baseEnv(home, fakeBin, record) });
-	const prompt = rows(record)[0]?.stdin ?? "";
-	// req: R-2903
-	check("R-2903: a tree with no committed ledger gets no tree movement section, even with an untracked ledger in the working tree",
-		result.status === 0 && !prompt.includes(MOVEMENT_HEADING) && prompt === expectedPrompt({ briefText, repo, item }), JSON.stringify({ status: result.status, stderr: result.stderr, prompt }));
-}
-
-const largeMovement = movementCase("large", { large: true });
-const largeSection = `${MOVEMENT_HEADING}\n\n${MOVEMENT_LEAD}\n\n${largeMovement.expected.stdout.replace(/[\r\n]+$/, "")}`;
-// req: R-2906
-check("R-2906: a tree movement report longer than 64 KiB reaches the reviewer whole",
-	largeMovement.expected.status === 0 && Buffer.byteLength(largeMovement.expected.stdout) > PIPE_CUT_BYTES && largeMovement.result.status === 0 && largeMovement.prompt === expectedPrompt(largeMovement, largeSection),
-	JSON.stringify({ status: largeMovement.result.status, stderr: largeMovement.result.stderr, expectedBytes: Buffer.byteLength(largeMovement.expected.stdout), promptBytes: Buffer.byteLength(largeMovement.prompt) }));
 
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

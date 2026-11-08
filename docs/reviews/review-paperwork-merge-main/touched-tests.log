@@ -1,0 +1,41 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs apps/bench/test/anatomy-labels.test.mjs apps/bench/test/anatomy.test.mjs apps/bench/test/retire.test.mjs packages/nana-pack/tests/agent-dir-parity.test.mjs packages/nana-pack/tests/blast-radius.test.mjs packages/nana-pack/tests/brief-check.test.mjs packages/nana-pack/tests/claude-review.test.mjs packages/nana-pack/tests/code-map-launch.test.mjs packages/nana-pack/tests/code-map.test.mjs packages/nana-pack/tests/context-anatomy.test.mjs packages/nana-pack/tests/credential-strip.test.mjs packages/nana-pack/tests/first-look.test.mjs packages/nana-pack/tests/immutable-review.test.mjs packages/nana-pack/tests/land-merge.test.mjs packages/nana-pack/tests/linked-launch.test.mjs packages/nana-pack/tests/path-spelling.test.mjs packages/nana-pack/tests/product-report.test.mjs packages/nana-pack/tests/readme-check.test.mjs packages/nana-pack/tests/requirements-regroup.test.mjs packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-pack/tests/review-launch.test.mjs packages/nana-pack/tests/review-ledger-launch.test.mjs packages/nana-pack/tests/review-ledger-state.test.mjs packages/nana-pack/tests/review-ledger-verdicts.test.mjs packages/nana-pack/tests/review-ledger.test.mjs packages/nana-pack/tests/review-paperwork.test.mjs packages/nana-pack/tests/review-round.test.mjs packages/nana-pack/tests/review-standard.test.mjs packages/nana-pack/tests/review-timeline.test.mjs packages/nana-pack/tests/skill-claims.test.mjs packages/nana-pack/tests/templates-render.test.mjs packages/nana-pack/tests/test-runner-parallel.test.mjs packages/nana-pack/tests/test-runner.test.mjs packages/nana-pack/tests/win32-launch.test.mjs packages/nana-pack/tests/worker-claude.test.mjs
+
+PASS  packages/nana-pack/tests/agent-dir-parity.test.mjs        56 pass  3.2s
+PASS  packages/nana-pack/tests/blast-radius.test.mjs            8 pass  0.6s
+PASS  packages/nana-pack/tests/brief-check.test.mjs             8 pass  28.5s
+PASS  packages/nana-pack/tests/claude-review.test.mjs           5 pass, 1 skip  3.4s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs         12 pass  1.7s
+PASS  packages/nana-pack/tests/code-map.test.mjs                48 pass  3.0s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs         23 pass  48.2s
+PASS  packages/nana-pack/tests/credential-strip.test.mjs        6 pass  16.1s
+PASS  packages/nana-pack/tests/first-look.test.mjs              8 pass  0.0s
+PASS  packages/nana-pack/tests/immutable-review.test.mjs        18 pass  12.7s
+PASS  packages/nana-pack/tests/land-merge.test.mjs              24 pass  16.7s
+PASS  packages/nana-pack/tests/linked-launch.test.mjs           4 pass  0.5s
+PASS  packages/nana-pack/tests/path-spelling.test.mjs           11 pass  27.3s
+PASS  packages/nana-pack/tests/product-report.test.mjs          97 pass  59.4s
+PASS  packages/nana-pack/tests/readme-check.test.mjs            11 pass  0.3s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs    63 pass  26.6s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs       98 pass  2.6s
+PASS  packages/nana-pack/tests/review-launch.test.mjs           7 pass, 2 skip  1.1s
+PASS  packages/nana-pack/tests/review-ledger-launch.test.mjs    32 pass  37.5s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs     87 pass  31.9s
+PASS  packages/nana-pack/tests/review-ledger-verdicts.test.mjs  16 pass  31.0s
+PASS  packages/nana-pack/tests/review-ledger.test.mjs           24 pass  23.3s
+PASS  packages/nana-pack/tests/review-paperwork.test.mjs        10 pass  22.3s
+PASS  packages/nana-pack/tests/review-round.test.mjs            27 pass  0.0s
+PASS  packages/nana-pack/tests/review-standard.test.mjs         7 pass  1.3s
+PASS  packages/nana-pack/tests/review-timeline.test.mjs         12 pass  7.1s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs            30 pass  0.1s
+PASS  packages/nana-pack/tests/templates-render.test.mjs        173 pass  65.6s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs    11 pass  33.3s
+PASS  packages/nana-pack/tests/test-runner.test.mjs             53 pass  30.1s
+PASS  packages/nana-pack/tests/win32-launch.test.mjs            5 pass, 8 skip  0.1s
+PASS  packages/nana-pack/tests/worker-claude.test.mjs           24 pass, 3 skip  31.7s
+PASS  apps/bench/test/anatomy-labels.test.mjs                   30 pass  1.4s
+PASS  apps/bench/test/anatomy.test.mjs                          9 pass  1.0s
+PASS  apps/bench/test/retire.test.mjs                           8 pass  39.1s
+
+35 files: 35 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 1065 pass, 0 fail, 14 skip · 609.2s

@@ -105,7 +105,9 @@ check("M8 release acceptance runs native opt-in scaffold and adoption gates", ()
     } else commands.push([path.basename(options.cwd), [cmd, ...args].join(" ")]);
     return { status: 0, stdout: "" };
   };
-  assert.equal(runAcceptance({ src: repo, ref: "HEAD", tmpRoot: root, run: stub, log: () => {} }), 0);
+  const modes = ["python", "python-data"];
+  assert.equal(runAcceptance({ src: repo, ref: "HEAD", tmpRoot: root, modes, run: stub, log: () => {} }), 0);
+  assert.deepEqual([...new Set(commands.map(([dir]) => dir))], ["python-scaffold", "python-adopt", "python-data-scaffold", "python-data-adopt"], "M8 runs only the default-off and opted-in Python modes");
   for (const mode of ["python-data-scaffold", "python-data-adopt"]) {
     for (const [cmd, args] of ACCEPTANCE_COMMANDS.python) assert(commands.some(([dir, text]) => dir === mode && text === [cmd, ...args].join(" ")), `${mode}: ${cmd} ${args}`);
     assert(commands.some(([dir, text]) => dir === mode && text.includes("tests/test_data_checks.py")), "explicit discovery proof");
@@ -114,9 +116,9 @@ check("M8 release acceptance runs native opt-in scaffold and adoption gates", ()
     if (cmd === "uv" && args.includes("tests/test_data_checks.py")) return { status: 0, stdout: "1 skipped" };
     return stub(cmd, args, options);
   };
-  assert.equal(runAcceptance({ src: repo, ref: "HEAD", tmpRoot: root, run: skipped, log: () => {} }), 1, "a skipped data test is not acceptance");
+  assert.equal(runAcceptance({ src: repo, ref: "HEAD", tmpRoot: root, modes, run: skipped, log: () => {} }), 1, "a skipped data test is not acceptance");
   const logs = [];
-  assert.equal(runAcceptance({ src: snapshot(), ref: "HEAD", tmpRoot: root, log: (line) => logs.push(line) }), 0, logs.join("\n"));
+  assert.equal(runAcceptance({ src: snapshot(), ref: "HEAD", tmpRoot: root, modes, log: (line) => logs.push(line) }), 0, logs.join("\n"));
 });
 if (failures) process.exitCode = 1;
 }

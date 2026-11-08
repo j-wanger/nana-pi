@@ -16,4 +16,54 @@ Precedent departures: the alternative whole-file release move is explicitly allo
 
 ## Merge and final verification
 
-To be completed after merging current main. Full-suite execution is delegated to CI by AGENTS.md. No push, CI read, credential lookup, model launch, or GitHub operation is performed.
+Merge parent: `2896328aaf3ad74b22b6723edab439dec05bd25c` (current main). The merge preserves main's review-paperwork retirement and Python-only M8 acceptance, plus this lane's pack selection, shard proofs and core extractions. No deleted path is restored.
+
+Conflicts and integration:
+
+- REQUIREMENTS.md keeps main's revised review contracts and retirements, while keeping the lane's moved Windows/Claude evidence paths. R-3857 now explicitly excludes the three test files main retired.
+- The pack README keeps main's removal of kept-text prerequisites and retains the lane's pack-record/shard requirements.
+- Both generated documents are rebuilt by `npm run map` and `npm run req:tree`, never resolved by choosing one side.
+- `review-paperwork.test.mjs`, main's new collected file, belongs to module. M1 fails before that assignment (`main-membership-red.log`, exit 1), then passes with it.
+- Pack entries for main's deleted keep-movement, requirements-moved and review-movement tests are removed. M8 initially fails on that legitimate retirement (`merge-land.log`, exit 1). Its existing test gains only those three explicit exceptions, asserting that each remains absent. It still pins every remaining historical file and the failing-retire canary.
+- `claude-review-launch.test.mjs` drops only unused imports/constants from main's deleted movement/ledger modules. Both extracted assertions remain byte-identical to the move manifest. No production caller changes in the merge.
+
+Additional existing-test edits are limited to the R-3855 guard path and the M8 explicit-retirement check above. No new must-meet, assertion inversion, tunable, test deletion, or copied helper is introduced. Main's imported test changes remain as main authored them.
+
+Verification before the merge commit:
+
+| Command | Exit | Evidence/result |
+|---|---:|---|
+| `npm run map` | 0 | `merge-map.log` |
+| `npm run map:check` | 0 | `merge-map-check.log` |
+| `npm run req:tree` | 0 | `merge-tree.log` |
+| `npm run readme:check` | 0 | `merge-readme.log` |
+| `node scripts/requirements-trace.mjs` | 0 | `merge-trace.log` |
+| Title check via `checkRepo` | 0 | `merge-titles.log`, **0 missing** |
+| `node scripts/component-audit.mjs --check` | 1 | `merge-components.log`: the two new main modules are not tracked at pre-merge HEAD; rerun on the merge commit |
+| All touched surviving tests, four jobs | 0 | `merge-touched.log`: **64 files, 62 PASS, 0 FAIL, 2 platform SKIP; 2,615 passing checks; 341.2 s**; exact argv in `touched-command.txt` |
+| `npm test -- --pack=land --jobs=4` | 0 | `merge-land-green.log`: **71 PASS, 2,445 passing checks; 48.8 s runner / 49.31 s real** |
+| Literal test-text audit | 0 | `merge-test-text.log`: the original 753 sentence/path needles rechecked against current test sources |
+| `git diff --check` | 0 | No whitespace errors |
+
+Merged-tree land's ten slowest files (seconds under four-job load):
+
+| File | Seconds |
+|---|---:|
+| packages/nana-pack/tests/brief-check.test.mjs | 29.0 |
+| packages/nana-pack/tests/land.test.mjs | 27.7 |
+| packages/nana-pack/tests/identity-tree.test.mjs | 16.0 |
+| packages/nana-pack/tests/win-shards.test.mjs | 13.7 |
+| packages/nana-pack/tests/test-packs-ci.test.mjs | 9.8 |
+| packages/nana-setup/tests/install.test.mjs | 9.4 |
+| packages/nana-pack/tests/gate-corpus.test.mjs | 8.9 |
+| packages/nana-pack/tests/issue-watch.test.mjs | 8.5 |
+| packages/nana-setup/tests/settings-merge.test.mjs | 5.0 |
+| packages/nana-setup/tests/pi-registration.test.mjs | 5.0 |
+
+Only brief-check and land remain above 20 s; both are named core-contract guards. There is no remaining measured obstacle to the 90 s target. Postcommit checks and the exact full tip belong in the final worker report; their raw output stays under $TMPDIR so recording results does not change the checked tip.
+
+## Scope and remaining work
+
+The complete FEAT-031 known-bug file was read. No listed bug is fixed by this follow-up. Pack timing still reflects parallel load, as its known-bug note says. The config-normalize ambient-agent-variable bug remains untouched; tests run through the scrubbing suite runner. Record crash/retention/history limitations and Windows timing/skip limitations remain unchanged. The install-check builder-session limitation is not changed.
+
+Full-suite execution is delegated to CI by AGENTS.md. Native Windows, the seat's push/CI verification, and first-ten-lanes timing remain for the seat. No push, CI read, credential lookup, model launch, GitHub operation, HANDOFF edit, known-bug edit, or session-archive edit is performed. There are no open owner questions.

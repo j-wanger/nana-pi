@@ -527,7 +527,6 @@ const reviewOptionCases = [
 	["--item", ["--item", "x"]],
 	["--role", ["--role", "sol"]],
 	["--revision", ["--revision", "HEAD"]],
-	["--over-cap", ["--over-cap", "why"]],
 	["--worker", ["--worker"]],
 ];
 const reviewOptionObservations = [];

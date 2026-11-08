@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/claude-review-launch.test.mjs
  * @purpose Pin the Claude Code review launcher from roster selection through prompt assembly, ledger admission, platform launch and exit pass-through.
- * @inputs bin/claude-review.mjs, the standard and movement helpers/config, shared ledger fixtures, temporary HOME rosters, injected stderr forms and fake claude commands on PATH.
+ * @inputs bin/claude-review.mjs, temporary HOME rosters, injected stderr forms and fake claude commands on PATH.
  * @outputs named PASS/FAIL checks, with one Windows-only skip off win32.
  * @effects disk (temporary homes, repositories, pack copies, outputs and fake-command records), process (spawns launchers, git and fake Claude Code commands).
  * @errors failed checks or timed-out launcher cases exit nonzero; unexpected setup errors throw.
@@ -12,15 +12,9 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { makeLedgerBranch, ledgerText, reportToFile } from "./ledger-repo.mjs";
-import { MOVEMENT_HEADING, MOVEMENT_LEAD, MOVEMENT_NOT_COMPUTED } from "../lib/review-movement-config.mjs";
-import { STANDARD_HEADING, renderReviewerSentence } from "../lib/claude-review-config.mjs";
-import { reviewMovementSection } from "../lib/review-movement.mjs";
 
 const PACK = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLAUDE_REVIEW = path.join(PACK, "bin", "claude-review.mjs");
-const LEDGER = path.join(PACK, "bin", "review-ledger.mjs");
-const STANDARD = path.join(PACK, "prompts", "review-standard.md");
 const CASE_TIMEOUT_MS = 30_000;
 const temp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "claude-review-test-")));
 let fails = 0;
