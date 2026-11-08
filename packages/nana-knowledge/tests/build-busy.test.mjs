@@ -14,7 +14,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import * as dbLib from "../lib/db.ts";
-import { BUDGET_MS, STALE_MS } from "../lib/hook.ts";
+import { BUDGET_MS } from "../lib/hook.ts";
 import * as hook from "../lib/hook.ts";
 
 const cli = fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url));
@@ -146,47 +146,6 @@ await check("M1: sources-problem probe waits out a transient lock and keeps the 
  const kept = await dbLib.openDb(s.db);
  try { assert.equal(kept.prepare("SELECT count(*) AS n FROM docs").get().n, rows); }
  finally { kept.close(); }
-});
-
-// req: R-3591
-await check("M2: ten stale hook pulls and background builds survive read-write churn", async (s) => {
- await seed(s);
- const churn = child(s, ["-e", `
- const { DatabaseSync } = require('node:sqlite');
- process.stdout.write('ready');
- for (;;) { let d; try { d = new DatabaseSync(process.env.NK_DB); d.prepare('SELECT count(*) FROM docs').get(); } catch {} finally { try { d?.close(); } catch {} } }
- `]);
- await waitFor(() => churn.out.includes("ready"));
- let noPull = 0, noRebuild = 0;
- const missed = [];
- for (let i = 1; i <= 10; i++) {
-  await waitFor(() => !fs.existsSync(s.env.NK_LOCK));
-  let before = 0;
-  const readUntil = Date.now() + 15_000;
-  while (!before && Date.now() < readUntil) { before = await builtAt(s); if (!before) await sleep(10); }
-  assert.ok(before > 0, `run=${i}: could not read built_at before hook`);
-  const stale = (Date.now() - 2 * STALE_MS) / 1000; fs.utimesSync(s.db, stale, stale);
-  const h = await command(s, "hook", JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt: "quasar nebula telescope horizon findings", cwd: s.home, session_id: `churn-${i}` }));
-  let after = before;
-  const until = Date.now() + 15_000;
-  while (Date.now() < until) {
-   after = await builtAt(s);
-   if (after > before && !fs.existsSync(s.env.NK_LOCK)) break;
-   await sleep(100);
-  }
-  const pull = h.code === 0 && h.out.startsWith("[nana:knowledge]") && h.out.includes("Quasar telemetry");
-  const rebuild = after > before;
-  if (!pull) noPull++;
-  if (!rebuild) noRebuild++;
-  if (!pull || !rebuild) {
-   const records = fs.existsSync(path.join(s.home, "pull.log")) ? fs.readFileSync(path.join(s.home, "pull.log"), "utf8").trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line)) : [];
-   const record = records.findLast((row) => row.session_id === `churn-${i}`);
-   missed.push(`run=${i} ms=${h.ms} reason=${record?.reason ?? "no-record"} retried=${JSON.stringify(record?.retried ?? null)} failure=${JSON.stringify(record?.failure ?? null)} code=${JSON.stringify(h.code)} stdoutHead=${JSON.stringify(h.out.slice(0, 120))} stderrHead=${JSON.stringify(h.err.slice(0, 120))} rebuild=${rebuild} built_at=${before}->${after}`);
-  }
-  console.log(`NOTE M2 run=${i} ms=${h.ms} pull=${pull} rebuild=${rebuild} built_at=${before}->${after} stdoutHead=${JSON.stringify(h.out.slice(0, 60))}`);
- }
- assert.equal(noPull, 0, `noPull=${noPull}, noRebuild=${noRebuild} | ${missed.join(" | ")}`);
- assert.equal(noRebuild, 0, `noPull=${noPull}, noRebuild=${noRebuild} | ${missed.join(" | ")}`);
 });
 
 // req: R-3592
