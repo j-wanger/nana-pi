@@ -11,7 +11,7 @@ import * as path from "node:path";
 import { spawnSync } from "node:child_process";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import { repoRoot, platform } from "./paths.mjs";
-import { stateRows } from "./state-manifest.mjs";
+import { stateRows, retiredSeedRows } from "./state-manifest.mjs";
 import { desiredHooks, retiredKnowledgeHook, commandInvokes, removeInstallerHooks, removeRetiredContextHook, serialize } from "./settings.mjs";
 import { readClaudeSettings, SetupError, withSettingsLock, writeSettingsAtomic, DESK_SERVER, realpathSafe, directoryAncestorsAreSafe } from "./steps.mjs";
 
@@ -36,6 +36,16 @@ function settingsVariants(settings, layout) {
     }
   }
   return [...found];
+}
+
+/** Shared exact-byte seed removal; never follows a leaf or parent link. */
+export function retireSeed(row, { dryRun = false, root } = {}) {
+  if (root && !directoryAncestorsAreSafe(root, path.dirname(row.path), true)) return result(row.store, 'skipped', 'left — unsafe seed ancestor');
+  const st = exists(row.path);
+  if (!st) return result(row.store, 'unchanged', 'absent');
+  if (!st.isFile() || st.isSymbolicLink() || !row.source || !fs.readFileSync(row.path).equals(fs.readFileSync(row.source))) return result(row.store, 'skipped', 'left — edited since seeding (yours)');
+  if (!dryRun) fs.unlinkSync(row.path);
+  return result(row.store, dryRun ? 'created' : 'updated', `${dryRun ? 'would remove' : 'removed'} unchanged seed`);
 }
 
 export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
@@ -122,13 +132,7 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
       continue;
     }
     if (row.kind === "seed") {
-      if (!st) { out.push(result(row.store, "unchanged", "absent")); continue; }
-      const source = row.source;
-      if (!st.isFile() || st.isSymbolicLink() || !source || !fs.readFileSync(row.path).equals(fs.readFileSync(source))) {
-        out.push(result(row.store, "skipped", "left — edited since seeding (yours)")); continue;
-      }
-      if (!dryRun) fs.unlinkSync(row.path);
-      out.push(result(row.store, dryRun ? "created" : "updated", `${dryRun ? "would remove" : "removed"} unchanged seed`));
+      out.push(retireSeed(row, { dryRun }));
       continue;
     }
     if (row.kind === "generated") {
@@ -145,6 +149,7 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
       out.push(result(row.store, dryRun ? "created" : "updated", dryRun ? "would remove plist" : "removed plist"));
     }
   }
+  out.push(...retiredSeedRows(layout).map(row => retireSeed(row, { dryRun, root: layout.piHome })));
   out.push(result("pi registration", "skipped", "run `pi list` and `pi remove` the nana-pi entries (doctor's `pi packages` and `pi package source` rows name them)"));
   return out;
 }

@@ -14,7 +14,7 @@ import os from "node:os";
 import { EventEmitter } from "node:events";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_SUBAGENTS_RETRY, PULL_LOG_PATH, README_REHEARSAL } from "../lib/install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, README_REHEARSAL } from "../lib/install-check-config.mjs";
 import * as installConfig from "../lib/install-check-config.mjs";
 import { MEMORY_END_ENTRY, MEMORY_END_TIMEOUT_SECONDS, MEMORY_MAKING_NOTE } from '../lib/memory-end-config.mjs';
 import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck, rosterNoticeOutputOk } from "../lib/install-check.mjs";
@@ -457,7 +457,6 @@ check("spawn: every child goes through the injected spawn (git init twice, Git B
       assert.equal(fixture.calls.filter((call) => call.args[0] === "init").length, 2);
       if (platformName === "linux") {
         for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) assert.ok(joined.includes(name), name);
-        assert.ok(fixture.calls.some((call) => call.args[0] === "install" && call.args.some((arg) => arg.includes("pi-subagents"))));
         assert.ok(fixture.calls.some((call) => call.args.includes("doctor")));
       } else assert.ok(fixture.calls.some((call) => call.command === "C:\\tools\\pi.exe"));
     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
@@ -493,7 +492,7 @@ check("platform: NANA_SETUP_PLATFORM in the caller changes nothing", async () =>
 });
 
 // req: R-1079
-check("pi launch: on win32, pi install, pi list and the session go through findPi and winCommand", async () => {
+check("pi launch: on win32, pi list and the session go through findPi and winCommand", async () => {
   const fixture = recordingRun({ platformName: "win32", piShim: "C:\\tools\\pi.cmd" });
   try {
     await fixture.run;
@@ -506,8 +505,8 @@ check("pi launch: on win32, pi install, pi list and the session go through findP
     assert.equal(launch.command, "C:\\Windows\\cmd.exe");
     assert.equal(launch.options.windowsVerbatimArguments, true);
     assert.deepEqual(launch.args, ["/d", "/v:off", "/s", "/c", '\"\"C:\\tools\\pi.cmd\" \"list\"\"']);
-    const piCommands = fixture.calls.filter((call) => call.command.toLowerCase().endsWith("\\cmd.exe") && (call.args.join(" ").includes("pi-subagents") || call.args.join(" ").includes('"list"') || call.args.join(" ").includes('"--mode" "rpc"')));
-    assert.equal(piCommands.length, 3);
+    const piCommands = fixture.calls.filter((call) => call.command.toLowerCase().endsWith("\\cmd.exe") && (call.args.join(" ").includes('"list"') || call.args.join(" ").includes('"--mode" "rpc"')));
+    assert.equal(piCommands.length, 2);
     assert.ok(piCommands.every((call) => call.command.toLowerCase().endsWith("\\cmd.exe")));
     assert.ok(piCommands.every((call) => call.args[0] === "/d" && call.args.includes("/c") && call.args.some((arg) => arg.includes("C:\\tools\\pi.cmd"))));
     assert.equal(fixture.calls.some((call) => call.command === "C:\\tools\\pi.cmd"), false);
@@ -830,17 +829,6 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       if (platformName === "win32") assert.equal(pathKey, "Path");
     } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
   }
-});
-// req: R-1072
-check("checklist: pi install npm:pi-subagents uses doctor's floor, from the fixture project, launched as install launches pi", async () => {
-  const fixture = recordingRun();
-  try {
-    await fixture.run;
-    const call = fixture.calls.find(item => item.args.some(arg => arg.startsWith("npm:pi-subagents@")));
-    assert.ok(call.args.includes(`npm:pi-subagents@${(await import("../lib/doctor.mjs")).PI_SUBAGENTS_FLOOR}`));
-    assert.equal(call.options.cwd, path.join(fixture.home, "project"));
-    assert.ok(call.options.env.HOME === fixture.home);
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 // req: R-1081
 check("doctor: exit 1 with only check and ! marks is a FAIL", async () => {
@@ -1663,64 +1651,6 @@ check("pin R-2003 to R-2004: the PowerShell item, tool, platforms and tool list"
     platforms: ["win32"],
     toolList: ["--tools", "read,bash,edit,write,powershell"],
   });
-});
-
-// req: R-2480
-check("R-2480: a pi-subagents install that exits 1 and then 0 prints PASS pi-subagents after one sealed pause", async () => {
-  const sleeps = [];
-  let subCalls = 0;
-  const fixture = recordingRun({ sleep: async (ms) => sleeps.push(ms), spawnOverride: async ({ command, args, options, spawn }) => {
-    if (args.some((arg) => arg.includes("pi-subagents@"))) return ++subCalls === 1
-      ? { status: 1, stderr: "npm error code ECONNRESET\nnpm error network aborted\nError: npm install pi-subagents failed with code 1" }
-      : { status: 0 };
-    return spawn(command, args, options);
-  }});
-  try {
-    const result = await fixture.run;
-    assert.ok(result.lines.includes("PASS pi-subagents"));
-    assert.ok(!result.lines.some((line) => line.startsWith("FAIL pi-subagents")));
-    assert.equal(subCalls, 2);
-    assert.deepEqual(sleeps, [PI_SUBAGENTS_RETRY.pauseMs]);
-    assert.equal(result.exitCode, 0);
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-
-// req: R-2481
-check("R-2481: each pi-subagents install attempt that exits 1 prints one NOTE line naming its number, the attempt count and that attempt's npm error-code line", async () => {
-  const codes = ["npm error code ECONNRESET", "npm ERR! code EPERM", "npm error code ETIMEDOUT"];
-  assert.ok(codes.length >= PI_SUBAGENTS_RETRY.attempts, "fixture must cover every sealed attempt");
-  let subCalls = 0;
-  const fixture = recordingRun({ spawnOverride: async ({ command, args, options, spawn }) => {
-    if (args.some((arg) => arg.includes("pi-subagents@"))) { const n = ++subCalls; return { status: 1, stderr: `${codes[n - 1]}\nError: pi install failed` }; }
-    return spawn(command, args, options);
-  }});
-  try {
-    const result = await fixture.run;
-    const notes = result.lines.filter((line) => line.startsWith("NOTE pi-subagents"));
-    assert.deepEqual(notes, codes.slice(0, PI_SUBAGENTS_RETRY.attempts).map((code, i) => `NOTE pi-subagents attempt ${i + 1} of ${PI_SUBAGENTS_RETRY.attempts} failed — ${code}`));
-    assert.ok(notes.every((line) => result.lines.indexOf(line) < result.lines.findIndex((item) => item.startsWith("FAIL pi-subagents"))));
-    assert.equal(subCalls, PI_SUBAGENTS_RETRY.attempts);
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-
-// req: R-2480 R-2481
-check("R-2480: the pi-subagents retry is sealed at three attempts, a five-second pause and npm's two error-code line leads", () => {
-  assert.deepEqual(PI_SUBAGENTS_RETRY, { attempts: 3, pauseMs: 5000, codeLeads: ["npm error code ", "npm ERR! code "] });
-});
-
-// req: R-2486
-check("R-2486: a pi-subagents install that times out runs once and prints FAIL pi-subagents with its timeout", async () => {
-  let subCalls = 0; const sleeps = [];
-  const fixture = recordingRun({ sleep: async (ms) => sleeps.push(ms), spawnOverride: async ({ command, args, options, spawn }) => {
-    if (args.some((arg) => arg.includes("pi-subagents@"))) { subCalls++; return { status: null, error: { code: "ETIMEDOUT" }, ms: 300000 }; }
-    return spawn(command, args, options);
-  }});
-  try {
-    const result = await fixture.run;
-    assert.equal(subCalls, 1); assert.deepEqual(sleeps, []);
-    assert.ok(!result.lines.some((line) => line.startsWith("NOTE pi-subagents")));
-    assert.ok(result.lines.some((line) => line.startsWith("FAIL pi-subagents — timeout: timed out after 300000 ms")));
-  } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
 await runChecks();

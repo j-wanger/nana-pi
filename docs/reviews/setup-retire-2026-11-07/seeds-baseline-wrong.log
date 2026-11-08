@@ -1,0 +1,6 @@
+FAIL  packages/nana-setup/tests/retired-artifacts.test.mjs  49 pass, 2 fail  5.1s  — exit 1
+      | FAIL M5: install retires unchanged seeds without new seeds doctor rows or vendor retries AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      | FAIL M8: retirement preserves edited marked foreign and linked seeds and their targets including dry runs AssertionError [ERR_ASSERTION]: 
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 49 pass, 2 fail, 0 skip · 5.5s
+failed: packages/nana-setup/tests/retired-artifacts.test.mjs

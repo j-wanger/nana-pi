@@ -8,7 +8,8 @@
  */
 import * as path from "node:path";
 import { ledgerPaths } from "../../nana-pack/bin/review-round.mjs";
-import { PATH_COMMANDS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED } from "./steps.mjs";
+import { PATH_COMMANDS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED } from "./steps.mjs";
+import { pkgRoot } from './paths.mjs';
 import { MEMORY_END_ENTRY } from './memory-end-config.mjs';
 import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 
@@ -27,6 +28,11 @@ const modules = {
   desk: "apps/desk/lib/stage-keys.mjs",
   user: "user-created store",
 };
+
+/** Exact historical bytes, retained only for safe install/uninstall retirement; never seeded. */
+export function retiredSeedRows(layout) {
+  return [['subagent config.json', layout.subagentConfig, 'subagent-config.seed.json'], ['reviewer.md', layout.reviewerAgent, 'reviewer.seed.md']].map(([store, target, name]) => ({ store, path: target, source: path.join(pkgRoot, 'pi', 'retired', name), kind: 'seed' }));
+}
 
 /** Returns exactly one manifest record for every named store. */
 export function stateRows(layout) {
@@ -56,8 +62,6 @@ export function stateRows(layout) {
   durable("nana apps", "user", "dir", p(layout.piHome, "apps"));
   durable("nana share", "user", "dir", p(layout.base, ".local", "share", "nana"));
 
-  seed("subagent config.json", layout.subagentConfig, SUBAGENT_CONFIG_SEED, "rebuildable");
-  seed("reviewer.md", layout.reviewerAgent, REVIEWER_SEED, "rebuildable");
   rebuild("copy record", layout.copyRecord, "file");
   for (const name of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", MEMORY_END_ENTRY.file]) rebuild(`hook ${name}`, p(layout.hooksDir, name));
   for (const name of ["nana-soul.md", "nana-standards.md", "nana-writing.md", "nana-seat.md", RULINGS_FILE]) rebuild(`rule link ${name}`, p(layout.rulesDir, name));
@@ -67,7 +71,6 @@ export function stateRows(layout) {
   for (const [name] of PATH_COMMANDS) rebuild(`bin link ${name}`, p(layout.binDir, name));
   for (const [name] of PATH_COMMANDS) rebuild(`bin shim ${name}.cmd`, p(layout.binDir, `${name}.cmd`), "shim");
   rebuild("desk plist", layout.plistPath, "plist", "nana-setup");
-  rebuild("pi-subagents package manifest", layout.piSubagentsPackage, "file", "pi", "run pi install npm:pi-subagents@0.75.0", modules.pi);
   rebuild("knowledge index", p(layout.knowledgeHome, "index.db"), "generated", "nana-setup", "run nana-knowledge build", modules.knowledge);
   rebuild("project memory shared links", p(layout.projectsDir, "*", "memory", "shared"), "link", "claude-code", "SessionStart recreates links", modules.claude);
 

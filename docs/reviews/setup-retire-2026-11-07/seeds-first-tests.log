@@ -1,0 +1,36 @@
+PASS  packages/nana-pack/tests/pi-install.test.mjs          7 pass  0.3s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs      52 pass  9.5s
+PASS  packages/nana-setup/tests/doctor-fix-line.test.mjs    15 pass  3.9s
+FAIL  packages/nana-setup/tests/install-check.test.mjs      120 pass, 1 fail  1.2s  — exit 1
+      | FAIL pi launch: on win32, pi install, pi list and the session go through findPi and winCommand Expected values to be strictly equal:
+PASS  packages/nana-setup/tests/install-overlap.test.mjs    4 pass  0.2s
+PASS  packages/nana-setup/tests/install.test.mjs            103 pass  9.0s
+FAIL  packages/nana-setup/tests/restore.test.mjs            0 pass  0.2s  — exit 1
+      | node:internal/modules/esm/resolve:275
+      |     throw new ERR_MODULE_NOT_FOUND(
+      |           ^
+      | 
+      | Error [ERR_MODULE_NOT_FOUND]: Cannot find module '~/.hermes/node/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/trust-manager.js' imported from ~/<repo>-wt/setup-retire/packages/nana-setup/tests/restore.test.mjs
+      |     at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+      |     at moduleResolve (node:internal/modules/esm/resolve:861:10)
+      |     at defaultResolve (node:internal/modules/esm/resolve:985:11)
+      |     at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+      |     at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+      |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+      |     at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+      |     at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      |     at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+      |     at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31) {
+      |   code: 'ERR_MODULE_NOT_FOUND',
+      |   url: 'file://~/.hermes/node/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/trust-manager.js'
+      | }
+      | 
+      | Node.js v22.22.2
+FAIL  packages/nana-setup/tests/retired-artifacts.test.mjs  50 pass, 1 fail  6.4s  — exit 1
+      | FAIL M8: retirement preserves edited marked foreign and linked seeds and their targets including dry runs AssertionError [ERR_ASSERTION]: 
+PASS  packages/nana-setup/tests/rulings-install.test.mjs    12 pass  3.4s
+PASS  packages/nana-setup/tests/state-manifest.test.mjs     21 pass  1.0s
+PASS  packages/nana-setup/tests/uninstall.test.mjs          31 pass  2.3s
+
+11 files: 8 PASS, 3 FAIL, 0 SKIP, 0 WARN · checks: 415 pass, 2 fail, 0 skip · 37.6s
+failed: packages/nana-setup/tests/install-check.test.mjs, packages/nana-setup/tests/restore.test.mjs, packages/nana-setup/tests/retired-artifacts.test.mjs

@@ -3,8 +3,7 @@
  * @purpose The install steps and the `install` sequencer link, seed, retire, merge or register one piece of the experience and report { label, status, detail }.
  * @inputs a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources
  *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
- *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, pi/subagent-config.seed.json,
- *  pi/reviewer.seed.md, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and
+ *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, historical pi/retired seed bytes, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and
  *  packages/nana-pack/rules (the writing rule, rulings file and canonical seat guide); the
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
  *  <claudeHome>/nana-setup-copies.json; pi's npm package.json; NANA_SETUP_PLATFORM
@@ -15,12 +14,11 @@
  *  through the PATH entries; the settings write's fsync'd temp-file rename
  *  preserves mode; <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json, nana-objective.md, nana-rulings.md and nana-seat.md in pi's agent dir (links on POSIX, copies on
- *  win32), <piHome>/extensions/subagent/config.json,
- *  <piHome>/agents/reviewer.md, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land, nana-setup and nana-writing, the desk plist
+ *  win32), removal of unchanged historical subagent config and reviewer seeds, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land, nana-setup and nana-writing, the desk plist
  *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations, the win32 skill
  *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, PATH_COMMANDS, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, SUBAGENT_CONFIG_SEED, REVIEWER_SEED, realpathSafe(), resolvePackageEntryPath(), REVIEWER_MARKER, firstBodyLine, directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
+ *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, PATH_COMMANDS, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, realpathSafe(), resolvePackageEntryPath(), directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
  *  bounded `pi --version` / `pi install` process trees, `git rev-parse`)
  * @errors SetupError — the Claude home, rules, shared-memory or off-win32 hooks folder is an unreachable link; settings.json unreadable, not valid JSON, or a shape the merge will not
@@ -55,6 +53,8 @@ import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-confi
 import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
 import { openCopyRecord } from "./copy-record.mjs";
 import { MEMORY_END_ENTRY } from './memory-end-config.mjs';
+import { retiredSeedRows } from './state-manifest.mjs';
+import { retireSeed } from './uninstall.mjs';
 
 export class SetupError extends Error {}
 
@@ -80,8 +80,6 @@ export const PRIVATE_RULE_SEED = path.join(pkgRoot, "claude", "rules", "nana-per
 export const SHARED_MEMORY_SEED = path.join(pkgRoot, "claude", "memory", "MEMORY.seed.md");
 export const PI_PACK_SEED = path.join(pkgRoot, "pi", "nana-pack.seed.json");
 export const PI_OBJECTIVE_SEED = path.join(pkgRoot, "pi", "nana-objective.seed.md");
-export const SUBAGENT_CONFIG_SEED = path.join(pkgRoot, "pi", "subagent-config.seed.json");
-export const REVIEWER_SEED = path.join(pkgRoot, "pi", "reviewer.seed.md");
 export const PI_REVIEW_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-review.mjs");
 export const PI_WORKER_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "pi-worker.mjs");
 export const NANA_LAND_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "nana-land.mjs");
@@ -748,51 +746,6 @@ export function readPiPackConfig(layout) {
 	}
 }
 
-/* ------------------------------------------------------------- pi-subagents config (R-360) */
-
-/**
- * Seed-if-absent, exactly `stepPiConfig`'s pattern: pi-subagents is a third-party vendor
- * extension nana-pi only consumes (architecture-ruling.md 2026-10-04 §2), so it is owned here,
- * never merged into, same as nana-pack.json. The three sealed keys (R-361) live in the seed file
- * ONLY — this function never states them again.
- */
-export function stepSubagentConfig(layout, o) {
-	const seedText = fs.readFileSync(SUBAGENT_CONFIG_SEED, "utf8");
-	return [{ label: "pi subagent config", ...seedFile(layout.subagentConfig, seedText, o) }];
-}
-
-/* ---------------------------------------------------------------- pi reviewer agent (R-363) */
-
-/**
- * The nana-owned reviewer.md's identity marker. Deviation from the architecture ruling's literal
- * wording ("first line [of the file]"): pi-subagents' own `frontmatter.js` requires byte 0 of the
- * file to be `---` — `parseFrontmatter` returns an EMPTY frontmatter object for any other first
- * byte, and `loadAgentsFromDefinitionFiles` then silently SKIPS the agent for lacking
- * `name`/`description` (verified against the installed 0.75.0 source: `src/agents/frontmatter.js`
- * `if (!normalized.startsWith("---"))`, `src/agents/agents.js` `if (!frontmatter.name ||
- * !frontmatter.description) continue;`). A literal byte-0 marker would therefore stop this file
- * from shadowing the builtin `reviewer` at all — the opposite of R-363's purpose. The marker
- * instead sits as the first line of the BODY (immediately after the closing `---`, matching pi's
- * own `body = content.slice(frontmatterEnd).trim()` boundary exactly), which doctor and the seed
- * agree on below.
- */
-export const REVIEWER_MARKER = "<!-- nana-setup reviewer seed -->";
-
-/** The first line of a reviewer.md-shaped file's BODY, by the same boundary pi-subagents' own
- *  frontmatter.js uses (`\n---` after byte 0, then `.trim()`) — see REVIEWER_MARKER above. */
-export function firstBodyLine(content) {
-	const normalized = content.replace(/\r\n/g, "\n");
-	if (!normalized.startsWith("---")) return (normalized.trim().split("\n")[0] ?? "");
-	const end = normalized.indexOf("\n---", 3);
-	if (end === -1) return (normalized.trim().split("\n")[0] ?? "");
-	return (normalized.slice(end + 4).trim().split("\n")[0] ?? "");
-}
-
-export function stepReviewerAgent(layout, o) {
-	const seedText = fs.readFileSync(REVIEWER_SEED, "utf8");
-	return [{ label: "pi reviewer agent", ...seedFile(layout.reviewerAgent, seedText, o) }];
-}
-
 /* ------------------------------------------------------------------------ knowledge index */
 
 export function stepKnowledge(layout, o) {
@@ -1193,8 +1146,7 @@ export function install(layout, opts = {}) {
 		results.push(...stepSettings(layout, fileOptions, settingsState, { lockHeld }));
 		results.push(...stepSharedMemory(layout, fileOptions));
 		results.push(...stepPiConfig(layout, fileOptions));
-		results.push(...stepSubagentConfig(layout, fileOptions));
-		results.push(...stepReviewerAgent(layout, fileOptions));
+		results.push(...retiredSeedRows(layout).map(row => retireSeed(row, { ...fileOptions, root: layout.piHome })));
 		results.push(...stepPath(layout, fileOptions));
 		if (copyRecord) results.push(...copyRecord.save(fileOptions));
 	};

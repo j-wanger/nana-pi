@@ -19,6 +19,7 @@ const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const { uninstall } = await import("../lib/uninstall.mjs");
 const { resolveLayout } = await import("../lib/paths.mjs");
+const { retiredSeedRows } = await import('../lib/state-manifest.mjs');
 let failures = 0;
 const check = (title, ok, detail = "") => {
   console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail);
@@ -111,9 +112,9 @@ if (process.platform !== "win32") {
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-seeds-"));
   const layout = resolveLayout({ home });
   const { stateRows } = await import("../lib/state-manifest.mjs");
-  const reviewer = stateRows(layout).find((row) => row.store === "reviewer.md").path;
+  const reviewer = retiredSeedRows(layout).find((row) => row.store === "reviewer.md").path;
   const pack = stateRows(layout).find((row) => row.store === "pi pack config").path;
-  const reviewerSource = path.join(pkg, "pi", "reviewer.seed.md");
+  const reviewerSource = path.join(pkg, "pi", "retired", "reviewer.seed.md");
   fs.mkdirSync(path.dirname(reviewer), { recursive: true });
   fs.copyFileSync(reviewerSource, reviewer);
   fs.appendFileSync(reviewer, "edited\n");
@@ -381,7 +382,7 @@ if (process.platform !== "win32") {
   fs.mkdirSync(layout.hooksDir, { recursive: true });
   fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), link);
   const { stateRows } = await import("../lib/state-manifest.mjs");
-  const seed = stateRows(layout).find((row) => row.store === "reviewer.md");
+  const seed = retiredSeedRows(layout).find((row) => row.store === "reviewer.md");
   fs.mkdirSync(path.dirname(seed.path), { recursive: true });
   fs.copyFileSync(seed.source, seed.path);
   const beforeLink = fs.readlinkSync(link);
@@ -495,7 +496,7 @@ if (process.platform !== "win32") {
   const link = path.join(layout.hooksDir, "nana-objective.sh");
   fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), link);
   const { stateRows } = await import("../lib/state-manifest.mjs");
-  const seed = stateRows(layout).find((row) => row.store === "reviewer.md");
+  const seed = retiredSeedRows(layout).find((row) => row.store === "reviewer.md");
   fs.mkdirSync(path.dirname(seed.path), { recursive: true });
   fs.copyFileSync(seed.source, seed.path);
   let failed = false;
@@ -517,7 +518,7 @@ if (process.platform !== "win32") {
   const link = path.join(layout.hooksDir, "nana-objective.sh");
   fs.symlinkSync(path.join(repo, "packages/nana-setup/claude/hooks/nana-objective.sh"), link);
   const { stateRows } = await import("../lib/state-manifest.mjs");
-  const seed = stateRows(layout).find((row) => row.store === "reviewer.md");
+  const seed = retiredSeedRows(layout).find((row) => row.store === "reviewer.md");
   fs.mkdirSync(path.dirname(seed.path), { recursive: true });
   fs.copyFileSync(seed.source, seed.path);
   const result = run(["uninstall", "--yes", "--home", home]);

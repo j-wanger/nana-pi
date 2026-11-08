@@ -32,7 +32,7 @@ import { createRequire } from "node:module";
 import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, entryInvokes, retiredKnowledgeHook, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, REVIEWER_MARKER, firstBodyLine, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
@@ -537,85 +537,6 @@ export function diagnose(layout, opts = {}) {
 			vouched = trustRecord(projectDir, layout.piHome).vouched;
 		} catch { /* an unreadable trust store is not affirmative */ }
 		add(vouched ? OK : WARN, "project trust", vouched ? `affirmative trust for ${projectDir}` : `project config has no affirmative trust — run nana-setup trust ${projectDir}`);
-	}
-
-	// --- pi-subagents: config floor and the reviewer shadow (R-360–R-371, architecture ruling
-	// 2026-10-04, astra r1 2026-10-04) --- a third-party vendor extension nana-pi only consumes:
-	// seed-once, doctor-verifies, never rewrite a hand edit — same policy as pi nana-pack.json
-	// above. ABSENT and PRESENT-BUT-INVALID are two different remedies (astra r1 MUST 1):
-	// `nana-setup install` only creates a file that does not exist yet — seedFile() never
-	// rewrites one that is already there, however broken — so a present-but-invalid file is
-	// told to repair itself by hand, never to run install.
-	// astra r2 MUST 1a: name the config's own path AND the literal required values, not just
-	// "the required values" — a reader should never have to open the seed to learn them.
-	const subCfgRepairHint = (why) =>
-		`${why} — repair ${layout.subagentConfig} by hand: set forceTopLevelAsync: true and maxSubagentDepth: 1 (asyncByDefault stays true unless you deliberately want it off), keeping any other settings you have there (\`nana-setup install\` will not touch this file)`;
-	let subCfgRaw;
-	let subCfgReadErr;
-	try {
-		subCfgRaw = fs.readFileSync(layout.subagentConfig, "utf8");
-	} catch (err) {
-		subCfgReadErr = err;
-	}
-	if (subCfgReadErr?.code === "ENOENT") {
-		add(FAIL, "pi subagent config", `missing: ${layout.subagentConfig} — run \`nana-setup install\` to seed it`);
-	} else if (subCfgReadErr) {
-		add(FAIL, "pi subagent config", subCfgRepairHint(`${layout.subagentConfig} exists but could not be read (${subCfgReadErr.message})`));
-	} else {
-		let subCfg;
-		let parseErr;
-		try {
-			subCfg = JSON.parse(subCfgRaw);
-		} catch (err) {
-			parseErr = err;
-		}
-		if (parseErr) {
-			add(FAIL, "pi subagent config", subCfgRepairHint(`${layout.subagentConfig} is not valid JSON (${parseErr.message})`));
-		} else if (!isPlainObject(subCfg)) {
-			// JSON.parse succeeds for null, an array, or a scalar — none of those is a usable
-			// config object, and reading a key off one must never throw (astra r1 MUST 2).
-			add(FAIL, "pi subagent config", subCfgRepairHint(`${layout.subagentConfig} must hold a JSON object, not ${kindOf(subCfg)}`));
-		} else if (subCfg.forceTopLevelAsync !== true) {
-			add(FAIL, "pi subagent config", subCfgRepairHint(`forceTopLevelAsync is ${JSON.stringify(subCfg.forceTopLevelAsync)}, not true, in ${layout.subagentConfig} (this is the key that forces background at the top level)`));
-		} else if (subCfg.maxSubagentDepth !== 1) {
-			add(FAIL, "pi subagent config", subCfgRepairHint(`maxSubagentDepth is ${JSON.stringify(subCfg.maxSubagentDepth)}, not 1, in ${layout.subagentConfig} (this is the key that caps nested fan-out)`));
-		} else if (subCfg.asyncByDefault === false) {
-			// Explicitly false, not merely absent: upstream already defaults this to true, so a
-			// user who set it false made a deliberate choice this reads as a warning, not a failure.
-			add(WARN, "pi subagent config", `asyncByDefault is explicitly false in ${layout.subagentConfig} — a nested call with an omitted async will run foreground (ungated)`);
-		} else {
-			add(OK, "pi subagent config", layout.subagentConfig);
-		}
-	}
-
-	let reviewerBody = null;
-	try {
-		reviewerBody = fs.readFileSync(layout.reviewerAgent, "utf8");
-	} catch {
-		/* absent */
-	}
-	if (reviewerBody === null) {
-		add(FAIL, "pi reviewer agent", `missing: ${layout.reviewerAgent} — run \`nana-setup install\` to seed it`);
-	} else if (firstBodyLine(reviewerBody) !== REVIEWER_MARKER) {
-		// Present but unmarked: same ABSENT-vs-INVALID split as the subagent config above —
-		// install will never overwrite a file that already exists, so the fix is a manual one.
-		add(FAIL, "pi reviewer agent", `${layout.reviewerAgent} is missing the nana marker (${REVIEWER_MARKER}) as the first line of its body — repair it by hand (or delete it and run \`nana-setup install\` to get the full seed; install will not overwrite a file that already exists)`);
-	} else {
-		add(OK, "pi reviewer agent", layout.reviewerAgent);
-	}
-
-	let subagentsPkg = null;
-	let subagentsErr = null;
-	try {
-		subagentsPkg = JSON.parse(fs.readFileSync(layout.piSubagentsPackage, "utf8"));
-	} catch (err) {
-		subagentsErr = err.code === "ENOENT" ? "not installed" : `unreadable (${err.message})`;
-	}
-	const subagentsFix = `pi install npm:pi-subagents@${PI_SUBAGENTS_FLOOR}`;
-	if (subagentsErr || !versionAtLeast(subagentsPkg?.version, PI_SUBAGENTS_FLOOR)) {
-		add(FAIL, "pi pi-subagents", `${subagentsErr ?? `version ${JSON.stringify(subagentsPkg?.version)} is older than ${PI_SUBAGENTS_FLOOR}`} — fix: \`${subagentsFix}\``);
-	} else {
-		add(OK, "pi pi-subagents", `version ${subagentsPkg.version} (>= ${PI_SUBAGENTS_FLOOR})`);
 	}
 
 	// Read-only: nana-setup never writes mcp.json (the seat edits it by hand, architecture

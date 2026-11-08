@@ -2,14 +2,12 @@
  * @module packages/nana-setup/lib/install-check-config.mjs
  * @purpose Defines the independent sealed contract and tunables for the install check.
  * @inputs None.
- * @outputs Hook, environment, retry, review, build, known-red, doctor-note and filesystem-path contracts.
+ * @outputs Hook, environment, review, build, known-red, doctor-note and filesystem-path contracts.
  * @effects none
  * @errors None.
  */
 import { MEMORY_END_ENTRY, MEMORY_END_TIMEOUT_SECONDS, MEMORY_MAKING_NOTE } from './memory-end-config.mjs';
 // Contract values: Claude Code hooks/runtime matrix, read 2026-10-12; installer timeout in settings.mjs.
-// Chosen 2026-10-21 (R-2480): two retries cover a transient registry or file-lock failure; 5 s lets it clear within the CI job. npm 10 and npm 8 error leads (R-2481).
-export const PI_SUBAGENTS_RETRY = { attempts: 3, pauseMs: 5000, codeLeads: ["npm error code ", "npm ERR! code "] };
 export const HOOKS = [
   { label: 'hook memory making', shortLabel: 'memory making', event: MEMORY_END_ENTRY.event, matcher: null, script: MEMORY_END_ENTRY.file, timeout: MEMORY_END_TIMEOUT_SECONDS, removeEnv: ['CI'], form: { darwin: 'shell', linux: 'shell', win32: 'exec' } },
   { label: "hook objective", shortLabel: "objective", event: "SessionStart", matcher: "startup", script: "nana-objective.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },

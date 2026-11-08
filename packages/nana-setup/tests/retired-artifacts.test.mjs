@@ -16,6 +16,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { withPiStub } from "./stub-pi.mjs";
 import testFingerprints from "./fixtures/retired/dev-check-fingerprints.json" with { type: "json" };
 import { stepRetiredArtifacts } from "../lib/steps.mjs";
+import assert from 'node:assert/strict';
 import { resolveLayout } from "../lib/paths.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -113,7 +114,7 @@ function treeSnapshot(root) {
       fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [shell, foreign] }, { matcher: 'Bash|PowerShell', hooks: [exec] }] } }));
       for (const [file, source] of [[layout.subagentConfig, 'subagent-config.seed.json'], [layout.reviewerAgent, 'reviewer.seed.md']]) {
         fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.copyFileSync(path.join(pkg, 'pi', source), file);
+        fs.copyFileSync(path.join(pkg, 'pi', 'retired', source), file);
       }
       const removed = run(['uninstall', '--yes', '--home', h], { ...process.env, NANA_SETUP_PLATFORM: 'darwin' });
       if (removed.status !== 0) throw new Error(removed.stdout + removed.stderr);
@@ -134,6 +135,67 @@ function treeSnapshot(root) {
     check('M9: old-home uninstall removes retired wiring and unchanged seeds before install preserves only foreign siblings', !problem, problem);
   }
 }
+
+async function test(title, body) {
+  let timer;
+  try {
+    await Promise.race([Promise.resolve().then(body), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('seed retirement timeout')), 20_000); })]);
+    check(title, true);
+  } catch (error) { check(title, false, error.stack); }
+  finally { clearTimeout(timer); }
+}
+const oldSeeds = layout => [[layout.subagentConfig, 'subagent-config.seed.json'], [layout.reviewerAgent, 'reviewer.seed.md']];
+const seedBytes = name => fs.readFileSync(path.join(pkg, 'pi', 'retired', name));
+
+// req: R-3803
+await test('M5: install retires unchanged seeds without new seeds doctor rows or vendor retries', async () => {
+  for (const platform of ['darwin', 'win32']) {
+    const env = { ...process.env, NANA_SETUP_PLATFORM: platform };
+    for (const old of [false, true]) {
+      const h = home(), layout = resolveLayout({ home: h });
+      if (old) for (const [file, name] of oldSeeds(layout)) {
+        fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, seedBytes(name));
+      }
+      const result = run(['install', '--home', h], env);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      for (const [file] of oldSeeds(layout)) assert.equal(fs.lstatSync(file, { throwIfNoEntry: false }), undefined);
+      const doctor = run(['doctor', '--home', h], env);
+      assert.ok(!/pi (subagent config|reviewer agent|pi-subagents)/.test(doctor.stdout), doctor.stdout);
+    }
+  }
+  const config = await import('../lib/install-check-config.mjs');
+  assert.ok(!('PI_SUBAGENTS_RETRY' in config));
+  assert.ok(!fs.readFileSync(path.join(pkg, 'lib/install-check.mjs'), 'utf8').includes('pi-subagents'));
+});
+
+// req: R-3806
+await test('M8: retirement preserves edited marked foreign and linked seeds and their targets including dry runs', () => {
+  for (const platform of ['darwin', 'win32']) for (const mode of ['edited', 'foreign', 'link', 'parent-link']) {
+    const h = home(), layout = resolveLayout({ home: h });
+    const expected = [];
+    for (const [file, name] of oldSeeds(layout)) {
+      const bytes = mode === 'foreign' ? Buffer.from('owner bytes\r\nwith trailing space \t') : Buffer.concat([seedBytes(name), Buffer.from('\r\nowner edit \t')]);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      if (mode === 'parent-link') {
+        const external = path.join(h, `external-${name}`);
+        fs.mkdirSync(external); fs.rmdirSync(path.dirname(file)); fs.symlinkSync(external, path.dirname(file), 'junction');
+        fs.writeFileSync(path.join(external, path.basename(file)), seedBytes(name));
+      } else if (mode === 'link') {
+        const target = path.join(h, `external-${name}`); fs.writeFileSync(target, seedBytes(name)); fs.symlinkSync(target, file);
+      } else fs.writeFileSync(file, bytes);
+      expected.push([file, fs.readFileSync(file), mode === 'link' ? fs.readlinkSync(file) : null]);
+    }
+    for (const command of ['install', ...(platform === 'darwin' ? ['uninstall'] : [])]) for (const dry of [true, false]) {
+      const result = run([command, '--home', h, ...(command === 'uninstall' && !dry ? ['--yes'] : []), ...(dry ? ['--dry-run'] : [])], { ...process.env, NANA_SETUP_PLATFORM: platform });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      for (const [file, bytes, link] of expected) {
+        assert.deepEqual(fs.readFileSync(file), bytes);
+        if (link) { assert.equal(fs.readlinkSync(file), link); assert.deepEqual(fs.readFileSync(link), bytes); }
+        if (mode === 'parent-link') assert.ok(fs.lstatSync(path.dirname(file)).isSymbolicLink());
+      }
+    }
+  }
+});
 
 try {
 	{
