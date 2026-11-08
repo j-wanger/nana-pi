@@ -1,7 +1,7 @@
 /**
  * @module scripts/template-acceptance.mjs
  * @purpose Render and run every native check job for both templates and adoption modes at one immutable commit.
- * @inputs CLI source/ref and injectable child-process runner.
+ * @inputs CLI source/ref, optional programmatic mode-prefix filter and injectable child-process runner.
  * @outputs One failure report per failed command and a process exit status.
  * @effects process (git, copier, and package-manager children), disk (temporary renders).
  * @errors Missing tools, render failures, timeouts, or check failures return status 1.
@@ -73,7 +73,7 @@ function seedAdopt(scaffold, target, language) {
   fs.writeFileSync(smoke, body);
 }
 
-export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), run = defaultRun, log = console.log }) {
+export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), modes, run = defaultRun, log = console.log }) {
   const resolve = runChecked(run, "git", ["-C", src, "rev-parse", "--verify", `${ref}^{commit}`], src);
   if (!resolve.ok) { log(`template acceptance failed: git ${textOf(resolve.result).trim() || "could not start"}`); return 1; }
   const sha = String(resolve.result.stdout).trim();
@@ -84,6 +84,7 @@ export function runAcceptance({ src, ref, tmpRoot = os.tmpdir(), run = defaultRu
   try {
     for (const [language, dataChecks] of [["python", false], ["typescript", false], ["python", true]]) {
       const prefix = dataChecks ? "python-data" : language;
+      if (modes && !modes.includes(prefix)) continue;
       const answers = { ...ANSWERS[language], ...(dataChecks ? { data_checks: true } : {}) };
       const scaffold = path.join(root, `${prefix}-scaffold`);
       const render = runChecked(run, "uvx", copierArgs(language, answers, scaffold, sha), src, childEnv);
