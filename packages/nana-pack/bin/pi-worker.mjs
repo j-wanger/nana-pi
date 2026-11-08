@@ -251,7 +251,7 @@ if (laneMode) {
 	if (argvSeparator >= 0) argv.splice(argvSeparator + 1, argv.length, ...builderArgs);
 	else argv.push('--', ...builderArgs);
 	maxArg = maxSecs;
-	if (!worktreeTrusted) process.stderr.write(`trust: none for ${cwd} — project post-edit checks are inert (nana-setup trust ${cwd})\n`);
+	if (!worktreeTrusted) process.stderr.write(`trust: none for ${cwd} — project gate configuration is ignored (nana-setup trust ${cwd})\n`);
 	function validateLane() {
 		try {
 			const nowCwd = fsReal(process.cwd());

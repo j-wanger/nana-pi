@@ -23,6 +23,7 @@ const repo = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 const cli = path.join(repo, 'packages/nana-setup/bin/nana-setup.mjs');
 const piRoot = findPiRoot().root;
 const cases = [];
+const SKIP = Symbol('skip');
 const check = (title, fn) => cases.push({ title, fn });
 function fixture(fn) {
   const root = tmpDir(path.join(os.tmpdir(), 'setup-tail-'));
@@ -102,6 +103,32 @@ function command(cmd, args, cwd, expected = 0, options = {}) {
   else assert.ok(Number.isInteger(result.status) && result.status !== 0, `${cmd} ${args.join(' ')} unexpectedly passed`);
   return result;
 }
+function runManual(line, cwd, expected = 0, { platform = process.platform, run = command } = {}) {
+  return platform === 'win32'
+    ? run('cmd.exe', ['/d', '/s', '/c', `"${line}"`], cwd, expected, { windowsVerbatimArguments: true })
+    : run('/bin/sh', ['-c', line], cwd, expected);
+}
+
+// req: R-3892
+check('M8 Windows: manual command argv preserves embedded quotes', () => {
+  for (const line of ['uv run python -c "import sys; sys.exit(0)"', 'node -e "process.exit(0)"']) {
+    const calls = [];
+    runManual(line, 'fixture', 0, { platform: 'win32', run: (...args) => calls.push(args) });
+    assert.deepEqual(calls, [['cmd.exe', ['/d', '/s', '/c', `"${line}"`], 'fixture', 0, { windowsVerbatimArguments: true }]]);
+  }
+});
+
+function toolsAvailable(tools) {
+  const missing = tools.filter(tool => {
+    const result = defaultRun(tool, ['--version'], { cwd: repo, timeout: 15000 });
+    return result.error || result.status !== 0;
+  });
+  if (!missing.length) return true;
+  const reason = `${missing.join(', ')} unavailable`;
+  assert.notEqual(process.env.NANA_TEST_REQUIRE_COPIER, '1', reason);
+  console.log(`tools: ${reason}`);
+  return false;
+}
 function templateSource(root) {
   const source = path.join(root, 'source');
   fs.mkdirSync(source);
@@ -116,15 +143,16 @@ function render(source, dir, language) {
 // req: R-3885
 check('M1: shipped guidance makes no automatic post-edit claim', () => {
   const files = command('git', ['ls-files'], repo).stdout.trim().split(/\r?\n/).filter(file =>
-    /(?:SKILL\.md$|README\.md(?:\.jinja)?$|^templates\/|^packages\/nana-setup\/lib\/)/.test(file)
+    /(?:SKILL\.md$|README\.md(?:\.jinja)?$|^templates\/|^packages\/nana-setup\/lib\/|^packages\/nana-pack\/bin\/)/.test(file)
     && !/(?:\/tests?\/|\/fixtures\/|\/studies\/|\/retired\/)/.test(file));
-  const claims = /post-edit (?:gate|preset|on-ramp|check runs)|wired into post-edit|every edit fires|format\+lint on\s+every edit|biome fix on every\s+edit/i;
+  const claims = /project post-edit checks are inert|post-edit (?:gate|preset|on-ramp|check runs)|wired into post-edit|every edit fires|format\+lint on\s+every edit|biome fix on every\s+edit/i;
   const found = files.filter(file => fs.existsSync(path.join(repo, file)) && claims.test(fs.readFileSync(path.join(repo, file), 'utf8')));
   assert.deepEqual(found, []);
 });
 
 // req: R-3887
 check('M3: fresh scaffolds omit pack config and updates preserve project bytes', () => fixture(({ root }) => {
+  if (!toolsAvailable(['uvx'])) return SKIP;
   const source = path.join(root, 'history');
   fs.mkdirSync(source);
   const archive = command('git', ['archive', 'v0.6.51', 'copier.yml', 'templates'], repo, 0, { encoding: null }).stdout;
@@ -163,6 +191,7 @@ check('M3: fresh scaffolds omit pack config and updates preserve project bytes',
 
 // req: R-3892
 check('M8: documented manual checks pass clean and reject broken fixtures', () => fixture(({ root }) => {
+  if (!toolsAvailable(['uvx', 'uv', 'pnpm'])) return SKIP;
   const source = templateSource(root);
   for (const language of ['python', 'typescript']) {
     const dir = path.join(root, language);
@@ -178,7 +207,7 @@ check('M8: documented manual checks pass clean and reject broken fixtures', () =
     const run = (name, bad = false, file = 'unused') => {
       const line = checks.get(name).replaceAll('{file}', file);
       // Commands are shipped shell text; run them in the rendered project's toolchain.
-      command(process.platform === 'win32' ? 'cmd.exe' : '/bin/sh', process.platform === 'win32' ? ['/d', '/s', '/c', line] : ['-c', line], dir, bad ? 1 : 0);
+      runManual(line, dir, bad ? 1 : 0);
     };
     for (const name of ['lint', 'types', 'tests', 'map', 'readme']) run(name);
     const file = language === 'python' ? 'src/tail/__init__.py' : 'src/index.ts';
@@ -291,8 +320,8 @@ let failures = 0;
 for (const { title, fn } of cases) {
   let timer;
   try {
-    await Promise.race([Promise.resolve().then(fn), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('case deadline')), 300000); })]);
-    console.log('PASS', title);
+    const result = await Promise.race([Promise.resolve().then(fn), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('case deadline')), 300000); })]);
+    console.log(result === SKIP ? 'SKIP' : 'PASS', title);
   } catch (error) { failures++; console.log('FAIL', title, error.message); }
   finally { clearTimeout(timer); }
 }

@@ -140,6 +140,7 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		['packages/nana-setup/lib/project.mjs -> packages/nana-pack/lib/json-text.mjs', 'FEAT-013 setup-tail stops seeding postEdit config; project no longer parses user config for the retired shadow guard.'],
 		['packages/nana-pack/tests/claude-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes the movement-only repository fixtures from launcher tests.'],
 		['packages/nana-pack/tests/immutable-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes movement-only repository fixtures; immutable snapshot checks remain.'],
 		...[
@@ -227,7 +228,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	losses.set('packages/nana-pack/tests/adoption-producer.test.mjs -> packages/nana-pack/lib/config.ts', 'FEAT-013 adoption now reads only user-scope adoptionSettings; the test still exercises config via its dynamic import.');
 	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
 	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
-	for (const caller of ['lib/install-check.mjs', 'tests/install-check.test.mjs']) losses.set(`packages/nana-setup/${caller} -> packages/nana-setup/lib/doctor.mjs`, 'FEAT-013 removes the delegation-runtime floor import with the vendor install and retry.');
+	for (const caller of ['lib/install-check.mjs', ...['install-check', 'desk-service', 'doctor-fix-line', 'install', 'linked-claude-folder', 'relative-agent-dir', 'rulings-install', 'settings-lock', 'skills-and-standards', 'win32-degrade', 'win32-hook-repair'].map(name => `tests/${name}.test.mjs`)]) losses.set(`packages/nana-setup/${caller} -> packages/nana-setup/lib/doctor.mjs`, 'FEAT-013 removes the delegation-runtime floor import with the vendor install and retry.');
 	const retiredTargets = new Map([
 		['scripts/requirements-moved.mjs', 'R-3770 rehomes the shared runner in git-runner.mjs and removes movement.'],
 		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves execution into review-run.mjs, shared with the test harness.'],
