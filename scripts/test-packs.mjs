@@ -2,7 +2,7 @@
  * @module scripts/test-packs.mjs
  * @purpose Select complete packs and conservative changed-module tests with auditable reasons.
  * @inputs Collected relative paths, pack names, a base ref, git and graph boundaries.
- * @outputs Selected paths and a record of changed paths, module reasons and fail-safe cause.
+ * @outputs Selected paths and a record of changed paths, changed-test and module reasons and fail-safe cause.
  * @effects process (bounded git reads), disk (code graph reads).
  * @errors Invalid packs or incomplete membership throw; uncertain impact selects all modules.
  */
@@ -36,7 +36,7 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
   const problems = packProblems(files, membership);
   if (problems.length) throw new Error(problems.join("\n"));
   packs = [...new Set(packs)];
-  const selection = { changedFrom, changedPaths: [], module: [], failSafe: null };
+  const selection = { changedFrom, changedPaths: [], changedTests: [], module: [], failSafe: null };
   const moduleFiles = files.filter(file => membership[file] === "module");
   const reasons = new Map();
   const add = (file, reason) => { if (!reasons.has(file)) reasons.set(file, new Set()); reasons.get(file).add(reason); };
@@ -45,10 +45,12 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
     try { selection.changedPaths = readDiff(root, changedFrom); }
     catch { selection.failSafe = "diff could not be read"; }
   }
-  // Release paths supplement a lane run, never an explicit single-pack or main run.
-  if (changedFrom && packs.includes("land") && packs.includes("module") && !packs.includes("main")) {
-    if (selection.failSafe || selection.changedPaths.some(file => Object.keys(RELEASE_GLOBS).some(glob => globMatch(glob, file)))) packs = [...new Set([...packs, "release"])];
-  }
+  const changedTests = new Set(selection.changedPaths.filter(file => files.includes(file) && membership[file] !== "manual"));
+  selection.changedTests = [...changedTests].sort().map(path => ({ path, reasons: ["changed test"] }));
+  // Release paths and graph callers supplement a lane run, never a single-pack or main run.
+  const lane = changedFrom && packs.includes("land") && packs.includes("module") && !packs.includes("main");
+  const release = () => { if (lane && !packs.includes("release")) packs.push("release"); };
+  if (selection.changedPaths.some(file => membership[file] === "release" || Object.keys(RELEASE_GLOBS).some(glob => globMatch(glob, file)))) release();
   if (packs.includes("module")) {
     if (!changedFrom) all("complete module pack");
     else {
@@ -60,7 +62,11 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
           const graph = await makeGraph(root);
           for (const changed of selection.changedPaths) {
             if (moduleFiles.includes(changed)) add(changed, "changed test");
-            for (const caller of impact(graph, [changed]).callers) if (moduleFiles.includes(caller)) add(caller, `caller of ${changed}`);
+            if (!graph.modules.has(changed) && !Object.keys(WATCH_GLOBS).some(glob => globMatch(glob, changed))) all(`unmapped path: ${changed}`);
+            for (const caller of impact(graph, [changed]).callers) {
+              if (moduleFiles.includes(caller)) add(caller, `caller of ${changed}`);
+              if (membership[caller] === "release") release();
+            }
           }
           for (const file of blindReach(graph)) if (moduleFiles.includes(file)) add(file, "blind reach");
           for (const changed of selection.changedPaths) for (const glob of Object.keys(WATCH_GLOBS)) if (globMatch(glob, changed)) all(`watch glob ${glob}: ${changed}`);
@@ -69,6 +75,7 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
       if (selection.failSafe) { reasons.clear(); all(`fail-safe: ${selection.failSafe}`); }
     }
   }
+  if (selection.failSafe) release();
   selection.module = [...reasons].sort(([a], [b]) => a.localeCompare(b)).map(([path, reasons]) => ({ path, reasons: [...reasons] }));
-  return { packs, selection, files: files.filter(file => packs.includes(membership[file]) && (membership[file] !== "module" || reasons.has(file))) };
+  return { packs, selection, files: files.filter(file => changedTests.has(file) || (packs.includes(membership[file]) && (membership[file] !== "module" || reasons.has(file)))) };
 }

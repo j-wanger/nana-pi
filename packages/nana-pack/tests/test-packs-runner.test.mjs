@@ -12,6 +12,9 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { check, execute, fixtureRoot, git, put, REPO, TEMP } from "./pack-fixtures.mjs";
 import { readSuiteRecords } from "../lib/suite-records.mjs";
+import { TEST_PACKS } from "../lib/test-packs-config.mjs";
+import { selectPackFiles } from "../../../scripts/test-packs.mjs";
+import { proveCiSuite } from "../lib/land-ci.mjs";
 
 const land = "packages/probe/tests/land.test.mjs";
 const caller = "packages/probe/tests/caller.test.mjs";
@@ -75,6 +78,44 @@ await check("M3: unreadable diffs graph errors and policy changes run all module
   }
   const bad = execute(root, ["--pack=land,module", "--changed-from=missing-ref"]);
   assert.equal(bad.status, 0, bad.out); assert.equal(bad.record.files.length, files.length); assert.match(bad.out, /fail-safe.*diff/);
+});
+// req: R-3851
+// req: R-3853
+await check("M11: acceptance-win-cmd replay selects edited release tests and release import callers", async () => {
+  // Frozen name-only diff of 59e7d598; replay without requiring that commit in shallow CI clones.
+  const replay = ["REQUIREMENTS.md", "docs/code-map.md", "docs/requirements-tree.md",
+    ...["evidence.md", "map-check.log", "map.log", "native.log", "readme.log", "release-tests.log", "touched-tests.log", "trace.log", "tree.log", "wrong-code.log"].map(f => `docs/reviews/acceptance-win-cmd/${f}`),
+    "packages/nana-pack/tests/template-acceptance.test.mjs", "packages/nana-pack/tests/template-release.test.mjs", "scripts/template-acceptance.mjs"];
+  const files = Object.keys(TEST_PACKS).filter(f => f.endsWith(".test.mjs"));
+  const edited = replay.filter(f => files.includes(f));
+  for (const diff of [replay, ["packages/nana-pack/tests/template-release.test.mjs"], ["scripts/template-release.mjs"], ["packages/nana-pack/lib/release-status.mjs"]]) {
+    const selected = await selectPackFiles({ root: REPO, files, packs: ["land", "module"], changedFrom: "main", readDiff: () => diff });
+    assert.equal(selected.selection.failSafe, null);
+    for (const file of edited.filter(f => diff.includes(f))) {
+      assert(selected.files.includes(file), `edited test omitted: ${file}`);
+      assert.deepEqual(selected.selection.changedTests.find(item => item.path === file)?.reasons, ["changed test"]);
+    }
+    assert(selected.packs.includes("release"), `release omitted for ${diff.join(",")}`);
+    assert(files.filter(f => TEST_PACKS[f] === "release").every(f => selected.files.includes(f)));
+  }
+});
+// req: R-3851
+await check("M12: ci-wait replay selects and proves the edited main-pack test", async () => {
+  const edited = "packages/nana-pack/tests/ci-wait.test.mjs";
+  const files = Object.keys(TEST_PACKS).filter(f => f.endsWith(".test.mjs"));
+  const selected = await selectPackFiles({ root: REPO, files, packs: ["land", "module"], changedFrom: "main", readDiff: () => ["packages/nana-pack/lib/ci-wait.mjs", edited] });
+  assert.equal(selected.selection.failSafe, null);
+  assert(selected.files.includes(edited), `edited test omitted: ${edited}`);
+  assert.deepEqual(selected.selection.changedTests, [{ path: edited, reasons: ["changed test"] }]);
+  const run = { id: 71, run_attempt: 1 };
+  const record = { filters: [], platform: process.platform, exitCode: 0,
+    packRun: { complete: true, packs: selected.packs, selection: selected.selection },
+    files: selected.files.map(path => ({ path, label: "PASS", seconds: 0 })) };
+  const proof = record => proveCiSuite({ code: 0, parsed: [{ run, leg: "macos-latest", attempt: 1, record }], problems: [] }, [run], process.platform);
+  assert.equal(proof(record).ok, true);
+  const missing = { ...record, files: record.files.filter(f => f.path !== edited) };
+  assert.equal(proof(missing).ok, false, "reader accepted an omitted edited main test");
+  assert.equal(proof({ ...record, files: record.files.map(f => f.path === edited ? { ...f, label: "FAIL" } : f) }).ok, false);
 });
 // req: R-3858
 await check("M9: complete-pack locked runs serialize retain records and path filters bypass", async () => {
