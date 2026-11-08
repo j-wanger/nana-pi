@@ -1,0 +1,6 @@
+HEAD: 2659 rows; 0 missing IDs
+main: 2685 rows; 0 missing IDs
+packages/nana-pack/bin/nana-land.mjs: byte-identical to main
+packages/nana-pack/lib/main-ci.mjs: byte-identical to main
+HANDOFF.md: main merge only; no authored edit
+21 deleted test files: absent from pack config

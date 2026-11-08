@@ -196,15 +196,6 @@ for (const [name, value] of FORMS) {
 	delete process.env.PI_CODING_AGENT_DIR;
 }
 
-// ── exactly ONE implementation of the resolver in the repo ──
-{
-	const hits = spawnSync("git", ["grep", "-n", "-E", "PI_CODING_AGENT_DIR;?$|process\\.env\\.PI_CODING_AGENT_DIR", "--", "*.ts", "*.mjs", "*.js", ":!**/tests/**", ":!**/test/**"], { cwd: REPO, encoding: "utf-8" }).stdout.trim().split("\n").filter(Boolean);
-	const files = [...new Set(hits.map((h) => h.split(":")[0]))];
-	const allowed = new Set(["packages/nana-pack/lib/agent-dir.mjs"]);
-	// req: R-190
-	check("PI_CODING_AGENT_DIR is resolved only by agent-dir.mjs", files.every((f) => allowed.has(f)), hits.join("\n"));
-}
-
 // The real holder (Windows run 2): THIS process never left HOME after the chdir above, and win32
 // will not rmdir a live process cwd — no retry window clears that. Leave it before removing it.
 process.chdir(ORIGINAL_CWD);

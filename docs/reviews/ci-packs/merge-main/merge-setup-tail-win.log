@@ -1,0 +1,5 @@
+Auto-merging REQUIREMENTS.md
+Auto-merging docs/code-map.md
+CONFLICT (content): Merge conflict in docs/code-map.md
+Auto-merging packages/nana-pack/lib/test-runner-config.mjs
+Automatic merge failed; fix conflicts and then commit the result.

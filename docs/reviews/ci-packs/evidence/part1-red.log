@@ -1,0 +1,6 @@
+FAIL  packages/nana-pack/tests/test-packs.test.mjs  0 pass, 2 fail  0.0s  — exit 1
+      | FAIL M1: every collected file has exactly one pack and omissions name the file The input did not match the regular expression /unassigned\.test\.mjs/. Input:
+      | FAIL M7: R-3856 watch globs and fail-safe paths are sealed with provenance Expected values to be strictly deep-equal:
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 0 pass, 2 fail, 0 skip · 0.4s
+failed: packages/nana-pack/tests/test-packs.test.mjs

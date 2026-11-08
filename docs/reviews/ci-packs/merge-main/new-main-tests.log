@@ -1,0 +1,11 @@
+PASS  packages/nana-knowledge/tests/pull-cut.test.mjs        1 pass  0.3s
+PASS  packages/nana-pack/tests/experiment-cut.test.mjs       1 pass  0.8s
+FAIL  packages/nana-pack/tests/memory-cut-checks.test.mjs    0 pass, 1 fail  0.3s  — exit 1
+      | FAIL R-3864: memory artifacts are retired without deliverable check notes AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+PASS  packages/nana-pack/tests/memory-cut-guidance.test.mjs  1 pass  8.5s
+PASS  packages/nana-pack/tests/setup-retire.test.mjs         5 pass  2.9s
+PASS  packages/nana-setup/tests/memory-pause.test.mjs        2 pass  1.3s
+PASS  packages/nana-setup/tests/pull-cut-turn.test.mjs       1 pass  1.9s
+
+7 files: 6 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 11 pass, 1 fail, 0 skip · 17.0s
+failed: packages/nana-pack/tests/memory-cut-checks.test.mjs

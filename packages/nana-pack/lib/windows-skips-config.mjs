@@ -14,7 +14,10 @@
 const RESOLVER_CANNOT_START = "resolvePiPackage cannot tie pi to a package: its npm root -g and pi --version probes run .cmd shims through execFileSync with no shell, which Node does not run on Windows, and the error is swallowed (inferred)";
 const LAUNCHER_REGEX = "a source scan whose launcher regex expects \"/\"; the result is platform-independent and already covered on macOS";
 const reason = cause => `win32: desk not supported on Windows (declared 2026-10-17): ${cause}`;
+// ci-packs moved A/B to agent-dir-policy.test.mjs (docs/reviews/ci-packs/moves.json).
+// Only section C remains; its own win32 guard says Windows locks a live cwd.
 export const WINDOWS_SKIPS = Object.freeze({
+ "packages/nana-pack/tests/agent-dir-hostile.test.mjs": "win32: Windows locks a live cwd and will not delete it",
  "apps/desk/test/pi-resolution.test.mjs": reason(RESOLVER_CANNOT_START),
  "apps/desk/test/pi-rpc-contract.test.mjs": reason(RESOLVER_CANNOT_START),
  "apps/desk/test/knowledge-home-isolation.test.mjs": reason(LAUNCHER_REGEX),

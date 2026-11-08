@@ -1,0 +1,5 @@
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs      4 pass  7.5s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs  3 pass  4.3s
+PASS  packages/nana-pack/tests/test-packs.test.mjs         2 pass  0.0s
+
+3 files: 3 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 9 pass, 0 fail, 0 skip · 12.3s

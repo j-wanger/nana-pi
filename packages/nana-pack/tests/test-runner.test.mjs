@@ -798,8 +798,8 @@ const unlistedDeskBenchPaths = windowsFixturePaths.filter((p) => !Object.hasOwn(
 check("R-1382: win32 still runs each desk and bench file off the declared Windows skip list", unlistedDeskBenchPaths.length > 0 && unlistedDeskBenchPaths.every((p) =>
 	labelFor(win32Run.out, p) === "PASS" && ranMarker(win32Run.out_dir, p)));
 // req: R-1383
-check("R-1383: the declared Windows skip list names only collected desk and bench test files", listedPaths.length > 0 && listedPaths.every((p) =>
-	/^apps\/(desk|bench)\/test\/[^/]+\.test\.mjs$/.test(p) && fs.existsSync(path.join(REPO, p))));
+check("R-1383: the declared Windows skip list names only collected test files", listedPaths.length > 0 && listedPaths.every((p) =>
+	/^(?:packages\/[^/]+\/tests|apps\/(?:desk|bench)\/test)\/[^/]+\.test\.mjs$/.test(p) && !p.split("/").includes("fixtures") && fs.existsSync(path.join(REPO, p))));
 
 const benchSkips = Object.keys(WINDOWS_SKIPS).filter((p) => p.startsWith("apps/bench/"));
 if (benchSkips.length > 0) console.log("R-1521 offenders:", benchSkips.join(", "));

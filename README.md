@@ -311,7 +311,12 @@ After first-look on a product-page lane, run `npm run outside-reader -- --from <
 
 ## Tests
 
-CI covers this repository's full suite. Builders run touched tests, commit and report their branch, full tip and seat checks. Builders do not push. The seat pushes after verifying, then waits for the pushed tip's CI. A land uses passing unfiltered same-platform records unless the lane changes a workflow or the runner; otherwise it runs the local suite. CI lands refresh no runtime map, land product report or local suite record. Hand commands and fallback lands refresh those artifacts.
+PR CI runs land plus affected module tests and every edited nonmanual test on macOS.
+Release-path changes, release-test edits and their graph dependencies add the release pack.
+Main runs land, main, module and retire on macOS, Windows and Linux; Linux stays advisory.
+Superseded PR runs cancel; main runs never cancel. `npm run release` runs the release pack before acceptance.
+
+CI covers event-selected test packs. Builders run touched tests, commit and report their branch, full tip and seat checks. Builders do not push. The seat pushes after verifying, then waits for the pushed tip's CI. A land uses passing same-platform full-suite records or complete land/module pack records unless the lane changes a workflow or the runner; otherwise it runs the local suite. CI lands refresh no runtime map, land product report or local suite record. Hand commands and fallback lands refresh those artifacts.
 
 On a shared machine, run a fallback full suite with `npm run test:locked` (implemented by `scripts/test-locked.mjs`); it serializes full runs across worktrees. Add a path substring after `--` for an unlocked filtered run, such as `npm run test:locked -- packages/nana-pack/tests/test-locked.test.mjs`. Two runs reclaiming the same dead holder's lock at the same instant may both proceed; this can share CPU but cannot lose suite data.
 
@@ -328,6 +333,15 @@ deliberately failing file to prove the runner turns red. On win32 the runner als
 desk or bench file on the declared Windows skip list
 (`packages/nana-pack/lib/windows-skips-config.mjs`), printing that file's reason without
 starting it.
+
+`npm test -- --pack=land` runs the land pack. `--pack=land,module --changed-from=main`
+adds affected module tests and every changed collected nonmanual test, printing their selection reasons.
+Suite records list changed tests separately; CI readers refuse proof missing any selected test. `scripts/test-packs.mjs`
+uses import and launch reach, blind reach and text-input watches; uncertainty runs every module test.
+`packages/nana-pack/lib/test-packs-config.mjs` declares membership and sealed selection policy.
+Every collected file needs a pack. Browser tests stay manual. A complete-pack
+`npm run test:locked -- --pack=land` holds the machine lock and keeps its record;
+adding a path substring still bypasses the lock.
 
 `npm test -- --jobs=N` keeps up to N collected files running at once (default 1), reporting
 matching labels, counts, excerpts, warnings, failed list, self-test verdict, totals and exit
