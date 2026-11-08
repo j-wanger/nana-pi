@@ -17,6 +17,7 @@ import { diagnose, STATUS } from '../lib/doctor.mjs';
 import { withPiStub } from './stub-pi.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
 import { findPiRoot } from '../../nana-pack/tests/pi-install.mjs';
+import { defaultRun } from '../../../scripts/template-acceptance.mjs';
 
 const repo = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 const cli = path.join(repo, 'packages/nana-setup/bin/nana-setup.mjs');
@@ -95,11 +96,122 @@ check('M7: gate plus legacy bytes and project doctor gate trust survive', () => 
   }
 }));
 
+function command(cmd, args, cwd, expected = 0, options = {}) {
+  const result = defaultRun(cmd, args, { cwd, timeout: 120000, ...options });
+  if (expected === 0) assert.equal(result.status, 0, `${cmd} ${args.join(' ')}\n${result.stdout}\n${result.stderr}`);
+  else assert.ok(Number.isInteger(result.status) && result.status !== 0, `${cmd} ${args.join(' ')} unexpectedly passed`);
+  return result;
+}
+function templateSource(root) {
+  const source = path.join(root, 'source');
+  fs.mkdirSync(source);
+  fs.copyFileSync(path.join(repo, 'copier.yml'), path.join(source, 'copier.yml'));
+  fs.cpSync(path.join(repo, 'templates'), path.join(source, 'templates'), { recursive: true });
+  return source;
+}
+function render(source, dir, language) {
+  command('uvx', ['copier', 'copy', '--trust', '--defaults', '-d', `language=${language}`, '-d', 'project_name=Tail', '-d', 'description=Tail fixture', source, dir], path.dirname(dir));
+}
+
+// req: R-3885
+check('M1: shipped guidance makes no automatic post-edit claim', () => {
+  const files = command('git', ['ls-files'], repo).stdout.trim().split(/\r?\n/).filter(file =>
+    /(?:SKILL\.md$|README\.md(?:\.jinja)?$|^templates\/|^packages\/nana-setup\/lib\/)/.test(file)
+    && !/(?:\/tests?\/|\/fixtures\/|\/studies\/|\/retired\/)/.test(file));
+  const claims = /post-edit (?:gate|preset|on-ramp|check runs)|wired into post-edit|every edit fires|format\+lint on\s+every edit|biome fix on every\s+edit/i;
+  const found = files.filter(file => fs.existsSync(path.join(repo, file)) && claims.test(fs.readFileSync(path.join(repo, file), 'utf8')));
+  assert.deepEqual(found, []);
+});
+
+// req: R-3887
+check('M3: fresh scaffolds omit pack config and updates preserve project bytes', () => fixture(({ root }) => {
+  const source = path.join(root, 'history');
+  fs.mkdirSync(source);
+  const archive = command('git', ['archive', 'v0.6.51', 'copier.yml', 'templates'], repo, 0, { encoding: null }).stdout;
+  command('tar', ['-x'], source, 0, { input: archive });
+  command('git', ['init', '-q'], source);
+  const commit = cwd => {
+    command('git', ['add', '--all'], cwd);
+    command('git', ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-qm', 'fixture'], cwd);
+  };
+  commit(source);
+  const projects = [];
+  for (const language of ['python', 'typescript']) {
+    const dir = path.join(root, `old-${language}`);
+    command('uvx', ['copier', 'copy', '--trust', '--defaults', '--vcs-ref', 'HEAD', '-d', `language=${language}`, '-d', 'project_name=Tail', source, dir], root);
+    const config = path.join(dir, '.pi/nana-pack.json');
+    const bytes = '{ "gate": {"extraPatterns":["project-rule"]}, "postEdit":{"commands":[]} }\r\n';
+    fs.writeFileSync(config, bytes);
+    command('git', ['init', '-q'], dir);
+    commit(dir);
+    projects.push({ dir, config, bytes });
+  }
+  fs.rmSync(path.join(source, 'templates'), { recursive: true });
+  fs.cpSync(path.join(repo, 'templates'), path.join(source, 'templates'), { recursive: true });
+  fs.copyFileSync(path.join(repo, 'copier.yml'), path.join(source, 'copier.yml'));
+  commit(source);
+  for (const { dir, config, bytes } of projects) {
+    command('uvx', ['copier', 'update', '--trust', '--defaults', '--vcs-ref', 'HEAD', '--conflict', 'inline'], dir);
+    assert.equal(fs.readFileSync(config, 'utf8'), bytes);
+  }
+  for (const language of ['python', 'typescript']) {
+    const dir = path.join(root, `new-${language}`);
+    render(source, dir, language);
+    assert.equal(fs.existsSync(path.join(dir, '.pi/nana-pack.json')), false);
+  }
+}));
+
+// req: R-3892
+check('M8: documented manual checks pass clean and reject broken fixtures', () => fixture(({ root }) => {
+  const source = templateSource(root);
+  for (const language of ['python', 'typescript']) {
+    const dir = path.join(root, language);
+    render(source, dir, language);
+    command(language === 'python' ? 'uv' : 'pnpm', [language === 'python' ? 'sync' : 'install'], dir);
+    const text = fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8');
+    const skill = fs.readFileSync(path.join(repo, `packages/nana-pack/skills/adopt-${language === 'python' ? 'py' : 'ts'}/SKILL.md`), 'utf8');
+    const checks = new Map([...text.matchAll(/^- \*\*Manual ([a-z]+):\*\* `([^`]+)`/gm)].map(m => [m[1], m[2]]));
+    for (const name of ['lint', 'types', 'tests', 'map', 'readme', 'length']) {
+      assert.ok(checks.has(name), `${language} missing ${name}`);
+      assert.ok(skill.includes(checks.get(name)), `adoption missing ${name}`);
+    }
+    const run = (name, bad = false, file = 'unused') => {
+      const line = checks.get(name).replaceAll('{file}', file);
+      // Commands are shipped shell text; run them in the rendered project's toolchain.
+      command(process.platform === 'win32' ? 'cmd.exe' : '/bin/sh', process.platform === 'win32' ? ['/d', '/s', '/c', line] : ['-c', line], dir, bad ? 1 : 0);
+    };
+    for (const name of ['lint', 'types', 'tests', 'map', 'readme']) run(name);
+    const file = language === 'python' ? 'src/tail/__init__.py' : 'src/index.ts';
+    const target = path.join(dir, file);
+    const clean = fs.readFileSync(target, 'utf8');
+    const broken = language === 'python'
+      ? { lint: 'import os\n', types: 'value: int = "wrong"\n', tests: 'raise RuntimeError("broken")\n', map: '# no contract header\n' }
+      : { lint: 'debugger;\n', types: 'const value: number = "wrong";\n', tests: 'throw new Error("broken");\n', map: '// no contract header\n' };
+    for (const name of ['lint', 'types', 'tests', 'map']) {
+      fs.writeFileSync(target, broken[name]);
+      run(name, true);
+      fs.writeFileSync(target, clean);
+    }
+    const readme = path.join(dir, 'README.md');
+    const saved = fs.readFileSync(readme, 'utf8');
+    fs.writeFileSync(readme, '# Broken\n');
+    run('readme', true);
+    fs.writeFileSync(readme, saved);
+    const cap = language === 'python' ? 500 : 300;
+    for (const ending of ['\n', '\r\n']) for (const final of [true, false]) {
+      const lines = count => Array.from({ length: count }, () => language === 'python' ? '# line \t' : '// line \t').join(ending) + (final ? ending : '');
+      fs.writeFileSync(target, lines(cap)); run('length', false, file);
+      fs.writeFileSync(target, lines(cap + 1)); run('length', true, file);
+    }
+    fs.writeFileSync(target, clean);
+  }
+}));
+
 let failures = 0;
 for (const { title, fn } of cases) {
   let timer;
   try {
-    await Promise.race([Promise.resolve().then(fn), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('case deadline')), 60000); })]);
+    await Promise.race([Promise.resolve().then(fn), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('case deadline')), 300000); })]);
     console.log('PASS', title);
   } catch (error) { failures++; console.log('FAIL', title, error.message); }
   finally { clearTimeout(timer); }

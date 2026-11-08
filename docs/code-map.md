@@ -825,7 +825,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — One failure report per failed command and a process exit status.
 - **effects** — process (git, copier, and package-manager children), disk (temporary renders).
 - **errors** — Missing tools, render failures, timeouts, or check failures return status 1.
-- **callers** — `packages/nana-pack/tests/data-pack.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `scripts/template-release.mjs`
+- **callers** — `packages/nana-pack/tests/data-pack.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-setup/tests/setup-tail.test.mjs`, `scripts/template-release.mjs`
 - **callees** — `packages/nana-pack/lib/win-command.mjs`, `scripts/code-map.mjs`
 - **repo-code launches** — line 40: spawn · line 44: spawn
 
@@ -5377,7 +5377,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk, process
 - **errors** — Failed assertions set exit status 1.
 - **callers** — —
-- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`, `scripts/template-acceptance.mjs`
 
 ### `packages/nana-setup/tests/shared-link-state.test.mjs`
 

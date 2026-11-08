@@ -12,7 +12,7 @@
 // it shows exist in the script it shows them for, and every script the project ships is
 // mentioned.
 //
-// Dependency-free on purpose, so it runs from the post-edit gate before `pnpm install`.
+// Dependency-free on purpose, so it runs manually before `pnpm install`.
 // Everything except loadConfig, checkProject and main is pure over text, so the claim
 // readers are testable on fixture strings.
 
