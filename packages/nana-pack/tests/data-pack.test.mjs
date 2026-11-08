@@ -69,7 +69,7 @@ check("M6 adoption preserves pack files and previous release updates cleanly", (
   run("git", ["checkout", previous], old);
   // Advance the same source repository so Copier retains its update relationship.
   for (const rel of ["copier.yml", "templates"]) fs.cpSync(path.join(snapshot(), rel), path.join(old, rel), { recursive: true });
-  run("git", ["add", "."], old); run("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "next"], old);
+  run("git", ["add", "."], old); run("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-m", "next"], old);
   for (const adopt of [false, true]) {
     const updated = path.join(root, `updated-${adopt}`);
     run("uvx", ["copier", "copy", "--trust", "--defaults", "--vcs-ref", previous, "-d", "language=python", "-d", "project_name=Fixture", "-d", `adopt=${adopt}`, old, updated]);

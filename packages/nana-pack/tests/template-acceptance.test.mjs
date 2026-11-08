@@ -14,7 +14,7 @@ import os from "node:os";
 import path from "node:path";
 import { gitOnlyPath } from "./git-only-path.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
-import { ACCEPTANCE_COMMANDS, ADOPT_FIXTURE_FILES, runAcceptance } from "../../../scripts/template-acceptance.mjs";
+import { ACCEPTANCE_COMMANDS, ADOPT_FIXTURE_FILES, defaultRun, textOf, runAcceptance } from "../../../scripts/template-acceptance.mjs";
 
 let failures = 0;
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
@@ -52,6 +52,11 @@ check("CLI executes from paths with spaces and encoded-looking names and reports
   for (const name of ["acceptance path with spaces", "acceptance a%20b checkout"]) {
     const checkout = path.join(root, name); fs.mkdirSync(path.join(checkout, "scripts"), { recursive: true });
     fs.copyFileSync(source, path.join(checkout, "scripts/template-acceptance.mjs"));
+    const lib = path.join(checkout, "packages/nana-pack/lib");
+    fs.mkdirSync(lib, { recursive: true });
+    for (const name of ["win-command.mjs", "win-command-config.mjs"]) {
+      fs.copyFileSync(new URL(`../lib/${name}`, import.meta.url), path.join(lib, name));
+    }
     execFileSync("git", ["init", checkout], { stdio: "ignore" });
     execFileSync("git", ["-C", checkout, "-c", "user.name=Test", "-c", "user.email=test@example", "commit", "--allow-empty", "-m", "base"], { stdio: "ignore" });
     const toolBin = gitOnlyPath(path.join(root, `${name}-bin`));
@@ -218,5 +223,45 @@ check("missing tools fail closed and name the tool", () => {
   const logs = [];
   const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: (cmd) => cmd === "git" ? { status: 0, stdout: `${sha}\n` } : { status: null, error: new Error("spawn ENOENT") }, log: (line) => logs.push(line) });
   assert.equal(status, 1); assert(logs.join("\n").includes("uvx"));
+});
+// req: R-3870
+check("Windows acceptance resolves shims safely and leaves direct launches unchanged", () => {
+  const options = { cwd: root, env: { PATH: "C:\\tools" }, timeout: 123 };
+  const calls = [];
+  const spawn = (...args) => { calls.push(args); return { status: 0 }; };
+  for (const ext of ["cmd", "BAT"]) {
+    const file = `C:\\tool bin\\pnpm.${ext}`;
+    const lookup = (cmd, received) => {
+      assert.equal(cmd, "pnpm"); assert.equal(received.cwd, root); assert.equal(received.env, options.env);
+      return file;
+    };
+    assert.equal(defaultRun("pnpm", ["install", "a & b"], options, { platform: "win32", lookup, spawn }).status, 0);
+    assert.deepEqual(calls.pop(), ["cmd.exe", ["/d", "/v:off", "/s", "/c", `""${file}" "install" "a & b""`], { encoding: "utf8", ...options, windowsVerbatimArguments: true }]);
+    const refused = defaultRun("pnpm", ["bad%arg"], options, { platform: "win32", lookup, spawn });
+    assert(refused.error); assert.match(textOf(refused), /refused/); assert.equal(calls.length, 0);
+  }
+  for (const cmd of ["uv", "uvx", "git", process.execPath]) {
+    const file = `C:\\tools\\${path.basename(cmd)}.exe`;
+    defaultRun(cmd, ["--version"], options, { platform: "win32", lookup: () => file, spawn });
+    assert.deepEqual(calls.pop(), [file, ["--version"], { encoding: "utf8", ...options }]);
+  }
+  defaultRun("missing", [], options, { platform: "win32", lookup: () => null, spawn });
+  assert.deepEqual(calls.pop(), ["missing", [], { encoding: "utf8", ...options }]);
+  for (const platform of ["darwin", "linux"]) {
+    defaultRun("pnpm", ["check"], options, { platform, lookup: () => assert.fail("no lookup off Windows"), spawn });
+    assert.deepEqual(calls.pop(), ["pnpm", ["check"], { encoding: "utf8", ...options }]);
+  }
+});
+
+// req: R-3871
+check("spawn error output appends its code and message without losing output", () => {
+  for (const code of ["ENOENT", "EINVAL", "ETIMEDOUT"]) {
+    const error = Object.assign(new Error("spawn pnpm failed"), { code });
+    const output = textOf({ status: null, stdout: "out", stderr: "err", error });
+    assert(output.startsWith("outerr")); assert(output.includes(code)); assert(output.includes(error.message));
+  }
+  assert.equal(textOf({ stdout: "out", stderr: "err" }), "outerr");
+  assert.equal(textOf(undefined), "");
+  assert.match(textOf({ error: new Error("no code") }), /no code/);
 });
 if (failures) process.exitCode = 1;

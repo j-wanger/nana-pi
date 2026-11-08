@@ -12,6 +12,7 @@ import { realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { findOnPath, winCommand } from "../packages/nana-pack/lib/win-command.mjs";
 
 /** Chosen: 10 min; warm probe 2026-10-08 render 2 s, pnpm install 4.3 s, pnpm check 5.5 s, uv sync 1.3 s. */
 export const COMMAND_TIMEOUT_MS = 600_000;
@@ -30,8 +31,19 @@ const ANSWERS = {
   python: { project_name: "Tpl PY", description: "Acceptance render", package_name: "tpl_py" },
   typescript: { project_name: "Tpl TS", description: "Acceptance render" },
 };
-const defaultRun = (cmd, args, options) => spawnSync(cmd, args, { encoding: "utf8", ...options });
-const textOf = (result) => `${result?.stdout ?? ""}${result?.stderr ?? ""}`;
+export function defaultRun(cmd, args, options, { platform = process.platform, lookup = findOnPath, spawn = spawnSync } = {}) {
+  if (platform === "win32") {
+    const file = lookup(cmd, { cwd: options?.cwd, env: options?.env }) ?? cmd;
+    if (/\.(cmd|bat)$/i.test(file)) {
+      const launch = winCommand(file, args);
+      if (launch.refused) return { status: null, error: new Error(launch.refused) };
+      return spawn(launch.command, launch.args, { encoding: "utf8", ...options, ...launch.options });
+    }
+    cmd = file;
+  }
+  return spawn(cmd, args, { encoding: "utf8", ...options });
+}
+export const textOf = (result) => `${result?.stdout ?? ""}${result?.stderr ?? ""}${result?.error ? `\n${result.error.code ?? ""}: ${result.error.message}` : ""}`;
 function cli(argv) {
   let src = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   let ref = "HEAD";
