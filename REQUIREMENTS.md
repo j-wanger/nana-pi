@@ -694,6 +694,14 @@ Reads: A-091 · packages/nana-pack/lib/outcome-meter.mjs, packages/nana-pack/lib
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-3860 | WHEN pi runs a prompt with a built knowledge index, it shall receive no automatic knowledge pointers while explicit query output remains unchanged. | planned | M1, docs/plan/memory-cuts.md |
+| R-3861 | WHEN a lane lands, nana-land shall start no memory run and print no memory line while the manual memory command remains usable. | planned | M2, docs/plan/memory-cuts.md |
+| R-3862 | WHEN setup installs, it shall remove managed session-end memory wiring and links, diagnose old wiring with the install fix and omit the memory-making install-check leg. | planned | M3, docs/plan/memory-cuts.md |
+| R-3863 | The repository shall ship no finished experiment modules or npm commands and retain no live references to their removed paths outside history and retired declarations. | planned | M4, docs/plan/memory-cuts.md |
+| R-3864 | The map, README, requirements tree, trace, component audit and deliverables checks shall pass with removed behaviour retired. | planned | M5, docs/plan/memory-cuts.md |
+| R-3865 | WHEN uninstall runs directly on a pre-cut install, it shall remove managed session-end memory wiring and preserve foreign hooks. | planned | M6, docs/plan/memory-cuts.md |
+| R-3866 | The offline install-check turn shall pass without knowledge messages and fail independently for missing gate, writing, rulings or seat-guide evidence. | planned | M7, docs/plan/memory-cuts.md |
+| R-3867 | Both language scaffolds and project adoption shall teach explicit knowledge search without automatic-pull claims and preserve unrelated runtime cells and unmanaged project text. | planned | M8, docs/plan/memory-cuts.md |
 | R-3310 | The meter shall report a warm-up prefix of the first 60 interactions, then consecutive 80-interaction windows and a partial tail, excluding the warm-up prefix and partial tail from pooled Wilson rates with halving exposure. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::counts interaction windows and pooled outcomes` |
 | R-3311 | The meter shall count repeats only within the interaction lookback across distinct, nonparallel sessions, skipping seat pointers and unresolved snapshot evidence. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::repeats need earlier in-scope nonparallel sessions` |
 | R-3312 | The meter shall count only prompted decisions settled the same way, separating changed decisions and unprompted decisions with prompting consistent with resolved evidence. | implemented | `packages/nana-pack/tests/outcome-meter.test.mjs::decisions require prompting and same settlement` |
