@@ -3495,7 +3495,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Assertions or child timeouts fail the owning case.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/env-path.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/git-fixtures.mjs`, `packages/nana-pack/tests/ledger-repo.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/identity-scan.mjs`
-- **unresolved launches** — line 38: spawnSync; binding line 97; binding line 124; binding line 134; binding line 149; binding line 153
+- **unresolved launches** — line 38: spawnSync; binding line 100; binding line 127; binding line 137; binding line 152; binding line 156
 
 ### `packages/nana-pack/tests/outside-reader.test.mjs`
 
