@@ -3241,6 +3241,11 @@ Artifact: A-037 · standards rule · tracked: packages/nana-setup/claude/rules/n
 Artifact: A-038 · shared general rows · tracked: templates/_shared/requirements-general.md · manual: edited by hand in reviewed lanes
 Artifact: A-072 · code map · tracked: docs/code-map.md · manual: a builder runs npm run map by hand after a module change, and the suite fails on a stale copy until someone does
 Read by: A-072 · person: builders and reviewers read module purposes and edges; the suite only checks that it is current
+
+| ID | Requirement | Status | Evidence |
+|---|---|---|---|
+| R-3870 | WHEN template acceptance runs on Windows, it shall resolve commands on PATH and launch cmd/bat shims through the shared safe Windows launcher while preserving direct executable and non-Windows launches. | implemented | `packages/nana-pack/tests/template-acceptance.test.mjs::Windows acceptance resolves shims safely and leaves direct launches unchanged` |
+| R-3871 | WHEN an acceptance spawn result contains an error, its output text shall retain stdout and stderr and append the error code and message. | implemented | `packages/nana-pack/tests/template-acceptance.test.mjs::spawn error output appends its code and message without losing output` |
 Note (moved from old §Part G on 2026-10-09):
 These rows are the same in every nana project and are **never renumbered or edited
 per project** — nana-pi is not copier-tracked; its cells mirror the shared file under

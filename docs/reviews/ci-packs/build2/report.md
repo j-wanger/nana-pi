@@ -68,9 +68,17 @@ Initial postmerge selection: `npm test -- --pack=land,module --changed-from=main
 
 The merge makes that existing setup false. R-3845 is clarified first to include a previous release with unchanged template bytes. The fixture then gains only `--allow-empty` on its synthetic `next` commit. Every M6 assertion and marker remains unchanged, including the subsequent real revision reaching both update modes. No product behavior changes. This is a necessary merge integration adjustment to the named precedent file, not an unrelated known-bug fix. The red diagnostic and the restored green form the wrong-setup pair; no assertion is inverted.
 
-`data-release-green.log`: exit 0, all seven remaining cases including real Python M8, 202.5 s runner. `selected-green.log`: `npm test -- --pack=land,module --changed-from=main --jobs=4`, exit 0, **179 PASS / 4,536 passing checks / 463.59 s real**. The four-job rerun preserves the same selected files and reasons as the initial serial check. Final map check, README and trace also exit 0. The last implementation commit contains this fixture-only integration fix and the complete sanitized postmerge evidence. Its postcommit checks are reported separately so no later evidence commit changes the verified tip.
+`data-release-green.log`: exit 0, all seven remaining cases including real Python M8, 202.5 s runner. `selected-green.log`: `npm test -- --pack=land,module --changed-from=main --jobs=4`, exit 0, **179 PASS / 4,536 passing checks / 463.59 s real**. The four-job rerun preserves the same selected files and reasons as the initial serial check. Final map check, README and trace also exit 0. Commit `564a9662` contains this fixture-only integration fix and the complete sanitized postmerge evidence. Its postcommit checks are reported separately so no later evidence commit changes the verified tip.
 
 `git diff --check` before staging exits 0 for the lane's integration edits. The staged whole-merge check exits 2 on whitespace in main's already-authored evidence logs/diffs. Those imported records remain unchanged.
+
+## Main advanced during final checks
+
+All checks on `564a9662497331afa92069f7f8b716d7e0d14062` passed: static checks and title audit (0 missing), test-runner (64 checks), install-check, serial land (164.78 s), four-job land (47.46 s), exact serial changed-from selection (179 PASS / 4,536 checks / 1,412.59 s), and all 64 touched files (62 PASS / two platform SKIP / 2,615 checks). Complete sanitized logs are in `tip-564a9662/`.
+
+Main then advanced to `612cc8c4885a9360ee7541e34f35b4534da53b97`. A second merge commit imports its Windows acceptance launcher fix and its independently identical M6 `--allow-empty` fix. The only source conflict is our explanatory comment beside that same flag; both sides' code is retained. The generated tree conflict is regenerated, as is the code map. Main adds no runnable test file in this update: both updated acceptance/release tests already belong to release. No pack moves or new lane-authored requirements/tests are needed.
+
+Before the second merge commit: its four touched data/acceptance/release files pass 27 checks (`latest-main/touched.log`, exit 0). Four-job land passes 71 files / 2,445 checks in 49.31 s real (`latest-main/land.log`, exit 0). Map generation/check, tree generation, README and trace all exit 0. Final-tip seat checks follow this commit; no push or CI read is performed.
 
 ## Scope and remaining work
 
