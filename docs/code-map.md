@@ -826,8 +826,8 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **effects** — process (git, copier, and package-manager children), disk (temporary renders).
 - **errors** — Missing tools, render failures, timeouts, or check failures return status 1.
 - **callers** — `packages/nana-pack/tests/data-pack.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `scripts/template-release.mjs`
-- **callees** — `scripts/code-map.mjs`
-- **repo-code launches** — line 33: spawnSync
+- **callees** — `packages/nana-pack/lib/win-command.mjs`, `scripts/code-map.mjs`
+- **repo-code launches** — line 40: spawn · line 44: spawn
 
 ### `scripts/template-release.mjs`
 
@@ -2375,7 +2375,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Release line, tag, template commit count, ahead/behind counts, and missing inputs.
 - **effects** — process (spawns read-only git)
 - **errors** — Missing or failed Git inputs become a status line and never escape as throws.
-- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/tests/release-status.test.mjs`, `packages/nana-pack/tests/template-release.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `scripts/template-release.mjs`
+- **callers** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/tests/release-status.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `scripts/template-release.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/rename-retry.mjs`
@@ -2567,7 +2567,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — absolute lookup paths, a default existence probe, spawnSync argument records/refusals, or a missing-command predicate.
 - **effects** — disk
 - **errors** — refusals are returned as values; lookup errors mean absent.
-- **callers** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/lib/pi-package.mjs`, `packages/nana-pack/tests/win-command.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`
+- **callers** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/extensions/nana-post-edit.ts`, `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/lib/pi-package.mjs`, `packages/nana-pack/tests/win-command.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `scripts/template-acceptance.mjs`
 - **callees** — `packages/nana-pack/lib/win-command-config.mjs`
 
 ### `packages/nana-pack/lib/windows-skips-config.mjs`
@@ -4292,7 +4292,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Failed checks exit nonzero.
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/git-only-path.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map.mjs`, `scripts/template-acceptance.mjs`
-- **unresolved launches** — line 58: spawnSync
+- **unresolved launches** — line 63: spawnSync
 
 ### `packages/nana-pack/tests/template-release.test.mjs`
 
@@ -4302,8 +4302,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (temporary Git repositories).
 - **errors** — Failed checks exit nonzero.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/release-status.mjs`, `packages/nana-pack/tests/git-only-path.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/template-release.mjs`
-- **unresolved launches** — line 47: spawnSync
+- **callees** — `packages/nana-pack/tests/git-only-path.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/template-release.mjs`
+- **unresolved launches** — line 49: spawnSync
 
 ### `packages/nana-pack/tests/templates-render.test.mjs`
 
