@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { githubRepoOf } from "./land-ci.mjs";
+import { duplicateCiRun, githubRepoOf } from "./land-ci.mjs";
 import { firstLine, ghResult } from "./gh-runner.mjs";
 import { CI_HOST, CI_REMOTE, TIP_DIGITS } from "./land-config.mjs";
 import {
@@ -100,7 +100,7 @@ export function readCiRecords(argv = [], {
 	const base = `repos/${repository.owner}/${repository.repo}`;
 	const runsResult = ghJson(runGh, cwd, ["api", "--hostname", CI_HOST, `${base}/actions/runs?head_sha=${sha}&per_page=${GH_PAGE_SIZE}`], "workflow_runs");
 	if (!runsResult.ok) { line(runsResult.reason); return { code: 1, records: 0, parsed: [] }; }
-	const runs = runsResult.values.filter((run) => run?.path === CI_WORKFLOW_RUN_PATH && (runId === undefined || String(run.id) === String(runId))).sort((left, right) => idCompare(left.id, right.id));
+	const runs = runsResult.values.filter((run) => run?.path === CI_WORKFLOW_RUN_PATH && !duplicateCiRun(run, repository) && (runId === undefined || String(run.id) === String(runId))).sort((left, right) => idCompare(left.id, right.id));
 	if (!runs.length) { line(`no CI run for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0, parsed: [] }; }
 
 	let downloadRoot = null;

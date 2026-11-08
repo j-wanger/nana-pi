@@ -21,6 +21,13 @@ Requirement IDs: R-3935–R-3944.
 - O1. A1's de-duplication mechanism.
 - O2. How `ci-wait` learns the conflicting paths (a local `git merge-tree` against `origin/main` is the precedent in nana-land's clean-merge path).
 
+## Builder choices
+
+- O1: feature pushes execute CI; same-repository feature PR jobs skip deterministically, without an API race. Non-feature and fork PRs keep their own jobs. A fixed run title plus event, workflow, branch and repository identity excludes only the duplicate from both judging and artifact reads. Per-branch concurrency cancels superseded feature pushes; main pushes remain independent.
+- O2: fetch origin main, then import the public `cleanMergeTree` from `bin/nana-land.mjs` in inspection-only mode. This retains the land's attribute, merge settings and output validation without executing generators. The existing land caller retains regeneration.
+- M9: a lightweight selection job calls `selectPackFiles` with land/module and origin/main. Windows uses the same runner arguments as macOS, unsharded; a false selection output allocates no Windows runner. No retire membership moves or hard-coded retire exclusions.
+- Precedent departures: add a separate Windows selected-test job rather than expanding the suite matrix, because its empty selection must prevent runner allocation. Share the suite environment by YAML anchor so its existing bounds retain one definition. Importing the land helper introduces a module cycle; both sides use function exports only at call time. No helper moved to a new module.
+
 ## Questions for the owner
 
 None.

@@ -1,0 +1,22 @@
+PASS M1: generated-only conflicts wait for exact tip push CI across line transports
+PASS M2: real conflicts and failed inspection refuse before a run wait
+PASS M3: push CI lands generated conflicts through regeneration without new review or suite
+PASS M4: feature pushes execute while same-repository feature PR duplicates skip
+PASS M5: main retains all legs release prerequisites and required Windows gates
+FAIL M6: skipped duplicates never decide waiter or land in either event order AssertionError [ERR_ASSERTION]: refused: clean merge needs proven suite: CI suite records could not be read; merge main into the lane, then review and CI that tip
+[nana-land] land record: refused, stage ci, 0 min total, - suite, - CI wait; no lane
+
+
+1 !== 0
+
+    at packages/nana-pack/tests/lane-push-ci.test.mjs:96:245
+    at async check (packages/nana-pack/tests/pack-fixtures.mjs:20:9)
+    at async packages/nana-pack/tests/lane-push-ci.test.mjs:88:1
+PASS M7: feature non-feature and fork PRs each execute one head-tip macOS Linux and install set
+PASS M8: lane events allocate no Windows shards or installs and cannot release
+PASS M9: Windows reuses changed-from lane packs and skips an empty selection
+PASS seal: duplicate title and exclusion identity are pinned
+FAIL  packages/nana-pack/tests/lane-push-ci.test.mjs  9 pass, 1 fail  29.2s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 9 pass, 1 fail, 0 skip · 29.6s
+failed: packages/nana-pack/tests/lane-push-ci.test.mjs
