@@ -28,4 +28,3 @@ Honest variation: folders in flight on other lanes, paths named in prose or code
 
 - Path-existence checks over tracked files: `scripts/readme-check.mjs`.
 - Lane review folder reader: `packages/nana-pack/lib/memory-run.mjs` (line 69).
-- History-folder exemptions: `docs/evidence` handling in the experiment-cut tests (`git grep -n "docs/evidence" -- packages/nana-pack/tests`).
