@@ -6,7 +6,7 @@
  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; entryInvokes() boolean;
  *  desiredHooks(); hookTargets(); knowledgeHookHealthy(); mergeRepoHooks(); validateShape(); hasHook();
  *  mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook();
- *  removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); serialize() JSON text; WIN_VERIFIER_MATCHER; CLAUDE_CODE_EXEC_FLOOR
+ *  removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); retiredMemoryHook(); isRetiredMemoryHook(); removeRetiredHook(); removeRetiredMemoryHook(); serialize() JSON text; WIN_VERIFIER_MATCHER; CLAUDE_CODE_EXEC_FLOOR
  * @effects disk (reads only)
  * @errors none thrown — validateShape returns the reason the shape cannot be extended, and any
  *  command that is unparseable or carries a shell operator reads as NOT installed
@@ -174,7 +174,7 @@ export const WIN_VERIFIER_MATCHER = "Bash|PowerShell";
 export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
 
 /**
- * The six active hook entries the nana experience needs, in the order they are added.
+ * The five active hook entries the nana experience needs, in the order they are added.
  *
  * When `platform` is absent or not "win32", the output is byte-identical to `main`: every hook
  * runs in shell form from `hooksDir` (the live symlinks under `~/.claude/hooks`), paths are
@@ -314,7 +314,7 @@ export function retiredMemoryHook({ hooksDir = '', repoRoot = '', platform } = {
 }
 
 /** Recognize released shell and exec shapes across checkout and home spellings. */
-export function isRetiredMemoryHook(hook) {
+export function isRetiredMemoryHook(hook, { hooksDir } = {}) {
  const wanted = retiredMemoryHook();
  if (!hook || hook.type !== 'command' || hook.timeout !== wanted.entry.timeout || hook.statusMessage !== wanted.entry.statusMessage) return false;
  const keys = Object.keys(hook).sort().join(',');
@@ -322,7 +322,7 @@ export function isRetiredMemoryHook(hook) {
  if (keys !== 'command,statusMessage,timeout,type') return false;
  const argv = tokenize(hook.command);
  return argv?.length === 2 && argv[0] === 'node' && path.win32.isAbsolute(argv[1]) &&
-  (argv[1].endsWith(`/.claude/hooks/${MEMORY_END_ENTRY.file}`) || argv[1].endsWith(`/packages/nana-setup/claude/hooks/${MEMORY_END_ENTRY.file}`)) && hook.command === `node ${shq(argv[1])}`;
+  (argv[1] === `${hooksDir}/${MEMORY_END_ENTRY.file}` || argv[1].endsWith(`/.claude/hooks/${MEMORY_END_ENTRY.file}`) || argv[1].endsWith(`/packages/nana-setup/claude/hooks/${MEMORY_END_ENTRY.file}`)) && hook.command === `node ${shq(argv[1])}`;
 }
 
 /** Remove only recognized entries and groups emptied by this removal. */
@@ -344,7 +344,7 @@ export function removeRetiredHook(settings, event, predicate) {
 }
 
 export const removeRetiredKnowledgeHook = settings => removeRetiredHook(settings, 'UserPromptSubmit', isRetiredKnowledgeHook);
-export const removeRetiredMemoryHook = settings => removeRetiredHook(settings, MEMORY_END_ENTRY.event, isRetiredMemoryHook);
+export const removeRetiredMemoryHook = (settings, options = {}) => removeRetiredHook(settings, MEMORY_END_ENTRY.event, hook => isRetiredMemoryHook(hook, options));
 
 /** Remove only the exact installer-owned context hook object. */
 export function removeRetiredContextHook(settings, { hooksDir } = {}) {
@@ -389,7 +389,7 @@ function respelledKnowledgeEntry(entry, wanted) {
  *  runs there (uninstall.mjs), so this pure case exists for a function that is already tested. */
 export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } = {}) {
 	const wanted = [...desiredHooks({ hooksDir, repoRoot, platform }), retiredKnowledgeHook({ repoRoot, platform })];
-	const removed = removeRetiredMemoryHook(settings) ? ['SessionEnd memory making'] : [];
+	const removed = removeRetiredMemoryHook(settings, { hooksDir }) ? ['SessionEnd memory making'] : [];
 	const hooks = settings?.hooks;
 	if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) return removed;
 	for (const [event, groups] of Object.entries(hooks)) {
@@ -516,7 +516,7 @@ export function installerTarget(hook, wanted, platform) {
 /**
  * Replace every stale or (on win32) wrongly-shaped repo-anchored entry in place, returning
  * { [label]: { found, replaced } } for each one R-1056 names: the knowledge pull on every
- * platform, and all six entries on win32.
+ * platform, and all five active entries on win32.
  *
  * It scans entries under that entry's event; where the entry has a matcher, it scans only groups
  * with that matcher, otherwise every group (as the knowledge scan always has). The timeout gate

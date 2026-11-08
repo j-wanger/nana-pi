@@ -1,6 +1,6 @@
 # nana-pi
 
-The toolkit repo: adoption of pi, the nana pack, desk, knowledge pull, and project templates. Sibling to `~/nana-agent-loop`.
+The toolkit repo: adoption of pi, the nana pack, desk, knowledge search, and project templates. Sibling to `~/nana-agent-loop`.
 
 Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
 
@@ -20,8 +20,8 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
   `nana-objective`, `nana-adoption` and `nana-frontier-summary` — `nana-writing` (the writing checker, on PATH; report-only), and
   `nana-frontier` (the report-only HANDOFF structure checker), and `nana-curate` (the private owner-reviewed memory queue).
 - `packages/nana-knowledge/` — a zero-dep FTS5/BM25 index over this machine's markdown
-  knowledge stores, searched with `nana-knowledge query` and pulled by pi's
-  `before_agent_start` through the shared `hook` CLI. The Claude Code prompt hook is retired.
+  knowledge stores, searched explicitly with `nana-knowledge query`.
+  Automatic knowledge delivery is retired in both runtimes.
 - `packages/nana-stage/` — the staged-block layer behind the UI-centric frontend: validates,
   HMAC-signs and ledgers code-authored blocks a tool returns.
 - `packages/nana-setup/` — the one-command bootstrap for everything outside pi: the Claude Code
@@ -68,14 +68,14 @@ See the shared working pattern below for the defaults and the roster command. Lo
 
 The bullets below describe pi sessions; other runtimes receive only the surfaces listed here. At startup, read `HANDOFF.md`, look up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill), and read the landscape doc only for pi API questions.
 
-| Runtime | Objective | Shared memory | nana-soul / nana-standards | Writing rule / rulings | Knowledge pull | Gate | Verifier pipe | Post-edit | Compaction summary | Notify |
+| Runtime | Objective | Shared memory | nana-soul / nana-standards | Writing rule / rulings | Knowledge search | Gate | Verifier pipe | Post-edit | Compaction summary | Notify |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | PreToolUse Node hook `verifier-pipe.mjs` (matcher `Bash` on macOS and Linux, `Bash\|PowerShell` on Windows) | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |
-| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | `nana-knowledge` extension (`before_agent_start`) | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension; `nana-roster-notice` extension shows the roster notice as a widget |
-| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Disabled by `NANA_ROLE=reviewer` or `NANA_ROLE=worker` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension; `nana-roster-notice` extension runs but shows nothing (no UI) |
+| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | `nana-lifecycle` journal; `nana-handoff` extension on compaction | `nana-notify` extension; `nana-roster-notice` extension shows the roster notice as a widget |
+| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | `nana-post-edit` extension; configured checks, if any | Disabled by `NANA_HANDOFF=off` | `nana-notify` extension; `nana-roster-notice` extension runs but shows nothing (no UI) |
 | Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |
 
-pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul are Claude-only. Requirements-first practice is shared through project `AGENTS.md` and the requirements skill. The separate nana-knowledge extension serves pi; Claude Code uses explicit `nana-knowledge query` search.
+pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul are Claude-only. Requirements-first practice is shared through project `AGENTS.md` and the requirements skill. Both pi and Claude Code use explicit `nana-knowledge query` search; neither receives an automatic knowledge pull.
 
 ### pi-session guidance
 

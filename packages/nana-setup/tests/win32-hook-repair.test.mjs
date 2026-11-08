@@ -176,12 +176,12 @@ const f1AfterSecond = fs.readFileSync(settingsPath(f1Home));
 const f1SecondLines = f1Second.stdout.split("\n");
 const allSixUnchanged = winWanted.every((wanted) => f1SecondLines.some((line) => line.includes(`settings ${wanted.label}`) && line.includes("already wired")));
 // req: R-1883
-check("win32 install: a second install over the repaired home reports all six settings rows unchanged", f1Second.status === 0 && allSixUnchanged && f1AfterSecond.equals(f1BeforeSecond), f1Second.stdout);
+check("win32 install: a second install over the repaired home reports all five settings rows unchanged", f1Second.status === 0 && allSixUnchanged && f1AfterSecond.equals(f1BeforeSecond), f1Second.stdout);
 
 const allSixHealthy = winWanted.every((wanted) => new RegExp(`✓ settings ${regexEscape(wanted.label)}\\b`).test(f1Doctor.stdout));
 const f1KnowledgeAtIndex = f1After.hooks.UserPromptSubmit === undefined;
 // req: R-1884
-check("win32 doctor: all six settings rows read ✓ after one install over the carried home", allSixHealthy && f1KnowledgeAtIndex, f1Doctor.stdout);
+check("win32 doctor: all five settings rows read ✓ after one install over the carried home", allSixHealthy && f1KnowledgeAtIndex, f1Doctor.stdout);
 
 const f3Home = freshHome();
 const f3Foreign = { type: "command", command: "echo knowledge-owner", timeout: 8, statusMessage: "owner knowledge" };

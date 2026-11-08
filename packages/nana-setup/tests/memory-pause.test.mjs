@@ -22,19 +22,21 @@ import { withPiStub } from './stub-pi.mjs';
 const file = 'nana-memory-end.mjs';
 const foreign = { type: 'command', command: 'echo foreign', timeout: 7 };
 function fixture(body) {
+ for (const custom of [false, true]) {
  const home = tmpDir(path.join(os.tmpdir(), 'memory-pause-'));
  const previous = process.env.NANA_SETUP_PLATFORM;
  try {
-  const layout = resolveLayout({ home }); fs.mkdirSync(layout.hooksDir, { recursive: true });
+  const layout = resolveLayout({ home, ...(custom ? { claudeHome: path.join(home, 'custom claude') } : {}) }); fs.mkdirSync(layout.hooksDir, { recursive: true });
   fs.mkdirSync(layout.knowledgeHome, { recursive: true }); fs.writeFileSync(path.join(layout.knowledgeHome, 'index.db'), 'fixture');
   const link = path.join(layout.hooksDir, file);
   fs.symlinkSync(path.join(repoRoot, 'packages/nana-setup/claude/hooks', file), link);
-  const hook = { type: 'command', command: `node ${shq(link)}`, timeout: 1.5, statusMessage: 'nana: memory' };
+  const hook = { type: 'command', command: `node ${shq(`${layout.hooksDir}/${file}`)}`, timeout: 1.5, statusMessage: 'nana: memory' };
   const exec = { ...hook, command: 'node', args: [`C:/old checkout/packages/nana-setup/claude/hooks/${file}`] };
   fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { SessionEnd: [{ hooks: [hook, exec, foreign] }] } }));
   const read = () => JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
-  return body({ layout, link, read });
+  body({ layout, link, read });
  } finally { if (previous === undefined) delete process.env.NANA_SETUP_PLATFORM; else process.env.NANA_SETUP_PLATFORM = previous; fs.rmSync(home, { recursive: true, force: true }); }
+ }
 }
 // req: R-3862
 await check('R-3862: install retires memory dispatch and doctor names the repair', () => {

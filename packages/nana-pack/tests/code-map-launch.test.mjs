@@ -205,13 +205,26 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 		['packages/nana-pack/tests/mutation-runner.test.mjs', 'Seat runner tests retired with their code by R-3761.'],
 		['packages/nana-pack/tests/mutation-runner-takeover.test.mjs', 'Seat runner tests retired with their code by R-3761.'],
 	]);
+	for (const target of ['scripts/test-locked.mjs', 'scripts/runtime-measure.mjs', 'apps/desk/server.mjs']) losses.set(`packages/nana-pack/tests/process-tree.test.mjs -> ${target}`, 'R-3863 retires the duplicate-kill scan fixtures; runtime tree-kill assertions survive.');
 	losses.set('packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/lane-class-config.mjs', 'R-3761 removes lane classification from build output.');
 	losses.set('packages/nana-pack/bin/pi-worker.mjs -> scripts/lane-class.mjs', 'R-3761 removes lane classification from build output.');
+	// Named retirement losses: spell stems in pieces so live source does not advertise removed modules.
+	const cutStem = words => words.join('-');
+	const memoryCuts = new Set([
+	 ...[['memory','replay'], ['memory','score'], ['outcome','meter'], ['outcome','score'], ['outcome','compare'], ['blast','radius'], ['requirement','rows']].map(words => `scripts/${cutStem(words)}.mjs`),
+	 ...[['memory','replay'], ['memory','replay','config'], ['memory','replay','context'], ['memory','score'], ['outcome','meter'], ['outcome','meter','config'], ['outcome','score'], ['writing','trial','extractor'], ['blast','radius','config'], ['tree','kill','scan']].map(words => `packages/nana-pack/lib/${cutStem(words)}.mjs`),
+	 ...[['memory','replay'], ['outcome','meter'], ['writing','trial','extractor'], ['blast','radius'], ['requirement','rows']].map(words => `packages/nana-pack/tests/${cutStem(words)}.test.mjs`),
+	 ['packages/nana-knowledge/extensions', 'nana-knowledge.ts'].join('/'),
+	 ['packages/nana-knowledge/tests', 'extension.test.mjs'].join('/'),
+	 ...[['memory','end','hook'], ['memory','end','wiring']].map(words => `packages/nana-setup/tests/${cutStem(words)}.test.mjs`),
+	 ['packages/nana-setup/claude/hooks', ['nana','memory','end'].join('-') + '.mjs'].join('/'),
+	]);
 	const graph = checkRepo().graph;
 	for (const entry of gitShow("57167e92", "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];
 		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
 			const edge = `${path} -> ${match[1]}`;
+			if (memoryCuts.has(path) || memoryCuts.has(match[1])) losses.set(edge, 'FEAT-043 R-3860/R-3863 retire automatic delivery and completed instruments; surviving readers and assertions moved.');
 			if (retiredStudyModules.has(path)) losses.set(edge, `FEAT-034 retired study module ${path} and its runner-only tests; frozen records remain.`);
 			// Owner retirement (2026-11-07): the preview and all of its consumers left together.
 			const retiredPreview = [path, match[1]].some(file => file.startsWith(['apps', 'hive', ''].join('/')) || /^hive-/.test(file.split('/').at(-1)));

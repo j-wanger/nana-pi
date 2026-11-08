@@ -28,7 +28,7 @@ await check('R-3860: prompts have no knowledge producer and explicit query retai
    assert.equal(r.status, 0, r.stderr); return r.stdout;
   };
   run(['build']);
-  assert.equal(run(['query', 'zircon retrieval']), `- Zircon retrieval — ${notes}/zircon.md — # Zircon retrieval Zircon retrieval evidence.\n`);
+  assert.equal(run(['query', 'zircon retrieval']), `- Zircon retrieval — ${path.join(notes, 'zircon.md')} — # Zircon retrieval Zircon retrieval evidence.\n`);
   for (const manifest of ['package.json', 'packages/nana-knowledge/package.json']) {
    const pkg = JSON.parse(fs.readFileSync(path.join(root, manifest), 'utf8'));
    for (const directory of pkg.pi?.extensions ?? []) {

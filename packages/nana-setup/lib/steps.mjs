@@ -632,7 +632,7 @@ export function stepSettings(layout, o, state, { lockHeld = false } = {}) {
 	const merge = (settings) => {
 		const retiredContext = removeRetiredContextHook(settings, { hooksDir: layout.hooksDir });
 		const retiredKnowledge = removeRetiredKnowledgeHook(settings);
-		const retiredMemory = removeRetiredMemoryHook(settings);
+		const retiredMemory = removeRetiredMemoryHook(settings, { hooksDir: layout.hooksDir });
 		const migratedLegacy = !win() && migrateLegacyHooks(settings, { hooksDir: layout.hooksDir, claudeHome: layout.claudeHome });
 		// Active repo-anchored entries on win32 are repaired in place when stale or
 		// not yet in exec form (R-1056);

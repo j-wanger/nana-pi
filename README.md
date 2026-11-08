@@ -1,6 +1,6 @@
 # nana-pi
 
-Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge pull, and project templates.
+Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge search, and project templates.
 
 Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
 Sibling repo to `~/nana-agent-loop`.
@@ -11,8 +11,8 @@ Sibling repo to `~/nana-agent-loop`.
 - `packages/` — our pi packages, chiefly the nana extension pack: ten extensions (gate,
   post-edit, lifecycle, notify, handoff, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
   dev-workflow skills. Installable via
-  `pi install git:` or a local path — which ships the extensions of `nana-pack` and
-  `nana-knowledge` (the two the root `package.json` manifests) plus the pack's skills.
+  `pi install git:` or a local path — which ships `nana-pack` extensions and skills.
+  Knowledge search remains an explicit CLI, with no pi extension.
   `nana-stage`'s extension is NOT in that manifest: the desk loads it per app.
 - `templates/` — copier project templates behind the `scaffold-py`/`scaffold-ts` skills
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
@@ -30,11 +30,9 @@ existing pack files. Release acceptance runs default-off templates plus opted-in
 and adoption projects through their native toolchains; the suite exercises this on macOS and
 Windows too. Configure real inputs before treating a green data test as validation.
 
-- `packages/nana-knowledge/` — knowledge pull: a local BM25 (FTS5) index over the
-  markdown knowledge stores on this machine, queried from a Claude Code
-  `UserPromptSubmit` hook and from pi's `before_agent_start` through one shared hook CLI,
-  then injected as a few pointers at the moment of a live decision. Zero dependencies;
-  read-only on every source. See
+- `packages/nana-knowledge/` — explicit local BM25 (FTS5) search over this machine's
+  markdown knowledge stores. Use `nana-knowledge query`; automatic delivery is retired
+  in pi and Claude Code. Zero dependencies; read-only on every source. See
   `packages/nana-knowledge/README.md`.
 - `packages/nana-setup/` — the one-command bootstrap for everything that is NOT a pi extension:
   the Claude Code half (hooks, rules, skills, `settings.json` wiring, the two-tier auto-memory), the
@@ -223,7 +221,7 @@ with Linux paths.
 ### From git (pack-only use; no clone needed)
 
 ```bash
-# 1. the nana-pack — all ten extensions, the knowledge pull + every skill (the root package.json
+# 1. the nana-pack — all ten extensions + every skill (the root package.json
 #    manifests packages/nana-pack, which is what makes the git: install work)
 pi install git:github.com/j-wanger/nana-pi        # pack-only use; add -l for project-local
 
