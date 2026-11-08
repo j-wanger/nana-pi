@@ -1,0 +1,20 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs --verbose packages/nana-pack/tests/data-pack.test.mjs
+
+PASS M1 optional Python scaffold ships exactly the opt-in pack
+PASS M3 unsafe normalizer never changes project bytes
+PASS M4 pytest prints errors and warnings and skips absent settings
+PASS M5 real-run false-positive patterns stay clean without suppressions
+FAIL M6 adoption preserves pack files and previous release updates cleanly git: HEAD detached at v0.6.51
+nothing to commit, working tree clean
+ 
+
+1 !== 0
+
+PASS M7 live WAL cannot produce a clean keys verdict
+PASS M8 release acceptance runs native opt-in scaffold and adoption gates
+FAIL  packages/nana-pack/tests/data-pack.test.mjs  6 pass, 1 fail  67.5s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 6 pass, 1 fail, 0 skip · 68.6s
+failed: packages/nana-pack/tests/data-pack.test.mjs

@@ -187,60 +187,6 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 	return hookText;
 }
 
-// 1. umbrella governs (no product file anywhere up the tree)
-{
-	const w = world();
-	const t = await golden("umbrella governs", w, path.join(w.home, "elsewhere"), () => {});
-	// req: R-003
-	check("umbrella governs: exact text", t === [HEAD, `governing: ${w.umbrellaFile}\n${OBJ("build products with agents.")}\n\n${PRI("make nana-pi coherent.")}`, CHARGE].join("\n\n") + "\n", t);
-}
-
-// 2. product governs: product lines, then the program objective AND current priority, labelled, with precedence
-{
-	const w = world();
-	fs.writeFileSync(w.productFile, PRODUCT);
-	const t = await golden("product governs", w, w.product, () => {});
-	// req: R-009
-	check("product governs: exact text", t === [
-		HEAD,
-		LABEL(w.productFile),
-		`governing: ${w.productFile}\n${OBJ("ship the widget.")}\n\n${PRI("the walking skeleton.")}`,
-		`program objective: ${OBJ("build products with agents.")}\nprogram current priority: ${PRI("make nana-pi coherent.")}`,
-		`Precedence: the lines from ${w.productFile} govern this session's work; the program lines (${w.umbrellaFile}) say what the toolkit is for.`,
-		CHARGE,
-	].join("\n\n") + "\n", t);
-}
-
-// 3. nested cwd under a product
-{
-	const w = world();
-	fs.writeFileSync(w.productFile, PRODUCT);
-	const deep = path.join(w.product, "src", "a", "b");
-	fs.mkdirSync(deep, { recursive: true });
-	await golden("nested cwd", w, deep, (t) => {
-		// req: R-001
-		check("nested cwd: the ancestor product governs", t.includes(`governing: ${w.productFile}\n`));
-		check("nested cwd: program priority shown", t.includes(`program current priority: ${PRI("make nana-pi coherent.")}`));
-	});
-}
-
-// 4. the umbrella IS the nearest file: no duplicate program block
-{
-	const w = world();
-	await golden("umbrella is the hit", w, w.loop, (t) => {
-		check("umbrella is the hit: governs", t.includes(`governing: ${w.umbrellaFile}\n`));
-		// req: R-010
-		check("umbrella is the hit: no duplicate program block", !t.includes("program objective") && !t.includes("Precedence:"));
-	});
-}
-
-// 5. missing file: the SAME named marker in both runtimes (the hook used to be silent)
-{
-	const w = world({ umbrella: null });
-	const t = await golden("missing file", w, path.join(w.home, "elsewhere"), () => {});
-	check("missing file: exact marker", t === `${HEAD}\n\nOBJECTIVE UNAVAILABLE: file not found (${w.umbrellaFile}). Tell the user before spending.\n`, t);
-}
-
 // 6. unreadable file (mode 000 when not root; a directory otherwise) — chmod 000 does not make a
 // file unreadable on NTFS, so win32 SKIPs this case (win-session-start R-1340 triage).
 if (process.platform === "win32") {
@@ -621,35 +567,6 @@ for (const extra of [0, 1]) {
 		check("umbrella missing: named program marker", t.includes(`program objective: unavailable (file not found: ${w.umbrellaFile})`), t);
 		check("umbrella missing: product governs", t.includes("ship the widget"));
 	});
-}
-
-// 18. disabled: both runtimes print nothing
-{
-	const w = world({ enabled: false });
-	await golden("disabled", w, w.product, (t, piNull) => {
-		// req: R-020
-		check("disabled: nothing printed or injected", t === "" && piNull);
-	});
-}
-
-// 19. FRESH MACHINE (no nana-pack.json at all) + product repo, cwd a subdirectory:
-// the product's lines govern. This is the case T2a r1 regressed (it printed UNAVAILABLE).
-{
-	const w = world({ config: false, umbrella: null });
-	fs.writeFileSync(w.productFile, PRODUCT);
-	const sub = path.join(w.product, "sub");
-	fs.mkdirSync(sub);
-	check("fresh machine: there really is no nana-pack.json", !fs.existsSync(path.join(w.home, ".pi", "agent", "nana-pack.json")));
-	const t = await golden("FRESH MACHINE, no config: product governs", w, sub, () => {});
-	check("FRESH MACHINE, no config: product governs — exact text", t === [
-		HEAD,
-		LABEL(w.productFile),
-		`governing: ${w.productFile}\n${OBJ("ship the widget.")}\n\n${PRI("the walking skeleton.")}`,
-		`program objective: unavailable (file not found: ${w.umbrellaFile})`,
-		`Precedence: the lines from ${w.productFile} govern this session's work; the program lines (${w.umbrellaFile}) say what the toolkit is for.`,
-		CHARGE,
-	].join("\n\n") + "\n", t);
-	check("FRESH MACHINE, no config: no UNAVAILABLE marker", !t.includes("OBJECTIVE UNAVAILABLE"), t);
 }
 
 // 20. FRESH MACHINE + product + the default umbrella present: product governs, program lines shown

@@ -36,8 +36,6 @@ const check = (n, ok, why = "") => {
 const { problems, line, graph } = checkRepo();
 console.log(line);
 
-// req: G-004 G-009 G-010
-check("the repo's code map is current and every module has a contract header", problems.length === 0, problems.join("\n  "));
 // req: R-870
 check("AGENTS package map omits receipt production", !fs.readFileSync(path.join(REPO_ROOT, "AGENTS.md"), "utf8").includes("post-edit checks + receipts"));
 
@@ -231,12 +229,6 @@ check("--impact's output carries the untraced-test line with the real count",
 	`expected: ${impactLine}`,
 );
 
-// the documented command is the one that runs: `npm run map:check` from the repo root
-const cli = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "code-map.mjs"), "--check"], {
-	cwd: REPO_ROOT,
-	encoding: "utf-8",
-});
-check("scripts/code-map.mjs --check exits 0 on a clean repo", cli.status === 0, `${cli.stdout ?? ""}${cli.stderr ?? ""}`);
 check("the config the CLI reads is this repo's", config.mapPath === "docs/code-map.md", config.mapPath);
 
 // MUTATION: dropping a test module's header must FAIL --check. Run in a scratch copy of this

@@ -1,0 +1,10 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs --jobs=4 data-pack.test.mjs data-pack-land.test.mjs template-acceptance.test.mjs template-release.test.mjs
+
+PASS  packages/nana-pack/tests/data-pack-land.test.mjs       1 pass  0.7s
+PASS  packages/nana-pack/tests/template-release.test.mjs     5 pass  3.6s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs  14 pass  14.5s
+PASS  packages/nana-pack/tests/data-pack.test.mjs            7 pass  210.4s
+
+4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 27 pass, 0 fail, 0 skip · 211.6s

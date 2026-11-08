@@ -1,0 +1,18 @@
+PASS M1: every collected file has exactly one pack and omissions name the file
+PASS M7: R-3856 watch globs and fail-safe paths are sealed with provenance
+PASS  packages/nana-pack/tests/test-packs.test.mjs         2 pass  0.0s
+PASS M6: all core capabilities have land guards and moved cases keep their bytes
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs    1 pass  0.3s
+PASS M4: PR CI selects macOS packs release watches and cancellation while main runs every OS
+PASS M5: land accepts complete lane pack records and refuses filtered or landless proof
+PASS M8: main keeps all collected nonrelease files and an injected retire failure fails its command
+PASS M10: real pack shards pass every reader and newest missing or failed shards leave main unchanged
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs      4 pass  8.6s
+PASS M2: pack execution selects exact land and affected module paths with reasons
+PASS M3: unreadable diffs graph errors and policy changes run all module files
+PASS M11: acceptance-win-cmd replay selects edited release tests and release import callers
+PASS M12: ci-wait replay selects and proves the edited main-pack test
+PASS M9: complete-pack locked runs serialize retain records and path filters bypass
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs  5 pass  9.6s
+
+4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 12 pass, 0 fail, 0 skip · 9.9s

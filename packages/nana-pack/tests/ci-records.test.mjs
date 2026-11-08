@@ -28,6 +28,8 @@ import {
 import { readCiRecords } from "../lib/ci-records.mjs";
 import { githubRepoOf } from "../lib/land-ci.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+import { fixtureRoot } from "./pack-fixtures.mjs";
+import vm from "node:vm";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const CLI = path.join(REPO, "scripts", "ci-records.mjs");
@@ -167,14 +169,16 @@ const slowestLines = (out) => out.split(/\r?\n/).filter((line) => line.startsWit
 
 // req: R-2633
 check("R-2633: a record the runner writes under CI's arguments reads back in ci-records with the runner's own totals", () => {
-	const root = path.join(TD, "runner-fixture");
+	const root = fixtureRoot("ci-records", {}, {
+		"packages/probe/tests/a-pass.test.mjs": "land",
+		"packages/probe/tests/b-fail.test.mjs": "module",
+		"packages/probe/tests/c-change.test.mjs": "main",
+		"apps/bench/test/study-tasks.test.mjs": "retire",
+	});
 	fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
 	fs.mkdirSync(path.join(root, "packages", "nana-pack", "lib"), { recursive: true });
 	fs.mkdirSync(path.join(root, "packages", "probe", "tests"), { recursive: true });
 	fs.mkdirSync(path.join(root, "apps", "bench", "test"), { recursive: true });
-	fs.copyFileSync(RUNNER, path.join(root, "scripts", "test.mjs"));
-	for (const name of ["process-tree.mjs", "runtime-map-config.mjs", "suite-records-config.mjs", "land-config.mjs", "windows-skips-config.mjs", "test-runner-config.mjs"])
-		fs.copyFileSync(path.join(REPO, "packages", "nana-pack", "lib", name), path.join(root, "packages", "nana-pack", "lib", name));
 	fs.writeFileSync(path.join(root, "packages", "probe", "tests", "a-pass.test.mjs"), 'console.log("PASS runner pass");\n');
 	fs.writeFileSync(path.join(root, "packages", "probe", "tests", "b-fail.test.mjs"), 'console.log("PASS reached failure"); process.exit(2);\n');
 	fs.writeFileSync(path.join(root, "packages", "probe", "tests", "c-change.test.mjs"), 'import * as fs from "node:fs"; fs.writeFileSync(new URL("../../../tracked.txt", import.meta.url), "after\\n"); console.log("PASS changed tracked file");\n');
@@ -189,7 +193,9 @@ check("R-2633: a record the runner writes under CI's arguments reads back in ci-
 	assert.equal(commands.length, 2);
 	for (const [index, command] of commands.entries()) {
 		spawnSync("git", ["checkout", "--", "tracked.txt"], { cwd: root });
-		const args = command.replace("${{ env.NANA_CI_JOBS }}", jobsValue).replace("${{ matrix.shard }}", "1/3").trim().split(/\s+/);
+		const args = command.replace(/\$\{\{ (.*?) \}\}/g, (_, expression) => String(vm.runInNewContext(expression, {
+			github: { event_name: "push" }, env: { NANA_CI_JOBS: jobsValue }, matrix: { shard: "1/3" },
+		}))).trim().split(/\s+/);
 		const outputRecord = path.join(TD, `runner-output-${index}.json`);
 		const runner = spawnSync(process.execPath, [path.join(root, "scripts", "test.mjs"), ...args], {
 			cwd: root,
