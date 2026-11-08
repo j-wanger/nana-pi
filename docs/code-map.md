@@ -462,7 +462,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — docs/code-map.md on --write, check findings, ranked precedent suggestions with callees, or marked impact callers, blind-reach tests, callees, artifact writers and readers, freshness and measured test files
 - **effects** — disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
 - **errors** — exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, the map is stale, or a repo-code/untraced program lacks a reasoned launchAlwaysRun entry; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
-- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/memory-cut-checks.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `scripts/component-audit.mjs`, `scripts/template-acceptance.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `scripts/component-audit.mjs`, `scripts/template-acceptance.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/runtime-map-config.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `scripts/code-map-launch-config.mjs`, `scripts/code-map-launch.mjs`, `scripts/code-search.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/code-search-config.mjs`
@@ -502,7 +502,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — Check diagnostics, report-only staleness and coverage lines, contract-shaped JSON, or planner-shaped ask blocks.
 - **effects** — disk (reads repository data and optionally writes --out), process (read-only bounded git queries and CLI output).
 - **errors** — Invalid source, paths, IDs, anchors or contract data exit 1; malformed CLI options exit 2.
-- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/memory-cut-checks.test.mjs`, `packages/nana-pack/tests/preview-retirement.test.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/component-audit.test.mjs`, `packages/nana-pack/tests/preview-retirement.test.mjs`
 - **callees** — `packages/nana-pack/lib/ask-shape.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `scripts/code-map.mjs`, `scripts/component-audit-config.mjs`, `scripts/component-contract.mjs`, `scripts/git-runner.mjs`, `scripts/requirements-tree.mjs`
 
 ### `scripts/component-contract.mjs`
@@ -684,7 +684,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — the claim list on --list, the summary line plus problem list on either mode
 - **effects** — disk (reads the READMEs, the files they name and the package metadata), process (exits non-zero when a README claim does not hold)
 - **errors** — exit 1 with the problem list naming each README line whose claim fails; bad CLI arguments print usage to stderr and return status 2; a thrown Error for a bad config
-- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/memory-cut-checks.test.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`
+- **callers** — `apps/bench/test/retire.test.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`
 - **callees** — —
 
 ### `scripts/requirements-lift-proof.mjs`
@@ -724,7 +724,7 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **outputs** — the summary line, the `ears:` off-form line, one problem line per disagreement between a row's status, form or evidence and the markers, and the opt-in unclaimed-declaration listing
 - **effects** — disk (reads REQUIREMENTS.md and the test sources), process (writes reports and sets a non-zero exit code when a row and the suite disagree)
 - **errors** — exit 1 with the problem list; a thrown Error for a malformed requirements table, a bad requirement id or a marker that sits above no test call
-- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/memory-cut-checks.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/requirements-unclaimed.test.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-regroup.mjs`, `scripts/requirements-tree.mjs`
+- **callers** — `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/requirements-unclaimed.test.mjs`, `scripts/product-report.mjs`, `scripts/requirements-lift-proof.mjs`, `scripts/requirements-lift.mjs`, `scripts/requirements-regroup.mjs`, `scripts/requirements-tree.mjs`
 - **callees** — —
 
 ### `scripts/requirements-tree.mjs`
@@ -3231,14 +3231,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/memory-cut-checks.test.mjs`
 
-- **purpose** — Prove retirement keeps the repository's structural checks green.
-- **inputs** — Map, README, tree, trace, audit and deliverables commands.
+- **purpose** — Prove memory artifacts are retired without deliverable check notes.
+- **inputs** — Checkout requirements ledger and deliverables report.
 - **outputs** — One awaited bounded PASS or FAIL case.
-- **effects** — process (read-only checker children)
-- **errors** — A nonzero child status fails the case.
+- **effects** — disk (reads checkout), process (deliverables git inventory)
+- **errors** — Assertion failures fail the case.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/profile-fixture.mjs`, `scripts/code-map.mjs`, `scripts/component-audit.mjs`, `scripts/deliverables.mjs`, `scripts/readme-check.mjs`, `scripts/requirements-trace.mjs`, `scripts/requirements-tree.mjs`
-- **unresolved launches** — line 21: spawnSync
+- **callees** — `packages/nana-pack/tests/profile-fixture.mjs`, `scripts/deliverables.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/memory-cut-guidance.test.mjs`
 
