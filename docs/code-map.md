@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 563 modules, as declared in
+Covers `scripts`, `apps/desk`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-stage/lib`, `packages/nana-stage/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-stage/tests`, `packages/nana-setup/tests`, `apps/desk/test`, `apps/bench/test` — 565 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -2539,6 +2539,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **callers** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/test-locked.mjs`
 - **callees** — `packages/nana-pack/lib/suite-records-config.mjs`
 
+### `packages/nana-pack/lib/test-packs-config.mjs`
+
+- **purpose** — Declare exhaustive test pack membership and conservative selection policy.
+- **inputs** — Repository-relative collected test paths.
+- **outputs** — Frozen membership, watches, fail-safe and release paths, and named membership problems.
+- **effects** — none
+- **errors** — none
+- **callers** — `packages/nana-pack/tests/test-packs.test.mjs`
+- **callees** — —
+
 ### `packages/nana-pack/lib/test-runner-config.mjs`
 
 - **purpose** — Declare runner scheduling policy, stable shard assignment and volume-dependent file preconditions.
@@ -4361,6 +4371,16 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Reports failed contract checks and exits non-zero.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/test-locked.mjs`
+
+### `packages/nana-pack/tests/test-packs.test.mjs`
+
+- **purpose** — Check complete pack membership and seal conservative selection policy.
+- **inputs** — Pack configuration and the real runner's direct-child test roots.
+- **outputs** — Awaited bounded PASS/FAIL cases.
+- **effects** — disk (reads test directories).
+- **errors** — Failed cases set exit 1.
+- **callers** — —
+- **callees** — `packages/nana-pack/lib/test-packs-config.mjs`
 
 ### `packages/nana-pack/tests/test-runner-parallel.test.mjs`
 

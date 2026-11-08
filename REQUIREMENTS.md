@@ -3021,6 +3021,16 @@ Reads: A-009 · packages/nana-pack/lib/suite-records.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-3850 | Every collected test file shall belong to exactly one named pack, with an unassigned file failing land by name. | implemented | `packages/nana-pack/tests/test-packs.test.mjs::M1: every collected file has exactly one pack and omissions name the file` |
+| R-3851 | Pack runs shall execute exactly their selected files, selecting module tests by import or launch reach, changed tests, blind reach and watch hits, and print each selected module path and reason. | planned | M2, ci-packs. |
+| R-3852 | If diff or graph reading fails or a fail-safe path changes, the selector shall run the entire module pack and print the cause. | planned | M3, ci-packs. |
+| R-3853 | CI shall run land and affected module tests on macOS PRs, adding release for release paths and cancelling superseded PRs, while main runs land, main, module and retire on all platforms without cancellation. | planned | M4, ci-packs. |
+| R-3854 | The land suite proof shall accept complete successful lane pack records including land and module selection, while refusing ordinary filtered runs and pack records without land. | planned | M5, ci-packs. |
+| R-3855 | The land pack shall guard every core capability named in the ci-packs design and critic, preserving each moved case's requirement markers and assertions. | planned | M6, ci-packs. |
+| R-3856 | Pack watch globs and fail-safe paths shall be frozen with provenance and pinned by a test naming this row. | implemented | `packages/nana-pack/tests/test-packs.test.mjs::M7: R-3856 watch globs and fail-safe paths are sealed with provenance` |
+| R-3857 | Main CI shall run every previously collected file except release and manual packs, including retire, and fail for a failing retire test. | planned | M8, ci-packs. |
+| R-3858 | Complete-pack locked runs shall serialize under the machine lock, retain both records and release the lock, while path-filtered runs skip the lock. | planned | M9, ci-packs. |
+| R-3859 | Land and main CI readers shall accept passing macOS and Windows pack shards without local fallback and refuse missing or failed newest shards without changing main. | planned | M10, ci-packs. |
 | R-3808 | The installed-pi choice check shall tolerate an injected child delay exceeding 1500 ms while rejecting selection of CLAUDE.md instead of AGENTS.md. | implemented | `packages/nana-pack/tests/context-anatomy.test.mjs::R-3727: installed pi chooses AGENTS over CLAUDE in the same directory` |
 | R-3809 | The stalled-measurement check shall require termination and continued delivery for both launchers despite an injected 3 s launch delay, without a wall-clock comparison. | implemented | `packages/nana-pack/tests/context-anatomy.test.mjs::R-3732: stalled measurement is killed and both launchers proceed within the deadline` |
 | R-3810 | The worker-lane sampler check shall reject sampler startup or leakage into another launch and tolerate an injected one-second scheduling delay. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::R-2883: worker-lane's launcher runs a fake pi that holds one second to exit 0 without starting a CPU sampler slower than the child limit, and no other launch finds that sampler` |
