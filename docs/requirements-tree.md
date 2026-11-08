@@ -171,7 +171,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Status: active
     Also applies: R-004
     Parent: CAP-04 · Rows: 241 · IDs: R-190, R-191, R-194, R-199, R-300–R-326, R-345, R-349–R-353, R-357–R-361, R-363, R-378, R-379, R-381–R-384, R-387, R-388, R-391, R-392, R-589, R-663, R-665, R-679, R-687, R-688, R-736, R-739, R-825, R-827, R-921–R-927, R-932, R-936, R-938, R-939, R-950, R-951, R-964, R-980, R-985, R-995, R-1033–R-1036, R-1039, R-1050, R-1051, R-1053, R-1054, R-1058, R-1061, R-1063, R-1064, R-1093, R-1094, R-1111, R-1128, R-1205–R-1208, R-1330, R-1340, R-1420–R-1426, R-1546, R-1590–R-1593, R-1610–R-1618, R-1690, R-1713, R-1850–R-1852, R-1860, R-1861, R-1870, R-1871, R-1880–R-1889, R-1900–R-1904, R-1930–R-1932, R-1940–R-1944, R-1981, R-1982, R-1984, R-2010–R-2015, R-2020, R-2022–R-2027, R-2080–R-2083, R-2130–R-2133, R-2200–R-2202, R-2205, R-2260–R-2263, R-2282, R-2290, R-2291, R-2300–R-2303, R-2390–R-2394, R-2397, R-2398, R-2498, R-2499, R-2671–R-2674, R-2704, R-2716, R-2717, R-2890–R-2895, R-3590–R-3596, R-3739–R-3746, R-3799–R-3807
-    Artifacts: A-011, A-012, A-013, A-060, A-061, A-062, A-063, A-064, A-065, A-066, A-081
+    Artifacts: A-011, A-012, A-013, A-060, A-061, A-062, A-063, A-064, A-081
     Reads: A-004, A-005, A-036, A-037, A-049, A-080
     - **SUB-011 · Select the active runtime and home**
       Purpose: Resolve the intended executable and agent locations and provide the matching fresh-machine setup instructions.
@@ -219,7 +219,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: R-193, R-307, R-347, R-378, R-392, R-589, R-650, R-909, R-959, R-964, R-980, R-2023, R-2024
     Parent: CAP-04 · Rows: 167 · IDs: R-341–R-344, R-346, R-362, R-364–R-372, R-377, R-393, R-399, R-586, R-654, R-666, R-667, R-673–R-675, R-937, R-952, R-953, R-990, R-991, R-997–R-999, R-1037, R-1055, R-1057, R-1060, R-1070–R-1077, R-1079–R-1084, R-1096, R-1209, R-1540–R-1545, R-1580–R-1586, R-1600–R-1606, R-1750–R-1752, R-1760–R-1766, R-1790–R-1796, R-1810–R-1812, R-1853–R-1855, R-1972, R-1974, R-1980, R-1983, R-1990–R-1997, R-2000–R-2004, R-2021, R-2070–R-2076, R-2084, R-2085, R-2091, R-2180–R-2183, R-2230–R-2237, R-2280, R-2281, R-2292–R-2294, R-2320–R-2325, R-2410–R-2412, R-2681–R-2687, R-2701–R-2703, R-2705, R-2713–R-2715, R-3713–R-3715
     Artifacts: A-022, A-048
-    Reads: A-001, A-004, A-006, A-007, A-009, A-010, A-011, A-012, A-013, A-016, A-021, A-025, A-052, A-053, A-054, A-058, A-060, A-061, A-062, A-063, A-064, A-065, A-066, A-069, A-071, A-079
+    Reads: A-001, A-004, A-006, A-007, A-009, A-010, A-011, A-012, A-013, A-016, A-021, A-025, A-052, A-053, A-054, A-058, A-060, A-061, A-062, A-063, A-064, A-069, A-071, A-079
   - **FEAT-016 · Start the local development desk**
     Purpose: Bind the intended pi runtime and run the local desk with appropriate platform and service behavior.
     Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
@@ -239,7 +239,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: R-378, R-663
     Parent: CAP-04 · Rows: 33 · IDs: R-394, R-653, R-660–R-662, R-664, R-668, R-669, R-804, R-900–R-909, R-1056, R-1059, R-1985, R-2184, R-2203, R-2204, R-2310–R-2313, R-2315–R-2318
     Artifacts: A-019, A-020
-    Reads: A-001, A-011, A-012, A-013, A-016, A-050, A-060, A-061, A-062, A-063, A-065, A-066
+    Reads: A-001, A-011, A-012, A-013, A-016, A-050, A-060, A-061, A-062, A-063
   - **FEAT-019 · Release usable templates and report support**
     Purpose: Verify template combinations, identify delivered versions and publish accurate release and support information.
     Status: active

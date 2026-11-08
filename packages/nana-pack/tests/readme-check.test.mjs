@@ -69,7 +69,7 @@ check("requirements skill documents runner-specific map commands", skill.include
 const rootReadme = fs.readFileSync(path.join(REPO_ROOT, "README.md"), "utf-8");
 const rootPackage = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8"));
 const packPackage = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "packages/nana-pack/package.json"), "utf-8"));
-const surviving = ["gate", "post-edit", "lifecycle", "handoff", "objective", "writing", "roster notice"];
+const surviving = ["gate", "lifecycle", "adoption", "objective", "writing", "roster notice"];
 const packageBullet = rootReadme.match(/- `packages\/` —[\s\S]*?(?=\n- )/)?.[0] ?? "";
 // req: R-658
 check("front-door descriptions name both runtimes and the surviving extension functions", rootReadme.includes("UserPromptSubmit") && rootReadme.includes("before_agent_start") && surviving.every((name) => packageBullet.includes(name)) && [rootPackage.description, packPackage.description].every((text) => surviving.every((name) => text.includes(name))));

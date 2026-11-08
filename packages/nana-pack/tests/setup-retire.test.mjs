@@ -41,6 +41,21 @@ async function fixture(body) {
   }
 }
 
+// req: R-3800
+await test('M2: real pi discovery loads the pack without retired extensions', () => fixture(async ({ agent, cwd }) => {
+  const pi = await import(pathToFileURL(path.join(piRoot, 'dist', 'index.js')).href);
+  const loader = new pi.DefaultResourceLoader({ cwd, agentDir: agent, settingsManager: pi.SettingsManager.inMemory({ packages: [root] }), noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
+  await loader.reload();
+  const loaded = loader.getExtensions();
+  assert.deepEqual(loaded.errors, []);
+  const names = loaded.extensions.map(e => path.basename(e.path));
+  for (const name of ['nana-handoff.ts', 'nana-post-edit.ts', 'nana-notify.ts']) {
+    assert.ok(!names.includes(name), name);
+    assert.ok(!fs.existsSync(path.join(root, 'packages/nana-pack/extensions', name)), name);
+  }
+  assert.ok(names.includes('nana-adoption.ts') && names.includes('nana-gate.ts'));
+}));
+
 // req: R-3801
 await test('M3: real discovery journals one canonical root per day and the real hook lists only unadopted roots', () => fixture(async ({ base, agent, cwd }) => {
   const pi = await import(pathToFileURL(path.join(piRoot, 'dist', 'index.js')).href);
@@ -107,5 +122,32 @@ await test('M4: existing pi gate and pipe-guard suites remain green', () => {
   const result = spawnSync(process.execPath, [path.join(root, 'scripts/test.mjs'), 'pipe-guard', 'gate'], { cwd: root, encoding: 'utf8', timeout: 60_000 });
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /0 FAIL/);
+});
+// req: R-3805
+await test('M7: active docs retired rows artifacts and component status pass the contract checks', () => {
+  const read = name => fs.readFileSync(path.join(root, name), 'utf8');
+  const pack = read('packages/nana-pack/README.md');
+  const setup = read('packages/nana-setup/README.md');
+  const agents = read('AGENTS.md');
+  const shared = read('templates/_shared/working-under-nana-pi.md');
+  for (const text of [pack, setup, agents, shared]) {
+    assert.ok(!/`nana-(handoff|post-edit|notify)`|pi install npm:pi-subagents@/.test(text));
+  }
+  assert.ok(!agents.includes('and the handoff path'));
+  assert.ok(!shared.includes('configured checks run after successful edits'));
+  assert.ok(!setup.includes('The Node PreToolUse hook'));
+  assert.ok(!setup.includes('sets one failing post-edit command'));
+  const ledger = read('REQUIREMENTS.md');
+  for (const id of ['R-084', 'R-122', 'R-984', 'R-360', 'R-361', 'R-363', 'R-364', 'R-2480', 'R-2481', 'R-2486']) {
+    assert.match(ledger.split('\n').find(line => line.startsWith(`| ${id} |`)) ?? '', /\| retired \|/);
+  }
+  for (const id of ['A-002', 'A-065', 'A-066']) assert.match(ledger.split('\n').find(line => line.startsWith(`Artifact: ${id} `)) ?? '', /· retired:/);
+  const setupComponent = JSON.parse(read('docs/components/nana-pi.json')).components.find(c => c.id === 'setup');
+  assert.equal(setupComponent.status, 'sound');
+  assert.equal(setupComponent.gap, null);
+  for (const [script, args] of [['code-map.mjs', ['--check']], ['readme-check.mjs', []], ['requirements-tree.mjs', []], ['component-audit.mjs', ['--check']]]) {
+    const result = spawnSync(process.execPath, [path.join(root, 'scripts', script), ...args], { cwd: root, encoding: 'utf8', timeout: 15_000 });
+    assert.equal(result.status, 0, `${script}: ${result.stdout}${result.stderr}`);
+  }
 });
 process.exitCode = failures ? 1 : 0;

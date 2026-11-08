@@ -12,8 +12,8 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
 
 ## Layout
 
-- `packages/nana-pack/` — the pi extension pack: gate, post-edit checks,
-  session lifecycle/handoff, `nana-objective`; `skills/` (scaffold, adopt-py,
+- `packages/nana-pack/` — the pi extension pack: gate, adoption,
+  session lifecycle, `nana-objective`; `skills/` (scaffold, adopt-py,
   adopt-ts, adopt-structure, dev workflow); `bin/` — the `pi-review` runner (canonical home since 2026-09-18, on PATH via
   `~/.local/bin/pi-review`) with `review-round`, `review-shape`, `review-ledger` and `pi-worker`
   behind it, `pi-watchdog`, `nana-roster` (the per-machine roster command), the three producers the seat's Claude Code SessionStart hooks run —
@@ -83,7 +83,7 @@ pi deliberately has no user-level `AGENTS.md`; shared auto-memory and nana-soul 
 - **Compaction summary:** compaction summaries are pi-owned background state, not the project frontier. Persist carry before a final report or session boundary. Where the HANDOFF points to its issues, the seat posts each unresolved item and open question as one issue, never a HANDOFF line. Otherwise the seat writes each on one HANDOFF line under Next or Open for the owner. Only the seat posts, from the owner's gh account. The seat starts each issue comment it writes with `Seat:`. If posting fails, the report lists the item and the reason. Builders and reviewers put open questions in their report. Issues and the replies on them are public. Label an ask `ask` plus one of `blocking`, `optional` or `parked`, or label a next item `next`. A blocking ask's title ends with "(default: <word>)". First pass each title and body through `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`. Post only when the scan exits 0. Then hand-check names, handles, hostnames, work references and project names. The scan knows only four words. Delete a wrong post, never edit it. Before acting on an open ask, read its replies with `gh issue view <number> --comments`.
 - **Journal:** journal records session events; nana sends no desktop notifications.
 - **Gate:** Advisory pi gate inspects selected shell commands and protected edit/write targets. It is not a security boundary; see the pack README for exact scope and limits, including the interpreter code-operand path gap for floored settings, auth, MCP and extension files.
-- **Post-edit:** configured checks run after successful edits only in pi; absent commands mean no checks. Claude Code has no nana per-edit checks.
+- **Post-edit:** nana runs no per-edit checks in either runtime; run project checks explicitly.
 
 ### Working pattern
 
@@ -124,8 +124,8 @@ An `AGENTS.override.md` replaces a layer instead of adding to it.
 ### Config
 
 `.pi/nana-pack.json` (project scope) is honored **only in trusted projects** — it
-can set `postEdit.commands`, gate patterns (`extraPatterns` / `allowPatterns` / `protectedPaths`),
-and the handoff path. `<agent dir>/nana-pack.json` is the user-scope equivalent, always
+can set gate patterns (`extraPatterns` / `allowPatterns` / `protectedPaths`). Legacy `postEdit`
+and `handoff` sections are accepted and ignored. `<agent dir>/nana-pack.json` is the user-scope equivalent, always
 read — `<agent dir>` is pi's ACTIVE agent dir: `PI_CODING_AGENT_DIR` when set, else
 `~/.pi/agent`. When the variable resolves to a directory OTHER than `~/.pi/agent`,
 `~/.pi/agent/nana-pack.json` is NOT read (no fallback, no migration); the pack notes that once

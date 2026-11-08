@@ -1,0 +1,10 @@
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs setup-retire
+
+FAIL  packages/nana-pack/tests/setup-retire.test.mjs  3 pass, 2 fail  26.7s  — exit 1
+      | FAIL M2: real pi discovery loads the pack without retired extensions AssertionError [ERR_ASSERTION]: nana-notify.ts
+      | FAIL M7: active docs retired rows artifacts and component status pass the contract checks AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 3 pass, 2 fail, 0 skip · 27.0s
+failed: packages/nana-pack/tests/setup-retire.test.mjs

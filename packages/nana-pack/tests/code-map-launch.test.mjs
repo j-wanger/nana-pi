@@ -218,6 +218,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	losses.set('packages/nana-pack/tests/adoption-producer.test.mjs -> packages/nana-pack/lib/config.ts', 'FEAT-013 adoption now reads only user-scope adoptionSettings; the test still exercises config via its dynamic import.');
 	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
 	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
+	for (const caller of ['lib/install-check.mjs', 'tests/install-check.test.mjs']) losses.set(`packages/nana-setup/${caller} -> packages/nana-setup/lib/doctor.mjs`, 'FEAT-013 removes the delegation-runtime floor import with the vendor install and retry.');
 	const graph = checkRepo().graph;
 	for (const entry of gitShow("57167e92", "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];
