@@ -10,13 +10,14 @@ Requirement IDs: R-3915–R-3924.
 
 ## Must-meet tests
 
-- M1. A pi child launched with `NANA_ROLE` in the launcher roles receives no rulings section in its system prompt; a session with no role still receives it unchanged.
+- M1. A pi child launched with `NANA_ROLE` in the launcher roles receives no rulings section in its composed system prompt; a session with no role still receives it unchanged.
 - M2. A pi child launched with a launcher role receives no writing-rule section; a session with no role still receives it, and `writing.enabled: false` still removes it.
-- M3. A builder launched by `pi-worker --lane` receives no known-bug file and no known-bug path in its prompt; a reviewer launched by `pi-review` or `claude-review` still receives the digest for the brief's feature.
-- M4. A role child launched by `pi-worker --slot adversary` runs pi with context files disabled (`-nc`); scout and planner slots keep context files.
-- M5. Each `pi-worker` launch log line lists every part the child receives from nana: preamble, brief, known bugs when sent, context files or the `-nc` marker, and the rulings and writing sections with their character counts (zero when skipped).
-- M6. Each `claude-review` launch log line also lists the project instruction files Claude Code loads for that tree (`CLAUDE.md` and the files it imports) with their character counts.
-- M7. The gate's credential floor and CLI guards still apply to every child: a worker child with the trimmed context still has `nana-gate` loaded, and its refusal of a credential read is unchanged.
+- M3. The one ruling a builder needs survives: the builder preamble tells the builder that committed files carry no owner name and nothing about the owner's work (rulings line 19). The test reads the builder's composed prompt from a real `pi-worker --lane` launch with a fake pi; deleting that preamble line fails it.
+- M4. The gate's credential floor and CLI guards still apply to every pi child launch path after the trim: a lane builder, a slot child (adversary, with the builder fallback) and a `pi-review` reviewer each still load `nana-gate`, and each still refuses a credential read. Changing a slot child's `NANA_ROLE` away from a launcher role, or disabling extensions, fails the test.
+- M5. Each `pi-worker` and `pi-review` launch log line lists every section nana adds to the child's prompt (objective, rulings, writing, stale notice) with its delivered character count, read from the same composition the child receives; a skipped section logs 0; a section nana cannot measure logs `unavailable`, never 0.
+- M6. Each Claude Code launch (`claude-review`, and `pi-worker` with a Claude Code builder) logs the instruction files Claude Code loads for that tree: `CLAUDE.md` and its imports, `CLAUDE.local.md`, `.claude/CLAUDE.md`, `.claude/rules/**`, and the user's `~/.claude/CLAUDE.md` and `~/.claude/rules/**`, each with its character count; a file it cannot read logs `unavailable`.
+
+Changed after the adversary (2026-11-08, `adversary.md` in the seat scratchpad): builders keep the known-bug digest, because the preamble asks them to report touched known bugs and the seat reads that report (cut M3 dropped); the adversary keeps its project context files (cut M4 dropped: a flag test, with no evidence the adversary does better without them); the privacy rule moves into the preamble (new M3); the gate test covers every launch path (M4); the logs cover nana's own sections and every Claude instruction surface (M5, M6).
 
 ## Threat model
 
@@ -27,7 +28,9 @@ Honest variation: roles, runtimes (pi and Claude Code), missing files, `writing.
 - Role gating of a prompt section: `packages/nana-pack/extensions/nana-rulings.ts` (the seat-guide skip by `LAUNCHER_ROLES`, line 90) and `packages/nana-pack/lib/frontier-summary.mjs` (line 86). Follow the same import of `LAUNCHER_ROLES` from `packages/nana-pack/lib/frontier-summary-config.mjs`.
 - Writing section: `packages/nana-pack/extensions/nana-writing.ts` (`before_agent_start`, line 207).
 - Known-bug delivery: `packages/nana-pack/bin/pi-worker.mjs` (lines 234–242) with `packages/nana-pack/lib/known-bug-digest.mjs`.
-- Role launch arguments: `packages/nana-pack/bin/pi-worker.mjs` (`prepareWorker` call for slot roles, around line 147); `-nc` handling already exists in `packages/nana-pack/lib/pi-context-measure.mjs` (line 25).
+- Builder preamble: `packages/nana-pack/prompts/builder-preamble.md` (the evidence rule at line 38 is the nearest line).
+- Gate floor by role: `packages/nana-pack/extensions/nana-gate.ts` (line 148); slot child environment: `packages/nana-pack/bin/worker-config.mjs` (lines 106–111).
+- Claude instruction surfaces: `packages/nana-pack/bin/worker-config.mjs` (line 95).
 - Launch log: `packages/nana-pack/lib/context-load-log.mjs` (`contextPart`, `appendContextLoad`) and its callers in `pi-worker.mjs` and `packages/nana-pack/bin/claude-review.mjs` (line 120).
 
 ## Out of scope
@@ -36,4 +39,4 @@ The shared working-pattern text in AGENTS.md (a later text cut); the seat's own 
 
 ## Measure
 
-Before and after: characters delivered per builder launch from the log (expect about 12,000 fewer); review send-backs per lane over the next ten lanes against the last ten. Revert M3 or M4 if send-backs rise.
+Before and after: characters delivered per child launch from the log (expect about 6,000 fewer per pi child); review send-backs per lane over the next ten lanes against the last ten. Revert M3 or M4 if send-backs rise.
