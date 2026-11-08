@@ -15,7 +15,7 @@ import * as C from '../lib/memory-run-config.mjs';
 import { repositoryFolder, readMemoryStore } from '../lib/memory-store.mjs';
 import { resolveEvidence } from '../lib/memory-making.mjs';
 import { startMemory, pendingUnits } from '../lib/memory-run.mjs';
-import { deriveProtected, openLane, POLICY } from '../../../scripts/records-move.mjs';
+import { deriveProtected, POLICY } from '../../../scripts/records-move.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
 import { runLand } from '../bin/nana-land.mjs';
 import { withReviewLedgerLock } from '../bin/review-round.mjs';
@@ -39,7 +39,7 @@ await check('M4: moving records preserves earlier pending evidence and lane brie
  const before=await snapshot();
  assert.deepEqual(before.map(([key])=>key),['review:later-2026-11-02/r1.md#0','review:earlier-2026-11-01/r1.md#0']);
  const protectedSet=deriveProtected(f.main,{...POLICY,baseline:f.git(f.main,'rev-parse','HEAD')});
- const removed=[...protectedSet.folders].filter(folder=>!protectedSet.protected.has(folder)&&!openLane(folder));
+ const removed=[...protectedSet.folders].filter(folder=>!protectedSet.protected.has(folder));
  assert.deepEqual(removed,['obsolete-2026-10-20']);
  f.git(f.main,'rm','-r','-q','--',...removed.map(folder=>`docs/reviews/${folder}`));f.git(f.main,'commit','-m','move old records');
  assert.deepEqual(await snapshot(),before);

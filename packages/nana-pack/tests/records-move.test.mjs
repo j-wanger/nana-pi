@@ -41,13 +41,20 @@ await check('M1: derive protections and reject missing or excess folders',()=>{
   assert.deepEqual([...result.protected.keys()].sort(),names.filter(n=>!['discard-2026-10-01','ci-packs-2026-11-08','ambiguous-a','ambiguous-b'].includes(n)).sort());
  }
  assert.ok(checkRecords(root,policy).problems.some(p=>p.includes('unprotected')&&p.includes('discard-')));
- assert.ok(!checkRecords(root,policy).problems.some(p=>p.includes('unprotected')&&p.includes('ci-packs-')));
- git('rm','-r','-q','--','docs/reviews/discard-2026-10-01','docs/reviews/ambiguous-a','docs/reviews/ambiguous-b');
+ assert.ok(checkRecords(root,policy).problems.some(p=>p.includes('unprotected')&&p.includes('ci-packs-')));
+ git('rm','-r','-q','--','docs/reviews/discard-2026-10-01','docs/reviews/ambiguous-a','docs/reviews/ambiguous-b','docs/reviews/ci-packs-2026-11-08');
  assert.deepEqual(checkRecords(root,policy).problems,[]);
  git('rm','-r','-q','--','docs/reviews/bare-2026-10-01');
  assert.ok(checkRecords(root,policy).problems.some(p=>p.includes('missing')&&p.includes('bare-')));
  });
 });
+// req: R-3929
+await check('folders created after the pre-move commit pass',()=>fixture(({root,git,put})=>{
+ put('seed.md','baseline');git('add','.');git('commit','-m','before');
+ const policy={...POLICY,baseline:git('rev-parse','HEAD')};
+ put('docs/reviews/packs-win-skip/record.md','new record');git('add','.');git('commit','-m','after');
+ assert.deepEqual(checkRecords(root,policy).problems,[]);
+}));
 // req: R-3930
 await check('M2: protected folders keep all tracked paths and blobs',()=>fixture(({root,git,put})=>{
  put('docs/reviews/kept-2026-10-01/a.md','first');put('docs/reviews/kept-2026-10-01/b.md','second');put('refs.md','kept-2026-10-01');git('add','.');git('commit','-m','before');
@@ -84,5 +91,4 @@ await check('M5: objective prints the full code-lines priority',()=>fixture(({ro
 await check('records policy seal',()=>{
  assert.equal(POLICY.baseline,'3c3bd610853bd00bcaac5dab61528eb0eb4714f7');
  assert.equal(POLICY.since,'2026-11-01');
- assert.deepEqual(POLICY.openLanes,['ci-packs','ci-packs-2026-11-08','ledger-lock-win','child-context','records-move']);
 });

@@ -1,5 +1,4 @@
 {
   "baseline": "3c3bd610853bd00bcaac5dab61528eb0eb4714f7",
-  "since": "2026-11-01",
-  "openLanes": ["ci-packs", "ci-packs-2026-11-08", "ledger-lock-win", "child-context", "records-move"]
+  "since": "2026-11-01"
 }

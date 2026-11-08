@@ -53,9 +53,6 @@ export function deriveProtected(root,policy=POLICY) {
  }
  return {protected:protectedFolders,original,folders};
 }
-export function openLane(folder,policy=POLICY) {
- return policy.openLanes.some(lane=>folder===lane||folder.replace(/-\d{4}-\d{2}-\d{2}$/u,'')===lane);
-}
 /** Compare the index's tracked blobs (including staged moves) and the checkout's bytes. */
 export function checkRecords(root,policy=POLICY) {
  const derived=deriveProtected(root,policy),current=new Map();
@@ -69,7 +66,7 @@ export function checkRecords(root,policy=POLICY) {
    if(!fs.existsSync(path.join(root,file))||git(root,['hash-object','--path',file,'--',file]).trim()!==blob){problems.push(`changed protected file: ${file}`);break;}
   }
  }
- for(const folder of present)if(!derived.protected.has(folder)&&!openLane(folder,policy))problems.push(`unprotected folder remains: ${folder}`);
+ for(const folder of present)if(derived.folders.has(folder)&&!derived.protected.has(folder))problems.push(`unprotected folder remains: ${folder}`);
  return {...derived,present,problems};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
