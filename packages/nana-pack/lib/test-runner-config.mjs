@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/test-runner-config.mjs
  * @purpose Declare runner scheduling policy, stable shard assignment and volume-dependent file preconditions.
  * @inputs os.tmpdir(), or a caller-supplied temporary root for the checkout-spelling probe
- * @outputs JOBS_FLAG, SHARD_FLAG, shardFiles, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder
+ * @outputs JOBS_FLAG, SHARD_FLAG, PACK_FLAG, CHANGED_FROM_FLAG, shardFiles, SUITE_JOBS, SUITE_JOBS_ENV, RUN_ALONE, the finished-file temporary-folder
  *  removal retry count and delay, and checkoutSpellingSkipReason
  * @effects disk (checkoutSpellingSkipReason creates and removes one temporary probe folder)
  * @errors checkoutSpellingSkipReason propagates temporary-folder creation errors
@@ -21,6 +21,10 @@ export const JOBS_FLAG = "--jobs=";
 
 // contract (R-3816): Jest-compatible one-based i/N syntax, chosen 2026-11-07.
 export const SHARD_FLAG = "--shard=";
+
+// contract (ci-packs M7, R-3856), chosen 2026-11-07: equals-form pack and merge-base selection.
+export const PACK_FLAG = "--pack=";
+export const CHANGED_FROM_FLAG = "--changed-from=";
 
 /** Stable path hashing needs no OS-specific ordering or runtime baseline. Preserve collection order. */
 export function shardFiles(files, shard, key = (file) => file) {

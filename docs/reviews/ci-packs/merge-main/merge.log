@@ -1,0 +1,19 @@
+Auto-merging README.md
+Auto-merging REQUIREMENTS.md
+CONFLICT (content): Merge conflict in REQUIREMENTS.md
+Auto-merging code-map.config.json
+Auto-merging docs/code-map.md
+CONFLICT (content): Merge conflict in docs/code-map.md
+Auto-merging docs/requirements-tree.md
+Auto-merging package.json
+Auto-merging packages/nana-pack/README.md
+CONFLICT (content): Merge conflict in packages/nana-pack/README.md
+Auto-merging packages/nana-pack/lib/test-runner-config.mjs
+Auto-merging packages/nana-pack/tests/templates-render.test.mjs
+CONFLICT (content): Merge conflict in packages/nana-pack/tests/templates-render.test.mjs
+Auto-merging packages/nana-pack/tests/win-main-only.test.mjs
+Auto-merging packages/nana-pack/tests/worker-lane.test.mjs
+Auto-merging packages/nana-setup/tests/doctor-detail.test.mjs
+CONFLICT (content): Merge conflict in packages/nana-setup/tests/doctor-detail.test.mjs
+Auto-merging scripts/test.mjs
+Automatic merge failed; fix conflicts and then commit the result.

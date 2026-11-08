@@ -1,0 +1,6 @@
+PASS  packages/nana-pack/tests/test-locked.test.mjs           17 pass  4.7s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  32.6s
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  30.2s
+PASS  packages/nana-pack/tests/win-shards.test.mjs            9 pass  11.1s
+
+4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 90 pass, 0 fail, 0 skip · 79.0s

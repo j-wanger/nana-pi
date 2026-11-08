@@ -1,0 +1,9 @@
+PASS M1 optional Python scaffold ships exactly the opt-in pack 8.86s
+PASS M2 eight checks detect defects and accept clean fixtures 0.12s
+PASS M3 unsafe normalizer never changes project bytes 0.13s
+PASS M4 pytest prints errors and warnings and skips absent settings 0.64s
+PASS M5 real-run false-positive patterns stay clean without suppressions 0.12s
+PASS M6 adoption preserves pack files and previous release updates cleanly 167.22s
+PASS M7 live WAL cannot produce a clean keys verdict 0.09s
+
+exit=0 wall=178.70s

@@ -1,0 +1,17 @@
+FAIL M2 eight checks detect defects and accept clean fixtures AssertionError [ERR_ASSERTION]: uvx: Traceback (most recent call last):
+  File "<repo>/packages/nana-pack/tests/data-pack-fixtures.py", line 75, in <module>
+    assert any(f["severity"] == severity for f in findings(check)), (check, findings(check))
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('connectors', [])
+ 
+
+1 !== 0
+
+    at run (file://<repo>/packages/nana-pack/tests/data-pack.test.mjs:23:10)
+    at py (file://<repo>/packages/nana-pack/tests/data-pack.test.mjs:27:29)
+    at file://<repo>/packages/nana-pack/tests/data-pack-land.test.mjs:12:81
+    at check (file://<repo>/packages/nana-pack/tests/pack-fixtures.mjs:20:15)
+    at file://<repo>/packages/nana-pack/tests/data-pack-land.test.mjs:12:7
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)

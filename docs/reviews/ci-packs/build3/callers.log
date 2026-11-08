@@ -1,0 +1,11 @@
+packages/nana-pack/lib/land-ci.mjs:75:export function suiteScopeProblem(record) {
+packages/nana-pack/lib/land-ci.mjs:88:export function ciSuiteLegs(result) {
+packages/nana-pack/lib/land-ci.mjs:132:			if (record.platform !== members[0][1].record.platform || suiteScopeProblem(record) || !finalFiles(record).length || record.exitCode !== 0 || record.unnamedFailures?.length || finalFiles(record).some((file) => file.label === "FAIL")) problems.push(`${item.leg}: shard record did not pass an unfiltered suite`);
+packages/nana-pack/lib/land-ci.mjs:150:		const problem = suiteScopeProblem(record);
+packages/nana-pack/lib/land-ci.mjs:164:	const selected = ciSuiteLegs({ ...result, parsed: result.parsed.filter((item) => judged.has(String(item.run?.id))), jobs: result.jobs?.filter((item) => judged.has(String(item.run?.id))) });
+packages/nana-pack/lib/land-ci.mjs:169:		const scopeProblem = suiteScopeProblem(record);
+packages/nana-pack/lib/main-ci.mjs:14:import { ciSuiteLegs, requiredCiJobs, toolkitCi } from "./land-ci.mjs";
+packages/nana-pack/lib/main-ci.mjs:58:		const selected = ciSuiteLegs(records);
+scripts/test-packs.mjs:34:export async function selectPackFiles({ root, files, packs, changedFrom = null, membership = TEST_PACKS, readDiff = changedPaths, makeGraph = makeRepoGraph }) {
+scripts/test.mjs:384:		const { selectPackFiles } = await import("./test-packs.mjs");
+scripts/test.mjs:385:		const selected = await selectPackFiles({ root, files: collected.map(rel), packs: packArgs[0].slice(PACK_FLAG.length).split(","), changedFrom: changedArgs[0]?.slice(CHANGED_FROM_FLAG.length) ?? null });

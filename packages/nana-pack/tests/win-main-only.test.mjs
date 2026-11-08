@@ -70,6 +70,10 @@ function fixture({ laneBad, mainBad, state = "failure", missing = false, noMain 
   fs.mkdirSync(dir, { recursive: true });
   const index = /-shard-(\d)-of-3/.exec(leg)?.[1];
   const record = { schema: 1, platform: leg.startsWith("windows") ? "win32" : leg.startsWith("macos") ? "darwin" : "linux", filters: [], files: [{ path: `${leg}.test.mjs`, label: "PASS", seconds: 1 }], exitCode: 0, jobs: 4, wallSeconds: 1, ...(index ? { shard: { index: Number(index), count: 3 } } : {}) };
+  record.packRun = { complete: true, packs: ["land", "main", "module", "retire"], selection: {
+   changedFrom: null, changedPaths: [], changedTests: [], failSafe: null,
+   module: (index ? [1, 2, 3].map(shard) : [leg]).map(name => ({ path: `${name}.test.mjs`, reasons: ["complete module pack"] })),
+  } };
   fs.writeFileSync(path.join(dir, "record.json"), JSON.stringify(record)); return { status: 0 };
  };
  const land = executeCi(f, [lane], { runGh, platform, "fixes-red": fixesRed,
@@ -139,11 +143,11 @@ await check("M10: PR matrices omit Windows and main push matrices include every 
  const osExpr = install.match(/^        os: \$\{\{ (.+) \}\}$/m)?.[1];
  assert(suiteExpr && osExpr, "event-selected matrices required, not skipped steps on Windows runners");
  for (const event of ["pull_request", "push"]) {
-  const expected = ["macos-latest", "ubuntu-latest", ...(event === "push" ? [shard(1), shard(2), shard(3)] : [])];
+  const expected = ["macos-latest", ...(event === "push" ? ["ubuntu-latest", shard(1), shard(2), shard(3)] : [])];
   const matrix = evaluate(suiteExpr, event);
   assert.deepEqual(matrix.map(item => item.leg), expected);
   for (const item of matrix) assert.equal(item.os, item.leg.startsWith("windows") ? "windows-latest" : item.leg);
-  assert.deepEqual(matrix.map(item => item.shard), event === "push" ? ["", "", "1/3", "2/3", "3/3"] : ["", ""]);
+  assert.deepEqual(matrix.map(item => item.shard), event === "push" ? ["", "", "1/3", "2/3", "3/3"] : [""]);
   assert.deepEqual(evaluate(osExpr, event), event === "push" ? ["macos-latest", "windows-latest"] : ["macos-latest"]);
  }
  assert.match(install, /pi: \[ceiling, floor\]/);

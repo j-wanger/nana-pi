@@ -1,0 +1,9 @@
+PASS  packages/nana-knowledge/tests/pull-cut.test.mjs        1 pass  0.3s
+PASS  packages/nana-pack/tests/experiment-cut.test.mjs       1 pass  0.6s
+PASS  packages/nana-pack/tests/memory-cut-checks.test.mjs    1 pass  0.2s
+PASS  packages/nana-pack/tests/memory-cut-guidance.test.mjs  1 pass  9.5s
+PASS  packages/nana-pack/tests/setup-retire.test.mjs         5 pass  3.2s
+PASS  packages/nana-setup/tests/memory-pause.test.mjs        2 pass  1.5s
+PASS  packages/nana-setup/tests/pull-cut-turn.test.mjs       1 pass  1.9s
+
+7 files: 7 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 12 pass, 0 fail, 0 skip · 18.4s

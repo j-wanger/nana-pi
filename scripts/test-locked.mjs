@@ -13,7 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { JOBS_FLAG, SUITE_JOBS, SUITE_JOBS_ENV } from "../packages/nana-pack/lib/test-runner-config.mjs";
+import { JOBS_FLAG, PACK_FLAG, SUITE_JOBS, SUITE_JOBS_ENV } from "../packages/nana-pack/lib/test-runner-config.mjs";
 import { COVERAGE_ENV, COVERAGE_PREFIX } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
 import { gitCommonDir, readRunRecord, readSuiteRecords, storeSuiteRecord, suiteGitFacts, suiteRecordLines } from "../packages/nana-pack/lib/suite-records.mjs";
@@ -114,7 +114,9 @@ function commandSpec(filters, env) {
 	}
 	const envJobs = env[SUITE_JOBS_ENV];
 	const jobsArg = `${JOBS_FLAG}${envJobs && envJobs.length > 0 ? envJobs : SUITE_JOBS}`;
-	return { command: process.execPath, args: [env.npm_execpath, "test", "--", ...(filters.length ? filters : [jobsArg])] };
+	const args = filters.length ? [...filters] : [jobsArg];
+	if (isCompletePackRun(filters) && !filters.some(arg => arg.startsWith(JOBS_FLAG))) args.push(jobsArg);
+	return { command: process.execPath, args: [env.npm_execpath, "test", "--", ...args] };
 }
 
 function runCommand(filters, env, cwd) {
@@ -219,6 +221,12 @@ function finishSuiteRecord({ recordFile, runnerRecord, suiteCode, root, env, rec
 	}
 }
 
+/** Pack selection is complete unless a substring, shard or self-test narrows its proof. */
+export function isCompletePackRun(args) {
+	return args.some(arg => arg.startsWith(PACK_FLAG)) && args.every(arg => arg.startsWith("--"))
+		&& !args.some(arg => arg.startsWith("--shard") || arg === "--self-test");
+}
+
 /** Run one locked suite invocation; dependencies are injectable for platform and write-failure checks. */
 export async function runLocked({
 	filters = process.argv.slice(2),
@@ -241,7 +249,8 @@ export async function runLocked({
 		};
 		handlers.set(signal, handler); process.on(signal, handler);
 	}
-	const recordFile = filters.length === 0 ? path.join(tempRoot, `nana-suite-record-${process.pid}-${randomUUID()}.json`) : null;
+	const complete = filters.length === 0 || isCompletePackRun(filters);
+	const recordFile = complete ? path.join(tempRoot, `nana-suite-record-${process.pid}-${randomUUID()}.json`) : null;
 	const plainEnv = { ...env };
 	delete plainEnv[COVERAGE_ENV];
 	if (recordFile) plainEnv[RECORD_FILE_ENV] = recordFile;
@@ -249,7 +258,7 @@ export async function runLocked({
 		if (recordFile && !stopping) finishSuiteRecord({ recordFile, runnerRecord, suiteCode, root: cwd, env, recordedAt: now() });
 	};
 	try {
-		if (filters.length === 0) await acquireLock();
+		if (complete) await acquireLock();
 		const tip = env[LAND_TIP_ENV];
 		if (tip && env[HAND_MEASURE_ENV] === undefined && UNMEASURED_PLATFORMS.includes(platform)) {
 			note("runtime map on Windows was not measured");

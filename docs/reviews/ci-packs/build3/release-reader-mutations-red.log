@@ -1,0 +1,18 @@
+PASS M2: pack execution selects exact land and affected module paths with reasons
+PASS M3: unreadable diffs graph errors and policy changes run all module files
+FAIL M11: acceptance-win-cmd replay selects edited release tests and release import callers AssertionError [ERR_ASSERTION]: release omitted for scripts/template-release.mjs
+    at file://packages/nana-pack/tests/test-packs-runner.test.mjs:98:5
+    at async check (file://packages/nana-pack/tests/pack-fixtures.mjs:20:9)
+    at async file://packages/nana-pack/tests/test-packs-runner.test.mjs:84:1
+FAIL M12: ci-wait replay selects and proves the edited main-pack test AssertionError [ERR_ASSERTION]: reader accepted an omitted edited main test
+
+true !== false
+
+    at file://packages/nana-pack/tests/test-packs-runner.test.mjs:117:10
+    at async check (file://packages/nana-pack/tests/pack-fixtures.mjs:20:9)
+    at async file://packages/nana-pack/tests/test-packs-runner.test.mjs:103:1
+PASS M9: complete-pack locked runs serialize retain records and path filters bypass
+FAIL  packages/nana-pack/tests/test-packs-runner.test.mjs  3 pass, 2 fail  8.1s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 3 pass, 2 fail, 0 skip · 8.4s
+failed: packages/nana-pack/tests/test-packs-runner.test.mjs
