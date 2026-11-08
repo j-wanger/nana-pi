@@ -6,7 +6,8 @@ Feature: FEAT-031. Rows: R-3928–R-3934.
 
 - Protection/check: `5722fc0353e8ca718fe420bfef1f006ec3b3817c`.
 - Removal: `1c7a37cd13f1061ea61fd586fa779c89dad5e6e8`.
-- Removed: 222 folders, 3,453 tracked files, 1,432,880 text lines.
+- Removed: 222 folders, 3,453 tracked files, 1,432,878 lines (Git numstat).
+- The removal commit's preliminary line count overcounted two empty files by one line each; this is the corrected count.
 - Kept: 126 folders. Disjoint reasons: 46 references only, 65 recent only, 15 both.
 - Thus 61 folders have references and 80 have recent changes.
 - No folder at this tip belongs to one of the five declared open lanes. The exemption preserves future folders for all five.
@@ -73,6 +74,6 @@ No issue, credential, remote API, model session, push or CI read was used.
 - `npm run map`, `npm run map:check`, `npm run readme:check`: exit 0.
 - `node scripts/requirements-trace.mjs`: exit 0.
 - `node scripts/requirements-tree.mjs --write` and `--check`: exit 0.
-- Full suite uses `npm run test:locked`, which invokes `npm test -- --jobs=4` under the machine lock. The initial foreground attempt exceeded the harness limit while waiting for another lane's lock; its orphaned suite was stopped. A complete run is recorded separately.
+- Full suite uses `npm run test:locked`, which invokes `npm test -- --jobs=4` under the machine lock. The initial foreground attempt exceeded the harness limit while waiting for another lane's lock; its orphaned suite was stopped. The complete run at `05e8b997800413346f45223d330b49927a957777` exited 0: 245 files, 244 PASS, 0 FAIL, 1 SKIP, 0 WARN; 7,244 checks pass, 0 fail, 45 skip; 901.6 seconds. It invoked the required `npm test -- --jobs=4` command under one machine lock.
 
 Long outputs, with private path prefixes normalized, are in `docs/plan/records-move-checks.log`.
