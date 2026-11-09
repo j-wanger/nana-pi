@@ -378,7 +378,7 @@ Read by: A-089 · person: the seat inspects private per-launch context measureme
 | R-3981 | WHEN NANA_ROLE is a launcher role, the pi objective extension shall omit its objective block. | untested | Validation V1 pending real launches. |
 | R-3982 | WHEN a configured pi child skill is missing from the checkout and setup-installed folders, the launcher shall warn once naming it and continue with the remaining explicit skills and --no-skills. | untested | Validation V1 pending real launches. |
 | R-3983 | WHEN a pi child attempt ends, its load log shall count every section and serialized toolsAdded in its first system sections record without double-counting addendum sources, or report unavailable with a reason when the file or record is missing. | untested | Validation V2 pending real launches. |
-| R-3984 | Each pi worker or reviewer attempt shall receive a distinct explicit session file in its own folder under buildSessionDir. | untested | Validation V1–V3 pending real launches. |
+| R-3984 | Each pi worker or reviewer attempt shall receive a distinct explicit pi-style session file directly in buildSessionDir. | untested | Validation V1–V3 pending real launches. |
 | R-3218 | The known-bug digest budget shall be 6000 UTF-16 units of decoded text. | implemented | `packages/nana-pack/tests/context-anatomy.test.mjs::R-3218: known-bug digest seal is 6000 UTF-16 units` |
 
 ## FEAT-003 · Index and connect existing knowledge sources
