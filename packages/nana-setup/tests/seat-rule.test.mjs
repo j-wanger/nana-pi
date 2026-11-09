@@ -21,7 +21,7 @@ const check = (name, ok) => {
 };
 
 // The loader's injection and refusal paths are exercised in rulings.test.mjs.
-// req: R-3021 R-3023
+// req: R-3021 R-3023 R-3966
 check("shipped seat guide is nonempty valid UTF-8 within the loader cap",
 	text.trim().length > 0 && raw.length <= SEAT_GUIDE_READ_CAP);
 

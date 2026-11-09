@@ -8,7 +8,12 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { WORKING_SECTION_CHAR_CAP } from "../../nana-setup/lib/working-config.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
+import { buildSeatGuideBlock } from "../extensions/nana-rulings.ts";
+import { SEAT_GUIDE_FILE, SEAT_GUIDE_HEADING } from "../lib/rulings-config.mjs";
 const REPO = fileURLToPath(new URL("../../../", import.meta.url));
 let fails = 0;
 const check = (name, ok) => { console.log(ok ? "PASS" : "FAIL", name); if (!ok) fails++; };
@@ -27,10 +32,23 @@ if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(file
 	const agents = fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf8");
 	const shared = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
 	const block = markerBlock(agents);
+	// req: R-3965
+	check("M1: shared working section fits its character cap", shared.length <= WORKING_SECTION_CHAR_CAP);
+	// req: R-3965
+	check("seal: WORKING_SECTION_CHAR_CAP is 4500", WORKING_SECTION_CHAR_CAP === 4500);
+	const agentDir = tmpDir(path.join(os.tmpdir(), "agents-trim-guide-"));
+	try {
+		const guide = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-seat.md"), "utf8");
+		fs.writeFileSync(path.join(agentDir, SEAT_GUIDE_FILE), guide);
+		// req: R-3966
+		check("M2: shipped seat guide loads in full for a pi seat", buildSeatGuideBlock(agentDir) === `${SEAT_GUIDE_HEADING}\n\n${guide}`);
+	} finally {
+		fs.rmSync(agentDir, { recursive: true, force: true });
+	}
 	// req: R-3895
 	check("M2: shared land guidance drops pre-review notes and keeps the post-land writing ban",
 		block === shared && !/Put HANDOFF and session notes|Notes go in before the final round/.test(shared) &&
-		shared.includes("Nothing is written after a land."));
+		fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf8").includes("Nothing is written after a land."));
 	// req: R-3896
 	check("M3: narrative and session-archive references are removed", (() => {
 		const handoff = fs.readFileSync(path.join(REPO, "HANDOFF.md"), "utf8");
@@ -52,7 +70,7 @@ function checkAgentsMdMirrorsWorkingUnderNanaPi() {
 	// req: R-859
 	check("AGENTS.md shared section follows a complete paragraph", prefix.endsWith("\n\n") && /[.!?]$/.test(paragraph));
 	// req: R-966
-	check("working pattern names lane launcher and keeps local overrides after marker region", block.includes("pi-worker --lane <name> --brief <file>") && block.includes("overrides belong in that project's own section AFTER this marker region"));
+	check("working pattern names lane launcher and keeps local overrides after marker region", fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-seat.md"), "utf8").includes("pi-worker --lane <name> --brief <file>") && block.includes("overrides belong in that project's own section AFTER this marker region"));
 	const packReadme = fs.readFileSync(path.join(REPO, "packages", "nana-pack", "README.md"), "utf8");
 	// req: R-966
 	check("pack README documents lane preamble, write gap, ceiling, and trust notice", packReadme.includes("prompts/builder-preamble.md") && packReadme.includes("bash or another process") && packReadme.includes("28,800 seconds") && packReadme.includes("trust: none for"));

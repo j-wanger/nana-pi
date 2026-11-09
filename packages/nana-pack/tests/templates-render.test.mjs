@@ -467,6 +467,8 @@ function hasBroadWindowsParity(text) {
 function checkInstructionContracts() {
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
 	const soul = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf-8");
+	const seat = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-seat.md"), "utf-8");
+	const procedure = `${soul}\n${seat}`;
 	const desk = fs.readFileSync(path.join(REPO, "apps/desk/README.md"), "utf-8");
 	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
 		fs.readFileSync(path.join(REPO, file), "utf-8"));
@@ -477,10 +479,10 @@ function checkInstructionContracts() {
 		["Claude Code seat", "pi TUI or desk", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
 		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge search", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
 		[
-			"| Claude Code seat | SessionStart `nana-objective.mjs` hook supplies the objective and frontier block; `nana-adoption.mjs` hook supplies adoption | `nana-shared-memory.mjs` hook; Claude shared-memory index and auto-memory | Both Claude rules | Shared nana-writing rule; Claude rule `nana-rulings.md` | Search only: `nana-knowledge query` | No nana command gate | No nana verifier hook | No nana per-edit checks | Claude-owned summary; no nana HANDOFF producer | No nana notify; SessionStart `nana-roster-notice.mjs` hook shows the roster notice |",
-			"| pi TUI or desk session | `nana-objective` and `nana-frontier-summary` extensions | No shared auto-memory | Neither rule; requirements-first arrives through AGENTS and the requirements skill | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction | No nana notify; `nana-roster-notice` extension shows the roster notice as a widget |",
-			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | `nana-objective` extension; `nana-frontier-summary` adds nothing under `NANA_ROLE` | No shared auto-memory | Neither rule | `nana-writing` extension; `nana-rulings` extension | Search only: `nana-knowledge query` | `nana-gate` extension | `nana-gate` shared predicate for bash and PowerShell | No nana per-edit checks | `nana-lifecycle` journal; pi-owned compaction | No nana notify; `nana-roster-notice` extension runs but shows nothing (no UI) |",
-			"| Codex | Unsupported; no nana runtime contract | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified | Not specified |",
+			"| Claude Code seat | SessionStart `nana-objective.mjs` (objective/frontier), `nana-adoption.mjs`, `nana-shared-memory.mjs`; nana-soul / nana-standards; shared nana-writing rule and `nana-rulings.md` | No nana Gate or Verifier pipe; Claude-owned Compaction summary, no nana HANDOFF producer; `nana-roster-notice.mjs` notice |",
+			"| pi TUI or desk session | `nana-objective`, `nana-frontier-summary`; `nana-writing`, `nana-rulings`; no soul/standards or shared auto-memory | `nana-gate` for bash/PowerShell; `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction; `nana-roster-notice` widget |",
+			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; frontier adds nothing under `NANA_ROLE` | Same gate/journal; roster notice has no UI |",
+			"| Codex | Unsupported; no nana runtime contract | Not specified |",
 		].every((v) => shared.includes(v)));
 
 	const startup = "At startup, read `HANDOFF.md`, look up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill), and read the landscape doc only for pi API questions.";
@@ -497,7 +499,7 @@ function checkInstructionContracts() {
 	// req: R-682
 	check("soul continuity rule records carry before reports and session boundaries",
 		/Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul) &&
-		[soul, shared, frontDoors[1]].every((text) => {
+		[soul].every((text) => {
 			const sentences = [
 				"Where the HANDOFF points to its issues, the seat posts each unresolved item and open question as one issue, never a HANDOFF line.",
 				"Otherwise the seat writes each on one HANDOFF line under Next or Open for the owner.",
@@ -522,31 +524,31 @@ function checkInstructionContracts() {
 		}) && fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8")
 			.split("\nTests\n")[0].includes("- Never create, edit, comment on or close a GitHub issue; put open questions in the report."));
 	// req: R-683
-	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "pi-worker", "pi-review", "different model lineage", "Land checklist", "overrides belong in that project's own section AFTER this marker region"].every((v) => shared.includes(v)));
+	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "pi-worker", "pi-review", "different model lineage", "Land checklist"].every((v) => procedure.includes(v)) && shared.includes("overrides belong in that project's own section AFTER this marker region"));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
 	const canonicalSupport = `Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1 && lines[0] === canonicalSupport) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
 	// req: R-1126
 	check("shared working pattern makes the pattern the default with the machine roster",
-		shared.includes("a change that touches code with tests goes through the pattern") &&
-		shared.includes("questions and one-line fixes get a direct answer") &&
-		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"') &&
-		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs"') &&
-		shared.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"'));
+		soul.includes("a change that touches code with tests goes through the pattern") &&
+		soul.includes("questions and one-line fixes get a direct answer") &&
+		soul.includes('node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"') &&
+		soul.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs"') &&
+		soul.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"'));
 	// req: R-3763
 	check("the shared working pattern omits the retired seat land review",
 		!shared.includes("Seat land review") && !shared.includes("seat-land.md"));
-	// R-1128 reads the two bullets from the shared file itself (not a literal copy in this test), so
-	// an edit to the shared file's bullet text that the R-1126/R-1300 title checks do not cover still
-	// shows nana-soul stale: the extracted bullet changes while nana-soul's copy does not.
-	const sharedBullet = (label) => { const m = new RegExp(`^- ${label}:.*$`, "m").exec(shared); return m ? m[0] : null; };
+	// R-1128: the soul is now the home of these seat-only defaults.
+	const sharedBullet = (label) => { const m = new RegExp(`^- ${label}:.*$`, "m").exec(soul); return m ? m[0] : null; };
 	const defaultPatternBullet = sharedBullet("Default pattern");
 	const reviewLadderBullet = sharedBullet("Review ladder");
 	// req: R-1128
 	check("nana-soul carries the shared default-pattern and review-ladder bullets",
 		Boolean(defaultPatternBullet) && Boolean(reviewLadderBullet) &&
-		soul.replace(/\r/g, "").includes(defaultPatternBullet) && soul.replace(/\r/g, "").includes(reviewLadderBullet));
+		defaultPatternBullet.includes("models come from this machine's roster") &&
+		reviewLadderBullet.includes("Every lane gets one reviewer plus CI") &&
+		shared.includes("Every lane gets one reviewer plus CI"));
 	const SEAT_GUIDE_POINTER = "- Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions.";
 	const seatGuideBullets = [...shared.matchAll(/^- Seat guide:.*$/gm)].map((m) => m[0]);
 	// req: R-1142
@@ -558,7 +560,7 @@ function checkInstructionContracts() {
 	check("seat-guide bullet names a guide file present in this checkout",
 		seatGuideNamedPath !== null && fs.existsSync(path.join(REPO, seatGuideNamedPath)),
 		seatGuideNamedPath ?? "no bullet found");
-	const largerLanesBullets = [...shared.matchAll(/^- Larger lanes:.*$/gm)].map((m) => m[0]);
+	const largerLanesBullets = [...seat.matchAll(/^- Larger lanes:.*$/gm)].map((m) => m[0]);
 	// req: R-2652
 	check("R-2652: the shared working pattern starts the larger-lane builder, pi or Claude Code, through pi-worker --lane-size larger and a small lane through --lane-size small",
 		largerLanesBullets.length === 1 &&
@@ -583,11 +585,11 @@ function checkInstructionContracts() {
 		desk.includes("`/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session."));
 	// req: R-1100
 	check("shared working pattern requires a threat model per plan",
-		shared.includes("Every plan names its threat model") &&
-		shared.includes("honest variation in our tools' output is in scope") &&
-		shared.includes("deliberate forgery is out") &&
-		shared.includes("a finding outside the model is a residual"));
-	const plansBullets = shared.split(/\r?\n/).filter((line) => line.startsWith("- Plans:"));
+		soul.includes("Every plan names its threat model") &&
+		soul.includes("honest variation in our tools' output is in scope") &&
+		soul.includes("deliberate forgery is out") &&
+		soul.includes("a finding outside the model is a residual"));
+	const plansBullets = soul.split(/\r?\n/).filter((line) => line.startsWith("- Plans:"));
 	// req: R-2584
 	check("R-2584: the shared working pattern's Plans bullet requires every plan to name its precedent",
 		plansBullets.length === 1 &&
@@ -596,27 +598,27 @@ function checkInstructionContracts() {
 	// req: R-2955
 	check("R-2955: shared and project Plans bullets point planners to the prompt with the request and grounding",
 		plansBullets.length === 1 && plansBullets[0].includes("The seat gives the planner the request and its grounding; an earlier plan is grounding for a decision it records, never a format to copy. Read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
-		frontDoors[1].includes("The seat gives the planner the request and its grounding; an earlier plan is grounding for a decision it records, never a format to copy. Read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
+		soul.includes("The seat gives the planner the request and its grounding; an earlier plan is grounding for a decision it records, never a format to copy. Read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
 		markerBlock(frontDoors[1]) === shared,
 		JSON.stringify(plansBullets));
 	// req: R-1101
 	// req: R-1300
 	check("R-1300: the shared working pattern gives every lane one reviewer plus CI and says plans get no review round",
-		shared.includes("Every lane gets one reviewer plus CI") &&
-		shared.includes("Plans get no review round") && !shared.includes("plan-review round") && !shared.includes("only a named fail-open bug reopens the plan"));
+		procedure.includes("Every lane gets one reviewer plus CI") &&
+		soul.includes("Plans get no review round") && !procedure.includes("plan-review round") && !procedure.includes("only a named fail-open bug reopens the plan"));
 	// req: R-1102
 	check("shared working pattern freezes edits after an all-LAND review",
-		shared.includes("Once every reviewer says LAND, nothing more is edited"));
+		soul.includes("Once every reviewer says LAND, nothing more is edited"));
 	// req: R-1103
 	check("shared working pattern ships urgent fixes alone",
-		shared.includes("Urgent fixes ship alone and are hardened in a later lane"));
+		soul.includes("Urgent fixes ship alone and are hardened in a later lane"));
 	// req: R-1104
 	check("shared working pattern states the review bar for seats",
-		shared.includes("`pi-review` appends the review standard to every review it runs") &&
-		shared.includes("A review with no MUST finding says LAND") &&
-		shared.includes("LAND-WITH-FIXES is retired") &&
-		shared.includes("A confirmation round reviews only the change since the last round"));
-	const sharedBullets = shared.split(/\r?\n/).filter((line) => line.startsWith("- "));
+		soul.includes("`pi-review` appends the review standard to every review it runs") &&
+		soul.includes("A review with no MUST finding says LAND") &&
+		soul.includes("LAND-WITH-FIXES is retired") &&
+		soul.includes("A confirmation round reviews only the change since the last round"));
+	const sharedBullets = soul.split(/\r?\n/).filter((line) => line.startsWith("- "));
 	const reviewBar = sharedBullets.find((line) => line.startsWith("- Review bar:")) ?? "";
 	const landChecklist = sharedBullets.find((line) => line.startsWith("- Land checklist:")) ?? "";
 	const unplacedStem = path.parse(UNPLACED_FILE).name;
@@ -768,7 +770,7 @@ if (!version) {
 			// req: R-3899
 			check(`${language}: M6 rendered working region equals the shared bytes without a notes step`,
 				markerBlock(fs.readFileSync(path.join(dest, "AGENTS.md"), "utf8")) === working &&
-				!working.includes("Put HANDOFF and session notes") && working.includes("Nothing is written after a land."));
+				!working.includes("Put HANDOFF and session notes") && fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf8").includes("Nothing is written after a land."));
 			if (language === "python") {
 				const cp1252 = runCp1252(dest);
 				if (!cp1252.available) {
