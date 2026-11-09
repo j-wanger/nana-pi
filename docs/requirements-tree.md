@@ -4,7 +4,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 
 - **CAP-01 · Maintain direction and useful context**
   Purpose: Keep the agent aligned with the project and carry useful knowledge between work sessions.
-  Parent: — · Rows: 503 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863, R-2970–R-2977, R-2979, R-2990–R-2999, R-3188–R-3219, R-3230–R-3269, R-3290–R-3336, R-3340–R-3342, R-3350–R-3362, R-3370–R-3389, R-3410, R-3411, R-3437, R-3470–R-3474, R-3526–R-3529, R-3532–R-3537, R-3560–R-3577, R-3650, R-3698–R-3705, R-3726–R-3738, R-3747–R-3756, R-3835–R-3839, R-3860–R-3867, R-3985
+  Parent: — · Rows: 508 · IDs: R-001–R-020, R-108–R-138, R-140–R-142, R-189, R-200–R-240, R-244, R-245, R-248, R-347, R-348, R-376, R-386, R-641, R-659, R-682, R-690, R-742–R-755, R-758, R-795–R-803, R-805–R-808, R-828, R-830, R-871–R-897, R-933–R-935, R-1410–R-1418, R-1710–R-1712, R-1910–R-1915, R-1970, R-1971, R-1973, R-2090, R-2092–R-2094, R-2160, R-2283–R-2285, R-2340–R-2346, R-2370–R-2376, R-2400–R-2409, R-2470–R-2473, R-2500–R-2510, R-2606–R-2613, R-2860–R-2863, R-2970–R-2977, R-2979, R-2990–R-2999, R-3188–R-3219, R-3230–R-3269, R-3290–R-3336, R-3340–R-3342, R-3350–R-3362, R-3370–R-3389, R-3410, R-3411, R-3437, R-3470–R-3474, R-3526–R-3529, R-3532–R-3537, R-3560–R-3577, R-3650, R-3698–R-3705, R-3726–R-3738, R-3747–R-3756, R-3835–R-3839, R-3860–R-3867, R-3980–R-3985
   Kind: product
   Deliverables: R-001, R-873, R-201, R-217, R-749
   - **FEAT-001 · Keep goals and priorities in view**
@@ -40,7 +40,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Purpose: Give each launched agent bounded context for its role and record each delivery.
     Status: active
     Also applies: R-2560, R-2561, R-2581, R-2646, R-2647, R-2655
-    Parent: CAP-01 · Rows: 48 · IDs: R-3210–R-3219, R-3526–R-3529, R-3532–R-3537, R-3726–R-3738, R-3747–R-3756, R-3835–R-3839
+    Parent: CAP-01 · Rows: 53 · IDs: R-3210–R-3219, R-3526–R-3529, R-3532–R-3537, R-3726–R-3738, R-3747–R-3756, R-3835–R-3839, R-3980–R-3984
     Artifacts: A-089
   - **FEAT-003 · Index and connect existing knowledge sources**
     Purpose: Discover, index and connect existing knowledge sources so relevant material can be retrieved across projects.
@@ -93,7 +93,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   Purpose: Give builders, reviewers and the integration step separate responsibilities and concrete records.
   Parent: — · Rows: 445 · IDs: R-139, R-192, R-246, R-249, R-285, R-286, R-588, R-620–R-625, R-628, R-700–R-735, R-831–R-847, R-850–R-855, R-919, R-960–R-963, R-965–R-979, R-981, R-992, R-1002–R-1011, R-1105–R-1110, R-1120–R-1125, R-1140, R-1141, R-1190–R-1192, R-1212, R-1350–R-1356, R-1370–R-1378, R-1390–R-1395, R-1400–R-1407, R-1430–R-1433, R-1560–R-1565, R-1620–R-1623, R-1634, R-1636, R-1680–R-1683, R-1720–R-1723, R-1840–R-1842, R-1890–R-1893, R-2250–R-2255, R-2270–R-2273, R-2430–R-2432, R-2560–R-2576, R-2578–R-2583, R-2585–R-2592, R-2596–R-2603, R-2616–R-2621, R-2646–R-2651, R-2653–R-2655, R-2660, R-2662, R-2664, R-2665, R-2691–R-2694, R-2720–R-2728, R-2750–R-2752, R-2754–R-2756, R-2803, R-2810–R-2816, R-2900–R-2908, R-2910–R-2913, R-2950–R-2956, R-3010–R-3013, R-3020–R-3026, R-3030, R-3031, R-3070, R-3430–R-3432, R-3434–R-3436, R-3490, R-3491, R-3520–R-3522, R-3524, R-3525, R-3660–R-3667, R-3685, R-3686, R-3688–R-3697, R-3706–R-3712, R-3716–R-3725, R-3757–R-3774, R-3815–R-3834, R-3872–R-3879, R-3894–R-3904, R-3925–R-3927, R-3935–R-3944, R-3948–R-3953, R-3970–R-3972
   Kind: product
-  Deliverables: R-1400, R-1008, R-1560, R-977, R-2597, R-2811
+  Deliverables: R-1400, R-1008, R-977, R-2597, R-2811
   - **FEAT-006 · Launch builders with execution limits**
     Purpose: Launch workers in identified worktrees with the current argument, lock, time and selected tool-write limits, and keep one record of each build; semantic change scope is a separate proposed feature.
     Status: active
@@ -345,7 +345,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Status: active
     Also applies: R-287, R-288, R-289, R-290, R-292, R-293, R-294, R-878, R-1000
     Parent: CAP-07 · Rows: 162 · IDs: R-1012–R-1030, R-1040–R-1043, R-1510–R-1515, R-1570, R-1571, R-1633, R-1650–R-1655, R-2450–R-2454, R-2542–R-2545, R-2642, R-2740–R-2745, R-2790–R-2794, R-2799–R-2802, R-2920–R-2925, R-2927, R-2930–R-2933, R-2980–R-2986, R-3040–R-3043, R-3050–R-3055, R-3060–R-3067, R-3071–R-3074, R-3080–R-3082, R-3100–R-3110, R-3120–R-3134, R-3139–R-3148, R-3161–R-3163, R-3170–R-3177, R-3187, R-3775–R-3782
-    Artifacts: A-045, A-073, A-085, A-086
+    Artifacts: A-045, A-073, A-085
     Reads: A-003, A-015, A-046, A-006, A-030, A-032, A-033
 - **CAP-08 · Evaluate agent choices with credible evidence**
   Purpose: Run controlled studies and interpret results without confusing missing measurement with success.
