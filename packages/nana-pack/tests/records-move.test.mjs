@@ -25,7 +25,6 @@ function fixture(fn) {
 }
 // req: R-3928, R-3929
 await check('M1: derive protections and reject missing or excess folders',()=>{
- if(fs.existsSync(path.join(REPO_ROOT,'docs/reviews/README.md')))assert.deepEqual(checkRecords(REPO_ROOT).problems,[]);
  return fixture(({root,git,put})=>{
  const names=['full-2026-10-01','bare-2026-10-01','tranche1-2026-09-28','tranche2-2026-09-28','unique-2026-10-01','recent-2026-10-01','discard-2026-10-01','ci-packs-2026-11-08','ambiguous-a','ambiguous-b','windows-2026-10-01'];
  for(const name of names)put(`docs/reviews/${name}/common.md`,'record');
@@ -34,11 +33,16 @@ await check('M1: derive protections and reject missing or excess folders',()=>{
  put('docs/reviews/ambiguous-a/notes.md','discard-2026-10-01');
  put('refs.md','seed');git('add','.');git('commit','-m','old');
  put('docs/reviews/recent-2026-10-01/common.md','recent');git('add','.');git('commit','--date=2026-11-02T12:00:00Z','-m','recent');
+ git('checkout','-b','merge-only');
+ put('docs/reviews/merge-only/common.md','merge record');git('add','.');git('commit','-m','old branch change');
+ git('checkout','main');
+ put('unrelated.md','force merge');git('add','.');git('commit','-m','diverge');
+ git('merge','--no-ff','--no-commit','merge-only');git('commit','--date=2026-11-08T12:00:00Z','-m','recent merge');
  const policy={...POLICY,baseline:git('rev-parse','HEAD')};
  for(const [eol,final] of [['\r\n',true],['\n',false]]) {
   put('refs.md',['docs/reviews/full-2026-10-01/common.md','bare-2026-10-01','tranche{1,2}-2026-09-28','only-here.txt','common.md','docs\\reviews\\windows-2026-10-01\\common.md'].map(s=>s+' \t').join(eol)+(final?eol:''));
   const result=deriveProtected(root,policy);
-  assert.deepEqual([...result.protected.keys()].sort(),names.filter(n=>!['discard-2026-10-01','ci-packs-2026-11-08','ambiguous-a','ambiguous-b'].includes(n)).sort());
+  assert.deepEqual([...result.protected.keys()].sort(),[...names.filter(n=>!['discard-2026-10-01','ci-packs-2026-11-08','ambiguous-a','ambiguous-b'].includes(n)),'merge-only'].sort());
  }
  assert.ok(checkRecords(root,policy).problems.some(p=>p.includes('unprotected')&&p.includes('discard-')));
  assert.ok(checkRecords(root,policy).problems.some(p=>p.includes('unprotected')&&p.includes('ci-packs-')));

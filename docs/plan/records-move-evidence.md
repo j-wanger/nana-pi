@@ -2,7 +2,16 @@
 
 Feature: FEAT-031. Rows: R-3928–R-3934.
 
-## Parts and counts
+## Corrected totals after review 1
+
+The one-time move now keeps 136 baseline folders and removes 212 folders,
+3,288 tracked files and 1,426,031 lines (Git numstat against the last complete commit).
+Ten folders changed only in recent merge commits were restored from the last complete commit.
+The earlier counts below describe the original removal, before those restorations.
+The live-repository assertion was removed; M1 now exercises only temporary fixtures.
+See `records-move-review1-evidence.md` for the correction's commands and mutation pair.
+
+## Original parts and counts
 
 - Protection/check: `5722fc0353e8ca718fe420bfef1f006ec3b3817c`.
 - Removal: `1c7a37cd13f1061ea61fd586fa779c89dad5e6e8`.
@@ -19,7 +28,7 @@ Feature: FEAT-031. Rows: R-3928–R-3934.
 
 | Test | Rows | Wrong code / observation | Restored implementation |
 |---|---|---|---|
-| M1 | R-3928, R-3929 | Empty protection map and no-op checker: exit 1, M1 assertion fails. | Full-path, bare-name, brace, unique-basename, recent-history, missing/excess checks pass. The final test checks this checkout too. |
+| M1 | R-3928, R-3929 | Empty protection map and no-op checker: exit 1, M1 assertion fails. | Full-path, bare-name, brace, unique-basename, recent-history, missing/excess checks pass. The original test checked this checkout too; review 1 removed that standing assertion. |
 | M2 | R-3930 | No-op blob checker: exit 1, M2 assertion fails. | Changed bytes, removed paths and added paths fail; original complete folder passes. |
 | M3 | R-3931 | No-op archive checker: exit 1, unreadable-commit assertion fails. | Actual README command succeeds; zero commit is refused. |
 | M4 | R-3932 | Empty earlier-lane iteration in `pendingUnits`: exit 1, M4 loses earlier evidence. | Two pending landed lanes keep identical keys and readable titles after removal; the shared launch brief check accepts the retained path. |

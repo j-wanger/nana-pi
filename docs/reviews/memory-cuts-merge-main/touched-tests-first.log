@@ -1,0 +1,110 @@
+PASS  packages/nana-knowledge/tests/pull-cut.test.mjs               1 pass  0.2s
+PASS  packages/nana-pack/tests/adoption-producer.test.mjs           59 pass  0.3s
+PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs   91 pass  0.3s
+PASS  packages/nana-pack/tests/config-normalize.test.mjs            18 pass  0.5s
+PASS  packages/nana-pack/tests/config-trust.test.mjs                25 pass  0.6s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs             12 pass  1.8s
+PASS  packages/nana-pack/tests/claude-review.test.mjs               5 pass, 1 skip  3.7s
+PASS  packages/nana-pack/tests/credential-strip.test.mjs            6 pass  18.1s
+PASS  packages/nana-pack/tests/display-surfaces.test.mjs            151 pass  0.2s
+PASS  packages/nana-pack/tests/experiment-cut.test.mjs              1 pass  0.4s
+PASS  packages/nana-pack/tests/first-look.test.mjs                  7 pass  0.0s
+PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs         1 pass  1.2s
+PASS  packages/nana-pack/tests/brief-check.test.mjs                 8 pass  28.4s
+PASS  packages/nana-pack/tests/immutable-review.test.mjs            18 pass  13.9s
+PASS  packages/nana-pack/tests/linked-launch.test.mjs               3 pass  0.4s
+FAIL  packages/nana-pack/tests/memory-cut-checks.test.mjs           0 pass, 1 fail  7.4s  — exit 1
+      | FAIL R-3864: memory retirement leaves structural checks green AssertionError [ERR_ASSERTION]: scripts/component-audit.mjs
+FAIL  packages/nana-pack/tests/memory-cut-guidance.test.mjs         0 pass, 1 fail  3.3s  — exit 1
+      | FAIL R-3867: scaffold and adoption guidance changes only explicit knowledge search AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+PASS  packages/nana-pack/tests/memory-making.test.mjs               24 pass  0.2s
+PASS  packages/nana-pack/tests/land-merge.test.mjs                  24 pass  19.1s
+PASS  packages/nana-pack/tests/memory-shaping.test.mjs              21 pass  0.4s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs             23 pass  59.2s
+PASS  packages/nana-pack/tests/process-tree.test.mjs                4 pass, 1 skip  0.0s
+PASS  packages/nana-pack/tests/path-spelling.test.mjs               11 pass  33.1s
+PASS  packages/nana-pack/tests/readme-check.test.mjs                11 pass  0.3s
+PASS  packages/nana-pack/tests/memory-run.test.mjs                  8 pass  45.5s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs           98 pass  2.7s
+PASS  packages/nana-pack/tests/review-launch.test.mjs               7 pass, 2 skip  1.2s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs        63 pass  28.0s
+PASS  packages/nana-pack/tests/product-report.test.mjs              97 pass  69.0s
+PASS  packages/nana-pack/tests/review-ledger-launch.test.mjs        32 pass  42.8s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs         87 pass  38.6s
+PASS  packages/nana-pack/tests/review-round.test.mjs                27 pass  0.0s
+PASS  packages/nana-pack/tests/review-standard.test.mjs             7 pass  1.5s
+PASS  packages/nana-pack/tests/review-timeline.test.mjs             12 pass  8.7s
+FAIL  packages/nana-pack/tests/review-paperwork.test.mjs            9 pass, 1 fail  26.5s  — exit 1
+      | FAIL M6: removed paths are gone and git report clients share the rehomed runner ENOENT: no such file or directory, open './scripts/blast-radius.mjs'
+PASS  packages/nana-pack/tests/review-ledger-verdicts.test.mjs      16 pass  36.6s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs                30 pass  0.1s
+FAIL  packages/nana-pack/tests/setup-retire.test.mjs                4 pass, 1 fail  9.6s  — exit 1
+      | FAIL M7: active docs retired rows artifacts and component status pass the contract checks AssertionError [ERR_ASSERTION]: component-audit.mjs: review-ladder: cited path is not tracked at HEAD (packages/nana-pack/lib/review-run.mjs)
+PASS  packages/nana-pack/tests/template-release.test.mjs            5 pass  4.5s
+FAIL  packages/nana-pack/tests/runtime-map.test.mjs                 14 pass, 1 fail  23.9s  — exit 1
+      | FAIL impact names the measured tip, its UTC time, its age in hours and how many tracked files differ 
+PASS  packages/nana-pack/tests/win32-launch.test.mjs                5 pass, 8 skip  0.2s
+PASS  packages/nana-pack/tests/windows-skip-lines.test.mjs          7 pass  0.0s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs         14 pass  20.9s
+PASS  packages/nana-pack/tests/writing-injection.test.mjs           30 pass  1.4s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs              52 pass  10.1s
+PASS  packages/nana-setup/tests/doctor-fix-line.test.mjs            15 pass  4.2s
+PASS  packages/nana-setup/tests/fresh-machine.test.mjs              9 pass  0.1s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs             12 pass  0.1s
+PASS  packages/nana-setup/tests/hooks-closed-output.test.mjs        5 pass  0.9s
+SKIP  packages/nana-setup/tests/hooks-win32-exec.test.mjs           runs only on the Windows leg (process.platform !== "win32")
+PASS  packages/nana-setup/tests/install-check-builder-env.test.mjs  3 pass  0.8s
+FAIL  packages/nana-setup/tests/install-check.test.mjs              118 pass, 3 fail  1.3s  — exit 1
+      | FAIL sealed hook table and allowed entry shape Expected values to be strictly equal:
+      | FAIL platform: NANA_SETUP_PLATFORM in the caller changes nothing The expression evaluated to a falsy value:
+      | FAIL dispatch: each hook runs in the fixture project with CLAUDE_PROJECT_DIR set to it The expression evaluated to a falsy value:
+PASS  packages/nana-pack/tests/worker-claude.test.mjs               24 pass, 3 skip  33.6s
+PASS  packages/nana-setup/tests/install.test.mjs                    102 pass  9.7s
+PASS  packages/nana-setup/tests/memory-pause.test.mjs               2 pass  0.8s
+PASS  packages/nana-setup/tests/pull-cut-turn.test.mjs              1 pass  0.8s
+FAIL  packages/nana-setup/tests/restore.test.mjs                    0 pass  0.1s  — exit 1
+      | node:internal/modules/esm/resolve:275
+      |     throw new ERR_MODULE_NOT_FOUND(
+      |           ^
+      | 
+      | Error [ERR_MODULE_NOT_FOUND]: Cannot find module '~/.hermes/node/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/trust-manager.js' imported from ./packages/nana-setup/tests/restore.test.mjs
+      |     at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+      |     at moduleResolve (node:internal/modules/esm/resolve:861:10)
+      |     at defaultResolve (node:internal/modules/esm/resolve:985:11)
+      |     at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+      |     at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+      |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+      |     at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:664:36)
+      |     at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+      |     at ModuleLoader.import (node:internal/modules/esm/loader:663:21)
+      |     at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31) {
+      |   code: 'ERR_MODULE_NOT_FOUND',
+      |   url: 'file://~/.hermes/node/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/trust-manager.js'
+      | }
+      | 
+      | Node.js v22.22.2
+PASS  packages/nana-setup/tests/retired-artifacts.test.mjs          51 pass  8.5s
+FAIL  packages/nana-setup/tests/seat-pull-off.test.mjs              7 pass, 1 fail  1.2s  — exit 1
+      | FAIL R-3739: fresh POSIX and win32 installs omit only the knowledge entry Expected values to be strictly equal:
+FAIL  packages/nana-setup/tests/settings-merge.test.mjs             86 pass, 3 fail  0.1s  — exit 1
+      | FAIL five active hook entries are wanted 
+      | FAIL empty settings: all five active entries added 
+      | FAIL the other five are added 
+PASS  packages/nana-setup/tests/stale-copies.test.mjs               14 pass  6.7s
+PASS  packages/nana-setup/tests/state-manifest.test.mjs             21 pass  1.1s
+FAIL  packages/nana-setup/tests/uninstall.test.mjs                  30 pass, 1 fail  2.5s  — exit 1
+      | FAIL dry-run lists manifest pieces without writes and repeated uninstall is empty install=0 dry=0 unchanged=true rows=32 second=0 third=0 empty=true
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs              14 pass  2.1s
+FAIL  packages/nana-setup/tests/win32-degrade.test.mjs              69 pass, 2 fail  5.8s  — exit 2
+      | FAIL win32 install prints no row labelled with a Claude Code hook script nana-setup install
+      | FAIL win32 doctor prints no row labelled with a Claude Code hook script nana-setup doctor — .
+PASS  packages/nana-setup/tests/win32-hook-repair.test.mjs          9 pass  2.4s
+PASS  packages/nana-setup/tests/writing-rule.test.mjs               4 pass  0.0s
+PASS  apps/bench/test/anatomy-seat.test.mjs                         17 pass  0.4s
+PASS  packages/nana-pack/tests/data-pack.test.mjs                   8 pass  255.9s
+PASS  packages/nana-pack/tests/templates-render.test.mjs            173 pass  89.9s
+PASS  packages/nana-setup/tests/pi-launch-limits.test.mjs           24 pass, 2 skip  66.5s
+PASS  packages/nana-pack/tests/review-ledger.test.mjs               24 pass  22.8s
+
+72 files: 60 PASS, 11 FAIL, 1 SKIP, 0 WARN · checks: 1990 pass, 15 fail, 17 skip · 306.2s
+failed: packages/nana-pack/tests/memory-cut-checks.test.mjs, packages/nana-pack/tests/memory-cut-guidance.test.mjs, packages/nana-pack/tests/review-paperwork.test.mjs, packages/nana-pack/tests/runtime-map.test.mjs, packages/nana-pack/tests/setup-retire.test.mjs, packages/nana-setup/tests/install-check.test.mjs, packages/nana-setup/tests/restore.test.mjs, packages/nana-setup/tests/seat-pull-off.test.mjs, packages/nana-setup/tests/settings-merge.test.mjs, packages/nana-setup/tests/uninstall.test.mjs, packages/nana-setup/tests/win32-degrade.test.mjs

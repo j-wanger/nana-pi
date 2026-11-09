@@ -1,0 +1,16 @@
+apps/desk/test/app-listener.test.mjs
+apps/desk/test/buffer-caps.test.mjs
+apps/desk/test/host-rule.test.mjs
+apps/desk/test/origin-rule.test.mjs
+apps/desk/test/page-retire.test.mjs
+apps/desk/test/stage-key-persistence.test.mjs
+apps/desk/test/usage-line.test.mjs
+packages/nana-pack/tests/agent-dir-parity.test.mjs
+packages/nana-pack/tests/code-map-launch.test.mjs
+packages/nana-pack/tests/context-anatomy.test.mjs
+packages/nana-pack/tests/templates-render.test.mjs
+packages/nana-pack/tests/templates-update.test.mjs
+packages/nana-pack/tests/worker-lane.test.mjs
+packages/nana-setup/tests/desk-service.test.mjs
+packages/nana-setup/tests/doctor-detail.test.mjs
+packages/nana-setup/tests/uninstall.test.mjs

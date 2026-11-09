@@ -45,7 +45,7 @@ export function deriveProtected(root,policy=POLICY) {
    const owners=basenames.get(token);if(owners?.size===1)keep([...owners][0],`basename: ${file}`);
   }
  }
- const history=git(root,['log','--format=@%cI','--name-only',policy.baseline,'--','docs/reviews/']);
+ const history=git(root,['log','--format=@%cI','--name-only','--diff-merges=first-parent',policy.baseline,'--','docs/reviews/']);
  const visited=new Set();let date='';
  for(const line of history.split(/\r?\n/u).map(s=>s.trim())) {
   if(line.startsWith('@')){date=line.slice(1,11);continue;}
