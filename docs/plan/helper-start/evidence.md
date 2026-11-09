@@ -7,15 +7,15 @@ Serves: roadmap step 3 — trim helper starting context and log actual delivery.
 - Pi lane/slot launches and pi-review use the five configured explicit skills with discovery off. Checkout skills win; the setup-installed Claude skills folder is the fallback. A missing skill warns once and launch continues.
 - Launcher-role pi sessions omit the objective. Seat sessions retain it.
 - Pi lane builders get an unconditional read instruction for their brief feature's known-bug path. Claude builders and both reviewers keep their digest.
-- Pi attempts retain explicit session files in distinct persistent folders under `buildSessionDir`. The watchdog logs actual first-system-message sections and serialized `toolsAdded` after each attempt, with no separate addendum-source counts. Missing data is unavailable with a reason.
-- Usage discovery now includes nested attempt folders, so explicit sessions do not lose build cost accounting. Old flat sessions still work.
+- Pi attempts retain unique explicit session files directly in the persistent `buildSessionDir`. The watchdog logs actual first-system-message sections and serialized `toolsAdded` after each attempt, with no separate addendum-source counts. Missing data is unavailable with a reason.
+- Usage discovery reads the flat session files, so explicit sessions retain build cost accounting alongside older flat sessions.
 - The two measurement modules and their limits are removed. Claude Code logging remains unchanged.
 
 ## Precedent
 
 Read all six precedents in the plan. Reused `LAUNCHER_ROLES`, `buildSessionDir`, `contextPart`, `appendContextLoad`, the pi package locator, and the Claude-home resolver; no precedent function was copied or moved.
 
-The durable per-attempt folders require recursive usage discovery in `lib/build-records.mjs`; this preserves the existing caller contract rather than leaving costs unknown. If creating the session folder fails, the launcher preserves launch success and logs an unavailable reason instead of adding a broken session argument. This is the best-effort logging exception to explicit session delivery.
+The durable per-attempt files sit directly in `buildSessionDir`, so `lib/build-records.mjs` uses flat usage discovery and preserves the existing caller contract rather than leaving costs unknown. If creating the session folder fails, the launcher preserves launch success and logs an unavailable reason instead of adding a broken session argument. This is the best-effort logging exception to explicit session delivery.
 
 ## Requirements
 
@@ -78,6 +78,6 @@ V1–V3 were not run: the lane rules forbid starting model sessions or subagents
 
 ## Known bugs touched
 
-Read all of `docs/known-bugs/FEAT-006.md`. Explicit pi sessions remove the pi-settings sessionDir mismatch for these launches; nested usage discovery preserves the existing unreadable-candidate failure behavior rather than fixing it. No FEAT-006 known-bug line was removed or edited.
+Read all of `docs/known-bugs/FEAT-006.md`. Explicit pi sessions remove the pi-settings sessionDir mismatch for these launches; flat usage discovery preserves the existing unreadable-candidate failure behavior rather than fixing it. No FEAT-006 known-bug line was removed or edited.
 
 Added only the three requested priority-lock review lines to `docs/known-bugs/FEAT-001.md`: macOS case spelling, missing same-repository passing test, and inherited GIT_DIR. None is fixed here. No issue was created or changed, no credential was used, and nothing was pushed.
