@@ -992,6 +992,7 @@ Also applies: R-2603, R-1125
 Artifact: A-007 · review round tally · user-home store: ~/.pi/agent/review-ledger.rounds.jsonl · review: packages/nana-pack/bin/review-round.mjs
 Artifact: A-008 · kept review texts · user-home store: ~/.pi/agent/review-ledger.texts/ · review: packages/nana-pack/bin/review-round.mjs
 Artifact: A-056 · review audit log · user-home store: ~/.pi/agent/review-ledger.jsonl · review: packages/nana-pack/bin/review-round.mjs
+Parked: A-056 · since 2026-11-09: reader (review timeline) cut by Cut A 2026-11-09; the writer goes in a later cut
 Artifact: A-057 · lane copies of review texts · retired: review-paperwork removes required lane copies of review texts
 Artifact: A-058 · review standard · tracked: packages/nana-pack/prompts/review-standard.md · manual: edited by hand in reviewed lanes
 Reads: A-011 · packages/nana-pack/bin/nana-roster.mjs, packages/nana-pack/bin/claude-review.mjs
