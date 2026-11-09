@@ -217,13 +217,12 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: R-193, R-307, R-347, R-378, R-392, R-589, R-650, R-909, R-959, R-964, R-980, R-2023, R-2024
     Parent: CAP-04 · Rows: 167 · IDs: R-341–R-344, R-346, R-362, R-364–R-372, R-377, R-393, R-399, R-586, R-654, R-666, R-667, R-673–R-675, R-937, R-952, R-953, R-990, R-991, R-997–R-999, R-1037, R-1055, R-1057, R-1060, R-1070–R-1077, R-1079–R-1084, R-1096, R-1209, R-1540–R-1545, R-1580–R-1586, R-1600–R-1606, R-1750–R-1752, R-1760–R-1766, R-1790–R-1796, R-1810–R-1812, R-1853–R-1855, R-1972, R-1974, R-1980, R-1983, R-1990–R-1997, R-2000–R-2004, R-2021, R-2070–R-2076, R-2084, R-2085, R-2091, R-2180–R-2183, R-2230–R-2237, R-2280, R-2281, R-2292–R-2294, R-2320–R-2325, R-2410–R-2412, R-2681–R-2687, R-2701–R-2703, R-2705, R-2713–R-2715, R-3713–R-3715
     Artifacts: A-022, A-048
-    Reads: A-001, A-004, A-006, A-007, A-009, A-010, A-011, A-012, A-013, A-016, A-021, A-025, A-052, A-053, A-054, A-058, A-060, A-061, A-062, A-063, A-064, A-069, A-071, A-079
+    Reads: A-001, A-004, A-006, A-007, A-009, A-010, A-011, A-012, A-013, A-021, A-025, A-052, A-053, A-054, A-058, A-060, A-061, A-062, A-063, A-064, A-069, A-071, A-079
   - **FEAT-016 · Start the local development desk**
-    Purpose: Bind the intended pi runtime and run the local desk with appropriate platform and service behavior.
-    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
+    Purpose: Preserve the contracts of the retired local development host.
+    Status: frozen (the owner 2026-11-09: desk and stage layer cut; rows retired; R-650 stays live)
     Also applies: R-199
     Parent: CAP-04 · Rows: 31 · IDs: R-354–R-356, R-380, R-389, R-390, R-396–R-398, R-400–R-404, R-462, R-464, R-468, R-469, R-650–R-652, R-677, R-678, R-3791–R-3798
-    Artifacts: A-016, A-017
   - **FEAT-017 · Inspect durable state and follow restoration steps**
     Purpose: Inspect the durable-state manifest, export the documented state and follow its archive and restoration guidance.
     Status: active
@@ -237,7 +236,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Also applies: R-378, R-663
     Parent: CAP-04 · Rows: 33 · IDs: R-394, R-653, R-660–R-662, R-664, R-668, R-669, R-804, R-900–R-909, R-1056, R-1059, R-1985, R-2184, R-2203, R-2204, R-2310–R-2313, R-2315–R-2318
     Artifacts: A-019, A-020
-    Reads: A-001, A-011, A-012, A-013, A-016, A-050, A-060, A-061, A-062, A-063
+    Reads: A-001, A-011, A-012, A-013, A-050, A-060, A-061, A-062, A-063
   - **FEAT-019 · Release usable templates and report support**
     Purpose: Verify template combinations, identify delivered versions and publish accurate release and support information.
     Status: active
@@ -252,56 +251,52 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
   Deliverables: R-159, R-1194
   - **FEAT-020 · Find and read previous sessions**
     Purpose: Read, title, navigate and display session history while retaining correct branch identity.
-    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
-    Also applies: R-458, R-459
+    Status: frozen (the owner 2026-11-09: desk and stage layer cut; rows retired)
+    Also applies: —
     Parent: CAP-05 · Rows: 14 · IDs: R-405–R-413, R-463, R-470–R-473
     Artifacts: A-023
   - **FEAT-021 · Choose and start an agent session**
     Purpose: Select a working directory, runtime resources, tools and trust options before launching the appropriate child.
-    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
-    Also applies: R-404, R-459, R-944
+    Status: frozen (the owner 2026-11-09: desk and stage layer cut; rows retired)
+    Also applies: —
     Parent: CAP-05 · Rows: 11 · IDs: R-198, R-414–R-418, R-475–R-478, R-685
   - **FEAT-022 · Steer and recover live sessions**
     Purpose: Deliver prompts and RPCs to the intended session, reconcile asynchronous state and handle reload, disconnect and teardown.
-    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
-    Also applies: R-458, R-459
+    Status: frozen (the owner 2026-11-09: desk and stage layer cut; rows retired; R-164 and R-165 stay live for /reload-runtime)
+    Also applies: —
     Parent: CAP-05 · Rows: 26 · IDs: R-164, R-165, R-419, R-420, R-427, R-429–R-431, R-433–R-436, R-460, R-461, R-467, R-479–R-481, R-484–R-487, R-489, R-490, R-689, R-942
   - **FEAT-023 · Inspect changes and receive useful notices**
     Purpose: Show working-tree changes, readable activity and bounded output, and notify the developer when attention is needed.
     Status: active
-    Also applies: R-458, R-781, R-810
+    Also applies: R-781, R-810
     Parent: CAP-05 · Rows: 51 · IDs: R-159–R-163, R-166–R-173, R-421–R-426, R-428, R-474, R-482, R-483, R-488, R-642, R-643, R-814–R-818, R-1194–R-1204, R-1210, R-1211, R-1215, R-2140, R-2141, R-2380–R-2382, R-3523
     Artifacts: A-025
     Reads: A-011, A-069
   - **FEAT-024 · Edit session and project settings safely**
     Purpose: Expose supported configuration and context edits while preserving unknown fields and existing files on failure.
-    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
-    Also applies: R-458, R-459
+    Status: frozen (the owner 2026-11-09: desk and stage layer cut; rows retired)
+    Also applies: —
     Parent: CAP-05 · Rows: 7 · IDs: R-455–R-457, R-466, R-867, R-869, R-941
     Artifacts: A-071
 - **CAP-06 · Use attributable tool outputs and focused apps**
   Purpose: Give tools a consistent presentation contract and connect apps without confusing their origin or authority.
   Parent: — · Rows: 72 · IDs: R-250–R-284, R-432, R-437–R-454, R-458, R-459, R-465, R-491–R-499, R-940, R-943–R-947
   Kind: product
-  Deliverables: R-260, R-256, R-257, R-437, R-264
   - **FEAT-025 · Use consistent structured tool output**
     Purpose: Validate and render supported cards, tables, charts and actions from the recognized tool carriers.
-    Status: active
-    Also applies: R-256
+    Status: frozen (the owner 2026-11-09: desk and stage layer cut; rows retired)
+    Also applies: —
     Parent: CAP-06 · Rows: 26 · IDs: R-250–R-255, R-260–R-263, R-266–R-272, R-274–R-279, R-282–R-284
   - **FEAT-026 · Verify output provenance across session history**
     Purpose: Stamp and verify tool output, retain session signing lineage and reject forged or mismatched content.
-    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
-    Also applies: R-283, R-284
+    Status: frozen (the owner 2026-11-09: desk and stage layer cut; rows retired)
+    Also applies: —
     Parent: CAP-06 · Rows: 24 · IDs: R-256–R-259, R-264, R-273, R-280, R-281, R-437–R-446, R-451, R-491, R-492, R-945–R-947
-    Artifacts: A-028
-    Reads: A-023
   - **FEAT-027 · Connect and isolate focused app surfaces**
     Purpose: Load app manifests, route their tools and data, track readiness and enforce listener and request boundaries.
-    Status: frozen (the owner 2026-10-10: the desk stays frozen until he reopens it)
-    Also applies: R-461
+    Status: frozen (the owner 2026-11-09: desk and stage layer cut; rows retired)
+    Also applies: —
     Parent: CAP-06 · Rows: 22 · IDs: R-265, R-432, R-447–R-450, R-452–R-454, R-458, R-459, R-465, R-493–R-499, R-940, R-943, R-944
-    Artifacts: A-029
 - **CAP-07 · Keep code and promises checkable**
   Purpose: Make requirements, code structure, checks and engineering rules inspectable with explicit limits.
   Parent: — · Rows: 652 · IDs: R-084–R-107, R-243, R-247, R-287–R-294, R-544, R-578–R-580, R-583, R-598–R-619, R-626, R-627, R-629, R-644, R-648, R-649, R-655–R-658, R-680, R-681, R-756, R-757, R-782–R-794, R-860–R-864, R-866, R-868, R-870, R-898, R-899, R-910–R-918, R-920, R-948, R-949, R-993, R-994, R-1000, R-1001, R-1012–R-1030, R-1038, R-1040–R-1043, R-1154–R-1184, R-1187, R-1230–R-1244, R-1270–R-1278, R-1301, R-1322, R-1361, R-1380–R-1383, R-1460–R-1463, R-1470–R-1477, R-1480, R-1510–R-1515, R-1521, R-1550–R-1557, R-1570, R-1571, R-1630–R-1633, R-1640–R-1643, R-1650–R-1655, R-1660–R-1665, R-1700–R-1703, R-1740–R-1743, R-1770–R-1779, R-1820, R-1920–R-1924, R-1950–R-1957, R-1960, R-1986, R-2150, R-2151, R-2170–R-2172, R-2210–R-2215, R-2396, R-2440–R-2447, R-2450–R-2454, R-2460, R-2480–R-2486, R-2511–R-2516, R-2518–R-2555, R-2631–R-2635, R-2637–R-2643, R-2656–R-2659, R-2661, R-2663, R-2666–R-2670, R-2730, R-2740–R-2745, R-2753, R-2780–R-2787, R-2790–R-2802, R-2820–R-2823, R-2830–R-2834, R-2837, R-2880–R-2885, R-2920–R-2925, R-2927, R-2930–R-2933, R-2960–R-2969, R-2978, R-2980–R-2986, R-3000–R-3008, R-3040–R-3043, R-3050–R-3055, R-3060–R-3067, R-3071–R-3074, R-3080–R-3082, R-3100–R-3110, R-3120–R-3134, R-3139–R-3150, R-3152–R-3163, R-3170–R-3187, R-3433, R-3450–R-3455, R-3530, R-3531, R-3540, R-3541, R-3680, R-3681, R-3775–R-3782, R-3808–R-3814, R-3840–R-3847, R-3850–R-3859, R-3870, R-3871, R-3905–R-3910, R-3928–R-3934, R-3960–R-3967, G-001–G-022
@@ -396,8 +391,6 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 
 | ID | Home | Also applies to | Count |
 |---|---|---|---:|
-| R-458 | FEAT-027 | FEAT-020, FEAT-022, FEAT-023, FEAT-024 | 4 |
-| R-459 | FEAT-027 | FEAT-020, FEAT-021, FEAT-022, FEAT-024 | 4 |
 | R-781 | FEAT-011 | FEAT-001, FEAT-002, FEAT-023, FEAT-030 | 4 |
 | R-079 | FEAT-009 | FEAT-002, FEAT-010, FEAT-030 | 3 |
 | R-190 | FEAT-013 | FEAT-009, FEAT-010, FEAT-011 | 3 |
@@ -423,9 +416,6 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-195 | FEAT-010 | FEAT-011 | 1 |
 | R-199 | FEAT-013 | FEAT-016 | 1 |
 | R-224 | FEAT-004 | FEAT-012 | 1 |
-| R-256 | FEAT-026 | FEAT-025 | 1 |
-| R-283 | FEAT-025 | FEAT-026 | 1 |
-| R-284 | FEAT-025 | FEAT-026 | 1 |
 | R-285 | FEAT-006 | FEAT-004 | 1 |
 | R-286 | FEAT-006 | FEAT-004 | 1 |
 | R-287 | FEAT-028 | FEAT-039 | 1 |
@@ -441,8 +431,6 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-347 | FEAT-003 | FEAT-015 | 1 |
 | R-383 | FEAT-013 | FEAT-014 | 1 |
 | R-392 | FEAT-013 | FEAT-015 | 1 |
-| R-404 | FEAT-016 | FEAT-021 | 1 |
-| R-461 | FEAT-022 | FEAT-027 | 1 |
 | R-578 | FEAT-028 | FEAT-014 | 1 |
 | R-579 | FEAT-028 | FEAT-014 | 1 |
 | R-583 | FEAT-028 | FEAT-014 | 1 |
@@ -468,7 +456,6 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
 | R-846 | FEAT-007 | FEAT-006 | 1 |
 | R-878 | FEAT-002 | FEAT-039 | 1 |
 | R-909 | FEAT-018 | FEAT-015 | 1 |
-| R-944 | FEAT-027 | FEAT-021 | 1 |
 | R-959 | FEAT-017 | FEAT-015 | 1 |
 | R-962 | FEAT-006 | FEAT-010 | 1 |
 | R-964 | FEAT-013 | FEAT-015 | 1 |
