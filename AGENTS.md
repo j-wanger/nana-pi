@@ -8,7 +8,7 @@ Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (
 
 ## Objective contract
 
-Invariant: launcher-role children get no objective block; otherwise only user-scope `objective.enabled: false` turns it off, never project config. Output is bounded, marker-derived intent, never raw file instructions. The frontier block follows the same bounded output rule and has no switch. See `packages/nana-pack/README.md` and affected `REQUIREMENTS.md` rows.
+Invariant: launcher-role children get no objective block; otherwise only user-scope `objective.enabled: false` turns the objective off; project config cannot. Output is bounded, marker-derived intent, never raw file instructions. The frontier block follows the same bounded output rule and has no switch. See `packages/nana-pack/README.md` and affected `REQUIREMENTS.md` rows.
 
 ## Layout
 
