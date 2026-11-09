@@ -8,7 +8,7 @@ Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (
 
 ## Objective contract
 
-Invariant: only user-scope `objective.enabled: false` turns the objective off; project config cannot. Output is bounded, marker-derived intent, never raw file instructions. The frontier block follows the same bounded output rule and has no switch. See `packages/nana-pack/README.md` and affected `REQUIREMENTS.md` rows.
+Invariant: launcher-role children get no objective block; otherwise only user-scope `objective.enabled: false` turns it off, never project config. Output is bounded, marker-derived intent, never raw file instructions. The frontier block follows the same bounded output rule and has no switch. See `packages/nana-pack/README.md` and affected `REQUIREMENTS.md` rows.
 
 ## Layout
 
@@ -65,10 +65,10 @@ The bullets below describe pi sessions; other runtimes receive only the surfaces
 |---|---|---|
 | Claude Code seat | SessionStart `nana-objective.mjs` (objective/frontier), `nana-adoption.mjs`, `nana-shared-memory.mjs`; nana-soul / nana-standards; shared nana-writing rule and `nana-rulings.md` | No nana Gate or Verifier pipe; Claude-owned Compaction summary, no nana HANDOFF producer; `nana-roster-notice.mjs` notice |
 | pi TUI session | `nana-objective`, `nana-frontier-summary`; `nana-writing`, `nana-rulings`; no soul/standards or shared auto-memory | `nana-gate` for bash/PowerShell; `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction; `nana-roster-notice` widget |
-| pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; frontier adds nothing under `NANA_ROLE` | Same gate/journal; roster notice has no UI |
+| pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; no objective/frontier for launcher `NANA_ROLE` | Same gate/journal; roster notice has no UI |
 | Codex | Unsupported; no nana runtime contract | Not specified |
 
-Objective: nearest project unless user-disabled. Shared memory: Claude-only; pi has no user-level `AGENTS.md`. Writing rule and rulings follow the runtime above. Knowledge search: explicit `nana-knowledge query` only, no automatic pull. Post-edit: no nana per-edit checks. Notify: no desktop notifications. Requirements-first comes through project `AGENTS.md` and the requirements skill.
+Objective: nearest project unless user-disabled; none for launcher-role children. Shared memory: Claude-only; pi has no user-level `AGENTS.md`. Writing rule and rulings follow the runtime above. Knowledge search: explicit `nana-knowledge query` only, no automatic pull. Post-edit: no nana per-edit checks. Notify: no desktop notifications. Requirements-first comes through project `AGENTS.md` and the requirements skill.
 
 ### Session guidance
 
