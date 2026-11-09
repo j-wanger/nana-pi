@@ -6,7 +6,6 @@
 
 ## Where things stand
 
-- **The desk = "nana code"** (`apps/desk`), :7317 via `com.nana.pi-desk`, plus the two dashboards (:7320 / :7321). Frozen by the owner on 2026-10-10 until the owner reopens it; its two signing-key violations stay declared limits meanwhile. The seat parked its eight deliverables on 2026-10-22; reopening the desk deletes their park lines.
 - **Current priority: reduction (the owner, 2026-11-08).** Cut machinery that does not earn its cost and keep the core working. The order and measures are in `OBJECTIVE.md`. Review on 2026-11-22.
 - **UI build briefs (2026-11-05).** A lane that builds a page a person looks at writes its brief from the UI brief template. The template rests on the laptop seat's experiments; the owner chose a rule only.
 - **Builder context (2026-11-06).** Builders get four lessons lines; fix briefs marked `Card: fix` may skip Precedent. Plans state each caller's observable contract.
@@ -30,4 +29,4 @@ The owner's open questions are the open issues labelled `ask` at https://github.
 
 ## Known bugs
 
-Known bugs live one line each in `docs/known-bugs/`, one file per feature, plus `docs/known-bugs/unplaced.md`. Desk known limits live in `apps/desk/README.md`.
+Known bugs live one line each in `docs/known-bugs/`, one file per feature, plus `docs/known-bugs/unplaced.md`.

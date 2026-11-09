@@ -160,7 +160,7 @@
 - Hook settings on Windows (win-hook-variant-loop, review): the printed edit command uses the shell-form spelling. An owner editing an exec-form entry must keep the command as node and the path unquoted in its arguments. The advice does not say which form it is for.
 - pi dependencies row (pi-version-support): the row reads npm layouts only. Bun's global layout gives ✓; pnpm, Volta and pi's own installer give `·`.
 - pi dependencies row (pi-version-support): on a pnpm global the row gives `·`, so a mixed pnpm install shows nowhere.
-- pi dependencies row (pi-version-support): the row flags a mixed install even when pi's entry still imports, as for pi 1.0.3 at a cutoff that resolves its packages at 1.0.4. pi itself and nana's extensions run on a mixed install; the desk, the bench and nana's suite break.
+- pi dependencies row (pi-version-support): the row flags a mixed install even when pi's entry still imports, as for pi 1.0.3 at a cutoff that resolves its packages at 1.0.4. pi itself and nana's extensions run on a mixed install; the bench and nana's suite break.
 - pi dependencies row (pi-version-support): a pre-release or checkout-built pi gives `·` rather than a judgement.
 - pi dependencies row (pi-version-support): the ✗ names only the ceiling install command; a user who must stay on the floor finds its command in the setup README.
 - pi dependencies row (pi-version-support, independent check): where the row gives `·` (pnpm, Volta, pi's own installer, a wrapper script), the install check now fails its doctor item, which passed on main. CI, this Mac and the owner's second machine all use npm installs.
