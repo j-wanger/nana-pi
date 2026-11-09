@@ -14,7 +14,7 @@ Measured on 2026-11-09 from pi's own session record of a small waking build at 2
 
 1. **Skills.** Every pi child launch (pi-worker lane and slot launches, pi-review) passes `--no-skills` plus one `--skill <dir>` per skill in a short configured list: the requirements skill, and `spec`, `py-lint`, `py-review`, `py-test` (the four Claude skills the owner kept on 2026-11-07). Resolve each from the installed nana-pi checkout and the setup-installed skill folders, portably on macOS and Windows. A listed skill that cannot be found prints one warning line naming it and the launch continues; absence is reported, never silently treated as not needed.
 2. **Objective block.** The `nana-objective` extension returns nothing for a launcher-role child (`NANA_ROLE` in `LAUNCHER_ROLES`), the way `nana-rulings` already does. The brief's `Serves:` line carries the priority a child needs.
-3. **Known bugs for builders.** pi-worker stops inlining the known-bug digest for lane builders. Instead the addendum carries one instruction: "Read `<path>` (this feature's known bugs) before you change code." It is unconditional for the brief's feature. Update the builder preamble's known-bug line (line 16) to match: the known bugs are in that file, not after the brief. Reviewers keep the digest; nothing changes for claude-review or pi-review.
+3. **Known bugs for builders.** pi-worker stops inlining the known-bug digest for lane builders. Instead the addendum carries one instruction: "Read `<path>` (this feature's known bugs) before you change code." When the feature's file is absent or not a file, say no known bugs are recorded. Update the builder preamble's known-bug line (line 16) to match: the known bugs are in that file, not after the brief. Reviewers keep the digest; nothing changes for claude-review or pi-review.
 4. **Adversary and other slots** keep their context files (AGENTS.md). They lose the objective block (part 2) and the skills listing (part 1) only.
 5. **True load log.** Each pi child attempt gets an explicit session file (`--session <path>` with a unique pi-style name directly in `buildSessionDir`). After the attempt ends, the launcher reads that file's first `sections` record and logs each section's character count and the `toolsAdded` size. When the file or the record is missing (the child died before its first turn), it logs `unavailable` with the reason, never zero. Do not double-count prompt parts already inside `addendum`. Delete `lib/pi-context-load.mjs` and `lib/pi-context-measure.mjs` and their measurement-only test cases; Claude Code log lines are unchanged.
 
@@ -51,7 +51,7 @@ Validation first: no new test unless a recorded failure needs one. The changed b
 ## Adversary changes taken (2026-11-09)
 
 - Adversaries keep AGENTS.md; only the objective block and skills listing go.
-- The known-bug read is an unconditional instruction for the brief's feature, and the preamble's contradicting line changes.
+- The known-bug read names an existing feature file; otherwise it states that no known bugs are recorded. The preamble's contradicting line changes.
 - The load log reads an explicit per-attempt session file after the attempt; early death logs `unavailable`.
 - Missing kept skills are reported, never dropped silently.
 - A stop rule over the next five builds stands in for size-only validation.

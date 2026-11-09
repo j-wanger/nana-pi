@@ -269,7 +269,9 @@ if (laneMode) {
 	let deliveredBugPath = knownBugPath;
 	if (!isClaudeBuilder && selectedFeature) {
 		deliveredBugPath = path.join(preambleDir, 'known-bugs-read.md');
-		writeFileSync(deliveredBugPath, `Read \`${path.posix.join(KNOWN_BUGS_DIR, `${selectedFeature}.md`)}\` (this feature's known bugs) before you change code.`);
+		writeFileSync(deliveredBugPath, knownBugPath
+			? `Read \`${path.posix.join(KNOWN_BUGS_DIR, `${selectedFeature}.md`)}\` (this feature's known bugs) before you change code.`
+			: 'No known bugs are recorded for this feature.');
 	}
 	if (digest && digest.text !== bugText) {
 		deliveredBugPath = path.join(preambleDir, 'known-bugs.md');

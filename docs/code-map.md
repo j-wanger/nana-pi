@@ -4117,7 +4117,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — failed assertions exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/known-bugs.mjs`
-- **unresolved launches** — line 293: spawnSync
+- **unresolved launches** — line 294: spawnSync
 
 ### `packages/nana-pack/tests/worker-refusal.test.mjs`
 
