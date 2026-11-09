@@ -30,7 +30,7 @@ function fixture() {
   write(path.join(agent,'nana-pack.json'), JSON.stringify({ roster, journal: { enabled: false } }));
   write(path.join(agent,'nana-rulings.md'), '# Rulings\r\nRuling text. \t');
   write(path.join(lane,'OBJECTIVE.md'), '# Objective\n\n**Objective:** Test child context.\n');
-  const brief = path.join(lane,'brief.md'); write(brief,'Feature: FEAT-013 · Fixture\nPrecedent:\n- seed\n');
+  const brief = path.join(lane,'brief.md'); write(brief,'Feature: FEAT-013 · Fixture\nServes: roadmap step 3 — child context fixture\nPrecedent:\n- seed\n');
   const capture = path.join(dir,'calls.jsonl'), log = path.join(agent,'nana-context-loads.jsonl');
   const factories = ['nana-objective','nana-rulings','nana-writing'];
   const moduleSource = factories.map((name,i) => `import e${i} from ${JSON.stringify(pathToFileURL(path.join(pack,'extensions',name+'.ts')).href)};`).join('\n') + `
