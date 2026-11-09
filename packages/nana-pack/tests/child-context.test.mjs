@@ -122,6 +122,7 @@ test('M4: every pi child path keeps extensions and credential refusal',async()=>
 test('M5: pi logs composed sections including zero skips and unavailable measurements',async()=>{
  for(const kind of ['pi-worker','slot','pi-review']){
   const f=fixture();
+  write(path.join(f.lane,'OBJECTIVE.md'),'# Objective\r\n\r\n**Objective:** Test child context. \t\r\n**Current priority:** Count delivered text. \t');
   write(path.join(f.agent,'nana-rulings.md'),fs.readFileSync(path.join(pack,'rules/nana-rulings.md'),'utf8'));
   const format=JSON.parse(fs.readFileSync(path.join(f.pkg,'package.json'),'utf8')).type;
   assert.equal(format,'module',`${kind} section loader module format: actual=${format} expected=module`);

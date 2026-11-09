@@ -2581,7 +2581,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
-- **unresolved launches** — line 75: spawnSync; binding line 105; binding line 114; binding line 128; binding line 137; binding line 154
+- **unresolved launches** — line 75: spawnSync; binding line 105; binding line 114; binding line 129; binding line 138; binding line 155
 
 ### `packages/nana-pack/tests/ci-records.test.mjs`
 
