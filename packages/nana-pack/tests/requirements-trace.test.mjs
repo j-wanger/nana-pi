@@ -19,6 +19,7 @@
 // the CLI spawn below, which runs the real shipped entry point once.
 // Run: node --experimental-strip-types <this file>
 import { tmpDir } from "./tmp-dir.mjs";
+import { CASE_LIMIT_MS } from "./report-fixtures.mjs";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -46,7 +47,8 @@ console.log(earsLine);
 const cli = spawnSync(
 	process.execPath,
 	["--experimental-strip-types", join(REPO_ROOT, "scripts", "requirements-trace.mjs")],
-	{ encoding: "utf-8" },
+	// Measured locally at 0.2 s (test-retire); shared 20 s case bound leaves launch headroom.
+	{ encoding: "utf-8", timeout: CASE_LIMIT_MS },
 );
 const cliLines = (cli.stdout ?? "").split("\n");
 const summaryIdx = cliLines.findIndex((l) => l.startsWith("requirements: "));

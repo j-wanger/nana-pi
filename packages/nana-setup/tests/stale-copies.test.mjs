@@ -12,6 +12,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
+import { fileURLToPath } from "node:url";
 import { withPiStub } from "./stub-pi.mjs";
 import { diagnose } from "../lib/doctor.mjs";
 import { hookProducerConfig, runHookProducer } from "../lib/hook-producer.mjs";
@@ -396,6 +397,34 @@ for (const platformCase of cases) {
 const r1763 = repairFacts.every((item) => item.command === expectedCommand && item.namedAsExpected && item.safe && item.installStatus === 0 && item.hookStatus === 0 && item.staleAfter.length === 0);
 // req: R-1763
 check("R-1763: moving the named paths and running the named install clears the stale line", r1763, JSON.stringify(repairFacts));
+
+// The diagnostic child runs the existing fixtures, not this meta-case again.
+if (process.env.STALE_DIAGNOSTIC_CHILD !== "1") {
+	const root = temp("nana-stale-diagnostic-");
+	const preload = path.join(root, "failed linked claude preload.cjs");
+	fs.writeFileSync(preload, `const path = require("node:path");
+const basename = path.basename(process.argv[1] || "");
+const matchesScript = process.platform === "win32" ? basename.toLowerCase() === "stale-copies.mjs" : basename === "stale-copies.mjs";
+if (matchesScript && String(process.env.HOME || process.env.USERPROFILE || "").includes("-linked-claude-home-")) process.exit(1);
+`);
+	const childTmp = path.join(root, "tmp"); fs.mkdirSync(childTmp);
+	// Existing moved case's bound: two minutes for its fixture-file run.
+	const result = spawnSync(process.execPath, ["--experimental-strip-types", fileURLToPath(import.meta.url)], {
+		cwd: pkgRoot, encoding: "utf8", timeout: 120_000,
+		env: { ...process.env, STALE_DIAGNOSTIC_CHILD: "1", TMPDIR: childTmp, TMP: childTmp, TEMP: childTmp,
+			NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --require="${preload.replaceAll("\\", "/")}"` },
+	});
+	const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+	const title = "FAIL R-1761: the stale line names exactly the rule, skill and hook rows doctor marks failed";
+	const line = output.split(/\r?\n/).find(candidate => candidate.startsWith(title));
+	let facts = []; try { facts = JSON.parse(line.slice(title.length).trim()); } catch {}
+	const linked = facts.filter(item => item.name === "linked-claude");
+	const expectedPlatform = process.platform === "win32" ? "win32" : null;
+	const ok = result.status !== 0 && linked.length > 0 && linked.every(item => (expectedPlatform === null || item.platform === expectedPlatform) && item.hookStatus === 0 && item.hookSignal === null && Number.isFinite(item.hookMs) && item.hookMs >= 0 && Array.isArray(item.unavailable) && item.unavailable.length === 1 && item.unavailable[0].startsWith(STALE_UNAVAILABLE_PREFIX));
+	// req: R-2483
+	check("R-2483: when the stale-copies checker fails inside the linked-claude adoption hook, the R-1761 failure names that hook run's status, signal, time and unavailable line", ok,
+		JSON.stringify({ status: result.status, signal: result.signal, linked, unavailablePrefix: STALE_UNAVAILABLE_PREFIX }));
+}
 
 for (const dir of tmps) fs.rmSync(dir, { recursive: true, force: true });
 console.log(`SUMMARY  PASS=${passes} FAIL=${fails} SKIP=${skips}`);

@@ -724,5 +724,12 @@ check("R-2730: this repository's ledger gets no deliverable note against its tra
     && registryControlLines.filter((line) => line.includes("A-999")).length === 2,
   `${repositoryReportLines.join("\n")}\ncontrol: ${registryControlLines.join("\n")}`);
 
+const memoryReport = deliverablesModule.deliverableReport(repositoryParsed, repositoryRoot);
+// req: R-3864
+check('R-3864: memory artifacts are retired without deliverable check notes',
+  memoryReport.check.checkedDeliverables > 0
+    && ['A-044', 'A-095', 'A-097'].every(id => memoryReport.check.artifacts.get(id)?.retired === true)
+    && memoryReport.check.notes.length === 0, JSON.stringify(memoryReport.check.notes));
+
 console.log(fails ? `${fails} check(s) failed` : "all checks passed");
 process.exit(fails ? 1 : 0);

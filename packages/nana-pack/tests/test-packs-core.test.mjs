@@ -26,6 +26,9 @@ await check("M6: all core capabilities have land guards and moved cases keep the
     assert.equal(TEST_PACKS[file], "land", `core guard not in land: ${file}`);
     assert.match(fs.readFileSync(path.join(REPO, file), "utf8"), /(?:check|test)\(/, file);
   }
+  const workflow = fs.readFileSync(path.join(REPO, ".github/workflows/ci.yml"), "utf8");
+  assert.match(workflow, /name: Repository checks[\s\S]*?node scripts\/requirements-trace\.mjs/);
+  assert.equal(TEST_PACKS[`${pack}requirements-trace.test.mjs`], "land");
   const manifest = JSON.parse(fs.readFileSync(path.join(REPO, "docs/reviews/ci-packs/moves.json"), "utf8"));
   assert(manifest.moves.length >= 6);
   for (const move of manifest.moves) {
@@ -34,7 +37,11 @@ await check("M6: all core capabilities have land guards and moved cases keep the
     assert(start >= 0 && end > start, move.from);
     const bytes = original.slice(start, end);
     assert.equal(createHash("sha256").update(bytes).digest("hex"), move.sha256);
-    assert(fs.readFileSync(path.join(REPO, move.to), "utf8").includes(bytes), `moved bytes changed: ${move.to}`);
+    const destination = fs.readFileSync(path.join(REPO, move.to), "utf8");
+    if (move.to === `${pack}code-map-land.test.mjs` && move.start.startsWith("// the documented command")) {
+      // The sweep retires this one duplicate CLI block, now run directly by CI.
+      assert(!destination.includes(bytes), "retired map CLI block remains");
+    } else assert(destination.includes(bytes), `moved bytes changed: ${move.to}`);
     assert(!fs.readFileSync(path.join(REPO, move.from), "utf8").includes(bytes), `case still in source: ${move.from}`);
   }
 });

@@ -8,6 +8,7 @@
  * @errors A failed assertion exits 1.
  */
 import assert from "node:assert/strict";
+import { tmpDir } from "./tmp-dir.mjs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -29,7 +30,7 @@ async function test(title, fn) {
   } catch (error) { console.log("FAIL", title, error.stack ?? error.message); process.exitCode = 1; }
   finally { clearTimeout(timer); }
 }
-const temp = () => fs.mkdtemp(path.join(os.tmpdir(), "nana-component-audit-"));
+const temp = () => tmpDir(path.join(os.tmpdir(), "nana-component-audit-"));
 const git = (root, args, options = {}) => spawnSync("git", args, { cwd: root, encoding: "utf8", ...options });
 const run = (root, args, options = {}) => { const result = git(root, args, options); assert.equal(result.status, 0, result.stderr); return result.stdout.trim(); };
 const initRepo = async (root) => { run(root, ["init", "-b", "main"]); run(root, ["config", "user.name", "Fixture"]); run(root, ["config", "user.email", "fixture@example.invalid"]); };
@@ -256,6 +257,20 @@ await test("R-3110: mapped module coverage names unclaimed paths and never fails
   assert.ok(filtered.lines.includes("unclaimed: scripts/product.mjs"));
   assert.ok(filtered.lines.includes("unclaimed: 1 of 2 mapped modules"));
   assert.equal(result.exitCode, 0, result.problems.join("\n"));
+});
+
+// req: R-3777
+await test('R-3777: an additional component passes without a city plan', async () => {
+  const dir = await temp();
+  try {
+    await fs.mkdir(path.join(dir, 'docs/components'), { recursive: true });
+    await fs.copyFile(path.join(ROOT, 'docs/components/contract.json'), path.join(dir, 'docs/components/contract.json'));
+    const source = JSON.parse(await fs.readFile(path.join(ROOT, 'docs/components/nana-pi.json'), 'utf8'));
+    const base = { ...source.components.find(c => c.status === 'sound'), id: 'baseline-component', features: [], anchors: [], evidence: ['new.mjs'], parts: ['new.mjs'] };
+    source.components = [base, { ...base, id: 'new-component' }];
+    const result = await buildAudit({ root: dir, source, ledgerText: '', trackedPaths: ['new.mjs'], mappedModules: [], gitRunner: () => ({ status: 1, stdout: '' }) });
+    assert.deepEqual(result.problems, []); assert.equal(result.exitCode, 0); assert.equal(result.document.components[1].id, 'new-component');
+  } finally { await fs.rm(dir, { recursive: true, force: true }); }
 });
 
 if (!process.exitCode) console.log(`${passed} component-audit checks passed`);

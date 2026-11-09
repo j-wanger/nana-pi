@@ -191,6 +191,17 @@ function renderPageAt(html, hash = "") {
   check("an Open for heading with any name is read as the asks section", OPEN_SECTION_PREFIX === "Open for " && OPEN_SECTION_NAME === "Open for the owner" && JSON.stringify(entries.map((entry) => entry.title?.title)) === JSON.stringify(["First ask", "Second ask"]));
 }
 try {
+  await withinCaseLimit('R-3782', async () => {
+    const ledger = fs.readFileSync(path.join(ROOT, 'REQUIREMENTS.md'), 'utf8');
+    assert.match(ledger, /^Artifact: A-087 .* · retired:/m); assert(!/^Read by: A-087 /m.test(ledger));
+    assert.match(ledger, /^Artifact: A-085 .* · CI:/m); assert.match(ledger, /^Read by: A-085 · person:/m);
+    assert.match(ledger, /^Read by: A-086 · code: scripts\/component-audit.mjs$/m);
+    const out = await generateReport({ root: ROOT, out: path.join(temp, 'retirement-report.html'), readIssues: async () => ({ items: [], url: 'https://example.invalid/issues' }) });
+    const html = fs.readFileSync(out, 'utf8'); const model = JSON.parse(html.match(/<script[^>]*id="report-data"[^>]*>([\s\S]*?)<\/script>/)[1]);
+    const feature = model.features.find(f => f.id === 'FEAT-039');
+    // req: R-3782
+    check('R-3782: artifact retirement leaves only surviving live cards and readers', !JSON.stringify(feature.artifactLines).includes('A-087') && JSON.stringify(feature.artifactLines).includes('A-085') && JSON.stringify(feature.artifactLines).includes('A-086'));
+  });
   {
     const { root, git } = fixture("deterministic");
     git(["remote", "add", "origin", "https://github.com/example-org/example-repo.git"]);

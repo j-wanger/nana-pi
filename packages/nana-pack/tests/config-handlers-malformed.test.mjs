@@ -79,8 +79,9 @@ for (const [label, text, expectLines] of VARIANTS) {
 	await fire("session_compact_failed", {});
 	await fire("session_shutdown", { reason: "quit" });
 
-	// req: R-083
+	// req: R-070, R-083
 	check(`${label}: no handler throws`, errors.length === 0, errors.join("; "));
+	// req: R-774
 	check(`${label}: gate still blocks rm -rf /tmp/x headless`, gateOut.some((r) => r?.block === true), JSON.stringify(gateOut));
 	const prompts = Object.values(promptEvent.systemPromptOptions.sections).join("\n");
 	// req: R-781
