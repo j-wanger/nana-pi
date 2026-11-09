@@ -2992,7 +2992,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Named gitShow function returning the historical file text.
 - **effects** — process (bounded read-only git child).
 - **errors** — Assertion naming missing history and the fetch instruction.
-- **callers** — `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/test-packs-core.test.mjs`
+- **callers** — `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/tests/git-only-path.mjs`
@@ -4146,13 +4146,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-pack/tests/test-packs-core.test.mjs`
 
-- **purpose** — Require every core capability's land guard and byte-preserve moved cases.
-- **inputs** — Pack membership, move manifest, historical and current test sources.
+- **purpose** — Require every core capability's land guard.
+- **inputs** — Pack membership, workflow and current test sources.
 - **outputs** — One awaited bounded must-meet verdict.
-- **effects** — disk (reads sources), process (bounded read-only git).
+- **effects** — disk (reads sources).
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/test-packs-config.mjs`, `packages/nana-pack/tests/git-fixtures.mjs`, `packages/nana-pack/tests/pack-fixtures.mjs`
+- **callees** — `packages/nana-pack/lib/test-packs-config.mjs`, `packages/nana-pack/tests/pack-fixtures.mjs`
 
 ### `packages/nana-pack/tests/test-packs-runner.test.mjs`
 
