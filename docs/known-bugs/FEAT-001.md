@@ -45,4 +45,3 @@
 - Objective producer (objective-hook-win, plan): objective-golden's comment still says the hook has a 10 s child timeout. It is cosmetic.
 - Objective pickups (artifact audit, 2026-10-24): the Claude seat's session-start objective block is never journaled as a pickup, though R-019 says each pickup is.
 - Own objective file (objective-file, review round 1): `readme-check.config.json`'s exemption reasons still say nana-pi has no OBJECTIVE.md of its own; the reasons are stale, the exemptions still hold.
-- Own objective file (objective-file, review round 1): nana-pi's priority line repeats the umbrella's, so a nana-pi session prints it twice, as governing and as the program line; the two copies can drift apart when one is edited.

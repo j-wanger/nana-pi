@@ -238,15 +238,13 @@ fs.rmSync(objectiveFile, { force: true, recursive: true });
 // (default OBJECTIVE.md) walking UP from cwd wins, else the user-scope path.
 // ---------------------------------------------------------------------------
 const PROJECT_FILE = "REPO-OBJECTIVE.md"; // distinctive: the walk runs to the filesystem root
-const UMBRELLA_LINE = "program objective: **Objective:** build products with agents.";
-const UMBRELLA_PRIORITY_LINE = "program current priority: **Current priority:** one coherent experience.";
 const REPO_OBJECTIVE = "**Objective:** ship the desk.\n\n**Current priority:** the feel pass.\n";
 const journalLines = () =>
 	fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
 
 fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n**Current priority:** one coherent experience.\n");
 
-// (l) a repo objective in the session cwd wins, and carries the umbrella's own line.
+// (l) A repo objective in the session cwd wins.
 {
 	writeUserCfg({ path: objectiveFile, projectFile: PROJECT_FILE });
 	const { td, handlers, ctx } = session();
@@ -258,18 +256,9 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	// req: R-001
 	check("l: the repo's objective is injected", !!r.includes("ship the desk"));
 	check("l: the repo's priority is injected", !!r.includes("the feel pass"));
-	// the owner's ruling 1 (2026-09-28): the product's lines govern, AND the program's objective
-	// + current priority are shown, labelled, after them, with the precedence stated. (This
-	// replaces an assertion that the umbrella priority was absent — that encoded the defect.)
 	const sp = r ?? "";
-	// req: R-009
-	check("l: the umbrella objective AND current priority are shown, labelled",
-		sp.includes(`${UMBRELLA_LINE}\n${UMBRELLA_PRIORITY_LINE}`));
 	check("l: the product's lines come first and are labelled with the governing path",
-		sp.indexOf(`governing: ${repoFile}\n**Objective:** ship the desk.`) >= 0 && sp.indexOf("ship the desk") < sp.indexOf(UMBRELLA_LINE));
-	// req: R-009
-	check("l: the precedence sentence is stated",
-		sp.includes(`Precedence: the lines from ${repoFile} govern this session's work; the program lines (${objectiveFile}) say what the toolkit is for.`));
+		sp.indexOf(`governing: ${repoFile}\n**Objective:** ship the desk.`) >= 0);
 	check("l: same heading", !!r.includes("## Objective and current priority (nana)"));
 	check("l: charge line still applies", !!r.includes("Every session must be able to say which of these lines its spend serves."));
 	// req: R-019
@@ -292,7 +281,6 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	const r = await inject(handlers, deepCtx);
 	// req: R-001
 	check("m: an ancestor's repo objective wins", !!r.includes("ship the desk"));
-	check("m: the umbrella line comes with it", !!r.includes(UMBRELLA_LINE));
 	// req: R-019
 	check("m: the ancestor hit is the journaled path",
 		journalLines().slice(before).some((e) => e.event === "objective_pickup" && e.source === "project" && e.path === repoFile));
@@ -369,8 +357,7 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	fs.rmSync(td, { recursive: true, force: true });
 }
 
-// (q) the program lines are best-effort: a missing user-scope file is NAMED on the program
-// line rather than failing the repo pickup (the repo objective is what governs there).
+// (q) A missing user-scope file cannot fail a governing repo pickup.
 {
 	writeUserCfg({ path: path.join(home, "gone-objective.md"), projectFile: PROJECT_FILE });
 	const { td, handlers, ctx } = session();
@@ -378,8 +365,6 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	await handlers.session_start({ reason: "startup" }, ctx);
 	const r = await inject(handlers, ctx);
 	check("q: the repo objective still wins", !!r.includes("ship the desk"));
-	check("q: the missing umbrella is named on the program line",
-		!!r.includes(`program objective: unavailable (file not found: ${path.join(home, "gone-objective.md")})`));
 	check("q: no program current priority invented for a missing umbrella", !((r) ?? "").includes("program current priority:"));
 	check("q: and no UNAVAILABLE marker — the repo objective is real text", !((r) ?? "").includes("OBJECTIVE UNAVAILABLE"));
 	fs.rmSync(td, { recursive: true, force: true });

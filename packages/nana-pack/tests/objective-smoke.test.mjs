@@ -190,18 +190,15 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 	check("umbrella governs: exact text", t === [HEAD, `governing: ${w.umbrellaFile}\n${OBJ("build products with agents.")}\n\n${PRI("make nana-pi coherent.")}`, CHARGE].join("\n\n") + "\n", t);
 }
 
-// 2. product governs: product lines, then the program objective AND current priority, labelled, with precedence
+// 2. Product governs: only its labelled pair is shown.
 {
 	const w = world();
 	fs.writeFileSync(w.productFile, PRODUCT);
 	const t = await golden("product governs", w, w.product, () => {});
-	// req: R-009
 	check("product governs: exact text", t === [
 		HEAD,
 		LABEL(w.productFile),
 		`governing: ${w.productFile}\n${OBJ("ship the widget.")}\n\n${PRI("the walking skeleton.")}`,
-		`program objective: ${OBJ("build products with agents.")}\nprogram current priority: ${PRI("make nana-pi coherent.")}`,
-		`Precedence: the lines from ${w.productFile} govern this session's work; the program lines (${w.umbrellaFile}) say what the toolkit is for.`,
 		CHARGE,
 	].join("\n\n") + "\n", t);
 }
@@ -215,7 +212,6 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 	await golden("nested cwd", w, deep, (t) => {
 		// req: R-001
 		check("nested cwd: the ancestor product governs", t.includes(`governing: ${w.productFile}\n`));
-		check("nested cwd: program priority shown", t.includes(`program current priority: ${PRI("make nana-pi coherent.")}`));
 	});
 }
 
@@ -258,8 +254,6 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 		HEAD,
 		LABEL(w.productFile),
 		`governing: ${w.productFile}\n${OBJ("ship the widget.")}\n\n${PRI("the walking skeleton.")}`,
-		`program objective: unavailable (file not found: ${w.umbrellaFile})`,
-		`Precedence: the lines from ${w.productFile} govern this session's work; the program lines (${w.umbrellaFile}) say what the toolkit is for.`,
 		CHARGE,
 	].join("\n\n") + "\n", t);
 	check("FRESH MACHINE, no config: no UNAVAILABLE marker", !t.includes("OBJECTIVE UNAVAILABLE"), t);

@@ -7,7 +7,7 @@
  *  permissions and lock
  * @outputs ObjectiveResult {text, unavailable, events, notices} — the heading, an optional safe config-failure
  *  line, the **Objective and **Current priority lines (one physical line each, ≤ LINE_CAP), the provenance label,
- *  the precedence note and remedy, or an `OBJECTIVE UNAVAILABLE` marker; the whole text is ≤ OUTPUT_CAP and ends
+ *  its trust remedy, or an `OBJECTIVE UNAVAILABLE` marker; the whole text is ≤ OUTPUT_CAP and ends
  *  in exactly one newline
  * @effects disk (bounded sync reads of at most FILE_READ_MAX bytes per file, plus lstat / stat / access of
  *  the objective files, the trust store, its folder and its lock)
@@ -20,10 +20,9 @@
  * Code SessionStart hook is a thin launcher for bin/nana-objective.mjs, which calls it.
  * No other file resolves or renders the objective.
  *
- * What it prints — the owner's ruling 1 (2026-09-28): the nearest OBJECTIVE.md governs
- * approved product work; when a product file governs, the program (umbrella)
- * objective AND current priority are shown too, with the precedence stated. When the
- * umbrella itself governs, no duplicate block.
+ * What it prints (T1 plan): only the governing file's objective and current priority.
+ * The nearest OBJECTIVE.md governs approved product work; the program (umbrella)
+ * file is read only as the fallback, never alongside a project file.
  *
  * Resolution — UNCONDITIONAL, no configuration needed (the owner's 2026-09-18
  * decentralization ruling): the nearest <dir>/OBJECTIVE.md walking UP from cwd wins;
@@ -63,7 +62,7 @@ import { CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, config
 import { CONTROL, PATH_CAP, displayPath, displayText, head } from "./display.mjs";
 export { CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, PATH_CAP, displayPath, displayText };
 
-/** Per line. Real lines are < 500 chars; four capped lines + bounded paths fit OUTPUT_CAP. */
+/** Per line. Real lines are < 500 chars; the capped pair + bounded paths fit OUTPUT_CAP. */
 export const LINE_CAP = 1500;
 export const OUTPUT_CAP = 12000;
 const FILE_READ_MAX = 256 * 1024;
@@ -602,26 +601,6 @@ function produce(cwd: string, o: ObjectiveSettings): ObjectiveResult {
 	const labelled = !!trust && !trust.vouched;
 	if (trust && labelled) parts.push(provenanceLabel(governing, path.dirname(governing), { path: trust.store, problem: trust.problem, object: trust.object, detail: trust.detail, unreadable: trust.unreadable }));
 	parts.push(head);
-	if (repoSupplied) {
-		const u: Read = reachedThroughSymlinkInWorkspace(cwd, umbrella)
-			? { cause: "reached through a symlink inside the workspace" }
-			: readObjective(umbrella);
-		let program: string;
-		const p = "text" in u ? cappedLines(u.text) : null;
-		if ("text" in u) {
-			program = p
-				? `program objective: ${p.objective ?? "(no **Objective line)"}\nprogram current priority: ${p.priority ?? "(no **Current priority line)"}`
-				: `program objective: unavailable (${noLines(umbrella)})`;
-		} else {
-			program = `program objective: unavailable (${u.cause}: ${displayPath(umbrella)})`;
-		}
-		const precedence = g
-			? `Precedence: the lines from ${displayPath(governing)} govern this session's work; the program lines (${displayPath(umbrella)}) say what the toolkit is for.`
-			: p
-				? `Precedence: no governing lines were found in ${displayPath(governing)}; the program lines (${displayPath(umbrella)}) govern this session.`
-				: `Precedence: no governing lines were found in ${displayPath(governing)} or in the program file (${displayPath(umbrella)}).`;
-		parts.push(program, precedence);
-	}
 	parts.push(CHARGE);
 	const text = finish(parts.join("\n\n"));
 	events.push({ event: "objective_pickup", source, path: governing, chars: text.length, truncated, labelled });

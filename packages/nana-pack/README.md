@@ -1209,9 +1209,8 @@ project config never contributes to either one, trusted or not.
   Five contract points:
   - **A repo speaks its own objective — by default, no configuration.** The nearest
     `<dir>/OBJECTIVE.md` walking UP from the session cwd wins over `objective.path` (the owner's
-    2026-09-18 decentralization ruling), followed by labelled `program objective:` /
-    `program current priority:` lines and a precedence sentence so the program-level objective
-    stays visible. A session in a product repo is charged against that product's two lines —
+    2026-09-18 decentralization ruling). Only the governing file's objective and priority
+    print; the umbrella is read only when it is the fallback, never alongside a product file. A session in a product repo is charged against that product's two lines —
     byte-identical with the Claude Code hook `~/.claude/hooks/nana-objective.mjs` (both run
     `lib/objective.ts`). `objective.projectFile` (user scope) only RENAMES the file looked for — a bare
     filename (a separator, `.` or `..` is refused with a named config problem);
@@ -1303,7 +1302,7 @@ project config never contributes to either one, trusted or not.
     reach the same verdict. A store that is unreadable, malformed, not a regular file, a FIFO,
     over 1 MiB or owned by another user counts as "not vouched", so the file is labelled. The
     umbrella is never labelled. The label changes nothing else: the file still governs, and
-    its lines, their order and the precedence stay as they are.
+    its two lines and their order stay as they are.
   - **Risk acceptance — the label is defence in depth, NOT a security boundary.** A model can
     still follow attacker-authored text on a governing line, whatever the label says. The
     label does not close prompt injection. sol recommended trust-gating instead: require

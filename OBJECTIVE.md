@@ -1,7 +1,7 @@
 # Objective and current priority — nana-pi
 
 *This project tracks its own objective and priority. Session start reads the nearest
-`OBJECTIVE.md` walking up from the session's directory, so this file is what a nana-pi session is judged against. The program (umbrella) lines from `~/nana-agent-loop/OBJECTIVE.md` still print below these as `program objective:` and `program current priority:`. Every session must be able to say which of the two lines below its spend served.*
+`OBJECTIVE.md` walking up from the session's directory, so this file is what a nana-pi session is judged against. Only this file's objective and priority print here; the program file is a fallback for folders without a project objective. Every session must be able to say which of the two lines below its spend served.*
 
 **Objective (since 2026-11-02):** nana-pi is the shared toolkit and experience for building products with agents: the pi pack, the seat and its builders and reviewers, setup and project templates (seat wording, 2026-11-02, written when the owner said "give nana-pi its own objective file"; the owner can change it).
 

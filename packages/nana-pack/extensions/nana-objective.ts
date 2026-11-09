@@ -35,7 +35,7 @@
  * charged against the product's two lines, not the umbrella's. UNCONDITIONALLY (no
  * configuration needed), the nearest <dir>/OBJECTIVE.md walking UP from the session
  * cwd wins; the user-scope objective.path is the fallback (the program file), whose
- * objective and current priority are shown alongside a product's. Only the OWNER, at
+ * objective and current priority are shown only when it governs. Only the OWNER, at
  * user scope, can rename the file looked for (objective.projectFile) — a repo cannot,
  * and cannot turn the fallback or the whole feature off.
  *
@@ -49,8 +49,8 @@
  * module, so both runtimes print byte-identical text (tests/objective-golden).
  * Imported here rather than spawned: session_start stays synchronous, in-process
  * and free of a node-on-PATH dependency. This file only journals, notifies and
- * injects. When a product file governs, the program objective AND current
- * priority are shown with the precedence stated (the owner's ruling 1, 2026-09-28).
+ * injects. When a product file governs, only its objective and current priority
+ * are shown (T1); no program block or precedence sentence is injected.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";

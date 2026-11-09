@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-setup/claude/hooks/nana-shared-memory.mjs
- * @purpose Print the shared-memory index and self-heal the current Claude project memory link.
+ * @purpose Print kept shared-memory index entries with a lookup pointer and self-heal the current Claude project memory link.
  * @inputs Claude Code environment, bounded hook JSON stdin, and the shared MEMORY.md file.
- * @outputs a bounded shared-memory header, optional note, index entries, and a fold line when entries are shortened or omitted.
+ * @outputs a bounded header, optional note and held-count pointer, kept entries, and a fold line when budget trimming is needed.
  * @effects disk, process (reads stdin, creates directories and a link, writes stdout).
  * @errors all failures, including a stdout error such as a reader that closed it, are ignored and the hook exits 0.
  */
@@ -12,7 +12,7 @@ import * as path from "node:path";
 import { claudeConfigHome } from "../../lib/claude-config-home.mjs";
 import { projectKey } from "../../lib/project-key.mjs";
 import { readHookInput } from "../../lib/shared-memory-input.mjs";
-import { SHARED_MEMORY_OUTPUT_BUDGET, SHARED_MEMORY_TRIM_MARK } from "../../lib/shared-memory-config.mjs";
+import { SHARED_MEMORY_HELD_PREFIXES, SHARED_MEMORY_HELD_POINTER, SHARED_MEMORY_OUTPUT_BUDGET, SHARED_MEMORY_TRIM_MARK } from "../../lib/shared-memory-config.mjs";
 
 // R-1942: Ignore every stdout error so a closed hook reader cannot fail the hook.
 process.stdout.on("error", () => {});
@@ -90,14 +90,23 @@ try {
 	} catch {
 		// Self-heal is best effort; reading the index remains independent.
 	}
-	const fixed = `${HEADER(idx)}\n${note ? `[nana:shared-memory] ${note}\n` : ""}`;
-	const entries = text.split(/\r?\n/).filter((line) => /^- \[/.test(line));
-	const full = fixed + entries.map((line) => `${line}\n`).join("");
-	let output = full;
+	const header = `${HEADER(idx)}\n${note ? `[nana:shared-memory] ${note}\n` : ""}`;
+	const allEntries = text.split(/\r?\n/).filter((line) => /^- \[/.test(line));
+	const held = allEntries.filter((line) => {
+		const link = line.match(/^- \[[^\]]*\]\(([^)]*)\)/)?.[1];
+		return link !== undefined && SHARED_MEMORY_HELD_PREFIXES.some((prefix) => link.startsWith(prefix));
+	});
+	const heldSet = new Set(held);
+	const entries = allEntries.filter((line) => !heldSet.has(line));
+	const pointer = held.length ? SHARED_MEMORY_HELD_POINTER.replace("{count}", String(held.length)).replace("{index}", () => idx) : "";
+	const fixed = header + (pointer ? `${pointer}\n` : "");
+	const full = header + allEntries.map((line) => `${line}\n`).join("");
+	const kept = fixed + entries.map((line) => `${line}\n`).join("");
+	let output = kept;
 	let whole = entries;
 	let shortenedEntries = [];
-	let omitted = [];
-	if (full.length <= SHARED_MEMORY_OUTPUT_BUDGET) {
+	let omitted = held;
+	if (kept.length <= SHARED_MEMORY_OUTPUT_BUDGET) {
 		// Full entries retain their original text and order.
 	} else {
 		const parts = entries.map((line) => {
@@ -140,7 +149,7 @@ try {
 		output = fixed + render(selected, limit) + `${FOLD_LINE(shortened, total, leftOut, idx)}\n`;
 		whole = selected.filter(({ description }) => description.length <= limit).map(({ head }) => head);
 		shortenedEntries = selected.filter(({ description }) => description.length > limit).map(({ head }) => head);
-		omitted = parts.slice(selected.length).map(({ head }) => head);
+		omitted = [...held, ...parts.slice(selected.length).map(({ head }) => head)];
 	}
 	process.stdout.write(output);
 	try {

@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/frontier-summary.mjs
  * @purpose Read a project's HANDOFF and render its bounded session-start frontier block.
  * @inputs Session cwd, injected date/environment and issue reader, launcher limit, filesystem state and frontier configuration.
- * @outputs The frontier block with Next titles, ordered asks and checker summary, an unavailable block, or null.
+ * @outputs The frontier block with Next and blocking titles, owner-ask counts (legacy HANDOFF asks stay listed) and checker summary, an unavailable block, or null.
  * @effects disk (bounded HANDOFF read), process and network (budget-bounded gh calls for opted-in projects).
  * @errors none; missing input is silent and every other read or decode failure becomes one marker line.
  */
@@ -17,7 +17,7 @@ import { BOUNDED_READ_CAP, readBounded, readFailureCause } from "./bounded-read.
 import { checkFrontier, frontierSummaryLine } from "./frontier-check.mjs";
 import { TAG, splitOpenSection } from "./handoff-asks.mjs";
 import { promptPath, promptText } from "./display.mjs";
-import { ASK_KIND_ORDER, FRONTIER_DATA_NOTE, FRONTIER_ISSUES_DATA_NOTE, FRONTIER_HEADING, FRONTIER_OUTPUT_CAP, FRONTIER_TITLE_CAP, FRONTIER_UNAVAILABLE, HANDOFF_FILE, LAUNCHER_ROLES } from "./frontier-summary-config.mjs";
+import { ASK_KIND_ORDER, FRONTIER_DATA_NOTE, FRONTIER_ISSUES_DATA_NOTE, FRONTIER_HEADING, FRONTIER_OUTPUT_CAP, FRONTIER_OWNER_ASKS_LOOKUP, FRONTIER_TITLE_CAP, FRONTIER_UNAVAILABLE, HANDOFF_FILE, LAUNCHER_ROLES } from "./frontier-summary-config.mjs";
 
 const listLead = /^(?:[-*+]\s+|\d+[.)]\s+)/;
 const nextTitle = (line) => {
@@ -46,9 +46,10 @@ const cleanTitle = (title) => promptText(title, FRONTIER_TITLE_CAP);
 
 function renderBlock(file, result, next, asks, selected, issues, watchLine, mainCiLine) {
 	const selectedNext = next.filter((item) => selected.has(item));
-	const selectedAsks = asks.filter((item) => selected.has(item));
+	const listedAsks = issues && !issues.failure ? asks.filter((item) => item.tag?.kind === "blocking") : asks;
+	const selectedAsks = listedAsks.filter((item) => selected.has(item));
 	const omittedNext = next.length - selectedNext.length;
-	const omittedAsks = asks.length - selectedAsks.length;
+	const omittedAsks = listedAsks.length - selectedAsks.length;
 	const omitted = omittedNext + omittedAsks;
 	const out = [FRONTIER_HEADING, "", `Read from ${promptPath(file)} at session start. ${FRONTIER_DATA_NOTE}`, ""];
 	if (issues) {
@@ -65,8 +66,8 @@ function renderBlock(file, result, next, asks, selected, issues, watchLine, main
 	if (!issues?.failure || next.length) out.push("");
 	if (issues && !issues.failure) {
 		const ownerAsks = asks.filter((item) => item.tag?.kind !== "blocking");
-		out.push(ownerAsks.length ? `Open for the owner (${ownerAsks.length}):` : "Open for the owner: none found.");
-		out.push(...selectedAsks.filter((item) => item.tag?.kind !== "blocking").map((item) => `- [${item.tag?.kind ?? "no tag"}] ${item.rendered}`));
+		const counts = askCounts(ownerAsks);
+		out.push(ownerAsks.length ? `Open for the owner (${ownerAsks.length}: ${counts.map(({ count, kind }) => `${count} ${kind}`).join(", ")})${FRONTIER_OWNER_ASKS_LOOKUP}` : "Open for the owner: none found.");
 	} else if (asks.length === 0) { if (!issues?.failure) out.push("Open for the owner: none found."); }
 	else {
 		const counts = askCounts(asks);
@@ -124,7 +125,7 @@ export function frontierSummary({ cwd = process.cwd(), today = new Date().toISOS
 	const priority = [
 		...asks.filter((ask) => ask.tag?.kind === "blocking"),
 		...next,
-		...asks.filter((ask) => ask.tag?.kind !== "blocking"),
+		...asks.filter((ask) => ask.tag?.kind !== "blocking" && (!issues || issues.failure)),
 	];
 	for (const item of priority) {
 		chosen.add(item);

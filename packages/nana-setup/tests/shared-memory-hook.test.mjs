@@ -8,6 +8,7 @@
  */
 // Gate: the shared-memory SessionStart hook self-heals using the canonical project-key module.
 import { tmpDir } from "./tmp-dir.mjs";
+import * as sharedConfig from "../lib/shared-memory-config.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -37,7 +38,7 @@ function freshHome({ withIndex = true } = {}) {
 	return td;
 }
 const run = (home, env = {}, stdin = "", cwd) =>
-	spawnSync(process.execPath, [hook], { encoding: "utf8", input: stdin, cwd, env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, '.pi', 'agent'), ...env } });
+	spawnSync(process.execPath, [hook], { encoding: "utf8", input: stdin, cwd, timeout: 5000, env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, '.pi', 'agent'), ...env } });
 
 /* --- 1. fail-open when there is no shared index ---------------------------------------- */
 {
@@ -241,6 +242,32 @@ if (process.platform === "win32") {
 	// req: R-386
 	check("CLAUDE_CONFIG_DIR: links under the alternate projects dir", fs.lstatSync(path.join(cfg, "projects", projectKey(project), "memory", "shared")).isSymbolicLink());
 }
+
+// Most entries were shortened at every seat start; hold typed guidance for lookup instead.
+const holdBackResults = [];
+for (const ending of ["\n", "\r\n", ""]) {
+	const home = freshHome();
+	const shared = path.join(home, ".claude", "nana-memory", "shared");
+	const idx = path.join(shared, "MEMORY.md");
+	const held = ["feedback_rule.md", "reference_guide.md", "project_fact.md"];
+	const kept = ["- [Preference](user_preference.md) — keep this preference whole \t", "- [Other](plain.md) — keep this entry whole ", "- [Link-less] — keep this entry too\t"];
+	const entries = [...held.map((file) => `- [Held](${file}) — ${"hidden guidance ".repeat(1000)} \t`), ...kept];
+	fs.writeFileSync(idx, entries.join(ending === "\r\n" ? ending : "\n") + ending);
+	const r = run(home, { CLAUDE_PROJECT_DIR: home }, JSON.stringify({ session_id: "hold-back", cwd: home }));
+	const log = path.join(home, ".pi", "agent", "nana-context-loads.jsonl");
+	const row = fs.existsSync(log) ? JSON.parse(fs.readFileSync(log, "utf8").trim().split("\n").at(-1)) : null;
+	const pointer = `[nana:shared-memory] ${held.length} entries held for lookup; full index: ${idx}`;
+	holdBackResults.push(r.status === 0 && !r.error && held.every((file) => !r.stdout.includes(file)) &&
+		!r.stdout.includes("hidden guidance") && kept.every((line) => r.stdout.includes(line + "\n")) &&
+		r.stdout.split(pointer).length === 2 && !r.stdout.includes("entries shortened") &&
+		row?.sessionId === "hold-back" && row.printedChars === r.stdout.length && row.fullChars > row.printedChars &&
+		JSON.stringify(row.omitted) === JSON.stringify(held) && row.shortened.length === 0 &&
+		JSON.stringify(row.whole) === JSON.stringify(["user_preference.md", "plain.md", null]));
+}
+// req: R-3987
+check("R-3987: typed memories stay out before budgeting while kept entries print whole and held links are logged",
+	holdBackResults.every(Boolean) && JSON.stringify(sharedConfig.SHARED_MEMORY_HELD_PREFIXES) === JSON.stringify(["feedback_", "reference_", "project_"]) &&
+	sharedConfig.SHARED_MEMORY_HELD_POINTER === "[nana:shared-memory] {count} entries held for lookup; full index: {index}", holdBackResults);
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
 process.exit(fails);
