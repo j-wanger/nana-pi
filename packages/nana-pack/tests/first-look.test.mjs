@@ -7,6 +7,8 @@
  * @errors A failed assertion exits 1.
  */
 import assert from "node:assert/strict";
+import { tmpDir } from "./tmp-dir.mjs";
+import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -23,7 +25,7 @@ async function test(title, fn) {
   } catch (error) { console.log("FAIL", title, error.message); process.exitCode = 1; }
   finally { clearTimeout(timer); }
 }
-const temp = () => fs.mkdtemp(path.join(os.tmpdir(), "nana-first-look-"));
+const temp = () => tmpDir(path.join(os.tmpdir(), "nana-first-look-"));
 const fakeBrowser = (calls) => ({
   async newPage({ viewport }) {
     calls.viewports.push(viewport.width);
@@ -178,6 +180,39 @@ await test("R-3143: invalid url-mode inputs refuse in one line before browser la
 await test("R-3148: first-look seals reference limits with provenance", async () => {
   assert.equal(REFERENCE_FRAME_CAP, 5); assert.equal(MAX_SPEC_LINES, 12);
   assert.deepEqual(ACCEPTED_IMAGE_EXTENSIONS, [".png", ".jpg", ".jpeg"]);
+});
+
+const root = fileURLToPath(new URL('../../../', import.meta.url));
+const browser = () => ({
+  async newPage() { return { async goto() {}, async evaluate() { return []; }, async emulateMedia() {}, async setViewportSize() {}, locator() { return { async ariaSnapshot() { return 'page'; } }; }, async screenshot({ path: file }) { await fs.writeFile(file, 'shot'); }, async close() {} }; }, async close() {},
+});
+const capture = (args, options = {}) => runFirstLook(args, { browser: async () => browser(), stdout() {}, ...options });
+// req: R-3779
+await test('R-3779: product capture still saves both sides and widths', async () => {
+  const dir = await temp();
+  try {
+    assert.equal(await capture(['--page', 'product', '--out', dir], { root, mergeBase: 'base', changedPaths: ['scripts/product-report.mjs'], runReport: async (_, out) => { await fs.writeFile(out, 'report'); return `file://${out}`; } }), 0);
+    for (const side of ['before', 'after']) for (const width of VIEWPORT_WIDTHS) assert.equal(await fs.readFile(path.join(dir, `${side}-${width}.png`), 'utf8'), 'shot');
+    await fs.access(path.join(dir, 'accessibility-diff.txt'));
+    assert(!/hive/i.test(await fs.readFile(path.join(root, 'scripts/first-look.mjs'), 'utf8')));
+  } finally { await fs.rm(dir, { recursive: true, force: true }); }
+});
+// req: R-3781
+await test('R-3781: surviving capture modes write files and retired options never launch', async () => {
+  const dir = await temp();
+  try {
+    const options = { root: path.join(dir, 'repo') }; const out = path.join(dir, 'out');
+    assert.equal(await capture(['--page', 'url', '--before', 'before', '--after', 'after', '--out', out], options), 0);
+    for (const side of ['before', 'after']) for (const width of VIEWPORT_WIDTHS) for (const suffix of ['', '-full']) await fs.access(path.join(out, `${side}-${width}${suffix}.png`));
+    const refs = path.join(dir, 'refs'); await fs.mkdir(refs); await fs.writeFile(path.join(refs, 'a.png'), 'reference'); const spec = path.join(dir, 'spec.md'); await fs.writeFile(spec, '1. Capture \r\n2. Keep trailing tab\t');
+    assert.equal(await capture(['--page', 'url', '--after', 'after', '--reference', refs, '--spec', spec, '--out', out], options), 0);
+    for (const file of ['manifest.json', 'side-by-side.html', 'spec.md', 'reference-1.png']) await fs.access(path.join(out, file));
+    assert.equal(await capture(['--page', 'desk', '--before', 'before', '--after', 'after'], { ...options, outputDir: out }), 0);
+    await fs.access(path.join(out, 'accessibility-diff.txt'));
+    for (const args of [['--page', 'hive', '--out', out], ['--page', 'url', '--hive', '--before', 'before', '--after', 'after', '--out', out]]) {
+      let launches = 0; assert.equal(await capture(args, { ...options, browser: async () => { launches++; return browser(); } }), 2); assert.equal(launches, 0);
+    }
+  } finally { await fs.rm(dir, { recursive: true, force: true }); }
 });
 
 if (!process.exitCode) console.log(`${passed} first-look checks passed`);
