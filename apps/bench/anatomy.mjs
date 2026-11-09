@@ -9,6 +9,6 @@
  */
 import { runAnatomy } from "./lib/anatomy.mjs";
 import { LABEL_MODEL, LABEL_EFFORT } from "./lib/anatomy-config.mjs";
-import { DOLLAR_CAP } from "../../packages/nana-pack/lib/memory-shaping-config.mjs";
-import { createRunner } from "../../scripts/memory-shape-runners.mjs";
+import { DOLLAR_CAP } from "./lib/anatomy-runner-config.mjs";
+import { createRunner } from "./lib/anatomy-runners.mjs";
 process.exitCode = await runAnatomy(process.argv.slice(2), { runModel: createRunner({ runner: "claude", model: LABEL_MODEL, effort: LABEL_EFFORT, budgetUsd: DOLLAR_CAP }) });

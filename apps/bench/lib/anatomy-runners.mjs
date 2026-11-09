@@ -1,18 +1,16 @@
 /**
- * @module scripts/memory-shape-runners.mjs
- * @purpose Adapt isolated Claude and pi subprocesses to the memory shaper's injected runner interface.
- * @inputs System prompt, stdin prompt, reply schema and optional injected spawn and runner choice.
+ * @module apps/bench/lib/anatomy-runners.mjs
+ * @purpose Adapt an isolated Claude subprocess to anatomy's injected model interface.
+ * @inputs System prompt, stdin prompt, reply schema and optional injected spawn and Claude options.
  * @outputs Safe ok/text/usage results without printing subprocess data.
- * @effects process (bounded piped children in OS temp); network (the chosen model through its CLI)
- * @errors Spawn, parse and incomplete-stream failures return ok false, never raw errors.
+ * @effects process (bounded piped children in OS temp); network (Claude through its CLI)
+ * @errors Spawn and parse failures return ok false, never raw errors.
  */
 import { spawnSync } from "node:child_process";
 import os from "node:os";
-import { callJudge } from "../apps/bench/lib/catch-judge.mjs";
-import { parseStream } from "../apps/bench/lib/usage.mjs";
-import { piLaunch } from "../packages/nana-pack/bin/pi-watchdog.mjs";
-import { claudeCommand } from "../packages/nana-pack/lib/claude-launch.mjs";
-import { CLAUDE_MODEL, CLAUDE_EFFORT, DOLLAR_CAP, MAX_BUFFER, PI_MODEL, PI_THINKING, RUNNER, TIMEOUT_MS } from "../packages/nana-pack/lib/memory-shaping-config.mjs";
+import { callJudge } from "./catch-judge.mjs";
+import { claudeCommand } from "../../../packages/nana-pack/lib/claude-launch.mjs";
+import { CLAUDE_MODEL, CLAUDE_EFFORT, DOLLAR_CAP, MAX_BUFFER, TIMEOUT_MS } from "./anatomy-runner-config.mjs";
 
 const options = (prompt, { maxBuffer = MAX_BUFFER, timeoutMs = TIMEOUT_MS } = {}) => ({ input: prompt, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], maxBuffer, timeout: timeoutMs, cwd: os.tmpdir(), windowsHide: true, env: { ...process.env, NANA_ROLE: "worker", NANA_HANDOFF: "off", CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" } });
 const failed = (usage = null) => ({ ok: false, text: "", usage });
@@ -48,25 +46,7 @@ export async function claudeRunner(input, { spawn, spawnSync: runSpawnSync = spa
  } catch { return failed(usage); }
 }
 
-/** Full stream completeness, not process exit or agent_settled alone, decides success. */
-export async function piRunner(input, { spawn = spawnSync } = {}) {
- try {
-  const opts = options(input.prompt);
-  const launch = piLaunch(["--mode", "json", "--no-session", "--no-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-context-files", "--system-prompt", input.system, "--model", PI_MODEL, "--thinking", PI_THINKING], { cwd: opts.cwd, env: opts.env });
-  if (launch.refused) return failed();
-  const child = spawn(launch.command, launch.args, opts);
-  const parsed = parseStream(child.stdout);
-  if (!parsed.complete) return failed();
-  const usage = parsed.usageMessages > 0 ? { tokens: parsed.tokens.totalTokens, cost: parsed.tokens.cost.total } : null;
-  if (child.error || child.status !== 0) return failed(usage);
-  return { ok: true, text: parsed.finalText, usage };
- } catch { return failed(); }
-}
-
-export function createRunner({ runner = RUNNER, spawn, ...overrides } = {}) {
- if (!["claude", "pi"].includes(runner)) throw new Error("invalid memory runner");
- if (runner === "pi" && ["model", "effort", "budgetUsd", "timeoutMs", "maxBuffer"].some(key => key in overrides)) throw new Error("Claude options require Claude runner");
- return (input) => runner === "claude"
-  ? claudeRunner(input, { ...overrides, ...(spawn === undefined ? {} : { spawn }) })
-  : piRunner(input, { spawn, ...overrides });
+export function createRunner({ runner = "claude", spawn, ...overrides } = {}) {
+ if (runner !== "claude") throw new Error("invalid anatomy runner");
+ return (input) => claudeRunner(input, { ...overrides, ...(spawn === undefined ? {} : { spawn }) });
 }

@@ -108,7 +108,7 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
     const {file,counter}=dailyCounter(gitdir,now);if(counter.count>=PROFILE_LIMITS.daily) throw Error(W.dailyCap);
     if(p.command==='supersede'&&claimId(p.claim)===id) throw Error(W.usage);
     commitProfile(dir,runGit,'Keep profile records');
-    const record=mergeMemory(dir,p,{env,now,saved:true});
+    const record=mergeMemory(dir,p,{env,now});
     if(p.command==='supersede') {
      if(previous.repository) {
       const date=now(),stamp=profileStamp(date);

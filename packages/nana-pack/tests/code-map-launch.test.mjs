@@ -140,6 +140,7 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		['packages/nana-pack/tests/brief-check.test.mjs -> packages/nana-pack/tests/slow-sampler.mjs', 'Cut A removes the slow command parity case; the retained brief-library cases no longer use the sampler.'],
 		['packages/nana-setup/tests/uninstall.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
 		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
 		['packages/nana-setup/tests/agent-dir-consumers.test.mjs -> packages/nana-setup/bin/nana-setup.mjs', 'desk cut 2026-11-09'],
@@ -225,11 +226,22 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 		...[['ci', 'records'], ['ts', 'syntax', 'check'], ['component', 'audit'], ['component', 'audit', 'config'], ['component', 'contract']].map(words => words.join('-')).map(name => `scripts/${name}.mjs`),
 		...[['review', 'timeline'], ['build', 'report'], ['ts', 'syntax', 'check'], ['component', 'audit'], ['profile', 'sync']].map(words => words.join('-')).map(name => `packages/nana-pack/tests/${name}.test.mjs`),
 	]);
+	const factoryCuts = new Set([
+		...[['nana', 'memory'], ['nana', 'curate']].map(words => `packages/nana-pack/bin/${cutStem(words)}.mjs`),
+		...[['memory', 'curation'], ['memory', 'curation', 'config'], ['memory', 'making'], ['memory', 'making', 'config'], ['memory', 'shaping'], ['memory', 'shaping', 'config'], ['memory', 'run'], ['memory', 'start']].map(words => `packages/nana-pack/lib/${cutStem(words)}.mjs`),
+		...[['memory', 'curate'], ['memory', 'make'], ['memory', 'run'], ['memory', 'shape'], ['memory', 'shape', 'runners']].map(words => `scripts/${cutStem(words)}.mjs`),
+		...[['memory', 'curation'], ['memory', 'cut', 'guidance'], ['memory', 'making'], ['memory', 'run'], ['memory', 'run', 'recovery'], ['memory', 'run', 'seals'], ['memory', 'session', 'end'], ['memory', 'shaping']].map(words => `packages/nana-pack/tests/${cutStem(words)}.test.mjs`),
+		`packages/nana-pack/tests/${cutStem(['memory', 'run', 'fixture'])}.mjs`,
+		`packages/nana-setup/claude/hooks/${cutStem(['nana', 'memory', 'end'])}.mjs`,
+	]);
+	losses.set('packages/nana-pack/lib/memory-store.mjs -> packages/nana-pack/lib/profile-config.mjs', 'Cut B retains only profile-compatible reads, saved merges and area-local writes.');
+	for (const target of ['lib/profile-sync.mjs', 'bin/nana-profile.mjs']) losses.set(`packages/nana-setup/lib/doctor.mjs -> packages/nana-pack/${target}`, 'Cut B removes factory-only run-health probes; hook retirement diagnostics stay.');
 	const graph = checkRepo().graph;
 	for (const entry of gitShow("57167e92",  "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];
 		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
 			const edge = `${path} -> ${match[1]}`;
+			if (factoryCuts.has(path) || factoryCuts.has(match[1])) losses.set(edge, 'Cut B 2026-11-09 removes the paused memory factory and dedicated tests; profile compatibility and anatomy readers stay.');
 			if (noReaderCuts.has(path) || noReaderCuts.has(match[1])) losses.set(edge, 'Cut A 2026-11-09 removes no-reader tools and their dedicated tests; live library consumers stay.');
 			if (memoryCuts.has(path) || memoryCuts.has(match[1])) losses.set(edge, 'FEAT-043 R-3860/R-3863 retire automatic delivery and completed instruments; surviving readers and assertions moved.');
 			if (retiredStudyModules.has(path)) losses.set(edge, `FEAT-034 retired study module ${path} and its runner-only tests; frozen records remain.`);

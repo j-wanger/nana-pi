@@ -9,8 +9,6 @@
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { streamEntriesIn, transcriptFiles } from '../../../packages/nana-pack/lib/claude-transcript.mjs';
-import { ownerTurn, textOnly } from '../../../packages/nana-pack/lib/memory-making.mjs';
-import { WRAPPER_TAGS } from '../../../packages/nana-pack/lib/memory-making-config.mjs';
 import { desiredHooks } from '../../../packages/nana-setup/lib/settings.mjs';
 import { projectKey } from '../../../packages/nana-setup/lib/project-key.mjs';
 import { SEAT_POLICY as P, SEAT_CLASS_FUNCTION } from './anatomy-config.mjs';
@@ -20,6 +18,22 @@ import { callClasses } from './anatomy-pulls.mjs';
 // Preserved recorded-transcript contract (R-3385), chosen 2026-11-01.
 // Reader-local configuration: no experiment runtime or shared-module move.
 export const SLOT_MARKERS = Object.freeze({ instruction: 'AutoMem', hooks: Object.freeze(['nana-shared-memory.mjs', 'nana-shared-memory', 'nana: shared memory index']), readPaths: Object.freeze(['memory/', 'memory\\', 'memory.md', 'shared-memory']) });
+
+// Preserved transcript policy, 2026-11-09: legacy command, reminder and notification traffic.
+const WRAPPER_TAGS = Object.freeze(["<command", "<local-command", "<system-reminder", "<task-notification", "[Request interrupted"]);
+const partsOf = (entry) => entry.message?.content ?? entry.content;
+const textOnly = (entry) => {
+ const content = partsOf(entry);
+ return typeof content === "string" ? content : Array.isArray(content) ? content.filter((p) => p?.type === "text" && typeof p.text === "string").map((p) => p.text).join("\n") : "";
+};
+function ownerTurn(entry) {
+ if (entry.type !== "user" || entry.isMeta || entry.isSidechain || entry.isCompactSummary) return false;
+ const parts = partsOf(entry);
+ if (Array.isArray(parts) && parts.some((p) => p?.type === "tool_result")) return false;
+ if (entry.origin !== undefined) return entry.origin?.kind === "human";
+ const text = textOnly(entry).trimStart();
+ return !WRAPPER_TAGS.some((tag) => text.toLowerCase().startsWith(tag.toLowerCase()));
+}
 
 // Select strings only, never recursive object values: ids and paths are not payload.
 function strings(value) {

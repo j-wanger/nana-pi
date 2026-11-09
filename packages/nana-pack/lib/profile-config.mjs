@@ -6,7 +6,12 @@
  * @effects none
  * @errors none
  */
-import { SOURCE_WORDS, USER_KIND_WORDS, ROLES, STARTING_STATE } from './memory-making-config.mjs';
+// Preserved record vocabulary (2026-11-09): saved profiles and existing extracted records.
+export const SOURCE_WORDS = Object.freeze(["extracted", "saved"]);
+export const USER_KIND_WORDS = Object.freeze(["correction", "decision", "preference", "fact", "thinking"]);
+export const ROLES = Object.freeze({ user: Object.freeze(["seat"]) });
+export const STARTING_STATE = Object.freeze({ trust: "low" });
+export const CANDIDATE_FIELDS = ["id", "type", "kind", "claim", "quote", "context", "evidence", "date", "trust", "source", "roles", "validFrom", "invalidAt", "supersedes"];
 // Chosen 2026-10-31 (R-3237): three independent statements before medium trust.
 export const PROFILE_MEDIUM_SESSIONS = 3;
 // Chosen 2026-10-31 (R-3238): below the shared-memory hook budget; room for other context.
@@ -40,7 +45,7 @@ export const PROFILE_REMOTE_FORMS = Object.freeze([
 // Chosen 2026-10-31 (R-3248): independent append-only records/events and git-local controls.
 export const PROFILE_LAYOUT = Object.freeze({records:'records',events:'events',marker:'.nana-profile',lock:'nana-profile.lock',counter:'nana-profile-day.json',attributes:'* -text\n',readme:'Private owner profile. Records are append-only JSON; use nana-profile, never edit records by hand.\n'});
 // Chosen 2026-10-31 (R-3249): fixed diagnostics reveal no transport or home path.
-// Shared shape words belong to memory-making; only this lane's choices and diagnostics live here.
+// Profile shape words and diagnostics remain compatible with existing records.
 export const PROFILE_WORDS = Object.freeze({
  initialized:'profile: initialized',synced:'profile: synced',saved:'Saved: ',notPushed:'not pushed: ',unverified:'profile: unverified remote',recovered:'profile: aborted stopped rebase',fold:'[nana:owner-profile] records left out: ',conflict:'[nana:owner-profile] competing superseders: ',
  quote:'profile refused: --quote is required',decision:'profile refused: decision belongs in nana-rulings.md',openThread:'profile refused: open-thread belongs in GitHub issues',kind:'profile refused: unsupported kind',claimCap:'profile refused: claim exceeds cap',quoteCap:'profile refused: quote exceeds cap',dailyCap:'profile refused: daily save cap',role:'profile refused: NANA_ROLE is set',worktree:'profile refused: linked worktree',disabled:'profile refused: saving is not enabled on this machine',pointer:'profile refused: run init --dir <clone>',private:'profile refused: push target is not verified private; use --unverified-remote explicitly',checkout:'profile refused: nana-pi checkout or push target',marker:'profile refused: missing store marker',repeatedQuote:'profile refused: confirmation needs new owner words',unknown:'profile refused: unknown record',locked:'profile refused: locked',dirty:'profile refused: clone has changes outside the store',git:'profile refused: git failed',config:'profile refused: invalid user configuration',usage:'profile refused: invalid command or flags',

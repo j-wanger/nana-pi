@@ -12,8 +12,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { check, fixture, ok, refused, files, save, root } from './profile-fixture.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
-import { CANDIDATE_FIELDS, SOURCE_WORDS, USER_KIND_WORDS, ROLES, STARTING_STATE } from '../lib/memory-making-config.mjs';
-import { resolveEvidence } from '../lib/memory-making.mjs';
+import { CANDIDATE_FIELDS, SOURCE_WORDS, USER_KIND_WORDS, ROLES, STARTING_STATE } from '../lib/profile-config.mjs';
 const [, decision, preference, fact] = USER_KIND_WORDS;
 const config = () => import('../lib/profile-config.mjs');
 const store = () => import('../lib/profile-store.mjs');
@@ -28,7 +27,6 @@ await check('a save writes one shape record into the private clone and nowhere e
   const out=ok(save(f,claim,quote)); const list=files(f.dir); assert.equal(list.length,1);
   const r=parseJsonBytes(fs.readFileSync(list[0])); const date=new Date().toISOString().slice(0,10);
   const expected={id:S.claimId(claim),type:C.PROFILE_WORDS.type,kind:preference,claim,quote,context:'',evidence:`${C.PROFILE_WORDS.evidencePrefix}:${C.PROFILE_WORDS.runtimeClaude}:session-1:${date}`,date,trust:STARTING_STATE.trust,source:SOURCE_WORDS[1],roles:ROLES.user,validFrom:date,invalidAt:null,supersedes:[]};
-  assert.deepEqual(await resolveEvidence(r.evidence,{},r),{status:'resolved',texts:[quote]});
   assert.deepEqual(Object.keys(r),CANDIDATE_FIELDS); assert.deepEqual(r,expected); assert.equal(out.includes(`${C.PROFILE_WORDS.saved}${claim} (${r.id})`),true);
   assert.equal(t.git(f.dir,'status','--porcelain'),''); assert.equal(t.git(f.dir,'ls-files','records').split('\n').filter(p=>p.endsWith('.json')).length,1);
   assert.equal(spawnSync('git',['status','--porcelain'],{cwd:root,encoding:'utf8'}).stdout,before);

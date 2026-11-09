@@ -11,7 +11,7 @@ import * as path from 'node:path';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { parseJsonBytes } from './json-text.mjs';
 import { readBounded } from './bounded-read.mjs';
-import { CANDIDATE_FIELDS, USER_KIND_WORDS } from './memory-making-config.mjs';
+import { CANDIDATE_FIELDS, USER_KIND_WORDS } from './profile-config.mjs';
 import { suiteRecordStamp } from './suite-records.mjs';
 import { PROFILE_MEDIUM_SESSIONS, PROFILE_SHOW_BUDGET, PROFILE_LIMITS, PROFILE_SESSION_VARIABLES, PROFILE_STAMP_FORMAT, PROFILE_PATH_POLICY, PROFILE_LAYOUT as L, PROFILE_WORDS as W } from './profile-config.mjs';
 

@@ -84,7 +84,7 @@
     { "path": "packages/nana-setup/tests/win-shims.test.mjs", "reason": "Shell resolver and native command paths do not trace." },
     { "path": "packages/nana-setup/tests/win-shims-sh.test.mjs", "reason": "Extracted shell resolver and native command paths do not trace." },
     { "path": "packages/nana-setup/tests/win32-degrade.test.mjs", "reason": "Native shell executable comes from an environment-derived path." },
-    { "path": "scripts/memory-shape-runners.mjs", "reason": "Injected model spawn plus Claude and pi launch resolvers select external CLI programs." },
+    { "path": "apps/bench/lib/anatomy-runners.mjs", "reason": "Injected model spawn and the Claude launch resolver select the external CLI program." },
     { "path": "scripts/runtime-measure.mjs", "reason": "Measurement starts a caller-provided suite program." },
     { "path": "scripts/template-acceptance.mjs", "reason": "Shell evaluates the rendered template toolchain." },
     { "path": "scripts/test-locked.mjs", "reason": "Locked suite program comes from the command boundary." }

@@ -11,7 +11,7 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { check, fixture, ok, refused, save, root } from './profile-fixture.mjs';
-import { USER_KIND_WORDS } from '../lib/memory-making-config.mjs';
+import { USER_KIND_WORDS } from '../lib/profile-config.mjs';
 const [, , , fact] = USER_KIND_WORDS;
 const config = () => import('../lib/profile-config.mjs');
 const init = f => ok(f.run(['init','--dir',f.dir,'--save']));

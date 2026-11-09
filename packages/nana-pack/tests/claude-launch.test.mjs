@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/claude-launch.test.mjs
- * @purpose Pin safe Windows npm Claude resolution and exact memory-runner process arguments.
+ * @purpose Pin safe Windows npm Claude resolution and exact anatomy-runner process arguments.
  * @inputs Injected Windows PATH and package fixtures plus Claude runner spawn seams.
  * @outputs Named PASS/FAIL/SKIP lines.
  * @effects disk (OS temporary echo fixtures); process (echo child on Windows).
@@ -11,7 +11,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { claudeRunner, createRunner } from "../../../scripts/memory-shape-runners.mjs";
+import { claudeRunner, createRunner } from "../../../apps/bench/lib/anatomy-runners.mjs";
 let claudeCommand;
 try { ({ claudeCommand } = await import("../lib/claude-launch.mjs")); } catch { claudeCommand = () => ({ refused: "resolver not implemented" }); }
 import { tmpDir } from "./tmp-dir.mjs";
@@ -118,7 +118,7 @@ await check("win32 default spawn preserves byte-sensitive argv without a shell",
  const echo = path.join(dir, "echo.cjs");
  fs.writeFileSync(echo, "const model=process.argv[2];const argv=process.argv.slice(3);process.stdout.write(JSON.stringify({structured_output:{argv},modelUsage:{[model]:{}},total_cost_usd:0,result:'ok'}))");
  const input = { system: "sys", prompt: "prompt", schema: { type: "object" } };
- const { CLAUDE_MODEL, CLAUDE_EFFORT } = await import("../lib/memory-shaping-config.mjs");
+ const { CLAUDE_MODEL, CLAUDE_EFFORT } = await import("../../../apps/bench/lib/anatomy-runner-config.mjs");
  const result = await claudeRunner(input, { platform: "win32", resolveLaunch: (args) => ({ command: process.execPath, args: [echo, CLAUDE_MODEL, ...args, ...ARGS] }), spawnSync: (command, args, opts) => { assert.equal(opts.shell, undefined); assert.equal(opts.windowsVerbatimArguments, undefined); return spawnSync(command, args, opts); } });
  assert.equal(result.ok, true); assert.deepEqual(JSON.parse(result.text).argv, ["-p", "--model", CLAUDE_MODEL, "--output-format", "json", "--json-schema", JSON.stringify(input.schema), "--tools", "", "--strict-mcp-config", "--no-session-persistence", "--setting-sources", "", "--system-prompt", input.system, "--max-budget-usd", "0.5", "--effort", CLAUDE_EFFORT, ...ARGS]);
  assert.ok(!result.text.includes('"shell"'));

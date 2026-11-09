@@ -13,7 +13,7 @@ import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { parseJsonBytes } from '../lib/json-text.mjs';
-import { USER_KIND_WORDS } from '../lib/memory-making-config.mjs';
+import { USER_KIND_WORDS } from '../lib/profile-config.mjs';
 import { GH_COMMAND_ENV } from '../lib/suite-records-config.mjs';
 import { TEMP_REMOVE_RETRIES, TEMP_REMOVE_RETRY_DELAY_MS } from '../lib/test-runner-config.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
