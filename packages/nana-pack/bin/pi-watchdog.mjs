@@ -8,7 +8,7 @@
  * @effects process (spawns pi detached, or an injected launch with its requested detached option,
  *  per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal,
  *  shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
- *  stderr under the optional capture root; explicit persistent pi attempt session folders and post-attempt load logs when contextLoad is supplied; on win32 a PATH lookup, a `package.json` read and the entry's stat)
+ *  stderr under the optional capture root; explicit persistent pi attempt session files and post-attempt load logs when contextLoad is supplied; on win32 a PATH lookup, a `package.json` read and the entry's stat)
  * @errors never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive
  *  --stall-secs/--poll or a non-whole --retries, a spawn failure or stall returns ok:false with the
  *  partial text, and a win32 launch refusal is returned as `{refused}` and treated as a failed attempt
@@ -162,11 +162,11 @@ async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, sta
   if (opts.contextLoad) {
     try {
       const stamp = `${new Date().toISOString().replace(/[:.]/g, '-')}_${randomUUID()}`;
-      const folder = join(buildSessionDir(cwd, childEnv.PI_CODING_AGENT_SESSION_DIR ?? process.env.PI_CODING_AGENT_SESSION_DIR), stamp);
+      const folder = buildSessionDir(cwd, childEnv.PI_CODING_AGENT_SESSION_DIR ?? process.env.PI_CODING_AGENT_SESSION_DIR);
       mkdirSync(folder, { recursive: true });
       sessionFile = join(folder, `${stamp}.jsonl`);
       args.push('--session', sessionFile);
-    } catch { sessionReason = 'attempt session folder unavailable'; }
+    } catch { sessionReason = 'attempt session directory unavailable'; }
   }
   try {
   const launcher = opts.launch ?? piLaunch;

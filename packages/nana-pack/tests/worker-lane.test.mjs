@@ -265,8 +265,8 @@ check("R-2581: pi builders receive a known-bug read instruction instead of an in
 	const bugBytes = fs.readFileSync(bugFile);
 	const cases = [
 		["Feature: FEAT-006 · Worker\n\nPrecedent:\n- seed\n", 3, bugRelative, bugRelative],
-		["Feature: FEAT-006 · Worker\r\n\r\nPrecedent:\r\n- seed\r\n", 3, bugRelative, bugRelative],
-		["Feature: FEAT-012 · Missing\n\nPrecedent:\n- seed\n", 3, "none", "docs/known-bugs/FEAT-012.md"],
+		["Feature: FEAT-006 · Worker \t\r\n\r\nPrecedent:\r\n- seed\r\n", 3, bugRelative, bugRelative],
+		["Feature: FEAT-012 · Missing\n\nPrecedent:\n- seed", 3, "none"],
 		["This prose mentions FEAT-006 but is not a feature line.\n\nPrecedent:\n- seed\n", 2, "none"],
 	];
 	const ordinary = cases.every(([text, promptCount, launchValue, readPath]) => {
@@ -275,7 +275,7 @@ check("R-2581: pi builders receive a known-bug read instruction instead of an in
 		const prompts = output.split("\n").filter((arg) => arg === "--append-system-prompt").length;
 		const copied = promptCount === 3 && fs.existsSync(path.join(temp, "prompt-3")) ? fs.readFileSync(path.join(temp, "prompt-3")) : null;
 		return result.status === 0 && prompts === promptCount && result.stderr.includes(`known bugs: ${launchValue}`) &&
-			(promptCount === 2 ? !fs.existsSync(path.join(temp, "prompt-3")) && !output.includes("unplaced.md") : copied.toString() === `Read \`${readPath}\` (this feature's known bugs) before you change code.` && !output.includes(real(bugFile)));
+			(promptCount === 2 ? !fs.existsSync(path.join(temp, "prompt-3")) && !output.includes("unplaced.md") : copied.toString() === (readPath ? `Read \`${readPath}\` (this feature's known bugs) before you change code.` : "No known bugs are recorded for this feature.") && !output.includes(real(bugFile)));
 	});
 	fs.rmSync(bugFile);
 	fs.mkdirSync(bugFile);
@@ -284,7 +284,8 @@ check("R-2581: pi builders receive a known-bug read instruction instead of an in
 	fs.rmSync(bugFile, { recursive: true, force: true });
 	fs.writeFileSync(bugFile, bugBytes);
 	return ordinary && directoryCase.status === 0 && directoryOutput.split("\n").filter((arg) => arg === "--append-system-prompt").length === 3 &&
-		directoryCase.stderr.includes("known bugs: none") && !directoryOutput.includes("unplaced.md");
+		directoryCase.stderr.includes("known bugs: none") && !directoryOutput.includes("unplaced.md") &&
+		fs.readFileSync(path.join(temp, "prompt-3"), "utf8") === "No known bugs are recorded for this feature.";
 })());
 
 // req: R-2578 R-2581

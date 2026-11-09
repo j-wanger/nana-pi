@@ -958,7 +958,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **purpose** — Start pi, or an injected command launch, under a CPU-liveness watchdog that kills and retries flat attempts and cleans up child trees on signals.
 - **inputs** — launcher argv and child args, child CPU samples, caller accept predicate, optional launch resolver, capture root, spawn callback and pi context-load metadata, and Windows PATH, PATHEXT and pi package metadata
 - **outputs** — {ok, text, attempt} with captured output, signal-aborted status, parseCpuSample seconds/null, per-poll `cpu=…s` or `cpu=unreadable` flat=n/m, STALL and attempt lines on stderr, the RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
-- **effects** — process (spawns pi detached, or an injected launch with its requested detached option, per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and stderr under the optional capture root; explicit persistent pi attempt session folders and post-attempt load logs when contextLoad is supplied; on win32 a PATH lookup, a `package.json` read and the entry's stat)
+- **effects** — process (spawns pi detached, or an injected launch with its requested detached option, per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and stderr under the optional capture root; explicit persistent pi attempt session files and post-attempt load logs when contextLoad is supplied; on win32 a PATH lookup, a `package.json` read and the entry's stat)
 - **errors** — never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive --stall-secs/--poll or a non-whole --retries, a spawn failure or stall returns ok:false with the partial text, and a win32 launch refusal is returned as `{refused}` and treated as a failed attempt
 - **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/review-ledger-state.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `scripts/memory-shape-runners.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/pi-package.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/win-command.mjs`
@@ -2454,7 +2454,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Failed assertions set a nonzero exit status.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/known-bug-digest-config.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`
-- **unresolved launches** — line 62: spawnSync; binding line 79; binding line 95; binding line 117; binding line 133; binding line 156; binding line 175; binding line 178; binding line 188; binding line 197; binding line 212; binding line 219; binding line 220; binding line 224; binding line 256 · line 240: spawnSync; binding line 230; binding line 232; binding line 243
+- **unresolved launches** — line 62: spawnSync; binding line 79; binding line 95; binding line 117; binding line 133; binding line 156; binding line 173; binding line 200; binding line 211; binding line 214; binding line 224; binding line 233; binding line 248; binding line 255; binding line 256; binding line 260; binding line 292 · line 276: spawnSync; binding line 266; binding line 268; binding line 279
 
 ### `packages/nana-pack/tests/credential-gate.test.mjs`
 
@@ -3975,7 +3975,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — failed assertions exit nonzero
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/known-bugs.mjs`
-- **unresolved launches** — line 293: spawnSync
+- **unresolved launches** — line 294: spawnSync
 
 ### `packages/nana-pack/tests/worker-refusal.test.mjs`
 

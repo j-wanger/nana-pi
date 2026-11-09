@@ -483,7 +483,7 @@ function checkInstructionContracts() {
 		[
 			"| Claude Code seat | SessionStart `nana-objective.mjs` (objective/frontier), `nana-adoption.mjs`, `nana-shared-memory.mjs`; nana-soul / nana-standards; shared nana-writing rule and `nana-rulings.md` | No nana Gate or Verifier pipe; Claude-owned Compaction summary, no nana HANDOFF producer; `nana-roster-notice.mjs` notice |",
 			"| pi TUI session | `nana-objective`, `nana-frontier-summary`; `nana-writing`, `nana-rulings`; no soul/standards or shared auto-memory | `nana-gate` for bash/PowerShell; `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction; `nana-roster-notice` widget |",
-			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; frontier adds nothing under `NANA_ROLE` | Same gate/journal; roster notice has no UI |",
+			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; no objective/frontier for launcher `NANA_ROLE` | Same gate/journal; roster notice has no UI |",
 			"| Codex | Unsupported; no nana runtime contract | Not specified |",
 		].every((v) => shared.includes(v)));
 

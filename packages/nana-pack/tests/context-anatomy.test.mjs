@@ -163,6 +163,42 @@ test('R-3211: cloud carry preserves settings-only logins without exposing values
     }
   }
 });
+// req: R-3212
+test('R-3212: over-cap digests and Claude builders keep header brief matches and maximal whole tail', async () => {
+  const { digestKnownBugs } = await import('../lib/known-bug-digest.mjs');
+  const capacity = await cap();
+  for (const newline of ['\n', '\r\n']) {
+    const f = fixture(), data = over(capacity, newline); write(f.bug, data.text);
+    const delivered = digestKnownBugs(data.text, 'docs/known-bugs/FEAT-006.md', f.briefText).text;
+    const claude = launch(f, 'pi-worker', ['--lane-size', 'larger']); good(claude);
+    assert.ok(delivered.length - data.header.length <= capacity); assert.ok(delivered.startsWith(data.header)); assert.ok(delivered.includes(data.lines[2])); assert.ok(delivered.includes(data.lines.at(-1)));
+    assert.ok(claude.call.prompt.endsWith(delivered));
+    const kept = delivered.split(/\r?\n/).filter(l=>l.startsWith('- ')); for (const line of kept) assert.ok(data.lines.includes(line));
+    const omitted = data.lines.length - kept.length;
+    assert.ok(delivered.endsWith(`${omitted} known-bug lines omitted for size; read the whole file docs/known-bugs/FEAT-006.md before you report the known bugs your change touches.`));
+    const next = data.lines.filter(l=>!kept.includes(l)).at(-1); assert.ok(delivered.length - data.header.length + next.length + newline.length > capacity);
+    const loads = rows(f.log); const part = loads[0].parts.find(p=>p.name==='known bugs'); assert.equal(part.fullChars, data.text.length); assert.equal(part.deliveredChars, delivered.length);
+  }
+  for (const newline of ['\n', '\r\n']) {
+    const header = '# Huge header ' + '你'.repeat(capacity + 1) + ' \t' + newline + newline;
+    const line = '- fits after header \t';
+    const source = 'docs/known-bugs/FEAT-006.md';
+    const text = header + line + newline + '- ' + 'é'.repeat(capacity * 2);
+    const result = digestKnownBugs(text, source);
+    assert.ok(result.text.startsWith(header + line + newline));
+    assert.ok(result.text.length - header.length <= capacity);
+    assert.ok(result.text.endsWith(`1 known-bug lines omitted for size; read the whole file ${source} before you report the known bugs your change touches.`));
+    assert.equal(digestKnownBugs(header.trimEnd(), source).text, header.trimEnd());
+  }
+});
+// req: R-3213
+test('R-3213: exactly-at-cap non-ASCII digests and Claude builder files pass unchanged', async () => {
+  const { digestKnownBugs } = await import('../lib/known-bug-digest.mjs');
+  const capacity = await cap(), f = fixture(); const text = '# 你好\r\n\r\n- ' + 'é'.repeat(capacity - '# 你好\r\n\r\n- '.length - 2) + ' \t'; write(f.bug, text);
+  assert.equal(text.length, capacity); assert.ok(Buffer.byteLength(text)>capacity);
+  assert.equal(digestKnownBugs(text, 'docs/known-bugs/FEAT-006.md', f.briefText).text, text);
+  const claude = launch(f, 'pi-worker', ['--lane-size', 'larger']); good(claude); assert.ok(claude.call.prompt.endsWith(text));
+});
 // req: R-3214
 test('R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading', async () => {
   const { reviewKnownBugSection, digestKnownBugs } = await import('../lib/known-bug-digest.mjs');
