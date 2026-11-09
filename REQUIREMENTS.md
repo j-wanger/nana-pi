@@ -3080,9 +3080,9 @@ Reads: A-009 · packages/nana-pack/lib/suite-records.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-3960 | WHEN a lane merges main into a covered first parent with the computed clean-merge tree and passing merge-tip CI, nana-land shall fast-forward to that merge without new review. | planned | M1 in land-merge.test.mjs. |
-| R-3961 | WHEN a lane merge hides an edit beyond the computed clean-merge tree, nana-land shall refuse naming the uncovered merge commit. | planned | M2 in land-merge.test.mjs. |
-| R-3962 | WHEN a lane merge resolves only generated-file conflicts with the computed regenerated tree over a covered first parent and a second parent in main history, nana-land shall count that merge as covered. | planned | M3 in land-merge.test.mjs. |
+| R-3960 | WHEN a lane merges main into a covered first parent with the computed clean-merge tree and passing merge-tip CI, nana-land shall fast-forward to that merge without new review. | implemented | `packages/nana-pack/tests/land-merge.test.mjs::M1: exact lane merges are covered and land with merge-tip CI` |
+| R-3961 | WHEN a lane merge hides an edit beyond the computed clean-merge tree, nana-land shall refuse naming the uncovered merge commit. | implemented | `packages/nana-pack/tests/land-merge.test.mjs::M2: a hidden merge edit is uncovered and named` |
+| R-3962 | WHEN a lane merge resolves only generated-file conflicts with the computed regenerated tree over a covered first parent and a second parent in main history, nana-land shall count that merge as covered. | implemented | `packages/nana-pack/tests/land-merge.test.mjs::M3: a generated-conflict lane merge is covered after regeneration` |
 | R-3963 | WHEN main is not contained in the source tip, nana-land shall refuse with the merge-in-lane, push and CI remedy without changing main, retaining fast-forward lands otherwise. | planned | M4 in land-merge.test.mjs. |
 | R-3964 | The live ruling, shared working section and rendered AGENTS shall require merging main in the lane and CI on that merge rather than landing without CI. | planned | M5 in land-merge.test.mjs. |
 | R-3928 | The one-time records move check shall protect folders named outside reviews and sessions by full path, folder name, expanded braces or a basename unique to one folder, and folders changed since 2026-11-01 including first-parent merge changes. | implemented | `packages/nana-pack/tests/records-move.test.mjs::M1: derive protections and reject missing or excess folders` |

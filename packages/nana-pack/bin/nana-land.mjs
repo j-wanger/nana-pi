@@ -220,7 +220,17 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 			}
 		};
 		checkRecords(firstRead.rounds, firstRead.reservations);
-		const unreviewed = git(runGit, tree, "rev-list", tip, "--not", capturedMain, ...reviewRefs).split(/\r?\n/).filter(Boolean);
+		const candidates = git(runGit, tree, "rev-list", "--reverse", "--topo-order", tip, "--not", capturedMain, ...reviewRefs).split(/\r?\n/).filter(Boolean);
+		const uncovered = new Set(candidates);
+		for (const sha of candidates) {
+			const parents = git(runGit, tree, "show", "-s", "--format=%P", sha).split(" ");
+			if (parents.length !== 2 || uncovered.has(parents[0]) || !isAncestor(runGit, parents[1], capturedMain, main)) continue;
+			try {
+				const computed = cleanMergeTree(runGit, main, parents[0], parents[1], { generatorContract, generatorTimeoutMs, runGenerator });
+				if (computed.tree === git(runGit, tree, "rev-parse", `${sha}^{tree}`)) uncovered.delete(sha);
+			} catch { /* Unsupported or conflicting trees never earn review coverage. */ }
+		}
+		const unreviewed = candidates.filter(sha => uncovered.has(sha));
 		if (unreviewed.length) {
 			const named = unreviewed.map((sha) => `${sha} ${git(runGit, tree, "show", "-s", "--format=%s", sha)}`);
 			throw new Error(`uncovered commits (get it reviewed with a new round on the tip or drop it): ${named.join("; ")}`);

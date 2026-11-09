@@ -23,7 +23,59 @@ import * as landConfig from "../lib/land-config.mjs";
 const { LAND_NOTE_PREFIX, LAND_TIP_ENV } = landConfig;
 import { COMPLETION_FILE, COVERAGE_ENV } from "../lib/runtime-map-config.mjs";
 import { checkoutDrift, hashFile } from "../lib/runtime-map.mjs";
+import { check as boundedCheck } from './profile-fixture.mjs';
+import { cleanMergeFixture, executeCleanMerge, regenerateFixture, mergeSnapshot } from './land-fixtures.mjs';
 
+{
+const check = boundedCheck;
+// req: R-3960
+await check('M1: exact lane merges are covered and land with merge-tip CI', () => {
+ const f = cleanMergeFixture('covered');
+ const accepted = reviewTip(f.feature, f.home); f.reviewed = [`${accepted}=item`];
+ git(f.feature, 'merge', '--no-ff', '--no-edit', f.capturedMain);
+ // Coverage must propagate through more than one unreviewed merge, including an older main parent.
+ const firstMerge = git(f.feature, 'rev-parse', 'HEAD');
+ commit(f.main, 'later.txt', 'later main\n', 'later main');
+ git(f.feature, 'merge', '--no-ff', '--no-edit', 'main');
+ f.tip = git(f.feature, 'rev-parse', 'HEAD');
+ const out = executeCleanMerge(f);
+ assert.equal(out.code, 0, out.text); assert.equal(out.suites, 0);
+ assert.equal(git(f.main, 'rev-parse', 'HEAD'), f.tip);
+ assert(out.calls.filter(args => args.at(-1).includes('/actions/runs?')).every(args => args.at(-1).includes(`head_sha=${f.tip}&`)));
+ withReviewLedgerLock(f.home, ({ rounds }) => assert(!rounds.some(row => [firstMerge, f.tip].includes(row.revision))));
+});
+
+// req: R-3961
+await check('M2: a hidden merge edit is uncovered and named', () => {
+ const f = cleanMergeFixture('hidden');
+ f.reviewed = [`${reviewTip(f.feature, f.home)}=item`];
+ git(f.feature, 'merge', '--no-ff', '--no-edit', f.capturedMain);
+ writeFileSync(path.join(f.feature, 'lane.txt'), 'hidden edit\n');
+ git(f.feature, 'add', 'lane.txt'); git(f.feature, 'commit', '--amend', '--no-edit');
+ f.tip = git(f.feature, 'rev-parse', 'HEAD');
+ const before = mergeSnapshot(f), out = executeCleanMerge(f);
+ assert.equal(out.code, 1, out.text); assert.match(out.text, /uncovered commits/); assert(out.text.includes(f.tip));
+ assert.deepEqual(mergeSnapshot(f), before); assert.equal(out.calls.length, 0);
+});
+
+// req: R-3962
+await check('M3: a generated-conflict lane merge is covered after regeneration', () => {
+ const f = regenerateFixture('covered');
+ const accepted = reviewTip(f.feature, f.home); f.reviewed = [`${accepted}=item`];
+ // The oracle independently merged ordinary sources and ran the real generators.
+ git(f.oracle, 'add', '--', ...landConfig.CLEAN_MERGE_GENERATED_PATHS);
+ git(f.oracle, 'commit', '-m', 'independent regenerated oracle');
+ git(f.feature, 'fetch', f.oracle, 'HEAD');
+ const expectedTree = git(f.oracle, 'write-tree');
+ const merged = git(f.feature, 'commit-tree', expectedTree, '-p', accepted, '-p', f.capturedMain, '-m', 'regenerated lane merge');
+ git(f.feature, 'reset', '--hard', merged); f.tip = merged;
+ const out = executeCleanMerge(f);
+ assert.equal(out.code, 0, out.text); assert.equal(out.suites, 0);
+ assert.equal(git(f.main, 'rev-parse', 'HEAD'), merged);
+ for (const [file, expected] of Object.entries(f.expected)) assert.equal(readFileSync(path.join(f.main, file), 'utf8'), expected);
+});
+
+}
 import { PI_REVIEW, TEST_LOCKED, assertCiRefused, recordTextReview, runLand, tallyRows, writeTallyRows } from "./land-checks.mjs";
 let failures = 0;
 const check = (title, fn) => {
@@ -329,4 +381,4 @@ check("normalized checkout review lands its exact tip", () => {
 	assert.equal(git(main, "rev-parse", "HEAD"), tip);
 });
 
-process.exit(failures ? 1 : 0);
+process.exitCode = failures || process.exitCode ? 1 : 0;
