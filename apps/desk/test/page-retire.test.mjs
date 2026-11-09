@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import http from 'node:http';
 import path from 'node:path';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
@@ -120,19 +120,6 @@ await test('R-3793: desk and both app listeners reject foreign Host and Origin',
       assert.equal((await request(base, '/')).status, 200);
     }
   });
-});
-
-// req: R-3795
-await test('R-3795: retired rows, app-host README and repository checks agree', options, () => {
-  const ledger = fs.readFileSync(path.join(root, 'REQUIREMENTS.md'), 'utf8');
-  for (const id of ['R-406', 'R-414', 'R-422', 'R-457']) assert.match(ledger, new RegExp(`\\| ${id} \\|[^\\n]+\\| retired \\|`));
-  const readme = fs.readFileSync(path.join(root, 'apps/desk/README.md'), 'utf8');
-  assert.match(readme, /app host/i); assert.match(readme, /retired/i);
-  assert.ok(!readme.includes('Default desk spawn'));
-  for (const [script, args] of [['code-map.mjs', ['--check']], ['readme-check.mjs', []], ['requirements-tree.mjs', []], ['component-audit.mjs', []]]) {
-    const result = spawnSync(process.execPath, [path.join(root, 'scripts', script), ...args], { cwd: root, encoding: 'utf8', timeout: 20000 });
-    assert.equal(result.status, 0, result.stdout + result.stderr);
-  }
 });
 
 async function browserFixture(body) {

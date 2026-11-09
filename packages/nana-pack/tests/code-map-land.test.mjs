@@ -37,11 +37,6 @@ const { problems, line } = checkRepo();
 console.log(line);
 // req: G-004 G-009 G-010
 check("the repo's code map is current and every module has a contract header", problems.length === 0, problems.join("\n  "));
-// the documented command is the one that runs: `npm run map:check` from the repo root
-const cli = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "code-map.mjs"), "--check"], {
-	cwd: REPO_ROOT,
-	encoding: "utf-8",
-});
-check("scripts/code-map.mjs --check exits 0 on a clean repo", cli.status === 0, `${cli.stdout ?? ""}${cli.stderr ?? ""}`);
+// CI's Repository checks step runs the real map CLI directly.
 
 if (fails) process.exitCode = 1;

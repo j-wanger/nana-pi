@@ -341,7 +341,6 @@ The desk, the bench and this repo's own scripts — the entry points. They may i
 - **errors** — Assertions, timeouts and missing browser tooling fail the owning case.
 - **callers** — —
 - **callees** — `apps/desk/server.mjs`, `apps/desk/test/stop-server.mjs`, `apps/desk/test/test-case.mjs`, `apps/desk/test/tmp-dir.mjs`, `packages/nana-pack/lib/windows-skips-config.mjs`, `packages/nana-stage/lib/sign.mjs`
-- **unresolved launches** — line 133: spawnSync
 
 ### `apps/desk/test/pi-resolution.test.mjs`
 
@@ -2635,7 +2634,6 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map-launch-config.mjs`, `scripts/code-map.mjs`, `scripts/requirements-trace.mjs`
-- **unresolved launches** — line 41: spawnSync
 
 ### `packages/nana-pack/tests/code-map-launch.test.mjs`
 
@@ -3683,7 +3681,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **errors** — a failed check prints FAIL with the problem list and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/readme-check.mjs`
-- **unresolved launches** — line 46: spawnSync · line 58: spawnSync · line 97: spawnSync
+- **unresolved launches** — line 54: spawnSync · line 93: spawnSync
 
 ### `packages/nana-pack/tests/real-path.test.mjs`
 
@@ -3732,7 +3730,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — Repository helpers, ledger builders, a caller-scoped page writer, the artifact-flow ledger, assessment fixtures, runtime files, rendered nodes and bounded async results.
 - **effects** — disk (temporary fixture files), process (git and isolated VM scripts).
 - **errors** — Fixture errors and per-case timeouts throw to the calling test.
-- **callers** — `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`
+- **callers** — `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`
 - **callees** — `scripts/product-report.mjs`, `scripts/requirements-tree.mjs`
 
 ### `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`
@@ -3787,8 +3785,8 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **effects** — disk (reads this checkout; writes and removes scratch dirs under the OS temp dir for the EARS fixtures), process (spawns the real CLI once)
 - **errors** — a failed check prints FAIL with the problem list and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-trace.mjs`
-- **unresolved launches** — line 46: spawnSync
+- **callees** — `packages/nana-pack/tests/report-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/requirements-trace.mjs`
+- **unresolved launches** — line 47: spawnSync
 
 ### `packages/nana-pack/tests/requirements-tree.test.mjs`
 

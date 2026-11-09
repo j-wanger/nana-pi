@@ -43,11 +43,7 @@ check(
 	readmes.join(", "),
 );
 
-const cli = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "readme-check.mjs"), "--check"], {
-	cwd: REPO_ROOT,
-	encoding: "utf-8",
-});
-check("scripts/readme-check.mjs --check exits 0", cli.status === 0, `${cli.stdout ?? ""}${cli.stderr ?? ""}`);
+// CI's Repository checks step runs the positive real-repository CLI check.
 
 const config = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "readme-check.config.json"), "utf-8"));
 const external = new Map(config.externalPaths.map((entry) => [entry.path, entry.reason]));

@@ -17,7 +17,7 @@ import { check, REPO } from "./pack-fixtures.mjs";
 await check("M6: all core capabilities have land guards and moved cases keep their bytes", () => {
   const pack = "packages/nana-pack/tests/", setup = "packages/nana-setup/tests/";
   const guards = [
-    ...["adoption-producer", "agent-dir-config", "bounded-read", "config-gate-fallback", "config-handlers-malformed", "config-normalize", "config-trust", "credential-gate", "first-look", "frontier-summary", "gate-corpus", "gate-policy-paths", "gate-rm-inside", "gate-self-protection", "issue-watch", "land", "lane-write-guard", "main-ci", "nana-roster", "objective-injection", "outside-reader", "pipe-guard", "readme-check", "requirements-trace", "requirements-tree", "review-standard", "roster-notice", "rulings", "skill-claims", "visual-reader", "writing-check", "data-pack-land", "ci-workflow",
+    ...["adoption-producer", "agent-dir-config", "bounded-read", "config-gate-fallback", "config-handlers-malformed", "config-normalize", "config-trust", "credential-gate", "first-look", "frontier-summary", "gate-corpus", "gate-policy-paths", "gate-rm-inside", "gate-self-protection", "issue-watch", "land", "lane-write-guard", "main-ci", "nana-roster", "objective-injection", "outside-reader", "pipe-guard", "readme-check", "requirements-tree", "review-standard", "roster-notice", "rulings", "skill-claims", "visual-reader", "writing-check", "data-pack-land", "ci-workflow",
       "leak-scan-cli", "identity-tree", "worker-refusal", "objective-smoke", "templates-working", "win32-forced", "claude-review-launch", "agent-dir-policy", "agent-dir-resolver", "code-map-land", "brief-check", "writing-injection", "frontier", "known-bugs", "handoff-issues"].map(name => `${pack}${name}.test.mjs`),
     ...["agent-dir-consumers", "doctor-runtime", "fsops", "hook-producers", "install", "paths", "pi-registration", "project-key", "project-working-region", "roster-notice-hook", "settings-merge", "shared-memory-hook", "shared-memory-input", "uninstall", "doctor-floor", "win-shims-sh"].map(name => `${setup}${name}.test.mjs`),
     "apps/desk/test/host-rule.test.mjs",
@@ -26,6 +26,9 @@ await check("M6: all core capabilities have land guards and moved cases keep the
     assert.equal(TEST_PACKS[file], "land", `core guard not in land: ${file}`);
     assert.match(fs.readFileSync(path.join(REPO, file), "utf8"), /(?:check|test)\(/, file);
   }
+  const workflow = fs.readFileSync(path.join(REPO, ".github/workflows/ci.yml"), "utf8");
+  assert.match(workflow, /name: Repository checks[\s\S]*?node scripts\/requirements-trace\.mjs/);
+  assert.equal(TEST_PACKS[`${pack}requirements-trace.test.mjs`], "main");
   const manifest = JSON.parse(fs.readFileSync(path.join(REPO, "docs/reviews/ci-packs/moves.json"), "utf8"));
   assert(manifest.moves.length >= 6);
   for (const move of manifest.moves) {
@@ -34,7 +37,11 @@ await check("M6: all core capabilities have land guards and moved cases keep the
     assert(start >= 0 && end > start, move.from);
     const bytes = original.slice(start, end);
     assert.equal(createHash("sha256").update(bytes).digest("hex"), move.sha256);
-    assert(fs.readFileSync(path.join(REPO, move.to), "utf8").includes(bytes), `moved bytes changed: ${move.to}`);
+    const destination = fs.readFileSync(path.join(REPO, move.to), "utf8");
+    if (move.to === `${pack}code-map-land.test.mjs` && move.start.startsWith("// the documented command")) {
+      // The sweep retires this one duplicate CLI block, now run directly by CI.
+      assert(!destination.includes(bytes), "retired map CLI block remains");
+    } else assert(destination.includes(bytes), `moved bytes changed: ${move.to}`);
     assert(!fs.readFileSync(path.join(REPO, move.from), "utf8").includes(bytes), `case still in source: ${move.from}`);
   }
 });

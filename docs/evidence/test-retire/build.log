@@ -1,0 +1,1832 @@
+# Test-retire command output
+
+Repo-relative / home / temporary-root normalization only.
+
+## test-retire-anatomy-1.log
+PASS  apps/bench/test/anatomy.test.mjs  10 pass  1.3s
+
+1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 10 pass, 0 fail, 0 skip · 1.5s
+
+
+## test-retire-ci-audit.log
+stale: compass 28 commits since a2ad3f21
+stale: notice-board 24 commits since a2ad3f21
+stale: key-cabinet 895 commits since a2ad3f21
+stale: night-shift 895 commits since a2ad3f21
+stale: land-gate 22 commits since a2ad3f21
+stale: requirement-contract 284 commits since a2ad3f21
+stale: code-map 30 commits since a2ad3f21
+stale: command-gate 129 commits since a2ad3f21
+unclaimed: packages/nana-pack/bin/leak-scan.mjs
+unclaimed: packages/nana-pack/bin/nana-ci-wait.mjs
+unclaimed: packages/nana-pack/bin/nana-curate.mjs
+unclaimed: packages/nana-pack/bin/nana-main-ci.mjs
+unclaimed: packages/nana-pack/bin/nana-memory.mjs
+unclaimed: packages/nana-pack/bin/nana-profile.mjs
+unclaimed: scripts/code-map-launch-config.mjs
+unclaimed: scripts/glob-match.mjs
+unclaimed: scripts/memory-curate.mjs
+unclaimed: scripts/memory-make.mjs
+unclaimed: scripts/memory-run.mjs
+unclaimed: scripts/memory-shape-runners.mjs
+unclaimed: scripts/memory-shape.mjs
+unclaimed: scripts/reader-common.mjs
+unclaimed: scripts/records-move.mjs
+unclaimed: scripts/visual-reader-config.mjs
+unclaimed: scripts/visual-reader.mjs
+unclaimed: 17 of 249 mapped modules
+(node:5631) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-ci-map.log
+
+> nana-pi@0.5.0 map:check
+> node scripts/code-map.mjs --check
+
+code map: 542 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+
+
+## test-retire-ci-readme.log
+
+> nana-pi@0.5.0 readme:check
+> node scripts/readme-check.mjs
+
+readme: 790 claims checked; 0 problem(s)
+review archive: 0 problems
+
+
+## test-retire-ci-records.log
+records: 136 protected, 0 problems
+
+
+## test-retire-ci-trace.log
+requirements: 2736 total (2004 implemented · 8 planned · 581 retired · 140 untested · 3 violated); 2017 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:5621) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-ci-tree.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+## test-retire-counts-good.log
+apps/bench/test/retire.test.mjs [{"ids":["R-3783"],"title":"R-3783: runner modules are gone without live imports"},{"ids":["R-3784"],"title":"R-3784: report consumers keep byte-identical output"},{"ids":["R-3785"],"title":"R-3785: memory shaping and anatomy labeller retain behavior"},{"ids":["R-3786"],"title":"R-3786: every anatomy CLI subcommand preserves fixture output"},{"ids":["R-3787"],"title":"R-3787: records contracts and repository checks stay valid"},{"ids":["R-3788"],"title":"R-3788: tree and regroup fixture copies use relocated helper"},{"ids":["R-3789"],"title":"R-3789: first-look captures a helper-only change"},{"ids":["R-3790"],"title":"R-3790: all tracked study paths retain their base bytes"}]
+apps/desk/test/stage-chain-edge.e2e.mjs manual, not collected
+apps/desk/test/stage-page-edge.e2e.mjs manual, not collected
+packages/nana-pack/tests/experiment-cut.test.mjs [{"ids":["R-3863"],"title":"R-3863: finished experiments and their live references are gone"}]
+packages/nana-pack/tests/gate-config-robustness.test.mjs [{"ids":["R-070"],"title":"a: null allowPatterns does not throw"},{"ids":["R-070"],"title":"b: all-null gate arrays do not throw"},{"ids":["R-774"],"title":"b: built-in dangerous pattern still blocks headless"}]
+packages/nana-pack/tests/memory-cut-checks.test.mjs [{"ids":["R-3864"],"title":"R-3864: memory artifacts are retired without deliverable check notes"}]
+packages/nana-pack/tests/preview-retirement.test.mjs [{"ids":["R-3775"],"title":"R-3775: preview files and live references are gone"},{"ids":["R-3776"],"title":"R-3776: Pages publishes only the product report"},{"ids":["R-3777"],"title":"R-3777: an additional component passes without a city plan"},{"ids":["R-3778"],"title":"R-3778: retirement keeps the repository checks green"},{"ids":["R-3779"],"title":"R-3779: product capture still saves both sides and widths"},{"ids":["R-3780"],"title":"R-3780: Pages retains build scan upload and main-only deploy order"},{"ids":["R-3781"],"title":"R-3781: surviving capture modes write files and retired options never launch"},{"ids":["R-3782"],"title":"R-3782: artifact retirement leaves only surviving live cards and readers"}]
+packages/nana-setup/tests/stale-copies-slow.test.mjs [{"ids":["R-2482"],"title":"R-2482: off Windows, stale-copies passes every check when each install in its legacy fixture homes takes six seconds longer"},{"ids":["R-2483"],"title":"R-2483: when the stale-copies checker fails inside the linked-claude adoption hook, the R-1761 failure names that hook run's status, signal, time and unavailable line"}]
+(node:64494) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-counts.log
+apps/bench/test/retire.test.mjs [{"ids":["R-3783"],"title":"R-3783: runner modules are gone without live imports"},{"ids":["R-3784"],"title":"R-3784: report consumers keep byte-identical output"},{"ids":["R-3785"],"title":"R-3785: memory shaping and anatomy labeller retain behavior"},{"ids":["R-3786"],"title":"R-3786: every anatomy CLI subcommand preserves fixture output"},{"ids":["R-3787"],"title":"R-3787: records contracts and repository checks stay valid"},{"ids":["R-3788"],"title":"R-3788: tree and regroup fixture copies use relocated helper"},{"ids":["R-3789"],"title":"R-3789: first-look captures a helper-only change"},{"ids":["R-3790"],"title":"R-3790: all tracked study paths retain their base bytes"}]
+file://templates/typescript/template/tests/requirements-trace.ts:355
+			throw new Error(
+			      ^
+
+Error: apps/desk/test/stage-chain-edge.e2e.mjs:114: '// req:' must sit directly above a test( or it( call
+    at scanSource (file://templates/typescript/template/tests/requirements-trace.ts:355:10)
+    at file://[eval1]:3:123
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:272:26)
+    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:268:20)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.22.2
+
+
+## test-retire-impact.log
+packages/nana-pack/lib/test-packs-config.mjs
+  transitive callers (19): packages/nana-pack/tests/brief-check.test.mjs [launch/path] packages/nana-pack/tests/ci-records.test.mjs [launch/path] packages/nana-pack/tests/data-pack-land.test.mjs [launch/path] packages/nana-pack/tests/land-ci-suite.test.mjs [launch/path] packages/nana-pack/tests/land-clean-merge.test.mjs [launch/path] packages/nana-pack/tests/lane-push-ci.test.mjs [launch/path] packages/nana-pack/tests/pack-fixtures.mjs [launch/path] packages/nana-pack/tests/requirements-deliverables.test.mjs [launch/path] packages/nana-pack/tests/runtime-map.test.mjs [launch/path] packages/nana-pack/tests/suite-records.test.mjs [launch/path] packages/nana-pack/tests/test-packs-ci.test.mjs packages/nana-pack/tests/test-packs-core.test.mjs packages/nana-pack/tests/test-packs-runner.test.mjs packages/nana-pack/tests/test-packs.test.mjs packages/nana-pack/tests/test-runner-parallel.test.mjs [launch/path] packages/nana-pack/tests/test-runner.test.mjs [launch/path] packages/nana-pack/tests/win-shards.test.mjs [launch/path] scripts/test-packs.mjs scripts/test.mjs
+  transitive callees (0): —
+
+untraced tests: 4 of 264 test modules link no mapped module
+always-run tests (blind reach): 195 of 264: apps/bench/test/anatomy-labels.test.mjs apps/bench/test/retire.test.mjs apps/desk/test/app-listener.test.mjs apps/desk/test/buffer-caps.test.mjs apps/desk/test/host-rule.test.mjs apps/desk/test/origin-rule.test.mjs apps/desk/test/page-retire.test.mjs apps/desk/test/pi-resolution.test.mjs apps/desk/test/pi-rpc-contract.test.mjs apps/desk/test/stage-key-persistence.test.mjs apps/desk/test/usage-line.test.mjs packages/nana-knowledge/tests/build-busy.test.mjs packages/nana-knowledge/tests/hook.test.mjs packages/nana-knowledge/tests/pull-cut.test.mjs packages/nana-pack/tests/adoption-reader.test.mjs packages/nana-pack/tests/agent-dir-hostile.test.mjs packages/nana-pack/tests/agent-dir-parity.test.mjs packages/nana-pack/tests/brief-check.test.mjs packages/nana-pack/tests/build-records.test.mjs packages/nana-pack/tests/build-report.test.mjs packages/nana-pack/tests/builder-context.test.mjs packages/nana-pack/tests/ci-records.test.mjs packages/nana-pack/tests/ci-wait.test.mjs packages/nana-pack/tests/claude-launch.test.mjs packages/nana-pack/tests/claude-review-launch.test.mjs packages/nana-pack/tests/claude-review.test.mjs packages/nana-pack/tests/code-map-land.test.mjs packages/nana-pack/tests/code-map-launch.test.mjs packages/nana-pack/tests/code-map.test.mjs packages/nana-pack/tests/code-search.test.mjs packages/nana-pack/tests/component-audit.test.mjs packages/nana-pack/tests/config-gate-fallback.test.mjs packages/nana-pack/tests/config-project-gate-fallback.test.mjs packages/nana-pack/tests/config-trust.test.mjs packages/nana-pack/tests/context-anatomy.test.mjs packages/nana-pack/tests/credential-strip.test.mjs packages/nana-pack/tests/data-pack-land.test.mjs packages/nana-pack/tests/data-pack.test.mjs packages/nana-pack/tests/experiment-cut.test.mjs packages/nana-pack/tests/first-look.test.mjs packages/nana-pack/tests/frontier-golden.test.mjs packages/nana-pack/tests/frontier-summary.test.mjs packages/nana-pack/tests/gate-rm-outside.test.mjs packages/nana-pack/tests/gate-survives-mutation.test.mjs packages/nana-pack/tests/handoff-issues.test.mjs packages/nana-pack/tests/handoff-writer-role.test.mjs packages/nana-pack/tests/immutable-review.test.mjs packages/nana-pack/tests/issue-watch.test.mjs packages/nana-pack/tests/known-bugs.test.mjs packages/nana-pack/tests/land-ci-edge.test.mjs packages/nana-pack/tests/land-ci-read.test.mjs packages/nana-pack/tests/land-ci-records.test.mjs packages/nana-pack/tests/land-ci-suite.test.mjs packages/nana-pack/tests/land-clean-merge-race.test.mjs packages/nana-pack/tests/land-clean-merge.test.mjs packages/nana-pack/tests/land-merge.test.mjs packages/nana-pack/tests/land-records.test.mjs packages/nana-pack/tests/land-regenerate.test.mjs packages/nana-pack/tests/land.test.mjs packages/nana-pack/tests/lane-push-ci.test.mjs packages/nana-pack/tests/lane-watcher.test.mjs packages/nana-pack/tests/leak-scan.test.mjs packages/nana-pack/tests/linked-launch.test.mjs packages/nana-pack/tests/main-ci.test.mjs packages/nana-pack/tests/memory-curation.test.mjs packages/nana-pack/tests/memory-cut-checks.test.mjs packages/nana-pack/tests/memory-cut-guidance.test.mjs packages/nana-pack/tests/memory-run-recovery.test.mjs packages/nana-pack/tests/memory-run-seals.test.mjs packages/nana-pack/tests/memory-run.test.mjs packages/nana-pack/tests/memory-session-end.test.mjs packages/nana-pack/tests/memory-shaping.test.mjs packages/nana-pack/tests/nana-roster.test.mjs packages/nana-pack/tests/objective-golden.test.mjs packages/nana-pack/tests/objective-smoke.test.mjs packages/nana-pack/tests/one-reviewer.test.mjs packages/nana-pack/tests/outside-reader.test.mjs packages/nana-pack/tests/pack-config-utf16.test.mjs packages/nana-pack/tests/path-spelling.test.mjs packages/nana-pack/tests/pi-install.test.mjs packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs packages/nana-pack/tests/preview-retirement.test.mjs packages/nana-pack/tests/process-tree.test.mjs packages/nana-pack/tests/product-detail.test.mjs packages/nana-pack/tests/product-overview.test.mjs packages/nana-pack/tests/product-report.test.mjs packages/nana-pack/tests/profile-store-guards.test.mjs packages/nana-pack/tests/profile-store.test.mjs packages/nana-pack/tests/profile-sync.test.mjs packages/nana-pack/tests/readme-check.test.mjs packages/nana-pack/tests/records-move.test.mjs packages/nana-pack/tests/requirements-cap-kinds.test.mjs packages/nana-pack/tests/requirements-deliverables.test.mjs packages/nana-pack/tests/requirements-lift.test.mjs packages/nana-pack/tests/requirements-regroup.test.mjs packages/nana-pack/tests/requirements-trace.test.mjs packages/nana-pack/tests/requirements-tree.test.mjs packages/nana-pack/tests/review-launch.test.mjs packages/nana-pack/tests/review-ledger-launch.test.mjs packages/nana-pack/tests/review-ledger-state.test.mjs packages/nana-pack/tests/review-ledger-verdicts.test.mjs packages/nana-pack/tests/review-ledger.test.mjs packages/nana-pack/tests/review-paperwork.test.mjs packages/nana-pack/tests/review-standard.test.mjs packages/nana-pack/tests/review-test-waits.test.mjs packages/nana-pack/tests/review-timeline.test.mjs packages/nana-pack/tests/runtime-land.test.mjs packages/nana-pack/tests/runtime-map.test.mjs packages/nana-pack/tests/setup-retire.test.mjs packages/nana-pack/tests/suite-records.test.mjs packages/nana-pack/tests/template-acceptance.test.mjs packages/nana-pack/tests/template-release.test.mjs packages/nana-pack/tests/templates-render.test.mjs packages/nana-pack/tests/templates-update.test.mjs packages/nana-pack/tests/test-locked.test.mjs packages/nana-pack/tests/test-packs-ci.test.mjs packages/nana-pack/tests/test-packs-core.test.mjs packages/nana-pack/tests/test-packs-runner.test.mjs packages/nana-pack/tests/test-runner-parallel.test.mjs packages/nana-pack/tests/test-runner.test.mjs packages/nana-pack/tests/visual-reader.test.mjs packages/nana-pack/tests/watchdog-cpu.test.mjs packages/nana-pack/tests/watchdog-exit.test.mjs packages/nana-pack/tests/win-command.test.mjs packages/nana-pack/tests/win-main-only.test.mjs packages/nana-pack/tests/win-shards.test.mjs packages/nana-pack/tests/win32-launch.test.mjs packages/nana-pack/tests/worker-claude.test.mjs packages/nana-pack/tests/worker-lane.test.mjs packages/nana-pack/tests/worker-refusal.test.mjs packages/nana-setup/tests/agent-dir-consumers.test.mjs packages/nana-setup/tests/checkout-converge.test.mjs packages/nana-setup/tests/checkout-spelling.test.mjs packages/nana-setup/tests/claude-config-dir.test.mjs packages/nana-setup/tests/copy-record.test.mjs packages/nana-setup/tests/desk-service.test.mjs packages/nana-setup/tests/doctor-detail.test.mjs packages/nana-setup/tests/doctor-fix-line.test.mjs packages/nana-setup/tests/doctor-floor.test.mjs packages/nana-setup/tests/doctor-knowledge.test.mjs packages/nana-setup/tests/doctor-memory-links.test.mjs packages/nana-setup/tests/doctor-package-source.test.mjs packages/nana-setup/tests/doctor-pi-dependencies.test.mjs packages/nana-setup/tests/doctor-quiet.test.mjs packages/nana-setup/tests/doctor-release.test.mjs packages/nana-setup/tests/doctor-runtime.test.mjs packages/nana-setup/tests/doctor-trust.test.mjs packages/nana-setup/tests/entry-guidance.test.mjs packages/nana-setup/tests/fresh-machine.test.mjs packages/nana-setup/tests/frontier-hook.test.mjs packages/nana-setup/tests/hook-deadlines.test.mjs packages/nana-setup/tests/hook-producers.test.mjs packages/nana-setup/tests/hooks-closed-output.test.mjs packages/nana-setup/tests/hooks-win32-exec.test.mjs packages/nana-setup/tests/install-check-builder-env.test.mjs packages/nana-setup/tests/install-check.test.mjs packages/nana-setup/tests/install-overlap.test.mjs packages/nana-setup/tests/install.test.mjs packages/nana-setup/tests/linked-claude-folder.test.mjs packages/nana-setup/tests/memory-pause.test.mjs packages/nana-setup/tests/objective-path-shapes.test.mjs packages/nana-setup/tests/pi-install-pin.test.mjs packages/nana-setup/tests/pi-launch-limits.test.mjs packages/nana-setup/tests/pi-registration.test.mjs packages/nana-setup/tests/project-dismiss.test.mjs packages/nana-setup/tests/project-odd-seeds.test.mjs packages/nana-setup/tests/project-stale.test.mjs packages/nana-setup/tests/project-working-region.test.mjs packages/nana-setup/tests/project.test.mjs packages/nana-setup/tests/pull-cut-turn.test.mjs packages/nana-setup/tests/readme-rehearsal.test.mjs packages/nana-setup/tests/realpath-fallback.test.mjs packages/nana-setup/tests/relative-agent-dir.test.mjs packages/nana-setup/tests/restore.test.mjs packages/nana-setup/tests/retired-artifacts.test.mjs packages/nana-setup/tests/roster-notice-hook.test.mjs packages/nana-setup/tests/rulings-install.test.mjs packages/nana-setup/tests/seat-pull-off.test.mjs packages/nana-setup/tests/settings-lock.test.mjs packages/nana-setup/tests/settings-merge.test.mjs packages/nana-setup/tests/setup-tail.test.mjs packages/nana-setup/tests/shared-memory-hook.test.mjs packages/nana-setup/tests/shared-memory-input.test.mjs packages/nana-setup/tests/skills-and-standards.test.mjs packages/nana-setup/tests/stale-copies-slow.test.mjs packages/nana-setup/tests/stale-copies.test.mjs packages/nana-setup/tests/state-manifest.test.mjs packages/nana-setup/tests/trust.test.mjs packages/nana-setup/tests/uninstall.test.mjs packages/nana-setup/tests/verifier-pipe.test.mjs packages/nana-setup/tests/win-shims-sh.test.mjs packages/nana-setup/tests/win-shims.test.mjs packages/nana-setup/tests/win32-degrade.test.mjs packages/nana-setup/tests/win32-hook-repair.test.mjs packages/nana-setup/tests/writing-rule.test.mjs
+
+artifacts for packages/nana-pack/lib/test-packs-config.mjs (0):
+  artifacts: no Artifact writer list or Reads line names packages/nana-pack/lib/test-packs-config.mjs
+artifact block shows only Artifact: writer lists and other features' Reads: lines; it leaves out readers in the maker's own feature, deliverable Read by: lines, hand-run makers and a file that is itself an artifact's location
+artifact radius uses import links only; launch/path links above do not change (no import path) marks
+
+runtime map: measured tip 7b8d3495 at 2026-11-09T03:37:15.726Z is 0 hours old; 2 tracked files differ from this checkout
+measured tests for packages/nana-pack/lib/test-packs-config.mjs (4):
+  13.0s  packages/nana-pack/tests/test-packs-runner.test.mjs
+  9.8s  packages/nana-pack/tests/test-packs-ci.test.mjs
+  0.3s  packages/nana-pack/tests/test-packs-core.test.mjs
+  0.0s  packages/nana-pack/tests/test-packs.test.mjs
+runtime map: copies run from a temporary folder and children stopped by a signal are not counted
+
+
+## test-retire-install.log
+pi: ~/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+node: ~/.hermes/node/bin/node
+PASS install
+PASS pi list nana-pack
+PASS pi session
+PASS pi turn
+PASS pi-review
+PASS hook set
+PASS hook roster notice
+PASS hook shared memory
+PASS hook adoption
+PASS hook objective
+PASS doctor
+PASS pi-worker
+PASS readme checklist
+
+
+## test-retire-map-1.log
+code map: 544 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+
+
+## test-retire-map-2.log
+code map: 544 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+
+
+## test-retire-map-3.log
+code map: 542 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+
+
+## test-retire-map-5d.log
+code map: 542 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+
+
+## test-retire-map-write-3.log
+docs/code-map.md: 542 modules
+
+
+## test-retire-map-write-5.log
+docs/code-map.md: 542 modules
+
+
+## test-retire-map-write-5b.log
+docs/code-map.md: 542 modules
+
+
+## test-retire-map-write-5c.log
+docs/code-map.md: 542 modules
+
+
+## test-retire-map-write-5d.log
+docs/code-map.md: 542 modules
+
+
+## test-retire-map-write.log
+docs/code-map.md: 544 modules
+
+
+## test-retire-measured-checks.log
+map: exit 0, 1.069 s
+readme: exit 0, 0.070 s
+trace: exit 0, 0.200 s
+tree: exit 0, 0.261 s
+audit: exit 0, 4.446 s
+records: exit 0, 51.191 s
+
+
+## test-retire-membership.log
+test packs: 261 files, 0 unassigned, 0 stale paths
+
+
+## test-retire-packs-2.log
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs      4 pass  7.5s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs    1 pass  0.3s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs  5 pass  8.8s
+PASS  packages/nana-pack/tests/test-packs.test.mjs         2 pass  0.0s
+
+4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 12 pass, 0 fail, 0 skip · 16.8s
+
+
+## test-retire-part1.log
+PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs  91 pass  0.2s
+PASS  packages/nana-pack/tests/context-anatomy.test.mjs            23 pass  55.7s
+PASS  packages/nana-setup/tests/stale-copies.test.mjs              15 pass  11.5s
+PASS  packages/nana-stage/tests/blocks.test.mjs                    116 pass  0.1s
+FAIL  apps/bench/test/anatomy.test.mjs                             9 pass, 1 fail  1.1s  — exit 1
+      | FAIL R-3786: every anatomy CLI subcommand preserves fixture output
+
+5 files: 4 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 254 pass, 1 fail, 0 skip · 68.7s
+failed: apps/bench/test/anatomy.test.mjs
+
+
+## test-retire-part2.log
+retire -> module: 20
+PASS  packages/nana-pack/tests/claude-launch.test.mjs           6 pass, 2 skip  0.0s
+PASS  packages/nana-pack/tests/gate-status.test.mjs             23 pass  0.1s
+PASS  packages/nana-pack/tests/handoff-asks.test.mjs            5 pass  0.0s
+PASS  packages/nana-pack/tests/code-search.test.mjs             9 pass  0.6s
+PASS  packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs  38 pass, 2 skip  0.0s
+PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs     1 pass  1.3s
+PASS  packages/nana-pack/tests/build-report.test.mjs            5 pass  2.4s
+PASS  packages/nana-knowledge/tests/build-busy.test.mjs         14 pass  11.1s
+PASS  packages/nana-pack/tests/review-timeline.test.mjs         12 pass  7.5s
+PASS  packages/nana-pack/tests/review-ledger-verdicts.test.mjs  16 pass  31.6s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs            11 pass  16.2s
+PASS  packages/nana-pack/tests/review-ledger-launch.test.mjs    32 pass  39.5s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs         1 pass  0.3s
+FAIL  packages/nana-pack/tests/test-packs-ci.test.mjs           3 pass, 1 fail  8.4s  — exit 1
+      | FAIL M8: main keeps all collected nonrelease files and an injected retire failure fails its command AssertionError [ERR_ASSERTION]: apps/bench/test/retire.test.mjs
+PASS  packages/nana-pack/tests/test-packs.test.mjs              2 pass  0.0s
+PASS  packages/nana-pack/tests/ts-syntax-check.test.mjs         6 pass  1.6s
+PASS  packages/nana-setup/tests/project-dismiss.test.mjs        14 pass  0.5s
+PASS  packages/nana-pack/tests/suite-records.test.mjs           9 pass  13.4s
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs          14 pass  2.0s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs       5 pass  9.5s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs     87 pass  50.6s
+PASS  packages/nana-setup/tests/retired-artifacts.test.mjs      51 pass  7.9s
+PASS  packages/nana-knowledge/tests/hook.test.mjs               98 pass  4.8s
+PASS  packages/nana-pack/tests/review-ledger.test.mjs           24 pass  22.7s
+
+24 files: 23 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 486 pass, 1 fail, 4 skip · 81.1s
+failed: packages/nana-pack/tests/test-packs-ci.test.mjs
+
+
+## test-retire-part3.log
+PASS  packages/nana-pack/tests/first-look.test.mjs                 9 pass  0.1s
+PASS  packages/nana-pack/tests/requirements-deliverables.test.mjs  22 pass  0.7s
+PASS  packages/nana-pack/tests/component-audit.test.mjs            12 pass  49.8s
+PASS  packages/nana-pack/tests/product-report.test.mjs             98 pass  61.8s
+
+4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 141 pass, 0 fail, 0 skip · 62.0s
+
+
+## test-retire-part4.log
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs    25 pass  0.0s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs  4 pass  9.1s
+PASS  packages/nana-pack/tests/win-shards.test.mjs     9 pass  12.5s
+PASS  packages/nana-pack/tests/lane-push-ci.test.mjs   10 pass  45.9s
+PASS  packages/nana-pack/tests/win-main-only.test.mjs  13 pass  72.4s
+
+5 files: 5 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 61 pass, 0 fail, 0 skip · 72.6s
+
+
+## test-retire-part5.log
+PASS  packages/nana-pack/tests/readme-check.test.mjs        10 pass  0.2s
+FAIL  packages/nana-pack/tests/test-packs-core.test.mjs     0 pass, 1 fail  0.3s  — exit 1
+      | FAIL M6: all core capabilities have land guards and moved cases keep their bytes AssertionError [ERR_ASSERTION]: moved bytes changed: packages/nana-pack/tests/code-map-land.test.mjs
+FAIL  packages/nana-pack/tests/code-map-land.test.mjs       0 pass, 1 fail  1.2s  — exit 1
+      | FAIL the repo's code map is current and every module has a contract header docs/code-map.md is stale against the code; run 'npm run map'
+PASS  packages/nana-pack/tests/test-packs.test.mjs          2 pass  0.0s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs  61 pass  4.8s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs       4 pass  8.4s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs   5 pass  9.3s
+
+7 files: 5 PASS, 2 FAIL, 0 SKIP, 0 WARN · checks: 82 pass, 2 fail, 0 skip · 10.1s
+failed: packages/nana-pack/tests/code-map-land.test.mjs, packages/nana-pack/tests/test-packs-core.test.mjs
+
+
+## test-retire-part5b.log
+PASS  packages/nana-pack/tests/readme-check.test.mjs        10 pass  0.2s
+FAIL  packages/nana-pack/tests/test-packs-core.test.mjs     0 pass, 1 fail  0.3s  — exit 1
+      | FAIL M6: all core capabilities have land guards and moved cases keep their bytes AssertionError [ERR_ASSERTION]: empty preserved block: packages/nana-pack/tests/code-map-land.test.mjs
+PASS  packages/nana-pack/tests/code-map-land.test.mjs       1 pass  1.2s
+PASS  packages/nana-pack/tests/test-packs.test.mjs          2 pass  0.0s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs  61 pass  4.8s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs       4 pass  8.5s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs   5 pass  9.3s
+
+7 files: 6 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 83 pass, 1 fail, 0 skip · 10.1s
+failed: packages/nana-pack/tests/test-packs-core.test.mjs
+
+
+## test-retire-part5c.log
+PASS  packages/nana-pack/tests/readme-check.test.mjs        10 pass  0.2s
+PASS  packages/nana-pack/tests/code-map-land.test.mjs       1 pass  1.2s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs     1 pass  0.3s
+FAIL  packages/nana-pack/tests/code-map-launch.test.mjs     11 pass, 1 fail  1.8s  — exit 1
+      | FAIL R-3156: every fixed-base callee survives or has a named loss reason lost edge: packages/nana-pack/tests/gate-config-robustness.test.mjs -> packages/nana-pack/extensions/nana-gate.ts
+PASS  packages/nana-pack/tests/test-packs.test.mjs          2 pass  0.0s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs  61 pass  4.8s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs       4 pass  8.5s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs   5 pass  9.2s
+
+8 files: 7 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 95 pass, 1 fail, 0 skip · 10.9s
+failed: packages/nana-pack/tests/code-map-launch.test.mjs
+
+
+## test-retire-part5d.log
+PASS  packages/nana-pack/tests/readme-check.test.mjs            10 pass  0.2s
+PASS  packages/nana-pack/tests/code-map-land.test.mjs           1 pass  1.2s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs         12 pass  1.7s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs         1 pass  0.3s
+PASS  packages/nana-pack/tests/requirements-unclaimed.test.mjs  6 pass  2.7s
+PASS  packages/nana-pack/tests/test-packs.test.mjs              2 pass  0.0s
+PASS  apps/desk/test/page-retire.test.mjs                       3 pass, 2 skip  0.3s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs      61 pass  4.9s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs           4 pass  8.4s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs       5 pass  9.3s
+
+10 files: 10 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 105 pass, 0 fail, 2 skip · 11.6s
+
+
+## test-retire-readme-1.log
+readme: 790 claims checked; 0 problem(s)
+review archive: 0 problems
+
+
+## test-retire-readme-2.log
+readme: 790 claims checked; 0 problem(s)
+review archive: 0 problems
+
+
+## test-retire-readme-3.log
+readme: 790 claims checked; 0 problem(s)
+review archive: 0 problems
+
+
+## test-retire-readme-5d.log
+readme: 790 claims checked; 0 problem(s)
+review archive: 0 problems
+
+
+## test-retire-removed-reference-hits.log
+apps/bench/test/anatomy.test.mjs:91:await test("R-3786: every anatomy CLI subcommand preserves fixture output", async () => {
+apps/desk/test/stage-chain.e2e.mjs:49:	check("real pi child spawned from the manifest", typeof s.id === "string", JSON.stringify(s));
+apps/desk/test/stage-chain.e2e.mjs:87:	check("tool result not an error", end?.isError !== true);
+apps/desk/test/stage-chain.e2e.mjs:130:	check("ledger blocks are signed (sig present on the live block)", typeof live[0].produced_by.sig === "string" && live[0].produced_by.sig.length === 64);
+packages/nana-pack/tests/code-map-launch.test.mjs:204:		...['apps/bench/test/retire.test.mjs', ...['preview-retirement', 'gate-config-robustness', 'experiment-cut', 'memory-cut-checks'].map(name => `packages/nana-pack/tests/${name}.test.mjs`), 'packages/nana-setup/tests/stale-copies-slow.test.mjs'].map(file => [file, 'FEAT-031 test-retire removes the named Lane A test file; its live cases or markers move to kept tests.']),
+packages/nana-setup/tests/stale-copies.test.mjs:425:	check("R-2483: when the stale-copies checker fails inside the linked-claude adoption hook, the R-1761 failure names that hook run's status, signal, time and unavailable line", ok,
+packages/nana-pack/tests/lane-push-ci.test.mjs:126: const file='packages/probe/tests/land.test.mjs',module='packages/probe/tests/module.test.mjs',retire='packages/probe/tests/retire.test.mjs';
+packages/nana-pack/tests/first-look.test.mjs:191:await test('R-3779: product capture still saves both sides and widths', async () => {
+packages/nana-pack/tests/first-look.test.mjs:201:await test('R-3781: surviving capture modes write files and retired options never launch', async () => {
+packages/nana-pack/tests/component-audit.test.mjs:263:await test('R-3777: an additional component passes without a city plan', async () => {
+packages/nana-pack/tests/setup-retire.test.mjs:2: * @module packages/nana-pack/tests/setup-retire.test.mjs
+apps/desk/test/page-retire.test.mjs:2: * @module apps/desk/test/page-retire.test.mjs
+packages/nana-pack/tests/requirements-deliverables.test.mjs:729:check('R-3864: memory artifacts are retired without deliverable check notes',
+packages/nana-pack/tests/product-report.test.mjs:203:    check('R-3782: artifact retirement leaves only surviving live cards and readers', !JSON.stringify(feature.artifactLines).includes('A-087') && JSON.stringify(feature.artifactLines).includes('A-085') && JSON.stringify(feature.artifactLines).includes('A-086'));
+
+
+## test-retire-runner-1.log
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  33.4s
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  30.1s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 64 pass, 0 fail, 0 skip · 63.7s
+
+
+## test-retire-runner-3.log
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  33.5s
+PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  30.2s
+
+2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 64 pass, 0 fail, 0 skip · 63.9s
+
+
+## test-retire-seat-land-pre.log
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs --pack=land --jobs=4
+
+[packs] land: 71 selected files
+PASS  packages/nana-pack/tests/agent-dir-resolver.test.mjs         1 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-policy.test.mjs           18 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs    60 pass  0.2s
+PASS  packages/nana-pack/tests/agent-dir-config.test.mjs           100 pass  0.3s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs                25 pass  0.0s
+PASS  packages/nana-pack/tests/adoption-producer.test.mjs          59 pass  0.3s
+PASS  packages/nana-pack/tests/claude-review-launch.test.mjs       2 pass  0.9s
+PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs       42 pass  1.0s
+PASS  packages/nana-pack/tests/code-map-land.test.mjs              1 pass  1.2s
+PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs  91 pass  0.3s
+PASS  packages/nana-pack/tests/config-normalize.test.mjs           18 pass  0.4s
+PASS  packages/nana-pack/tests/config-trust.test.mjs               25 pass  0.6s
+PASS  packages/nana-pack/tests/first-look.test.mjs                 9 pass  0.1s
+PASS  packages/nana-pack/tests/data-pack-land.test.mjs             1 pass  0.8s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs           8 pass  0.8s
+PASS  packages/nana-pack/tests/frontier.test.mjs                   53 pass  1.7s
+PASS  packages/nana-pack/tests/gate-policy-paths.test.mjs          93 pass  0.8s
+PASS  packages/nana-pack/tests/credential-gate.test.mjs            4 pass  4.8s
+PASS  packages/nana-pack/tests/gate-self-protection.test.mjs       101 pass  0.2s
+PASS  packages/nana-pack/tests/gate-rm-inside.test.mjs             11 pass  2.0s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs             12 pass  3.1s
+PASS  packages/nana-pack/tests/gate-corpus.test.mjs                227 pass  8.5s
+PASS  packages/nana-pack/tests/known-bugs.test.mjs                 4 pass  0.1s
+PASS  packages/nana-pack/tests/identity-tree.test.mjs              2 pass  4.5s
+PASS  packages/nana-pack/tests/issue-watch.test.mjs                29 pass  8.5s
+PASS  packages/nana-pack/tests/lane-write-guard.test.mjs           16 pass, 2 skip  0.1s
+PASS  packages/nana-pack/tests/leak-scan-cli.test.mjs              1 pass  0.8s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                    1 pass  0.1s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs                27 pass  1.4s
+PASS  packages/nana-pack/tests/objective-injection.test.mjs        69 pass  0.1s
+PASS  packages/nana-pack/tests/objective-smoke.test.mjs            37 pass  1.8s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs             8 pass  0.1s
+PASS  packages/nana-pack/tests/pipe-guard.test.mjs                 230 pass  0.2s
+PASS  packages/nana-pack/tests/readme-check.test.mjs               10 pass  0.2s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs          98 pass  2.7s
+PASS  packages/nana-pack/tests/review-standard.test.mjs            7 pass  1.4s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs              21 pass  0.3s
+PASS  packages/nana-pack/tests/rulings.test.mjs                    23 pass  0.1s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs               30 pass  0.1s
+PASS  packages/nana-pack/tests/templates-working.test.mjs          7 pass  0.0s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs              4 pass  8.9s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs            1 pass  0.3s
+PASS  packages/nana-pack/tests/land.test.mjs                       31 pass  25.7s
+PASS  packages/nana-pack/tests/test-packs.test.mjs                 2 pass  0.0s
+PASS  packages/nana-pack/tests/visual-reader.test.mjs              5 pass  0.1s
+PASS  packages/nana-pack/tests/brief-check.test.mjs                10 pass  41.5s
+PASS  packages/nana-pack/tests/win32-forced.test.mjs               5 pass  0.1s
+PASS  packages/nana-pack/tests/worker-refusal.test.mjs             8 pass  1.9s
+PASS  packages/nana-pack/tests/writing-check.test.mjs              47 pass  0.5s
+PASS  packages/nana-pack/tests/writing-injection.test.mjs          30 pass  1.4s
+PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs       13 pass  0.7s
+PASS  packages/nana-setup/tests/doctor-floor.test.mjs              3 pass  0.1s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs          5 pass  9.5s
+PASS  packages/nana-setup/tests/fsops.test.mjs                     17 pass  0.0s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs            12 pass  0.1s
+PASS  packages/nana-setup/tests/doctor-runtime.test.mjs            21 pass  3.2s
+PASS  packages/nana-setup/tests/paths.test.mjs                     5 pass  0.0s
+PASS  packages/nana-pack/tests/win-shards.test.mjs                 9 pass  12.5s
+PASS  packages/nana-setup/tests/project-key.test.mjs               13 pass, 1 skip  0.0s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs    28 pass  0.2s
+PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs        4 pass  0.6s
+PASS  packages/nana-setup/tests/pi-registration.test.mjs           72 pass, 3 skip  4.0s
+PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs        43 pass  0.7s
+PASS  packages/nana-setup/tests/shared-memory-input.test.mjs       3 pass  0.1s
+PASS  packages/nana-setup/tests/settings-merge.test.mjs            213 pass  4.1s
+PASS  packages/nana-setup/tests/win-shims-sh.test.mjs              2 pass  0.4s
+PASS  apps/desk/test/host-rule.test.mjs                            30 pass  0.8s
+PASS  packages/nana-setup/tests/install.test.mjs                   102 pass  9.6s
+PASS  packages/nana-setup/tests/uninstall.test.mjs                 31 pass  2.3s
+PASS  packages/nana-pack/tests/lane-push-ci.test.mjs               10 pass  49.3s
+PASS  packages/nana-pack/tests/bounded-read.test.mjs               4 pass  0.1s
+
+71 files: 71 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 2364 pass, 0 fail, 6 skip · 61.3s
+
+
+## test-retire-seat-selected-pre.log
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs --pack=land,module --changed-from=main --jobs=4
+
+[packs] fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] test apps/bench/test/anatomy.test.mjs: changed test
+[packs] test packages/nana-pack/tests/component-audit.test.mjs: changed test
+[packs] test packages/nana-pack/tests/config-handlers-malformed.test.mjs: changed test
+[packs] test packages/nana-pack/tests/first-look.test.mjs: changed test
+[packs] test packages/nana-pack/tests/product-report.test.mjs: changed test
+[packs] test packages/nana-pack/tests/requirements-deliverables.test.mjs: changed test
+[packs] test packages/nana-pack/tests/test-packs-ci.test.mjs: changed test
+[packs] test packages/nana-setup/tests/stale-copies.test.mjs: changed test
+[packs] module apps/bench/test/anatomy-labels.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/bench/test/anatomy-seat.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/bench/test/anatomy.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/app-listener.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/buffer-caps.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/origin-rule.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/page-retire.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/pi-resolution.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/stage-key-persistence.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/usage-line.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/build-busy.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/discovery.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/hook.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/incremental-build.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/ledger-parse.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/pull-cut.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/recover.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/render.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/sources-file.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/tokenize.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/unreadable-root.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/ask-shape.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/build-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/build-report.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/builder-context.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/ci-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/claude-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/code-map-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/code-map.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/code-search.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/component-audit.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/config-display-text.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/config-project-gate-fallback.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/display-surfaces.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/env-path.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/gate-status.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/handoff-asks.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/handoff-writer-role.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/land-ci-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/land-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/land-regenerate.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/lane-watcher.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/lifecycle-journal.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/lifecycle-reload.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/linked-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-curation.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-making.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-run-recovery.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-run-seals.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-run.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-session-end.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-shaping.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/nana-roster-set.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/one-reviewer.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/pages-workflow.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/pi-install.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/planner-prompt.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/product-detail.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/product-overview.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/product-report.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/profile-store-guards.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/profile-store.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/profile-sync.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/real-path.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/records-move.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-cap-kinds.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-deliverables.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-lift.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-regroup.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-lock.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-state.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-verdicts.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-paperwork.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-round.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-test-waits.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-timeline.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/runtime-land.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/runtime-map.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/setup-retire.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/suite-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/test-locked.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/test-runner-parallel.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/test-runner.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/ts-syntax-check.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/windows-skip-lines.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/checkout-converge.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/checkout-spelling.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/claude-config-dir.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/desk-service.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-detail.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-fix-line.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-knowledge.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-memory-links.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-package-source.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-pi-dependencies.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-quiet.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-trust.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/install-check.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/install-overlap.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/memory-pause.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/objective-path-shapes.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/pi-install-pin.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/project-dismiss.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/project-odd-seeds.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/project-stale.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/pull-cut-turn.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/readme-rehearsal.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/relative-agent-dir.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/retired-artifacts.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/rulings-install.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/seat-pull-off.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/seat-rule.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/shared-link-state.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/shared-memory-budget.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/verifier-pipe.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/writing-rule.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-stage/tests/blocks.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] land,module,release: 204 selected files
+PASS  packages/nana-knowledge/tests/ledger-parse.test.mjs             21 pass, 1 skip  0.1s
+PASS  packages/nana-knowledge/tests/incremental-build.test.mjs        30 pass  0.1s
+PASS  packages/nana-knowledge/tests/pull-cut.test.mjs                 1 pass  0.2s
+PASS  packages/nana-knowledge/tests/discovery.test.mjs                37 pass  0.3s
+PASS  packages/nana-knowledge/tests/render.test.mjs                   69 pass  0.1s
+PASS  packages/nana-knowledge/tests/tokenize.test.mjs                 18 pass  0.1s
+PASS  packages/nana-knowledge/tests/unreadable-root.test.mjs          7 pass  0.3s
+PASS  packages/nana-pack/tests/adoption-producer.test.mjs             59 pass  0.3s
+PASS  packages/nana-pack/tests/agent-dir-config.test.mjs              100 pass  0.2s
+PASS  packages/nana-pack/tests/agent-dir-policy.test.mjs              18 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-resolver.test.mjs            1 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs       60 pass  0.2s
+PASS  packages/nana-pack/tests/ask-shape.test.mjs                     4 pass  0.0s
+PASS  packages/nana-knowledge/tests/sources-file.test.mjs             10 pass  3.1s
+PASS  packages/nana-knowledge/tests/recover.test.mjs                  11 pass  7.0s
+PASS  packages/nana-pack/tests/build-report.test.mjs                  5 pass  2.3s
+PASS  packages/nana-knowledge/tests/build-busy.test.mjs               14 pass  10.9s
+PASS  packages/nana-pack/tests/builder-context.test.mjs               7 pass  4.1s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs                   25 pass  0.0s
+PASS  packages/nana-pack/tests/claude-launch.test.mjs                 6 pass, 2 skip  0.0s
+PASS  packages/nana-pack/tests/claude-review-launch.test.mjs          2 pass  0.9s
+PASS  packages/nana-pack/tests/ci-records.test.mjs                    6 pass  3.6s
+PASS  packages/nana-pack/tests/code-map-land.test.mjs                 1 pass  1.4s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs               12 pass  2.2s
+PASS  packages/nana-pack/tests/build-records.test.mjs                 7 pass  14.1s
+PASS  packages/nana-pack/tests/code-search.test.mjs                   9 pass  0.8s
+PASS  packages/nana-pack/tests/config-display-text.test.mjs           38 pass  0.1s
+PASS  packages/nana-pack/tests/code-map.test.mjs                      46 pass  2.2s
+PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs     91 pass  0.3s
+PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs          42 pass  1.1s
+PASS  packages/nana-pack/tests/config-normalize.test.mjs              18 pass  0.6s
+PASS  packages/nana-pack/tests/config-trust.test.mjs                  25 pass  0.7s
+PASS  packages/nana-pack/tests/credential-gate.test.mjs               4 pass  4.7s
+PASS  packages/nana-pack/tests/data-pack-land.test.mjs                1 pass  0.8s
+PASS  packages/nana-pack/tests/config-project-gate-fallback.test.mjs  28 pass  9.6s
+PASS  packages/nana-pack/tests/display-surfaces.test.mjs              151 pass  0.2s
+PASS  packages/nana-pack/tests/env-path.test.mjs                      4 pass  0.0s
+PASS  packages/nana-pack/tests/first-look.test.mjs                    9 pass  0.1s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs              8 pass  0.9s
+PASS  packages/nana-pack/tests/frontier.test.mjs                      53 pass  1.8s
+PASS  packages/nana-pack/tests/gate-corpus.test.mjs                   227 pass  8.2s
+PASS  packages/nana-pack/tests/gate-policy-paths.test.mjs             93 pass  0.8s
+PASS  packages/nana-pack/tests/gate-rm-inside.test.mjs                11 pass  1.9s
+PASS  packages/nana-pack/tests/gate-self-protection.test.mjs          101 pass  0.2s
+PASS  packages/nana-pack/tests/gate-status.test.mjs                   23 pass  0.2s
+PASS  packages/nana-pack/tests/handoff-asks.test.mjs                  5 pass  0.0s
+PASS  packages/nana-pack/tests/brief-check.test.mjs                   10 pass  43.8s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs                12 pass  3.3s
+PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs           1 pass  1.5s
+PASS  packages/nana-pack/tests/identity-tree.test.mjs                 2 pass  4.7s
+PASS  packages/nana-pack/tests/known-bugs.test.mjs                    4 pass  0.1s
+PASS  packages/nana-pack/tests/issue-watch.test.mjs                   29 pass  8.5s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs               7 pass  18.2s
+PASS  packages/nana-pack/tests/land-records.test.mjs                  7 pass  24.7s
+PASS  packages/nana-pack/tests/component-audit.test.mjs               12 pass  70.6s
+PASS  packages/nana-pack/tests/land.test.mjs                          31 pass  36.8s
+PASS  packages/nana-pack/tests/lane-watcher.test.mjs                  2 pass  0.1s
+PASS  packages/nana-pack/tests/lane-write-guard.test.mjs              16 pass, 2 skip  0.2s
+PASS  packages/nana-pack/tests/leak-scan-cli.test.mjs                 1 pass  1.1s
+PASS  packages/nana-pack/tests/lifecycle-journal.test.mjs             6 pass  0.1s
+PASS  packages/nana-pack/tests/lifecycle-reload.test.mjs              12 pass  0.1s
+PASS  packages/nana-pack/tests/linked-launch.test.mjs                 3 pass  0.4s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                       1 pass  0.1s
+PASS  packages/nana-pack/tests/lane-push-ci.test.mjs                  10 pass  76.3s
+PASS  packages/nana-pack/tests/memory-cut-guidance.test.mjs           1 pass  8.1s
+PASS  packages/nana-pack/tests/memory-making.test.mjs                 24 pass  0.3s
+PASS  packages/nana-pack/tests/land-regenerate.test.mjs               8 pass  112.4s
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs              16 pass  2.0s
+PASS  packages/nana-pack/tests/memory-run-recovery.test.mjs           7 pass  36.5s
+PASS  packages/nana-pack/tests/memory-session-end.test.mjs            5 pass  13.4s
+PASS  packages/nana-pack/tests/memory-shaping.test.mjs                21 pass  0.5s
+PASS  packages/nana-pack/tests/nana-roster-set.test.mjs               11 pass  2.6s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs                   27 pass  1.6s
+PASS  packages/nana-pack/tests/objective-injection.test.mjs           69 pass  0.1s
+PASS  packages/nana-pack/tests/memory-curation.test.mjs               21 pass  110.6s
+PASS  packages/nana-pack/tests/objective-smoke.test.mjs               37 pass  2.5s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs                8 pass  0.2s
+PASS  packages/nana-pack/tests/pages-workflow.test.mjs                2 pass  0.0s
+PASS  packages/nana-pack/tests/pi-install.test.mjs                    7 pass  0.3s
+PASS  packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs        38 pass, 2 skip  0.1s
+PASS  packages/nana-pack/tests/pipe-guard.test.mjs                    230 pass  0.3s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs                9 pass  0.0s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs                  8 pass  3.7s
+PASS  packages/nana-pack/tests/product-detail.test.mjs                4 pass  2.3s
+PASS  packages/nana-pack/tests/product-overview.test.mjs              15 pass  7.9s
+PASS  packages/nana-pack/tests/memory-run.test.mjs                    9 pass  68.9s
+PASS  packages/nana-pack/tests/product-report.test.mjs                98 pass  89.2s
+FAIL  packages/nana-pack/tests/data-pack.test.mjs                     6 pass  300.0s  — timed out after 300s
+      | PASS M1 optional Python scaffold ships exactly the opt-in pack
+      | PASS M3 unsafe normalizer never changes project bytes
+      | PASS M4 pytest prints errors and warnings and skips absent settings
+      | PASS M5 real-run false-positive patterns stay clean without suppressions
+      | PASS M6 adoption preserves pack files and previous release updates cleanly
+      | PASS M7 live WAL cannot produce a clean keys verdict
+PASS  packages/nana-pack/tests/readme-check.test.mjs                  10 pass  0.3s
+PASS  packages/nana-pack/tests/real-path.test.mjs                     2 pass  0.0s
+PASS  packages/nana-pack/tests/records-move.test.mjs                  6 pass  2.6s
+PASS  packages/nana-pack/tests/release-status.test.mjs                7 pass  3.3s
+PASS  packages/nana-pack/tests/requirements-cap-kinds.test.mjs        9 pass  0.7s
+PASS  packages/nana-pack/tests/requirements-deliverables.test.mjs     22 pass  0.9s
+PASS  packages/nana-pack/tests/profile-store-guards.test.mjs          7 pass  99.8s
+PASS  packages/nana-pack/tests/profile-store.test.mjs                 14 pass  89.9s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs             98 pass  3.1s
+PASS  packages/nana-pack/tests/profile-sync.test.mjs                  2 pass  38.4s
+PASS  packages/nana-pack/tests/review-ledger-lock.test.mjs            3 pass  0.0s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs          63 pass  31.2s
+PASS  packages/nana-pack/tests/requirements-lift.test.mjs             65 pass  49.9s
+PASS  packages/nana-pack/tests/review-ledger-launch.test.mjs          32 pass  53.5s
+PASS  packages/nana-pack/tests/review-round.test.mjs                  27 pass  0.0s
+PASS  packages/nana-pack/tests/review-standard.test.mjs               7 pass  1.8s
+PASS  packages/nana-pack/tests/review-ledger-verdicts.test.mjs        16 pass  42.4s
+PASS  packages/nana-pack/tests/review-paperwork.test.mjs              10 pass  28.9s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs                 21 pass  0.4s
+PASS  packages/nana-pack/tests/rulings.test.mjs                       23 pass  0.2s
+PASS  packages/nana-pack/tests/review-timeline.test.mjs               12 pass  9.4s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs           87 pass  63.0s
+PASS  packages/nana-pack/tests/setup-retire.test.mjs                  5 pass  1.4s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs                  30 pass  0.1s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs                  11 pass  20.5s
+PASS  packages/nana-pack/tests/suite-records.test.mjs                 9 pass  15.6s
+PASS  packages/nana-pack/tests/template-release.test.mjs              5 pass  4.8s
+PASS  packages/nana-pack/tests/runtime-map.test.mjs                   15 pass  23.1s
+PASS  packages/nana-pack/tests/templates-working.test.mjs             7 pass  0.0s
+PASS  packages/nana-pack/tests/review-test-waits.test.mjs             5 pass  50.9s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs               1 pass  0.4s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs           14 pass  16.2s
+PASS  packages/nana-pack/tests/test-packs.test.mjs                    2 pass  0.0s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs                 4 pass  10.8s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs             5 pass  10.2s
+PASS  packages/nana-pack/tests/ts-syntax-check.test.mjs               6 pass  1.6s
+PASS  packages/nana-pack/tests/visual-reader.test.mjs                 5 pass  0.1s
+PASS  packages/nana-pack/tests/win-shards.test.mjs                    9 pass  13.5s
+PASS  packages/nana-pack/tests/win32-forced.test.mjs                  5 pass  0.1s
+PASS  packages/nana-pack/tests/windows-skip-lines.test.mjs            7 pass  0.0s
+PASS  packages/nana-pack/tests/worker-refusal.test.mjs                8 pass  2.3s
+PASS  packages/nana-pack/tests/writing-check.test.mjs                 47 pass  0.5s
+PASS  packages/nana-pack/tests/writing-injection.test.mjs             30 pass  1.5s
+PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs          13 pass  0.8s
+PASS  packages/nana-setup/tests/checkout-converge.test.mjs            6 pass  3.5s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs          11 pass  32.8s
+PASS  packages/nana-pack/tests/test-runner.test.mjs                   53 pass  30.9s
+PASS  packages/nana-setup/tests/claude-config-dir.test.mjs            7 pass  2.6s
+PASS  packages/nana-setup/tests/checkout-spelling.test.mjs            6 pass  6.0s
+PASS  packages/nana-setup/tests/doctor-fix-line.test.mjs              15 pass  4.5s
+PASS  packages/nana-setup/tests/doctor-floor.test.mjs                 3 pass  0.1s
+PASS  packages/nana-setup/tests/doctor-knowledge.test.mjs             5 pass  0.8s
+PASS  packages/nana-setup/tests/desk-service.test.mjs                 46 pass  9.0s
+PASS  packages/nana-setup/tests/doctor-package-source.test.mjs        10 pass  2.4s
+PASS  packages/nana-setup/tests/doctor-memory-links.test.mjs          12 pass  2.6s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs                49 pass  12.4s
+PASS  packages/nana-setup/tests/doctor-quiet.test.mjs                 7 pass  1.7s
+PASS  packages/nana-setup/tests/doctor-pi-dependencies.test.mjs       3 pass  2.5s
+PASS  packages/nana-setup/tests/doctor-trust.test.mjs                 1 pass  0.5s
+PASS  packages/nana-setup/tests/doctor-release.test.mjs               2 pass  1.8s
+PASS  packages/nana-setup/tests/fresh-machine.test.mjs                9 pass  0.1s
+PASS  packages/nana-setup/tests/entry-guidance.test.mjs               17 pass  0.4s
+PASS  packages/nana-setup/tests/fsops.test.mjs                        17 pass  0.0s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs               12 pass  0.1s
+PASS  packages/nana-setup/tests/install-check-builder-env.test.mjs    3 pass  1.0s
+PASS  packages/nana-setup/tests/install-overlap.test.mjs              4 pass  0.2s
+PASS  packages/nana-setup/tests/install-check.test.mjs                125 pass  1.8s
+PASS  packages/nana-setup/tests/memory-pause.test.mjs                 2 pass  0.9s
+PASS  packages/nana-setup/tests/doctor-runtime.test.mjs               21 pass  4.6s
+PASS  packages/nana-setup/tests/paths.test.mjs                        5 pass  0.0s
+PASS  packages/nana-setup/tests/pi-install-pin.test.mjs               10 pass  0.1s
+PASS  packages/nana-setup/tests/pi-registration.test.mjs              72 pass, 3 skip  5.9s
+PASS  packages/nana-setup/tests/objective-path-shapes.test.mjs        5 pass, 1 skip  6.6s
+PASS  packages/nana-setup/tests/project-key.test.mjs                  13 pass, 1 skip  0.0s
+PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  0.7s
+PASS  packages/nana-setup/tests/install.test.mjs                      102 pass  11.4s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs       28 pass  0.3s
+PASS  packages/nana-setup/tests/project-odd-seeds.test.mjs            8 pass  3.8s
+PASS  packages/nana-setup/tests/readme-rehearsal.test.mjs             8 pass  0.1s
+PASS  packages/nana-setup/tests/pull-cut-turn.test.mjs                1 pass  0.9s
+PASS  packages/nana-setup/tests/project-stale.test.mjs                11 pass  5.3s
+PASS  packages/nana-setup/tests/restore.test.mjs                      17 pass  2.1s
+PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs           31 pass  2.7s
+PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs           4 pass  0.8s
+PASS  packages/nana-setup/tests/seat-pull-off.test.mjs                8 pass  1.5s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs                    4 pass  0.0s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs              13 pass  5.0s
+PASS  packages/nana-setup/tests/settings-merge.test.mjs               213 pass  5.4s
+PASS  packages/nana-setup/tests/shared-link-state.test.mjs            7 pass  0.1s
+PASS  packages/nana-setup/tests/shared-memory-budget.test.mjs         7 pass  0.4s
+PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs           43 pass  0.8s
+PASS  packages/nana-setup/tests/shared-memory-input.test.mjs          3 pass  0.1s
+PASS  packages/nana-setup/tests/retired-artifacts.test.mjs            51 pass  10.6s
+PASS  packages/nana-setup/tests/uninstall.test.mjs                    31 pass  2.9s
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs                14 pass  2.5s
+PASS  packages/nana-setup/tests/win-shims-sh.test.mjs                 2 pass  0.4s
+PASS  packages/nana-setup/tests/writing-rule.test.mjs                 4 pass  0.0s
+PASS  packages/nana-stage/tests/blocks.test.mjs                       116 pass  0.1s
+
+
+## test-retire-seat-selected-retry.log
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs --pack=land,module --changed-from=main --jobs=4
+
+[packs] fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] test apps/bench/test/anatomy.test.mjs: changed test
+[packs] test packages/nana-pack/tests/component-audit.test.mjs: changed test
+[packs] test packages/nana-pack/tests/config-handlers-malformed.test.mjs: changed test
+[packs] test packages/nana-pack/tests/first-look.test.mjs: changed test
+[packs] test packages/nana-pack/tests/product-report.test.mjs: changed test
+[packs] test packages/nana-pack/tests/requirements-deliverables.test.mjs: changed test
+[packs] test packages/nana-pack/tests/test-packs-ci.test.mjs: changed test
+[packs] test packages/nana-setup/tests/stale-copies.test.mjs: changed test
+[packs] module apps/bench/test/anatomy-labels.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/bench/test/anatomy-seat.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/bench/test/anatomy.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/app-listener.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/buffer-caps.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/origin-rule.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/page-retire.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/pi-resolution.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/stage-key-persistence.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/usage-line.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/build-busy.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/discovery.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/hook.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/incremental-build.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/ledger-parse.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/pull-cut.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/recover.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/render.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/sources-file.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/tokenize.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/unreadable-root.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/ask-shape.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/build-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/build-report.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/builder-context.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/ci-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/claude-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/code-map-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/code-map.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/code-search.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/component-audit.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/config-display-text.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/config-project-gate-fallback.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/display-surfaces.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/env-path.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/gate-status.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/handoff-asks.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/handoff-writer-role.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/land-ci-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/land-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/land-regenerate.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/lane-watcher.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/lifecycle-journal.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/lifecycle-reload.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/linked-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-curation.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-making.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-run-recovery.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-run-seals.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-run.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-session-end.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-shaping.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/nana-roster-set.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/one-reviewer.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/pages-workflow.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/pi-install.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/planner-prompt.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/product-detail.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/product-overview.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/product-report.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/profile-store-guards.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/profile-store.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/profile-sync.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/real-path.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/records-move.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-cap-kinds.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-deliverables.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-lift.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-regroup.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-lock.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-state.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-verdicts.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-paperwork.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-round.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-test-waits.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-timeline.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/runtime-land.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/runtime-map.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/setup-retire.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/suite-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/test-locked.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/test-runner-parallel.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/test-runner.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/ts-syntax-check.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/windows-skip-lines.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/checkout-converge.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/checkout-spelling.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/claude-config-dir.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/desk-service.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-detail.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-fix-line.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-knowledge.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-memory-links.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-package-source.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-pi-dependencies.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-quiet.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-trust.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/install-check.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/install-overlap.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/memory-pause.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/objective-path-shapes.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/pi-install-pin.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/project-dismiss.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/project-odd-seeds.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/project-stale.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/pull-cut-turn.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/readme-rehearsal.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/relative-agent-dir.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/retired-artifacts.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/rulings-install.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/seat-pull-off.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/seat-rule.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/shared-link-state.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/shared-memory-budget.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/verifier-pipe.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/writing-rule.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-stage/tests/blocks.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] land,module,release: 204 selected files
+PASS  packages/nana-knowledge/tests/ledger-parse.test.mjs             21 pass, 1 skip  0.1s
+PASS  packages/nana-knowledge/tests/incremental-build.test.mjs        30 pass  0.1s
+PASS  packages/nana-knowledge/tests/pull-cut.test.mjs                 1 pass  0.2s
+PASS  packages/nana-knowledge/tests/discovery.test.mjs                37 pass  0.3s
+PASS  packages/nana-knowledge/tests/render.test.mjs                   69 pass  0.1s
+PASS  packages/nana-knowledge/tests/tokenize.test.mjs                 18 pass  0.1s
+PASS  packages/nana-knowledge/tests/unreadable-root.test.mjs          7 pass  0.3s
+PASS  packages/nana-pack/tests/adoption-producer.test.mjs             59 pass  0.3s
+PASS  packages/nana-pack/tests/agent-dir-config.test.mjs              100 pass  0.2s
+PASS  packages/nana-pack/tests/agent-dir-policy.test.mjs              18 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-resolver.test.mjs            1 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs       60 pass  0.2s
+PASS  packages/nana-pack/tests/ask-shape.test.mjs                     4 pass  0.0s
+PASS  packages/nana-knowledge/tests/sources-file.test.mjs             10 pass  3.2s
+PASS  packages/nana-knowledge/tests/recover.test.mjs                  11 pass  7.0s
+PASS  packages/nana-pack/tests/build-report.test.mjs                  5 pass  2.2s
+PASS  packages/nana-knowledge/tests/build-busy.test.mjs               14 pass  11.2s
+PASS  packages/nana-pack/tests/builder-context.test.mjs               7 pass  4.0s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs                   25 pass  0.0s
+PASS  packages/nana-pack/tests/claude-launch.test.mjs                 6 pass, 2 skip  0.0s
+PASS  packages/nana-pack/tests/claude-review-launch.test.mjs          2 pass  0.9s
+PASS  packages/nana-pack/tests/ci-records.test.mjs                    6 pass  3.6s
+PASS  packages/nana-pack/tests/code-map-land.test.mjs                 1 pass  1.2s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs               12 pass  1.8s
+PASS  packages/nana-pack/tests/build-records.test.mjs                 7 pass  13.3s
+PASS  packages/nana-pack/tests/code-search.test.mjs                   9 pass  0.6s
+PASS  packages/nana-pack/tests/config-display-text.test.mjs           38 pass  0.1s
+PASS  packages/nana-pack/tests/code-map.test.mjs                      46 pass  1.8s
+PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs     91 pass  0.3s
+PASS  packages/nana-pack/tests/config-normalize.test.mjs              18 pass  0.5s
+PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs          42 pass  1.0s
+PASS  packages/nana-pack/tests/config-trust.test.mjs                  25 pass  0.6s
+PASS  packages/nana-pack/tests/credential-gate.test.mjs               4 pass  4.2s
+PASS  packages/nana-pack/tests/data-pack-land.test.mjs                1 pass  0.8s
+PASS  packages/nana-pack/tests/config-project-gate-fallback.test.mjs  28 pass  8.8s
+PASS  packages/nana-pack/tests/display-surfaces.test.mjs              151 pass  0.2s
+PASS  packages/nana-pack/tests/env-path.test.mjs                      4 pass  0.0s
+PASS  packages/nana-pack/tests/first-look.test.mjs                    9 pass  0.1s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs              8 pass  0.8s
+PASS  packages/nana-pack/tests/frontier.test.mjs                      53 pass  1.8s
+PASS  packages/nana-pack/tests/gate-corpus.test.mjs                   227 pass  8.2s
+PASS  packages/nana-pack/tests/gate-policy-paths.test.mjs             93 pass  0.8s
+PASS  packages/nana-pack/tests/gate-rm-inside.test.mjs                11 pass  1.9s
+PASS  packages/nana-pack/tests/gate-self-protection.test.mjs          101 pass  0.2s
+PASS  packages/nana-pack/tests/gate-status.test.mjs                   23 pass  0.2s
+PASS  packages/nana-pack/tests/handoff-asks.test.mjs                  5 pass  0.0s
+PASS  packages/nana-pack/tests/brief-check.test.mjs                   10 pass  42.6s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs                12 pass  3.2s
+PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs           1 pass  1.7s
+PASS  packages/nana-pack/tests/identity-tree.test.mjs                 2 pass  4.9s
+PASS  packages/nana-pack/tests/known-bugs.test.mjs                    4 pass  0.2s
+PASS  packages/nana-pack/tests/issue-watch.test.mjs                   29 pass  8.5s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs               7 pass  19.0s
+PASS  packages/nana-pack/tests/land-records.test.mjs                  7 pass  25.0s
+PASS  packages/nana-pack/tests/component-audit.test.mjs               12 pass  70.4s
+PASS  packages/nana-pack/tests/land.test.mjs                          31 pass  36.0s
+PASS  packages/nana-pack/tests/lane-watcher.test.mjs                  2 pass  0.1s
+PASS  packages/nana-pack/tests/lane-write-guard.test.mjs              16 pass, 2 skip  0.2s
+PASS  packages/nana-pack/tests/leak-scan-cli.test.mjs                 1 pass  1.1s
+PASS  packages/nana-pack/tests/lifecycle-journal.test.mjs             6 pass  0.1s
+PASS  packages/nana-pack/tests/lifecycle-reload.test.mjs              12 pass  0.1s
+PASS  packages/nana-pack/tests/linked-launch.test.mjs                 3 pass  0.4s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                       1 pass  0.1s
+PASS  packages/nana-pack/tests/lane-push-ci.test.mjs                  10 pass  73.7s
+PASS  packages/nana-pack/tests/memory-cut-guidance.test.mjs           1 pass  7.8s
+PASS  packages/nana-pack/tests/memory-making.test.mjs                 24 pass  0.3s
+PASS  packages/nana-pack/tests/land-regenerate.test.mjs               8 pass  110.0s
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs              16 pass  2.0s
+PASS  packages/nana-pack/tests/memory-run-recovery.test.mjs           7 pass  36.2s
+PASS  packages/nana-pack/tests/memory-session-end.test.mjs            5 pass  13.3s
+PASS  packages/nana-pack/tests/memory-shaping.test.mjs                21 pass  0.4s
+PASS  packages/nana-pack/tests/nana-roster-set.test.mjs               11 pass  2.5s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs                   27 pass  1.6s
+PASS  packages/nana-pack/tests/objective-injection.test.mjs           69 pass  0.2s
+PASS  packages/nana-pack/tests/memory-curation.test.mjs               21 pass  108.8s
+PASS  packages/nana-pack/tests/objective-smoke.test.mjs               37 pass  2.5s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs                8 pass  0.2s
+PASS  packages/nana-pack/tests/pages-workflow.test.mjs                2 pass  0.0s
+PASS  packages/nana-pack/tests/pi-install.test.mjs                    7 pass  0.3s
+PASS  packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs        38 pass, 2 skip  0.1s
+PASS  packages/nana-pack/tests/pipe-guard.test.mjs                    230 pass  0.3s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs                9 pass  0.0s
+PASS  packages/nana-pack/tests/product-detail.test.mjs                4 pass  2.6s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs                  8 pass  3.9s
+PASS  packages/nana-pack/tests/product-overview.test.mjs              15 pass  8.3s
+PASS  packages/nana-pack/tests/memory-run.test.mjs                    9 pass  69.9s
+PASS  packages/nana-pack/tests/product-report.test.mjs                98 pass  90.3s
+FAIL  packages/nana-pack/tests/data-pack.test.mjs                     6 pass  300.0s  — timed out after 300s
+      | PASS M1 optional Python scaffold ships exactly the opt-in pack
+      | PASS M3 unsafe normalizer never changes project bytes
+      | PASS M4 pytest prints errors and warnings and skips absent settings
+      | PASS M5 real-run false-positive patterns stay clean without suppressions
+      | PASS M6 adoption preserves pack files and previous release updates cleanly
+      | PASS M7 live WAL cannot produce a clean keys verdict
+PASS  packages/nana-pack/tests/readme-check.test.mjs                  10 pass  0.3s
+PASS  packages/nana-pack/tests/real-path.test.mjs                     2 pass  0.0s
+PASS  packages/nana-pack/tests/records-move.test.mjs                  6 pass  3.0s
+PASS  packages/nana-pack/tests/release-status.test.mjs                7 pass  3.4s
+PASS  packages/nana-pack/tests/requirements-cap-kinds.test.mjs        9 pass  0.7s
+PASS  packages/nana-pack/tests/requirements-deliverables.test.mjs     22 pass  0.9s
+PASS  packages/nana-pack/tests/profile-store-guards.test.mjs          7 pass  100.6s
+PASS  packages/nana-pack/tests/profile-store.test.mjs                 14 pass  90.4s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs             98 pass  3.1s
+PASS  packages/nana-pack/tests/profile-sync.test.mjs                  2 pass  39.0s
+PASS  packages/nana-pack/tests/review-ledger-lock.test.mjs            3 pass  0.1s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs          63 pass  31.5s
+PASS  packages/nana-pack/tests/requirements-lift.test.mjs             65 pass  49.4s
+PASS  packages/nana-pack/tests/review-ledger-launch.test.mjs          32 pass  52.6s
+PASS  packages/nana-pack/tests/review-round.test.mjs                  27 pass  0.0s
+PASS  packages/nana-pack/tests/review-standard.test.mjs               7 pass  1.7s
+PASS  packages/nana-pack/tests/review-ledger-verdicts.test.mjs        16 pass  42.1s
+PASS  packages/nana-pack/tests/review-paperwork.test.mjs              10 pass  29.5s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs                 21 pass  0.4s
+PASS  packages/nana-pack/tests/rulings.test.mjs                       23 pass  0.2s
+PASS  packages/nana-pack/tests/review-timeline.test.mjs               12 pass  9.5s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs           87 pass  63.1s
+PASS  packages/nana-pack/tests/setup-retire.test.mjs                  5 pass  1.4s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs                  30 pass  0.1s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs                  11 pass  20.1s
+PASS  packages/nana-pack/tests/suite-records.test.mjs                 9 pass  15.3s
+PASS  packages/nana-pack/tests/template-release.test.mjs              5 pass  4.8s
+PASS  packages/nana-pack/tests/runtime-map.test.mjs                   15 pass  23.2s
+PASS  packages/nana-pack/tests/templates-working.test.mjs             7 pass  0.0s
+PASS  packages/nana-pack/tests/review-test-waits.test.mjs             5 pass  51.3s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs               1 pass  0.4s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs           14 pass  15.9s
+PASS  packages/nana-pack/tests/test-packs.test.mjs                    2 pass  0.0s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs                 4 pass  11.6s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs             5 pass  10.9s
+PASS  packages/nana-pack/tests/ts-syntax-check.test.mjs               6 pass  1.7s
+PASS  packages/nana-pack/tests/visual-reader.test.mjs                 5 pass  0.1s
+PASS  packages/nana-pack/tests/win-shards.test.mjs                    9 pass  14.1s
+PASS  packages/nana-pack/tests/win32-forced.test.mjs                  5 pass  0.2s
+PASS  packages/nana-pack/tests/windows-skip-lines.test.mjs            7 pass  0.0s
+PASS  packages/nana-pack/tests/worker-refusal.test.mjs                8 pass  1.9s
+PASS  packages/nana-pack/tests/writing-check.test.mjs                 47 pass  0.4s
+PASS  packages/nana-pack/tests/writing-injection.test.mjs             30 pass  1.4s
+PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs          13 pass  0.8s
+PASS  packages/nana-setup/tests/checkout-converge.test.mjs            6 pass  3.2s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs          11 pass  32.8s
+PASS  packages/nana-pack/tests/test-runner.test.mjs                   53 pass  30.6s
+PASS  packages/nana-setup/tests/claude-config-dir.test.mjs            7 pass  2.3s
+PASS  packages/nana-setup/tests/checkout-spelling.test.mjs            6 pass  5.6s
+PASS  packages/nana-setup/tests/doctor-fix-line.test.mjs              15 pass  4.3s
+PASS  packages/nana-setup/tests/doctor-floor.test.mjs                 3 pass  0.1s
+PASS  packages/nana-setup/tests/doctor-knowledge.test.mjs             5 pass  0.8s
+PASS  packages/nana-setup/tests/desk-service.test.mjs                 46 pass  8.9s
+PASS  packages/nana-setup/tests/doctor-memory-links.test.mjs          12 pass  2.2s
+PASS  packages/nana-setup/tests/doctor-package-source.test.mjs        10 pass  2.4s
+PASS  packages/nana-setup/tests/doctor-pi-dependencies.test.mjs       3 pass  2.4s
+PASS  packages/nana-setup/tests/doctor-quiet.test.mjs                 7 pass  1.8s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs                49 pass  12.2s
+PASS  packages/nana-setup/tests/doctor-release.test.mjs               2 pass  1.3s
+PASS  packages/nana-setup/tests/doctor-trust.test.mjs                 1 pass  0.9s
+PASS  packages/nana-setup/tests/entry-guidance.test.mjs               17 pass  0.3s
+PASS  packages/nana-setup/tests/fresh-machine.test.mjs                9 pass  0.1s
+PASS  packages/nana-setup/tests/fsops.test.mjs                        17 pass  0.0s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs               12 pass  0.1s
+PASS  packages/nana-setup/tests/install-check-builder-env.test.mjs    3 pass  1.0s
+PASS  packages/nana-setup/tests/install-overlap.test.mjs              4 pass  0.2s
+PASS  packages/nana-setup/tests/install-check.test.mjs                125 pass  1.8s
+PASS  packages/nana-setup/tests/memory-pause.test.mjs                 2 pass  0.9s
+PASS  packages/nana-setup/tests/doctor-runtime.test.mjs               21 pass  5.0s
+PASS  packages/nana-setup/tests/paths.test.mjs                        5 pass  0.0s
+PASS  packages/nana-setup/tests/pi-install-pin.test.mjs               10 pass  0.1s
+PASS  packages/nana-setup/tests/objective-path-shapes.test.mjs        5 pass, 1 skip  6.0s
+PASS  packages/nana-setup/tests/pi-registration.test.mjs              72 pass, 3 skip  5.4s
+PASS  packages/nana-setup/tests/project-key.test.mjs                  13 pass, 1 skip  0.0s
+PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  0.6s
+PASS  packages/nana-setup/tests/install.test.mjs                      102 pass  10.8s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs       28 pass  0.3s
+PASS  packages/nana-setup/tests/project-odd-seeds.test.mjs            8 pass  3.7s
+PASS  packages/nana-setup/tests/readme-rehearsal.test.mjs             8 pass  0.1s
+PASS  packages/nana-setup/tests/pull-cut-turn.test.mjs                1 pass  0.9s
+PASS  packages/nana-setup/tests/project-stale.test.mjs                11 pass  5.2s
+PASS  packages/nana-setup/tests/restore.test.mjs                      17 pass  2.1s
+PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs           31 pass  2.5s
+PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs           4 pass  0.7s
+PASS  packages/nana-setup/tests/seat-pull-off.test.mjs                8 pass  1.4s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs                    4 pass  0.0s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs              13 pass  4.9s
+PASS  packages/nana-setup/tests/settings-merge.test.mjs               213 pass  5.4s
+PASS  packages/nana-setup/tests/shared-link-state.test.mjs            7 pass  0.0s
+PASS  packages/nana-setup/tests/shared-memory-budget.test.mjs         7 pass  0.5s
+PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs           43 pass  0.9s
+PASS  packages/nana-setup/tests/shared-memory-input.test.mjs          3 pass  0.1s
+PASS  packages/nana-setup/tests/retired-artifacts.test.mjs            51 pass  10.6s
+PASS  packages/nana-setup/tests/uninstall.test.mjs                    31 pass  2.9s
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs                14 pass  2.6s
+PASS  packages/nana-setup/tests/win-shims-sh.test.mjs                 2 pass  0.4s
+PASS  packages/nana-setup/tests/writing-rule.test.mjs                 4 pass  0.1s
+PASS  packages/nana-stage/tests/blocks.test.mjs                       116 pass  0.1s
+PASS  apps/desk/test/app-listener.test.mjs                            76 pass  6.3s
+PASS  apps/desk/test/buffer-caps.test.mjs                             1 pass  0.4s
+PASS  apps/desk/test/host-rule.test.mjs                               30 pass  0.8s
+PASS  apps/desk/test/origin-rule.test.mjs                             11 pass  0.4s
+PASS  apps/desk/test/page-retire.test.mjs                             3 pass, 2 skip  0.4s
+PASS  packages/nana-setup/tests/stale-copies.test.mjs                 15 pass  15.6s
+PASS  apps/desk/test/pi-resolution.test.mjs                           43 pass  2.0s
+PASS  apps/desk/test/stage-key-persistence.test.mjs                   2 pass  1.5s
+PASS  apps/bench/test/anatomy-labels.test.mjs                         30 pass  1.4s
+PASS  apps/bench/test/anatomy-seat.test.mjs                           17 pass  0.6s
+PASS  apps/desk/test/usage-line.test.mjs                              6 pass  2.8s
+PASS  apps/bench/test/anatomy.test.mjs                                10 pass  1.8s
+PASS  packages/nana-setup/tests/setup-tail.test.mjs                   9 pass  58.3s
+PASS  packages/nana-pack/tests/templates-update.test.mjs              35 pass  156.4s
+PASS  packages/nana-knowledge/tests/hook.test.mjs                     98 pass  4.9s
+PASS  packages/nana-pack/tests/bounded-read.test.mjs                  4 pass  0.1s
+PASS  packages/nana-pack/tests/review-ledger.test.mjs                 24 pass  23.0s
+PASS  packages/nana-pack/tests/test-locked.test.mjs                   17 pass  5.0s
+
+204 files: 203 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 4873 pass, 0 fail, 14 skip · 634.2s
+failed: packages/nana-pack/tests/data-pack.test.mjs
+
+
+## test-retire-sweep-hits.log
+apps/bench/test/retire.test.mjs:56: const { parseRelativeImports } = await import("../../../templates/typescript/template/scripts/code-map.mjs");
+apps/bench/test/retire.test.mjs:72: const oldDeliverables = await withOriginalGlob("scripts/deliverables.mjs", globUrl);
+apps/bench/test/retire.test.mjs:74: const currentDeliverables = await import("../../../scripts/deliverables.mjs");
+apps/bench/test/retire.test.mjs:76: const { parseLedger } = await import("../../../scripts/requirements-tree.mjs");
+apps/bench/test/retire.test.mjs:149: for (const args of [["scripts/code-map.mjs", "--check"], ["scripts/requirements-tree.mjs", "--check"], ["scripts/readme-check.mjs"], ["scripts/component-audit.mjs", "--check"]]) {
+packages/nana-pack/tests/code-map-launch.test.mjs:17:import { checkRepo, writeMap } from "../../../scripts/code-map.mjs";
+packages/nana-pack/tests/code-map-launch.test.mjs:24:const shim = new URL("../../../scripts/code-map.mjs", import.meta.url).href;
+packages/nana-pack/tests/code-map-launch.test.mjs:200:	losses.set("scripts/deliverables.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
+packages/nana-pack/tests/readme-check.test.mjs:4: * @inputs scripts/readme-check.mjs, readme-check.config.json, and the README files it lists
+packages/nana-pack/tests/readme-check.test.mjs:17:// documented somewhere. The checker is the template's — scripts/readme-check.mjs is a shim over
+packages/nana-pack/tests/readme-check.test.mjs:18:// templates/typescript/template/scripts/readme-check.mjs — reading readme-check.config.json.
+packages/nana-pack/tests/readme-check.test.mjs:23:	new URL("../../../scripts/readme-check.mjs", import.meta.url).href
+packages/nana-pack/tests/readme-check.test.mjs:50:check("scripts/readme-check.mjs --check exits 0", cli.status === 0, `${cli.stdout ?? ""}${cli.stderr ?? ""}`);
+packages/nana-pack/tests/code-map-land.test.mjs:4: * @inputs scripts/code-map.mjs, code-map.config.json, docs/code-map.md and the modules under the configured roots
+packages/nana-pack/tests/code-map-land.test.mjs:15:// the templates ship (scripts/code-map.mjs is a shim over
+packages/nana-pack/tests/code-map-land.test.mjs:16:// templates/typescript/template/scripts/code-map.mjs), so G-004 / G-007 / G-009 / G-010 /
+packages/nana-pack/tests/code-map-land.test.mjs:21:const { REPO_ROOT, buildGraph, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
+packages/nana-pack/tests/code-map-land.test.mjs:23:const { TEST_ROOTS } = await import(new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href);
+packages/nana-pack/tests/code-map-land.test.mjs:28:const { parseRelativeImports } = await import(new URL("../../../templates/typescript/template/scripts/code-map.mjs", import.meta.url).href);
+packages/nana-pack/tests/code-map-land.test.mjs:45:check("scripts/code-map.mjs --check exits 0 on a clean repo", cli.status === 0, `${cli.stdout ?? ""}${cli.stderr ?? ""}`);
+packages/nana-setup/tests/seat-rule.test.mjs:38:const TRACE_CHECK = "  Name `node scripts/requirements-trace.mjs` among every brief's seat checks, including small fix briefs.";
+packages/nana-pack/tests/templates-update.test.mjs:248:   spawnSync("node", ["scripts/code-map.mjs"], { encoding: "utf8", env, cwd: dest });
+packages/nana-pack/tests/templates-update.test.mjs:249:   const mapCheck = spawnSync("node", ["scripts/code-map.mjs", "--check"], { encoding: "utf8", env, cwd: dest });
+packages/nana-pack/tests/linked-launch.test.mjs:7: * @inputs scripts/requirements-tree.mjs,
+packages/nana-pack/tests/linked-launch.test.mjs:74:    const result = runBoth("scripts/requirements-tree.mjs", ["--root", flatDir]);
+packages/nana-pack/tests/template-acceptance.test.mjs:171:    ["typescript-adopt", `${process.execPath} scripts/code-map.mjs`], ["typescript-adopt", "pnpm install"], ["typescript-adopt", "pnpm check"],
+packages/nana-pack/tests/template-acceptance.test.mjs:189:    if (cmd === process.execPath && args[0] === "scripts/code-map.mjs") return { status: 1, stderr: "map failed" };
+packages/nana-pack/tests/template-acceptance.test.mjs:193:  assert(logs.some((line) => line.includes(`${process.execPath} scripts/code-map.mjs`)));
+packages/nana-pack/tests/product-detail.test.mjs:103:  const run = spawnSync(process.execPath, [path.join(ROOT, "scripts/requirements-tree.mjs"), "--root", repo.root], { cwd: ROOT, encoding: "utf8", timeout: CASE_LIMIT_MS });
+packages/nana-pack/tests/code-search.test.mjs:39:	const { writeMap, checkRepo } = await import("../../../scripts/code-map.mjs");
+packages/nana-pack/tests/code-search.test.mjs:88:	const cli = spawnSync(process.execPath, [join(ROOT, "scripts/code-map.mjs"), "--search", "quartz"], { encoding: "utf8", timeout: LIMIT_MS });
+packages/nana-pack/tests/preview-retirement.test.mjs:15:import { buildAudit } from '../../../scripts/component-audit.mjs';
+packages/nana-pack/tests/requirements-regroup.test.mjs:4: * @inputs scripts/requirements-regroup.mjs, scripts/requirements-lift.mjs, scripts/requirements-tree.mjs, and a fixture ledger/proposal built by this file under the OS temp directory.
+packages/nana-pack/tests/requirements-regroup.test.mjs:212:    "scripts/requirements-tree.mjs", "scripts/requirements-trace.mjs", "scripts/git-runner.mjs", "scripts/deliverables.mjs",
+packages/nana-pack/tests/product-report.test.mjs:23:import * as deliverablesModule from "../../../scripts/deliverables.mjs";
+packages/nana-pack/tests/product-report.test.mjs:30:import { parseLedger, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
+packages/nana-pack/tests/product-report.test.mjs:1268:        const cli = spawnSync(process.execPath, [path.join(ROOT, "scripts/requirements-tree.mjs"), "--root", repo.root], { cwd: ROOT, encoding: "utf8", timeout: CASE_LIMIT_MS });
+packages/nana-pack/tests/requirements-unclaimed.test.mjs:22:const TRACE_CLI = join(ROOT, "scripts/requirements-trace.mjs");
+packages/nana-pack/tests/requirements-unclaimed.test.mjs:24:const trace = await import(new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href);
+packages/nana-pack/tests/first-look.test.mjs:114:    "scripts/product-report.mjs", "scripts/product-report/", "scripts/deliverables.mjs",
+packages/nana-pack/tests/first-look.test.mjs:115:    "scripts/requirements-tree.mjs", "scripts/requirements-trace.mjs", "scripts/git-runner.mjs",
+packages/nana-pack/tests/templates-render.test.mjs:18:import { checkTree, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
+packages/nana-pack/tests/templates-render.test.mjs:272:			"scripts/code-map.mjs",
+packages/nana-pack/tests/templates-render.test.mjs:273:			"scripts/readme-check.mjs",
+packages/nana-pack/tests/templates-render.test.mjs:276:		checkCmd: [process.execPath, ["scripts/code-map.mjs", "--check"]],
+packages/nana-pack/tests/templates-render.test.mjs:277:		writeCmd: [process.execPath, ["scripts/code-map.mjs"]],
+packages/nana-pack/tests/templates-render.test.mjs:282:		readmeCmd: [process.execPath, ["scripts/readme-check.mjs"]],
+packages/nana-pack/tests/templates-render.test.mjs:343:const CHECKER_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .';
+packages/nana-pack/tests/setup-retire.test.mjs:19:import { buildGraph, collectModules, loadConfig } from '../../../scripts/code-map.mjs';
+packages/nana-pack/tests/runtime-map.test.mjs:4: * @inputs the real scripts/runtime-measure.mjs, packages/nana-pack/lib/runtime-map.mjs and scripts/code-map.mjs, fixture git repositories this file builds, and the real checkout's own tracked files and hashes for the --impact fixtures
+packages/nana-pack/tests/runtime-map.test.mjs:12:// MM3, MM4, MM5 and MM7 spawn the REAL scripts/code-map.mjs CLI against THIS checkout (never a
+packages/nana-pack/tests/runtime-map.test.mjs:20:import { artifactBlock, runtimeBlock } from "../../../scripts/code-map.mjs";
+packages/nana-pack/tests/runtime-map.test.mjs:139:// MM3, MM4, MM5, MM7: the real scripts/code-map.mjs CLI against THIS checkout, fed fixture data
+packages/nana-pack/tests/runtime-map.test.mjs:259:	parseLedger: (await import("../../../scripts/requirements-tree.mjs")).parseLedger,
+packages/nana-pack/tests/runtime-map.test.mjs:260:	ledgerReadProblem: (await import("../../../scripts/requirements-tree.mjs")).ledgerReadProblem,
+packages/nana-pack/tests/runtime-map.test.mjs:261:	artifactRegistry: (await import("../../../scripts/deliverables.mjs")).artifactRegistry,
+packages/nana-pack/tests/runtime-map.test.mjs:262:	artifactReads: (await import("../../../scripts/deliverables.mjs")).artifactReads,
+packages/nana-pack/tests/runtime-map.test.mjs:584:	"scripts/code-map.mjs": fs.readFileSync(CODE_MAP, "utf8"),
+packages/nana-pack/tests/runtime-map.test.mjs:589:	"templates/typescript/template/scripts/code-map.mjs": fs.readFileSync(GENERATOR, "utf8"),
+packages/nana-pack/tests/requirements-lift.test.mjs:17:import { parseLedger } from "../../../scripts/requirements-tree.mjs";
+packages/nana-pack/tests/requirements-lift.test.mjs:268:  const ck = node([join(REPO_ROOT, "scripts/requirements-tree.mjs"), "--root", w]);
+packages/nana-pack/tests/requirements-lift.test.mjs:670:  const ck = node([join(REPO_ROOT, "scripts/requirements-tree.mjs"), "--root", join(dir, sub)]);
+packages/nana-pack/tests/component-audit.test.mjs:19:import { buildAudit, main } from "../../../scripts/component-audit.mjs";
+packages/nana-pack/tests/land-regenerate.test.mjs:97:  if(kind==='target')commit(f.feature,'scripts/requirements-tree.mjs',fs.readFileSync(path.join(f.feature,'scripts/requirements-tree.mjs'),'utf8').replace('const target = resolve(REPO_ROOT, "docs/requirements-tree.md")','const target = resolve(REPO_ROOT, "../escape.md")'),'escaping target');
+packages/nana-pack/tests/land-regenerate.test.mjs:148:  {path:'docs/code-map.md',write:['scripts/code-map.mjs','--write'],check:['scripts/code-map.mjs','--check']},
+packages/nana-pack/tests/land-regenerate.test.mjs:149:  {path:'docs/requirements-tree.md',write:['scripts/requirements-tree.mjs','--write'],check:['scripts/requirements-tree.mjs','--check']},
+packages/nana-pack/tests/requirements-deliverables.test.mjs:4: * @inputs scripts/deliverables.mjs, scripts/requirements-tree.mjs, and temporary git repositories.
+packages/nana-pack/tests/requirements-deliverables.test.mjs:15:import { parseLedger } from "../../../scripts/requirements-tree.mjs";
+packages/nana-pack/tests/requirements-deliverables.test.mjs:16:import * as deliverablesModule from "../../../scripts/deliverables.mjs";
+packages/nana-pack/tests/requirements-deliverables.test.mjs:38:} from "../../../scripts/deliverables.mjs";
+packages/nana-pack/tests/requirements-deliverables.test.mjs:42:const CLI = fileURLToPath(new URL("../../../scripts/requirements-tree.mjs", import.meta.url));
+packages/nana-pack/tests/memory-run.test.mjs:18:import { deriveProtected, POLICY } from '../../../scripts/records-move.mjs';
+packages/nana-pack/tests/code-map.test.mjs:4: * @inputs scripts/code-map.mjs, code-map.config.json, docs/code-map.md and the modules under the configured roots
+packages/nana-pack/tests/code-map.test.mjs:15:// the templates ship (scripts/code-map.mjs is a shim over
+packages/nana-pack/tests/code-map.test.mjs:16:// templates/typescript/template/scripts/code-map.mjs), so G-004 / G-007 / G-009 / G-010 /
+packages/nana-pack/tests/code-map.test.mjs:21:const { REPO_ROOT, buildGraph, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
+packages/nana-pack/tests/code-map.test.mjs:23:const { TEST_ROOTS } = await import(new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href);
+packages/nana-pack/tests/code-map.test.mjs:28:const { parseRelativeImports } = await import(new URL("../../../templates/typescript/template/scripts/code-map.mjs", import.meta.url).href);
+packages/nana-pack/tests/memory-cut-checks.test.mjs:12:import { parseLedger } from '../../../scripts/requirements-tree.mjs';
+packages/nana-pack/tests/memory-cut-checks.test.mjs:13:import { deliverableReport } from '../../../scripts/deliverables.mjs';
+packages/nana-pack/tests/skill-claims.test.mjs:14:import { claims, commandProblems } from "../../../templates/typescript/template/scripts/readme-check.mjs";
+packages/nana-pack/tests/requirements-tree.test.mjs:4: * @inputs REQUIREMENTS.md, docs/requirements-tree.md, scripts/requirements-tree.mjs and temporary ledger fixtures.
+packages/nana-pack/tests/requirements-tree.test.mjs:16:import { ID, requirementRowId } from "../../../scripts/requirements-trace.mjs";
+packages/nana-pack/tests/requirements-tree.test.mjs:17:import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowIds, expandRowIds, readRequirementRows, descendants, ledgerReadProblem } from "../../../scripts/requirements-tree.mjs";
+packages/nana-pack/tests/requirements-tree.test.mjs:334:const TREE_CLI = fileURLToPath(new URL("../../../scripts/requirements-tree.mjs", import.meta.url));
+packages/nana-pack/tests/product-overview.test.mjs:20:import { ARTIFACT_AGE_TABLE } from "../../../scripts/deliverables.mjs";
+packages/nana-pack/tests/product-overview.test.mjs:46:  const run = spawnSync(process.execPath, [path.join(ROOT, "scripts/requirements-tree.mjs"), "--root", repo.root], { cwd: ROOT, encoding: "utf8", timeout: CASE_LIMIT_MS });
+packages/nana-pack/tests/requirements-trace.test.mjs:4: * @inputs scripts/requirements-trace.mjs, REQUIREMENTS.md, and the markers in the six test dirs npm test collects
+packages/nana-pack/tests/requirements-trace.test.mjs:12:// and carries the marker. The rail itself is the template's — scripts/requirements-trace.mjs is
+packages/nana-pack/tests/requirements-trace.test.mjs:28:	new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href
+packages/nana-pack/tests/requirements-trace.test.mjs:42:// summary line" is a claim about what scripts/requirements-trace.mjs actually prints, not
+packages/nana-pack/tests/requirements-cap-kinds.test.mjs:4: * @inputs scripts/requirements-tree.mjs, scripts/requirements-lift.mjs, git history, and ledger fixtures built under the OS temp directory.
+packages/nana-pack/tests/requirements-cap-kinds.test.mjs:16:import { checkOutlineFields, checkTree, parseLedger, renderOutline } from "../../../scripts/requirements-tree.mjs";
+packages/nana-pack/tests/records-move.test.mjs:16:import { deriveProtected, checkRecords, POLICY } from '../../../scripts/records-move.mjs';
+packages/nana-pack/tests/records-move.test.mjs:17:import { checkReviewArchive, REPO_ROOT } from '../../../scripts/readme-check.mjs';
+packages/nana-pack/tests/handoff-issues.test.mjs:20:import { parseLedger } from "../../../scripts/requirements-tree.mjs";
+packages/nana-pack/tests/handoff-issues.test.mjs:21:import { artifactRegistry, ARTIFACT_CLASSES, ARTIFACT_LOCATION_SHAPES } from "../../../scripts/deliverables.mjs";
+
+
+## test-retire-trace-1.log
+requirements: 2736 total (2008 implemented · 8 planned · 577 retired · 140 untested · 3 violated); 2021 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:78606) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-trace-2.log
+requirements: 2736 total (2008 implemented · 8 planned · 577 retired · 140 untested · 3 violated); 2021 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:56023) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-trace-3.log
+requirements: 2736 total (2004 implemented · 8 planned · 581 retired · 140 untested · 3 violated); 2017 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:5415) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-trace-5.log
+requirements: 2736 total (2004 implemented · 8 planned · 581 retired · 140 untested · 3 violated); 2017 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:44355) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-trace-5d.log
+requirements: 2736 total (2003 implemented · 8 planned · 582 retired · 140 untested · 3 violated); 2016 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:48850) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-tree-1.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+## test-retire-tree-2.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+## test-retire-tree-3.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+## test-retire-tree-5.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+## test-retire-tree-5d.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+## test-retire-tree-write-3.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+## test-retire-tree-write-5.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+## test-retire-tree-write-5d.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+## test-retire-tree-write.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
+
+# Committed code-tip seat checks before evidence-only amendment
+
+## test-retire-tip-audit.log
+stale: compass 28 commits since a2ad3f21
+stale: notice-board 24 commits since a2ad3f21
+stale: key-cabinet 897 commits since a2ad3f21
+stale: night-shift 897 commits since a2ad3f21
+stale: land-gate 22 commits since a2ad3f21
+stale: requirement-contract 285 commits since a2ad3f21
+stale: code-map 30 commits since a2ad3f21
+stale: command-gate 130 commits since a2ad3f21
+unclaimed: packages/nana-pack/bin/leak-scan.mjs
+unclaimed: packages/nana-pack/bin/nana-ci-wait.mjs
+unclaimed: packages/nana-pack/bin/nana-curate.mjs
+unclaimed: packages/nana-pack/bin/nana-main-ci.mjs
+unclaimed: packages/nana-pack/bin/nana-memory.mjs
+unclaimed: packages/nana-pack/bin/nana-profile.mjs
+unclaimed: scripts/code-map-launch-config.mjs
+unclaimed: scripts/glob-match.mjs
+unclaimed: scripts/memory-curate.mjs
+unclaimed: scripts/memory-make.mjs
+unclaimed: scripts/memory-run.mjs
+unclaimed: scripts/memory-shape-runners.mjs
+unclaimed: scripts/memory-shape.mjs
+unclaimed: scripts/reader-common.mjs
+unclaimed: scripts/records-move.mjs
+unclaimed: scripts/visual-reader-config.mjs
+unclaimed: scripts/visual-reader.mjs
+unclaimed: 17 of 249 mapped modules
+(node:79908) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-tip-land.log
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs --pack=land --jobs=4
+
+[packs] land: 71 selected files
+PASS  packages/nana-pack/tests/agent-dir-resolver.test.mjs         1 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-policy.test.mjs           18 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs    60 pass  0.2s
+PASS  packages/nana-pack/tests/agent-dir-config.test.mjs           100 pass  0.3s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs                25 pass  0.0s
+PASS  packages/nana-pack/tests/adoption-producer.test.mjs          59 pass  0.3s
+PASS  packages/nana-pack/tests/claude-review-launch.test.mjs       2 pass  1.0s
+PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs       42 pass  1.0s
+PASS  packages/nana-pack/tests/code-map-land.test.mjs              1 pass  1.2s
+PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs  91 pass  0.3s
+PASS  packages/nana-pack/tests/config-normalize.test.mjs           18 pass  0.4s
+PASS  packages/nana-pack/tests/config-trust.test.mjs               25 pass  0.6s
+PASS  packages/nana-pack/tests/first-look.test.mjs                 9 pass  0.1s
+PASS  packages/nana-pack/tests/data-pack-land.test.mjs             1 pass  0.7s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs           8 pass  0.8s
+PASS  packages/nana-pack/tests/frontier.test.mjs                   53 pass  1.7s
+PASS  packages/nana-pack/tests/gate-policy-paths.test.mjs          93 pass  0.8s
+PASS  packages/nana-pack/tests/credential-gate.test.mjs            4 pass  5.0s
+PASS  packages/nana-pack/tests/gate-self-protection.test.mjs       101 pass  0.2s
+PASS  packages/nana-pack/tests/gate-rm-inside.test.mjs             11 pass  2.2s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs             12 pass  3.2s
+PASS  packages/nana-pack/tests/gate-corpus.test.mjs                227 pass  8.7s
+PASS  packages/nana-pack/tests/known-bugs.test.mjs                 4 pass  0.1s
+PASS  packages/nana-pack/tests/identity-tree.test.mjs              2 pass  4.5s
+PASS  packages/nana-pack/tests/issue-watch.test.mjs                29 pass  8.5s
+PASS  packages/nana-pack/tests/lane-write-guard.test.mjs           16 pass, 2 skip  0.1s
+PASS  packages/nana-pack/tests/leak-scan-cli.test.mjs              1 pass  0.8s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                    1 pass  0.1s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs                27 pass  1.4s
+PASS  packages/nana-pack/tests/objective-injection.test.mjs        69 pass  0.1s
+PASS  packages/nana-pack/tests/objective-smoke.test.mjs            37 pass  1.7s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs             8 pass  0.1s
+PASS  packages/nana-pack/tests/pipe-guard.test.mjs                 230 pass  0.3s
+PASS  packages/nana-pack/tests/readme-check.test.mjs               10 pass  0.2s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs          98 pass  2.7s
+PASS  packages/nana-pack/tests/review-standard.test.mjs            7 pass  1.5s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs              21 pass  0.3s
+PASS  packages/nana-pack/tests/rulings.test.mjs                    23 pass  0.1s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs               30 pass  0.1s
+PASS  packages/nana-pack/tests/templates-working.test.mjs          7 pass  0.0s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs              4 pass  8.9s
+PASS  packages/nana-pack/tests/land.test.mjs                       31 pass  25.3s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs            1 pass  0.3s
+PASS  packages/nana-pack/tests/test-packs.test.mjs                 2 pass  0.0s
+PASS  packages/nana-pack/tests/visual-reader.test.mjs              5 pass  0.1s
+PASS  packages/nana-pack/tests/brief-check.test.mjs                10 pass  41.6s
+PASS  packages/nana-pack/tests/win32-forced.test.mjs               5 pass  0.1s
+PASS  packages/nana-pack/tests/worker-refusal.test.mjs             8 pass  1.9s
+PASS  packages/nana-pack/tests/writing-check.test.mjs              47 pass  0.5s
+PASS  packages/nana-pack/tests/writing-injection.test.mjs          30 pass  1.4s
+PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs       13 pass  0.7s
+PASS  packages/nana-setup/tests/doctor-floor.test.mjs              3 pass  0.1s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs          5 pass  9.5s
+PASS  packages/nana-setup/tests/fsops.test.mjs                     17 pass  0.0s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs            12 pass  0.1s
+PASS  packages/nana-setup/tests/doctor-runtime.test.mjs            21 pass  3.1s
+PASS  packages/nana-setup/tests/paths.test.mjs                     5 pass  0.0s
+PASS  packages/nana-pack/tests/win-shards.test.mjs                 9 pass  12.5s
+PASS  packages/nana-setup/tests/project-key.test.mjs               13 pass, 1 skip  0.0s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs    28 pass  0.2s
+PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs        4 pass  0.6s
+PASS  packages/nana-setup/tests/pi-registration.test.mjs           72 pass, 3 skip  4.0s
+PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs        43 pass  0.8s
+PASS  packages/nana-setup/tests/shared-memory-input.test.mjs       3 pass  0.1s
+PASS  packages/nana-setup/tests/settings-merge.test.mjs            213 pass  4.1s
+PASS  packages/nana-setup/tests/win-shims-sh.test.mjs              2 pass  0.3s
+PASS  packages/nana-setup/tests/install.test.mjs                   102 pass  9.0s
+PASS  apps/desk/test/host-rule.test.mjs                            30 pass  0.8s
+PASS  packages/nana-setup/tests/uninstall.test.mjs                 31 pass  2.2s
+PASS  packages/nana-pack/tests/lane-push-ci.test.mjs               10 pass  49.0s
+PASS  packages/nana-pack/tests/bounded-read.test.mjs               4 pass  0.1s
+
+71 files: 71 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 2364 pass, 0 fail, 6 skip · 61.2s
+
+
+## test-retire-tip-map.log
+code map: 542 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 0 problem(s)
+
+
+## test-retire-tip-packs.log
+test packs: 261 files, 0 unassigned, 0 stale paths
+
+
+## test-retire-tip-readme.log
+readme: 790 claims checked; 0 problem(s)
+review archive: 0 problems
+
+
+## test-retire-tip-records.log
+records: 136 protected, 0 problems
+
+
+## test-retire-tip-selected.log
+
+> nana-pi@0.5.0 test
+> node scripts/test.mjs --pack=land,module --changed-from=main --jobs=4
+
+[packs] fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] test apps/bench/test/anatomy.test.mjs: changed test
+[packs] test apps/desk/test/page-retire.test.mjs: changed test
+[packs] test packages/nana-pack/tests/code-map-land.test.mjs: changed test
+[packs] test packages/nana-pack/tests/code-map-launch.test.mjs: changed test
+[packs] test packages/nana-pack/tests/component-audit.test.mjs: changed test
+[packs] test packages/nana-pack/tests/config-handlers-malformed.test.mjs: changed test
+[packs] test packages/nana-pack/tests/first-look.test.mjs: changed test
+[packs] test packages/nana-pack/tests/product-report.test.mjs: changed test
+[packs] test packages/nana-pack/tests/readme-check.test.mjs: changed test
+[packs] test packages/nana-pack/tests/requirements-deliverables.test.mjs: changed test
+[packs] test packages/nana-pack/tests/requirements-trace.test.mjs: changed test
+[packs] test packages/nana-pack/tests/test-packs-ci.test.mjs: changed test
+[packs] test packages/nana-pack/tests/test-packs-core.test.mjs: changed test
+[packs] test packages/nana-setup/tests/stale-copies.test.mjs: changed test
+[packs] module apps/bench/test/anatomy-labels.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/bench/test/anatomy-seat.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/bench/test/anatomy.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/app-listener.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/buffer-caps.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/origin-rule.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/page-retire.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/pi-resolution.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/stage-key-persistence.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module apps/desk/test/usage-line.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/build-busy.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/discovery.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/hook.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/incremental-build.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/ledger-parse.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/pull-cut.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/recover.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/render.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/sources-file.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/tokenize.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-knowledge/tests/unreadable-root.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/ask-shape.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/build-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/build-report.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/builder-context.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/ci-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/claude-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/code-map-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/code-map.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/code-search.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/component-audit.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/config-display-text.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/config-project-gate-fallback.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/display-surfaces.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/env-path.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/gate-status.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/handoff-asks.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/handoff-writer-role.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/land-ci-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/land-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/land-regenerate.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/lane-watcher.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/lifecycle-journal.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/lifecycle-reload.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/linked-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-curation.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-making.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-run-recovery.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-run-seals.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-run.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-session-end.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/memory-shaping.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/nana-roster-set.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/one-reviewer.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/pages-workflow.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/pi-install.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/planner-prompt.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/product-detail.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/product-overview.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/product-report.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/profile-store-guards.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/profile-store.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/profile-sync.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/real-path.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/records-move.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-cap-kinds.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-deliverables.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-lift.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/requirements-regroup.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-launch.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-lock.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-state.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger-verdicts.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-ledger.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-paperwork.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-round.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-test-waits.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/review-timeline.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/runtime-land.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/runtime-map.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/setup-retire.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/suite-records.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/test-locked.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/test-runner-parallel.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/test-runner.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/ts-syntax-check.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-pack/tests/windows-skip-lines.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/checkout-converge.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/checkout-spelling.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/claude-config-dir.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/desk-service.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-detail.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-fix-line.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-knowledge.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-memory-links.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-package-source.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-pi-dependencies.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-quiet.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/doctor-trust.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/install-check.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/install-overlap.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/memory-pause.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/objective-path-shapes.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/pi-install-pin.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/project-dismiss.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/project-odd-seeds.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/project-stale.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/pull-cut-turn.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/readme-rehearsal.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/relative-agent-dir.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/retired-artifacts.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/rulings-install.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/seat-pull-off.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/seat-rule.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/shared-link-state.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/shared-memory-budget.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/verifier-pipe.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-setup/tests/writing-rule.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] module packages/nana-stage/tests/blocks.test.mjs: fail-safe: policy path changed: packages/nana-pack/lib/test-packs-config.mjs
+[packs] land,module,release: 205 selected files
+PASS  packages/nana-knowledge/tests/ledger-parse.test.mjs             21 pass, 1 skip  0.1s
+PASS  packages/nana-knowledge/tests/incremental-build.test.mjs        30 pass  0.1s
+PASS  packages/nana-knowledge/tests/pull-cut.test.mjs                 1 pass  0.2s
+PASS  packages/nana-knowledge/tests/discovery.test.mjs                37 pass  0.3s
+PASS  packages/nana-knowledge/tests/render.test.mjs                   69 pass  0.1s
+PASS  packages/nana-knowledge/tests/tokenize.test.mjs                 18 pass  0.1s
+PASS  packages/nana-knowledge/tests/unreadable-root.test.mjs          7 pass  0.3s
+PASS  packages/nana-pack/tests/adoption-producer.test.mjs             59 pass  0.3s
+PASS  packages/nana-pack/tests/agent-dir-config.test.mjs              100 pass  0.2s
+PASS  packages/nana-pack/tests/agent-dir-policy.test.mjs              18 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-resolver.test.mjs            1 pass  0.1s
+PASS  packages/nana-pack/tests/agent-dir-var-spellings.test.mjs       60 pass  0.2s
+PASS  packages/nana-pack/tests/ask-shape.test.mjs                     4 pass  0.0s
+PASS  packages/nana-knowledge/tests/sources-file.test.mjs             10 pass  3.2s
+PASS  packages/nana-knowledge/tests/recover.test.mjs                  11 pass  7.1s
+PASS  packages/nana-pack/tests/build-report.test.mjs                  5 pass  2.2s
+PASS  packages/nana-knowledge/tests/build-busy.test.mjs               14 pass  10.9s
+PASS  packages/nana-pack/tests/builder-context.test.mjs               7 pass  4.0s
+PASS  packages/nana-pack/tests/ci-workflow.test.mjs                   25 pass  0.0s
+PASS  packages/nana-pack/tests/claude-launch.test.mjs                 6 pass, 2 skip  0.0s
+PASS  packages/nana-pack/tests/claude-review-launch.test.mjs          2 pass  0.9s
+PASS  packages/nana-pack/tests/ci-records.test.mjs                    6 pass  3.6s
+PASS  packages/nana-pack/tests/code-map-land.test.mjs                 1 pass  1.2s
+PASS  packages/nana-pack/tests/code-map-launch.test.mjs               12 pass  1.8s
+PASS  packages/nana-pack/tests/build-records.test.mjs                 7 pass  13.1s
+PASS  packages/nana-pack/tests/code-search.test.mjs                   9 pass  0.6s
+PASS  packages/nana-pack/tests/config-display-text.test.mjs           38 pass  0.1s
+PASS  packages/nana-pack/tests/code-map.test.mjs                      46 pass  1.8s
+PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs     91 pass  0.3s
+PASS  packages/nana-pack/tests/config-gate-fallback.test.mjs          42 pass  0.9s
+PASS  packages/nana-pack/tests/config-normalize.test.mjs              18 pass  0.4s
+PASS  packages/nana-pack/tests/config-trust.test.mjs                  25 pass  0.6s
+PASS  packages/nana-pack/tests/credential-gate.test.mjs               4 pass  3.9s
+PASS  packages/nana-pack/tests/data-pack-land.test.mjs                1 pass  0.7s
+PASS  packages/nana-pack/tests/config-project-gate-fallback.test.mjs  28 pass  8.5s
+PASS  packages/nana-pack/tests/display-surfaces.test.mjs              151 pass  0.2s
+PASS  packages/nana-pack/tests/env-path.test.mjs                      4 pass  0.0s
+PASS  packages/nana-pack/tests/first-look.test.mjs                    9 pass  0.1s
+PASS  packages/nana-pack/tests/frontier-summary.test.mjs              8 pass  0.8s
+PASS  packages/nana-pack/tests/frontier.test.mjs                      53 pass  1.7s
+PASS  packages/nana-pack/tests/gate-corpus.test.mjs                   227 pass  7.3s
+PASS  packages/nana-pack/tests/gate-policy-paths.test.mjs             93 pass  0.7s
+PASS  packages/nana-pack/tests/gate-rm-inside.test.mjs                11 pass  1.6s
+PASS  packages/nana-pack/tests/gate-self-protection.test.mjs          101 pass  0.2s
+PASS  packages/nana-pack/tests/gate-status.test.mjs                   23 pass  0.1s
+PASS  packages/nana-pack/tests/handoff-asks.test.mjs                  5 pass  0.0s
+PASS  packages/nana-pack/tests/handoff-issues.test.mjs                12 pass  3.1s
+PASS  packages/nana-pack/tests/brief-check.test.mjs                   10 pass  41.3s
+PASS  packages/nana-pack/tests/handoff-writer-role.test.mjs           1 pass  1.3s
+PASS  packages/nana-pack/tests/identity-tree.test.mjs                 2 pass  4.6s
+PASS  packages/nana-pack/tests/known-bugs.test.mjs                    4 pass  0.1s
+PASS  packages/nana-pack/tests/issue-watch.test.mjs                   29 pass  8.5s
+PASS  packages/nana-pack/tests/land-ci-records.test.mjs               7 pass  14.6s
+PASS  packages/nana-pack/tests/land-records.test.mjs                  7 pass  19.5s
+PASS  packages/nana-pack/tests/component-audit.test.mjs               12 pass  57.7s
+PASS  packages/nana-pack/tests/land.test.mjs                          31 pass  28.3s
+PASS  packages/nana-pack/tests/lane-watcher.test.mjs                  2 pass  0.0s
+PASS  packages/nana-pack/tests/lane-write-guard.test.mjs              16 pass, 2 skip  0.1s
+PASS  packages/nana-pack/tests/leak-scan-cli.test.mjs                 1 pass  0.8s
+PASS  packages/nana-pack/tests/lifecycle-journal.test.mjs             6 pass  0.1s
+PASS  packages/nana-pack/tests/lifecycle-reload.test.mjs              12 pass  0.1s
+PASS  packages/nana-pack/tests/linked-launch.test.mjs                 3 pass  0.4s
+PASS  packages/nana-pack/tests/main-ci.test.mjs                       1 pass  0.1s
+PASS  packages/nana-pack/tests/lane-push-ci.test.mjs                  10 pass  55.3s
+PASS  packages/nana-pack/tests/memory-cut-guidance.test.mjs           1 pass  6.3s
+PASS  packages/nana-pack/tests/memory-making.test.mjs                 24 pass  0.2s
+PASS  packages/nana-pack/tests/land-regenerate.test.mjs               8 pass  82.4s
+PASS  packages/nana-pack/tests/memory-run-seals.test.mjs              16 pass  1.4s
+PASS  packages/nana-pack/tests/memory-run-recovery.test.mjs           7 pass  25.9s
+PASS  packages/nana-pack/tests/memory-session-end.test.mjs            5 pass  9.6s
+PASS  packages/nana-pack/tests/memory-shaping.test.mjs                21 pass  0.4s
+PASS  packages/nana-pack/tests/nana-roster-set.test.mjs               11 pass  2.2s
+PASS  packages/nana-pack/tests/nana-roster.test.mjs                   27 pass  1.4s
+PASS  packages/nana-pack/tests/objective-injection.test.mjs           69 pass  0.1s
+PASS  packages/nana-pack/tests/objective-smoke.test.mjs               37 pass  1.7s
+PASS  packages/nana-pack/tests/memory-curation.test.mjs               21 pass  77.2s
+PASS  packages/nana-pack/tests/outside-reader.test.mjs                8 pass  0.1s
+PASS  packages/nana-pack/tests/pages-workflow.test.mjs                2 pass  0.0s
+PASS  packages/nana-pack/tests/pi-install.test.mjs                    7 pass  0.3s
+PASS  packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs        38 pass, 2 skip  0.0s
+PASS  packages/nana-pack/tests/pipe-guard.test.mjs                    230 pass  0.3s
+PASS  packages/nana-pack/tests/planner-prompt.test.mjs                9 pass  0.0s
+PASS  packages/nana-pack/tests/one-reviewer.test.mjs                  8 pass  3.0s
+PASS  packages/nana-pack/tests/product-detail.test.mjs                4 pass  1.7s
+PASS  packages/nana-pack/tests/product-overview.test.mjs              15 pass  5.3s
+PASS  packages/nana-pack/tests/memory-run.test.mjs                    9 pass  48.4s
+PASS  packages/nana-pack/tests/product-report.test.mjs                98 pass  69.8s
+PASS  packages/nana-pack/tests/data-pack.test.mjs                     7 pass  228.3s
+PASS  packages/nana-pack/tests/readme-check.test.mjs                  10 pass  0.2s
+PASS  packages/nana-pack/tests/real-path.test.mjs                     2 pass  0.0s
+PASS  packages/nana-pack/tests/records-move.test.mjs                  6 pass  2.1s
+PASS  packages/nana-pack/tests/release-status.test.mjs                7 pass  2.6s
+PASS  packages/nana-pack/tests/requirements-cap-kinds.test.mjs        9 pass  0.6s
+PASS  packages/nana-pack/tests/requirements-deliverables.test.mjs     22 pass  0.7s
+PASS  packages/nana-pack/tests/profile-store.test.mjs                 14 pass  73.8s
+PASS  packages/nana-pack/tests/profile-store-guards.test.mjs          7 pass  82.3s
+PASS  packages/nana-pack/tests/requirements-trace.test.mjs            61 pass  4.8s
+PASS  packages/nana-pack/tests/requirements-tree.test.mjs             98 pass  2.7s
+PASS  packages/nana-pack/tests/profile-sync.test.mjs                  2 pass  32.6s
+PASS  packages/nana-pack/tests/review-ledger-lock.test.mjs            3 pass  0.0s
+PASS  packages/nana-pack/tests/requirements-regroup.test.mjs          63 pass  27.9s
+PASS  packages/nana-pack/tests/requirements-lift.test.mjs             65 pass  40.0s
+PASS  packages/nana-pack/tests/review-ledger-launch.test.mjs          32 pass  40.7s
+PASS  packages/nana-pack/tests/review-round.test.mjs                  27 pass  0.0s
+PASS  packages/nana-pack/tests/review-standard.test.mjs               7 pass  1.4s
+PASS  packages/nana-pack/tests/review-paperwork.test.mjs              10 pass  23.2s
+PASS  packages/nana-pack/tests/review-ledger-verdicts.test.mjs        16 pass  32.8s
+PASS  packages/nana-pack/tests/review-timeline.test.mjs               12 pass  7.4s
+PASS  packages/nana-pack/tests/roster-notice.test.mjs                 21 pass  0.3s
+PASS  packages/nana-pack/tests/rulings.test.mjs                       23 pass  0.1s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs           87 pass  51.8s
+PASS  packages/nana-pack/tests/setup-retire.test.mjs                  5 pass  1.2s
+PASS  packages/nana-pack/tests/skill-claims.test.mjs                  30 pass  0.1s
+PASS  packages/nana-pack/tests/runtime-land.test.mjs                  11 pass  17.2s
+PASS  packages/nana-pack/tests/suite-records.test.mjs                 9 pass  13.1s
+PASS  packages/nana-pack/tests/runtime-map.test.mjs                   15 pass  20.8s
+PASS  packages/nana-pack/tests/template-release.test.mjs              5 pass  3.7s
+PASS  packages/nana-pack/tests/templates-working.test.mjs             7 pass  0.0s
+PASS  packages/nana-pack/tests/template-acceptance.test.mjs           14 pass  11.5s
+PASS  packages/nana-pack/tests/test-packs-core.test.mjs               1 pass  0.3s
+PASS  packages/nana-pack/tests/test-packs-ci.test.mjs                 4 pass  9.2s
+PASS  packages/nana-pack/tests/test-packs.test.mjs                    2 pass  0.0s
+PASS  packages/nana-pack/tests/review-test-waits.test.mjs             5 pass  48.2s
+PASS  packages/nana-pack/tests/test-packs-runner.test.mjs             5 pass  9.4s
+PASS  packages/nana-pack/tests/ts-syntax-check.test.mjs               6 pass  1.6s
+PASS  packages/nana-pack/tests/visual-reader.test.mjs                 5 pass  0.1s
+PASS  packages/nana-pack/tests/win-shards.test.mjs                    9 pass  11.6s
+PASS  packages/nana-pack/tests/win32-forced.test.mjs                  5 pass  0.1s
+PASS  packages/nana-pack/tests/windows-skip-lines.test.mjs            7 pass  0.0s
+PASS  packages/nana-pack/tests/worker-refusal.test.mjs                8 pass  1.7s
+PASS  packages/nana-pack/tests/writing-check.test.mjs                 47 pass  0.4s
+PASS  packages/nana-pack/tests/writing-injection.test.mjs             30 pass  1.4s
+PASS  packages/nana-setup/tests/agent-dir-consumers.test.mjs          13 pass  0.7s
+PASS  packages/nana-setup/tests/checkout-converge.test.mjs            6 pass  2.9s
+PASS  packages/nana-setup/tests/checkout-spelling.test.mjs            6 pass  5.2s
+PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs          11 pass  32.7s
+PASS  packages/nana-setup/tests/claude-config-dir.test.mjs            7 pass  2.1s
+PASS  packages/nana-pack/tests/test-runner.test.mjs                   53 pass  30.2s
+PASS  packages/nana-setup/tests/doctor-fix-line.test.mjs              15 pass  4.0s
+PASS  packages/nana-setup/tests/doctor-floor.test.mjs                 3 pass  0.1s
+PASS  packages/nana-setup/tests/doctor-knowledge.test.mjs             5 pass  0.8s
+PASS  packages/nana-setup/tests/doctor-memory-links.test.mjs          12 pass  1.7s
+PASS  packages/nana-setup/tests/desk-service.test.mjs                 46 pass  8.8s
+PASS  packages/nana-setup/tests/doctor-package-source.test.mjs        10 pass  1.7s
+PASS  packages/nana-setup/tests/doctor-pi-dependencies.test.mjs       3 pass  1.6s
+PASS  packages/nana-setup/tests/doctor-detail.test.mjs                49 pass  10.2s
+PASS  packages/nana-setup/tests/doctor-quiet.test.mjs                 7 pass  1.3s
+PASS  packages/nana-setup/tests/doctor-release.test.mjs               2 pass  1.0s
+PASS  packages/nana-setup/tests/doctor-trust.test.mjs                 1 pass  0.6s
+PASS  packages/nana-setup/tests/fresh-machine.test.mjs                9 pass  0.1s
+PASS  packages/nana-setup/tests/fsops.test.mjs                        17 pass  0.0s
+PASS  packages/nana-setup/tests/hook-producers.test.mjs               12 pass  0.1s
+PASS  packages/nana-setup/tests/entry-guidance.test.mjs               17 pass  0.3s
+PASS  packages/nana-setup/tests/install-check-builder-env.test.mjs    3 pass  0.8s
+PASS  packages/nana-setup/tests/install-overlap.test.mjs              4 pass  0.2s
+PASS  packages/nana-setup/tests/install-check.test.mjs                125 pass  1.2s
+PASS  packages/nana-setup/tests/memory-pause.test.mjs                 2 pass  0.7s
+PASS  packages/nana-setup/tests/doctor-runtime.test.mjs               21 pass  3.2s
+PASS  packages/nana-setup/tests/paths.test.mjs                        5 pass  0.0s
+PASS  packages/nana-setup/tests/pi-install-pin.test.mjs               10 pass  0.1s
+PASS  packages/nana-setup/tests/pi-registration.test.mjs              72 pass, 3 skip  4.3s
+PASS  packages/nana-setup/tests/objective-path-shapes.test.mjs        5 pass, 1 skip  5.1s
+PASS  packages/nana-setup/tests/project-key.test.mjs                  13 pass, 1 skip  0.0s
+PASS  packages/nana-setup/tests/project-dismiss.test.mjs              14 pass  0.5s
+PASS  packages/nana-setup/tests/project-odd-seeds.test.mjs            8 pass  2.9s
+PASS  packages/nana-setup/tests/project-working-region.test.mjs       28 pass  0.2s
+PASS  packages/nana-setup/tests/install.test.mjs                      102 pass  9.3s
+PASS  packages/nana-setup/tests/readme-rehearsal.test.mjs             8 pass  0.1s
+PASS  packages/nana-setup/tests/pull-cut-turn.test.mjs                1 pass  0.7s
+PASS  packages/nana-setup/tests/project-stale.test.mjs                11 pass  4.3s
+PASS  packages/nana-setup/tests/relative-agent-dir.test.mjs           31 pass  2.0s
+PASS  packages/nana-setup/tests/restore.test.mjs                      17 pass  1.8s
+PASS  packages/nana-setup/tests/roster-notice-hook.test.mjs           4 pass  0.6s
+PASS  packages/nana-setup/tests/seat-pull-off.test.mjs                8 pass  1.2s
+PASS  packages/nana-setup/tests/seat-rule.test.mjs                    4 pass  0.0s
+PASS  packages/nana-setup/tests/rulings-install.test.mjs              13 pass  3.8s
+PASS  packages/nana-setup/tests/settings-merge.test.mjs               213 pass  4.3s
+PASS  packages/nana-setup/tests/shared-link-state.test.mjs            7 pass  0.0s
+PASS  packages/nana-setup/tests/shared-memory-budget.test.mjs         7 pass  0.4s
+PASS  packages/nana-setup/tests/shared-memory-hook.test.mjs           43 pass  0.8s
+PASS  packages/nana-setup/tests/shared-memory-input.test.mjs          3 pass  0.1s
+PASS  packages/nana-setup/tests/retired-artifacts.test.mjs            51 pass  8.7s
+PASS  packages/nana-setup/tests/uninstall.test.mjs                    31 pass  2.5s
+PASS  packages/nana-setup/tests/verifier-pipe.test.mjs                14 pass  2.1s
+PASS  packages/nana-setup/tests/win-shims-sh.test.mjs                 2 pass  0.4s
+PASS  packages/nana-setup/tests/writing-rule.test.mjs                 4 pass  0.0s
+PASS  packages/nana-stage/tests/blocks.test.mjs                       116 pass  0.1s
+PASS  apps/desk/test/app-listener.test.mjs                            76 pass  6.1s
+PASS  apps/desk/test/buffer-caps.test.mjs                             1 pass  0.3s
+PASS  apps/desk/test/host-rule.test.mjs                               30 pass  0.8s
+PASS  apps/desk/test/origin-rule.test.mjs                             11 pass  0.4s
+PASS  packages/nana-setup/tests/stale-copies.test.mjs                 15 pass  13.2s
+PASS  apps/desk/test/page-retire.test.mjs                             3 pass, 2 skip  0.3s
+PASS  apps/desk/test/pi-resolution.test.mjs                           43 pass  1.2s
+PASS  apps/desk/test/stage-key-persistence.test.mjs                   2 pass  1.3s
+PASS  apps/bench/test/anatomy-labels.test.mjs                         30 pass  1.4s
+PASS  apps/bench/test/anatomy-seat.test.mjs                           17 pass  0.5s
+PASS  apps/desk/test/usage-line.test.mjs                              6 pass  2.7s
+PASS  apps/bench/test/anatomy.test.mjs                                10 pass  1.6s
+PASS  packages/nana-pack/tests/templates-update.test.mjs              35 pass  108.8s
+PASS  packages/nana-setup/tests/setup-tail.test.mjs                   9 pass  50.2s
+PASS  packages/nana-knowledge/tests/hook.test.mjs                     98 pass  4.9s
+PASS  packages/nana-pack/tests/bounded-read.test.mjs                  4 pass  0.1s
+PASS  packages/nana-pack/tests/review-ledger.test.mjs                 24 pass  23.3s
+PASS  packages/nana-pack/tests/test-locked.test.mjs                   17 pass  5.0s
+
+205 files: 205 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 4935 pass, 0 fail, 14 skip · 508.4s
+
+
+## test-retire-tip-trace.log
+requirements: 2736 total (2003 implemented · 8 planned · 582 retired · 140 untested · 3 violated); 2016 traced by tests
+ears: 0 rows off form (allowance 0)
+(node:79843) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+## test-retire-tip-tree.log
+requirements tree: 0 problems; rows 2736; features 43
+deliverables: 18 of 21 made and read by code, 11 more parked
+
