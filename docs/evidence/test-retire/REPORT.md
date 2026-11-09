@@ -97,7 +97,79 @@ Scope: enumerate checker script names, their assembled basename forms, and helpe
 
 ## Validation and evidence
 
-Long output: `build.log` in this folder. Paths in logs are normalized to `~` and `$TMPDIR`.
+Command-output summaries follow; run labels identify the original captures. Exit codes follow the recorded results; the interrupted run has no recorded process exit.
+
+- `anatomy-1`: exit 0; 1 file passed, 10 checks passed.
+- `ci-audit`: exit 0; 8 stale components and 17 of 249 mapped modules unclaimed (report-only).
+- `ci-map`: exit 0; 542 modules, 0 header or map problems.
+- `ci-readme`: exit 0; 790 claims checked, 0 problems; review archive clean.
+- `ci-records`: exit 0; 136 protected records, 0 problems.
+- `ci-trace`: exit 0; 2736 rows, 2017 traced by tests, 0 rows off EARS form.
+- `ci-tree`: exit 0; 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `counts-good`: exit 0; collected declarations enumerated; two browser edge files identified as manual, not collected.
+- `counts`: exit 1; declaration scan rejected a manual browser file's marker placement.
+- `impact`: exit 0; test-packs-config had 19 transitive callers, 0 callees; runtime data covered 4 tests.
+- `install`: exit 0; all 13 install, pi, hook, doctor and checklist steps passed.
+- `map-1`: exit 0; 544 modules, 0 problems.
+- `map-2`: exit 0; 544 modules, 0 problems.
+- `map-3`: exit 0; 542 modules, 0 problems.
+- `map-5d`: exit 0; 542 modules, 0 problems.
+- `map-write-3`: exit 0; generated map with 542 modules.
+- `map-write-5`: exit 0; generated map with 542 modules.
+- `map-write-5b`: exit 0; generated map with 542 modules.
+- `map-write-5c`: exit 0; generated map with 542 modules.
+- `map-write-5d`: exit 0; generated map with 542 modules.
+- `map-write`: exit 0; generated map with 544 modules.
+- `measured-checks / map`: exit 0; 1.069 seconds.
+- `measured-checks / readme`: exit 0; 0.070 seconds.
+- `measured-checks / trace`: exit 0; 0.200 seconds.
+- `measured-checks / tree`: exit 0; 0.261 seconds.
+- `measured-checks / audit`: exit 0; 4.446 seconds.
+- `measured-checks / records`: exit 0; 51.191 seconds.
+- `membership`: exit 0; 261 files, 0 unassigned, 0 stale paths.
+- `packs-2`: exit 0; 4 files passed, 12 checks passed.
+- `part1`: exit 1; 254 checks passed, 1 anatomy cwd failure; 4 of 5 files passed.
+- `part2`: exit 1; 486 checks passed, 1 inventory failure, 4 skipped; all 20 moved files passed.
+- `part3`: exit 0; 4 files passed, 141 checks passed.
+- `part4`: exit 0; 5 files passed, 61 checks passed.
+- `part5`: exit 1; 82 checks passed, 2 failures from the move-byte assertion and stale map.
+- `part5b`: exit 1; 83 checks passed, 1 empty-preserved-block failure.
+- `part5c`: exit 1; 95 checks passed, 1 missing historical edge-loss reason.
+- `part5d`: exit 0; 10 files passed, 105 checks passed, 2 skipped.
+- `readme-1`: exit 0; 790 claims checked, 0 problems; review archive clean.
+- `readme-2`: exit 0; 790 claims checked, 0 problems; review archive clean.
+- `readme-3`: exit 0; 790 claims checked, 0 problems; review archive clean.
+- `readme-5d`: exit 0; 790 claims checked, 0 problems; review archive clean.
+- `removed-reference-hits`: exit 0; hits were moved cases, historical reasons, unrelated basenames and retained manual assertions.
+- `runner-1`: exit 0; 2 files passed, 64 checks passed.
+- `runner-3`: exit 0; 2 files passed, 64 checks passed.
+- `seat-land-pre`: exit 0; 71 files passed, 2364 checks passed, 6 skipped, 61.3 seconds.
+- `seat-selected-pre`: exit unavailable; command window interrupted at 600 seconds, with a data-pack timeout and no final runner summary.
+- `seat-selected-retry`: exit 1; 203 files passed, data-pack timed out, 4873 checks passed, 14 skipped, 634.2 seconds.
+- `sweep-hits`: exit 0; enumerated checker-child references for the sweep decisions above.
+- `trace-1`: exit 0; 2736 rows, 2021 traced by tests, 0 rows off EARS form.
+- `trace-2`: exit 0; 2736 rows, 2021 traced by tests, 0 rows off EARS form.
+- `trace-3`: exit 0; 2736 rows, 2017 traced by tests, 0 rows off EARS form.
+- `trace-5`: exit 0; 2736 rows, 2017 traced by tests, 0 rows off EARS form.
+- `trace-5d`: exit 0; 2736 rows, 2016 traced by tests, 0 rows off EARS form.
+- `tree-1`: exit 0; 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `tree-2`: exit 0; 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `tree-3`: exit 0; 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `tree-5`: exit 0; 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `tree-5d`: exit 0; 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `tree-write-3`: exit 0; regenerated tree, 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `tree-write-5`: exit 0; regenerated tree, 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `tree-write-5d`: exit 0; regenerated tree, 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `tree-write`: exit 0; regenerated tree, 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
+- `tip-audit`: exit 0; 8 stale components and 17 of 249 mapped modules unclaimed (report-only).
+- `tip-land`: exit 0; 71 files passed, 2364 checks passed, 6 skipped, 61.2 seconds.
+- `tip-map`: exit 0; 542 modules, 0 problems.
+- `tip-packs`: exit 0; 261 files, 0 unassigned, 0 stale paths.
+- `tip-readme`: exit 0; 790 claims checked, 0 problems; review archive clean.
+- `tip-records`: exit 0; 136 protected records, 0 problems.
+- `tip-selected`: exit 0; 205 files passed, 4935 checks passed, 14 skipped, 508.4 seconds.
+- `tip-trace`: exit 0; 2736 rows, 2016 traced by tests, 0 rows off EARS form.
+- `tip-tree`: exit 0; 2736 rows, 43 features, 0 problems; 18 of 21 deliverables made and read, 11 parked.
 
 | Command / run | Exit and result |
 |---|---|
