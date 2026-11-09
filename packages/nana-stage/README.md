@@ -44,8 +44,8 @@ checks `details.blocks` (pi-extension tools, e.g. basketball) and that built-in 
 order. On success AND on rejection, the patch never sets `structuredContent` (R-283, R-284):
 pi deletes a tool result's `structuredContent` when a handler replaces `content` without also
 returning it (pi's own extension runner, `emitToolResult`), so the raw, unstamped MCP carrier
-never rides `tool_execution_end` into a live stage — proved live over the real RPC chain by
-`apps/desk/test/stage-chain-edge.e2e.mjs`. There is no built-in equivalent of the adapter's
+never rides `tool_execution_end` into a live stage. Carrier stripping is pinned in
+`tests/blocks.test.mjs`. There is no built-in equivalent of the adapter's
 `outputGuard.detailsMaxBytes` cap: pi never truncates or omits `structuredContent` (only the
 model-facing text, at 20 KB), so that scenario (`retired` R-278) has no replacement.
 

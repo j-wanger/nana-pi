@@ -12,6 +12,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { runAnatomy } from "../lib/anatomy.mjs";
 import { extractContexts } from "../lib/anatomy-sessions.mjs";
 import { segmentPart } from "../lib/anatomy-spans.mjs";
@@ -85,6 +86,38 @@ const labelled = [
  ["`pi-worker` refuses a brief whose Precedent names an untracked file.", "knowledge"],
  ["Report a known bug the change touches as one line in the report.", "output contract"],
 ];
+
+// req: R-3786
+await test("R-3786: every anatomy CLI subcommand preserves fixture output", async () => {
+ const dir = folder("cli-output");
+ const input = path.join(dir, "input"); fs.mkdirSync(input);
+ const raw = "Do the synthetic task.\r\n \t";
+ const spans = segmentPart(raw, "brief", "fixture");
+ const context = { id: "fixture", lane: "alpha", buildNumber: 1, model: "fixture", verdict: "none", tokens: 0, wallMinutes: 0, landed: false, pulls: [], parts: [{ name: "brief", raw, spans }] };
+ fs.writeFileSync(path.join(input, "contexts.jsonl"), JSON.stringify(context));
+ const sheet = path.join(dir, "sheet.jsonl"); fs.writeFileSync(sheet, spans.filter(s => s.kind === "unit").map(s => JSON.stringify({ id: s.id, label: s.label })).join("\r\n"));
+ const repo = path.join(dir, "repo"), sessions = path.join(dir, "sessions"); fs.mkdirSync(repo); fs.mkdirSync(sessions);
+ const init = spawnSync("git", ["init", "-q", repo], { encoding: "utf8", timeout: LIMIT }); assert.equal(init.status, 0);
+ const empty = path.join(dir, "empty"); fs.mkdirSync(empty); fs.writeFileSync(path.join(empty, "contexts.jsonl"), "");
+ const cases = [
+  ["segment", "--repo", repo, "--sessions", sessions], ["report", "--in", input],
+  ["sample", "--in", input, "--seed", "fixture"], ["agree", "--in", input, "--a", sheet, "--b", sheet],
+  ["assemble", "--in", input, "--context", "fixture"], ["label", "--in", empty],
+ ];
+ for (const args of cases) {
+  const writer = ["segment", "sample", "assemble", "label"].includes(args[0]);
+  let stdout = "", stderr = "";
+  const expected = await runAnatomy([...args, ...(writer ? ["--out", path.join(dir, `${args[0]}-before`)] : [])], { stdout: s => { stdout += s; }, stderr: s => { stderr += s; }, runModel: () => { throw new Error("no calls"); } });
+  assert.equal(expected, 0, `${args[0]}: ${stderr}`);
+  const actual = spawnSync(process.execPath, ["apps/bench/anatomy.mjs", ...args, ...(writer ? ["--out", path.join(dir, `${args[0]}-after`)] : [])], { cwd: fileURLToPath(new URL("../../../", import.meta.url)), encoding: "utf8", timeout: LIMIT });
+  assert.equal(actual.status, expected, `${args[0]}: ${actual.stderr}`); assert.equal(actual.stdout, stdout); assert.equal(actual.stderr, stderr);
+  if (writer) {
+   const before = path.join(dir, `${args[0]}-before`), after = path.join(dir, `${args[0]}-after`);
+   assert.deepEqual(fs.readdirSync(after), fs.readdirSync(before));
+   for (const name of fs.readdirSync(before)) assert.deepEqual(fs.readFileSync(path.join(after, name)), fs.readFileSync(path.join(before, name)));
+  }
+ }
+});
 
 // req: R-3270
 await test("R-3270: pushed parts and recorded attempts preserve committed context", async () => {
