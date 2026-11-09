@@ -1,0 +1,6 @@
+FAIL  packages/nana-pack/tests/records-move.test.mjs  4 pass, 2 fail  50.7s  — exit 1
+      | FAIL M1: derive protections and reject missing or excess folders AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+      | FAIL folders created after the pre-move commit pass AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 4 pass, 2 fail, 0 skip · 50.9s
+failed: packages/nana-pack/tests/records-move.test.mjs

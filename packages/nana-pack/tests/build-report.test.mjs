@@ -167,7 +167,7 @@ check("R-2667: the hard-kill step's tree kill returns without throwing whatever 
 
 // A hard-killed worker leaves the start unpaired while its independently running pi session remains reportable.
 fs.writeFileSync(LEDGER, "");
-const hardBrief = path.join(LINKED, "brief.md"); fs.writeFileSync(hardBrief, "Feature: FEAT-006 · Build records\n\nPrecedent:\n- seed\n");
+const hardBrief = path.join(LINKED, "brief.md"); fs.writeFileSync(hardBrief, "Serves: roadmap step 3: exercise build reports.\nFeature: FEAT-006 · Build records\n\nPrecedent:\n- seed\n");
 const hardHome = path.join(TD, "hard-home"), hardAgent = path.join(hardHome, ".pi", "agent"), hardBin = path.join(TD, "hard-bin"), hardPid = path.join(TD, "hard-pid");
 fs.mkdirSync(hardBin, { recursive: true });
 const piRoot = findPiRoot().root;

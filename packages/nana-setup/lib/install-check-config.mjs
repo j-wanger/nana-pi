@@ -127,7 +127,7 @@ export const PI_BUILD = {
   worktreeFolder: "build-worktrees", // Chosen 2026-10-23 (R-2681, R-2682): worktrees stay outside the review repository.
   outFolder: "build-out", // Chosen 2026-10-23 (R-2681): briefs and outputs stay outside every worktree.
   branchPrefix: "feat/", // Contract: pi-worker.mjs:104, read 2026-10-23 (R-2681).
-  briefHeading: "# Install check build", // Chosen 2026-10-23 (R-2684): names the build in the fixture record so a reader can tell it from the review.
+  briefHeading: "# Install check build\n\nServes: roadmap step 3: rehearse offline lane launches.", // Chosen 2026-10-23 (R-2684); memory-sort adds the required alignment declaration (R-3948).
   briefTask: "Build nothing and report one line for", // Chosen 2026-10-23 (R-2684): a run token follows it.
   precedentLabel: "Precedent:", // Contract: brief-config.mjs:10 and brief-precedent.mjs:53, read 2026-10-23 (R-2681).
   launcherArgs: ["--lane-size", "small", "--max-secs", "120"], // Contract: pack README small-lane launch; 120 s ends before the check timeout (R-2681).
