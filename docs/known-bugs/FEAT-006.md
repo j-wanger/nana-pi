@@ -39,7 +39,7 @@
 - Roster set (claude-review-launcher, independent check): `nana-roster set` refuses with ENOENT when pi's agent folder does not exist yet, so a fresh home needs the folder made first. Main had it before this lane.
 - Precedent check (precedent-first, plan): it proves a file exists at the lane's HEAD, not that it is the right precedent; a real but wrong tracked file passes.
 - Precedent check (precedent-first, plan): HEAD is the lane's. A file moved or deleted on main after the branch point still passes, and a precedent that landed on main after it is refused until the lane merges main.
-- Precedent check (precedent-first, plan): a Claude Code subagent builder gets only what the seat runs. brief-check is advice the seat follows, and that builder gets no preamble and no known-bug attachment.
+- Precedent check (precedent-first, plan): a Claude Code subagent builder gets only what the seat runs. that builder gets no preamble and no known-bug attachment.
 - Precedent check (precedent-first, plan): the brief is read once at launch, so an edit after launch is not checked. The first Precedent section and the first Feature line win.
 - Precedent check (precedent-first, plan): entries are paths only. A commit or a review finding goes in an entry's note after a tracked path, or as `none:`. Line suffixes are not checked against the file, and path case must match git's.
 - Precedent check (precedent-first, plan): on POSIX a tracked file whose name holds a backslash cannot be named.

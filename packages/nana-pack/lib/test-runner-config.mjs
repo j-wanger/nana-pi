@@ -57,7 +57,7 @@ export const SUITE_JOBS = 4;
 // but the NANA_TEST_* knobs before building a test file's env).
 export const SUITE_JOBS_ENV = "NANA_SUITE_JOBS";
 
-// chosen 2026-10-23 (R-2666): matches build-report's transient Windows-folder cleanup policy;
+// chosen 2026-10-23 (R-2666): retry transient Windows-folder cleanup failures;
 // Node's linear backoff gives about 1.5 seconds total. No Windows hold duration was measured.
 export const TEMP_REMOVE_RETRIES = 5;
 export const TEMP_REMOVE_RETRY_DELAY_MS = 100;

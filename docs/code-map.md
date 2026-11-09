@@ -1177,7 +1177,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 ### `packages/nana-pack/lib/build-records.mjs`
 
-- **purpose** — Assemble, append and read clone-shared build records, match pi sessions, sum Usage, and render build-report lines.
+- **purpose** — Assemble, append and read clone-shared build records, match pi sessions, sum Usage, and render shared build and lane lines.
 - **inputs** — Git common folders, build records and end facts, session folders, bounded files, and optional read-limit injections.
 - **outputs** — End records, best-effort append results, ledger reads, session usage, paired build views, and shared report lines.
 - **effects** — disk (record append and bounded ledger/session reads)
@@ -2238,10 +2238,10 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **purpose** — Pin pi-worker lane-brief validation and the shared Precedent parser.
 - **inputs** — Pi-worker, its shared checker library, and a temporary linked-worktree fixture.
 - **outputs** — Requirement-tagged PASS/FAIL checks.
-- **effects** — disk (OS temp fixtures and a slow CPU-sampler shim), process (git, command subprocesses and the bounded shim)
+- **effects** — disk (OS temp fixtures), process (git and bounded worker subprocesses)
 - **errors** — A failed comparison prints its cases and exits nonzero.
 - **callers** — —
-- **callees** — `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/review-run.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/slow-sampler.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/review-run.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/build-records.test.mjs`
 
@@ -3709,7 +3709,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Shared sampler tunables, the written shim paths, sampler resolution and first-on-PATH comparison.
 - **effects** — disk (writes the sampler body and platform shim), process (resolves the sampler command).
 - **errors** — File and child-process errors propagate; an unresolved sampler returns an empty path.
-- **callers** — `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-pack/tests/worker-refusal.test.mjs`
+- **callers** — `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-pack/tests/worker-refusal.test.mjs`
 - **callees** — —
 - **repo-code launches** — line 34: spawnSync
 

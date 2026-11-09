@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/lib/build-records.mjs
- * @purpose Assemble, append and read clone-shared build records, match pi sessions, sum Usage, and render build-report lines.
+ * @purpose Assemble, append and read clone-shared build records, match pi sessions, sum Usage, and render shared build and lane lines.
  * @inputs Git common folders, build records and end facts, session folders, bounded files, and optional read-limit injections.
  * @outputs End records, best-effort append results, ledger reads, session usage, paired build views, and shared report lines.
  * @effects disk (record append and bounded ledger/session reads)

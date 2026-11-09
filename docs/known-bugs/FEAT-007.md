@@ -85,7 +85,6 @@
 - Claude review launcher (claude-review-launcher, plan): a logged-out `claude` exits 1 and review-ledger returns the reservation.
 - Claude review launcher (claude-review-launcher, independent check): a kill of the launcher's own process leaves review-ledger and `claude` running, and they record the round; the launcher forwards no signal. A process-group kill (Ctrl-C) stops all three and leaves a dead-pid reservation that the next admission prunes.
 - Claude review launcher (claude-review-launcher, independent check): the reviewer sentence fills `{item}` and `{tree}` with `String.replace`, so a `$` pattern in either expands; a tree path holding `$$` is named with one `$`. The child's folder and the ledger stay right.
-- Claude review launcher (claude-review-launcher, independent check): a relative `--out` is recorded in the audit log as given, relative to the launcher's folder; pi-review resolves it first, so the timeline shows a folder-relative path for these rounds.
 - Kept review texts (review-outputs-kept, final review): the state inventory in nana-setup lists the tally and audit logs as durable but not the kept-text store. A machine move through the state archive brings back the tally without the texts, and that lane's later LANDs then refuse until their reviews re-run.
 - Kept review texts (review-outputs-kept, final review): `review-ledger keep` prints an uncaught stack, exit 1, on a malformed tally line, instead of one message.
 - Kept review texts (review-outputs-kept, final review): an old-style caller that passes no text and an output path that no longer exists makes `complete()` keep the path string itself as the text, with an empty verdict. Both launchers pass text; a third that forgets it would keep junk silently.
@@ -93,7 +92,7 @@
 - Kept review texts (review-outputs-kept, land review): only CI's Windows leg runs the store write on Windows; the land reviewer's tests ran on macOS.
 - Claude review launcher (claude-review-launcher, final review): R-2564 checks the standard input that reaches a `.cmd` shim, not the argv, so a change to Windows argument quoting would pass it.
 - Claude review launcher (claude-review-launcher, final review): the launcher neither accepts nor forwards `--revision`, so a round always records the tree's current HEAD; a seat cannot record a round for another commit through it.
-- Review cost (audit re-check, 2026-10-22): no review round records its cost, and round durations are read only by the hand-run timeline report.
+- Review cost (audit re-check, 2026-10-22): no review round records its cost.
 - Verdict reading (ci-timing-records, round 1): an Opus review opened with a bold "Verdict: LAND." line above its exact last-line `VERDICT: LAND`; the ledger read the round as unread (first-line conflict) and nana-land refuses that revision, so the round was lost and the lane took a new commit and a confirmation round.
 - Claude review launcher (claude-code-builder-parity, plan): claude-review's reviewer gets none of the Claude Code builder's switches (default permission mode, project and local settings with the carried settings file, no MCP servers, auto-memory off).
 - Review runner (lane-temp-cleanup, attack): pi-review crashes on an uncaught write error when its standard-error pipe closes mid-review, as pi-worker did before lane-temp-cleanup. Fixing it is a review-tool lane.
@@ -112,7 +111,6 @@
 - Review movement (review-movement, plan): a reviewer child whose context cannot hold the section fails the review. The buffer cap bounds the spawn, not the reader; today's largest report is about 20 to 25 thousand tokens.
 - Review movement (review-movement, plan): only a macOS run pins the pipe fix; CI's Linux leg writes pipes synchronously, so it cannot catch the old exit line (inferred).
 - Review movement (review-movement, plan): each launch in a tree with a ledger spends about 0.3 s before admission (measured on the seat's Mac).
-- Review movement (review-movement, plan): R-1560's `built from` names A-007 and A-008, while the timeline also reads the audit log, A-056.
 - Keep movement (keep-movement, plan): a force-killed pi-review leaves its movement temp folder behind; startup reclaims review worktrees only (the land reviewer's note on review-movement).
 - Keep movement (keep-movement, plan): the file holds the movement of the last kept tip, so a commit after keep that changes rows makes it stale until the next keep.
 - Keep movement (keep-movement, plan): the file is only as current as the seat's keep step; the land checklist names the step, and nothing enforces it.

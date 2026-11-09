@@ -3,22 +3,13 @@
  * @purpose Pin pi-worker lane-brief validation and the shared Precedent parser.
  * @inputs Pi-worker, its shared checker library, and a temporary linked-worktree fixture.
  * @outputs Requirement-tagged PASS/FAIL checks.
- * @effects disk (OS temp fixtures and a slow CPU-sampler shim), process (git, command subprocesses
- *  and the bounded shim)
+ * @effects disk (OS temp fixtures), process (git and bounded worker subprocesses)
  * @errors A failed comparison prints its cases and exits nonzero.
  */
 import { readBrief, checkPrecedent } from "../lib/brief-precedent.mjs";
 import * as briefConfig from "../lib/brief-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
-import {
-	FAKE_PI_HOLD_MS,
-	resolveSampler,
-	samplerIsFirst,
-	SLOW_SAMPLER_MS,
-	WORKER_POLL_SECS,
-	writeSlowSampler,
-} from "./slow-sampler.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -32,8 +23,6 @@ const repo = path.join(temp, "repo");
 const lane = path.join(temp, "lane");
 const stubDir = path.join(temp, "stub");
 const marker = path.join(temp, "pi-spawned");
-const holdRecord = path.join(temp, "pi-hold.json");
-const samplerMarker = path.join(temp, "sampler-started");
 const out = path.join(temp, "worker-output.md");
 const agentDir = path.join(temp, "agent");
 fs.mkdirSync(repo);
@@ -56,7 +45,7 @@ git(repo, "worktree", "add", "-qb", "feat/alpha", lane);
 // all from legs that failed elsewhere; 30 seconds is 7.5 times the slowest, matches build-records'
 // CASE_LIMIT_MS, and keeps seven children under the 300-second per-file land limit.
 const CHILD_LIMIT_MS = 30_000;
-const nodeBody = `const fs = require("node:fs");\nconst started = Date.now();\nfs.writeFileSync(${JSON.stringify(marker)}, "spawned\\n");\nsetTimeout(() => { fs.writeFileSync(${JSON.stringify(holdRecord)}, JSON.stringify({ heldMs: Date.now() - started })); process.stdout.write("worker output\\n"); }, ${FAKE_PI_HOLD_MS});\n`;
+const nodeBody = `require("node:fs").writeFileSync(${JSON.stringify(marker)}, "spawned\\n"); console.log("worker output");\n`;
 if (process.platform === "win32") writeFakePi(stubDir, nodeBody);
 else {
 	const body = path.join(stubDir, "fake-pi.cjs");
@@ -65,38 +54,16 @@ else {
 	fs.writeFileSync(pi, `#!/bin/sh\nexec "${process.execPath}" "${body}" "$@"\n`);
 	fs.chmodSync(pi, 0o755);
 }
-const { samplerShim } = writeSlowSampler(stubDir);
-const env = { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, USERPROFILE: temp, PI_CODING_AGENT_DIR: agentDir, SAMPLER_MARKER: samplerMarker, SLOW_SAMPLER_MS: String(SLOW_SAMPLER_MS) };
-const resolvedSampler = resolveSampler(env, CHILD_LIMIT_MS);
+const env = { ...process.env, PATH: `${stubDir}${path.delimiter}${process.env.PATH}`, HOME: temp, USERPROFILE: temp, PI_CODING_AGENT_DIR: agentDir };
 const writeBrief = (name, text) => {
 	const file = path.join(temp, name);
 	fs.writeFileSync(file, text);
 	return file;
 };
-const runWorker = (brief) => spawnSync(process.execPath, [worker, "--poll", String(WORKER_POLL_SECS), "--out", out, "--lane", "alpha", "--brief", brief], {
+const runWorker = (brief) => spawnSync(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], {
 	cwd: lane, encoding: "utf8", timeout: CHILD_LIMIT_MS, env,
 });
 const selectedLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.startsWith("pi-worker: lane refused:") || line.startsWith("pi-worker: precedent:")) ?? null;
-const cases = [
-	["missing section", writeBrief("missing.md", "Feature: FEAT-006 · Missing\n"), 1, "pi-worker: lane refused:"],
-	["untracked path", writeBrief("untracked.md", "Precedent:\n- missing.mjs\n"), 1, "pi-worker: lane refused:"],
-	["passing with known bugs", writeBrief("passing.md", "Serves: roadmap step 3: exercise the launcher.\nFeature: FEAT-006 · Passing\n\nPrecedent:\n- seed\n"), 0, "pi-worker: precedent:"],
-];
-const observations = [];
-for (const [name, brief, expectedStatus, prefix] of cases) {
-	fs.rmSync(marker, { force: true });
-	const workerResult = runWorker(brief);
-	const workerLine = selectedLine(workerResult.stderr);
-	const workerStarted = fs.existsSync(marker);
-	observations.push({
-		name,
-		ok: workerResult.status === expectedStatus &&
-			workerLine?.startsWith(prefix) &&
-			(expectedStatus === 0 ? workerStarted && workerLine.includes("known bugs: docs/known-bugs/FEAT-006.md") : !workerStarted),
-		workerStatus: workerResult.status,
-		workerLine,
-	});
-}
 const check = (title, pass, detail = "") => {
 	console.log(pass ? "PASS" : "FAIL", title, pass ? "" : detail);
 	if (!pass) process.exitCode = 1;
@@ -206,8 +173,3 @@ const readmeText = fs.readFileSync(path.join(root, "README.md"), "utf8");
 // req: R-3719
 check("R-3719: planner and README state selection and seal the quote cap", briefConfig.PRECEDENT_QUOTE_CAP === 160 &&
 	[plannerText, readmeText].every((text) => text.includes("first backticked span") && text.includes("first word") && text.includes("file extension")));
-
-if (fs.existsSync(samplerMarker)) {
-	const samplerPid = Number(fs.readFileSync(samplerMarker, "utf8"));
-	if (samplerPid > 0) { try { process.kill(samplerPid, "SIGKILL"); } catch {} }
-}

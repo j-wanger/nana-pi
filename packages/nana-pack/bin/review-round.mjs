@@ -20,7 +20,7 @@
 // The store retains its existing names so old histories remain readable.
 // Every completed verdict appends to the permanent tally and bounded audit.
 // Reservations and the ledger lock coordinate reviewers with land's final recheck.
-// The captured-text store remains available to the hand-run timeline.
+// The captured-text store still receives completed review texts.
 //
 // Rules:
 //  - ITEM = {repo, slug}. The slug is canonicalized (canonicalItem); repo = realpath of the git
