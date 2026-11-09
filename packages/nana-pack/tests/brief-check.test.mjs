@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/brief-check.test.mjs
  * @purpose Pin pi-worker lane-brief validation and the shared Precedent parser.
- * @inputs The two commands, their shared checker source, and a temporary linked-worktree fixture.
+ * @inputs Pi-worker, its shared checker library, and a temporary linked-worktree fixture.
  * @outputs Requirement-tagged PASS/FAIL checks.
  * @effects disk (OS temp fixtures and a slow CPU-sampler shim), process (git, command subprocesses
  *  and the bounded shim)

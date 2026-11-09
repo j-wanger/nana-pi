@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/frontier-summary.test.mjs
- * @purpose Pin the frontier block's parsing, checker parity, bounds, role silence, read failures and sealed values.
+ * @purpose Pin the frontier block's parsing, bounds, role silence, read failures and sealed values.
  * @inputs Disposable HANDOFF repositories, the frontier summary library and CLI, checker fixtures and configuration constants.
  * @outputs PASS/FAIL checks for R-2607 through R-2611 and the frontier seal.
- * @effects disk (temporary fixtures), process (runs the frontier producer and checker CLIs).
+ * @effects disk (temporary fixtures), process (runs the frontier producer CLI).
  * @errors Failed checks set a nonzero exit code; every subprocess has a per-case timeout.
  */
 import { spawnSync } from "node:child_process";

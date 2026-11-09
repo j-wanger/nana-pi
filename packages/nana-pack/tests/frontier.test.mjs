@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/frontier.test.mjs
- * @purpose Pins the report-only HANDOFF frontier checker against its read window, section order, rewritten and legacy fixtures, an injected date, and strict-mode exits.
- * @inputs the frontier CLI, fixture HANDOFF files, this repository's HANDOFF.md, and temporary inputs
+ * @purpose Pin the shared HANDOFF frontier checker against its read window, section order, fixtures and injected date.
+ * @inputs The frontier library, fixture HANDOFF files, this repository's HANDOFF.md, and temporary inputs
  * @outputs named PASS/FAIL checks and a nonzero test exit when an assertion fails
- * @effects disk (temporary input); process (spawns the CLI)
+ * @effects disk (temporary input)
  * @errors failed assertions are reported and cause exit 1
  */
 import { checkFrontier, frontierSummaryLine } from "../lib/frontier-check.mjs";
