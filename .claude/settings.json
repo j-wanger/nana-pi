@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/packages/nana-setup/claude/hooks/nana-waking.mjs\"" }] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Bash|AskUserQuestion", "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/packages/nana-setup/claude/hooks/nana-waking.mjs\"" }] }
+    ]
+  }
+}
