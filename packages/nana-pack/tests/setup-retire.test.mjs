@@ -133,27 +133,4 @@ await test('M4: pi gate imports the shared pipe predicate which blocks masking a
   assert.ok(graph.modules.get('packages/nana-pack/extensions/nana-gate.ts').callees
     .includes('packages/nana-pack/lib/pipe-guard.mjs'));
 });
-// req: R-3805
-await test('M7: active docs omit retired surfaces with retired rows artifacts and sound setup status', () => {
-  const read = name => fs.readFileSync(path.join(root, name), 'utf8');
-  const pack = read('packages/nana-pack/README.md');
-  const setup = read('packages/nana-setup/README.md');
-  const agents = read('AGENTS.md');
-  const shared = read('templates/_shared/working-under-nana-pi.md');
-  for (const text of [pack, setup, agents, shared]) {
-    assert.ok(!/`nana-(handoff|post-edit|notify)`|pi install npm:pi-subagents@/.test(text));
-  }
-  assert.ok(!agents.includes('and the handoff path'));
-  assert.ok(!shared.includes('configured checks run after successful edits'));
-  assert.ok(!setup.includes('The Node PreToolUse hook'));
-  assert.ok(!setup.includes('sets one failing post-edit command'));
-  const ledger = read('REQUIREMENTS.md');
-  for (const id of ['R-084', 'R-122', 'R-984', 'R-360', 'R-361', 'R-363', 'R-364', 'R-2480', 'R-2481', 'R-2486']) {
-    assert.match(ledger.split('\n').find(line => line.startsWith(`| ${id} |`)) ?? '', /\| retired \|/);
-  }
-  for (const id of ['A-002', 'A-065', 'A-066']) assert.match(ledger.split('\n').find(line => line.startsWith(`Artifact: ${id} `)) ?? '', /· retired:/);
-  const setupComponent = JSON.parse(read('docs/components/nana-pi.json')).components.find(c => c.id === 'setup');
-  assert.equal(setupComponent.status, 'sound');
-  assert.equal(setupComponent.gap, null);
-});
 process.exitCode = failures ? 1 : 0;

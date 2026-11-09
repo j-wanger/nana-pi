@@ -16,7 +16,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
 import { buildRecordsPath, buildReportLines, buildEndRecord } from '../lib/build-records.mjs';
-import { runBuildReport } from '../bin/build-report.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const temp = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'leak-guard-')));

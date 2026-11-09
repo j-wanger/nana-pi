@@ -12,7 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { runBuildReport } from "../bin/build-report.mjs";
+import { landRecordsPath, landReportLines, readLandLedger } from "../lib/land-records.mjs";
 import { runLand } from "../bin/nana-land.mjs";
 import {
 	LAND_CI_CREATED_FIELD,
@@ -237,11 +237,10 @@ check("R-2814: every ended land attempt's last line names it and its lane's land
 	const out = land(f);
 	assert.equal(out.code, 0, out.text);
 	const last = out.text.trimEnd().split(/\r?\n/).at(-1);
-	const writes = { text: "", write(value) { this.text += value; } };
-	const status = runBuildReport(["--repo", f.main, "--lane", "alpha"], { cwd: ROOT, stdout: writes, stderr: { write() {} } });
-	assert.equal(status, 0);
-	const laneLine = writes.text.split(/\r?\n/).find((line) => line.startsWith("land lane alpha"));
-	assert(laneLine, writes.text);
+	const ledger = readLandLedger(landRecordsPath(commonDir(f.main)));
+	const report = landReportLines(ledger.records, { badLines: ledger.badLines, lane: "alpha" });
+	const laneLine = report.lines.find((line) => line.startsWith("land lane alpha"));
+	assert(laneLine, report.lines.join("\n"));
 	assert(last.endsWith(`; ${laneLine}`), `${last}\n${laneLine}`);
 	assert.match(last, new RegExp(`^${LAND_RECORD_LINE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} landed, stage -, 0 min total, 0 min suite, - CI wait; `));
 	assert.match(laneLine, /3 attempts \| 1 landed, 1 refused, 1 no end/);
@@ -272,7 +271,7 @@ check("R-2816: the ledger lists the land records as a CAP-02 deliverable read by
 	const feature = cap.slice(cap.indexOf("## FEAT-008 ·"));
 	assert.match(cap, /^Deliverables: .*\bR-2811\b/m);
 	assert.match(cap, /^Made by: R-2811 · land: .* · A-082$/m);
-	assert.match(cap, /^Read by: R-2811 · code: packages\/nana-pack\/bin\/build-report\.mjs, packages\/nana-pack\/bin\/nana-land\.mjs$/m);
+	assert.match(cap, /^Read by: R-2811 · code: packages\/nana-pack\/bin\/nana-land\.mjs$/m);
 	assert.match(feature, new RegExp(`^Artifact: A-082 · land records · clone store: <git common dir>/${LAND_RECORDS_SUBPATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} · land: packages/nana-pack/lib/land-records\\.mjs$`, "m"));
 });
 

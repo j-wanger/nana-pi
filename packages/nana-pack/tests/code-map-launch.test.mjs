@@ -220,11 +220,17 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	 ['packages/nana-knowledge/tests', 'extension.test.mjs'].join('/'),
 	 ...[['memory','end','hook'], ['memory','end','wiring']].map(words => `packages/nana-setup/tests/${cutStem(words)}.test.mjs`),
 	]);
+	const noReaderCuts = new Set([
+		...[['review', 'timeline'], ['brief', 'check'], ['build', 'report'], ['nana', 'frontier']].map(words => words.join('-')).map(name => `packages/nana-pack/bin/${name}.mjs`),
+		...[['ci', 'records'], ['ts', 'syntax', 'check'], ['component', 'audit'], ['component', 'audit', 'config'], ['component', 'contract']].map(words => words.join('-')).map(name => `scripts/${name}.mjs`),
+		...[['review', 'timeline'], ['build', 'report'], ['ts', 'syntax', 'check'], ['component', 'audit'], ['profile', 'sync']].map(words => words.join('-')).map(name => `packages/nana-pack/tests/${name}.test.mjs`),
+	]);
 	const graph = checkRepo().graph;
 	for (const entry of gitShow("57167e92",  "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];
 		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
 			const edge = `${path} -> ${match[1]}`;
+			if (noReaderCuts.has(path) || noReaderCuts.has(match[1])) losses.set(edge, 'Cut A 2026-11-09 removes no-reader tools and their dedicated tests; live library consumers stay.');
 			if (memoryCuts.has(path) || memoryCuts.has(match[1])) losses.set(edge, 'FEAT-043 R-3860/R-3863 retire automatic delivery and completed instruments; surviving readers and assertions moved.');
 			if (retiredStudyModules.has(path)) losses.set(edge, `FEAT-034 retired study module ${path} and its runner-only tests; frozen records remain.`);
 			// Owner retirement (2026-11-07): the preview and all of its consumers left together.

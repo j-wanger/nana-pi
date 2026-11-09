@@ -47,7 +47,7 @@ const {
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PACK = path.resolve(HERE, "..");
 const WORKER = path.join(PACK, "bin", "pi-worker.mjs");
-const BRIEF_CHECK = path.join(PACK, "bin", "brief-check.mjs");
+const { checkBriefForLaunch } = await import('../lib/brief-precedent.mjs');
 const PREAMBLE = path.join(PACK, "prompts", "builder-preamble.md");
 const CASE_LIMIT_MS = 20_000;
 const STARTUP_SIGNAL_READY_LIMIT_MS = 5_000; // Chosen to bound fixture readiness below the per-case watchdog.
@@ -354,7 +354,12 @@ const precedentCases = [
 const precedentObservations = [];
 for (const [name, text] of precedentCases) {
 	writeBrief(text); removeArtifacts();
-	const checked = spawnSync(process.execPath, [BRIEF_CHECK, "--brief", BRIEF, "--tree", LANE], { cwd: TEMP, encoding: "utf8", timeout: CASE_LIMIT_MS, env: baseEnv() });
+	const result = checkBriefForLaunch({ briefPath: BRIEF, worktreeRoot: LANE, gitRunner: args => {
+		const r = spawnSync('git', args, { cwd: LANE, encoding: 'utf8', timeout: CASE_LIMIT_MS });
+		if (r.status !== 0) throw new Error(r.stderr);
+		return r.stdout;
+	} });
+	const checked = { status: result.ok ? 0 : 1, stderr: result.line };
 	const built = runWorker();
 	precedentObservations.push({ name, checked: checked.status, built: built.status, checkLine: selectedBriefLine(checked.stderr), workerLine: selectedBriefLine(built.stderr), ran: readRows(RECORD).length, lock: fs.existsSync(LOCK), pi: fs.existsSync(PI_MARKER) });
 }

@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/brief-check.test.mjs
- * @purpose Prove brief-check and pi-worker share lane-brief precedent validation without brief-check starting pi.
+ * @purpose Pin pi-worker lane-brief validation and the shared Precedent parser.
  * @inputs The two commands, their shared checker source, and a temporary linked-worktree fixture.
  * @outputs Requirement-tagged PASS/FAIL checks.
  * @effects disk (OS temp fixtures and a slow CPU-sampler shim), process (git, command subprocesses
@@ -27,8 +27,6 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const worker = path.join(root, "bin", "pi-worker.mjs");
-const briefCheck = path.join(root, "bin", "brief-check.mjs");
-const sharedCheck = path.join(root, "lib", "brief-precedent.mjs");
 const temp = tmpDir(path.join(os.tmpdir(), "brief-check-"));
 const repo = path.join(temp, "repo");
 const lane = path.join(temp, "lane");
@@ -78,9 +76,6 @@ const writeBrief = (name, text) => {
 const runWorker = (brief) => spawnSync(process.execPath, [worker, "--poll", String(WORKER_POLL_SECS), "--out", out, "--lane", "alpha", "--brief", brief], {
 	cwd: lane, encoding: "utf8", timeout: CHILD_LIMIT_MS, env,
 });
-const runCheck = (brief, cwd = lane) => spawnSync(process.execPath, [briefCheck, "--brief", brief, "--tree", lane], {
-	cwd, encoding: "utf8", timeout: CHILD_LIMIT_MS, env,
-});
 const selectedLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.startsWith("pi-worker: lane refused:") || line.startsWith("pi-worker: precedent:")) ?? null;
 const cases = [
 	["missing section", writeBrief("missing.md", "Feature: FEAT-006 · Missing\n"), 1, "pi-worker: lane refused:"],
@@ -93,19 +88,13 @@ for (const [name, brief, expectedStatus, prefix] of cases) {
 	const workerResult = runWorker(brief);
 	const workerLine = selectedLine(workerResult.stderr);
 	const workerStarted = fs.existsSync(marker);
-	fs.rmSync(marker, { force: true });
-	const checkResult = runCheck(brief);
-	const checkLine = selectedLine(checkResult.stderr);
 	observations.push({
 		name,
-		ok: workerResult.status === expectedStatus && checkResult.status === expectedStatus &&
-			workerLine?.startsWith(prefix) && checkLine === workerLine && !fs.existsSync(marker) &&
+		ok: workerResult.status === expectedStatus &&
+			workerLine?.startsWith(prefix) &&
 			(expectedStatus === 0 ? workerStarted && workerLine.includes("known bugs: docs/known-bugs/FEAT-006.md") : !workerStarted),
 		workerStatus: workerResult.status,
-		checkStatus: checkResult.status,
 		workerLine,
-		checkLine,
-		checkStderr: checkResult.stderr,
 	});
 }
 const check = (title, pass, detail = "") => {
@@ -128,11 +117,8 @@ for (const [label, value, accepted] of [
 		fs.rmSync(marker, { force: true });
 		const launched = runWorker(brief);
 		const started = fs.existsSync(marker);
-		fs.rmSync(marker, { force: true });
-		const checked = runCheck(brief);
 		servesResults.push({ label, ending, suffix, ok: launched.status === (accepted ? 0 : 1) &&
-			checked.status === launched.status && started === accepted && !fs.existsSync(marker) &&
-			selectedLine(launched.stderr) === selectedLine(checked.stderr) &&
+			started === accepted &&
 			(accepted || /lane refused: Serves:/.test(launched.stderr)), stderr: launched.stderr });
 	}
 }
@@ -141,43 +127,10 @@ check("R-3948: Serves refuses missing empty and malformed values and launches co
 // req: R-3949
 check("R-3949: the alignment label is sealed as Serves:", briefConfig.SERVES_LINE_PREFIX === "Serves:");
 
-const workerSource = fs.readFileSync(worker, "utf8");
-const checkerSource = fs.existsSync(briefCheck) ? fs.readFileSync(briefCheck, "utf8") : "";
-const sharedByBoth = fs.existsSync(sharedCheck) &&
-	workerSource.includes("checkBriefForLaunch") && checkerSource.includes("checkBriefForLaunch") &&
-	workerSource.includes("../lib/brief-precedent.mjs") && checkerSource.includes("../lib/brief-precedent.mjs") &&
-	!["readBrief", "checkPrecedent", "ls-tree", "KNOWN_BUGS_DIR"].some((token) => checkerSource.includes(token));
-
-const hold = fs.existsSync(holdRecord) ? JSON.parse(fs.readFileSync(holdRecord, "utf8")) : null;
-const samplerResolvedFirst = samplerIsFirst(resolvedSampler, samplerShim);
-const ok = observations.every((entry) => entry.ok) && sharedByBoth;
-// req: R-2585
-check("R-2585: brief-check prints what pi-worker would print for the same brief and starts nothing", ok, JSON.stringify({ observations, sharedByBoth }));
-// req: R-2670
-check("R-2670: brief-check and pi-worker give the same line for every brief while a CPU sampler slower than the child limit is first on PATH, and the sampler never runs",
-	ok && samplerResolvedFirst && hold?.heldMs >= FAKE_PI_HOLD_MS && !fs.existsSync(samplerMarker),
-	JSON.stringify({ observations, sharedByBoth, resolvedSampler, samplerShim, hold, samplerStarted: fs.existsSync(samplerMarker) }),
-);
-// req: R-2670
-check("seal: R-2585's children have a 30-second limit and the worker polls less often than that", CHILD_LIMIT_MS === 30_000 && WORKER_POLL_SECS * 1000 > CHILD_LIMIT_MS, JSON.stringify({ CHILD_LIMIT_MS, WORKER_POLL_SECS }));
-
-const unreadableName = "passing.md";
-const unreadableTreePath = path.join(lane, unreadableName);
-const unrelatedBrief = writeBrief(unreadableName, "Precedent:\n- seed\n");
-fs.rmSync(unreadableTreePath, { force: true });
-const unreadableResult = runCheck(unreadableName, temp);
-const unreadableLines = unreadableResult.stderr.trimEnd().split(/\r?\n/);
-const expectedTriedPath = path.resolve(lane, unreadableName);
-// req: R-2621
-check("R-2621: brief-check names the brief path it tried and the base a relative brief resolves from",
-	unreadableResult.status === 1 && unreadableLines.length === 1 && unreadableLines[0].startsWith("brief-check:") &&
-	unreadableLines[0].includes(expectedTriedPath) && unreadableLines[0].includes("--tree") &&
-	fs.existsSync(unrelatedBrief) && !fs.existsSync(unreadableTreePath), unreadableResult.stderr);
-
 // Literal compatibility fixtures from anatomy-label-check, ci-suite,
 // ci-timing-records and build-records briefs/plans (copied, never read at runtime).
 const compatibility = [
-	["- `scripts/ci-records.mjs:19-30, :44-67`: `ghFromEnvironment`, the command seam that every OS can use, and `ghResult`, whose result classes these are. Both move into gh-runner.mjs, as named moves, and gain a timeout class.", "scripts/ci-records.mjs", "path"],
+	["- `packages/nana-pack/lib/ci-records.mjs:19-30, :44-67`: `ghFromEnvironment`, the command seam that every OS can use, and `ghResult`, whose result classes these are. Both move into gh-runner.mjs, as named moves, and gain a timeout class.", "packages/nana-pack/lib/ci-records.mjs", "path"],
 	["- REQUIREMENTS.md:788-791 — R-2573, R-2574 and R-2576; R-2905 at `:727`; R-1460's lines at `:2217-2219`.", "REQUIREMENTS.md", "path"],
 	["- `apps/bench/lib/anatomy.mjs`", "apps/bench/lib/anatomy.mjs", "path"],
 	["- AGENTS.md — \"Shared-machine test runs\" is nana-pi's own section after the markers; \"CI covers this repository's suite\" goes there only (S7). \"Install check before a land\" is left alone.", "AGENTS.md", "path"],
@@ -242,9 +195,8 @@ for (const [bullet, value] of refusalCases) {
 	const expected = `pi-worker: lane refused: Precedent entries at HEAD ${head}: ${JSON.stringify(value)} is not tracked at HEAD (bullet: ${JSON.stringify(quote)}); ${rule}; commit the file, or merge main if it landed there`;
 	fs.rmSync(marker, { force: true });
 	const launched = runWorker(brief);
-	const checked = runCheck(brief);
-	refusalResults.push(launched.status === 1 && checked.status === 1 && !fs.existsSync(marker) &&
-		selectedLine(launched.stderr) === expected && selectedLine(checked.stderr) === expected && expected.split(rule).length === 2);
+	refusalResults.push(launched.status === 1 && !fs.existsSync(marker) &&
+		selectedLine(launched.stderr) === expected && expected.split(rule).length === 2);
 }
 // req: R-3717 R-2579
 check("R-3717: refusals quote the original bullet and rule identically without starting pi", refusalResults.every(Boolean), JSON.stringify(refusalResults));

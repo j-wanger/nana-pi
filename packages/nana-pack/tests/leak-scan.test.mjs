@@ -15,8 +15,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
-import { buildRecordsPath, buildReportLines, buildEndRecord } from '../lib/build-records.mjs';
-import { runBuildReport } from '../bin/build-report.mjs';
+import { buildRecordsPath, buildReportLines, buildEndRecord, readBuildLedger } from '../lib/build-records.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const temp = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'leak-guard-')));
@@ -198,10 +197,10 @@ await check('M8: build report lines ignore optional leak metadata',()=>{
   const f=fixture();const start={v:1,kind:'start',build:'fixture',lane:'fixture',startedAt:'2026-01-01T00:00:00Z'};
   const end=buildEndRecord(start,{endedAt:'2026-01-01T00:01:00Z',outcome:'ok',exit:0,found:{usage:{},cost:0,costReason:null,sessions:[],sessionBadLines:0}});
   const common=path.join(f.cwd,'.git');const file=buildRecordsPath(common);fs.mkdirSync(path.dirname(file),{recursive:true});
-  const render=leaks=>{fs.writeFileSync(file,[start,{...end,...leaks}].map(JSON.stringify).join('\r\n')+' \t');let text='';assert.equal(runBuildReport([],{cwd:f.cwd,stdout:{write:s=>text+=s}}),0);return text;};
+  const render=leaks=>{fs.writeFileSync(file,[start,{...end,...leaks}].map(JSON.stringify).join('\r\n')+' \t');const ledger=readBuildLedger(file);return buildReportLines(ledger.records,{badLines:ledger.badLines}).lines;};
   const withLeaks={leaks:{hits:[{path:'r2-a.log',kind:'identity',wordIndex:0,count:2}],skipped:[]}};
   assert.deepEqual(buildReportLines([start,end]).lines,buildReportLines([start,{...end,...withLeaks}]).lines);
-  assert.equal(render({}),render(withLeaks));
+  assert.deepEqual(render({}),render(withLeaks));
 });
 // req: R-3756
 await check('seal: leak file cap is 4194304 bytes',async()=>assert.equal((await import('../lib/leak-scan-config.mjs')).LEAK_FILE_MAX_BYTES,4194304));

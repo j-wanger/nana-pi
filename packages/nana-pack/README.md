@@ -482,27 +482,6 @@ and the ledger returns the reservation. A killed launcher can leave `claude` run
 reservation, which the next admission prunes. Claude print mode supplies only its final assistant turn,
 so a verdict written before a last tool call may be absent from the output.
 
-`node bin/review-timeline.mjs --item <slug> [--repo <path>]` prints one lane's review timeline as
-markdown: every round the ledger recorded for that item in the selected repository (the current
-folder by default), in ledger order, each review with its short revision, role, model, verdict and
-duration. It reads each new round's hash-addressed kept text from the tally and store, falling back
-for old rounds to the audit log plus its one rotated generation and the output path recorded there; it
-writes nothing. Under a sent-back review whose recorded file's last `VERDICT:` line still reads
-`SEND-BACK`, it lists that file's MUST findings by title — a heading reading `MUST — <title>`; a bare
-`MUST` heading or `**MUST**` line opening a section whose findings are every sibling of the first
-item form seen in it (a deeper heading, a numbered item, a bullet, or a bold-led paragraph whose bold
-text is not a label ending in `:`); or a line that, after an optional list marker and emphasis marks,
-starts with `MUST —`. No SHOULD or NOTE item is ever listed. A sent-back review with no recorded file,
-a gone file, a disagreeing last verdict, or no readable MUST states which of those holds instead of
-findings. An unverified, no-verdict or older (version 1) review line is marked rather than
-guessed. Every field collapses whitespace to one space, and every review file is named by its file
-name alone — never an absolute path. Known limits: a relative recorded path, a rotated-away audit
-generation, or an older tally line with no end time reads as no file recorded; a review file moved or
-deleted after its run reads as gone; the timeline searches no folder but the one the ledger recorded,
-so run it while that folder still exists (the seat runs it at land, from the session that ran the
-reviews); a MUST layout outside the five above may read as unreadable or list a detail line; markdown
-only, no diagram.
-
 ### Land helper: `bin/nana-land.mjs`
 
 Feature branches (`feat/**`) run CI on their pushed tip, even when generated-file conflicts prevent GitHub's PR trigger.
@@ -583,15 +562,7 @@ The Claude builder uses the same ancestor-only `claudeMdExcludes` policy as the 
 
 Before starting either runtime, lane mode prints the checked entry count, HEAD sha and attached known-bug path or `none`. It also prints one builder line with the roster's source and the entry's runtime tokens: pi's provider, model and thinking, or `claude-code <model>`. The line uses `builder (larger lanes):` when the set larger slot runs and plain `builder:` for a fallback. Sealed values live in `bin/worker-config.mjs`; changing one requires a requirements diff. Caller overrides are unsupported. The plain non-lane worker invocation is unchanged and reads no roster.
 
-To check a brief without starting a builder or taking the lane lock:
-
-```bash
-node "$HOME/nana-pi/packages/nana-pack/bin/brief-check.mjs" --brief <file> --tree <worktree>
-```
-
 Every lane brief, including `Card: fix`, also needs `Serves: roadmap step <N>` plus one sentence on its contribution to OBJECTIVE.md, or `Serves: owner YYYY-MM-DD` plus the owner's words. Missing, empty or malformed values refuse before the lock or builder. LF, CRLF, trailing spaces or tabs and no final newline are accepted. This checks completeness, not alignment: before launch the seat re-reads the priority and judges the best use of its slot. Role and legacy workers do not require this line.
-
-`brief-check` calls the same precedent, Serves and known-bug check as `pi-worker`. A relative `--brief` resolves from `--tree`; when it cannot read that brief, its `brief-check:` line names the absolute path it tried. It prints the same `pi-worker: lane refused: …` line and exits 1 on refusal, or the same `pi-worker: precedent: …; known bugs: …` launch line and exits 0 on success. It starts no builder.
 
 Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`; a Claude Code launch also sets the sealed child values described above. The gate refuses edit/write targets outside that root and the temporary roots it counts: the real `os.tmpdir()`, and on Windows a differing `TMP` too — except a temp folder that resolves to a drive or filesystem root, the home folder, or a folder above the home folder, which does not count. `/tmp` is a separate rule on every system but Windows: it counts as a temporary root regardless, even when it resolves under the home folder. Each target is judged at the path pi's own edit/write tools actually write it to — pi's `~`, `@` and `file://` forms are expanded first — and every root and target is compared by its true on-disk spelling (case, 8.3 short names, and symlinks all fold to the same real path), not by the literal string typed. This does not cover writes performed by bash or another process. The gate is advisory; the sandbox/container is the boundary.
 
@@ -627,7 +598,7 @@ Claude Code log lines are unchanged: workers log on spawn and reviewers at launc
 
 Lane builds share `<git common folder>/nana/build-records.jsonl` across one clone. Each schema-1 JSON line is a `start` or `end` record joined by its build id. A hard stop the detached watcher observes gets a `stopped` end with exit `-`, a null signal and matched session usage. An unpaired start is reported as `no end` and now means a build still running, an exception, or a hard stop the watcher did not observe. A Claude Code start records provider `claude-code`, its model and null thinking. Tokens and cost are field-wise sums of pi-ai Usage values in matching pi sessions, not recalculations from token buckets, so a Claude Code build's cost is unknown. Missing, unreadable or over-cap sessions leave the cost unknown and name the session folder. Record-write failures are report-only and do not stop the builder or change its result.
 
-Read the clone's builds from any checkout with `node "$HOME/nana-pi/packages/nana-pack/bin/build-report.mjs" [--repo <path>] [--lane <name>]`. The report prints each build, lane totals, clone totals, unpriced builds and skipped ledger lines. It then prints land attempts, land lane lines and a land total; land records have no retention. Build records are per clone, have no retention, and cover lane-mode pi and Claude Code builders only. A stall is `failed`; `no end` does not distinguish a live build, an exception or an unobserved hard stop. The cost is pi's model-catalog figure rather than a subscription bill. A custom pi `sessionDir` setting is not followed unless `PI_CODING_AGENT_SESSION_DIR` selects it.
+Build and land records are per clone and have no retention. Build records cover lane-mode pi and Claude Code builders only. A stall is `failed`; `no end` does not distinguish a live build, an exception or an unobserved hard stop. The cost is pi's model-catalog figure rather than a subscription bill. A custom pi `sessionDir` setting is not followed unless `PI_CODING_AGENT_SESSION_DIR` selects it.
 
 #### Commit-range leak guard
 
@@ -635,7 +606,7 @@ Before a lane push, chain `node "$HOME/nana-pi/packages/nana-pack/bin/leak-scan.
 
 The scan reads each commit's changed blobs and repository-relative names after the base/tip merge-base, not dirty worktree files. Leaks remain flagged when later commits clean or delete them. Deletion entries are excluded and renames use the new path. Hits and skips include the commit's short hash beside the path. Identity hits carry only the word index and count; literal home and temp-root hits carry only a kind and count. Every platform matches both given and real-path spellings of home and temp. Windows recognizes native, slash and msys forms case-insensitively; a machine-path match needs a separator, quote, whitespace or end boundary. The sealed cap in `lib/leak-scan-config.mjs` is 4194304 bytes per file, checked before requesting blob content. Each hit and skip prints a line, followed by a summary. Exit 0 means clean, 1 means hits or unread skips, and 2 means usage or scan unavailable. A skip blocks: the seat can inspect that file and push by hand.
 
-At normal lane build end, pi-worker scans `buildStart.tip..HEAD` before appending the record. Its optional `leaks` field holds `{hits, skipped}` or `{unavailable}`. The same diagnostic lines follow the build-end line on stderr with `pi-worker: ` prefixes, without changing outcome or exit. Plain and role workers do not scan; hard-stop watcher records have no scan. Build-report and product-report keep their existing output when reading records with or without this field.
+At normal lane build end, pi-worker scans `buildStart.tip..HEAD` before appending the record. Its optional `leaks` field holds `{hits, skipped}` or `{unavailable}`. The same diagnostic lines follow the build-end line on stderr with `pi-worker: ` prefixes, without changing outcome or exit. Plain and role workers do not scan; hard-stop watcher records have no scan. Product-report keeps its existing output when reading records with or without this field.
 
 This is a seat-chained gate, not an enforced hook. It retains the identity tokenizer's gaps and misses encoded machine paths such as JSON-escaped Windows paths and file URLs whose separators are encoded. Seat rule copies refresh on the next setup install. Committed logs use repo-relative paths, `~` or `$TMPDIR` instead of absolute machine paths.
 
@@ -848,18 +819,6 @@ unavailable data, unfinished or cancelled main, or refused posting returns 1.
 Red or missing required main CI blocks the next nana-pi land; `--fixes-red` permits only the named, readable red-run fix.
 Feature pushes, non-feature PRs and fork PRs run macOS and Linux lane packs, selected Windows tests and macOS install checks; main pushes retain full Windows shards and install checks.
 Tests: `tests/main-ci.test.mjs` injects gh and fixture records without network calls.
-
-## HANDOFF frontier checker (`bin/nana-frontier.mjs`)
-
-This report-only CLI checks a HANDOFF document's 1,200-word budget and frontier structure: multi-line entries beneath Landed headings, landed markers in Next or Open for the owner, unresolved numbered references, overdue explicit dates, and missing Open for the owner tags. It also checks the document's size against one default read (51,200 bytes or 2,000 lines: pi 1.0.2's read tool limits, the smaller of the two seats' limits), and reports a Where things stand, Next or Open for the owner section placed after a Landed or Carried residuals heading or ending past that read.
-
-```bash
-node packages/nana-pack/bin/nana-frontier.mjs HANDOFF.md
-node packages/nana-pack/bin/nana-frontier.mjs --today 2026-10-06 HANDOFF.md
-node packages/nana-pack/bin/nana-frontier.mjs --strict HANDOFF.md
-```
-
-It prints `file:line: kind: detail` findings and a summary. The default clock uses the current UTC date; `--today` injects a deterministic `YYYY-MM-DD` date. Findings do not change the default exit status; `--strict` exits nonzero when findings exist. A blank line ends a list entry, so a later indented paragraph is not joined to it. Tests: `packages/nana-pack/tests/frontier.test.mjs`.
 
 ## Writing checker (`bin/nana-writing.mjs`) — adopted, report-only
 

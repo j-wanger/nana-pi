@@ -7,7 +7,6 @@
 	"bin": {
 		"pi-review": "bin/pi-review.mjs",
 		"pi-worker": "bin/pi-worker.mjs",
-		"nana-frontier": "bin/nana-frontier.mjs",
 		"nana-land": "bin/nana-land.mjs",
 		"nana-ci-wait": "bin/nana-ci-wait.mjs"
 	},

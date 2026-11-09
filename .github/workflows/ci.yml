@@ -151,7 +151,6 @@ jobs:
           npm run readme:check
           node scripts/requirements-trace.mjs
           node scripts/requirements-tree.mjs --check
-          node scripts/component-audit.mjs --check
           if [ -f scripts/records-move.mjs ]; then node scripts/records-move.mjs; fi
       # contract (R-3853, R-3857): retire stays on main; the runner adds release on release-path hits.
       - run: npm test -- --jobs=${{ env.NANA_CI_JOBS }} --pack=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'land,main,module,retire' || 'land,module' }} ${{ github.ref != 'refs/heads/main' && '--changed-from=origin/main' || '' }}

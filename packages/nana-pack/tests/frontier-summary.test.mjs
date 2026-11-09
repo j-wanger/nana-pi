@@ -22,7 +22,6 @@ delete process.env.NANA_ROLE;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const PRODUCER = path.join(ROOT, "packages/nana-pack/bin/nana-frontier-summary.mjs");
-const CHECKER = path.join(ROOT, "packages/nana-pack/bin/nana-frontier.mjs");
 const TODAY = "2026-10-22";
 const CASE_LIMIT_MS = 8_000;
 const TEST_HOME = tmpDir(path.join(os.tmpdir(), "frontier-summary-home-"));
@@ -80,46 +79,6 @@ const lines = (text) => text?.split("\n") ?? [];
 		withoutPath(crlf) === withoutPath(lf) && withoutPath(bom) === withoutPath(plainBom);
 	// req: R-2607
 	check("R-2607: Next titles and ask tags and titles are listed in block order, and nested items, fences and other sections are not", ok, main ?? "null");
-}
-
-{
-	const fixtureTexts = {
-		current: fs.readFileSync(path.join(ROOT, "packages/nana-pack/tests/fixtures/frontier/handoff-current-2026-10-11.md"), "utf8"),
-		noTitle: "## Open for the owner\n- [optional, since 2026-10-10] no grammar here\n",
-		continuation: "## Open for the owner\n- decision\n[optional, since 2026-10-10]\n",
-		missing: "## Open for the owner\n- decision with no tag\n",
-		future: "## Open for the owner\n- [blocking, since 2026-10-12] future\n",
-		fenced: "## Open for the owner\n```md\n- [blocking, since 2026-10-12] fenced\n```\n",
-		rewritten: fs.readFileSync(path.join(ROOT, "packages/nana-pack/tests/fixtures/frontier/rewritten.md"), "utf8"),
-		legacy: fs.readFileSync(path.join(ROOT, "packages/nana-pack/tests/fixtures/frontier/legacy.md"), "utf8"),
-		frozen: fs.readFileSync(path.join(ROOT, "packages/nana-pack/tests/fixtures/frontier/handoff-2026-10-06.md"), "utf8"),
-		preRewrite: fs.readFileSync(path.join(ROOT, "packages/nana-pack/tests/fixtures/frontier/handoff-pre-rewrite.md"), "utf8"),
-		tabs: "## Next\n- first\tpart\ncontinued line\n## Open for the owner\n- ask\n[optional, since 2026-10-10]\n",
-	};
-	let ok = true;
-	const detail = [];
-	for (const [name, source] of Object.entries(fixtureTexts)) {
-		const root = repo(`frontier-check-${name}`, source);
-		const handoff = path.join(root, "HANDOFF.md");
-		const summary = frontierSummary({ cwd: root, today: TODAY, env: {} });
-		const cli = run(CHECKER, ["--today", TODAY, handoff]);
-		const cliLines = cli.stdout.trimEnd().split("\n");
-		const summaryLine = cliLines.at(-1);
-		const counts = [];
-		for (const line of cliLines.slice(0, -1)) {
-			const kind = /: ([a-z-]+):/.exec(line)?.[1];
-			if (!kind) continue;
-			const found = counts.find((entry) => entry.kind === kind);
-			if (found) found.count++;
-			else counts.push({ kind, count: 1 });
-		}
-		const suffix = counts.length ? ` (${counts.map(({ kind, count }) => `${kind} ${count}`).join(", ")})` : "";
-		const expected = `Frontier check: ${summaryLine}${suffix}`;
-		const actual = lines(summary).filter((line) => line.startsWith("Frontier check:")).at(-1);
-		if (cli.status !== 0 || actual !== expected || lines(summary).at(-2) !== expected) { ok = false; detail.push(`${name}: ${JSON.stringify({ expected, actual, status: cli.status })}`); }
-	}
-	// req: R-2608
-	check("R-2608: the block ends with the frontier checker's own summary line and counts", ok, detail.join(" | "));
 }
 
 {
