@@ -333,7 +333,7 @@ const RULE_LINE = {
 	touchedTestsBeforeCommit: "Each commit follows a green run of the tests your change touches.",
 	fullSuiteFallback: "Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.",
 	seatChecksBeforeDone: "Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.",
-	longOutputToFile: "Send long script output to a committed file and paste only the lines your brief asks for.",
+	longOutputToFile: "Keep long script output outside the repository (for example under the system temp folder); put each command, its exit code and a one-line result summary in your report; commit no raw output.",
 	readCiOnce: "Do not push; the seat pushes after verifying; report the tip. Do not wait for or read CI.",
 	suiteCheckCountInReport: "Then commits; per item, files, rows, mutation pairs, commands and exit codes; the branch, the tip's full SHA and the seat checks run on it, or the full-suite summary line with its check count where you ran it; and what was not done.",
 };
@@ -379,7 +379,7 @@ check("lane preamble carries: touched tests before each commit", preambleOnce(RU
 // req: R-3436
 check("lane preamble carries: seat checks before DONE", preambleOnce(RULE_LINE.seatChecksBeforeDone), RULE_LINE.seatChecksBeforeDone);
 // req: R-3436
-check("lane preamble carries: long output to a committed file", preambleOnce(RULE_LINE.longOutputToFile), RULE_LINE.longOutputToFile);
+check("lane preamble carries: long output outside the repository and no raw output committed", preambleOnce(RULE_LINE.longOutputToFile), RULE_LINE.longOutputToFile);
 // req: R-3436
 check("lane preamble carries: no builder push", preambleOnce(RULE_LINE.readCiOnce), RULE_LINE.readCiOnce);
 // req: R-3436
