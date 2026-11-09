@@ -2294,7 +2294,7 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 - **outputs** — RULINGS_FILE, RULINGS_READ_CAP, RULINGS_HEADING, RULINGS_SECTION, RULINGS_UNAVAILABLE and the sealed pi seat-guide values
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
+- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/seat-rule.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/runtime-map-config.mjs`
@@ -5340,13 +5340,13 @@ The pi extension pack, the knowledge pull, the staged-block layer and the setup 
 
 ### `packages/nana-setup/tests/seat-rule.test.mjs`
 
-- **purpose** — Pin the seat guide's scope, original rules and role-launch rule without extra bullets.
-- **inputs** — packages/nana-setup/claude/rules/nana-seat.md
+- **purpose** — Check that the shipped seat guide fits its loader and retains the brief checklist.
+- **inputs** — packages/nana-setup/claude/rules/nana-seat.md and builder-preamble.md
 - **outputs** — PASS/FAIL lines per check on stdout, and exit 1 when any check fails
-- **effects** — disk (reads the guide file)
-- **errors** — a failed check prints FAIL with the observed value and the run exits 1; a missing guide file reads as empty text, so every check below fails
+- **effects** — disk (reads the guide and preamble)
+- **errors** — Missing inputs throw; failed checks exit 1.
 - **callers** — —
-- **callees** — —
+- **callees** — `packages/nana-pack/lib/rulings-config.mjs`
 
 ### `packages/nana-setup/tests/settings-lock.test.mjs`
 
