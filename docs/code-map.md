@@ -1149,7 +1149,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 - **purpose** — Define sealed vocabulary and bounded git-list output for lane brief completeness checks.
 - **inputs** — none
-- **outputs** — Precedent, fix-card, Serves and feature-line tokens, accepted trailing punctuation, and git output cap.
+- **outputs** — Precedent, fix-card, Serves, Validation and feature-line tokens, accepted trailing punctuation, and git output cap.
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`
@@ -1157,7 +1157,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 ### `packages/nana-pack/lib/brief-precedent.mjs`
 
-- **purpose** — Check a lane brief's precedent, Serves completeness and feature context against its worktree's injected HEAD reader.
+- **purpose** — Check a lane brief's precedent, Serves and Validation completeness and feature context against its worktree's injected HEAD reader.
 - **inputs** — Brief text or path, worktree root, an injected git runner, and tracked paths for pure predicates.
 - **outputs** — Parsed entries, path judgments, or the worker-compatible refusal/launch line and known-bug path.
 - **effects** — disk (the launch check reads the brief and regular known-bug file metadata)
@@ -1349,7 +1349,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 - **purpose** — Read a project's HANDOFF and render its bounded session-start frontier block.
 - **inputs** — Session cwd, injected date/environment and issue reader, launcher limit, filesystem state and frontier configuration.
-- **outputs** — The frontier block with Next titles, ordered asks and checker summary, an unavailable block, or null.
+- **outputs** — The frontier block with Next and blocking titles, owner-ask counts (legacy HANDOFF asks stay listed) and checker summary, an unavailable block, or null.
 - **effects** — disk (bounded HANDOFF read), process and network (budget-bounded gh calls for opted-in projects).
 - **errors** — none; missing input is silent and every other read or decode failure becomes one marker line.
 - **callers** — `packages/nana-pack/bin/nana-frontier-summary.mjs`, `packages/nana-pack/extensions/nana-frontier-summary.ts`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`
@@ -1732,7 +1732,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 - **purpose** — THE objective producer — resolve the governing objective file and render the exact block both runtimes print.
 - **inputs** — the session cwd, the user-scope objective settings (path, projectFile and an optional safe configFailure classification), the nearest OBJECTIVE.md walking up from cwd, and pi's active agent dir with its trust store, that store's folder, permissions and lock
-- **outputs** — ObjectiveResult {text, unavailable, events, notices} — the heading, an optional safe config-failure line, the **Objective and **Current priority lines (one physical line each, ≤ LINE_CAP), the provenance label, the precedence note and remedy, or an `OBJECTIVE UNAVAILABLE` marker; the whole text is ≤ OUTPUT_CAP and ends in exactly one newline
+- **outputs** — ObjectiveResult {text, unavailable, events, notices} — the heading, an optional safe config-failure line, the **Objective and **Current priority lines (one physical line each, ≤ LINE_CAP), the provenance label, its trust remedy, or an `OBJECTIVE UNAVAILABLE` marker; the whole text is ≤ OUTPUT_CAP and ends in exactly one newline
 - **effects** — disk (bounded sync reads of at most FILE_READ_MAX bytes per file, plus lstat / stat / access of the objective files, the trust store, its folder and its lock)
 - **errors** — none — produceObjective never throws; an unreadable or symlink-reached file, a missing line, invalid UTF-8 or an internal error each become a named marker plus a journal event and a UI notice
 - **callers** — `packages/nana-pack/bin/nana-objective.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-gate.ts`, `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/objective-smoke.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/records-move.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`
@@ -3115,7 +3115,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-objective.ts`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/tests/objective-hook-retry.mjs`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-objective.mjs`, `packages/nana-setup/lib/hook-producer.mjs`
-- **unresolved launches** — line 136: spawnSync; binding line 167; binding line 609
+- **unresolved launches** — line 136: spawnSync; binding line 167; binding line 599
 
 ### `packages/nana-pack/tests/objective-hook-retry.mjs`
 
@@ -4081,9 +4081,9 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 ### `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`
 
-- **purpose** — Print the shared-memory index and self-heal the current Claude project memory link.
+- **purpose** — Print kept shared-memory index entries with a lookup pointer and self-heal the current Claude project memory link.
 - **inputs** — Claude Code environment, bounded hook JSON stdin, and the shared MEMORY.md file.
-- **outputs** — a bounded shared-memory header, optional note, index entries, and a fold line when entries are shortened or omitted.
+- **outputs** — a bounded header, optional note and held-count pointer, kept entries, and a fold line when budget trimming is needed.
 - **effects** — disk, process (reads stdin, creates directories and a link, writes stdout).
 - **errors** — all failures, including a stdout error such as a reader that closed it, are ignored and the hook exits 0.
 - **callers** — `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-setup/tests/shared-memory-budget.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`
@@ -4358,10 +4358,10 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 - **purpose** — Define the sealed output controls for the shared-memory hook.
 - **inputs** — none
-- **outputs** — The shared-memory output budget and trim mark.
+- **outputs** — The shared-memory output budget, trim mark, held link prefixes and lookup pointer.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/tests/frontier-hook.test.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/shared-memory-budget.test.mjs`
+- **callers** — `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/hook-producer.mjs`, `packages/nana-setup/tests/frontier-hook.test.mjs`, `packages/nana-setup/tests/hook-deadlines.test.mjs`, `packages/nana-setup/tests/shared-memory-budget.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/shared-memory-input.mjs`
@@ -5067,8 +5067,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **effects** — disk (throwaway home layouts, memory dirs and symlinks), process (runs the Node hook)
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
-- **callees** — `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
-- **unresolved launches** — line 149: spawnSync
+- **callees** — `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **unresolved launches** — line 150: spawnSync
 
 ### `packages/nana-setup/tests/shared-memory-input.test.mjs`
 
