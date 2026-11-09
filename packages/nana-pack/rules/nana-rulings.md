@@ -31,7 +31,8 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-11-03: Run a tool once it can yield an honest result; hardening needs a real-run failure or contamination, not an imagined problem.
 - 2026-11-03: Start with the simplest design meeting the request. For small, low-risk tools, use one brief-check round and explain discarded scope growth; retain deeper checks for isolation, credentials, CI and land tools.
 - 2026-10-05: pi-durable stays parked for seat use until a product needs crash-safe long runs; then probe it first.
-- 2026-11-07: Reduction keeps page readers, adoption detection and the four Claude skills: spec, py-lint, py-review and py-test. The memory factory is paused, not deleted.
+- 2026-11-07: Reduction keeps page readers, adoption detection and the four Claude skills: spec, py-lint, py-review and py-test.
 - 2026-11-09: Never route a credential through an agent: no agent extracts, prints or passes on a stored credential, even to save a step; move data through tools that keep it stored.
 - 2026-11-09: A failure that repeats becomes a check in the tool at its moment. Judgment stays a short posture line. Neither becomes a memory line.
 - 2026-11-09: A test stays only if it pins a recorded failure, the main use of a kept feature, or a safety line.
+- 2026-11-09: The memory factory is cut (owner D3). The owner profile store stays.

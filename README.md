@@ -67,21 +67,6 @@ parked. `packages/nana-pack/lib/waking-config.mjs` holds the chosen policy value
 these are not sealed. Payloads missing other required data and unreadable
 transcripts fail open. No model, network access or credentials are needed.
 
-## Offline memory making
-
-`npm run memory:make` (`scripts/memory-make.mjs`) makes private, low-trust candidates
-from this repository's Claude transcripts and review MUST titles. Node and git are
-required; no model runs. This command runs by hand. `npm run memory:shape` (`scripts/memory-shape.mjs`) classifies the same
-units with an isolated Claude CLI by default, or pi through a sealed runner choice.
-`scripts/memory-shape-runners.mjs` holds both adapters; tests inject all calls.
-Completed memory study instruments are retired; their records remain in review history.
-Automatic memory making at land and session end is paused; use the manual memory command
-in `packages/nana-pack/README.md` when needed.
-`npm run memory:curate` (`scripts/memory-curate.mjs`) proposes private merges and retirements
-for the owner's review; only an explicit accept changes live memory.
-These hand-run commands need Node and git; shaping and proposing curation need authenticated Claude.
-See `packages/nana-pack/README.md` for input, privacy and evidence contracts.
-
 ## Requirements-first
 
 A project here keeps a standing, numbered contract — `REQUIREMENTS.md` — alongside its code, and

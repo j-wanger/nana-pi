@@ -17,8 +17,7 @@ Invariant: launcher-role children get no objective block; otherwise only user-sc
   adopt-ts, adopt-structure, dev workflow); `bin/` — the `pi-review` runner (canonical home since 2026-09-18, on PATH via
   `~/.local/bin/pi-review`) with `review-round`, `review-shape`, `claude-review` and `pi-worker`
   behind it, `pi-watchdog`, `nana-roster` (the per-machine roster command), the three producers the seat's Claude Code SessionStart hooks run —
-  `nana-objective`, `nana-adoption` and `nana-frontier-summary` — `nana-writing` (the writing checker, on PATH; report-only), and
-  `nana-curate` (the private owner-reviewed memory queue).
+  `nana-objective`, `nana-adoption` and `nana-frontier-summary` — `nana-writing` (the writing checker, on PATH; report-only).
 - `packages/nana-knowledge/` — a zero-dep FTS5/BM25 index over this machine's markdown
   knowledge stores, searched explicitly with `nana-knowledge query`.
   Automatic knowledge delivery is retired in both runtimes.

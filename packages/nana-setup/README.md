@@ -62,13 +62,10 @@ The pack no longer supplies per-edit checks, compaction-summary production or de
 
 **Verifier-pipe guard (pi only):** the pi gate prompts when a masked pipeline's status reaches a commit without earlier active `pipefail`. Earlier live Bash text also prompts when it contains `errexit` anywhere, in any case and even inside a longer word, or contains a `set` word at any position followed within the same simple command—before the next `;`, `&`, `|`, newline or closing bracket—by an option word made of `-` and letters including `e`. A later `set +e` or `set +o errexit` never turns that text flag off, and `+o errexit` itself counts as enabling. Without earlier Bash errexit text, a `;` or a newline that discards the status does not prompt; `git.exe` and path spellings count as git. This is a best-effort text check: a pipeline or commit not present in the literal command text and reached through a later call is not matched; the sandbox is the boundary. Claude Code has no nana verifier hook.
 
-Automatic session-end memory making is paused. Install removes the managed session-end entry
-and its installed hook link; doctor names old wiring with `nana-setup install` as the fix.
+The memory factory was cut on 2026-11-09. Install removes its managed session-end entry
+and installed hook link; doctor names old wiring with `nana-setup install` as the fix.
 Uninstall also removes it directly from a pre-cut home, preserving foreign entries.
-The memory command remains available for explicit manual runs.
-`claude/hooks/nana-memory-end.mjs` is a silent retired placeholder until machines reinstall.
-It ignores stdin and exits 0; install never installs it.
-Doctor's informational `memory making` note reports enabled counts, the newest machine-local run and local unpushed commits without repository ids.
+The owner profile store stays.
 
 The shared-memory SessionStart hook writes its unchanged index before dynamically loading the pack's context logger. It appends one versioned line to `nana-context-loads.jsonl` in pi's active agent dir, recording session, working folder, full/printed chars and entry filenames printed whole, shortened or omitted. It logs no memory contents. An unavailable module, append failure, cwd-relative agent dir or log inside a git worktree prints one stderr reason and cannot cost the index. Shell and hook environments with different `PI_CODING_AGENT_DIR` values split the log. There is no rotation or reader yet.
 
