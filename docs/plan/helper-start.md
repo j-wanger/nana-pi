@@ -27,7 +27,7 @@ Honest variation in our tools' output is in scope: a skill directory missing on 
 ## Precedent
 
 - `packages/nana-pack/extensions/nana-rulings.ts` — the `LAUNCHER_ROLES` gate at line 90; copy it for the objective.
-- `packages/nana-pack/lib/worker-config.mjs` — where child arguments and env are built.
+- `packages/nana-pack/bin/worker-config.mjs` — where child arguments and env are built.
 - `packages/nana-pack/bin/pi-worker.mjs` — the known-bug digest at lines 234–242 and the load-log call.
 - `packages/nana-pack/bin/pi-review.mjs` — the pi reviewer's child arguments.
 - `packages/nana-pack/lib/build-records.mjs` — call buildSessionDir (`packages/nana-pack/lib/build-records.mjs:44`) rather than re-implementing it — finds the child's session folder.
