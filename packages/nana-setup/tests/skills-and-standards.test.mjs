@@ -100,11 +100,7 @@ try {
 			RULE_NORM.includes("A row flips to `implemented` when its test passes. A `violated` row carries its residual.") &&
 			RULE_NORM.includes("Every land gets an independent reviewer whose question is: does the feature work for its") &&
 			RULE_NORM.includes("does the change cause a harm the review standard lists") &&
-			SKILL_NORM.includes("Add one row per must-meet test, written no wider than the test") &&
-			SKILL_NORM.includes("Before you flip a row to `implemented`, its test passes and the row says no more than the test") &&
-			SKILL_NORM.includes("a row wider than its test is an overclaim, and the fix is to narrow the row") &&
-			SKILL_NORM.includes("Every land gets an independent reviewer** who reads the diff and asks: does the feature work") &&
-			GONE.every((phrase) => !RULE_NORM.includes(phrase) && !SKILL_NORM.includes(phrase)),
+			GONE.every((phrase) => !RULE_NORM.includes(phrase)),
 			`RULE:${RULE_TEXT}\n---\nSKILL:${SKILL_TEXT}`);
 		const GENERAL_SRC = path.join(repo, "templates", "_shared", "requirements-general.md");
 		const GENERAL_TEXT = fs.readFileSync(GENERAL_SRC, "utf8");

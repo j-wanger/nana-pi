@@ -169,8 +169,6 @@ await test('M7: all role guidance states one reviewer plus CI and the shared mar
     assert.match(text, /[Ee]very lane gets one reviewer plus CI/);
     assert.doesNotMatch(text, /land reviewer|seat land review|\bchecker\b|wrong-code pairs|mutation runner|lane class/i);
   }
-  const preamble = fs.readFileSync(path.join(pack, 'prompts/builder-preamble.md'), 'utf8');
-  assert.match(preamble, /Wrong code first/); assert.match(preamble, /Mutation proof/);
 });
 
 // req: R-3764

@@ -157,7 +157,7 @@ const baseEnv = (extra = {}) => {
 	delete env.CLAUDE_CONFIG_DIR;
 	return { ...env, ...extra };
 };
-const servesBrief = (bytes) => Buffer.concat([Buffer.from("Serves: roadmap step 3: exercise Claude launch.\n"), Buffer.from(bytes)]);
+const servesBrief = (bytes) => Buffer.concat([Buffer.from("Serves: roadmap step 3: exercise Claude launch.\nValidation: fixture run.\n"), Buffer.from(bytes)]);
 const writeBrief = (bytes) => { fs.writeFileSync(BRIEF, servesBrief(bytes)); return BRIEF; };
 const workerArgs = (brief = BRIEF, extra = []) => [
 	WORKER,
@@ -914,7 +914,7 @@ let r2728 = {};
 {
 	const beta = path.join(TEMP, "lane-beta");
 	if (!fs.existsSync(beta)) git(REPO, "worktree", "add", "-q", "-b", "feat/beta", beta);
-	const betaBrief = path.join(beta, "brief.md"); fs.writeFileSync(betaBrief, "Serves: roadmap step 3: exercise Claude launch.\nFeature: FEAT-006 · Beta\n\nPrecedent:\n- seed\n");
+	const betaBrief = path.join(beta, "brief.md"); fs.writeFileSync(betaBrief, "Serves: roadmap step 3: exercise Claude launch.\nValidation: fixture run.\nFeature: FEAT-006 · Beta\n\nPrecedent:\n- seed\n");
 	const betaGit = real(path.resolve(beta, git(beta, "rev-parse", "--git-dir")));
 	const betaLock = path.join(betaGit, "nana-lane.lock");
 	removeArtifacts(); fs.rmSync(LOCK, { force: true }); fs.rmSync(betaLock, { force: true });

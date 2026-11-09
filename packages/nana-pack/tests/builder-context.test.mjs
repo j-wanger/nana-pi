@@ -61,7 +61,7 @@ function fixture() {
  fs.writeFileSync(path.join(agent,'nana-pack.json'), JSON.stringify({roster:{scout:null,builder:{provider:'fake',model:'fake',thinking:null},largerBuilder:{runtime:'claude-code',model:'fable'},reviewer:{provider:'fake',model:'review',thinking:null},land:null}}));
  return { root, briefPath, capture,
   check(text, laneSize) { fs.writeFileSync(briefPath,text); return checkBriefForLaunch({briefPath,worktreeRoot:lane,laneSize,gitRunner:args=>git(lane,args)}); },
-  run(text,size) { fs.writeFileSync(briefPath,text.replace(/^(\uFEFF)?/u, '$1Serves: roadmap step 3: exercise builder context.\n')); return spawnSync(process.execPath,[path.join(pack,'bin/pi-worker.mjs'),'--lane','example','--brief',briefPath,'--lane-size',size,'--out',path.join(root,'out'),'--poll','0.1'],{cwd:lane,encoding:'utf8',timeout:20_000,env:{...process.env,HOME:home,USERPROFILE:home,PI_CODING_AGENT_DIR:agent,CLAUDE_CONFIG_DIR:home,PATH:`${bin}${path.delimiter}${process.env.PATH}`,BC_CAPTURE:capture}}); },
+  run(text,size) { fs.writeFileSync(briefPath,text.replace(/^(\uFEFF)?/u, '$1Serves: roadmap step 3: exercise builder context.\nValidation: fixture run.\n')); return spawnSync(process.execPath,[path.join(pack,'bin/pi-worker.mjs'),'--lane','example','--brief',briefPath,'--lane-size',size,'--out',path.join(root,'out'),'--poll','0.1'],{cwd:lane,encoding:'utf8',timeout:20_000,env:{...process.env,HOME:home,USERPROFILE:home,PI_CODING_AGENT_DIR:agent,CLAUDE_CONFIG_DIR:home,PATH:`${bin}${path.delimiter}${process.env.PATH}`,BC_CAPTURE:capture}}); },
   close() { fs.rmSync(root,{recursive:true,force:true}); }
  };
 }
@@ -108,7 +108,7 @@ await check('R-3737: planner specifies helper calls fix markers and the identica
 // req: R-3747
 await check('R-3747: planner requires fresh-search and map-impact caller contracts with traceback and NaN examples', options, () => {
  const text=planner();
- assert.ok(text.includes('When a change alters what a function returns or raises, list each caller found at plan time by freshly searching the repo for the function\'s name and by running the project\'s map impact command as its own must-meet line stating the caller\'s observable contract, never just "still works".'));
+ assert.ok(text.includes('When a change alters what a function returns or raises, list each caller found at plan time by freshly searching the repo for the function\'s name and by running the project\'s map impact command as its own Validation line stating the caller\'s observable contract, never just "still works".'));
  assert.ok(text.includes('For example: "the report has no NaN; the CLI exits non-zero with a message, never a traceback".'));
 });
 // req: R-3738

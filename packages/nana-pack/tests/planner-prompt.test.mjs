@@ -40,14 +40,14 @@ check("R-2950: planner prompt names its sources in conflict order and resolves p
 
 // req: R-2951
 check("R-2951: planner prompt requests Questions for the owner in plan-section order", (() => {
-	const terms = ["First write **Purpose**", "Then write marked **Assumptions**", "**Open choices**", "**Questions for the owner**", "Then write the **Feature** line", "**Threat model**", "**Precedent**", "**Outside precedent**", "**Must-meet**"];
+	const terms = ["First write **Purpose**", "Then write marked **Assumptions**", "**Open choices**", "**Questions for the owner**", "Then write the **Feature** line", "**Threat model**", "**Precedent**", "**Outside precedent**", "**Validation**"];
 	const offsets = terms.map((term) => prompt.indexOf(term));
 	return offsets.every((offset) => offset >= 0) && offsets.every((offset, i) => i === 0 || offsets[i - 1] < offset) &&
 		prompt.includes("For a fix, name the row, ruling or contract it restores.");
 })(), prompt);
 
 // req: R-3030
-check("R-3030: planner prompt makes Outside precedent part of the required section order", prompt.includes("Then write the **Feature** line, **Threat model**, **Precedent**, **Outside precedent**, and **Must-meet** tests."), prompt);
+check("R-3030: planner prompt makes Outside precedent part of the required section order", prompt.includes("Then write the **Feature** line, **Threat model**, **Precedent**, **Outside precedent**, and **Validation**."), prompt);
 
 // req: R-3031
 check("R-3031: planner prompt requires a licensed outside project or a located none", prompt.includes("Under **Outside precedent**, name one open-source project for the lane's main part, with its licence and one of `adopt`, `borrow` or `skip` and a reason; put any other public reference after it. When none applies, write `none:` with where you looked."), prompt);
@@ -88,7 +88,7 @@ check("R-2954: a plan in the prompt form passes brief parsing and precedent chec
 	return parsed.feature === "FEAT-006" && parsed.precedent?.length === 2 &&
 		checkPrecedent(parsed.precedent, ["AGENTS.md"]).length === 0 &&
 		refused.precedent?.length > 1 && checkPrecedent(refused.precedent, ["AGENTS.md"]).length > 0 &&
-		prompt.includes("Write every plan section, from Purpose through Must-meet, as a `##` heading.") &&
+		prompt.includes("Write every plan section, from Purpose through Validation, as a `##` heading.") &&
 		prompt.includes("Read the feature's known-bug file when one exists.") &&
 		prompt.includes("Feature: FEAT-nnn · <label>") && prompt.includes("none: <reason>");
 })(), prompt);

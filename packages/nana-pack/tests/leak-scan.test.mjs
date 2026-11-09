@@ -157,7 +157,7 @@ await check('M7: lane end warns after build line without changing outcome or exi
   const f=fixture(), lane=path.join(temp,'lane'), bin=path.join(temp,'bin'), agent=path.join(temp,'agent'), home=path.join(temp,'private-home');
   for(const p of [bin,agent,home])fs.mkdirSync(p);
   git(f.cwd,'worktree','add','-qb','feat/fixture',lane);
-  const brief=path.join(temp,'brief.md');fs.writeFileSync(brief,'Serves: roadmap step 3: exercise leak scanning.\nPrecedent:\n- outside.log\n');
+  const brief=path.join(temp,'brief.md');fs.writeFileSync(brief,'Serves: roadmap step 3: exercise leak scanning.\nValidation: fixture run.\nPrecedent:\n- outside.log\n');
   fs.writeFileSync(path.join(agent,'nana-pack.json'),JSON.stringify({roster:{scout:null,builder:{provider:'fixture',model:'fixture',thinking:null},largerBuilder:null,reviewer:{provider:'fixture',model:'fixture',thinking:null},land:null}}));
   const body=`const fs=require('node:fs'),cp=require('node:child_process');fs.writeFileSync('build.log',process.env.FIXTURE_LEAK==='yes'?(process.platform==='win32'?process.env.USERPROFILE:process.env.HOME)+'/log ${word}':'clean');for(const args of [['add','build.log'],['-c','user.name=Fixture','-c','user.email=fixture@example.invalid','-c','commit.gpgsign=false','commit','--allow-empty','-qm','build']]){if(cp.spawnSync('git',args).status!==0)process.exit(2)}console.log('built');`;
   if(process.platform==='win32')writeFakePi(bin,body);else fs.writeFileSync(path.join(bin,'pi'),`#!${process.execPath}\n${body}`,{mode:0o755});

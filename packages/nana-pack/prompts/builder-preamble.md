@@ -20,10 +20,8 @@ Scope
 - Keep gate-trigger text out of bash command strings.
 
 Tests
-- Follow requirement diff → tagged tests → code.
-- Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.
-- Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.
-- Mutation proof breaks the CODE, never inverts the assertion.
+- Change the affected requirement rows first, then the code. Run the validation your brief names, small and early, and report its command and result.
+- Write only the new tests your brief names: a test pins a failure that happened, the main use of a kept feature, or a safety line (privacy, credentials, rm, identity, Windows paths). Edit an existing test only where your change makes it false, and list each such edit in your report.
 - A test harness awaits every async case under a per-case limit.
 - A change that reads text line by line gets CRLF, trailing space or tab, and no-final-newline cases.
 - No test writes the repository it runs in; put fixtures in the OS temp directory.
@@ -45,7 +43,7 @@ Before you report
 
 Report shape:
 First line: `VERDICT: DONE`, `VERDICT: PARTIAL` or `VERDICT: BLOCKED`.
-Then commits; per item, files, rows, mutation pairs, commands and exit codes; the branch, the tip's full SHA and the seat checks run on it, or the full-suite summary line with its check count where you ran it; and what was not done.
+Then commits; per item, files, rows, the validation run and its result, commands and exit codes; the branch, the tip's full SHA and the seat checks run on it, or the full-suite summary line with its check count where you ran it; and what was not done.
 
 ## Lessons from earlier work
 Lessons from earlier work on this repository (project memory):

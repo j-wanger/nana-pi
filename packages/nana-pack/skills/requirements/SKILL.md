@@ -19,20 +19,21 @@ contradicts the row; the cell carries the residual) · `retired`.
 Evidence in a sibling repo is cited with the repo as a prefix and that repo's own test directory
 (`other-repo:test/x.test.mjs::title`), lives in that repo's suite, and is exempt from the local rail.
 
-## 1. The workflow — diff, then tests, then code
+## 1. The workflow — validation, rows, then code
 
-New behaviour is a **requirement diff first**. In order, every time:
+In order, every time:
 
-1. **Diff the rows.** Add one row per must-meet test, written no wider than the test; retire a
-   row the change removes. Never renumber. Write the row before you decide the design — if you
-   cannot state it as one falsifiable `shall` sentence, you do not yet know what you are
-   building.
-2. **Write the tests, carrying the markers.** A `# req: R-001` (Python) or `// req: R-001`
+1. **Name the validation.** State the run, its input and the exact result it must show.
+2. **Diff the rows.** Add one row per behaviour, no wider than its check; retire a row the
+   change removes. Never renumber. Write the row before code as one falsifiable `shall` sentence.
+3. **Write only the tests the brief names, carrying the markers.** Add a test only when it pins
+   a failure that happened, the main use of a kept feature, or a safety line (privacy,
+   credentials, rm, identity, Windows paths). Do not demand new tests. A `# req: R-001` (Python) or `// req: R-001`
    (JS/TS) comment directly above the test's call declares the rows that test evidences.
    Stacked markers merge into one declaration. A new row lands `planned` or `untested` with
    no marker, or `implemented` with the marker and the test green — never `implemented` ahead
    of the test.
-3. **Then the code.** The suite is the gate; the rail is what keeps the ledger honest.
+4. **Then the code.** The suite is the gate; the rail is what keeps the ledger honest.
 
 The rail fails the suite when a status disagrees with the markers: an `implemented` row with
 no marker and no external evidence, an `untested`/`planned`/`violated` row that a marker

@@ -487,8 +487,8 @@ function checkInstructionContracts() {
 			"| Codex | Unsupported; no nana runtime contract | Not specified |",
 		].every((v) => shared.includes(v)));
 
-	const startup = "At startup, read `HANDOFF.md`, look up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill), and read the landscape doc only for pi API questions.";
-	const rootStartup = "Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.";
+	const startup = "At startup, a seat reads `HANDOFF.md`; every session looks up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill) and reads the landscape doc only for pi API questions.";
+	const rootStartup = "Startup: a seat reads `HANDOFF.md`; every session looks up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.";
 	const startupFiles = [
 		shared,
 		fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8"),

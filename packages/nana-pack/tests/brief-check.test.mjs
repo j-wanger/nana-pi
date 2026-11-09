@@ -79,7 +79,7 @@ for (const [label, value, accepted] of [
 	["owner", "owner 2026-11-08: run this lane.", true],
 ]) {
 	for (const [ending, suffix] of [["\n", "\n"], ["\r\n", " \t\r\n"], ["\n", ""]]) {
-		const text = `Precedent:${ending}- seed${ending}${value === null ? "" : `Serves: ${value}${suffix}`}`;
+		const text = `Validation: fixture run.${ending}Precedent:${ending}- seed${ending}${value === null ? "" : `Serves: ${value}${suffix}`}`;
 		const brief = writeBrief("serves.md", text);
 		fs.rmSync(marker, { force: true });
 		const launched = runWorker(brief);
@@ -93,6 +93,25 @@ for (const [label, value, accepted] of [
 check("R-3948: Serves refuses missing empty and malformed values and launches complete roadmap or owner forms", servesResults.every((r) => r.ok), JSON.stringify(servesResults.filter((r) => !r.ok)));
 // req: R-3949
 check("R-3949: the alignment label is sealed as Serves:", briefConfig.SERVES_LINE_PREFIX === "Serves:");
+
+// The adopted context-trim plan still demanded preventive tests; launch must name validation.
+const validationResults = [];
+for (const [label, value, fix, accepted] of [
+	["missing", null, false, false], ["empty", "", false, false], ["whitespace", " \t", false, false],
+	["complete", "fixture run shows success", false, true], ["fix", null, true, true],
+]) {
+	for (const [ending, suffix] of [["\n", "\n"], ["\r\n", " \t\r\n"], ["\n", ""]]) {
+		const text = `\uFEFFServes: roadmap step 3: validate launches.${ending}Precedent:${ending}- seed${ending}${fix ? `Card: fix${ending}` : ""}## Validation${ending}${value === null ? "" : `Validation: ${value}${suffix}`}`;
+		const brief = writeBrief("validation.md", text);
+		fs.rmSync(marker, { force: true });
+		const launched = runWorker(brief);
+		validationResults.push({ label, ending, suffix, ok: launched.status === (accepted ? 0 : 1) &&
+			fs.existsSync(marker) === accepted && (accepted || selectedLine(launched.stderr) ===
+			"pi-worker: lane refused: Validation: name the run that checks the result and what it must show, or mark a small fix brief Card: fix") });
+	}
+}
+// req: R-3986
+check("R-3986: Validation refuses missing or empty feature briefs before pi and accepts complete or fix briefs", validationResults.every((r) => r.ok), JSON.stringify(validationResults.filter((r) => !r.ok)));
 
 // Literal compatibility fixtures from anatomy-label-check, ci-suite,
 // ci-timing-records and build-records briefs/plans (copied, never read at runtime).
@@ -131,7 +150,7 @@ const selectionCases = [
 const selectionResults = [];
 for (const [bullet, expected] of selectionCases) {
 	for (const ending of ["\n", "\r\n", ""]) {
-		const text = `Serves: roadmap step 3: exercise selection.\n## Precedent\n${bullet} \t`.replaceAll("\n", ending === "\r\n" ? "\r\n" : "\n") + ending;
+		const text = `Serves: roadmap step 3: exercise selection.\nValidation: fixture run.\n## Precedent\n${bullet} \t`.replaceAll("\n", ending === "\r\n" ? "\r\n" : "\n") + ending;
 		const brief = writeBrief("selection.md", text);
 		fs.rmSync(marker, { force: true });
 		const launched = runWorker(brief);

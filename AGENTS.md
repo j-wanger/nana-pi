@@ -4,7 +4,7 @@ The toolkit repo: adoption of pi, the nana pack, knowledge search, and project t
 
 Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.
 
-Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.
+Startup: a seat reads `HANDOFF.md`; every session looks up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.
 
 ## Objective contract
 
@@ -59,7 +59,7 @@ See the seat guide for defaults and the roster command; the shared section below
 <!-- nana:working-under-nana-pi begin -->
 ## Working under nana-pi
 
-The bullets below describe pi sessions; other runtimes receive only the surfaces listed here. At startup, read `HANDOFF.md`, look up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill), and read the landscape doc only for pi API questions.
+The bullets below describe pi sessions; other runtimes receive only the surfaces listed here. At startup, a seat reads `HANDOFF.md`; every session looks up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill) and reads the landscape doc only for pi API questions.
 
 | Runtime | Context and rules | Checks and state |
 |---|---|---|
@@ -87,7 +87,7 @@ Objective: nearest project unless user-disabled; none for launcher-role children
 
 ### Requirements-first
 
-Change the applicable requirement row first, then tagged tests, then code. Keep evidence and status honest; consult the requirements skill and affected rows for the full contract.
+Validation first: name how to check the result before code, run it small and early, and add a test only when it pins a failure that happened, the main use of a kept feature, or a safety line (privacy, credentials, rm, identity, Windows paths). Change the affected requirement row first. In nana-pi this overrides the standards file's preventive tests, including its pin test per sealed tunable. Keep evidence and status honest; consult the requirements skill and affected rows for the full contract.
 
 ### Navigation
 
@@ -138,4 +138,4 @@ The suite also fails when HANDOFF's Next or Open for the owner section holds a l
 
 ### The tree in briefs, reviews and lands
 
-A lane brief names its feature as `Feature: FEAT-nnn · <label>`. A lane brief carries a Precedent section unless it is marked `Card: fix`. Both review launchers select known bugs from the brief's feature line.
+A lane brief names its feature as `Feature: FEAT-nnn · <label>`. A lane brief carries a Precedent section and a `Validation:` line unless it is marked `Card: fix`. Both review launchers select known bugs from the brief's feature line.

@@ -54,7 +54,7 @@ function git(...args) {
 fs.writeFileSync(base.GIT_CONFIG_GLOBAL, '');
 git('init', '-q', '-b', 'main');
 fs.writeFileSync(path.join(repo, 'seed'), 'fixture\n');
-fs.writeFileSync(path.join(repo, 'brief.md'), 'Serves: roadmap step 3: exercise isolation.\nFixture review.\n\nPrecedent:\n- seed\n');
+fs.writeFileSync(path.join(repo, 'brief.md'), 'Serves: roadmap step 3: exercise isolation.\nValidation: fixture run.\nFixture review.\n\nPrecedent:\n- seed\n');
 git('add', 'seed', 'brief.md'); git('commit', '-qm', 'fixture'); git('worktree', 'add', '-qb', 'feat/fixture', lane);
 const program = path.join(temp, 'program.cjs'), marker = path.join(temp, 'invoked');
 fs.writeFileSync(program, `require('node:fs').appendFileSync(process.env.FIXTURE_MARKER, process.argv[2] + '\\n');\nif(process.argv[2] === 'helper') process.stdout.write('username=fixture\\npassword=fixture-only\\n'); else process.stdout.write('fixture-only\\n');\n`);

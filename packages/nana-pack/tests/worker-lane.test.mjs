@@ -46,7 +46,7 @@ git(lane, "mv", "old-name.mjs", "moved-name.mjs"); git(lane, "commit", "-qm", "m
 const laneGitDir = real(path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim()));
 const laneLockPath = path.join(laneGitDir, "nana-lane.lock");
 const brief = path.join(temp, "brief.md");
-const defaultBriefText = "Serves: roadmap step 3: exercise the launcher.\nlane brief content\n\nPrecedent:\n- seed\n";
+const defaultBriefText = "Serves: roadmap step 3: exercise the launcher.\nValidation: fixture run.\nlane brief content\n\nPrecedent:\n- seed\n";
 fs.writeFileSync(brief, defaultBriefText);
 const pi = path.join(stubDir, "pi");
 const piSpawnMarker = path.join(temp, "pi-spawn-marker");
@@ -97,7 +97,7 @@ const clearLaunchArtifacts = () => {
 const runBriefText = (text, file = brief) => {
 	clearLaunchArtifacts();
 	fs.mkdirSync(path.dirname(file), { recursive: true });
-	fs.writeFileSync(file, text.replace(/^(\uFEFF)?/u, "$1Serves: roadmap step 3: exercise the launcher.\n"));
+	fs.writeFileSync(file, text.replace(/^(\uFEFF)?/u, "$1Serves: roadmap step 3: exercise the launcher.\nValidation: fixture run.\n"));
 	return run(lane, ["--lane", "alpha", "--brief", file]);
 };
 const legacyRepeat = run(lane, ["--poll", "invalid"], {}, ["-p", "legacy"]);
@@ -324,8 +324,8 @@ const RULE_LINE = {
 	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
 	reuseNotCopy: "- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private, drop the leading underscore, update its existing callers, and import the public name; never import a private name from another module. A move to a shared module needs the brief to name it.",
 	knownBugsContext: "- The feature's known-bug file is context; fix only those the brief names, and report each one the change touches.",
-	wrongCodeFirst: "Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.",
-	mustMeetTests: "Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.",
+	validationFirst: "Change the affected requirement rows first, then the code. Run the validation your brief names, small and early, and report its command and result.",
+	briefNamedTests: "Write only the new tests your brief names: a test pins a failure that happened, the main use of a kept feature, or a safety line (privacy, credentials, rm, identity, Windows paths). Edit an existing test only where your change makes it false, and list each such edit in your report.",
 	awaitEveryAsyncCase: "A test harness awaits every async case under a per-case limit.",
 	crlfAndWhitespace: "A change that reads text line by line gets CRLF, trailing space or tab, and no-final-newline cases.",
 	idsFromBriefRange: "New requirement rows take IDs only from the range your brief names.",
@@ -336,7 +336,7 @@ const RULE_LINE = {
 	seatChecksBeforeDone: "Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.",
 	longOutputToFile: "Keep long script output outside the repository (for example under the system temp folder); put each command, its exit code and a one-line result summary in your report; commit no raw output.",
 	readCiOnce: "Do not push; the seat pushes after verifying; report the tip. Do not wait for or read CI.",
-	suiteCheckCountInReport: "Then commits; per item, files, rows, mutation pairs, commands and exit codes; the branch, the tip's full SHA and the seat checks run on it, or the full-suite summary line with its check count where you ran it; and what was not done.",
+	suiteCheckCountInReport: "Then commits; per item, files, rows, the validation run and its result, commands and exit codes; the branch, the tip's full SHA and the seat checks run on it, or the full-suite summary line with its check count where you ran it; and what was not done.",
 };
 const preambleOnce = (line) => preambleText.includes(line) && preambleText.split(line).length - 1 === 1;
 // req: R-2510
@@ -362,9 +362,9 @@ check("R-2662: the builder preamble tells the builder to import a needed functio
 // req: R-2583
 check("R-2583: the builder preamble frames the known-bug file as context to report, not to fix", preambleOnce(RULE_LINE.knownBugsContext), RULE_LINE.knownBugsContext);
 // req: R-3436
-check("lane preamble carries: wrong code first", preambleOnce(RULE_LINE.wrongCodeFirst), RULE_LINE.wrongCodeFirst);
+check("lane preamble carries: validation first", preambleOnce(RULE_LINE.validationFirst), RULE_LINE.validationFirst);
 // req: R-3436
-check("lane preamble carries: must-meet tests and no other new test, with the seal-test exception", preambleOnce(RULE_LINE.mustMeetTests), RULE_LINE.mustMeetTests);
+check("lane preamble carries: brief-named eligible tests", preambleOnce(RULE_LINE.briefNamedTests), RULE_LINE.briefNamedTests);
 // req: R-3436
 check("lane preamble carries: await every async case", preambleOnce(RULE_LINE.awaitEveryAsyncCase), RULE_LINE.awaitEveryAsyncCase);
 // req: R-3436
@@ -387,7 +387,7 @@ check("lane preamble carries: no builder push", preambleOnce(RULE_LINE.readCiOnc
 check("lane preamble carries: branch tip and seat checks in the report", preambleOnce(RULE_LINE.suiteCheckCountInReport), RULE_LINE.suiteCheckCountInReport);
 // req: R-3436
 check("R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the replaced lines",
-	preambleOnce(RULE_LINE.fullSuiteFallback) && preambleOnce(RULE_LINE.mustMeetTests)
+	preambleOnce(RULE_LINE.fullSuiteFallback) && preambleOnce(RULE_LINE.briefNamedTests)
 		&& !preambleText.includes("Run the repository's full suite only where its `AGENTS.md` says CI does not cover it")
 		&& !preambleText.includes("Fix the class, not the named example")
 		&& !preambleText.includes("your last commit follows a green full suite")

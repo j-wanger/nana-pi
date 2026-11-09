@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/lib/brief-precedent.mjs
- * @purpose Check a lane brief's precedent, Serves completeness and feature context against its worktree's injected HEAD reader.
+ * @purpose Check a lane brief's precedent, Serves and Validation completeness and feature context against its worktree's injected HEAD reader.
  * @inputs Brief text or path, worktree root, an injected git runner, and tracked paths for pure predicates.
  * @outputs Parsed entries, path judgments, or the worker-compatible refusal/launch line and known-bug path.
  * @effects disk (the launch check reads the brief and regular known-bug file metadata)
@@ -8,7 +8,7 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
-import { FEATURE_LINE_PREFIX, FIX_CARD_LINE, PRECEDENT_LIST_MAX_BYTES, PRECEDENT_NONE, PRECEDENT_QUOTE_CAP, PRECEDENT_SECTION, PRECEDENT_TRAILING_PUNCTUATION, SERVES_LINE_PREFIX } from "./brief-config.mjs";
+import { FEATURE_LINE_PREFIX, FIX_CARD_LINE, PRECEDENT_LIST_MAX_BYTES, PRECEDENT_NONE, PRECEDENT_QUOTE_CAP, PRECEDENT_SECTION, PRECEDENT_TRAILING_PUNCTUATION, SERVES_LINE_PREFIX, VALIDATION_LINE_PREFIX } from "./brief-config.mjs";
 import { isNamed } from "./frontier-config.mjs";
 import { KNOWN_BUGS_DIR } from "./known-bugs-config.mjs";
 import { scanListSections } from "./markdown-list-sections.mjs";
@@ -66,7 +66,7 @@ function normalizeEntry(entry) {
 	return { kind: unsafe ? "invalid-path" : "path", value, line: entry.line, bullet };
 }
 
-/** Parse the first Precedent section, Feature and Serves lines, and explicit fix-card marker. */
+/** Parse the first Precedent section, Feature, Serves and Validation lines, and explicit fix-card marker. */
 export function readBrief(text) {
 	const source = text.startsWith("\uFEFF") ? text.slice(1) : text;
 	const section = scanListSections(source, {
@@ -81,14 +81,16 @@ export function readBrief(text) {
 	let feature = null;
 	let fixCard = false;
 	let serves = null;
+	let validation = null;
 	for (const line of source.split(/\r\n|\r|\n/)) {
 		const trimmed = line.replace(/[ \t]+$/u, "");
 		if (trimmed === FIX_CARD_LINE) fixCard = true;
 		if (serves === null && trimmed.startsWith(SERVES_LINE_PREFIX)) serves = trimmed.slice(SERVES_LINE_PREFIX.length).trim();
+		if (validation === null && trimmed.startsWith(VALIDATION_LINE_PREFIX)) validation = trimmed.slice(VALIDATION_LINE_PREFIX.length).trim();
 		const match = featurePattern.exec(trimmed);
 		if (match && feature === null) feature = match[1];
 	}
-	return { precedent: section ? section.entries.map(normalizeEntry) : null, feature, fixCard, serves };
+	return { precedent: section ? section.entries.map(normalizeEntry) : null, feature, fixCard, serves, validation };
 }
 
 /** Folder-aware membership against paths returned by git ls-tree. */
@@ -146,6 +148,9 @@ export function checkBriefForLaunch({ briefPath, worktreeRoot, gitRunner }) {
 	// Require content after the step or dated grant, not just its label.
 	if (!/^(?:roadmap step [1-9]\d*\b|owner \d{4}-\d{2}-\d{2}\b)[ \t]*(?:[:—–-][ \t]*)?[^\s:—–-].*$/u.test(parsedBrief.serves ?? "")) {
 		return refusal(`${SERVES_LINE_PREFIX} name roadmap step <N> plus this lane's contribution, or owner YYYY-MM-DD plus the owner's words`);
+	}
+	if (!parsedBrief.fixCard && !parsedBrief.validation) {
+		return refusal(`${VALIDATION_LINE_PREFIX} name the run that checks the result and what it must show, or mark a small fix brief Card: fix`);
 	}
 	let knownBugRelative = "none";
 	let knownBugPath = null;

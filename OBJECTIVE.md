@@ -11,4 +11,4 @@
 
 - A new lane opens only by editing the priority line above (one dated commit).
 - Session close scores the session against the two lines: CLEAR, STRETCH, or CANNOT.
-- Design leads machinery: must-meet tests come before code; surfaces are feel-validated by use.
+- Design leads machinery: name how to check the result before code; surfaces are feel-validated by use.
