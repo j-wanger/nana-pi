@@ -13,8 +13,9 @@ import * as os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
-import { writeFakePi } from './fake-pi.mjs';
+import { writeFakePi, linkedReviewTempEnv } from './fake-pi.mjs';
 import { LAUNCHER_ROLES } from '../lib/frontier-summary-config.mjs';
+import { realPath } from '../lib/real-path.mjs';
 const pack = fileURLToPath(new URL('../', import.meta.url));
 const temp = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'child-context-')));
 const write = (file, text) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); };
@@ -53,7 +54,7 @@ if(h.session_start)await h.session_start({reason:'startup'},ctx);
 const refusals=[];for(const toolName of ['bash','powershell'])refusals.push(h.tool_call?await h.tool_call({toolName,input:{command:'git credential fill'}},ctx):null);
 const text=a.includes('--append-system-prompt-file')?fs.readFileSync(a[a.indexOf('--append-system-prompt-file')+1],'utf8'):null;
 let sections=null;if(!a.includes('--append-system-prompt-file')&&!a.includes('--settings')){const {DefaultResourceLoader}=await import(${JSON.stringify(pathToFileURL(path.join(pkg,'dist/index.js')).href)});if(DefaultResourceLoader){const loader=new DefaultResourceLoader({});await loader.reload();const event={systemPromptOptions:{sections:{}}};for(const ext of loader.getExtensions().extensions)for(const fn of ext.handlers.get('session_start')??[])await fn({reason:'startup'},ctx);for(const ext of loader.getExtensions().extensions)for(const fn of ext.handlers.get('before_agent_start')??[])await fn(event,ctx);sections=event.systemPromptOptions.sections;}}
-fs.appendFileSync(process.env.CC_CAPTURE,JSON.stringify({a,prompts,text,sections,role:process.env.NANA_ROLE,refusals})+'\\n');
+fs.appendFileSync(process.env.CC_CAPTURE,JSON.stringify({a,prompts,text,sections,cwd:process.cwd(),role:process.env.NANA_ROLE,refusals})+'\\n');
 console.log('VERDICT: LAND\\nReview complete.');})();`;
   write(path.join(pkg,'cli.cjs'), `#!${process.execPath}\n${body}`);
   // The Windows shim helper writes CommonJS package metadata. Restore the ESM
@@ -122,11 +123,17 @@ test('M4: every pi child path keeps extensions and credential refusal',async()=>
 test('M5: pi logs composed sections including zero skips and unavailable measurements',async()=>{
  for(const kind of ['pi-worker','slot','pi-review']){
   const f=fixture();
+  if(kind==='pi-review')f.env=linkedReviewTempEnv(f.dir,f.env);
   write(path.join(f.lane,'OBJECTIVE.md'),'# Objective\r\n\r\n**Objective:** Test child context. \t\r\n**Current priority:** Count delivered text. \t');
   write(path.join(f.agent,'nana-rulings.md'),fs.readFileSync(path.join(pack,'rules/nana-rulings.md'),'utf8'));
   const format=JSON.parse(fs.readFileSync(path.join(f.pkg,'package.json'),'utf8')).type;
   assert.equal(format,'module',`${kind} section loader module format: actual=${format} expected=module`);
   const call=launch(f,kind);const line=rows(f.log).at(-1);
+  if(kind==='pi-review'){
+   assert.notEqual(call.cwd,realPath(call.cwd),'fixture must expose different runtime and canonical checkout spellings');
+   assert.equal(line.childCwd,realPath(call.cwd));
+   assert.ok(call.sections['nana-objective'].includes(call.cwd),'delivered objective must name the runtime checkout spelling');
+  }
   if(kind==='pi-worker')console.log('DELIVERED builder',JSON.stringify(line.parts.map(({name,fullChars,deliveredChars})=>({name,fullChars,deliveredChars}))));
   for(const name of ['nana-objective','nana-rulings','nana-writing','nana-install-stale','nana-project-stale']){
    const part=line.parts.find(p=>p.name===name);assert.ok(part,`${kind} ${name}: actual=${JSON.stringify(part)} expected=present`);

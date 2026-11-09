@@ -14,7 +14,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { writeFakePi } from './fake-pi.mjs';
+import { writeFakePi, linkedReviewTempEnv } from './fake-pi.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
 import { realPath } from '../lib/real-path.mjs';
 import { credentialStripEnv } from '../lib/credential-strip.mjs';
@@ -364,12 +364,15 @@ test('R-3728: context measurement resolves the child agent dir and relative cwd'
 test('R-3729: pi review logs the child checkout context and reviewer slot', async () => {
   for(const role of ['final','sol']) {
     const f=fixture(); stubContext(f, `import {readFileSync} from 'node:fs'; import {join} from 'node:path'; export function loadProjectContextFiles({cwd}) { return [{path:join(cwd,'AGENTS.md'),content:readFileSync(join(cwd,'AGENTS.md'),'utf8')}]; }`);
+    f.env=linkedReviewTempEnv(f.dir,f.env);
     const text='# Checkout\r\nRead here. \t'; write(path.join(f.lane,'AGENTS.md'),text);
     const a=args(f,'pi-review'); a.splice(a.indexOf('--'),0,'--role',role);
     const result=spawnSync(process.execPath,[path.join(pack,'bin/pi-review.mjs'),...a],{cwd:f.lane,env:f.env,encoding:'utf8',timeout:20_000}); good(result);
     const call=rows(f.record).at(-1), e=rows(f.log)[0];
     assert.equal(e.cwd,f.lane); assert.equal(e.childCwd,realPath(call.cwd)); assert.notEqual(e.childCwd,e.cwd); assert.equal(e.slot,'reviewer');
-    assert.deepEqual(fileParts(e),[{name:'context file',source:path.join(realPath(call.cwd),'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
+    assert.notEqual(call.cwd,realPath(call.cwd),'fixture must expose different runtime and canonical checkout spellings');
+    const actual=fileParts(e), expected=[{name:'context file',source:path.join(call.cwd,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}];
+    assert.deepEqual(actual,expected,`pi-review context: actual=${JSON.stringify(actual)} expected=${JSON.stringify(expected)}`);
   }
 });
 // req: R-3730
