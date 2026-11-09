@@ -66,6 +66,9 @@ export const CI_RECORDS_BUDGET_MS = 60_000;
 export const CI_DONE_STATUS = "completed";
 export const CI_PASS_CONCLUSION = "success";
 
+// contract (R-3944), chosen 2026-11-08: distinguish intentionally skipped same-repository feature PR runs.
+export const CI_DUPLICATE_TITLE = "ci (duplicate feature PR)";
+
 // chosen 2026-11-01 (R-3434): retry one transient nonzero run-list exit; never retry a spawn failure or timeout.
 export const CI_RUN_LIST_RETRIES = 1;
 

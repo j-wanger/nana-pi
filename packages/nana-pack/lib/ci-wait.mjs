@@ -1,12 +1,13 @@
 /**
  * @module packages/nana-pack/lib/ci-wait.mjs
  * @purpose Diagnose missing tip CI and recover bounded capacity-cancelled workflow attempts.
- * @inputs Origin repository, remote head and tip, injected gh, monotonic clock, sleep and tip workflow text.
+ * @inputs Origin repository, remote head and tip, injected git and gh, monotonic clock, sleep and tip workflow text.
  * @outputs Readiness, run classifications and bounded waiter verdicts with success and rerun lines.
- * @effects process, network (through injected gh); timer waits
+ * @effects process, network (through injected git and gh), disk (fetched refs and merge-tree objects); timer waits
  * @errors Invalid evidence, API failures and expiry return named refusals, never success.
  */
 import { spawnSync } from 'node:child_process';
+import { cleanMergeTree } from '../bin/nana-land.mjs';
 import { ghDefault, ghEnvironment, ghResult } from './gh-runner.mjs';
 import { githubRepoOf, judgeRuns } from './land-ci.mjs';
 import {
@@ -68,7 +69,25 @@ export function ciReadiness(options={}) {
    if(matches.length!==1 || body.length>=CI_RUNS_PAGE_SIZE) return {ok:false,message:`ambiguous open PRs for ${branch}: ${matches.map(p=>`#${p.number}`).join(', ')}; select one origin head PR`};
    const p=matches[0];
    if(p.headRefOid!==tip) return {ok:false,message:`PR #${p.number} head is ${p.headRefOid}, not ${tip}; push the tip`};
-   if(p.mergeable==='CONFLICTING') return {ok:false,message:`PR #${p.number} conflicts with main; merge main into the lane; GitHub starts no CI for it`};
+   if(p.mergeable==='CONFLICTING') {
+    const refusal={ok:false,message:`PR #${p.number} conflicts with main; merge main into the lane; GitHub starts no CI for it`};
+    if(!branch.startsWith('feat/')) return refusal;
+    try {
+     const cwd=options.cwd??process.cwd();
+     const runGit=(root,args)=>{
+      const left=b.remaining();if(left<1) throw expired();
+      const settings={timeoutMs:Math.min(CI_READ_TIMEOUT_MS,left)};
+      const r=options.runGit?options.runGit(root,args,settings):spawnSync('git',args,{cwd:root,encoding:'utf8',timeout:settings.timeoutMs,maxBuffer:CHILD_OUTPUT_MAX_BYTES});
+      if(b.remaining()<1) throw expired();
+      return r;
+     };
+     // Refresh the base rather than blessing a stale remote-tracking ref.
+     const fetched=runGit(cwd,['fetch','--no-tags','--no-recurse-submodules','origin','+refs/heads/main:refs/remotes/origin/main']);
+     if(fetched.error||fetched.status!==0) return refusal;
+     cleanMergeTree(runGit,cwd,tip,'refs/remotes/origin/main',{inspectOnly:true});
+     return {ok:true,pr:p};
+    } catch {return refusal;}
+   }
    if(p.mergeable==='MERGEABLE') return {ok:true,pr:p};
    if(p.mergeable!=='UNKNOWN') throw new Error(`PR #${p.number} has unreadable mergeability`);
    if(i+1===reads) return {ok:false,unknown:true,message:`PR #${p.number} mergeability is unknown; retry nana-ci-wait after GitHub computes it`};

@@ -14,11 +14,38 @@ import { using, memoryFixture, now, entry, pair, ask, runner, allText } from './
 import * as C from '../lib/memory-run-config.mjs';
 import { repositoryFolder, readMemoryStore } from '../lib/memory-store.mjs';
 import { resolveEvidence } from '../lib/memory-making.mjs';
-import { startMemory } from '../lib/memory-run.mjs';
+import { startMemory, pendingUnits } from '../lib/memory-run.mjs';
+import { deriveProtected, POLICY } from '../../../scripts/records-move.mjs';
+import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
 import { runLand } from '../bin/nana-land.mjs';
 import { withReviewLedgerLock } from '../bin/review-round.mjs';
 import { repo, commit, git, gitRunner, reviewTip } from './land-fixtures.mjs';
 import { landRecordsPath } from '../lib/land-records.mjs';
+
+// req: R-3932
+await check('M4: moving records preserves earlier pending evidence and lane briefs',()=>using(async f=>{
+ assert.equal((await f.command(['enable'])).code,0);
+ f.env.GIT_COMMITTER_DATE='2026-10-20T12:00:00Z';
+ f.review('obsolete-2026-10-20','Old synthetic review');f.git(f.main,'add','.');f.git(f.main,'commit','-m','old records');
+ f.env.GIT_COMMITTER_DATE='2026-11-02T12:00:00Z';
+ f.review('earlier-2026-11-01','Earlier pending evidence');
+ const lane=f.review('later-2026-11-02','Later pending evidence');
+ const brief=path.join(lane,'build-brief.md');fs.writeFileSync(brief,'Feature: FEAT-031 · Checks\r\nServes: roadmap step 4 — move records\r\nCard: fix \t');
+ f.git(f.main,'add','.');f.git(f.main,'commit','-m','eligible landed reviews');
+ await f.command(['make','--lane','earlier'],{caps:{tokens:0}});
+ const repository=f.git(f.main,'rev-list','--max-parents=0','HEAD');
+ const options={repoRoot:f.main,projectsRoot:f.deps.projectsRoot,lane:'later',dir:f.a.dir,repository,runGit:f.runGit};
+ const snapshot=async()=>{const units=await pendingUnits(options);const result=[];for(const unit of units){const evidence=await resolveEvidence(unit.evidence,{repoRoot:f.main,projectsRoot:f.deps.projectsRoot,reviewsRoot:path.join(f.main,'docs/reviews')});assert.equal(evidence.status,'resolved');result.push([unit.evidence,evidence.texts]);}return result;};
+ const before=await snapshot();
+ assert.deepEqual(before.map(([key])=>key),['review:later-2026-11-02/r1.md#0','review:earlier-2026-11-01/r1.md#0']);
+ const protectedSet=deriveProtected(f.main,{...POLICY,baseline:f.git(f.main,'rev-parse','HEAD')});
+ const removed=[...protectedSet.folders].filter(folder=>!protectedSet.protected.has(folder));
+ assert.deepEqual(removed,['obsolete-2026-10-20']);
+ f.git(f.main,'rm','-r','-q','--',...removed.map(folder=>`docs/reviews/${folder}`));f.git(f.main,'commit','-m','move old records');
+ assert.deepEqual(await snapshot(),before);
+ assert.equal(fs.readFileSync(brief,'utf8'),'Feature: FEAT-031 · Checks\r\nServes: roadmap step 4 — move records\r\nCard: fix \t');
+ assert.equal(checkBriefForLaunch({briefPath:brief,worktreeRoot:f.main,gitRunner:args=>f.git(f.main,...args)}).ok,true);
+}));
 
 const runPath=f=>path.join(f.a.dir,'.git',C.RUN_LAYOUT.runLock.replace('<id>',git(f.main,'rev-list','--max-parents=0','HEAD').slice(0,C.FOLDER_ID_LENGTH)));
 const enabled=async f=>{const result=await f.command(['enable']);assert.equal(result.code,0,result.output);};

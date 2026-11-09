@@ -61,7 +61,7 @@ function fixture() {
  fs.writeFileSync(path.join(agent,'nana-pack.json'), JSON.stringify({roster:{scout:null,builder:{provider:'fake',model:'fake',thinking:null},largerBuilder:{runtime:'claude-code',model:'fable'},reviewer:{provider:'fake',model:'review',thinking:null},land:null}}));
  return { root, briefPath, capture,
   check(text, laneSize) { fs.writeFileSync(briefPath,text); return checkBriefForLaunch({briefPath,worktreeRoot:lane,laneSize,gitRunner:args=>git(lane,args)}); },
-  run(text,size) { fs.writeFileSync(briefPath,text); return spawnSync(process.execPath,[path.join(pack,'bin/pi-worker.mjs'),'--lane','example','--brief',briefPath,'--lane-size',size,'--out',path.join(root,'out'),'--poll','0.1'],{cwd:lane,encoding:'utf8',timeout:20_000,env:{...process.env,HOME:home,USERPROFILE:home,PI_CODING_AGENT_DIR:agent,CLAUDE_CONFIG_DIR:home,PATH:`${bin}${path.delimiter}${process.env.PATH}`,BC_CAPTURE:capture}}); },
+  run(text,size) { fs.writeFileSync(briefPath,text.replace(/^(\uFEFF)?/u, '$1Serves: roadmap step 3: exercise builder context.\n')); return spawnSync(process.execPath,[path.join(pack,'bin/pi-worker.mjs'),'--lane','example','--brief',briefPath,'--lane-size',size,'--out',path.join(root,'out'),'--poll','0.1'],{cwd:lane,encoding:'utf8',timeout:20_000,env:{...process.env,HOME:home,USERPROFILE:home,PI_CODING_AGENT_DIR:agent,CLAUDE_CONFIG_DIR:home,PATH:`${bin}${path.delimiter}${process.env.PATH}`,BC_CAPTURE:capture}}); },
   close() { fs.rmSync(root,{recursive:true,force:true}); }
  };
 }

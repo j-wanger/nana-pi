@@ -12,6 +12,8 @@ import {
 	CI_DONE_STATUS,
 	CI_HOST,
 	CI_PASS_CONCLUSION,
+	CI_DUPLICATE_TITLE,
+	CI_ADVISORY_WORKFLOW,
 	CI_REMOTE,
 	CI_WORKFLOW_DIR,
 	CI_WORKFLOW_EXTENSIONS,
@@ -190,16 +192,27 @@ const remedyOf = (run, repository) => {
 	return "fix the workflow result, then run it again";
 };
 
-/** Judge each workflow's highest-numbered run, independent of API list order or workflow name. */
+/** Recognize only this workflow's intentionally suppressed same-repository feature PR. */
+export function duplicateCiRun(run, repository) {
+	return run?.display_title === CI_DUPLICATE_TITLE
+		&& run.event === 'pull_request' && run.path === CI_ADVISORY_WORKFLOW
+		&& run.head_branch?.startsWith('feat/')
+		&& run.head_repository?.full_name?.toLowerCase() === `${repository.owner}/${repository.repo}`.toLowerCase();
+}
+
+/** Judge each workflow's highest-numbered executed run, independent of API list order or workflow name. */
 export function judgeRuns(stdout, tip, repository) {
 	let body;
 	try { body = JSON.parse(String(stdout ?? "")); }
 	catch { return { ok: false, message: "CI response is not a workflow-run list" }; }
 	if (body === null || typeof body !== "object" || Array.isArray(body) || !Number.isSafeInteger(body.total_count) || body.total_count < 0 || !Array.isArray(body.workflow_runs) || !body.workflow_runs.every(isRun))
 		return { ok: false, message: "CI response is not a workflow-run list" };
-	if (body.workflow_runs.length === 0) return { ok: false, runs: [], message: `no CI run for ${String(tip).slice(0, TIP_DIGITS)} on origin; push the tip to its open pull request, then wait for CI` };
+	// GitHub concludes all-skipped job runs with success. Only our explicitly named
+	// duplicate can be excluded; ordinary skipped/neutral workflows still refuse.
+	const executed = body.workflow_runs.filter(run => !duplicateCiRun(run, repository));
+	if (executed.length === 0) return { ok: false, runs: [], message: `no CI run for ${String(tip).slice(0, TIP_DIGITS)} on origin; push the tip to its open pull request, then wait for CI` };
 	const newest = new Map();
-	for (const run of body.workflow_runs) {
+	for (const run of executed) {
 		const key = String(run.workflow_id); const prior = newest.get(key);
 		if (!prior || run.run_number > prior.run_number || (run.run_number === prior.run_number && run.run_attempt > prior.run_attempt)) newest.set(key, run);
 	}

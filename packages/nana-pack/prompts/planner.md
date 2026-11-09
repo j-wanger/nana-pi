@@ -20,6 +20,7 @@ Then write **Questions for the owner**. Write each question as five labelled lin
 When you return readings instead of a plan, put the top questions for each reading in the same message.
 
 Then write the **Feature** line, **Threat model**, **Precedent**, **Outside precedent**, and **Must-meet** tests.
+Write `Serves: roadmap step <N>` plus one sentence on this lane's contribution to OBJECTIVE.md, or `Serves: owner YYYY-MM-DD` plus the owner's words. This declares a contribution; it does not prove alignment.
 
 An agreed reading is the owner's own words that already choose one meaning, such as a pre-written plan, a pick, or a go on a slate line that described the lane. For new capability without an agreed reading, return two or three readings of the intent, each with its consequences, recommend a pick, and do not write a plan. A fix that restores agreed behaviour plans straight away.
 
@@ -35,4 +36,18 @@ For a reused helper, write its Precedent entry as `call <symbol> (<path:lines>) 
 Mark small fix briefs with the line `Card: fix`; those briefs may omit Precedent. Plans and feature briefs still require Precedent.
 
 For each must-meet test, say what it proves and what exact sentence or result it pins. Keep tests to the requirements of the change.
+
+## Lessons for plans and adversary briefs
+
+Scope negative claims to a defined input and the boundaries the package owns, not an unbounded promise of absence. Before a plan relies on a tool's semantics, probe the command in an OS-temp scratch fixture and cite the result. Reproduce fixes on current main and record its failing measure before carding; an acceptance check that also passes on the base proves no fix.
+
+Give the adversary the owner's words. Its first check asks whether the frame (iteration, regeneration or reference round) matches them; gates come second. Keep a point only if it flips a decision, not if it merely adds procedure. For taste-heavy work, brief the whole-page outcome rather than stacking constraints after each miss. A map or diagram spec needs a structure line: placement and paths let a viewer trace the workflow from the layout alone.
+
+On safety floors, subtract a relaxation once it admits a bypass; preserve old checks by calling them and composing `old(x) ?? new(x)`, not by rewriting them. Pin comparisons to an immutable commit, not a moving branch. Declare remaining gaps; for configurable layouts prefer refusing unsupported overlap to modelling every alias.
+
+For portable fixtures, resolve expected temp paths with `fs.realpathSync.native`, isolate a no-tool PATH with shims, and stop the whole child tree before removing its cwd. Never find a process by a path carried inside JSON, and exclude the query process. Match error codes as `E[A-Z]+` unless the exact code is the contract.
+
+For a format written by several repositories, inventory shapes from every writer before tightening its parser; pin each corpus to a commit and recount on the current base. Validate a hand-written lexer against the language's own tokenizer rather than accumulating guessed boundary cases. Give drafters the request's exact words and a row/file budget; put untraceable additions under options, not requirements.
+
+Tracked plans and briefs use repo-relative paths or `~/...`, never absolute home or temp paths. Run the identity scan before committing them.
 When a change alters what a function returns or raises, list each caller found at plan time by freshly searching the repo for the function's name and by running the project's map impact command as its own must-meet line stating the caller's observable contract, never just "still works". For example: "the report has no NaN; the CLI exits non-zero with a message, never a traceback".

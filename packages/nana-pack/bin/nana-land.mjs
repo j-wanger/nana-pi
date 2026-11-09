@@ -118,7 +118,7 @@ function regenerateTree(runGit, main, mergedTree, generatedPaths, { generatorCon
 }
 
 /** Compute an eligible textual or regenerated merge without touching a ref, shared index or checkout. */
-function cleanMergeTree(runGit, main, tip, capturedMain, generators) {
+export function cleanMergeTree(runGit, main, tip, capturedMain, generators) {
 	const base = git(runGit, main, "merge-base", tip, capturedMain);
 	const changed = (from, to) => git(runGit, main, "diff", "--no-renames", "--name-only", "-z", from, to).split("\0").filter(Boolean);
 	const lanePaths = changed(base, tip), mainPaths = changed(base, capturedMain);
@@ -149,6 +149,7 @@ function cleanMergeTree(runGit, main, tip, capturedMain, generators) {
 	}
 	const conflicts = result.status === 1 ? lines.slice(1) : [];
 	if (conflicts.some(file => !GENERATOR_CONTRACT.some(entry => entry.path === file))) throw mergeRefusal("conflict", `${conflicts.slice(0, CLEAN_MERGE_NAME_CAP).join(", ")}${conflicts.length > CLEAN_MERGE_NAME_CAP ? ", …" : ""}`);
+	if (generators?.inspectOnly) return { tree: lines[0], base, conflicts };
 	const generated = [...new Set([...conflicts, ...CLEAN_MERGE_GENERATED_PATHS.filter(file => lanePaths.includes(file) && mainPaths.includes(file))])];
 	if (generated.length) return { tree: regenerateTree(runGit, main, lines[0], generated, generators), base, regenerated: generated };
 	return { tree: lines[0], base };
@@ -273,7 +274,7 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 					let diagnosis;
 					try {
 						const target = ciTarget({ cwd: tree, tip, runGit });
-						diagnosis = ciReadiness({ ...target, cwd: main, runGh, reads: 1, env });
+						diagnosis = ciReadiness({ ...target, cwd: tree, runGit, runGh, reads: 1, env });
 					} catch (error) { diagnosis = { ok: false, message: error.message }; }
 					throw new Error(`${verdict.message}; ${diagnosis.ok ? "PR is ready; wait for CI to start" : diagnosis.message}; ${remedy}`);
 				}

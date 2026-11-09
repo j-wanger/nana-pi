@@ -1,0 +1,220 @@
+PASS M1: generated-only conflicts wait for exact tip push CI across line transports
+PASS M2: real conflicts and failed inspection refuse before a run wait
+PASS M3: push CI lands generated conflicts through regeneration without new review or suite
+FAIL M4: feature pushes execute while same-repository feature PR duplicates skip AssertionError [ERR_ASSERTION]: The input did not match the regular expression /branches: \[main, ['"]?feat\/\*\*['"]?\]/. Input:
+
+'name: ci\n' +
+  'on:\n' +
+  '  push:\n' +
+  '    branches: [main]\n' +
+  '  pull_request:\n' +
+  '\n' +
+  '# chosen 2026-11-07 (R-3853): cancel only a superseded PR, never a main push.\n' +
+  'concurrency:\n' +
+  '  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}\n' +
+  "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n" +
+  '\n' +
+  'permissions:\n' +
+  '  contents: read\n' +
+  '\n' +
+  'env:\n' +
+  '  # chosen 2026-10-23 (R-2711, R-2716): 1.4.0 is the supported ceiling; both CI probes passed.\n' +
+  '  PI_VERSION: 1.4.0\n' +
+  '  # measured 2026-10-23 (R-1091): the scratch install moment of pi 1.4.0; npm --before at this\n' +
+  "  # time reproduced that install's `npm ls -g --all` exactly (262 lines). Move it with PI_VERSION.\n" +
+  '  PI_BEFORE: "2026-10-23T18:35:54Z"\n' +
+  '  # chosen 2026-10-23 (R-2711, R-2712, R-2716): 1.0.3 is the supported floor; both CI probes passed.\n' +
+  '  PI_FLOOR_VERSION: 1.0.3\n' +
+  "  # measured 2026-10-23 (R-2712): inside pi 1.0.3's lockstep publish window; a scratch install\n" +
+  '  # resolved all six scoped pi dependencies at 1.0.3. Move it with PI_FLOOR_VERSION.\n' +
+  '  PI_FLOOR_BEFORE: "2026-10-05T08:40:00Z"\n' +
+  '\n' +
+  'jobs:\n' +
+  '  install-check:\n' +
+  '    strategy:\n' +
+  '      fail-fast: false\n' +
+  '      matrix:\n' +
+  '        # contract (R-3824): Windows runs only after a land, on main pushes.\n' +
+  '        os: ${{ fromJSON(github.event_name == \'push\' && \'["macos-latest","windows-latest"]\' || \'["macos-latest"]\') }}\n' +
+  '        pi: [ceiling, floor]\n' +
+  '    runs-on: ${{ matrix.os }}\n' +
+  '    timeout-minutes: 20\n' +
+  '    defaults:\n' +
+  '      run:\n' +
+  '        shell: bash\n' +
+  '    steps:\n' +
+  '      - uses: actions/checkout@v4\n' +
+  '      - uses: actions/setup-node@v4\n' +
+  '        with:\n' +
+  '          node-version: 22\n' +
+  '      - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"\n' +
+  "        if: matrix.pi == 'ceiling'\n" +
+  '      - name: Verify ceiling pi version\n' +
+  "        if: matrix.pi == 'ceiling'\n" +
+  '        run: test "$(pi --version)" = "${PI_VERSION}"\n' +
+  '      - run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_FLOOR_VERSION} --before="${PI_FLOOR_BEFORE}"\n' +
+  "        if: matrix.pi == 'floor'\n" +
+  '      - name: Verify floor pi version\n' +
+  "        if: matrix.pi == 'floor'\n" +
+  '        run: test "$(pi --version)" = "${PI_FLOOR_VERSION}"\n' +
+  '      - name: Install check\n' +
+  '        env:\n' +
+  '          TEMP: ${{ runner.temp }}\n' +
+  '          TMP: ${{ runner.temp }}\n' +
+  '        run: node packages/nana-setup/bin/install-check.mjs\n' +
+  '\n' +
+  '  suite:\n' +
+  '    name: suite (${{ matrix.leg }})\n' +
+  '    outputs:\n' +
+  '      shard1: ${{ steps.shard-result.outputs.shard1 }}\n' +
+  '      shard2: ${{ steps.shard-result.outputs.shard2 }}\n' +
+  '      shard3: ${{ steps.shard-result.outputs.shard3 }}\n' +
+  '    strategy:\n' +
+  '      fail-fast: false\n' +
+  '      matrix:\n' +
+  "        # chosen 2026-11-07 (R-3817): three shards from the plan's measured Windows\n" +
+  '        # 1,790–1,860 s at four jobs; ideal 597–620 s leaves room below 20 min for skew.\n' +
+  '        # contract (R-3824): select jobs, not steps, so PRs allocate no Windows runner.\n' +
+  '        include: ${{ fromJSON(github.event_name == \'push\' && \'[{"os":"macos-latest","leg":"macos-latest","shard":""},{"os":"ubuntu-latest","leg":"ubuntu-latest","shard":""},{"os":"windows-latest","leg":"windows-latest-shard-1-of-3","shard":"1/3"},{"os":"windows-latest","leg":"windows-latest-shard-2-of-3","shard":"2/3"},{"os":"windows-latest","leg":"windows-latest-shard-3-of-3","shard":"3/3"}]\' || \'[{"os":"macos-latest","leg":"macos-latest","shard":""}]\') }}\n' +
+  '    runs-on: ${{ matrix.os }}\n' +
+  "    # chosen 2026-10-20 (R-2061): 90 minutes, not GitHub's 360-minute default, so a hung leg stops\n" +
+  '    # within 90 minutes. Measured job wall times, every CI run from 2026-10-16 to 2026-10-20: slowest\n' +
+  '    # finished Windows leg 34.5 min (run 39298256239), macOS 18.7, Linux 14.5. Windows grew about\n' +
+  '    # 5 minutes a day on 2026-10-19 and 2026-10-20 as tests landed. About 2.6 times the slowest leg,\n' +
+  '    # so suite growth and runner variance do not cancel an honest leg; a false time-out blocks release.\n' +
+  '    # Suite legs run four files at a time since this lane.\n' +
+  '    timeout-minutes: 90\n' +
+  "    continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}\n" +
+  '    defaults:\n' +
+  '      run:\n' +
+  '        shell: bash\n' +
+  '    env:\n' +
+  '      NANA_TEST_REQUIRE_COPIER: "1"\n' +
+  '      # chosen; measured clean at 4 against 1 in probe run 39761155058\n' +
+  '      NANA_CI_JOBS: "4"\n' +
+  "      # chosen; about twice review-ledger's projected 412 s at four on Windows (runs 39731735341 and 39761155058)\n" +
+  '      NANA_TEST_TIMEOUT_MS: "900000"\n' +
+  "      # chosen: one stable name in each leg's temporary folder, outside the checkout\n" +
+  '      NANA_CI_RECORD_NAME: "nana-suite-record.json"\n' +
+  '      # contract (R-3820): report-only 20-minute warning; measured per shard, not summed.\n' +
+  '      NANA_CI_SHARD_MAX_SECONDS: "1200"\n' +
+  '    steps:\n' +
+  '      - uses: actions/checkout@v4\n' +
+  '        with:\n' +
+  '          fetch-depth: 0\n' +
+  '      - uses: actions/setup-node@v4\n' +
+  '        with:\n' +
+  '          node-version: 22\n' +
+  '      - uses: astral-sh/setup-uv@v5\n' +
+  '      - run: uvx copier --version\n' +
+  '      - uses: pnpm/action-setup@v4\n' +
+  '        with:\n' +
+  '          version: 11\n' +
+  '      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"\n' +
+  '      - name: Verify pi version\n' +
+  '        run: test "$(pi --version)" = "${PI_VERSION}"\n' +
+  '      # contract (R-3853, R-3857): retire stays on main; the runner adds release on release-path hits.\n' +
+  "      - run: npm test -- --jobs=${{ env.NANA_CI_JOBS }} --pack=${{ github.event_name == 'push' && 'land,main,module,retire' || 'land,module' }} ${{ github.event_name == 'pull_request' && '--changed-from=origin/main' || '' }}\n" +
+  "        if: matrix.os != 'windows-latest'\n" +
+  '        env:\n' +
+  '          NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}\n' +
+  '      - run: npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }} --shard=${{ matrix.shard }} --pack=land,main,module,retire\n' +
+  "        if: matrix.os == 'windows-latest'\n" +
+  '        env:\n' +
+  '          NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}\n' +
+  '      - name: Report Windows shard wall time\n' +
+  "        if: ${{ !cancelled() && matrix.os == 'windows-latest' }}\n" +
+  '        env:\n' +
+  '          NANA_SUITE_RECORD_FILE: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}\n' +
+  '        run: |\n' +
+  "          node --input-type=module <<'NODE'\n" +
+  '          // win-shards wall check begin\n' +
+  '          import fs from "node:fs";\n' +
+  '          const record = JSON.parse(fs.readFileSync(process.env.NANA_SUITE_RECORD_FILE, "utf8"));\n' +
+  '          const seconds = record.wallSeconds;\n' +
+  '          const line = `Windows shard ${record.shard?.index}/${record.shard?.count}: ${seconds}s`;\n' +
+  '          console.log(line);\n' +
+  '          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\\n`);\n' +
+  '          if (!Number.isFinite(seconds) || seconds < 0) console.log("::warning::Windows shard wall time is unavailable or invalid");\n' +
+  '          else if (seconds >= Number(process.env.NANA_CI_SHARD_MAX_SECONDS)) console.log(`::warning::${line} exceeds the report-only wall-time bound`);\n' +
+  '          // win-shards wall check end\n' +
+  '          NODE\n' +
+  '      - uses: actions/upload-artifact@v4\n' +
+  '        if: ${{ !cancelled() }}\n' +
+  '        continue-on-error: true\n' +
+  '        with:\n' +
+  '          name: suite-record-${{ matrix.leg }}-${{ github.run_attempt }}\n' +
+  '          path: ${{ runner.temp }}/${{ env.NANA_CI_RECORD_NAME }}\n' +
+  '      - name: Record successful Windows shard\n' +
+  '        id: shard-result\n' +
+  "        if: ${{ success() && matrix.os == 'windows-latest' }}\n" +
+  '        env:\n' +
+  '          SHARD: ${{ matrix.shard }}\n' +
+  '        run: echo "shard${SHARD%%/*}=success" >> "$GITHUB_OUTPUT"\n' +
+  '\n' +
+  '  release:\n' +
+  '    needs: [suite, install-check]\n' +
+  "    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.suite.result == 'success' && needs.install-check.result == 'success' && needs.suite.outputs.shard1 == 'success' && needs.suite.outputs.shard2 == 'success' && needs.suite.outputs.shard3 == 'success'\n" +
+  '    permissions:\n' +
+  '      contents: write\n' +
+  '    concurrency:\n' +
+  '      group: template-release\n' +
+  '      cancel-in-progress: false\n' +
+  '    runs-on: ubuntu-latest\n' +
+  '    steps:\n' +
+  '      - uses: actions/checkout@v4\n' +
+  '        with:\n' +
+  '          fetch-depth: 0\n' +
+  '      - uses: actions/setup-node@v4\n' +
+  '        with:\n' +
+  '          node-version: 22\n' +
+  '      - uses: astral-sh/setup-uv@v5\n' +
+  '      - uses: pnpm/action-setup@v4\n' +
+  '        with:\n' +
+  '          version: 11\n' +
+  '      - run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION} --before="${PI_BEFORE}"\n' +
+  '      - name: Verify pi version\n' +
+  '        run: test "$(pi --version)" = "${PI_VERSION}"\n' +
+  '      - run: git config user.name "github-actions[bot]"\n' +
+  '      - run: git config user.email "41898282+github-actions[bot]@users.noreply.github.com"\n' +
+  '      - run: npm run release -- --push\n'
+
+    at packages/nana-pack/tests/lane-push-ci.test.mjs:73:9
+    at check (packages/nana-pack/tests/pack-fixtures.mjs:20:15)
+    at packages/nana-pack/tests/lane-push-ci.test.mjs:72:7
+PASS M5: main retains all legs release prerequisites and required Windows gates
+PASS M6: skipped duplicates never decide waiter or land in either event order
+FAIL M7: feature non-feature and fork PRs each execute one head-tip macOS Linux and install set AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'macos-latest',
++   'macos-latest',
+    'ubuntu-latest',
++   'windows-latest',
++   'windows-latest',
++   'windows-latest'
+  ]
+
+    at packages/nana-pack/tests/lane-push-ci.test.mjs:105:80
+    at check (packages/nana-pack/tests/pack-fixtures.mjs:20:15)
+    at packages/nana-pack/tests/lane-push-ci.test.mjs:102:7
+FAIL M8: lane events allocate no Windows shards or installs and cannot release AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(matrix(ctx).every(x=>!x.os.startsWith('windows')&&!x.shard))
+
+    at packages/nana-pack/tests/lane-push-ci.test.mjs:114:3
+    at check (packages/nana-pack/tests/pack-fixtures.mjs:20:15)
+    at packages/nana-pack/tests/lane-push-ci.test.mjs:112:7
+FAIL M9: Windows reuses changed-from lane packs and skips an empty selection AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(selected)
+
+    at packages/nana-pack/tests/lane-push-ci.test.mjs:120:45
+    at check (packages/nana-pack/tests/pack-fixtures.mjs:20:15)
+    at packages/nana-pack/tests/lane-push-ci.test.mjs:119:7
+PASS seal: duplicate title and exclusion identity are pinned
+FAIL  packages/nana-pack/tests/lane-push-ci.test.mjs  6 pass, 4 fail  63.8s  — exit 1
+
+1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 6 pass, 4 fail, 0 skip · 64.3s
+failed: packages/nana-pack/tests/lane-push-ci.test.mjs

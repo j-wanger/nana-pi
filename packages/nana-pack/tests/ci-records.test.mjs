@@ -187,14 +187,14 @@ check("R-2633: a record the runner writes under CI's arguments reads back in ci-
 	spawnSync("git", ["init", "-q", "-b", "main"], { cwd: root });
 	spawnSync("git", ["add", "."], { cwd: root });
 	spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], { cwd: root });
-	const suite = WORKFLOW.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+	const suite = WORKFLOW.match(/^  suite:\n([\s\S]*?)(?=^  [\w-]+:)/m)?.[1] ?? "";
 	const jobsValue = suite.match(/^ {6}NANA_CI_JOBS: "(\d+)"$/m)?.[1];
 	const commands = suite.split("\n").map((line) => line.match(/^ {6}- run: npm test -- (.+)$/)?.[1]).filter(Boolean);
 	assert.equal(commands.length, 2);
 	for (const [index, command] of commands.entries()) {
 		spawnSync("git", ["checkout", "--", "tracked.txt"], { cwd: root });
 		const args = command.replace(/\$\{\{ (.*?) \}\}/g, (_, expression) => String(vm.runInNewContext(expression, {
-			github: { event_name: "push" }, env: { NANA_CI_JOBS: jobsValue }, matrix: { shard: "1/3" },
+			github: { event_name: "push", ref: "refs/heads/main" }, env: { NANA_CI_JOBS: jobsValue }, matrix: { shard: "1/3" },
 		}))).trim().split(/\s+/);
 		const outputRecord = path.join(TD, `runner-output-${index}.json`);
 		const runner = spawnSync(process.execPath, [path.join(root, "scripts", "test.mjs"), ...args], {
