@@ -244,9 +244,9 @@ check("R-2446: the outline lists each read capability field after the Parent lin
 const repositoryLedger = readFileSync(join(REPO_ROOT, "REQUIREMENTS.md"), "utf8");
 const repositoryParsed = parseLedger(repositoryLedger);
 const repositoryLines = repositoryLedger.split(/\r?\n/);
-function capabilityFieldGaps(id, span) {
+function capabilityFieldGaps(id, span, features) {
   const gaps = [];
-  if (span.some((line) => /^Retired:/.test(line))) return gaps;
+  if (span.some((line) => /^Retired:/.test(line)) || !features.some((feature) => feature.status === "active" || feature.status === "proposed")) return gaps;
   const kinds = span.filter((line) => /^Kind:/.test(line));
   if (kinds.length !== 1) gaps.push(`${id}: expected exactly one Kind: line`);
   if (kinds.length === 1 && kinds[0].trim() === "Kind: product" && !span.some((line) => /^Deliverables:/.test(line))) {
@@ -258,11 +258,13 @@ const capabilityGaps = [];
 for (const heading of repositoryParsed.headings.filter((item) => item.id.startsWith("CAP-"))) {
   const nextHeading = repositoryParsed.allHeadings.find((item) => item.line > heading.line);
   const span = repositoryLines.slice(heading.line, (nextHeading?.line ?? repositoryLines.length + 1) - 1);
-  capabilityGaps.push(...capabilityFieldGaps(heading.id, span));
+  const features = repositoryParsed.headings.filter((item) => item.id.startsWith("FEAT-") && item.parent === heading);
+  capabilityGaps.push(...capabilityFieldGaps(heading.id, span, features));
 }
-const missingKindWithDeliverables = capabilityFieldGaps("CAP-TEST", ["Deliverables: R-0001"]);
+const missingKindWithDeliverables = capabilityFieldGaps("CAP-TEST", ["Deliverables: R-0001"], [{ status: "active" }]);
+const missingDeliverablesWithActiveFeature = capabilityFieldGaps("CAP-TEST", ["Kind: product"], [{ status: "active" }]);
 // req: R-2460
-check("R-2460: every live capability in this repository's ledger has a kind, and every product capability lists deliverables", capabilityGaps.length === 0 && missingKindWithDeliverables.some((gap) => gap.includes("CAP-TEST") && gap.includes("Kind:")), [...capabilityGaps, ...missingKindWithDeliverables].join("; "));
+check("R-2460: every live capability in this repository's ledger has a kind, and every product capability lists deliverables", capabilityGaps.length === 0 && missingKindWithDeliverables.some((gap) => gap.includes("CAP-TEST") && gap.includes("Kind:")) && missingDeliverablesWithActiveFeature.some((gap) => gap.includes("CAP-TEST") && gap.includes("Deliverables:")), [...capabilityGaps, ...missingKindWithDeliverables, ...missingDeliverablesWithActiveFeature].join("; "));
 
 if (fails > 0) { console.log(`${fails} check(s) failed`); process.exit(1); }
 console.log("all 8 checks passed");
