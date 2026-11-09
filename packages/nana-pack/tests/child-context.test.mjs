@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/child-context.test.mjs
  * @purpose Pin trimmed child guidance, retained guards and complete launch context counts.
  * @inputs Real extensions and launchers, fake runtime executables and OS-temp instruction trees.
- * @outputs Six awaited requirement checks with per-case limits.
+ * @outputs Five awaited requirement checks with per-case limits.
  * @effects disk (temporary fixtures), process (bounded git and fake runtime launches)
  * @errors Failed assertions set exit 1.
  */
@@ -13,9 +13,8 @@ import * as os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
-import { writeFakePi, linkedReviewTempEnv } from './fake-pi.mjs';
+import { writeFakePi } from './fake-pi.mjs';
 import { LAUNCHER_ROLES } from '../lib/frontier-summary-config.mjs';
-import { realPath } from '../lib/real-path.mjs';
 const pack = fileURLToPath(new URL('../', import.meta.url));
 const temp = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'child-context-')));
 const write = (file, text) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); };
@@ -117,34 +116,6 @@ test('M4: every pi child path keeps extensions and credential refusal',async()=>
    assert.ok(!call.a.some(arg=>['-ne','--no-extensions','--bare'].includes(arg)));
    for(const result of call.refusals){assert.equal(result?.block,true);assert.match(result.reason,/credential rule/);}
   }
- }
-});
-// req: R-3919
-test('M5: pi logs composed sections including zero skips and unavailable measurements',async()=>{
- for(const kind of ['pi-worker','slot','pi-review']){
-  const f=fixture();
-  if(kind==='pi-review')f.env=linkedReviewTempEnv(f.dir,f.env);
-  write(path.join(f.lane,'OBJECTIVE.md'),'# Objective\r\n\r\n**Objective:** Test child context. \t\r\n**Current priority:** Count delivered text. \t');
-  write(path.join(f.agent,'nana-rulings.md'),fs.readFileSync(path.join(pack,'rules/nana-rulings.md'),'utf8'));
-  const format=JSON.parse(fs.readFileSync(path.join(f.pkg,'package.json'),'utf8')).type;
-  assert.equal(format,'module',`${kind} section loader module format: actual=${format} expected=module`);
-  const call=launch(f,kind);const line=rows(f.log).at(-1);
-  if(kind==='pi-review'){
-   assert.notEqual(call.cwd,realPath(call.cwd),'fixture must expose different runtime and canonical checkout spellings');
-   assert.equal(line.childCwd,realPath(call.cwd));
-   assert.ok(call.sections['nana-objective'].includes(call.cwd),'delivered objective must name the runtime checkout spelling');
-  }
-  if(kind==='pi-worker')console.log('DELIVERED builder',JSON.stringify(line.parts.map(({name,fullChars,deliveredChars})=>({name,fullChars,deliveredChars}))));
-  for(const name of ['nana-objective','nana-rulings','nana-writing','nana-install-stale','nana-project-stale']){
-   const part=line.parts.find(p=>p.name===name);assert.ok(part,`${kind} ${name}: actual=${JSON.stringify(part)} expected=present`);
-   if(name==='nana-objective')assert.ok(part.deliveredChars>0,`${kind} ${name}: actual=${part.deliveredChars} expected=>0`);
-   else assert.equal(part.deliveredChars,0,`${kind} ${name}: actual=${part.deliveredChars} expected=0`);
-  }
-  for(const part of line.parts.filter(p=>p.name.startsWith('nana-'))){const expected=(call.sections[part.name]??'').length;assert.equal(part.deliveredChars,expected,`${kind} ${part.name}: actual=${part.deliveredChars} expected=${expected}`);}
-  write(path.join(f.pkg,'dist/index.js'),'export function loadProjectContextFiles(){return [];}');
-  launch(f,kind);for(const part of rows(f.log).at(-1).parts.filter(p=>p.name.startsWith('nana-')))assert.equal(part.deliveredChars,'unavailable',`${kind} ${part.name}: actual=${part.deliveredChars} expected=unavailable`);
-  const count=rows(f.log).at(-1).parts.filter(p=>p.name.startsWith('nana-')).length;
-  assert.equal(count,5,`${kind} nana section count: actual=${count} expected=5`);
  }
 });
 // req: R-3920

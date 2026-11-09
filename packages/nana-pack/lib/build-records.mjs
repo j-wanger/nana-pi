@@ -154,7 +154,7 @@ export function collectBuildUsage(start, {
 	const folder = start.sessionDir;
 	const noMatch = () => ({ usage: emptyUsage(), cost: null, costReason: `no matching session in ${folder}`, sessions: [], sessionBadLines: 0, durationMs: null, lastAt: null });
 	let names;
-	try { names = fsApi.readdirSync(folder); }
+	try { names = fsApi.readdirSync(folder, { recursive: true }); }
 	catch (error) {
 		if (error?.code === "ENOENT") return noMatch();
 		return { ...noMatch(), costReason: `cannot read session folder ${folder}: ${error.code ?? error.message}` };
@@ -164,7 +164,7 @@ export function collectBuildUsage(start, {
 	const matches = [];
 	for (const name of names.sort()) {
 		if (!name.endsWith(BUILD_SESSION_FILE_SUFFIX)) continue;
-		const stamp = stampTime(name);
+		const stamp = stampTime(path.basename(name));
 		if (stamp === null || stamp < started || stamp >= ended) continue;
 		const file = path.join(folder, name);
 		let head;

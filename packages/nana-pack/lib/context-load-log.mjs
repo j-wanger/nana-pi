@@ -1,18 +1,18 @@
 /**
  * @module packages/nana-pack/lib/context-load-log.mjs
- * @purpose Measure launch instruction sources and append private best-effort context delivery records outside git worktrees.
+ * @purpose Count actual pi session sections or Claude instruction sources and append private best-effort context delivery records outside git worktrees.
  * @inputs Prompt composition, Claude instruction tree, delivery metadata, log path or agent dir, clock and diagnostic sink.
  * @outputs Source/count parts and one versioned JSON line or one skip diagnostic and result.
  * @effects disk (reads instruction sources, checks path ancestors and appends a log), process (stderr diagnostic)
  * @errors Never throws; all append and path failures become one skip diagnostic.
  */
-import { lstatSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { createReadStream, lstatSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { createInterface } from 'node:readline';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { claudeConfigHome } from '../../nana-setup/lib/claude-config-home.mjs';
-import { RULINGS_SECTION } from './rulings-config.mjs';
 import { CLAUDE_ANCESTOR_MEMORY_PATHS } from '../bin/worker-config.mjs';
-import { STALE_SECTION, PROJECT_STALE_SECTION } from '../../nana-setup/lib/stale-copies-config.mjs';
+import { locatePiPackage } from './pi-package.mjs';
 import { piAgentDir, piAgentDirIsCwdRelative } from './agent-dir.mjs';
 import { realPath } from './real-path.mjs';
 import { appendLedgerRecord } from './record-ledger.mjs';
@@ -22,10 +22,37 @@ export function contextPart(name, source, full, delivered = full) {
   return { name, source, fullChars: full?.length ?? 'unavailable', deliveredChars: delivered?.length ?? 'unavailable' };
 }
 
-/** Count the actual structured composition, not the files from which it might be built. */
-export function promptSectionParts(sections = null) {
-  return ['nana-objective', RULINGS_SECTION, 'nana-writing', STALE_SECTION, PROJECT_STALE_SECTION]
-    .map(name => contextPart(name, 'pi composition', sections === null ? null : sections[name] ?? ''));
+/** Read only through the first system sections record. No reconstructed prompt or source parts. */
+export async function appendPiSessionLoad(record, { sessionFile, attempt, reason = null, cwd = process.cwd(), env = process.env } = {}) {
+  let parts, piVersion = null;
+  let input, lines;
+  try {
+    try { piVersion = locatePiPackage({ cwd, env }).packageJson?.version ?? null; } catch {}
+    if (reason) throw new Error(reason);
+    input = createReadStream(sessionFile, { encoding: 'utf8' });
+    lines = createInterface({ input, crlfDelay: Infinity });
+    for await (const line of lines) {
+      if (!line.trim()) continue;
+      const entry = JSON.parse(line);
+      const message = entry.type === 'message' ? entry.message : null;
+      if (message?.role !== 'system' || !message.sections) continue;
+      parts = Object.entries(message.sections).map(([name, text]) => {
+        if (typeof text !== 'string') throw new Error('invalid first sections record');
+        return contextPart(name, sessionFile, text);
+      });
+      const tools = Array.isArray(message.toolsAdded) ? JSON.stringify(message.toolsAdded) : null;
+      parts.push({ ...contextPart('toolsAdded', sessionFile, tools), ...(tools === null ? { status: 'toolsAdded missing' } : {}) });
+      break;
+    }
+    if (!parts) throw new Error('first sections record missing');
+  } catch (error) {
+    parts = [{ ...contextPart('session: unavailable', sessionFile ?? 'pi session', null), status: String(error?.code ?? error?.message ?? 'session read failed').replace(/[\r\n]/g, ' ') }];
+  } finally {
+    lines?.close();
+    input?.destroy();
+  }
+  // Only session-derived parts: brief/preamble/known bugs already occur inside addendum.
+  return appendContextLoad({ ...record, parts, piVersion, attempt, sessionFile });
 }
 
 /** Claude's tree-local instructions and user memory; ancestors are excluded by flag settings.

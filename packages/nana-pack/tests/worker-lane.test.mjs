@@ -259,23 +259,23 @@ check("R-2620: a heading such as Precedent audit is not read as the Precedent se
 })());
 
 // req: R-2581
-check("R-2581: the named feature's known-bug file follows the brief as the third prompt, and nothing follows when the feature has none", (() => {
+check("R-2581: pi builders receive a known-bug read instruction instead of an inlined file", (() => {
 	const bugRelative = "docs/known-bugs/FEAT-006.md";
 	const bugFile = path.join(lane, bugRelative);
 	const bugBytes = fs.readFileSync(bugFile);
 	const cases = [
-		["Feature: FEAT-006 · Worker\n\nPrecedent:\n- seed\n", 3, bugRelative],
-		["Feature: FEAT-006 · Worker\r\n\r\nPrecedent:\r\n- seed\r\n", 3, bugRelative],
-		["Feature: FEAT-012 · Missing\n\nPrecedent:\n- seed\n", 2, "none"],
+		["Feature: FEAT-006 · Worker\n\nPrecedent:\n- seed\n", 3, bugRelative, bugRelative],
+		["Feature: FEAT-006 · Worker\r\n\r\nPrecedent:\r\n- seed\r\n", 3, bugRelative, bugRelative],
+		["Feature: FEAT-012 · Missing\n\nPrecedent:\n- seed\n", 3, "none", "docs/known-bugs/FEAT-012.md"],
 		["This prose mentions FEAT-006 but is not a feature line.\n\nPrecedent:\n- seed\n", 2, "none"],
 	];
-	const ordinary = cases.every(([text, promptCount, launchValue]) => {
+	const ordinary = cases.every(([text, promptCount, launchValue, readPath]) => {
 		const result = runBriefText(text);
 		const output = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 		const prompts = output.split("\n").filter((arg) => arg === "--append-system-prompt").length;
 		const copied = promptCount === 3 && fs.existsSync(path.join(temp, "prompt-3")) ? fs.readFileSync(path.join(temp, "prompt-3")) : null;
 		return result.status === 0 && prompts === promptCount && result.stderr.includes(`known bugs: ${launchValue}`) &&
-			(promptCount === 2 ? !fs.existsSync(path.join(temp, "prompt-3")) && !output.includes("unplaced.md") : Buffer.compare(copied, bugBytes) === 0 && output.includes(real(bugFile)));
+			(promptCount === 2 ? !fs.existsSync(path.join(temp, "prompt-3")) && !output.includes("unplaced.md") : copied.toString() === `Read \`${readPath}\` (this feature's known bugs) before you change code.` && !output.includes(real(bugFile)));
 	});
 	fs.rmSync(bugFile);
 	fs.mkdirSync(bugFile);
@@ -283,7 +283,7 @@ check("R-2581: the named feature's known-bug file follows the brief as the third
 	const directoryOutput = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 	fs.rmSync(bugFile, { recursive: true, force: true });
 	fs.writeFileSync(bugFile, bugBytes);
-	return ordinary && directoryCase.status === 0 && directoryOutput.split("\n").filter((arg) => arg === "--append-system-prompt").length === 2 &&
+	return ordinary && directoryCase.status === 0 && directoryOutput.split("\n").filter((arg) => arg === "--append-system-prompt").length === 3 &&
 		directoryCase.stderr.includes("known bugs: none") && !directoryOutput.includes("unplaced.md");
 })());
 
@@ -322,7 +322,7 @@ const RULE_LINE = {
 	noNestedCheckers: "- Suite tests never re-run the suite or whole-repo checkers.\n  Code map, README, requirements tree, requirements trace and component audit run as seat checks and in their own tests.",
 	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
 	reuseNotCopy: "- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private, drop the leading underscore, update its existing callers, and import the public name; never import a private name from another module. A move to a shared module needs the brief to name it.",
-	knownBugsContext: "- The known bugs that follow the brief are context; fix only those the brief names, and report each one the change touches.",
+	knownBugsContext: "- The feature's known-bug file is context; fix only those the brief names, and report each one the change touches.",
 	wrongCodeFirst: "Wrong code first: run each new test against the obvious wrong implementation and see it fail before you write the code.",
 	mustMeetTests: "Write the must-meet tests your brief names and no other new test, except the one test that pins each new sealed tunable. Edit an existing test only where your change makes it false, and list each such edit in your report.",
 	awaitEveryAsyncCase: "A test harness awaits every async case under a per-case limit.",
@@ -359,7 +359,7 @@ check("R-2582: the builder preamble tells the builder to read its Precedent file
 // req: R-2662
 check("R-2662: the builder preamble tells the builder to import a needed function, never copy it, and make a private helper public without an unnamed shared move", preambleOnce(RULE_LINE.reuseNotCopy), RULE_LINE.reuseNotCopy);
 // req: R-2583
-check("R-2583: the builder preamble frames the attached known bugs as context to report, not to fix", preambleOnce(RULE_LINE.knownBugsContext), RULE_LINE.knownBugsContext);
+check("R-2583: the builder preamble frames the known-bug file as context to report, not to fix", preambleOnce(RULE_LINE.knownBugsContext), RULE_LINE.knownBugsContext);
 // req: R-3436
 check("lane preamble carries: wrong code first", preambleOnce(RULE_LINE.wrongCodeFirst), RULE_LINE.wrongCodeFirst);
 // req: R-3436

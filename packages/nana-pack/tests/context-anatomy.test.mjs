@@ -2,19 +2,17 @@
  * @module packages/nana-pack/tests/context-anatomy.test.mjs
  * @purpose Pin role-shaped context delivery and its private load baseline.
  * @inputs Temporary homes, linked repositories, fake children and delivery modules.
- * @outputs Bounded, awaited requirement checks for shaped delivery and pi context measurements.
+ * @outputs Bounded, awaited requirement checks for shaped delivery and private load records.
  * @effects disk (OS temporary fixtures), process (git, launchers and hooks)
  * @errors Failed assertions set a nonzero exit status.
  */
 import assert from 'node:assert/strict';
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { writeFakePi, linkedReviewTempEnv } from './fake-pi.mjs';
+import { writeFakePi } from './fake-pi.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
 import { realPath } from '../lib/real-path.mjs';
 import { credentialStripEnv } from '../lib/credential-strip.mjs';
@@ -165,41 +163,6 @@ test('R-3211: cloud carry preserves settings-only logins without exposing values
     }
   }
 });
-// req: R-3212
-test('R-3212: over-cap builder context keeps header brief matches and maximal whole tail in both runtimes', async () => {
-  const capacity = await cap();
-  for (const newline of ['\n', '\r\n']) {
-    const f = fixture(), data = over(capacity, newline); write(f.bug, data.text);
-    const pi = launch(f, 'pi-worker'); good(pi); const delivered = pi.call.prompts[2].text;
-    const claude = launch(f, 'pi-worker', ['--lane-size', 'larger']); good(claude);
-    assert.ok(delivered.length - data.header.length <= capacity); assert.ok(delivered.startsWith(data.header)); assert.ok(delivered.includes(data.lines[2])); assert.ok(delivered.includes(data.lines.at(-1)));
-    assert.ok(claude.call.prompt.endsWith(delivered)); assert.ok(path.relative(f.lane, pi.call.prompts[2].source).startsWith('..'));
-    const kept = delivered.split(/\r?\n/).filter(l=>l.startsWith('- ')); for (const line of kept) assert.ok(data.lines.includes(line));
-    const omitted = data.lines.length - kept.length;
-    assert.ok(delivered.endsWith(`${omitted} known-bug lines omitted for size; read the whole file docs/known-bugs/FEAT-006.md before you report the known bugs your change touches.`));
-    const next = data.lines.filter(l=>!kept.includes(l)).at(-1); assert.ok(delivered.length - data.header.length + next.length + newline.length > capacity);
-    const loads = rows(f.log); const part = loads[0].parts.find(p=>p.name==='known bugs'); assert.equal(part.fullChars, data.text.length); assert.equal(part.deliveredChars, delivered.length);
-  }
-  const { digestKnownBugs } = await import('../lib/known-bug-digest.mjs');
-  for (const newline of ['\n', '\r\n']) {
-    const header = '# Huge header ' + '你'.repeat(capacity + 1) + ' \t' + newline + newline;
-    const line = '- fits after header \t';
-    const source = 'docs/known-bugs/FEAT-006.md';
-    const text = header + line + newline + '- ' + 'é'.repeat(capacity * 2);
-    const result = digestKnownBugs(text, source);
-    assert.ok(result.text.startsWith(header + line + newline));
-    assert.ok(result.text.length - header.length <= capacity);
-    assert.ok(result.text.endsWith(`1 known-bug lines omitted for size; read the whole file ${source} before you report the known bugs your change touches.`));
-    assert.equal(digestKnownBugs(header.trimEnd(), source).text, header.trimEnd());
-  }
-});
-// req: R-3213
-test('R-3213: exactly-at-cap non-ASCII builder files pass unchanged at the original pi path', async () => {
-  const capacity = await cap(), f = fixture(); const text = '# 你好\r\n\r\n- ' + 'é'.repeat(capacity - '# 你好\r\n\r\n- '.length - 2) + ' \t'; write(f.bug, text);
-  assert.equal(text.length, capacity); assert.ok(Buffer.byteLength(text)>capacity);
-  const pi = launch(f, 'pi-worker'); good(pi); assert.equal(pi.call.prompts[2].source, f.bug); assert.equal(pi.call.prompts[2].text, text);
-  const claude = launch(f, 'pi-worker', ['--lane-size', 'larger']); good(claude); assert.ok(claude.call.prompt.endsWith(text));
-});
 // req: R-3214
 test('R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading', async () => {
   const { reviewKnownBugSection, digestKnownBugs } = await import('../lib/known-bug-digest.mjs');
@@ -228,11 +191,16 @@ test('R-3214: both reviewers share known bugs with a lead fallback ordered share
   assert.equal(mp.call.prompts.at(-1).text,briefOnly);assert.ok(mc.call.stdin.includes(briefOnly));assert.ok(!mc.call.stdin.includes('## Tree movement'));
 });
 // req: R-3215
-test('R-3215: launchers log once before outcomes with exact part counts and default-home resolution', async () => {
+test('R-3215: launchers log metadata and runtime-specific counts with default-home resolution', async () => {
   for (const launcher of ['pi-worker', 'claude-review', 'pi-review']) {
     const f = fixture(); write(f.bug, '# Bugs\n\n- bug\n');
     const r = launch(f, launcher, [], { ...f.env, CHILD_EXIT: '1' }); assert.equal(r.status, 1, r.stderr);
     const log = rows(f.log); assert.equal(log.length, 1); const e = log[0]; assert.equal(e.v,1); assert.equal(e.launcher,launcher); assert.equal(e.role,launcher==='pi-worker'?'worker':'reviewer'); assert.ok(Date.parse(e.at)); assert.ok(e.cwd); assert.ok(e.model); assert.ok(e.runtime); assert.ok(e.lane||e.item);
+    if (launcher !== 'claude-review') {
+      assert.equal(e.parts.length, 1); assert.equal(e.parts[0].name, 'session: unavailable');
+      assert.equal(e.parts[0].fullChars, 'unavailable'); assert.equal(e.parts[0].deliveredChars, 'unavailable');
+      continue; // These recording children intentionally write no pi session.
+    }
     const part = e.parts.find(p=>p.name==='brief'); assert.equal(part.fullChars,f.briefText.length); assert.equal(part.deliveredChars,f.briefText.length); assert.equal(part.source,f.brief);
     for (const p of e.parts) { assert.equal(typeof p.source,'string'); assert.ok(Number.isInteger(p.fullChars) || p.fullChars === 'unavailable'); assert.ok(Number.isInteger(p.deliveredChars) || p.deliveredChars === 'unavailable'); }
     const known=e.parts.find(p=>p.name==='known bugs'); assert.equal(known.fullChars, '# Bugs\n\n- bug\n'.length); assert.equal(known.deliveredChars, known.fullChars);
@@ -250,7 +218,7 @@ test('R-3216: failed unsafe and unavailable logging cannot alter launcher or hoo
   for (const launcher of ['pi-worker','claude-review','pi-review']) {
     const f=fixture(); const first=launch(f,launcher); good(first);
     fs.rmSync(f.log); fs.mkdirSync(f.log); const bad=launch(f,launcher); good(bad);
-    const normalize = c=>({argv:c.argv.map(v=>v.replace(/nana-(?:claude-review|movement|review|lane-preamble)-[^/\\]+/g,'TEMP').replace(/pi-(?:worker|review)-a\d+-\d+/g,'SESSION')),stdin:c.stdin,prompt:c.prompt,prompts:c.prompts.map(p=>p.text.replace(/nana-review-[^/\\ ]+/g,'TEMP'))});
+    const normalize = c=>({argv:c.argv.map(v=>v.replace(/nana-(?:claude-review|movement|review|lane-preamble)-[^/\\]+/g,'TEMP').replace(/pi-(?:worker|review)-a\d+-\d+/g,'SESSION').replace(/\d{4}-\d{2}-\d{2}T[\d-]+Z_[a-f0-9-]+/g,'ATTEMPT')),stdin:c.stdin,prompt:c.prompt,prompts:c.prompts.map(p=>p.text.replace(/nana-review-[^/\\ ]+/g,'TEMP'))});
     assert.deepEqual(normalize(bad.call),normalize(first.call)); assert.equal(bad.stderr.split('\n').filter(l=>l.startsWith('nana context load skipped:')).length,1);
     write(path.join(f.lane,'.pi-agent/nana-pack.json'),fs.readFileSync(path.join(f.agent,'nana-pack.json')));
     const relative=launch(f,launcher,[],{...f.env,PI_CODING_AGENT_DIR:'.pi-agent'});
@@ -280,219 +248,18 @@ test('R-3217: seat memory log names whole shortened and omitted entries without 
 });
 // req: R-3218
 test('R-3218: known-bug digest seal is 6000 UTF-16 units', async()=>assert.equal(await cap(),6000));
-// A real package layout, but only a recording executable: no test starts a model session.
-function stubContext(f, source = `export function loadProjectContextFiles() { return [{path:'/SENTINEL/A/AGENTS.md',content:'A'.repeat(1234)},{path:'/SENTINEL/B/AGENTS.md',content:'B'.repeat(56)}]; }`) {
-  // Match Node's spawned Windows environment: no duplicate Path/PATH keys in direct loader calls.
-  for (const key of Object.keys(f.env)) if (key !== 'PATH' && key.toLowerCase() === 'path') delete f.env[key];
-  const pkg = path.join(f.bin, 'node_modules/@earendil-works/pi-coding-agent');
-  const metadata = { name: '@earendil-works/pi-coding-agent', version: '9.9.9-stub', bin: { pi: 'cli.cjs' }, type: 'module' };
-  const body = fs.readFileSync(path.join(f.bin, 'fake.cjs'), 'utf8');
-  write(path.join(pkg, 'package.json'), JSON.stringify(metadata));
-  write(path.join(pkg, 'cli.cjs'), `#!${process.execPath}\n${body}`);
-  write(path.join(pkg, 'dist/index.js'), source);
-  if (process.platform !== 'win32') {
-    fs.rmSync(path.join(f.bin, 'pi'));
-    fs.chmodSync(path.join(pkg, 'cli.cjs'), 0o755);
-    fs.symlinkSync(path.join(pkg, 'cli.cjs'), path.join(f.bin, 'pi'));
-  }
-  return pkg;
-}
-function alteredWorker(f, oldText, newText) {
-  const checkout=path.join(f.dir,'checkout'), copy=path.join(checkout,'packages','nana-pack');
-  // Preserve the checkout-relative scanner dependency used by the lane-end warning.
-  write(path.join(checkout,'scripts','identity-scan.mjs'),fs.readFileSync(path.join(root,'scripts','identity-scan.mjs')));
-  write(path.join(checkout,'identity-scan.config.json'),fs.readFileSync(path.join(root,'identity-scan.config.json')));
-  for(const file of ['stale-copies-config.mjs','claude-config-home.mjs']) write(path.join(checkout,'packages/nana-setup/lib',file),fs.readFileSync(path.join(root,'packages/nana-setup/lib',file)));
-  for(const dir of ['lib','prompts']) fs.cpSync(path.join(pack,dir),path.join(copy,dir),{recursive:true});
-  for(const file of ['pi-worker.mjs','pi-watchdog.mjs','worker-config.mjs','nana-roster.mjs','review-launch.mjs']) write(path.join(copy,'bin',file),fs.readFileSync(path.join(pack,'bin',file)));
-  const script=path.join(copy,'bin/pi-worker.mjs'), source=fs.readFileSync(script,'utf8');
-  assert.ok(source.includes(oldText)); write(script,source.replace(oldText,newText));
-  return script;
-}
-function launchWorkerScript(f, script) {
-  return spawnSync(process.execPath,[script,...args(f,'pi-worker')],{cwd:f.lane,env:f.env,encoding:'utf8',timeout:20_000});
-}
-const fileParts = e => e.parts.filter(p => p.name === 'context file');
-const normalizeCall = c => JSON.parse(JSON.stringify(c).replace(/nana-lane-preamble-[^/\\\\]+/g,'TEMP').replace(/pi-worker-a\d+-\d+/g,'SESSION'));
-// req: R-3726
-test('R-3726: lane load delegates to the located package export in order without content', async () => {
-  const f=fixture(); stubContext(f); good(launch(f,'pi-worker'));
-  const e=rows(f.log)[0]; assert.equal(e.piVersion,'9.9.9-stub');
-  assert.deepEqual(fileParts(e), [
-    {name:'context file',source:'/SENTINEL/A/AGENTS.md',fullChars:1234,deliveredChars:1234},
-    {name:'context file',source:'/SENTINEL/B/AGENTS.md',fullChars:56,deliveredChars:56},
-  ]);
-  const text=fs.readFileSync(f.log,'utf8'); assert.ok(!text.includes('A'.repeat(1234))); assert.ok(!text.includes('B'.repeat(56)));
-  const { piContextLoad } = await import('../lib/pi-context-load.mjs');
-  const checked = { piVersion: '9.9.9-stub', parts: fileParts(e) };
-  stubContext(f, `import {writeSync} from 'node:fs'; writeSync(1, ${JSON.stringify(JSON.stringify({...checked, signal:'SIGTERM', content:'PRIVATE', parts:checked.parts.map(p=>({...p,content:'PRIVATE',extra:true}))}))}); process.exit(0);`);
-  assert.deepEqual(await piContextLoad({cwd:f.lane,env:f.env,args:[]}), checked, 'discard child extras at both levels');
-});
-// req: R-3727 R-3808 R-3812
-test('R-3727: installed pi chooses AGENTS over CLAUDE in the same directory', async () => {
-  const { locatePiPackage }=await import('../lib/pi-package.mjs');
-  const found=locatePiPackage();
-  if(found.refused) { console.log(`SKIP R-3727: installed pi unavailable: ${found.refused}`); return; }
-  const { piContextLoad }=await import('../lib/pi-context-load.mjs');
-  const f=fixture(); const text='# Instructions\r\nKeep spaces. \t\r\nNo final newline \t';
-  write(path.join(f.lane,'AGENTS.md'),text); write(path.join(f.lane,'CLAUDE.md'),'not selected');
-  // Choice is semantic, not a test of the production deadline (pinned separately).
-  const result=await piContextLoad({cwd:f.lane,env:{...f.env,PATH:process.env.PATH},args:[],
-    schedule: () => null, cancel: () => {},
-    start: (_command, argv, options) => spawn(process.execPath, ['--import', 'data:text/javascript,await new Promise(r=>setTimeout(r,3500))', fileURLToPath(new URL('../lib/pi-context-measure.mjs', import.meta.url)), argv[1]], options),
-  });
-  assert.equal(result.piVersion,found.packageJson.version);
-  assert.deepEqual(result.parts.filter(p=>path.dirname(p.source)===f.lane),[{name:'context file',source:path.join(f.lane,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
-  assert.ok(!result.parts.some(p=>p.name.startsWith('context files: unavailable')));
-});
-// req: R-3728
-test('R-3728: context measurement resolves the child agent dir and relative cwd', async () => {
-  const { piContextLoad }=await import('../lib/pi-context-load.mjs');
-  const f=fixture(); stubContext(f, `import {readFileSync} from 'node:fs'; import {join} from 'node:path'; export function loadProjectContextFiles({cwd,agentDir}) { return [{path:join(agentDir,'AGENTS.md'),content:readFileSync(join(agentDir,'AGENTS.md'),'utf8')}]; }`);
-  const agent=path.join(f.lane,'child-agent'), text='# child\r\nOnly child. \t'; write(path.join(agent,'AGENTS.md'),text);
-  assert.ok(!fs.existsSync(path.join(f.agent,'AGENTS.md')));
-  // Inject only the sealed child env at the launch boundary; keep the parent on f.agent.
-  const script=alteredWorker(f,'childEnv = spec.env;',`childEnv = {...spec.env, PI_CODING_AGENT_DIR:${JSON.stringify(agent)}};`);
-  good(launchWorkerScript(f,script));
-  assert.deepEqual(fileParts(rows(f.log)[0]),[{name:'context file',source:path.join(agent,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
-  for(const childDir of [agent,'child-agent']) {
-    const result=await piContextLoad({cwd:f.lane,env:{...f.env,PI_CODING_AGENT_DIR:childDir},args:[]});
-    assert.deepEqual(result.parts,[{name:'context file',source:path.join(agent,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}]);
-  }
-});
-// req: R-3729
-test('R-3729: pi review logs the child checkout context and reviewer slot', async () => {
-  for(const role of ['final','sol']) {
-    const f=fixture(); stubContext(f, `import {readFileSync} from 'node:fs'; import {join} from 'node:path'; export function loadProjectContextFiles({cwd}) { return [{path:join(cwd,'AGENTS.md'),content:readFileSync(join(cwd,'AGENTS.md'),'utf8')}]; }`);
-    f.env=linkedReviewTempEnv(f.dir,f.env);
-    const text='# Checkout\r\nRead here. \t'; write(path.join(f.lane,'AGENTS.md'),text);
-    const a=args(f,'pi-review'); a.splice(a.indexOf('--'),0,'--role',role);
-    const result=spawnSync(process.execPath,[path.join(pack,'bin/pi-review.mjs'),...a],{cwd:f.lane,env:f.env,encoding:'utf8',timeout:20_000}); good(result);
-    const call=rows(f.record).at(-1), e=rows(f.log)[0];
-    assert.equal(e.cwd,f.lane); assert.equal(e.childCwd,realPath(call.cwd)); assert.notEqual(e.childCwd,e.cwd); assert.equal(e.slot,'reviewer');
-    assert.notEqual(call.cwd,realPath(call.cwd),'fixture must expose different runtime and canonical checkout spellings');
-    const actual=fileParts(e), expected=[{name:'context file',source:path.join(call.cwd,'AGENTS.md'),fullChars:text.length,deliveredChars:text.length}];
-    assert.deepEqual(actual,expected,`pi-review context: actual=${JSON.stringify(actual)} expected=${JSON.stringify(expected)}`);
-  }
-});
 // req: R-3730
 test('R-3730: both pi lane sizes log the selected roster slot', async () => {
   for(const [size,slot] of [['small','builder'],['larger','largerBuilder']]) {
-    const f=fixture(); stubContext(f);
+    const f=fixture();
     const config=JSON.parse(fs.readFileSync(path.join(f.agent,'nana-pack.json'),'utf8')); config.roster.largerBuilder={provider:'fake',model:'large',thinking:null}; write(path.join(f.agent,'nana-pack.json'),JSON.stringify(config));
     good(launch(f,'pi-worker',['--lane-size',size])); assert.equal(rows(f.log)[0].slot,slot);
   }
 });
-// req: R-3731
-test('R-3731: disabled context is measured without files for worker and review args', async () => {
-  const { piContextLoad }=await import('../lib/pi-context-load.mjs');
-  for(const flag of ['--no-context-files','-nc']) {
-    const f=fixture(); stubContext(f, `export function loadProjectContextFiles() { throw new Error('disabled loader must not run'); }`);
-    const args=['--provider','fake',flag,'-p','work'], before=[...args];
-    const result=await piContextLoad({cwd:f.lane,env:f.env,args});
-    assert.deepEqual(args,before); assert.deepEqual(result.parts,[{name:'context files: disabled (-nc)',source:'argv',fullChars:0,deliveredChars:0}]);
-    // Worker args are sealed: inject the flag at preparation, not through a new delivery option.
-    const script=alteredWorker(f,"if (entry.runtime !== CLAUDE_CODE_RUNTIME) return [",`if (entry.runtime !== CLAUDE_CODE_RUNTIME) return [${JSON.stringify(flag)},`);
-    good(launchWorkerScript(f,script));
-    const worker=rows(f.log)[0]; assert.deepEqual(worker.parts.filter(p=>p.name.startsWith('context file')),result.parts); assert.ok(rows(f.record)[0].argv.includes(flag));
-    good(launch(f,'pi-review',[flag])); const e=rows(f.log).at(-1); assert.deepEqual(e.parts.filter(p=>p.name.startsWith('context file')),result.parts); assert.ok(rows(f.record).at(-1).argv.includes(flag));
-  }
-});
-// req: R-3732
-test('R-3732: unavailable pi context preserves launch delivery and other parts', async () => {
-  const f=fixture(), pkg=stubContext(f); const first=launch(f,'pi-worker'); good(first);
-  write(path.join(pkg,'dist/index.js'),'export const noLoader = true;');
-  const missing=launch(f,'pi-worker'); good(missing);
-  assert.deepEqual(normalizeCall(missing.call),normalizeCall(first.call));
-  const e=rows(f.log).at(-1); assert.ok(e.parts.some(p=>p.name==='brief')); assert.ok(e.parts.some(p=>p.name==='preamble'));
-  assert.deepEqual(e.parts.filter(p=>p.name.startsWith('context file')),[{name:'context files: unavailable (missing loadProjectContextFiles export)',source:'pi',fullChars:0,deliveredChars:0}]);
-  const {piContextLoad}=await import('../lib/pi-context-load.mjs');
-  const absent=await piContextLoad({cwd:f.lane,env:{...f.env,PATH:path.join(f.dir,'absent')},args:[]}); assert.match(absent.parts[0].name,/^context files: unavailable \(.+\)$/);
-  write(path.join(pkg,'dist/index.js'),`export function loadProjectContextFiles() { throw new Error('PRIVATE-CONTENT'); }`);
-  const thrown=launch(f,'pi-worker'); good(thrown); const line=rows(f.log).at(-1); assert.match(line.parts.find(p=>p.name.startsWith('context files:')).name,/^context files: unavailable \(.+\)$/); assert.ok(!JSON.stringify(line).includes('PRIVATE-CONTENT'));
-});
-// req: R-3732 R-3809 R-3812
-test('R-3732: stalled measurement is killed and both launchers proceed within the deadline', async () => {
-  const { pidAlive } = await import('../lib/process-tree.mjs');
-  for (const [launcher, stall] of [['pi-worker', 'await new Promise(() => {});'], ['pi-review', 'export async function loadProjectContextFiles() { await new Promise(() => {}); }']]) {
-    const f = fixture(), pidFile = path.join(f.dir, 'measurement.json');
-    const pkg = stubContext(f);
-    const timedLaunch = async () => {
-      const started = performance.now();
-      const child = spawn(process.execPath, [path.join(pack,'bin',`${launcher}.mjs`), ...args(f,launcher)], {cwd:f.lane,env:f.env,stdio:['ignore','ignore','pipe'],timeout:20_000,killSignal:'SIGKILL'});
-      let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk; });
-      const status = await new Promise((resolve, reject) => { child.once('error',reject); child.once('close',resolve); });
-      good({status,stderr});
-      return performance.now() - started;
-    };
-    // Compare delivery, not elapsed time; the controlled-timer case pins the deadline.
-    const baselineMs = await timedLaunch();
-    // An unrelated child scheduling delay must not count against the measurement deadline.
-    const body = fs.readFileSync(path.join(f.bin, 'fake.cjs'), 'utf8');
-    write(path.join(f.bin, 'fake.cjs'), `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,3000);\n${body}`);
-    // Windows fake pi has its own installed body.
-    write(path.join(pkg, 'cli.cjs'), `#!${process.execPath}\nAtomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,3000);\n${body}`);
-    write(path.join(pkg,'dist/index.js'), `import {writeFileSync} from 'node:fs'; writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({pid:process.pid})); setInterval(()=>{},1000); ${stall}`);
-    const stalledMs = await timedLaunch();
-    assert.equal(rows(f.record).length, 2, 'both launches must proceed');
-    console.log(`TIMING ${launcher}: baseline ${Math.round(baselineMs)} ms, stalled ${Math.round(stalledMs)} ms, added ${Math.round(stalledMs - baselineMs)} ms`);
-    const delivery = call => JSON.parse(JSON.stringify(normalizeCall(call)).replace(/nana-review-\d+-[A-Za-z0-9]+/g, 'CHECKOUT').replace(/pi-review-a\d+-\d+/g, 'SESSION'));
-    assert.deepEqual(delivery(rows(f.record)[1]), delivery(rows(f.record)[0]), 'timeout must preserve child delivery');
-    assert.deepEqual(rows(f.log).at(-1).parts.filter(p => p.name.startsWith('context file')), [{name:'context files: unavailable (timed out)',source:'pi',fullChars:0,deliveredChars:0}]);
-    const {pid} = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
-    const stoppedBy = Date.now() + 1000;
-    while (pidAlive(pid) && Date.now() < stoppedBy) await new Promise(resolve => setTimeout(resolve, 20));
-    assert.equal(pidAlive(pid), false, 'measurement child survived timeout');
-  }
-});
-// req: R-3732
-test('R-3732: oversized measurement is killed and both launchers proceed without exhausting memory', async () => {
-  const { PI_CONTEXT_OUTPUT_MAX_BYTES } = await import('../bin/worker-config.mjs');
-  const { pidAlive } = await import('../lib/process-tree.mjs');
-  for (const launcher of ['pi-worker', 'pi-review']) {
-    const f = fixture(), pidFile = path.join(f.dir, 'measurement.json');
-    stubContext(f, `import {writeSync,writeFileSync} from 'node:fs';
-writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({pid:process.pid}));
-const chunk=Buffer.alloc(${PI_CONTEXT_OUTPUT_MAX_BYTES}, 120);
-for(let sent=0;sent<128*1024*1024;) {
-  try { sent+=writeSync(1,chunk); } catch(e) { if(e.code!=='EAGAIN')throw e; await new Promise(r=>setTimeout(r,1)); }
-}
-setInterval(()=>{},1000); export function loadProjectContextFiles(){return [];}`);
-    const r = launch(f, launcher, [], {...f.env, NODE_OPTIONS:'--max-old-space-size=64'});
-    good(r);
-    assert.ok(r.call, 'real child must launch despite oversized measurement');
-    const e = rows(f.log).at(-1);
-    assert.ok(e.parts.some(p=>p.name==='brief'));
-    assert.deepEqual(e.parts.filter(p=>p.name.startsWith('context file')), [{name:'context files: unavailable (output too large)',source:'pi',fullChars:0,deliveredChars:0}]);
-    const {pid} = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
-    const stoppedBy = Date.now() + 1000;
-    while (pidAlive(pid) && Date.now() < stoppedBy) await new Promise(resolve => setTimeout(resolve, 20));
-    assert.equal(pidAlive(pid), false, 'measurement child survived overflow');
-  }
-});
-// req: R-3732
-test('R-3732: context measurement output seal is 1 MiB', async () => {
-  assert.equal((await import('../bin/worker-config.mjs')).PI_CONTEXT_OUTPUT_MAX_BYTES, 1_048_576);
-});
-// req: R-3813 R-3812
-test('R-3813: controlled deadline kills at 3000 ms but not at 2999 ms', async () => {
-  const { piContextLoad } = await import('../lib/pi-context-load.mjs');
-  let now = 0, due, callback, killed = false, settled = false;
-  const child = new EventEmitter();
-  child.stdout = new PassThrough(); child.unref = () => {};
-  child.kill = signal => { assert.equal(signal, 'SIGKILL'); killed = true; };
-  const result = piContextLoad({ cwd: temp, env: {}, args: [], start: () => child,
-    schedule: (fn, ms) => { callback = fn; due = now + ms; return 1; }, cancel: () => {},
-  }).then(value => { settled = true; return value; });
-  const advance = async ms => { now += ms; if (due <= now) callback(); await Promise.resolve(); };
-  await advance(2999); assert.equal(killed, false); assert.equal(settled, false);
-  await advance(1); assert.equal(killed, true); assert.equal(settled, true);
-  assert.deepEqual((await result).parts, [{name:'context files: unavailable (timed out)',source:'pi',fullChars:0,deliveredChars:0}]);
-  assert.equal(child.stdout.destroyed, true);
-});
-// req: R-3732
-test('R-3732: context measurement deadline seal is 3000 ms', async () => {
-  assert.equal((await import('../bin/worker-config.mjs')).PI_CONTEXT_TIMEOUT_MS, 3000);
+// req: R-3980
+test('R-3980: pi child skills are the five kept skills in order', async () => {
+  assert.deepEqual((await import('../bin/worker-config.mjs')).PI_CHILD_SKILLS,
+    ['requirements', 'spec', 'py-lint', 'py-review', 'py-test']);
 });
 for (const c of cases) {
   if(process.env.CONTEXT_CASE && !c.title.startsWith(process.env.CONTEXT_CASE))continue;

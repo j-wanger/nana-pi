@@ -31,13 +31,11 @@ import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, i
 import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
-import { REVIEWER_CHILD_ENV } from './worker-config.mjs';
+import { REVIEWER_CHILD_ENV, piChildSkillArgs } from './worker-config.mjs';
 import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { readReviewStandard } from '../lib/review-standard.mjs';
 import { readBrief } from '../lib/brief-precedent.mjs';
 import { reviewKnownBugSection } from '../lib/known-bug-digest.mjs';
-import { appendContextLoad, contextPart } from '../lib/context-load-log.mjs';
-import { piContextLoad } from '../lib/pi-context-load.mjs';
 
 function piOption(args, ...names) {
   for (const name of names) {
@@ -210,7 +208,6 @@ try {
   process.stderr.write(`pi-review: ${adm.note}\n`);
   if (adm.warning) process.stderr.write(`pi-review: WARNING: ${adm.warning}\n`);
 
-  const suppliedParts = [];
   let reviewBrief = '';
   for (let i=0;i<w.piArgs.length;i++) {
     if (w.piArgs[i] !== '--append-system-prompt' && !w.piArgs[i].startsWith('--append-system-prompt=')) continue;
@@ -219,7 +216,6 @@ try {
     try { const candidate = resolve(sourceRoot, value); if (statSync(candidate).isFile()) { text = readFileSync(candidate,'utf8'); file = candidate; } } catch {}
     const isBrief = file !== null && !reviewBrief && readBrief(text).feature;
     if (isBrief) reviewBrief = text;
-    suppliedParts.push(contextPart(isBrief ? 'brief' : 'append', file ?? 'argv', text));
     if (w.piArgs[i] === '--append-system-prompt') i++;
   }
   const knownBugs = reviewKnownBugSection(tempRoot, null, reviewBrief);
@@ -229,18 +225,14 @@ try {
     knownBugPrompt = join(knownBugFolder, 'known-bugs.md');
     writeFileSync(knownBugPrompt, knownBugs.text);
   }
-  const parts = [...suppliedParts, ...knownBugs.parts, contextPart('standard', reviewStandard.path, reviewStandardText)];
   const childEnv = { ...process.env, ...REVIEWER_CHILD_ENV, NANA_REVIEW_ROOT: tempRoot, ...credentialStripEnv(process.env) };
   // childCwd below is canonical checkout identity, not the loader's path spelling.
-  // Match runWatchdog's cwd: Windows can preserve an 8.3 temp path, and both
-  // context file sources and composed objective text must retain runtime paths.
-  const measured = await piContextLoad({ cwd: tempRoot, env: childEnv, args: w.piArgs, sections: true });
-  parts.push(...measured.parts, ...measured.sections);
-  const onSpawn = () => appendContextLoad({ launcher: 'pi-review', role: 'reviewer', slot: 'reviewer', runtime: 'pi', piVersion: measured.piVersion, model: piOption(w.piArgs,'--model','-m'), cwd: sourceRoot, childCwd: tempRootReal, item: optionValue('--item'), parts });
+  // The session record counts the actual runtime composition, even under an alternate path spelling.
+  const contextLoad = { launcher: 'pi-review', role: 'reviewer', slot: 'reviewer', runtime: 'pi', model: piOption(w.piArgs,'--model','-m'), cwd: sourceRoot, childCwd: tempRootReal, item: optionValue('--item') };
   const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
   let r;
   try {
-    r = measured.signal ? { ok: false, text: '', attempt: 0, signal: measured.signal } : await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`, '--append-system-prompt', reviewStandardText, ...(knownBugPrompt === null ? [] : ['--append-system-prompt', knownBugPrompt])], onSpawn, childEnv, accept: reviewShaped });
+    r = await runWatchdog('pi-review', { ...w, cwd: tempRoot, piArgs: [...piChildSkillArgs(), ...w.piArgs, '--append-system-prompt', `Your cwd is an immutable checkout of revision ${sourceRevision} at ${tempRoot}; read files there, not in other worktrees`, '--append-system-prompt', reviewStandardText, ...(knownBugPrompt === null ? [] : ['--append-system-prompt', knownBugPrompt])], contextLoad, childEnv, accept: reviewShaped });
   } finally {
     stopHeartbeat();
     if (!r?.ok) release(adm.id);

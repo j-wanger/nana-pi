@@ -1,18 +1,36 @@
 /**
  * @module packages/nana-pack/bin/worker-config.mjs
  * @purpose Define sealed worker, watchdog, lane-watcher, roster, Claude Code builder, reviewer-child and pi-package launch values.
- * @inputs none
+ * @inputs Skill lookup receives a home, environment and warning sink; other values have no inputs.
  * @outputs Lane/watchdog and lane-watcher limits and files, default builder and roster values, Claude Code builder flags, tools, carry allowlists and env,
  *  roster slot/runtime tokens, reviewer child env, Windows npm-layout values, and pi package identity.
- * @effects none
+ * @effects disk (checks explicit skill files), process (missing-skill warnings)
  * @errors none
  */
+import { statSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { claudeConfigHome } from '../../nana-setup/lib/claude-config-home.mjs';
+
+// contract: helper-start plan, 2026-11-09 (R-3980).
+export const PI_CHILD_SKILLS = Object.freeze(['requirements', 'spec', 'py-lint', 'py-review', 'py-test']);
+
+/** Explicit skills bypass discovery; missing installs are visible but never block a launch. */
+export function piChildSkillArgs({ home = homedir(), env = process.env, warn = text => process.stderr.write(`${text}\n`) } = {}) {
+  const args = ['--no-skills'];
+  const checkout = fileURLToPath(new URL('../skills/', import.meta.url));
+  for (const name of PI_CHILD_SKILLS) {
+    const dir = [join(checkout, name), resolve(claudeConfigHome(home, env), 'skills', name)]
+      .find(candidate => { try { return statSync(join(candidate, 'SKILL.md')).isFile(); } catch { return false; } });
+    if (dir) args.push('--skill', dir);
+    else { try { warn(`nana child skill unavailable: ${name}`); } catch {} }
+  }
+  return args;
+}
+
 // chosen 28,800 seconds: eight hours covers the measured 20,495-second longest builder round (hardening program, 2026-10-07).
 export const LANE_MAX_SECS = 28_800;
-// chosen 2026-11-06, R-3732: 3000 ms is well above the measured 0.4 s pi import; measurement must not block launch.
-export const PI_CONTEXT_TIMEOUT_MS = 3_000;
-// chosen 2026-11-06, R-3732: honest output is a few paths and lengths, under 10 KiB; 1 MiB bounds noisy children.
-export const PI_CONTEXT_OUTPUT_MAX_BYTES = 1_048_576;
 // contract: R-3520 — the owner's 2026-10-31 answer, carried as the default by the owner's 2026-11-02 pick.
 export const LANE_LIMIT_DEFAULT = 4;
 // chosen 2026-10-23: matches the detached install relay's poll; measured hard-kill cleanup ended within 305 ms.

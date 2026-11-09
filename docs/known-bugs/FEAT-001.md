@@ -2,6 +2,9 @@
 
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
+- Priority lock (priority-lock, review): on macOS a `priorityLock.repo` typed in different letter case refuses every lane in the locked repository (the held side uses `realpathSync`, not `realpathSync.native`).
+- Priority lock (priority-lock, review): no test pins that a lane in the locked repository passes the check.
+- Priority lock (priority-lock, review): an inherited `GIT_DIR` defeats the check.
 - Rulings file: no test proves that a live Claude Code or pi session loads the rulings. The tests stop at the installed file and the prompt section.
 - Rulings file: each machine gets the rulings only after one install run after the pull. Until then pi shows the notice, and Claude Code's session start names the missing copy and the install command.
 - Rulings file: a Windows copy stays stale until the next install. Doctor and each session start flag it meanwhile.

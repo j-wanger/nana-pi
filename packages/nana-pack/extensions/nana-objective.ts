@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/extensions/nana-objective.ts
- * @purpose Inject the owner's standing objective and current priority into every pi session's system
+ * @purpose Inject the owner's standing objective and current priority into seat pi sessions' system
  *  prompt.
  * @inputs pi `session_start` (all five reasons) and `before_agent_start` events, the user-scope objective
  *  config block, and ctx (cwd, hasUI, ui)
@@ -12,7 +12,7 @@
  */
 /**
  * nana-objective — the owner's standing objective + current priority, in every
- * session's system prompt.
+ * seat session's system prompt. Launcher-role children use the brief's Serves line.
  *
  * Ruled 2026-09-16: every session (Claude Code and pi) starts by seeing the same
  * two lines, so it can say which of them its spend serves. Claude Code gets them
@@ -57,6 +57,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { produceObjective } from "../lib/objective.ts";
 import { orderNanaSections } from "../lib/prompt-sections.mjs";
+import { LAUNCHER_ROLES } from "../lib/frontier-summary-config.mjs";
 
 export default function (pi: ExtensionAPI) {
 	// The whole block (heading first) exactly as lib/objective.ts rendered it. null only when off.
@@ -67,6 +68,7 @@ export default function (pi: ExtensionAPI) {
 		// Cleared BEFORE the enabled check: a live config toggle to enabled:false
 		// must not leave the previous session's objective text cached and injectable.
 		block = null;
+		if (LAUNCHER_ROLES.includes(process.env.NANA_ROLE)) return;
 		try {
 			const cfg = loadConfig(ctx);
 			if (!cfg.objective.enabled) return;
@@ -81,7 +83,7 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("before_agent_start", async (event, ctx) => {
-		if (!block) return undefined;
+		if (!block || LAUNCHER_ROLES.includes(process.env.NANA_ROLE)) return undefined;
 		if (!loadConfig(ctx).objective.enabled) return undefined;
 		(event as any).systemPromptOptions.sections["nana-objective"] = block;
 		orderNanaSections(event as any);

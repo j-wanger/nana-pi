@@ -20,7 +20,7 @@ import {
 	CLAUDE_BUILDER_SETTINGS_FILE, CLAUDE_BUILDER_STALL_SECS, CLAUDE_BUILDER_TOOLS,
 	CLAUDE_CODE_RUNTIME, CLAUDE_PERMISSION_MODE_FLAG, CLAUDE_SCOUT_TOOLS, ROLE_FALLBACKS, PI_MODEL_SHELL_ENV,
 	CLAUDE_SETTINGS_FLAG, CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_STRICT_MCP_FLAG, CLAUDE_TOOLS_FLAG,
-	LANE_BUILDER_PID_FILE, LANE_DEFAULTS, LANE_MAX_SECS, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL,
+	LANE_BUILDER_PID_FILE, LANE_DEFAULTS, LANE_MAX_SECS, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL, piChildSkillArgs,
 } from './worker-config.mjs';
 import { resolveRoster } from './nana-roster.mjs';
 import { resolveRole, lineageWarnings } from '../lib/roster-roles.mjs';
@@ -30,8 +30,8 @@ import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
 import { digestKnownBugs } from '../lib/known-bug-digest.mjs';
+import { KNOWN_BUGS_DIR } from '../lib/known-bugs-config.mjs';
 import { appendContextLoad, contextPart, claudeInstructionParts } from '../lib/context-load-log.mjs';
-import { piContextLoad } from '../lib/pi-context-load.mjs';
 import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from '../lib/claude-review-config.mjs';
 import { reviewLaunch } from './review-launch.mjs';
 import { appendBuildRecord, buildBriefPath, buildEndRecord, buildRecordsPath, buildSessionDir, collectBuildUsage, readBuildLedger, renderLaneLine } from '../lib/build-records.mjs';
@@ -264,9 +264,13 @@ if (laneMode) {
 	writeFileSync(preambleFile, preamble);
 	const instruction = `Do the work in your brief for lane ${lane}. Your cwd is the lane worktree. Finish with the report shape the brief gives.`;
 	const briefText = readFileSync(briefPath, 'utf8');
-	const bugText = knownBugPath ? readFileSync(knownBugPath, 'utf8') : null;
+	const bugText = isClaudeBuilder && knownBugPath ? readFileSync(knownBugPath, 'utf8') : null;
 	const digest = bugText === null ? null : digestKnownBugs(bugText, path.relative(cwd, knownBugPath).split(path.sep).join('/'), briefText);
 	let deliveredBugPath = knownBugPath;
+	if (!isClaudeBuilder && selectedFeature) {
+		deliveredBugPath = path.join(preambleDir, 'known-bugs-read.md');
+		writeFileSync(deliveredBugPath, `Read \`${path.posix.join(KNOWN_BUGS_DIR, `${selectedFeature}.md`)}\` (this feature's known bugs) before you change code.`);
+	}
 	if (digest && digest.text !== bugText) {
 		deliveredBugPath = path.join(preambleDir, 'known-bugs.md');
 		writeFileSync(deliveredBugPath, digest.text);
@@ -388,20 +392,14 @@ try {
 	if (laneMode || roleMode) {
 		const preambleDir = path.dirname(preambleFile);
 		const builderPidFile = path.join(preambleDir, LANE_BUILDER_PID_FILE);
-		if (contextLoad.runtime === 'pi') {
-			const measured = await piContextLoad({ cwd: contextLoad.cwd, env: { ...process.env, NANA_HANDOFF: 'off', ...childEnv }, args: w.piArgs, sections: true });
-			contextLoad.piVersion = measured.piVersion;
-			contextLoad.parts.push(...measured.parts, ...measured.sections);
-			if (measured.signal) r = { ok: false, text: '', attempt: 0, signal: measured.signal };
-		}
 		if (contextLoad.runtime === CLAUDE_CODE_RUNTIME) contextLoad.parts.push(...claudeInstructionParts({ cwd: contextLoad.cwd }));
 		const onSpawn = (child) => {
-			child.once('spawn', () => appendContextLoad(contextLoad));
+			if (contextLoad.runtime === CLAUDE_CODE_RUNTIME) child.once('spawn', () => appendContextLoad(contextLoad));
 			if (!laneMode) return;
 			try { writeFileSync(builderPidFile, JSON.stringify({ pid: child.pid, launch: builderLaunchKind })); } catch { /* watcher falls back to cleanup without a builder identity */ }
 			child.once('exit', () => { try { rmSync(builderPidFile, { force: true }); } catch {} });
 		};
-		try { r ??= await runWatchdog(WORKER_TAG, { ...w, maxSecs: maxArg, childEnv, captureRoot: preambleDir, onSpawn, validateAttempt: validateLaneAttempt, ...(claudeLaunch ? { launch: claudeLaunch, stallSecs: CLAUDE_BUILDER_STALL_SECS } : {}) }); }
+		try { r ??= await runWatchdog(WORKER_TAG, { ...w, maxSecs: maxArg, childEnv, captureRoot: preambleDir, onSpawn, ...(contextLoad.runtime === 'pi' ? { contextLoad } : {}), validateAttempt: validateLaneAttempt, ...(claudeLaunch ? { launch: claudeLaunch, stallSecs: CLAUDE_BUILDER_STALL_SECS } : {}) }); }
 		finally { rmSync(preambleDir, { recursive: true, force: true }); }
 	} else r = await runWatchdog('pi-worker', { ...w, childEnv });
 } catch (error) { if (laneLock) releaseLaneLock(laneLock); throw error; }
@@ -431,7 +429,7 @@ function prepareWorker(spec, { folder, instruction, promptPaths, promptBytes, ca
 	const entry = spec.entry;
 	childEnv = spec.env;
 	if (entry.runtime !== CLAUDE_CODE_RUNTIME) return [
-		'--provider', entry.provider, '--model', entry.model,
+		...piChildSkillArgs(), '--provider', entry.provider, '--model', entry.model,
 		...(entry.thinking === null ? [] : ['--thinking', entry.thinking]), '-t', spec.tools,
 		...promptPaths.flatMap(file => ['--append-system-prompt', file]), '-p', instruction,
 	];

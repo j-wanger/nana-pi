@@ -1,14 +1,14 @@
 /**
  * @module packages/nana-pack/bin/pi-watchdog.mjs
  * @purpose Start pi, or an injected command launch, under a CPU-liveness watchdog that kills and retries flat attempts and cleans up child trees on signals.
- * @inputs launcher argv and child args, child CPU samples, caller accept predicate, optional launch resolver, capture root and spawn callback, and Windows PATH, PATHEXT and pi package metadata
+ * @inputs launcher argv and child args, child CPU samples, caller accept predicate, optional launch resolver, capture root, spawn callback and pi context-load metadata, and Windows PATH, PATHEXT and pi package metadata
  * @outputs {ok, text, attempt} with captured output, signal-aborted status, parseCpuSample seconds/null,
  *  per-poll `cpu=…s` or `cpu=unreadable` flat=n/m, STALL and attempt lines on stderr, the
  *  RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
  * @effects process (spawns pi detached, or an injected launch with its requested detached option,
  *  per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal,
  *  shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
- *  stderr under the optional capture root; on win32 a PATH lookup, a `package.json` read and the entry's stat)
+ *  stderr under the optional capture root; explicit persistent pi attempt session folders and post-attempt load logs when contextLoad is supplied; on win32 a PATH lookup, a `package.json` read and the entry's stat)
  * @errors never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive
  *  --stall-secs/--poll or a non-whole --retries, a spawn failure or stall returns ok:false with the
  *  partial text, and a win32 launch refusal is returned as `{refused}` and treated as a failed attempt
@@ -30,7 +30,8 @@
 // (pi-review 2 → 3 attempts, unchanged; pi-worker 0 — a retried worker repeats its mutations).
 
 import { spawn, execSync } from 'node:child_process';
-import { readFileSync, existsSync, mkdtempSync, openSync, closeSync, rmSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, mkdtempSync, openSync, closeSync, rmSync, statSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import * as path from 'node:path';
@@ -38,6 +39,8 @@ import { killProcessTree } from '../lib/process-tree.mjs';
 import { findPi } from '../lib/win-command.mjs';
 import { PI_PACKAGE, PI_BIN_NAME, WIN_CPU_TICKS_PER_SECOND } from './worker-config.mjs';
 import { locatePiPackage } from '../lib/pi-package.mjs';
+import { buildSessionDir } from '../lib/build-records.mjs';
+import { appendPiSessionLoad } from '../lib/context-load-log.mjs';
 
 /**
  * Resolve how to launch pi on this platform (R-1125). Not win32: pi by name, argv unchanged —
@@ -155,6 +158,17 @@ async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, sta
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
   // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
   const args = [...piArgs, '--name', `${tag}-a${attempt}-${Date.now() % 100000}`];
+  let sessionFile, sessionReason;
+  if (opts.contextLoad) {
+    try {
+      const stamp = `${new Date().toISOString().replace(/[:.]/g, '-')}_${randomUUID()}`;
+      const folder = join(buildSessionDir(cwd, childEnv.PI_CODING_AGENT_SESSION_DIR ?? process.env.PI_CODING_AGENT_SESSION_DIR), stamp);
+      mkdirSync(folder, { recursive: true });
+      sessionFile = join(folder, `${stamp}.jsonl`);
+      args.push('--session', sessionFile);
+    } catch { sessionReason = 'attempt session folder unavailable'; }
+  }
+  try {
   const launcher = opts.launch ?? piLaunch;
   const launch = launcher(args, { cwd });
   if (launch.refused) {
@@ -241,6 +255,12 @@ async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, sta
   await ended;
   const text = readOut();
   return { ok: child.exitCode === 0 && text.trim() !== '' && accept(text), text };
+  } finally {
+    if (opts.contextLoad) {
+      try { await appendPiSessionLoad(opts.contextLoad, { sessionFile, attempt, reason: sessionReason, cwd, env: { ...process.env, ...childEnv } }); }
+      catch { /* Logging must never change launch success or retry behaviour. */ }
+    }
+  }
 }
 
 /** Run `pi <piArgs>`: one attempt plus opts.retries re-attempts. opts.accept(text) = the caller's
