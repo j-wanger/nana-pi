@@ -18,8 +18,7 @@ function readJson(file, readText) {
   catch { return null; }
 }
 
-// Copied from apps/desk/pi-session.mjs walkUpToPackage: resolve the executable, then inspect at
-// most six containing folders. nana-setup cannot import from the frozen desk application.
+// Resolve the executable, then inspect at most six containing folders.
 function walkUpToPackage(executable, { paths, readText, realpath, resolveRealPath }) {
   if (!executable) return null;
   let resolved = executable;

@@ -53,9 +53,9 @@ const durable = sourceRows.filter((row) => row.class === "durable");
 const NON_DURABLE_FIXTURE_STORES = [
   "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs",
   "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test",
-  "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "knowledge index", "project memory shared links",
-  "project trust", "review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal",
-  "auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", "Claude credentials", "Claude settings", "Claude login", "pi sessions", "Claude transcripts", "pi bench agent", "desk stage keys",
+  "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "knowledge index", "project memory shared links",
+  "project trust", "review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "MCP cache", "handoffs", "nana journal",
+  "auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", "Claude credentials", "Claude settings", "Claude login", "pi sessions", "Claude transcripts", "pi bench agent",
 ];
 const byStore = new Map(sourceRows.map((row) => [row.store, row]));
 fs.mkdirSync(path.dirname(sourceLayout.piPackConfig), { recursive: true });
@@ -73,8 +73,6 @@ fs.writeFileSync(path.join(memoryDir, "project.md"), "project memory bytes\n");
 fs.symlinkSync(sharedMemory, path.join(memoryDir, "shared"), process.platform === "win32" ? "junction" : "dir");
 const transcript = path.join(sourceLayout.projectsDir, path.basename(path.dirname(memoryDir)), "session.jsonl");
 fs.mkdirSync(path.dirname(transcript), { recursive: true }); fs.writeFileSync(transcript, "secret:wildcard transcript\n");
-fs.mkdirSync(path.join(sourceLayout.piHome, "apps"), { recursive: true });
-fs.writeFileSync(path.join(sourceLayout.piHome, "apps", "app.txt"), "app fixture\n");
 fs.mkdirSync(path.join(home, ".local", "share", "nana"), { recursive: true });
 fs.writeFileSync(path.join(home, ".local", "share", "nana", "state.dat"), "share bytes\n");
 const ledger = sourceRows.filter((row) => ["review ledger tally", "review ledger audit", "review ledger rotated"].includes(row.store));
@@ -109,7 +107,7 @@ const slashRelative = (file) => path.relative(home, file).split(path.sep).join("
 const forbiddenArchivePaths = sourceRows.filter((row) => row.class === "secret" || row.class === "disposable" || row.store === "project trust").map((row) => slashRelative(row.path.includes("*") ? transcript : row.path));
 // The one guard the archive check and its own check share: the archive names equal to, or under, a forbidden path.
 const forbiddenInArchive = (names, forbidden) => names.filter((name) => forbidden.some((entry) => name === entry || name.startsWith(`${entry}/`)));
-for (const store of ["review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "desk log", "MCP cache", "handoffs", "nana journal"]) {
+for (const store of ["review ledger lock", "review ledger reservations", "suite lock", "knowledge shown", "knowledge build lock", "MCP cache", "handoffs", "nana journal"]) {
   const row = byStore.get(store);
   if (row.kind === "dir") { if (fs.existsSync(row.path) && !fs.statSync(row.path).isDirectory()) fs.unlinkSync(row.path); fs.mkdirSync(row.path, { recursive: true }); fs.writeFileSync(path.join(row.path, "disposable.txt"), `disposable:${store}`); }
   else { fs.mkdirSync(path.dirname(row.path), { recursive: true }); fs.writeFileSync(row.path, `disposable:${store}`); }

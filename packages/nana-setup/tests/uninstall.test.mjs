@@ -141,43 +141,6 @@ if (process.platform !== "win32") {
 }
 
 {
-  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-desk-"));
-  const layout = resolveLayout({ home });
-  const plist = path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist");
-  fs.mkdirSync(path.dirname(plist), { recursive: true });
-  fs.writeFileSync(plist, `server=${(await import("../lib/steps.mjs")).DESK_SERVER}\n`);
-  const originalPlist = fs.readFileSync(plist);
-  const stub = tmpDir(path.join(os.tmpdir(), "nana-uninstall-launchctl-"));
-  const log = path.join(stub, "calls");
-  const executable = path.join(stub, "launchctl");
-  fs.writeFileSync(executable, `#!/bin/sh\nprintf '%s\\n' "$*" >> '${log}'\n[ "$1" = print ] && exit 0\nexit 1\n`);
-  fs.chmodSync(executable, 0o755);
-  const oldPath = process.env.PATH;
-  process.env.PATH = `${stub}${path.delimiter}${oldPath || ""}`;
-  let liveRows;
-  try { liveRows = uninstall({ ...layout, isRealHome: true, plistPath: plist }); }
-  finally { process.env.PATH = oldPath; }
-  // req: R-906
-  check("loaded live-layout desk service is left after one print", fs.readFileSync(plist).equals(originalPlist) && fs.readFileSync(log, "utf8").trim().split("\n").length === 1 && fs.readFileSync(log, "utf8").trim().startsWith("print ") && liveRows.some((row) => row.status === "problem" && row.detail.includes("launchctl bootout")));
-  fs.writeFileSync(log, "");
-  process.env.PATH = `${stub}${path.delimiter}${oldPath || ""}`;
-  try { uninstall(layout); }
-  finally { process.env.PATH = oldPath; }
-  // req: R-906
-  check("sandbox desk removal makes no launchctl calls", fs.readFileSync(log, "utf8") === "");
-  fs.writeFileSync(plist, originalPlist);
-  fs.writeFileSync(log, "");
-  fs.writeFileSync(executable, `#!/bin/sh\nprintf '%s\\n' "$*" >> '${log}'\nexit 1\n`);
-  fs.chmodSync(executable, 0o755);
-  process.env.PATH = `${stub}${path.delimiter}${oldPath || ""}`;
-  let unloaded;
-  try { unloaded = uninstall({ ...layout, isRealHome: true, plistPath: plist }); }
-  finally { process.env.PATH = oldPath; }
-  // req: R-906
-  check("unloaded live-layout desk plist is removed after one print", !fs.existsSync(plist) && /^print gui\/\d+\/com\.nana\.pi-desk$/u.test(fs.readFileSync(log, "utf8").trim()) && unloaded.some((row) => row.label === "desk plist" && row.status === "updated"), `${fs.existsSync(plist)} ${fs.readFileSync(log, "utf8")} ${JSON.stringify(unloaded.find((row) => row.label === "desk plist"))}`);
-}
-
-{
   const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-registration-"));
   const layout = resolveLayout({ home });
   fs.mkdirSync(layout.piHome, { recursive: true });
@@ -257,11 +220,10 @@ if (process.platform !== "win32") {
   fs.writeFileSync(path.join(layout.knowledgeHome, "sources.json"), JSON.stringify({ roots: [] }));
   fs.writeFileSync(settings, JSON.stringify({ foreignTop: { keep: true }, hooks: { SessionStart: [{ hooks: [{ type: "command", command: "foreign hook" }] }, { hooks: [] }] } }, null, 2) + "\n");
   const initial = snapshot(home);
-  const installed = run(["install", "--desk", "--home", home]);
+  const installed = run(["install", "--home", home]);
   const removed = run(["uninstall", "--yes", "--home", home]);
   // req: R-903 R-905
-  // req: R-3794
-  check("install --desk then uninstall restores the independent home snapshot", installed.status === 0 && removed.status === 0 && sameSnapshot(initial, snapshot(home)), `${installed.status}; ${removed.status}\n${removed.stdout}\n${removed.stderr}`);
+  check("install then uninstall restores the independent home snapshot", installed.status === 0 && removed.status === 0 && sameSnapshot(initial, snapshot(home)), `${installed.status}; ${removed.status}\n${removed.stdout}\n${removed.stderr}`);
 
   const updateHome = tmpDir(path.join(os.tmpdir(), "nana-uninstall-update-"));
   const updateLayout = resolveLayout({ home: updateHome });
@@ -296,10 +258,10 @@ if (process.platform !== "win32") {
   const afterDry = snapshot(dryHome);
   const dryRows = dryResult.stdout.split("\n").filter((line) => /^  [ +–✗·]/u.test(line));
   const dryLabels = dryRows.map((line) => line.slice(4).split(/\s{2,}/u)[0]).sort();
-  const expectedLabels = ["retired verifier link", "settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "retired hook nana-memory-end.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "pi rule link nana-seat.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "desk plist", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
+  const expectedLabels = ["retired verifier link", "settings hooks", "private rule", "shared memory seed", "pi pack config", "pi objective", "subagent config.json", "reviewer.md", "hook nana-objective.mjs", "hook nana-adoption.mjs", "hook nana-shared-memory.mjs", "hook nana-roster-notice.mjs", "retired hook nana-memory-end.mjs", "rule link nana-soul.md", "rule link nana-standards.md", "rule link nana-writing.md", "rule link nana-seat.md", "rule link nana-rulings.md", "pi rule link nana-rulings.md", "pi rule link nana-seat.md", "skill link requirements", "skill link spec", "skill link py-lint", "skill link py-review", "skill link py-test", "bin link pi-review", "bin link pi-worker", "bin link nana-land", "bin link nana-setup", "bin link nana-writing", "pi registration", path.join(dryLayout.knowledgeHome, "index.db")].sort();
   const second = run(["uninstall", "--yes", "--home", dryHome]);
   const third = run(["uninstall", "--yes", "--home", dryHome]);
-  // req: R-903 R-904 R-905 R-906 R-907
+  // req: R-903 R-904 R-905 R-907
   check("dry-run lists manifest pieces without writes and repeated uninstall is empty", dryInstall.status === 0 && dryResult.status === 0 && sameSnapshot(postInstall, afterDry) && JSON.stringify(dryLabels) === JSON.stringify(expectedLabels) && second.status === 0 && third.status === 0 && /nothing to remove/.test(third.stdout), `install=${dryInstall.status} dry=${dryResult.status} unchanged=${sameSnapshot(postInstall, afterDry)} rows=${dryRows.length} second=${second.status} third=${third.status} empty=${/nothing to remove/.test(third.stdout)}\n${third.stdout}`);
 }
 
@@ -311,13 +273,13 @@ if (process.platform !== "win32") {
   };
   const same = (a, b) => a.size === b.size && [...a].every(([key, value]) => b.get(key) === value);
   const ancestorResults = [];
-  for (const target of ["hooks", "rules", "LaunchAgents"]) {
+  for (const target of ["hooks", "rules"]) {
     const home = tmpDir(path.join(os.tmpdir(), `nana-uninstall-unsafe-${target}-`));
     const outside = tmpDir(path.join(os.tmpdir(), `nana-uninstall-outside-${target}-`));
     const layout = resolveLayout({ home });
     fs.mkdirSync(layout.claudeHome, { recursive: true });
     fs.writeFileSync(layout.claudeSettings, JSON.stringify({ foreign: true }));
-    const dir = target === "LaunchAgents" ? path.dirname(layout.plistPath) : path.join(layout.claudeHome, target);
+    const dir = path.join(layout.claudeHome, target);
     fs.mkdirSync(path.dirname(dir), { recursive: true });
     fs.mkdirSync(outside, { recursive: true });
     fs.writeFileSync(path.join(outside, "keep"), "external");
@@ -328,7 +290,7 @@ if (process.platform !== "win32") {
     ancestorResults.push(result.status === 1 && /unsafe ancestor/.test(result.stdout) && same(before, snapshot(home)) && fs.readFileSync(path.join(outside, "keep")).equals(outsideBefore));
   }
   // req: R-901
-  check("symlinked hooks rules and LaunchAgents ancestors refuse before any home or target change", ancestorResults.every(Boolean));
+  check("symlinked hooks and rules ancestors refuse before any home or target change", ancestorResults.every(Boolean));
 }
 
 {
@@ -461,28 +423,6 @@ if (process.platform !== "win32") {
   const danglingResult = run(["uninstall", "--yes", "--home", danglingHome]);
   // req: R-902
   check("dangling hook link is reported left while owned link is removed", danglingResult.status === 0 && !fs.existsSync(live) && fs.lstatSync(dangling).isSymbolicLink() && /dangling symlink/.test(danglingResult.stdout), danglingResult.stdout);
-}
-
-{
-  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-desk-types-"));
-  const layout = resolveLayout({ home });
-  fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
-  const external = path.join(home, "outside-plist");
-  fs.writeFileSync(external, "foreign");
-  fs.symlinkSync(external, layout.plistPath);
-  const result = uninstall(layout);
-  // req: R-906
-  check("foreign symlink plist is left without following it", fs.lstatSync(layout.plistPath).isSymbolicLink() && fs.readFileSync(external, "utf8") === "foreign" && result.some((row) => row.label === "desk plist" && row.status === "skipped"));
-  fs.unlinkSync(layout.plistPath);
-  fs.mkdirSync(layout.plistPath);
-  const directoryResult = uninstall(layout);
-  // req: R-906
-  check("directory at plist path is left", fs.lstatSync(layout.plistPath).isDirectory() && directoryResult.some((row) => row.label === "desk plist" && row.status === "skipped"));
-  fs.rmdirSync(layout.plistPath);
-  fs.writeFileSync(layout.plistPath, "foreign checkout server");
-  const foreignResult = uninstall(layout);
-  // req: R-906
-  check("foreign regular plist is left", fs.readFileSync(layout.plistPath, "utf8") === "foreign checkout server" && foreignResult.some((row) => row.label === "desk plist" && row.status === "skipped"));
 }
 
 {

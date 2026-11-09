@@ -340,7 +340,6 @@ if (process.platform !== "win32") {
 }
 // req: R-311
 check("nana-pack package.json declares the pi-review bin", JSON.parse(fs.readFileSync(path.join(repo, "packages", "nana-pack", "package.json"), "utf8")).bin?.["pi-review"] === "bin/pi-review.mjs");
-check("no desk plist without --desk", !fs.existsSync(path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist")));
 
 /* --- 2. re-running changes nothing --------------------------------------------------- */
 const before = JSON.stringify(walk(home));

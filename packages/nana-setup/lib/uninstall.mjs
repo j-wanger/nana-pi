@@ -3,24 +3,23 @@
  * @purpose Removes only nana-setup-owned manifest pieces while preserving user state.
  * @inputs resolved layout, manifest rows with seed sources and settings lock helpers.
  * @outputs one result row per owned removable manifest piece and reported pi registrations.
- * @effects disk, process (launchctl print only for the real home).
+ * @effects disk
  * @errors SetupError for unsafe preflight or concurrent settings changes.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { spawnSync } from "node:child_process";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import { repoRoot, pkgRoot, platform } from "./paths.mjs";
 import { RETIRED_HOOK_FILES, retiredHookLinkOwned } from './retired.mjs';
 import { stateRows, retiredSeedRows } from "./state-manifest.mjs";
 import { desiredHooks, retiredKnowledgeHook, commandInvokes, removeInstallerHooks, removeRetiredContextHook, serialize } from "./settings.mjs";
-import { readClaudeSettings, SetupError, withSettingsLock, writeSettingsAtomic, DESK_SERVER, realpathSafe, directoryAncestorsAreSafe } from "./steps.mjs";
+import { readClaudeSettings, SetupError, withSettingsLock, writeSettingsAtomic, realpathSafe, directoryAncestorsAreSafe } from "./steps.mjs";
 
 const inside = (root, target) => { const rel = path.relative(root, target); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel)); };
 const exists = (p) => { try { return fs.lstatSync(p); } catch (e) { if (e.code === "ENOENT" || e.code === "ENOTDIR") return null; throw e; } };
 const result = (label, status, detail = "") => ({ label, status, detail });
 const canonical = (value) => Array.isArray(value) ? value.map(canonical) : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])])) : value;
-const installerRows = (layout) => stateRows(layout).filter((r) => r.owner === "nana-setup" && ["link", "seed", "generated", "plist", "settings-entry"].includes(r.kind));
+const installerRows = (layout) => stateRows(layout).filter((r) => r.owner === "nana-setup" && ["link", "seed", "generated", "settings-entry"].includes(r.kind));
 
 function settingsVariants(settings, layout) {
   const wanted = [...desiredHooks({ hooksDir: layout.hooksDir, repoRoot }), retiredKnowledgeHook({ repoRoot })];
@@ -89,13 +88,6 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
   }
   if (hasLink && !inRepoLink) throw new SetupError(`inventory links do not resolve inside ${repoReal}: ${targets.join("; ")}. Nothing was changed.`);
 
-  const desk = removable.find((r) => r.kind === "plist");
-  const plistStat = desk && exists(desk.path);
-  if (layout.isRealHome && plistStat?.isFile() && !plistStat.isSymbolicLink() && fs.readFileSync(desk.path, "utf8").includes(DESK_SERVER) && typeof process.getuid === "function") {
-    const loaded = spawnSync("launchctl", ["print", `gui/${process.getuid()}/com.nana.pi-desk`], { encoding: "utf8" });
-    if (loaded.status === 0) return [result("desk plist", "problem", `desk service loaded — run: launchctl bootout gui/${process.getuid()}/com.nana.pi-desk, then re-run`)];
-  }
-
   // Settings parsing and shape validation is read-only and precedes every possible write.
   if (settingsRow) {
     const settingsStat = exists(settingsRow.path);
@@ -153,12 +145,6 @@ export function uninstall(layout, { dryRun = false, afterTempWrite } = {}) {
         if (side?.isFile() && !side.isSymbolicLink()) { if (!dryRun) fs.unlinkSync(file); out.push(result(file, dryRun ? "created" : "updated", dryRun ? "would remove regular index file" : "removed regular index file")); }
       }
       continue;
-    }
-    if (row.kind === "plist") {
-      if (!st) { out.push(result(row.store, "unchanged", "absent")); continue; }
-      if (!st.isFile() || st.isSymbolicLink() || !fs.readFileSync(row.path, "utf8").includes(DESK_SERVER)) { out.push(result(row.store, "skipped", "left — not a regular plist containing this checkout's desk server path")); continue; }
-      if (!dryRun) fs.unlinkSync(row.path);
-      out.push(result(row.store, dryRun ? "created" : "updated", dryRun ? "would remove plist" : "removed plist"));
     }
   }
   out.push(...retiredSeedRows(layout).map(row => retireSeed(row, { dryRun, root: layout.piHome })));

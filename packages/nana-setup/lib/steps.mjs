@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-setup/lib/steps.mjs
  * @purpose The install steps and the `install` sequencer link, seed, retire, merge or register one piece of the experience and report { label, status, detail }.
- * @inputs a layout from resolveLayout; { dryRun, desk, afterTempWrite }; this package's own sources
+ * @inputs a layout from resolveLayout; { dryRun, afterTempWrite }; this package's own sources
  *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
- *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, historical pi/retired seed bytes, launchd/com.nana.pi-desk.plist.tmpl) and packages/nana-pack/skills and
+ *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, historical pi/retired seed bytes) and packages/nana-pack/skills and
  *  packages/nana-pack/rules (the writing rule, rulings file and canonical seat guide); the
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
  *  <claudeHome>/nana-setup-copies.json; pi's npm package.json; NANA_SETUP_PLATFORM
@@ -14,20 +14,18 @@
  *  through the PATH entries; the settings write's fsync'd temp-file rename
  *  preserves mode; <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json, nana-objective.md, nana-rulings.md and nana-seat.md in pi's agent dir (links on POSIX, copies on
- *  win32), removal of unchanged historical subagent config and reviewer seeds, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land, nana-setup and nana-writing, the desk plist
- *  (+ launchctl bootstrap/kickstart), per-package pi `packages` registrations, the win32 skill
+ *  win32), removal of unchanged historical subagent config and reviewer seeds, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land, nana-setup and nana-writing, per-package pi `packages` registrations, the win32 skill
  *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  DESK_SERVER, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, PATH_COMMANDS, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, realpathSafe(), resolvePackageEntryPath(), directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
- * @effects disk, process (spawns `nana-knowledge build`, `launchctl print|bootout|bootstrap`,
+ *  NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, PATH_COMMANDS, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, realpathSafe(), resolvePackageEntryPath(), directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
+ * @effects disk, process (spawns `nana-knowledge build`,
  *  bounded `pi --version` / `pi install` process trees, `git rev-parse`)
  * @errors SetupError — the Claude home, rules, shared-memory or off-win32 hooks folder is an unreachable link; settings.json unreadable, not valid JSON, or a shape the merge will not
  *  edit; install cannot take its settings lock before its first write and hold it through the
- *  PATH entries; settings.json changed on disk during the run; a plist placeholder with no
- *  value. Every other failure is a row: PROBLEM for a non-regular
+ *  PATH entries; settings.json changed on disk during the run. Every other failure is a row: PROBLEM for a non-regular
  *  nana-personal.md, or anything already sitting where the skill symlink
- *  belongs, SKIPPED for unsupported win32 pieces, a failed knowledge build or missing pi, and PROBLEM for a failed
- *  per-package `pi install` or launchctl bootstrap/kickstart
+ *  belongs, SKIPPED for a failed knowledge build or missing pi, and PROBLEM for a failed
+ *  per-package `pi install`
  */
 // The install steps. Each one reports {label, status, detail}; none of them prompts, and none
 // of them overwrites something the owner wrote by hand (see fsops.mjs).
@@ -40,7 +38,7 @@ import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeBytesWithBackup, writeIfChanged } from "./fsops.mjs";
-import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
+import { pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, removeRetiredMemoryHook, removeRetiredVerifierHook, serialize, validateShape } from "./settings.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { matchesRetiredArtifact, retiredArtifacts, RETIRED_HOOK_FILES, retiredHookLinkOwned } from "./retired.mjs";
@@ -92,7 +90,6 @@ export const PATH_COMMANDS = Object.freeze([
 	["nana-writing", NANA_WRITING_BIN],
 ]);
 export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "bin", "nana-knowledge.ts");
-export const DESK_SERVER = path.join(repoRoot, "apps", "desk", "server.mjs");
 
 const win = () => platform() === "win32";
 
@@ -795,120 +792,6 @@ export function stepPath(layout, o) {
 	return out;
 }
 
-/* ------------------------------------------------------------------------- desk service */
-
-const xml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-// R-396 (2026-10-06): chosen curated launchd search paths because launchd must not inherit the shell snapshot.
-const DESK_PATH_SYSTEM = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
-/** chosen: wait at most 2s for launchd unload to settle, polling every 50ms to avoid a busy loop. */
-export const DESK_UNLOAD_TIMEOUT_MS = 2_000;
-export const DESK_UNLOAD_POLL_MS = 50;
-
-function pathVisibleNode(nodeExecutable) {
-	const expected = realpathSafe(nodeExecutable);
-	for (const dir of (process.env.PATH || "").split(path.delimiter).filter(Boolean)) {
-		const candidate = path.join(dir, process.platform === "win32" ? "node.exe" : "node");
-		try { if (realPath(candidate, { mustExist: true }) === expected) return candidate; } catch { /* next PATH entry */ }
-	}
-	return nodeExecutable;
-}
-
-function curatedDeskPath(nodeExecutable, home) {
-	return [...new Set([path.dirname(nodeExecutable), path.join(home, ".local", "bin"), ...DESK_PATH_SYSTEM])].join(path.delimiter);
-}
-
-function waitForJobAbsent(service) {
-	const end = Date.now() + DESK_UNLOAD_TIMEOUT_MS;
-	while (Date.now() < end) {
-		const remaining = end - Date.now();
-		const state = spawnSync("launchctl", ["print", service], { encoding: "utf8", timeout: remaining });
-		if (state.error?.code === "ETIMEDOUT") return false;
-		if (state.status !== 0) return true;
-		const pause = Math.min(DESK_UNLOAD_POLL_MS, Math.max(0, end - Date.now()));
-		if (pause) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, pause);
-	}
-	return false;
-}
-
-// `PI_CODING_AGENT_DIR` (optional): the agent dir the installer chose, when it is not the
-// default for the layout's base. launchd does not inherit the installing shell's environment,
-// so without it the service desk would start on ~/.pi/agent while the pack was installed
-// elsewhere. Absent → the entry is omitted and the plist is byte-identical to before.
-export function renderPlist({ PI_CODING_AGENT_DIR, ...vars }) {
-	vars.AGENT_DIR_ENV = PI_CODING_AGENT_DIR ? `\n\t\t<key>PI_CODING_AGENT_DIR</key><string>${xml(PI_CODING_AGENT_DIR)}</string>` : "";
-	const tmpl = fs.readFileSync(path.join(pkgRoot, "launchd", "com.nana.pi-desk.plist.tmpl"), "utf8");
-	return tmpl.replace(/\{\{(\w+)\}\}/g, (m, k) => {
-		if (!(k in vars)) throw new SetupError(`plist template placeholder {{${k}}} has no value`);
-		return k === "AGENT_DIR_ENV" ? vars[k] : xml(vars[k]);
-	});
-}
-
-export function stepDesk(layout, o) {
-	if (platform() !== "darwin") return [{ label: "desk service", status: SKIPPED, detail: `skipped (${platform()}: launchd is macOS-only)` }];
-	if (!fs.existsSync(DESK_SERVER)) return [{ label: "desk service", status: SKIPPED, detail: `no ${DESK_SERVER}` }];
-	const nodeExecutable = pathVisibleNode(process.execPath);
-	const contents = renderPlist({
-		LABEL: DESK_LABEL,
-		NODE: nodeExecutable,
-		SERVER: DESK_SERVER,
-		WORKDIR: repoRoot,
-		PATH: curatedDeskPath(nodeExecutable, layout.base),
-		LOG: layout.deskLog,
-		// always absolute here: install refuses an ambient relative override, flags are resolved
-		PI_CODING_AGENT_DIR: path.resolve(layout.piHome) === path.join(layout.base, ".pi", "agent") ? "" : path.resolve(layout.piHome),
-	});
-	const w = writeIfChanged(layout.plistPath, contents, o);
-	const out = [{ label: "desk plist", ...w }];
-	if (o.dryRun) return out;
-	if (w.status === SKIPPED) {
-		// writeIfChanged refused a symlink or directory in the way (fsops.mjs R-379): there is
-		// no plist of ours to read, so no launchctl call can be trusted to target the right
-		// thing — print/bootout/bootstrap never run, and nothing already loaded is touched.
-		out.push({ label: "desk launchctl", status: SKIPPED, detail: "not touched (desk plist write was skipped)" });
-		return out;
-	}
-	if (!layout.isRealHome) {
-		out.push({ label: "desk launchctl", status: SKIPPED, detail: "not loaded (--home override in play)" });
-		return out;
-	}
-	const uid = process.getuid();
-	const domain = `gui/${uid}`;
-	const service = `${domain}/${DESK_LABEL}`;
-	const loaded = spawnSync("launchctl", ["print", service], { encoding: "utf8" }).status === 0;
-	if (loaded && w.status === UNCHANGED) {
-		const restart = spawnSync("launchctl", ["kickstart", "-k", service], { encoding: "utf8" });
-		out.push(restart.status === 0
-			? { label: "desk launchctl", status: UPDATED, detail: "restarted" }
-			: { label: "desk launchctl", status: PROBLEM, detail: `kickstart failed: ${(restart.stderr || "").trim() || `exit ${restart.status}`}` });
-		return out;
-	}
-	if (loaded) {
-		const down = spawnSync("launchctl", ["bootout", service], { encoding: "utf8" });
-		if (down.status !== 0) {
-			out.push({ label: "desk launchctl", status: PROBLEM, detail: `bootout failed: ${(down.stderr || "").trim() || `exit ${down.status}`}` });
-			return out;
-		}
-		if (!waitForJobAbsent(service)) {
-			out.push({ label: "desk launchctl", status: PROBLEM, detail: `launchd job remained loaded after ${DESK_UNLOAD_TIMEOUT_MS}ms` });
-			return out;
-		}
-	}
-	let bootstrap = spawnSync("launchctl", ["bootstrap", domain, layout.plistPath], { encoding: "utf8" });
-	const isIoError = (r) => /(?:error\s*5|input\/output error)/i.test(`${r.stderr || ""} ${r.stdout || ""}`);
-	if (bootstrap.status !== 0 && (bootstrap.status === 5 || isIoError(bootstrap)) && waitForJobAbsent(service)) {
-		bootstrap = spawnSync("launchctl", ["bootstrap", domain, layout.plistPath], { encoding: "utf8" });
-	}
-	if (bootstrap.status !== 0) {
-		out.push({ label: "desk launchctl", status: PROBLEM, detail: `bootstrap failed: ${(bootstrap.stderr || "").trim() || `exit ${bootstrap.status}`}` });
-		return out;
-	}
-	const kickstart = spawnSync("launchctl", ["kickstart", ...(loaded ? ["-k"] : []), service], { encoding: "utf8" });
-	out.push(kickstart.status === 0
-		? { label: "desk launchctl", status: loaded ? UPDATED : CREATED, detail: loaded ? "reloaded and restarted" : "bootstrapped and started" }
-		: { label: "desk launchctl", status: PROBLEM, detail: `kickstart failed: ${(kickstart.stderr || "").trim() || `exit ${kickstart.status}`}` });
-	return out;
-}
-
 /* ------------------------------------------------------------- pi package registration */
 
 /** The install hint is derived from CI's checked pi version and cutoff. */
@@ -1148,7 +1031,6 @@ export function install(layout, opts = {}) {
 	if (o.dryRun) fileSteps(false);
 	else withSettingsLock(layout.claudeSettings, () => fileSteps(true));
 	results.push(...stepKnowledge(layout, o));
-	if (opts.desk) results.push(...stepDesk(layout, o));
 	results.push(...stepPiRegister(layout, o));
 	return results;
 }

@@ -43,9 +43,9 @@ export const KNOWN_RED = {
 // Contract values: doctor.mjs informational rows; win32 hook-file rows removed by R-1861, 2026-10-19; floor from R-1060;
 // PATH and skill rows are checks after R-1610 and R-1900.
 export const DOCTOR_NOTES = {
-  darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status", MEMORY_MAKING_NOTE.label],
-  linux: ["pi agent dir", "pi mcp.json", "desk service", "release status", MEMORY_MAKING_NOTE.label],
-  win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor", MEMORY_MAKING_NOTE.label],
+  darwin: ["pi agent dir", "pi mcp.json", "release status", MEMORY_MAKING_NOTE.label],
+  linux: ["pi agent dir", "pi mcp.json", "release status", MEMORY_MAKING_NOTE.label],
+  win32: ["pi agent dir", "pi mcp.json", "release status", "Claude Code hooks floor", MEMORY_MAKING_NOTE.label],
 };
 // Hook input samples and report budget are contract values from Claude Code docs, read 2026-10-12.
 export const SAMPLE_INPUTS = {

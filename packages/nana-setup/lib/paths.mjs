@@ -6,12 +6,12 @@
  *  (CLAUDE_CONFIG_DIR, else ~/.claude); nana-pack's agent-dir resolver (PI_CODING_AGENT_DIR, else
  *  ~/.pi/agent) and its cwd-relative probe; nana-pack's RULINGS_FILE and SEAT_GUIDE_FILE;
  *  process.cwd(); NANA_SETUP_PLATFORM; import.meta.url (for pkgRoot / repoRoot)
- * @outputs pkgRoot, repoRoot, SHARED_DIR, DESK_LABEL ("com.nana.pi-desk"); a layout object of absolute paths —
+ * @outputs pkgRoot, repoRoot, SHARED_DIR; a layout object of absolute paths —
  *  base, claudeHome + claudeHomeSource + claudeHomeCwdRelative, hooksDir, rulesDir, skillsDir,
  *  projectsDir, sharedMemoryDir, claudeSettings, copyRecord, piHome + piHomeSource + piHomeCwdRelative,
  *  piSettings, piPackConfig, piObjective, piRulings, piSeatGuide,
  *  knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig,
- *  reviewerAgent, piSubagentsPackage, mcpConfig, deskLog, binDir, launchAgentsDir, plistPath,
+ *  reviewerAgent, piSubagentsPackage, mcpConfig, binDir,
  *  isRealHome; platform(); tildeify()
  * @effects disk (one realPath read at import to canonicalize pkgRoot; all other work is path arithmetic and env/homedir reads)
  * @errors none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
@@ -34,7 +34,6 @@ export const repoRoot = path.resolve(pkgRoot, "..", "..");
 /** The single source of project seeds and the marker-owned working section. */
 export const SHARED_DIR = path.join(repoRoot, "templates", "_shared");
 
-export const DESK_LABEL = "com.nana.pi-desk";
 export { CLAUDE_CONFIG_ENV };
 
 /**
@@ -100,12 +99,9 @@ export function resolveLayout(opts = {}) {
 		// deliberate cross-runtime contract; until then it follows the layout's BASE. The explicit
 		// --pi-home / --home flags still place it (they are how tests and hermetic installs run).
 		knowledgeHome: path.join(opts.piHome || opts.home ? piHome : path.join(base, ".pi", "agent"), "nana-knowledge"),
-		deskLog: path.join(piHome, "desk.log"),
 		binDir: path.join(base, ".local", "bin"),
-		launchAgentsDir: path.join(base, "Library", "LaunchAgents"),
-		plistPath: path.join(base, "Library", "LaunchAgents", `${DESK_LABEL}.plist`),
 		/** False whenever a --home/--claude-home/--pi-home override is in play: nothing that
-		 *  touches the live machine (launchctl, `pi install`) may run then. */
+		 *  touches the live machine (`pi install`) may run then. */
 		isRealHome: path.resolve(base) === path.resolve(os.homedir()) && !opts.home && !opts.claudeHome && !opts.piHome,
 	};
 }

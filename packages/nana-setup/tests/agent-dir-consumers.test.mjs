@@ -1,29 +1,23 @@
 /**
  * @module packages/nana-setup/tests/agent-dir-consumers.test.mjs
- * @purpose Pins that widening the agent-dir resolution never splits a producer from its consumer — the installer's knowledge home matches the runtime default, and the rendered desk plist carries the directory the installer chose
- * @inputs bin/nana-setup.mjs, lib/paths.mjs, the desk plist template, and throwaway --home / --claude-home targets
+ * @purpose Pins that widening the agent-dir resolution never splits a producer from its consumer — the installer's knowledge home matches the runtime default
+ * @inputs lib/paths.mjs and throwaway --home targets
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (throwaway home layouts and rendered plists), process (spawns the installer CLI; launchctl is never called)
+ * @effects disk (throwaway home layouts), process (spawns resolver probes)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
-// U2 astra land (MUST 2, MUST 3): widening the agent-dir resolution must not split a producer from
+// U2 astra land (MUST 2): widening the agent-dir resolution must not split a producer from
 // its consumer.
 //   MUST 2 — under an ABSOLUTE ambient PI_CODING_AGENT_DIR the installer's knowledge home is the
 //            nana-knowledge RUNTIME default (<home>/.pi/agent/nana-knowledge), which never reads
 //            that variable; the explicit --pi-home / --home flags still place it.
-//   MUST 3 — the RENDERED desk plist carries the directory the installer chose, because launchd
-//            does not inherit the installing shell's environment; the default dir renders nothing.
-// Run with --experimental-strip-types (the runtime paths module is TypeScript). Nothing here calls
-// launchctl: every install passes --claude-home, so the layout is never the real home.
+// Run with --experimental-strip-types (the runtime paths module is TypeScript).
 import { tmpDir } from "./tmp-dir.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const PATHS = new URL("../lib/paths.mjs", import.meta.url).href;
 const KPATHS = new URL("../../nana-knowledge/lib/paths.ts", import.meta.url).href;
 
@@ -63,43 +57,6 @@ try {
 	check("MUST 2: an explicit --pi-home still places it", flagged.knowledgeHome === path.join(HOME, "flag-agent", "nana-knowledge"), JSON.stringify(flagged));
 	const homed = paths(baseEnv, { home: path.join(HOME, "h2") });
 	check("MUST 2: --home still places it", homed.knowledgeHome === path.join(HOME, "h2", ".pi", "agent", "nana-knowledge"), JSON.stringify(homed));
-
-	if (process.platform !== "darwin") {
-		console.log("SKIP MUST 3 — stepDesk writes a launchd plist on macOS only (no service definition elsewhere)");
-	} else {
-		// ── MUST 3: install --desk with the ambient absolute override, then read the RENDERED plist ──
-		const kn = path.join(HOME, ".pi", "agent", "nana-knowledge");
-		fs.mkdirSync(kn, { recursive: true });
-		fs.writeFileSync(path.join(kn, "sources.json"), JSON.stringify({ roots: [] }));
-		const plist = path.join(HOME, "Library", "LaunchAgents", "com.nana.pi-desk.plist");
-		const r = spawnSync(process.execPath, [cli, "install", "--desk", "--claude-home", path.join(HOME, ".claude")],
-			{ env: { ...baseEnv, PI_CODING_AGENT_DIR: CUSTOM }, encoding: "utf-8" });
-		check("MUST 3: install --desk under an absolute override exits 0", r.status === 0, r.stdout + r.stderr);
-		// req: R-314
-		check("MUST 3: launchctl was not called", r.stdout.includes("not loaded"), r.stdout);
-		const body = fs.existsSync(plist) ? fs.readFileSync(plist, "utf-8") : "";
-		check("MUST 3: the rendered plist exports PI_CODING_AGENT_DIR = the chosen dir",
-			body.includes(`<key>PI_CODING_AGENT_DIR</key><string>${CUSTOM}</string>`), body);
-		check("MUST 3: ...inside EnvironmentVariables", /<key>EnvironmentVariables<\/key>\s*<dict>[^]*PI_CODING_AGENT_DIR[^]*<\/dict>/.test(body), body);
-		check("MUST 3: ...and the pack config went to that same dir", fs.existsSync(path.join(CUSTOM, "nana-pack.json")));
-		check("MUST 3: plutil accepts the rendered plist", spawnSync("plutil", ["-lint", plist], { encoding: "utf-8" }).status === 0);
-
-		// the default dir renders no entry (an unchanged plist for everyone not using an override)
-		const H2 = path.join(HOME, "plain");
-		fs.mkdirSync(path.join(H2, ".pi", "agent", "nana-knowledge"), { recursive: true });
-		fs.writeFileSync(path.join(H2, ".pi", "agent", "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
-		spawnSync(process.execPath, [cli, "install", "--desk", "--home", H2], { env: baseEnv, encoding: "utf-8" });
-		const plain = fs.readFileSync(path.join(H2, "Library", "LaunchAgents", "com.nana.pi-desk.plist"), "utf-8");
-		check("MUST 3: the default agent dir renders no PI_CODING_AGENT_DIR entry", !plain.includes("PI_CODING_AGENT_DIR") && plain.includes("<key>PATH</key>"), plain);
-		// an explicit --pi-home is the installer's choice too
-		const H3 = path.join(HOME, "pinned");
-		const PH = path.join(H3, "elsewhere");
-		fs.mkdirSync(path.join(PH, "nana-knowledge"), { recursive: true });
-		fs.writeFileSync(path.join(PH, "nana-knowledge", "sources.json"), JSON.stringify({ roots: [] }));
-		spawnSync(process.execPath, [cli, "install", "--desk", "--home", H3, "--pi-home", PH], { env: baseEnv, encoding: "utf-8" });
-		const pinned = fs.readFileSync(path.join(H3, "Library", "LaunchAgents", "com.nana.pi-desk.plist"), "utf-8");
-		check("MUST 3: an explicit --pi-home is rendered into the plist", pinned.includes(`<key>PI_CODING_AGENT_DIR</key><string>${PH}</string>`), pinned);
-	}
 } finally {
 	fs.rmSync(HOME, { recursive: true, force: true });
 }

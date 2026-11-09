@@ -930,9 +930,9 @@ check("pin R-1096: the pull.log path under the temporary home", () => {
 // req: R-1081
 check("pin R-1081: the doctor note list", () => {
   assert.deepEqual(DOCTOR_NOTES, {
-    darwin: ["pi agent dir", "pi mcp.json", "desk service", "release status", MEMORY_MAKING_NOTE.label],
-    linux: ["pi agent dir", "pi mcp.json", "desk service", "release status", MEMORY_MAKING_NOTE.label],
-    win32: ["pi agent dir", "pi mcp.json", "desk service", "release status", "Claude Code hooks floor", MEMORY_MAKING_NOTE.label],
+    darwin: ["pi agent dir", "pi mcp.json", "release status", MEMORY_MAKING_NOTE.label],
+    linux: ["pi agent dir", "pi mcp.json", "release status", MEMORY_MAKING_NOTE.label],
+    win32: ["pi agent dir", "pi mcp.json", "release status", "Claude Code hooks floor", MEMORY_MAKING_NOTE.label],
   });
 });
 // req: R-1073

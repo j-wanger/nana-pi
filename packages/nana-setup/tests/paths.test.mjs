@@ -8,9 +8,9 @@
  */
 // Gate: paths.mjs's own doc comment on isRealHome (lines 82-83) says "False whenever a
 // --home/--claude-home/--pi-home override is in play: nothing that touches the live machine
-// (launchctl, `pi install`) may run then." The implementation only excluded claudeHome and
+// (`pi install`) may run then." The implementation only excluded claudeHome and
 // piHome; an explicit --home that happens to RESOLVE to the real home directory (the literal
-// case: `--home "$HOME"`) still read isRealHome true, letting pi install / launchctl run
+// case: `--home "$HOME"`) still read isRealHome true, letting pi install run
 // during what the caller meant as an isolated test run (pi-1.0-2026-10-04 review claim).
 import * as os from "node:os";
 import * as path from "node:path";

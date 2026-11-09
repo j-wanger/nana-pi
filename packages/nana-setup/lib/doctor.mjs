@@ -6,20 +6,20 @@
  *  the settings lock, nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and
  *  nana-pack.json and the objective file it names, <piHome>/nana-rulings.md, cwd/.pi/nana-pack.json and pi's trust store,
  *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db and <knowledgeHome>/sources.json, and the PATH_COMMANDS entries under <binDir>, including nana-writing; the LaunchAgents plist;
- *  `node -p process.versions.node` and `launchctl print`
+ *  `node -p process.versions.node`
  * @outputs an array of { status, label, detail, installLabel? } rows, including pi's `pi dependencies` row, linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
  *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
  *  knowledgeIndexState(), knowledgeSourcesState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
- *  ("22.18"); DESK_NODE_FLOOR ("22.19"); parsePlistValues(); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
+ *  ("22.18"); PI_NODE_FLOOR ("22.19"); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
- * @effects disk (reads only), process (spawns node, a bounded pi --version process tree and launchctl to probe)
+ * @effects disk (reads only), process (spawns node and a bounded pi --version process tree to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
  *  cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
  */
 // `doctor` — one ✓/✗ line per piece of the experience. This is the instrument a fresh machine
 // is judged by: if every line is ✓, the Claude Code half, the user-scope pi config, the PATH
-// entry and (when asked for) the desk service are actually in place.
+// entry are actually in place.
 import * as fs from "node:fs";
 import { configFailureDetail, jsonParseFailure, parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import { frozenNotice, readSourcesFile } from "../../nana-knowledge/lib/sources-file.mjs";
@@ -27,10 +27,10 @@ import { codeSpan } from "../../nana-pack/lib/display.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
-import { DESK_LABEL, pkgRoot, platform, repoRoot } from "./paths.mjs";
+import { pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
 import { commandInvokes, entryInvokes, retiredKnowledgeHook, retiredMemoryHook, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
-import { CLAUDE_RULES, CLAUDE_SKILLS, DESK_SERVER, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
+import { CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
@@ -156,23 +156,9 @@ export function projectFileState(v) {
 
 /** The objective hook's CLI imports .ts with no flag: Node's type stripping, default from 22.18. */
 export const NODE_FLOOR = "22.18";
-/** Desk service contract (R-650): chosen 22.19 because the desk runtime is verified at this floor, 2026-10-06. */
-export const DESK_NODE_FLOOR = "22.19";
+/** measured: installed pi 1.4.0 package.json engines.node >=22.19.0, read 2026-11-09; R-650. */
+export const PI_NODE_FLOOR = "22.19";
 
-function xmlUnescape(value) {
-	return value.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&apos;/g, "'");
-}
-
-export function parsePlistValues(contents) {
-	const values = [...contents.matchAll(/<key>([^<]+)<\/key>\s*<string>([\s\S]*?)<\/string>/g)];
-	const get = (key) => {
-		const found = values.find(([, name]) => name === key);
-		return found ? xmlUnescape(found[2]) : null;
-	};
-	const argsBlock = /<key>ProgramArguments<\/key>\s*<array>([\s\S]*?)<\/array>/.exec(contents)?.[1] ?? "";
-	const programArguments = [...argsBlock.matchAll(/<string>([\s\S]*?)<\/string>/g)].map(([, value]) => xmlUnescape(value));
-	return { server: programArguments[1] ?? null, programArguments, path: get("PATH") };
-}
 export function nodeMeetsFloor(version, floor = NODE_FLOOR) {
 	const [a, b] = String(version).replace(/^v/, "").split(".").map(Number);
 	const [fa, fb] = floor.split(".").map(Number);
@@ -650,25 +636,6 @@ export function diagnose(layout, opts = {}) {
 
 	const source = packageSourceState(layout);
 	if (source) add(source.status, "pi package source", source.status === OK ? source.detail : `${source.detail} — remedy: ${source.remedy}`);
-
-	// --- desk service (opt-in) ---
-	if (platform() !== "darwin") add(NOTE, "desk service", `skipped (${platform()})`);
-	else if (!fs.existsSync(layout.plistPath)) add(NOTE, "desk service", "not installed (opt-in: `install --desk`)");
-	else {
-		let parsed;
-		try { parsed = parsePlistValues(fs.readFileSync(layout.plistPath, "utf8")); } catch { parsed = null; }
-		const node = parsed?.programArguments?.[0];
-		let nodeVersion = null;
-		if (node && fs.existsSync(node)) {
-			const probe = spawnSync(node, ["-p", "process.versions.node"], { encoding: "utf8" });
-			if (probe.status === 0) nodeVersion = probe.stdout.trim();
-		}
-		const print = layout.isRealHome ? spawnSync("launchctl", ["print", `gui/${process.getuid()}/${DESK_LABEL}`], { encoding: "utf8" }) : null;
-		const running = print?.status === 0 && /state\s*=\s*running/.test(`${print.stdout || ""}\n${print.stderr || ""}`);
-		const valid = parsed?.server === DESK_SERVER && node && nodeVersion && versionAtLeast(nodeVersion, DESK_NODE_FLOOR);
-		const ok = Boolean(running && valid);
-		add(!layout.isRealHome ? NOTE : ok ? OK : FAIL, "desk service", `${layout.plistPath}: ${!running ? "launchctl does not report state = running" : "running"}; ${!node ? "ProgramArguments[0] is missing" : !fs.existsSync(node) ? `node executable is missing: ${node}` : !nodeVersion ? `could not read Node version from ${node}` : !versionAtLeast(nodeVersion, DESK_NODE_FLOOR) ? `Node ${nodeVersion} is older than ${DESK_NODE_FLOOR}` : `Node ${nodeVersion}`}`);
-	}
 
 	let releaseLine;
 	try { releaseLine = releaseStatus({ repo: opts.releaseRepo ?? repoRoot, ...(opts.runGit ? { runGit: opts.runGit } : {}) }).line; }

@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DESK_NODE_FLOOR } from "../lib/doctor.mjs";
+import { PI_NODE_FLOOR } from "../lib/doctor.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { parseChecklist, rehearsalPlan } from "../lib/readme-rehearsal.mjs";
 import { objectiveTarget } from "../lib/steps.mjs";
@@ -31,7 +31,7 @@ check("fresh-machine checklist has seven ordered actions", entries.length === 7 
 const ciVersion = read(".github/workflows/ci.yml").match(/^\s*PI_VERSION:\s*(\S+)/m)?.[1];
 const flat = entries.join(" ");
 // req: R-951
-check("checklist versions match Node and pi CI sources", entries[0]?.includes(`Node ≥ ${DESK_NODE_FLOOR}`) && entries[1]?.includes(`@earendil-works/pi-coding-agent@${ciVersion} `), flat);
+check("checklist versions match Node and pi CI sources", entries[0]?.includes(`Node ≥ ${PI_NODE_FLOOR}`) && entries[1]?.includes(`@earendil-works/pi-coding-agent@${ciVersion} `), flat);
 const layout = resolveLayout();
 // req: R-950
 check("checklist objective paths name the resolved pi seed files", entries[5]?.includes(path.basename(layout.piObjective)) && entries[5]?.includes(path.basename(layout.piPackConfig)), entries[5]);
@@ -62,7 +62,7 @@ const windowsLayout = resolveLayout({ home: windowsLayoutHome });
 const windowsBin = `%USERPROFILE%\\${path.relative(windowsLayoutHome, windowsLayout.binDir).split(path.sep).join("\\")}`;
 const windowsObjectiveNames = [path.basename(windowsLayout.piObjective), path.basename(windowsLayout.piPackConfig)];
 const windowsExpectedAnchors = [
-  [`Node ≥ ${DESK_NODE_FLOOR}`, "Git for Windows", "Command Prompt"],
+  [`Node ≥ ${PI_NODE_FLOOR}`, "Git for Windows", "Command Prompt"],
   [`@earendil-works/pi-coding-agent@${ciVersion}`, "pi --version"],
   ["git clone", '"%USERPROFILE%\\nana-pi"'],
   ['cd /d "%USERPROFILE%\\nana-pi"', "nana-setup.mjs install"],

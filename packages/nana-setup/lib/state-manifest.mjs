@@ -24,7 +24,6 @@ const modules = {
   claude: "Claude Code owner",
   pack: "packages/nana-pack/bin/review-round.mjs",
   knowledge: "packages/nana-knowledge/lib/paths.ts",
-  desk: "apps/desk/lib/stage-keys.mjs",
   user: "user-created store",
 };
 
@@ -58,7 +57,6 @@ export function stateRows(layout) {
   durable("pi settings", "nana-setup", "settings-entry", layout.piSettings, "restore from the private state archive", modules.setup);
   durable("knowledge sources", "user", "file", p(layout.knowledgeHome, "sources.json"), undefined, modules.knowledge);
   durable("knowledge pull log", "nana-knowledge", "file", p(layout.knowledgeHome, "pull.log"), undefined, modules.knowledge);
-  durable("nana apps", "user", "dir", p(layout.piHome, "apps"));
   durable("nana share", "user", "dir", p(layout.base, ".local", "share", "nana"));
 
   rebuild("copy record", layout.copyRecord, "file");
@@ -69,7 +67,6 @@ export function stateRows(layout) {
   for (const name of ["requirements", "spec", "py-lint", "py-review", "py-test"]) rebuild(`skill link ${name}`, p(layout.skillsDir, name));
   for (const [name] of PATH_COMMANDS) rebuild(`bin link ${name}`, p(layout.binDir, name));
   for (const [name] of PATH_COMMANDS) rebuild(`bin shim ${name}.cmd`, p(layout.binDir, `${name}.cmd`), "shim");
-  rebuild("desk plist", layout.plistPath, "plist", "nana-setup");
   rebuild("knowledge index", p(layout.knowledgeHome, "index.db"), "generated", "nana-setup", "run nana-knowledge build", modules.knowledge);
   rebuild("project memory shared links", p(layout.projectsDir, "*", "memory", "shared"), "link", "claude-code", "SessionStart recreates links", modules.claude);
 
@@ -79,7 +76,6 @@ export function stateRows(layout) {
   disp("suite lock", p(layout.base, ".nana", "suite.lock"), "file", "test runner", "scripts/test-locked.mjs");
   disp("knowledge shown", p(layout.knowledgeHome, "shown"), "dir", "nana-knowledge", modules.knowledge);
   disp("knowledge build lock", p(layout.knowledgeHome, "build.lock"), "file", "nana-knowledge", modules.knowledge);
-  disp("desk log", layout.deskLog, "file", "desk", modules.desk);
   disp("MCP cache", p(layout.piHome, "mcp-cache.json"), "file", "pi", modules.pi);
   disp("handoffs", p(layout.base, ".pi", "agent", "handoffs"), "dir", "pi", modules.pi);
   disp("nana journal", p(layout.base, ".pi", "agent", "nana-journal.jsonl"), "file", "nana-pack", modules.pack);
@@ -91,6 +87,5 @@ export function stateRows(layout) {
   secret("pi sessions", "pi", "dir", p(layout.base, ".pi", "agent", "sessions"), modules.pi);
   secret("Claude transcripts", "claude-code", "dir-pattern", p(layout.projectsDir, "*", "*.jsonl"), modules.claude);
   secret("pi bench agent", "user", "dir", p(layout.base, ".pi", "bench-agent"), modules.pi);
-  secret("desk stage keys", "desk", "dir", p(layout.base, ".pi", "agent", "nana-desk", "stage-keys"), modules.desk);
   return rows;
 }

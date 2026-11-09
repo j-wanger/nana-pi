@@ -28,12 +28,12 @@ check("each manifest row has one allowed class and complete ownership metadata",
 const tuple = (store) => { const { class: cls, owner, kind, source, restore } = rows.find((row) => row.store === store) ?? {}; return [cls, owner, kind, source, restore]; };
 // req: R-954
 check("shared settings and seed rows pin ownership and removal semantics", JSON.stringify(tuple("Claude settings")) === JSON.stringify(["secret", "nana-setup", "settings-entry", "packages/nana-setup/lib/steps.mjs", "sign in again or carry by hand; never archive"]) && JSON.stringify(tuple("pi settings")) === JSON.stringify(["durable", "nana-setup", "settings-entry", "packages/nana-setup/lib/steps.mjs", "restore from the private state archive"]) && JSON.stringify(tuple("shared memory seed")) === JSON.stringify(["durable", "nana-setup", "seed", SHARED_MEMORY_SEED, "restore from the private state archive"]) && JSON.stringify(tuple("shared memory")) === JSON.stringify(["durable", "user", "dir", "user-created store", "restore archive; SessionStart recreates project shared links"]), JSON.stringify(rows.filter((row) => ["Claude settings", "pi settings", "shared memory seed", "shared memory"].includes(row.store))));
-const installTupleNames = ["private rule", "pi pack config", "pi objective", "knowledge index", "desk plist"];
-const expectedInstallTuples = [["durable", "nana-setup", "seed", PRIVATE_RULE_SEED, "restore from the private state archive"],["durable", "nana-setup", "seed", PI_PACK_SEED, "restore from the private state archive"],["durable", "nana-setup", "seed", PI_OBJECTIVE_SEED, "restore from the private state archive"],["rebuildable", "nana-setup", "generated", "packages/nana-knowledge/lib/paths.ts", "run nana-knowledge build"],["rebuildable", "nana-setup", "plist", "packages/nana-setup/lib/steps.mjs", "re-run nana-setup install"]];
+const installTupleNames = ["private rule", "pi pack config", "pi objective", "knowledge index"];
+const expectedInstallTuples = [["durable", "nana-setup", "seed", PRIVATE_RULE_SEED, "restore from the private state archive"],["durable", "nana-setup", "seed", PI_PACK_SEED, "restore from the private state archive"],["durable", "nana-setup", "seed", PI_OBJECTIVE_SEED, "restore from the private state archive"],["rebuildable", "nana-setup", "generated", "packages/nana-knowledge/lib/paths.ts", "run nana-knowledge build"]];
 // req: R-954 R-904
 check("install seeds and generated stores pin exact owner and kind tuples", installTupleNames.every((name, index) => JSON.stringify(tuple(name)) === JSON.stringify(expectedInstallTuples[index])) && !rows.some((row) => row.store === "LaunchAgents directory"), JSON.stringify(installTupleNames.filter((name, index) => JSON.stringify(tuple(name)) !== JSON.stringify(expectedInstallTuples[index]))));
 // knowledgeHome is a layout container only; only sources.json and pull.log are durable rows.
-const containers = ["base", "claudeHome", "piHome", "knowledgeHome", "hooksDir", "rulesDir", "skillsDir", "projectsDir", "binDir", "launchAgentsDir", "subagentConfig", "reviewerAgent", "piSubagentsPackage"];
+const containers = ["base", "claudeHome", "piHome", "knowledgeHome", "hooksDir", "rulesDir", "skillsDir", "projectsDir", "binDir", "subagentConfig", "reviewerAgent", "piSubagentsPackage"];
 const pathEntries = Object.entries(layout).filter(([key, value]) => typeof value === "string" && path.isAbsolute(value) && !containers.includes(key));
 // req: R-955
 check("every resolved layout path except declared containers is inventoried", pathEntries.every(([, value]) => byPath.has(path.resolve(value))), pathEntries.filter(([, value]) => !byPath.has(path.resolve(value))).map(([key]) => key).join(", "));
@@ -53,11 +53,11 @@ check("R-2871: the manifest holds exactly one row for each path the review ledge
   const actual = stateRows(current).filter((row) => row.store.startsWith("review ledger ")).map((row) => path.resolve(row.path)).sort();
   return JSON.stringify(actual) === JSON.stringify(expected);
 }));
-const secretNames = ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", ".credentials.json", "settings.json", "stage-keys", "sessions", "bench-agent"];
+const secretNames = ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", ".credentials.json", "settings.json", "sessions", "bench-agent"];
 // req: R-954
 check("secret-capable stores are classified as secret", secretNames.every((name) => rows.some((r) => path.basename(r.path) === name && r.class === "secret")) && ["Claude login", "Claude transcripts"].every((store) => rows.some((row) => row.store === store && row.class === "secret")), secretNames.filter((name) => !rows.some((r) => path.basename(r.path) === name && r.class === "secret")).join(", "));
 // req: R-954
-check("disposable cache and log tuples name their real owners and sources", JSON.stringify([tuple("MCP cache"), tuple("desk log")]) === JSON.stringify([["disposable", "pi", "file", "pi / pi-subagents owner", "recreated as needed"],["disposable", "desk", "file", "apps/desk/lib/stage-keys.mjs", "recreated as needed"]]));
+check("disposable cache and log tuples name their real owners and sources", JSON.stringify([tuple("MCP cache")]) === JSON.stringify([["disposable", "pi", "file", "pi / pi-subagents owner", "recreated as needed"]]));
 const installHome = tmpDir(path.join(os.tmpdir(), "state-owner-install-"));
 const ownerLayout = resolveLayout({ home: installHome });
 fs.mkdirSync(ownerLayout.knowledgeHome, { recursive: true });
@@ -177,7 +177,7 @@ for (const name of ["auth.json", "mcp-auth.json", "models.json", "models-store.j
 }
 const durableFile = path.join(home, ".claude", "rules", "nana-personal.md");
 fs.mkdirSync(path.dirname(durableFile), { recursive: true }); fs.writeFileSync(durableFile, "durable fixture");
-fs.writeFileSync(path.join(agent, "desk.log"), "disposable fixture"); fs.writeFileSync(path.join(agent, "auth.json"), "secret fixture"); fs.writeFileSync(path.join(agent, "trust.json"), "ratified fixture");
+fs.writeFileSync(path.join(agent, "mcp-cache.json"), "disposable fixture"); fs.writeFileSync(path.join(agent, "auth.json"), "secret fixture"); fs.writeFileSync(path.join(agent, "trust.json"), "ratified fixture");
 fs.writeFileSync(path.join(agent, "nana-objective.md"), "durable fixture");
 fs.writeFileSync(path.join(agent, "settings.json"), "durable fixture");
 const classPaths = spawnSync(process.execPath, [cli, "state", "--paths", "--home", home], { encoding: "utf8" });

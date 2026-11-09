@@ -3,7 +3,7 @@
  * @module packages/nana-setup/bin/nana-setup.mjs
  * @purpose The nana-setup CLI parses argv, resolves one layout, runs its command and prints results.
  * @inputs argv (`install` | `uninstall` | `doctor` | `project [dir]` | `state` | `trust <dir>`, trust store, plus --home, --claude-home, --pi-home,
- *  --paths, --desk, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
+ *  --paths, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
  *  defaulted project dir; whatever resolveLayout reads (HOME, CLAUDE_CONFIG_DIR, PI_CODING_AGENT_DIR,
  *  NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
  * @outputs stdout: the install root / claude home / pi home banner, a "<mark> <label> <status>
@@ -25,7 +25,7 @@
  */
 // nana-setup — one command that makes this repo own the WHOLE nana experience: the Claude Code
 // half (hooks, rules, settings wiring, two-tier auto-memory), the user-scope pi config, the
-// PATH entry for pi-review, and — opt-in — the desk service.
+// PATH entry for pi-review.
 //
 //   node packages/nana-setup/bin/nana-setup.mjs install
 //   node packages/nana-setup/bin/nana-setup.mjs doctor
@@ -60,7 +60,6 @@ Options
   --home <dir>         put every user-scope location under <dir> (tests, dry machines)
   --claude-home <dir>  the .claude directory            (default: CLAUDE_CONFIG_DIR, else ~/.claude)
   --pi-home <dir>      the pi agent directory           (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
-  --desk               install + load the desk launchd service (macOS, opt-in)
   --name <n>           project: the project's name      (default: the folder's name)
   --check              project: one ✓/✗ line per file; exits 1 on any ✗
   --not-a-project      project: dismiss a git repository root once (writes .nana-not-a-project,
@@ -87,7 +86,6 @@ function parse(argv) {
 			if (!opts.name) throw new SetupError("--name needs a value");
 		} else if (a === "--paths") opts.paths = true;
 		else if (a === "--check") opts.check = true;
-		else if (a === "--desk") opts.desk = true;
 		else if (a === "--not-a-project") opts.notAProject = true;
 		else if (a === "--dry-run") opts.dryRun = true;
 		else if (a === "--yes" || a === "-y") opts.yes = true;

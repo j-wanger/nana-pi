@@ -16,10 +16,9 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { withPiStub } from "./stub-pi.mjs";
 
-const { diagnose, parsePlistValues } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
+const { diagnose } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const diagnoseWithPi = (...args) => withPiStub(() => diagnose(...args));
 const { pkgRoot, resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
-const { renderPlist, DESK_SERVER } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, displayPath } = await import(new URL("../../nana-pack/lib/objective.ts", import.meta.url).href);
 
 let fails = 0;
@@ -66,63 +65,6 @@ const personalCheck = (layout) => diagnoseWithPi(layout, { projectDir: layout.ba
 	const outsideCheck = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit retired hook");
 	// req: R-3741
 	check("doctor reports missing and out-of-repo knowledge hooks as retired", c?.status === "fail" && /retired hook/.test(c.detail) && outsideCheck?.status === "fail" && /nana-setup install/.test(outsideCheck.detail), `${JSON.stringify(c)} ${JSON.stringify(outsideCheck)}`);
-}
-
-{
-	const sample = '<key>ProgramArguments</key><array><string>/node</string><string>/desk/server.mjs</string></array><key>PATH</key><string>/bin</string>';
-	const parsed = parsePlistValues(sample);
-	// req: R-399
-	check("doctor parses ProgramArguments[0] as the service executable", parsed.programArguments[0] === "/node");
-}
-
-if (process.platform === "win32") {
-	console.log("SKIP desk service diagnostics (the launchd desk service is macOS-only)");
-} else {
-	const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-desk-running-"));
-	tmps.push(home);
-	const original = resolveLayout({ home });
-	const layout = { ...original, isRealHome: true };
-	fs.mkdirSync(path.dirname(layout.plistPath), { recursive: true });
-	const oldNode = path.join(home, "node-old");
-	fs.writeFileSync(oldNode, "#!/bin/sh\necho v22.18.0\n");
-	fs.chmodSync(oldNode, 0o755);
-	const stub = path.join(home, "launchctl");
-	fs.writeFileSync(stub, `#!/bin/sh\nprintf 'state = %s\\n' "${"$"}{FAKE_DESK_STATE:-running}"\n`);
-	fs.chmodSync(stub, 0o755);
-	const savedPath = process.env.PATH;
-	const savedPlatform = process.env.NANA_SETUP_PLATFORM;
-	process.env.PATH = `${home}:${savedPath}`;
-	process.env.NANA_SETUP_PLATFORM = "darwin";
-	const diagnoseDesk = (node, state = "running") => {
-		fs.writeFileSync(layout.plistPath, renderPlist({ LABEL: "com.nana.pi-desk", NODE: node, SERVER: DESK_SERVER, WORKDIR: pkgRoot, PATH: "/bin", LOG: path.join(home, "desk.log") }));
-		process.env.FAKE_DESK_STATE = state;
-		return diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "desk service");
-	};
-	try {
-		const healthy = diagnoseDesk(oldNode);
-		// req: R-399
-		check("doctor reads the plist executable rather than the current process", /Node v?22\.18\.0/.test(healthy?.detail ?? "") && healthy?.status === "fail", JSON.stringify(healthy));
-		const running = diagnoseDesk(process.execPath);
-		// req: R-399
-		check("doctor reports healthy only for running service and valid plist Node", running?.status === "ok" && running.detail.includes(`Node ${process.versions.node}`), JSON.stringify(running));
-		const floorNode = path.join(home, "node-floor");
-		fs.writeFileSync(floorNode, "#!/bin/sh\necho v22.19.0\n");
-		fs.chmodSync(floorNode, 0o755);
-		const exactFloor = diagnoseDesk(floorNode);
-		// req: R-399
-		// req: R-3794
-		check("doctor accepts exact desk Node floor 22.19.0", exactFloor?.status === "ok" && exactFloor.detail.includes("Node v22.19.0"), JSON.stringify(exactFloor));
-		const stopped = diagnoseDesk(process.execPath, "waiting");
-		const missing = diagnoseDesk(path.join(home, "absent-node"));
-		const tooOld = diagnoseDesk(oldNode);
-		// req: R-399
-		check("doctor rejects stopped, missing-node and below-floor desk services", stopped?.status === "fail" && /does not report state = running/.test(stopped.detail) && missing?.status === "fail" && /node executable is missing/.test(missing.detail) && tooOld?.status === "fail" && /Node v?22\.18\.0 is older/.test(tooOld.detail), `${JSON.stringify(stopped)} ${JSON.stringify(missing)} ${JSON.stringify(tooOld)}`);
-	} finally {
-		process.env.PATH = savedPath;
-		if (savedPlatform === undefined) delete process.env.NANA_SETUP_PLATFORM;
-		else process.env.NANA_SETUP_PLATFORM = savedPlatform;
-		delete process.env.FAKE_DESK_STATE;
-	}
 }
 
 try {

@@ -6,10 +6,10 @@
  * @effects disk (temporary fixtures), process (bounded fixture children).
  * @errors Failed checks exit nonzero.
  */
-import { DESK_NODE_FLOOR } from "../lib/doctor.mjs";
+import { PI_NODE_FLOOR } from "../lib/doctor.mjs";
 const check = (name, ok) => { console.log(ok ? "PASS" : "FAIL", name); if (!ok) process.exitCode = 1; };
 	// req: R-650
-	check("desk Node floor is pinned at 22.19", DESK_NODE_FLOOR === "22.19");
+	check("pi Node floor is pinned at 22.19", PI_NODE_FLOOR === "22.19");
 	// Node floor: the objective hook's CLI imports .ts unflagged (type stripping, default from 22.18)
 	{
 		const { nodeMeetsFloor, NODE_FLOOR } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);

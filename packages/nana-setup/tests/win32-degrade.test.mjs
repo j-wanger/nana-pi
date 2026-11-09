@@ -1,12 +1,12 @@
 /**
  * @module packages/nana-setup/tests/win32-degrade.test.mjs
- * @purpose Pins that on Windows every posix-only install step SAYS it skipped instead of failing, driven through the platform seam rather than by patching process.platform
+ * @purpose Pin Windows install copies, PATH shims and doctor behavior through the platform seam rather than patching process.platform
  * @inputs bin/nana-setup.mjs with NANA_SETUP_PLATFORM set to win32, lib/paths.mjs, and throwaway --home directories
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway home layouts and copied rule files), process (sets NANA_SETUP_PLATFORM, spawns the installer CLI)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
-// Gate: on Windows every posix-only step SAYS it skipped instead of failing. The repo rule is
+// Gate: Windows installs the supported surfaces without POSIX hook-file rows. The repo rule is
 // cross-platform or degrade gracefully — an installer that throws on win32 is the failure mode.
 // NANA_SETUP_PLATFORM is the seam (lib/paths.mjs); process.platform is never monkey-patched, so
 // sibling packages and the node runtime behave normally.
@@ -104,33 +104,6 @@ for (const label of ["settings SessionStart objective", "settings SessionStart a
 	check(`win32: ${label} is created, not skipped`, line(label).includes("created"), line(label));
 }
 check("win32: no hooks directory is created", !fs.existsSync(path.join(home, ".claude", "hooks")));
-check("win32: no launchd plist", !fs.existsSync(path.join(home, "Library", "LaunchAgents", "com.nana.pi-desk.plist")));
-
-{
-	const deskHome = freshHome();
-	const installDesk = run(["install", "--desk", "--home", deskHome], { NANA_SETUP_PLATFORM: "win32" });
-	const dryDesk = run(["install", "--desk", "--dry-run", "--home", deskHome], { NANA_SETUP_PLATFORM: "win32" });
-	const results = [installDesk, dryDesk].map((result) => {
-		const deskLines = result.stdout.split("\n").filter((outputLine) => /\bdesk\b/.test(outputLine));
-		return {
-			status: result.status,
-			deskLines,
-			noHookRow: !/^\s*\S hook /m.test(result.stdout),
-			stdout: result.stdout,
-			stderr: result.stderr,
-		};
-	});
-	// req: R-349
-	check("R-349: on win32, install --desk and its dry run create no hook folder and no launch agent, and report the desk service skipped (win32)",
-		results.every((result) => result.status === 0 &&
-			result.deskLines.length === 1 &&
-			/desk service\s+skipped\s+skipped \(win32/.test(result.deskLines[0]) &&
-			result.noHookRow) &&
-			!fs.existsSync(path.join(deskHome, "Library")) &&
-			!fs.existsSync(path.join(deskHome, ".claude", "hooks")),
-		JSON.stringify(results));
-}
-
 /* the pieces that DO work on Windows still run */
 const soul = path.join(home, ".claude", "rules", "nana-soul.md");
 // req: R-350
@@ -184,8 +157,6 @@ check("win32 doctor exits 0", doc.status === 0, doc.stdout);
 check("win32 doctor prints no ✗", !doc.stdout.includes("✗"));
 // req: R-1861
 check("win32 doctor prints no row labelled with a Claude Code hook script", printsNoHookFileRows(doc.stdout), doc.stdout);
-// req: R-937
-check("win32 doctor marks the desk service as skipped", /desk service\s+skipped \(win32\)/.test(doc.stdout));
 const healthyPathRows = [...pathBins.keys()].every((name) => new RegExp(`✓ PATH ${name}\\b`).test(doc.stdout));
 const nanaLandCmd = path.join(binDir, "nana-land.cmd");
 const nanaLandCmdPresent = fs.existsSync(nanaLandCmd);
