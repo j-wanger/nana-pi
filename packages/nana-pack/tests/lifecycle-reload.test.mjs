@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/lifecycle-reload.test.mjs
- * @purpose Pins the `/reload-runtime` command the desk depends on — registered exactly once under a non-colliding name, carrying a description, and calling ctx.reload once
+ * @purpose Pins the `/reload-runtime` command — registered exactly once under a non-colliding name, carrying a description, and calling ctx.reload once
  * @inputs extensions/nana-lifecycle.ts and a nana-pack.json under a temp HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME and config file), process (sets HOME and USERPROFILE)
@@ -18,10 +18,9 @@ process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 const USER_CFG = path.join(NANA_HOME, ".pi", "agent", "nana-pack.json");
 fs.mkdirSync(path.dirname(USER_CFG), { recursive: true });
-// /reload-runtime is the only way a non-TUI host (the desk, any RPC client) can
+// /reload-runtime is the only way a non-TUI host (any RPC client) can
 // make a RUNNING session pick up a skill added after it started — pi scans skill
-// locations at startup only. Three properties, all of them contract the desk
-// depends on:
+// locations at startup only. Three contract properties:
 //   a. the command is registered, under a name that does NOT collide with pi's
 //      built-in interactive /reload (pi skips a colliding extension command in
 //      the TUI autocomplete and the built-in shadows it, so the handler would
@@ -65,7 +64,7 @@ check("a: named reload-runtime", name === "reload-runtime", String(name));
 // req: R-164
 check("a: does not collide with a pi built-in command", !BUILTIN_COMMAND_NAMES.has(name), String(name));
 // req: R-164
-check("a: carries a description (desk completion and TUI autocomplete both show it)",
+check("a: carries a description (TUI autocomplete shows it)",
 	typeof options?.description === "string" && options.description.length > 0);
 
 // ── b. the handler reloads, and stops ──

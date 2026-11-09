@@ -1,31 +1,23 @@
 /**
  * @module packages/nana-pack/tests/agent-dir-parity.test.mjs
- * @purpose Pins ONE agent-dir resolution across the desk, the pack and nana-setup — three processes with three different cwds agree, and the desk pins its resolved absolute dir into every child
- * @inputs apps/desk/server.mjs, packages/nana-setup/bin/nana-setup.mjs, lib/agent-dir.mjs, a stub `pi` on PATH and a temp HOME
+ * @purpose Pin one agent-dir resolution across the pack and nana-setup, including scoped-home isolation.
+ * @inputs packages/nana-setup/bin/nana-setup.mjs, lib/agent-dir.mjs, a scoped pi version stub and a temp HOME
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOME and install targets), network (HTTP to the desk it binds on an ephemeral port), process (sets HOME and PI_CODING_AGENT_DIR, spawns the desk, the installer and the stub pi)
+ * @effects disk (temp HOME and install targets), process (sets HOME and PI_CODING_AGENT_DIR, spawns the installer and scoped pi stub)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
-// U2 fix round (MUST E, 2026-09-28): ONE agent-dir resolution across packages. For an absolute,
-// a relative and a tilde PI_CODING_AGENT_DIR (and unset), the desk (/api/settings paths) and
-// nana-setup (resolveLayout().piHome) resolve exactly piAgentDir(); `--home` keeps the installer
-// hermetic (an ambient PI_CODING_AGENT_DIR is not read, and the install writes under <home>).
-// U2 fix round 2 (sol r2 HIGH): the desk, the resolver and a session the desk SPAWNS now run from
-// three DIFFERENT cwds, so a relative value that each process resolved for itself would show up
-// as a split. The desk pins its resolved absolute dir into every child; absolute/tilde/unset pass
-// through untouched. The spawned "pi" is a stub that records the dir it resolves with pi's rule.
+// For absolute, relative, tilde and unset PI_CODING_AGENT_DIR, nana-setup resolves
+// exactly piAgentDir(). --home isolates installation from the ambient agent directory.
 // Run: node --experimental-strip-types packages/nana-pack/tests/agent-dir-parity.test.mjs
 import { tmpDir } from "./tmp-dir.mjs";
 import { withPiStub } from "../../nana-setup/tests/stub-pi.mjs";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
-import * as http from "node:http";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const SERVER = path.join(REPO, "apps", "desk", "server.mjs");
 const SETUP_BIN = path.join(REPO, "packages", "nana-setup", "bin", "nana-setup.mjs");
 const HOME = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "nana-u2p-")));
 process.env.HOME = HOME;
@@ -34,77 +26,10 @@ const ORIGINAL_CWD = process.cwd(); // win32 will not rmdir a live process cwd �
 process.chdir(HOME); // the relative case resolves against the process cwd; every child starts here too
 
 const { piAgentDir } = await import(new URL("../lib/gate-paths.ts", import.meta.url).href);
-// The app host no longer imports the transcript parser.
-const DESK_CWD = path.join(HOME, "desk-cwd"); // the desk's own start folder
-const PROJECT = path.join(HOME, "project"); // where the desk starts a session
-const BIN = path.join(HOME, "bin");
-const STUB_OUT = path.join(HOME, "stub-out.jsonl");
-for (const d of [DESK_CWD, PROJECT, BIN]) fs.mkdirSync(d);
-// stub pi: records its cwd, the raw env value and the dir pi's own rule resolves it to (agent-dir.mjs
-// IS that rule, resolved against THIS process's cwd), then answers get_state and idles.
-fs.writeFileSync(path.join(BIN, "pi"), `#!/usr/bin/env node
-import(${JSON.stringify(path.join(REPO, "packages", "nana-pack", "lib", "agent-dir.mjs"))}).then(({ piAgentDir }) => {
-	require("node:fs").appendFileSync(process.env.STUB_OUT, JSON.stringify({ cwd: process.cwd(), raw: process.env.PI_CODING_AGENT_DIR ?? null, dir: piAgentDir() }) + "\\n");
-});
-setTimeout(() => process.stdout.write(JSON.stringify({type:'extension_ui_request',method:'setStatus',statusKey:'nana-tools',statusText:'ready'}) + "\\n"), 20);
-let buf = "";
-process.stdin.on("data", (c) => {
-	buf += c;
-	for (let nl; (nl = buf.indexOf("\\n")) >= 0; ) {
-		const line = buf.slice(0, nl); buf = buf.slice(nl + 1);
-		let cmd; try { cmd = JSON.parse(line); } catch { continue; }
-		if (cmd.type === "get_state") process.stdout.write(JSON.stringify({ type: "response", id: cmd.id, command: cmd.type, success: true, data: { isStreaming: false, sessionFile: "/tmp/stub.jsonl", model: { provider: "stub", id: "stub" }, thinkingLevel: "off" } }) + "\\n");
-	}
-});
-`, { mode: 0o755 });
 const { resolveLayout } = await import(new URL("../../nana-setup/lib/paths.mjs", import.meta.url).href);
 
 let fails = 0;
 const check = (name, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : extra); if (!ok) fails++; };
-
-function get(port, p) {
-	return new Promise((resolve, reject) => {
-		http.get({ host: "127.0.0.1", port, path: p, headers: { host: `127.0.0.1:${port}` } }, (res) => {
-			let b = "";
-			res.on("data", (c) => (b += c));
-			res.on("end", () => resolve(JSON.parse(b)));
-		}).on("error", reject);
-	});
-}
-
-function post(port, p, body) {
-	return fetch(`http://127.0.0.1:${port}${p}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
-}
-
-// The desk runs in DESK_CWD; it starts one session in PROJECT and returns /api/settings + what that session resolved.
-async function deskSettings(env) {
-	fs.rmSync(STUB_OUT, { force: true });
-	const apps = path.join(HOME, 'apps'); fs.mkdirSync(apps, { recursive: true });
-	fs.writeFileSync(path.join(apps, 'parity.json'), JSON.stringify({ port: 0, cwd: PROJECT, tools: ['read'] }));
-	const child = spawn(process.execPath, [SERVER], { cwd: DESK_CWD, env: { ...process.env, ...env, HOME, DESK_PORT: "0", DESK_APPS_DIR: apps, STUB_OUT, PATH: `${BIN}${path.delimiter}${process.env.PATH}` }, stdio: ["ignore", "pipe", "pipe"] });
-	let log = "";
-	child.stdout.on("data", (c) => (log += c));
-	child.stderr.on("data", (c) => (log += c));
-	try {
-		const t0 = Date.now();
-		let port = null;
-		while (!port && Date.now() - t0 < 15000) {
-			port = Number(/http:\/\/127\.0\.0\.1:(\d+)/.exec(log)?.[1]) || null;
-			if (!port) await new Promise((r) => setTimeout(r, 50));
-		}
-		if (!port) throw new Error(`desk did not start: ${log}`);
-		const registry = await get(port, '/api/apps');
-		const appPort = registry.find(a => a.name === 'parity').port;
-		const sp = await post(appPort, '/api/session', {});
-		let session = null;
-		for (const t0 = Date.now(); !session && Date.now() - t0 < 10000; await new Promise((r) => setTimeout(r, 50)))
-			session = fs.existsSync(STUB_OUT) ? JSON.parse(fs.readFileSync(STUB_OUT, "utf-8").split("\n")[0] || "null") : null;
-		if (!session) throw new Error(`spawned session never reported: ${JSON.stringify(sp)} ${log}`);
-		return { session };
-	} finally {
-		child.kill();
-	}
-}
 
 const FORMS = [
 	["unset", undefined],
@@ -129,22 +54,6 @@ for (const [name, value] of FORMS) {
 	check(`[${name}] nana-setup default objective is in the active dir`, layout.piObjective === path.join(want, "nana-objective.md"), layout.piObjective);
 
 	check(`[${name}] nana-setup flags a cwd-specific piHome exactly when the value is relative`, !!layout.piHomeCwdRelative === (value === "rel-agent"), String(layout.piHomeCwdRelative));
-
-	// the desk resolves in ITS cwd (DESK_CWD), not this process's (HOME)
-	if (process.platform === "win32") {
-		console.log(`SKIP [${name}] desk leg: the desk's pi resolver is frozen on win32`);
-	} else {
-		const deskWant = value === "rel-agent" ? path.join(DESK_CWD, "rel-agent") : want;
-		const { session } = await deskSettings(value === undefined ? {} : { PI_CODING_AGENT_DIR: value });
-		check(`[${name}] the spawned session really ran in a DIFFERENT cwd than the desk`, session.cwd === PROJECT, session.cwd);
-		check(`[${name}] a manifest app child resolves the desk's active dir`, session.dir === deskWant, `${session.dir} vs ${deskWant}`);
-		if (value === "rel-agent") {
-			check("[relative] the desk pinned the absolute dir into the child env", session.raw === deskWant, session.raw);
-		} else {
-			check(`[${name}] the value reaches the child untouched`, session.raw === (value ?? null), String(session.raw));
-
-		}
-	}
 }
 
 // ── --home hermeticity: an ambient PI_CODING_AGENT_DIR must not leak into a --home run ──
@@ -191,7 +100,7 @@ for (const [name, value] of FORMS) {
 	}
 	check("--home doctor checks <home>/.pi/agent and says why", d.stdout.includes(`${path.join(tmpHome, ".pi", "agent")} (--home)`), d.stdout);
 	// req: R-952
-	check("--home doctor uses the scoped pi version stub", process.platform === "win32" ? d.stdout.includes("skipped (win32)") : /✓ pi executable\s+1\.0\.2/.test(d.stdout), d.stdout);
+	check("--home doctor uses the scoped pi version stub", /✓ pi executable\s+1\.0\.2/.test(d.stdout), d.stdout);
 	check("--home doctor: the objective file it checks is in <home>/.pi/agent", d.stdout.includes(path.join(tmpHome, ".pi", "agent", "nana-objective.md")), d.stdout);
 	delete process.env.PI_CODING_AGENT_DIR;
 }

@@ -14,19 +14,6 @@ export const TEST_PACKS = Object.freeze({
   "apps/bench/test/anatomy-labels.test.mjs": "module",
   "apps/bench/test/anatomy-seat.test.mjs": "module",
   "apps/bench/test/anatomy.test.mjs": "module",
-  "apps/desk/test/app-listener.test.mjs": "module",
-  "apps/desk/test/buffer-caps.test.mjs": "module",
-  "apps/desk/test/host-rule.test.mjs": "land",
-  "apps/desk/test/knowledge-home-isolation.test.mjs": "main",
-  "apps/desk/test/origin-rule.test.mjs": "module",
-  "apps/desk/test/page-retire.test.mjs": "module",
-  "apps/desk/test/pi-resolution.test.mjs": "module",
-  "apps/desk/test/pi-rpc-contract.test.mjs": "main",
-  "apps/desk/test/stage-chain.e2e.mjs": "manual",
-  "apps/desk/test/stage-key-persistence.test.mjs": "module",
-  "apps/desk/test/stage-page.e2e.mjs": "manual",
-  "apps/desk/test/stage-render-edge.e2e.mjs": "manual",
-  "apps/desk/test/usage-line.test.mjs": "module",
   "packages/nana-knowledge/tests/build-busy.test.mjs": "module",
   "packages/nana-knowledge/tests/discovery.test.mjs": "module",
   "packages/nana-knowledge/tests/hook.test.mjs": "module",
@@ -211,7 +198,6 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-setup/tests/checkout-spelling.test.mjs": "module",
   "packages/nana-setup/tests/claude-config-dir.test.mjs": "module",
   "packages/nana-setup/tests/copy-record.test.mjs": "main",
-  "packages/nana-setup/tests/desk-service.test.mjs": "module",
   "packages/nana-setup/tests/doctor-detail.test.mjs": "module",
   "packages/nana-setup/tests/doctor-fix-line.test.mjs": "module",
   "packages/nana-setup/tests/doctor-knowledge.test.mjs": "module",
@@ -276,8 +262,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-setup/tests/win-shims.test.mjs": "main",
   "packages/nana-setup/tests/win32-degrade.test.mjs": "main",
   "packages/nana-setup/tests/win32-hook-repair.test.mjs": "main",
-  "packages/nana-setup/tests/writing-rule.test.mjs": "module",
-  "packages/nana-stage/tests/blocks.test.mjs": "module"
+  "packages/nana-setup/tests/writing-rule.test.mjs": "module"
 });
 
 /** Fail closed rather than silently dropping a newly collected file. */

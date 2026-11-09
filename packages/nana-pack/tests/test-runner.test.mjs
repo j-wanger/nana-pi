@@ -658,7 +658,6 @@ const testRoots = [
 	...fs.readdirSync(path.join(REPO, "packages"), { withFileTypes: true })
 		.filter((entry) => entry.isDirectory())
 		.map((entry) => path.join(REPO, "packages", entry.name, "tests")),
-	path.join(REPO, "apps", "desk", "test"),
 	path.join(REPO, "apps", "bench", "test"),
 ];
 const tempFiles = testRoots.flatMap((dir) => fs.existsSync(dir)
@@ -697,8 +696,8 @@ const realTestsIn = (dir) => fs.existsSync(dir)
 	? fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith(".test.mjs")).map((e) => relRepo(path.join(dir, e.name)))
 	: [];
 const listedPaths = Object.keys(WINDOWS_SKIPS);
-const realDeskBenchPaths = [...realTestsIn(path.join(REPO, "apps", "desk", "test")), ...realTestsIn(path.join(REPO, "apps", "bench", "test"))];
-const windowsFixturePaths = [...new Set([...listedPaths, ...realDeskBenchPaths])];
+const realBenchPaths = realTestsIn(path.join(REPO, "apps", "bench", "test"));
+const windowsFixturePaths = [...new Set([...listedPaths, ...realBenchPaths])];
 const marker = (p) => p.split("/").join("__") + ".ran";
 const windowsFixtureBody = (p) => [
 	'import * as fs from "node:fs";',
@@ -793,13 +792,13 @@ check("R-1380: win32 SKIPs each file on the declared Windows skip list with its 
 // req: R-1381
 check("R-1381: off win32 each file on the declared Windows skip list runs", listedPaths.length > 0 && listedPaths.every((p) =>
 	labelFor(linuxRun.out, p) === "PASS" && ranMarker(linuxRun.out_dir, p)));
-const unlistedDeskBenchPaths = windowsFixturePaths.filter((p) => !Object.hasOwn(WINDOWS_SKIPS, p));
+const unlistedBenchPaths = windowsFixturePaths.filter((p) => !Object.hasOwn(WINDOWS_SKIPS, p));
 // req: R-1382
-check("R-1382: win32 still runs each desk and bench file off the declared Windows skip list", unlistedDeskBenchPaths.length > 0 && unlistedDeskBenchPaths.every((p) =>
+check("R-1382: win32 still runs each bench file off the declared Windows skip list", unlistedBenchPaths.length > 0 && unlistedBenchPaths.every((p) =>
 	labelFor(win32Run.out, p) === "PASS" && ranMarker(win32Run.out_dir, p)));
 // req: R-1383
 check("R-1383: the declared Windows skip list names only collected test files", listedPaths.length > 0 && listedPaths.every((p) =>
-	/^(?:packages\/[^/]+\/tests|apps\/(?:desk|bench)\/test)\/[^/]+\.test\.mjs$/.test(p) && !p.split("/").includes("fixtures") && fs.existsSync(path.join(REPO, p))));
+	/^(?:packages\/[^/]+\/tests|apps\/bench\/test)\/[^/]+\.test\.mjs$/.test(p) && !p.split("/").includes("fixtures") && fs.existsSync(path.join(REPO, p))));
 
 const benchSkips = Object.keys(WINDOWS_SKIPS).filter((p) => p.startsWith("apps/bench/"));
 if (benchSkips.length > 0) console.log("R-1521 offenders:", benchSkips.join(", "));

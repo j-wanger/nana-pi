@@ -148,17 +148,9 @@ function gitTree(label, entries) {
 	const retiredPath = "packages/nana-setup/lib/retired-fingerprints.json";
 	const retiredValues = new Set(Object.values(JSON.parse(fs.readFileSync(path.join(REPO, retiredPath), "utf8"))));
 	const skillKeys = new Set(Object.keys(JSON.parse(fs.readFileSync(path.join(REPO, "packages/nana-setup/lib/skill-copy-history.json"), "utf8"))));
-	const sealedDesk = new Map([
-		["apps/desk/public/stage/stage.css", [1, 0, 0, 0]],
-		["apps/desk/public/stage/stage.js", [1, 0, 0, 0]],
-	]);
 	const bytesDigest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 	const fileDigest = (relative) => bytesDigest(fs.readFileSync(path.join(REPO, ...relative.split("/"))));
 	const validAllowlist = (candidate) => candidate.allowlist.every((entry) => {
-		if (entry.reason === "frozen-desk") {
-			return entry.pin === undefined && sealedDesk.has(entry.path) &&
-				JSON.stringify(entry.counts) === JSON.stringify(sealedDesk.get(entry.path));
-		}
 		if (entry.reason !== "byte-pinned" || typeof entry.pin !== "string") return false;
 		let match = entry.pin.match(/^study\.json fixture\.sha256 ([a-f0-9]{64})$/);
 		if (match) {
@@ -181,12 +173,10 @@ function gitTree(label, entries) {
 		(candidate) => { candidate.allowlist[0].pin = "free text"; },
 		(candidate) => { candidate.allowlist[0].pin = "study.json fixture.sha256 ".concat("0".repeat(64)); },
 		(candidate) => candidate.allowlist.push({ path: "identity-scan.config.json", counts: [0, 0, 0, 0], reason: "byte-pinned", pin: `retired-fingerprints sha256 ${fileDigest("identity-scan.config.json")}` }),
-		(candidate) => candidate.allowlist.push({ path: "apps/desk/public/stage/extra.js", counts: [1, 0, 0, 0], reason: "frozen-desk" }),
-		(candidate) => { candidate.allowlist.find((entry) => entry.reason === "frozen-desk").counts[0]++; },
 	];
 	const rejected = mutations.map((mutate) => { const candidate = copy(); mutate(candidate); return !validAllowlist(candidate); });
 	// req: R-2518
-	check("every allowlist entry is byte-pinned or frozen-desk", validAllowlist(config) && rejected.every(Boolean),
+	check("every allowlist entry is byte-pinned", validAllowlist(config) && rejected.every(Boolean),
 		JSON.stringify({ entries: config.allowlist.length, rejected }));
 }
 

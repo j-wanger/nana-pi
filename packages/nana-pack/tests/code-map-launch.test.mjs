@@ -140,39 +140,12 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		['packages/nana-setup/tests/uninstall.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
+		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
+		['packages/nana-setup/tests/agent-dir-consumers.test.mjs -> packages/nana-setup/bin/nana-setup.mjs', 'desk cut 2026-11-09'],
 		['packages/nana-setup/lib/project.mjs -> packages/nana-pack/lib/json-text.mjs', 'FEAT-013 setup-tail stops seeding postEdit config; project no longer parses user config for the retired shadow guard.'],
 		['packages/nana-pack/tests/claude-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes the movement-only repository fixtures from launcher tests.'],
 		['packages/nana-pack/tests/immutable-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes movement-only repository fixtures; immutable snapshot checks remain.'],
-		...[
-			"apps/desk/public/app.js -> apps/desk/public/changes.js",
-			"apps/desk/public/app.js -> apps/desk/public/desk-client.mjs",
-			"apps/desk/public/app.js -> apps/desk/public/md.js",
-			"apps/desk/public/changes.js -> apps/desk/public/desk-client.mjs",
-			"apps/desk/server.mjs -> apps/desk/changes.mjs",
-			"apps/desk/test/changes-endpoint.test.mjs -> apps/desk/changes.mjs",
-			"apps/desk/test/changes-endpoint.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/changes-endpoint.test.mjs -> apps/desk/test/tmp-dir.mjs",
-			"apps/desk/test/crash-paths.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/crash-paths.test.mjs -> apps/desk/test/tmp-dir.mjs",
-			"apps/desk/test/live-feel.test.mjs -> apps/desk/public/desk-client.mjs",
-			"apps/desk/test/pi-087-entries.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/pi-087-entries.test.mjs -> apps/desk/test/tmp-dir.mjs",
-			"apps/desk/test/pi-session-parity.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/pi-session-parity.test.mjs -> apps/desk/test/tmp-dir.mjs",
-			"apps/desk/test/prompt-detach.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/prompt-detach.test.mjs -> apps/desk/test/tmp-dir.mjs",
-			"apps/desk/test/spawn-and-persist.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/spawn-and-persist.test.mjs -> apps/desk/test/tmp-dir.mjs",
-			"apps/desk/test/teardown-invariants.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/teardown-invariants.test.mjs -> apps/desk/test/tmp-dir.mjs",
-		].map(edge => [edge, "FEAT-016 retires the desk page, its changes/transcript controls and their tests; manifest app hosting remains."]),
-		...[
-			"apps/desk/test/app-listener.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/buffer-caps.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/stage-key-persistence.test.mjs -> apps/desk/pi-session.mjs",
-			"apps/desk/test/usage-line.test.mjs -> apps/desk/pi-session.mjs",
-			"packages/nana-pack/tests/agent-dir-parity.test.mjs -> apps/desk/pi-session.mjs",
-		].map(edge => [edge, "FEAT-016 app host no longer imports pi's transcript parser; surviving app tests no longer resolve that package."]),
 		["packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/json-text.mjs", "FEAT-041 moves settings carry into claude-settings-carry.mjs, which imports the JSON helpers."],
 		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/bounded-read.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
 		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/json-text.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
@@ -222,7 +195,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 		['packages/nana-pack/tests/mutation-runner.test.mjs', 'Seat runner tests retired with their code by R-3761.'],
 		['packages/nana-pack/tests/mutation-runner-takeover.test.mjs', 'Seat runner tests retired with their code by R-3761.'],
 	]);
-	for (const target of ['scripts/test-locked.mjs', 'scripts/runtime-measure.mjs', 'apps/desk/server.mjs']) losses.set(`packages/nana-pack/tests/process-tree.test.mjs -> ${target}`, 'R-3863 retires the duplicate-kill scan fixtures; runtime tree-kill assertions survive.');
+	for (const target of ['scripts/test-locked.mjs', 'scripts/runtime-measure.mjs']) losses.set(`packages/nana-pack/tests/process-tree.test.mjs -> ${target}`, 'R-3863 retires the duplicate-kill scan fixtures; runtime tree-kill assertions survive.');
 	losses.set('packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/lane-class-config.mjs', 'R-3761 removes lane classification from build output.');
 	losses.set('packages/nana-pack/bin/pi-worker.mjs -> scripts/lane-class.mjs', 'R-3761 removes lane classification from build output.');
 	for (const file of ['display-surfaces', 'config-handlers-malformed']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-post-edit.ts`, 'FEAT-013 removes the post-edit-only cases; surviving cases remain.');
@@ -230,7 +203,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	losses.set('packages/nana-pack/tests/adoption-producer.test.mjs -> packages/nana-pack/lib/config.ts', 'FEAT-013 adoption now reads only user-scope adoptionSettings; the test still exercises config via its dynamic import.');
 	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
 	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
-	for (const caller of ['lib/install-check.mjs', ...['install-check', 'desk-service', 'doctor-fix-line', 'install', 'linked-claude-folder', 'relative-agent-dir', 'rulings-install', 'settings-lock', 'skills-and-standards', 'win32-degrade', 'win32-hook-repair'].map(name => `tests/${name}.test.mjs`)]) losses.set(`packages/nana-setup/${caller} -> packages/nana-setup/lib/doctor.mjs`, 'FEAT-013 removes the delegation-runtime floor import with the vendor install and retry.');
+	for (const caller of ['lib/install-check.mjs', ...['install-check', 'doctor-fix-line', 'install', 'linked-claude-folder', 'relative-agent-dir', 'rulings-install', 'settings-lock', 'skills-and-standards', 'win32-degrade', 'win32-hook-repair'].map(name => `tests/${name}.test.mjs`)]) losses.set(`packages/nana-setup/${caller} -> packages/nana-setup/lib/doctor.mjs`, 'FEAT-013 removes the delegation-runtime floor import with the vendor install and retry.');
 	const retiredTargets = new Map([
 		['scripts/requirements-moved.mjs', 'R-3770 rehomes the shared runner in git-runner.mjs and removes movement.'],
 		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves execution into review-run.mjs, shared with the test harness.'],
@@ -256,7 +229,8 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 			if (retiredStudyModules.has(path)) losses.set(edge, `FEAT-034 retired study module ${path} and its runner-only tests; frozen records remain.`);
 			// Owner retirement (2026-11-07): the preview and all of its consumers left together.
 			const retiredPreview = [path, match[1]].some(file => file.startsWith(['apps', 'hive', ''].join('/')) || /^hive-/.test(file.split('/').at(-1)));
-			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || retiredPreview || (!graph.modules.has(match[1]) && retiredTargets.get(match[1])) || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
+			const retiredDesk = [path, match[1]].some(file => file.startsWith(['apps', 'desk', ''].join('/')) || file.startsWith(['packages', ['nana', 'stage'].join('-'), ''].join('/')) || file === ['packages/nana-setup/tests', ['desk', 'service.test.mjs'].join('-')].join('/'));
+			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || retiredPreview || retiredDesk || (!graph.modules.has(match[1]) && retiredTargets.get(match[1])) || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
 		}
 	}
 });

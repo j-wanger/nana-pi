@@ -33,7 +33,7 @@ function collected() {
 	const files = [];
 	const take = (dir) => { if (fs.existsSync(path.join(repo, dir))) for (const name of fs.readdirSync(path.join(repo, dir)).sort()) if (name.endsWith(".test.mjs")) files.push(`${dir}/${name}`); };
 	for (const pkg of fs.readdirSync(path.join(repo, "packages")).sort()) take(`packages/${pkg}/tests`);
-	take("apps/desk/test"); take("apps/bench/test");
+	take("apps/bench/test");
 	return files;
 }
 function fixtureRoot(name, files) {

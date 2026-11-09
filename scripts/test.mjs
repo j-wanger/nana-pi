@@ -5,7 +5,7 @@
  *  fresh temp HOME and report one line each.
  * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, --pack=list, --changed-from=ref, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
  *  NANA_COVERAGE_DIR (runtime-map's coverage knob), NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
- *  dir, apps/desk/test and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
+ *  dir and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
  *  file in non-verbose mode, one counted FAIL line when a finished file's temporary folder remains busy,
@@ -26,8 +26,7 @@
  */
 // The canonical test path: `npm test` from the repo root.
 //
-// Runs every packages/*/tests/*.test.mjs, apps/desk/test/*.test.mjs (unit only — the *.e2e.mjs
-// browser suites bind fixed ports and are never run here) and apps/bench/test/*.test.mjs (stub
+// Runs every packages/*/tests/*.test.mjs and apps/bench/test/*.test.mjs (stub
 // children, zero model calls), one file at a time, each as `node --experimental-strip-types
 // <file>` from its package dir, each with a FRESH temp HOME and USERPROFILE so no file can read
 // (or write) the real machine's dotfiles, and with every ambient NANA_* (but the NANA_TEST_* runner
@@ -223,7 +222,6 @@ function collect() {
 	if (isDir(pkgs)) {
 		for (const name of fs.readdirSync(pkgs).sort()) files.push(...testsIn(path.join(pkgs, name, "tests")));
 	}
-	files.push(...testsIn(path.join(root, "apps", "desk", "test")));
 	files.push(...testsIn(path.join(root, "apps", "bench", "test")));
 	return files.filter((f) => !excluded(f));
 }

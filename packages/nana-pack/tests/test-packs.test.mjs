@@ -24,7 +24,7 @@ async function check(title, fn) {
 await check("M1: every collected file has exactly one pack and omissions name the file", async () => {
   const { TEST_PACKS, packProblems } = await import("../lib/test-packs-config.mjs");
   const dirs = fs.readdirSync(path.join(root, "packages")).map(name => `packages/${name}/tests`);
-  dirs.push("apps/desk/test", "apps/bench/test");
+  dirs.push("apps/bench/test");
   const files = dirs.filter(dir => fs.existsSync(path.join(root, dir))).flatMap(dir => fs.readdirSync(path.join(root, dir), { withFileTypes: true }).filter(e => e.isFile() && e.name.endsWith(".test.mjs")).map(e => `${dir}/${e.name}`));
   assert.deepEqual(packProblems(files), []);
   assert.match(packProblems([...files, "packages/probe/tests/unassigned.test.mjs"]).join("\n"), /unassigned\.test\.mjs/);

@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/requirements-trace.test.mjs
  * @purpose Holds nana-pi to the requirements-first rail it ships: an implemented row has a marked test behind it, a lesser row has no marker contradicting it, every cited test exists and carries the marker, the EARS form count and allowance behave on fixtures, and the shipped CLI really prints the report line after the summary line.
- * @inputs scripts/requirements-trace.mjs, REQUIREMENTS.md, and the markers in the six test dirs npm test collects
+ * @inputs scripts/requirements-trace.mjs, REQUIREMENTS.md, and the markers in the four test dirs npm test collects
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (reads this checkout; writes and removes scratch dirs under the OS temp dir for the EARS fixtures), process (spawns the real CLI once)
  * @errors a failed check prints FAIL with the problem list and the run exits 1; an unexpected throw propagates and fails the run
@@ -11,7 +11,7 @@
 // no marker contradicting it, and every `implemented` row's evidence cites a test that exists
 // and carries the marker. The rail itself is the template's — scripts/requirements-trace.mjs is
 // a shim over templates/typescript/template/tests/requirements-trace.ts — and it is pointed at
-// the six test dirs `npm test` collects.
+// the four test dirs `npm test` collects.
 //
 // Reads this checkout only — no temp HOME needed, no network, no model — except the EARS
 // fixtures below, which write a throwaway scratch REQUIREMENTS.md to prove the count and the
@@ -69,7 +69,7 @@ const expectedRoots = [
 	...readdirSync(join(REPO_ROOT, "packages"), { withFileTypes: true })
 		.filter((entry) => entry.isDirectory() && existsSync(join(REPO_ROOT, "packages", entry.name, "tests")))
 		.map((entry) => `packages/${entry.name}/tests`),
-	"apps/desk/test", "apps/bench/test",
+	"apps/bench/test",
 ].sort();
 const nestedTests = TEST_ROOTS.flatMap((root) => {
 	const visit = (dir, depth = 0) => readdirSync(join(REPO_ROOT, dir), { withFileTypes: true }).flatMap((entry) => {
@@ -81,7 +81,7 @@ const nestedTests = TEST_ROOTS.flatMap((root) => {
 	});
 	return existsSync(join(REPO_ROOT, root)) ? visit(root) : [];
 });
-check("rail roots equal the package test roots and two app roots collected by npm test",
+check("rail roots equal the package test roots and one app root collected by npm test",
 	JSON.stringify([...TEST_ROOTS].sort()) === JSON.stringify(expectedRoots) && CALL_NAMES.includes("check"),
 	`rail=${TEST_ROOTS.join(",")} expected=${expectedRoots.join(",")}`,
 );

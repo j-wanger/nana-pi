@@ -490,7 +490,7 @@ check("R-1473: a file on the run-alone list runs while no other file runs, and t
 // R-1474: the declared run-alone list names only collected test files, each with a reason.
 // ════════════════════════════════════════════════════════════════════════════════════════════
 const runAlonePaths = Object.keys(RUN_ALONE);
-const COLLECTED_TEST_PATTERN = /^(?:packages\/[^/]+\/tests|apps\/(?:desk|bench)\/test)\/[^/]+\.test\.mjs$/;
+const COLLECTED_TEST_PATTERN = /^(?:packages\/[^/]+\/tests|apps\/bench\/test)\/[^/]+\.test\.mjs$/;
 const runAloneOk = runAlonePaths.length > 0 && runAlonePaths.every((p) =>
 	COLLECTED_TEST_PATTERN.test(p) && fs.existsSync(path.join(REPO, p)) && typeof RUN_ALONE[p] === "string" && RUN_ALONE[p].trim().length > 0);
 // req: R-1474

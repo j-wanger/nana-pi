@@ -70,19 +70,19 @@ check("no module in a package imports an app", reversed.length === 0, reversed.j
 check("every module lands in a declared layer", graph.order.every((p) => graph.modules.get(p).layer), "a module has no layer");
 
 // G-011: the blast radius of a change is one command away, and it crosses the layer
-// boundary — the desk is downstream of the pack's agent-dir resolver.
+// boundary — the bench is downstream of the pack's agent-dir resolver.
 const blast = impact(graph, ["packages/nana-pack/lib/agent-dir.mjs"]);
 // req: G-011
 check("the map gives a change's transitive callers across the layer boundary",
-	blast.callers.includes("apps/desk/server.mjs") && blast.callers.includes("packages/nana-setup/lib/paths.mjs"),
+	blast.callers.includes("apps/bench/anatomy.mjs") && blast.callers.includes("packages/nana-setup/lib/paths.mjs"),
 	`callers: ${blast.callers.join(" ")}`,
 );
 check("an unmapped path is reported as unmapped rather than silently empty",
-	impact(graph, ["apps/desk/test/live-feel.e2e.mjs"]).per[0].known === false,
+	impact(graph, ["docs/code-map.md"]).per[0].known === false,
 	"an ignored path was reported as mapped",
 );
 
-// A TEST MODULE IS A MODULE. The six dirs `npm test` collects are mapped roots (each declared
+// A TEST MODULE IS A MODULE. The four dirs `npm test` collects are mapped roots (each declared
 // layerExempt — a test may import across the layer direction), so a test carries the same contract
 // header as any other module and a dropped header is a --check failure. Before this they were
 // `ignore`d, which made the "every module" rule silently stop at the suite.
@@ -260,7 +260,7 @@ try {
 	);
 	const before = run("--check").stdout ?? "";
 
-	const MUT = "packages/nana-stage/tests/blocks.test.mjs";
+	const MUT = "apps/bench/test/anatomy.test.mjs";
 	const mutFile = path.join(scratch, MUT);
 	const kept = fs.readFileSync(mutFile, "utf-8");
 	const end = kept.indexOf("*/");

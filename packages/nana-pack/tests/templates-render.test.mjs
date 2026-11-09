@@ -472,18 +472,17 @@ function checkInstructionContracts() {
 	const planner = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/planner.md"), "utf8");
 	const standard = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/review-standard.md"), "utf8");
 	const procedure = `${soul}\n${seat}`;
-	const desk = fs.readFileSync(path.join(REPO, "apps/desk/README.md"), "utf-8");
 	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
 		fs.readFileSync(path.join(REPO, file), "utf-8"));
 	const support = frontDoors.map((text) => [...text.matchAll(/^Support:.*$/gm)].map((match) => match[0]));
 	// req: R-680
 	check("shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory",
 		runtimeInventoryDocumented(runtimeInventory(), shared) && !runtimeInventoryDocumented([...runtimeInventory(), "unmapped-extension-fixture"], shared) &&
-		["Claude Code seat", "pi TUI or desk", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
+		["Claude Code seat", "pi TUI session", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
 		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge search", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
 		[
 			"| Claude Code seat | SessionStart `nana-objective.mjs` (objective/frontier), `nana-adoption.mjs`, `nana-shared-memory.mjs`; nana-soul / nana-standards; shared nana-writing rule and `nana-rulings.md` | No nana Gate or Verifier pipe; Claude-owned Compaction summary, no nana HANDOFF producer; `nana-roster-notice.mjs` notice |",
-			"| pi TUI or desk session | `nana-objective`, `nana-frontier-summary`; `nana-writing`, `nana-rulings`; no soul/standards or shared auto-memory | `nana-gate` for bash/PowerShell; `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction; `nana-roster-notice` widget |",
+			"| pi TUI session | `nana-objective`, `nana-frontier-summary`; `nana-writing`, `nana-rulings`; no soul/standards or shared auto-memory | `nana-gate` for bash/PowerShell; `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction; `nana-roster-notice` widget |",
 			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; frontier adds nothing under `NANA_ROLE` | Same gate/journal; roster notice has no UI |",
 			"| Codex | Unsupported; no nana runtime contract | Not specified |",
 		].every((v) => shared.includes(v)));
@@ -529,7 +528,7 @@ function checkInstructionContracts() {
 	// req: R-683
 	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "pi-worker", "pi-review", "different model lineage"].every((v) => procedure.includes(v)) && shared.includes("overrides belong in that project's own section AFTER this marker region"));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
-	const canonicalSupport = `Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.`;
+	const canonicalSupport = `Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1 && lines[0] === canonicalSupport) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
 	// req: R-1126
@@ -582,10 +581,6 @@ function checkInstructionContracts() {
 	check("shared working pattern says the builder builds every lane when the roster sets no larger-lane builder",
 		largerLanesBullets.length === 1 && largerLanesBullets[0].includes("With no `largerBuilder`, the builder builds every lane."),
 		JSON.stringify(largerLanesBullets));
-	check("app host matrix states manifest-only resources and the terminal trust step",
-		desk.includes("Only manifest-listed skills and extensions load.") &&
-		desk.includes("No nana-pack surfaces load unless the manifest lists their extensions.") &&
-		desk.includes("`/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session."));
 	// req: R-1100
 	check("shared working pattern requires a threat model per plan",
 		rulings.includes("Every plan names its threat model: honest variation in scope, deliberate forgery out."));

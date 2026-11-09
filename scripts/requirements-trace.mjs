@@ -2,7 +2,7 @@
 /**
  * @module scripts/requirements-trace.mjs
  * @purpose Run the project template's requirements-trace rail over this repo, so every REQUIREMENTS.md row's status is measured against the `req:` markers nana-pi's suites carry.
- * @inputs REQUIREMENTS.md at the repo root, every *.test.mjs under the six test roots named here, and the process environment
+ * @inputs REQUIREMENTS.md at the repo root, every *.test.mjs under the four test roots named here, and the process environment
  * @outputs the summary line, the `ears:` off-form line, one problem line per disagreement between a row's status, form or evidence and the markers, and the opt-in unclaimed-declaration listing
  * @effects disk (reads REQUIREMENTS.md and the test sources), process (writes reports and sets a non-zero exit code when a row and the suite disagree)
  * @errors exit 1 with the problem list; a thrown Error for a malformed requirements table, a bad requirement id or a marker that sits above no test call
@@ -37,9 +37,7 @@ export const TEST_ROOTS = [
 	"packages/nana-pack/tests",
 	"packages/nana-knowledge/tests",
 	"packages/nana-setup/tests",
-	"packages/nana-stage/tests",
 	"apps/bench/test",
-	"apps/desk/test",
 ];
 
 /** How this repo's suites spell a test declaration. */

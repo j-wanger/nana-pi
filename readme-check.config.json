@@ -4,9 +4,7 @@
     "README.md",
     "packages/nana-pack/README.md",
     "packages/nana-knowledge/README.md",
-    "packages/nana-stage/README.md",
     "packages/nana-setup/README.md",
-    "apps/desk/README.md",
     "apps/bench/README.md"
   ],
   "undocumented": [],
@@ -62,10 +60,6 @@
     {
       "path": "extensions/subagent/config.json",
       "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`); never a file in this repo — a third-party vendor extension's config nana-setup only seeds there (architecture-ruling.md, 2026-10-04)"
-    },
-    {
-      "path": "nana-desk/stage-keys",
-      "reason": "pi's ACTIVE agent dir (`PI_CODING_AGENT_DIR` when set, else `~/.pi/agent`) — or, for `settings.json`, that dir or `~/.claude`; never a file in this repo"
     },
     {
       "path": ".pi",

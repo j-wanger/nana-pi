@@ -31,8 +31,6 @@ let skips = 0;
 
 function copyFixture() {
 	fs.copyFileSync(path.join(checkout, "package.json"), path.join(copied, "package.json"));
-	fs.mkdirSync(path.join(copied, "apps", "desk"), { recursive: true });
-	fs.copyFileSync(path.join(checkout, "apps", "desk", "server.mjs"), path.join(copied, "apps", "desk", "server.mjs"));
 	fs.mkdirSync(path.join(copied, "packages"), { recursive: true });
 	for (const name of ["nana-setup", "nana-pack", "nana-knowledge"])
 		fs.cpSync(path.join(checkout, "packages", name), path.join(copied, "packages", name), { recursive: true });
