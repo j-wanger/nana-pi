@@ -140,6 +140,7 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		['packages/nana-pack/tests/brief-check.test.mjs -> packages/nana-pack/tests/slow-sampler.mjs', 'Cut A 2026-11-09: brief-check.test no longer launches pi-worker'],
 		['packages/nana-setup/tests/uninstall.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
 		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
 		['packages/nana-setup/tests/agent-dir-consumers.test.mjs -> packages/nana-setup/bin/nana-setup.mjs', 'desk cut 2026-11-09'],
