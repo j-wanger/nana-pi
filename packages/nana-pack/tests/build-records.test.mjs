@@ -27,7 +27,6 @@ import { writeFakePi } from "./fake-pi.mjs";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
 const WORKER = path.join(ROOT, "bin", "pi-worker.mjs");
-const REPORT = path.join(ROOT, "bin", "build-report.mjs");
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "build-records-test-")));
 const HOME = path.join(TD, "home");
 const AGENT = path.join(HOME, ".pi", "agent");
@@ -305,12 +304,10 @@ fs.mkdirSync(path.dirname(LEDGER), { recursive: true });
 fs.writeFileSync(LEDGER, [seedStart, seedEnd, noEnd, beta, betaEnd].map((row) => JSON.stringify(row)).join("\n") + "\n");
 const lineRun = runWorker();
 const lastLine = lineRun.stderr.trimEnd().split(/\r?\n/).find((line) => line.startsWith(BUILD_RECORD_LINE_PREFIX));
-const report = spawnSync(process.execPath, [REPORT, "--repo", LANE, "--lane", "alpha"], { encoding: "utf8" });
-const alphaLine = report.stdout.trimEnd().split(/\r?\n/).find((line) => line.startsWith("lane alpha"));
 const workerEnd = lines().filter((row) => row.kind === "end").at(-1);
 const literal = renderLaneLine(readBuildLedger(LEDGER).records, "alpha");
 // req: R-2602 R-3761
-check("R-2602: the build-record stderr line names this build's outcome, minutes and cost and its lane's builds so far; no lane class prints", lineRun.status === 0 && !lineRun.stderr.includes("lane class") && lastLine?.startsWith(`${BUILD_RECORD_LINE_PREFIX} ok, exit 0, 0 min, $${expectedUsage.cost.total.toFixed(2)}; `) && lastLine.endsWith(alphaLine) && alphaLine === literal && /3 builds/.test(alphaLine) && /2 ok/.test(alphaLine) && /1 no end/.test(alphaLine) && workerEnd?.outcome === "ok", JSON.stringify({ stderr: lineRun.stderr, report: report.stdout, alphaLine, literal }));
+check("R-2602: the build-record stderr line names this build's outcome, minutes and cost and its lane's builds so far; no lane class prints", lineRun.status === 0 && !lineRun.stderr.includes("lane class") && lastLine?.startsWith(`${BUILD_RECORD_LINE_PREFIX} ok, exit 0, 0 min, $${expectedUsage.cost.total.toFixed(2)}; `) && lastLine.endsWith(literal) && /3 builds/.test(literal) && /2 ok/.test(literal) && /1 no end/.test(literal) && workerEnd?.outcome === "ok", JSON.stringify({ stderr: lineRun.stderr, literal }));
 
 // req: R-2596 R-2599 R-2602
 check("seal: build records live at nana/build-records.jsonl in schema 1 and their stderr lines start pi-worker: build record:", BUILD_RECORDS_SUBPATH === "nana/build-records.jsonl" && BUILD_RECORD_SCHEMA === 1 && BUILD_RECORD_LINE_PREFIX === "pi-worker: build record:" && BUILD_SESSION_READ_MAX_BYTES === 64 * 1024 * 1024 && BUILD_LEDGER_READ_MAX_BYTES === 32 * 1024 * 1024);

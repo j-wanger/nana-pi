@@ -2252,8 +2252,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Failed checks print their title and make the process exit nonzero.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
-- **unresolved launches** — line 138: spawnSync · line 209: spawn · line 308: spawnSync
-- **repo-code launches** — line 244: spawnSync
+- **unresolved launches** — line 137: spawnSync · line 208: spawn
+- **repo-code launches** — line 243: spawnSync
 
 ### `packages/nana-pack/tests/builder-context.test.mjs`
 
