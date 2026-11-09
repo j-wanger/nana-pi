@@ -64,5 +64,6 @@
 - Launch edges (map-spawn-edges, plan residual): workflows, config, templates and HTML are unmapped, and `--impact` has no machine-readable selector output yet; the CI lane needs both.
 - Launch edges (map-spawn-edges, plan residual): self-relaunches, extensions pi loads from a folder, hooks loaded through settings, temporary copies and browser-loaded code stay unresolved or declared, never linked.
 - Launch edges (map-spawn-edges, final review): renamed or injected runners (`start` in `lane-watcher.mjs`, `run` in `review-movement.mjs`, `runner("powershell")` in `process-tree-helper.mjs`, `run = spawnSync` in `hook-producer.mjs`) are invisible and unreported; their tests are always-run today only through other routes.
-- Launch edges (map-spawn-edges, final review): `config-display-text`, `config-handlers-malformed` and `hive-page` tests load modules through computed `import(new URL(...))` and template specifiers, so they are neither linked nor always-run.
+- Carry (map-spawn-edges): `config-display-text.test.mjs` and `config-handlers-malformed.test.mjs` use computed imports, leaving them neither linked nor always-run in the launch graph.
 - Runtime map (ci-suite, plan residual): a land that uses CI as the suite does not refresh the runtime map; fallback lands and hand runs do.
+- Carry (hive-retire): `code-map-launch.test.mjs` exempts lost hive edges by path pattern rather than a named list, allowing unrelated losses under that pattern.

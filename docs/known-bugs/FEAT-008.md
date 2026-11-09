@@ -19,7 +19,6 @@
 - Land reads CI (land-reads-ci): removing `origin` locally skips the read, with the note.
 - Land reads CI (land-reads-ci): the fake-gh command case runs only off Windows; the Windows leg runs the real spawn only through the no-gh case.
 - Land reads CI (land-reads-ci): doctor does not report gh or its sign-in, so a seat learns of a missing gh at its first land.
-- Land reads CI (land-reads-ci): each land waits for its tip's CI, about 21 minutes after the last push. A cancelled run must be re-run first. Only a conflicting or unsupported merge costs another merge build, CI run and review; an eligible clean merge reuses the accepted tip's CI. During a GitHub outage nothing lands.
 - Land reads CI (land-reads-ci, independent check): a workflow whose jobs are all skipped by `if:` ends `completed/skipped`, so its repository would refuse every land, and a re-run does not help. No workflow here has one.
 - Land reads CI (land-reads-ci, independent check): an `action_required` run gets the catch-all "fix the workflow result, then run it again", where it needs the run approved. "CI response is not a workflow-run list" names no remedy.
 - Land reads CI (land-reads-ci, independent check): the time-out check also calls a kill at the output limit "timed out". A run whose name is null fails the whole list.
@@ -73,9 +72,17 @@
 - CI as the suite (ci-suite, final review): the changed-path listing quotes non-ASCII paths, so a workflow file with a non-ASCII name would not match the workflows folder.
 - CI as the suite (ci-suite, final review): a future `.github/actions/` folder is not on the fallback list.
 - Land test split (land-test-split, review round 1): R-3490's 180 s bound is backed only by lane-folder timing records; no tagged check measures time, so a later slowdown goes uncaught.
-- Clean merge (land-clean-merge, A7): the merge path re-reads CI once before taking the lock; a run starting after that snapshot is not seen. The fast-forward path still reads once.
-- Clean merge (land-clean-merge, A8): lands serialize only when they share a review-ledger home; another home or an external main operation can race the final check and fast-forward.
-- Clean merge (land-clean-merge, A9): exposure lasts from land until someone pushes main and its run reports; lands can stack in that window. Only macOS and Windows block; a Linux-only break can leave CI green.
-- Clean merge (land-clean-merge, M8): a textually clean merge can break the build; the lane intentionally gives up merge-result CI and review.
-- Generated-file regeneration (land-regenerate-generated, review round 1): the shared guidance says code-map and tree conflicts count as no conflict, but scaffolded projects lack one of the two generators, so such a conflict there refuses with generatorScope ENOENT.
 - CI wait (ci-wait-ready, plan): a run cancelled by hand looks like a capacity cancellation, so nana-ci-wait re-runs its cancelled jobs up to twice.
+- Carry (ci-wait-ready): `ci-wait.mjs` treats a job cancelled at its timeout as capacity-cancelled, potentially rerunning a real hang; live behaviour remains unconfirmed.
+- Carry (ci-wait-ready): `bin/nana-ci-wait.mjs` omits the progress callback, buffering rerun notices until the wait ends.
+- Carry (win-shards): `nana-land.mjs` refuses after one failed CI jobs-list read rather than retrying or falling back locally.
+- Carry (win-shards): `.github/workflows/ci.yml` can skip release after partial reruns if shard success flags do not carry; this fails safely.
+- Carry (win-shards): `nana-land.mjs` refuses while main's newest push run is unfinished; it offers no main-run wait helper.
+- Carry (land-fix-red): `nana-land.mjs` blocks `--fixes-red` when a failed main leg leaves no readable record.
+- Carry (land-fix-red): `nana-land.mjs` holds the review-ledger lock during its final main-CI reread, delaying review admission and completion.
+- Carry (land-fix-red): `main-ci.mjs` marks cancelled main runs with complete records red-readable, allowing `--fixes-red` to authorize them.
+- Carry (land-merged-tests): `nana-land.mjs` swallows merge-coverage computation errors, leaving only uncovered-commit diagnostics without the refusal cause.
+- Carry (land-merged-tests): `ci-wait.mjs` waits for generated-only conflicting PRs although `nana-land.mjs` refuses their tips when main has moved.
+- Carry (land-merged-tests): `packages/nana-pack/README.md` suggests rebuilding generators on conflicts, omitting clean textual merges whose generated output also needs rebuilding.
+- Carry (land-merged-tests): `nana-land.mjs` checks review coverage before moved-main refusal, so hand-resolved lane merges can hide the needed main-merge remedy.
+- Carry (land-merged-tests): `packages/nana-pack/README.md` phrases `merge.renormalize=false`, `check-attr --source`, `git ≥ 2.40` and `bors-ng` lack direct tests after M9's removal.

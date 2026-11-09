@@ -19,7 +19,6 @@
 - Context shaping (context-anatomy, independent check): indented continuation lines and sub-headings in an over-cap known-bug file are dropped and not counted in the fold.
 - Context shaping (context-anatomy, independent check): on a Claude-only machine with no `~/.pi` the hook creates `~/.pi/agent` for its log.
 - Review ledger (context-anatomy, independent check): a hung `claude -p` reviewer has no stall timeout in review-ledger, so a review can hang until killed.
-- Context shaping (roster-roles, review round 1): by default the checker runs on the builder entry and shares the model family of the work it checks; the lineage warning compares the checker only with the reviewer, so this is never flagged.
 - Context shaping (roster-roles, review round 1): a role launch without `--out` is refused with only `pi-worker: slot refused: usage` and no usage line.
 - Context shaping (roster-roles, review round 1): a `--brief` value starting with a single `-` passes the role checks and is refused later by the lane check, after the role temp folder was made; the refusal removes it.
 - Context shaping (roster-roles, review round 1): older checkouts refuse new role keys or a Claude Code scout, as the owner accepted.
@@ -36,3 +35,6 @@
 - Context shaping (leak-guard, review round 1): on Linux the temp root is `/tmp`, so any committed `/tmp/...` mention is flagged; 362 tracked files mention it, and no Linux seat is recorded.
 - Context shaping (leak-guard, review round 1): a home or temp root followed directly by a backtick, comma or parenthesis isn't matched; only a separator, quote, whitespace or end of text closes a match.
 - Context shaping (leak-guard, review round 1): a submodule entry in the range makes the scan exit 2 (loud, not silent), and Windows PowerShell 5.1 lacks the `&&` the seat-rule bullet uses.
+- Carry (leak-guard): `lib/leak-scan.mjs` scans merge-commit first-parent diffs, flagging already-public main content brought into a lane.
+- Carry (leak-guard): `lib/leak-scan.mjs` refuses unknown base or tip refs without identifying which ref failed.
+- Carry (ci-flakes): `context-anatomy.test.mjs` no longer bounds post-deadline launcher delay in R-3732 beyond its twenty-second spawn timeout.

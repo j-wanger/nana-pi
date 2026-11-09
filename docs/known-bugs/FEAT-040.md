@@ -59,3 +59,5 @@
 - Session-end making (making-session-end, land review round 1): the hook starts the detached run for every repository; a repository not enabled starts a node process that exits at the opt-in check without reading the profile or calling a model.
 - Memory making (claude-cmd-launch, plan residual): `apps/bench/lib/catch-judge.mjs`'s own default spawn, used when no spawn is injected, still calls bare `claude`; the bench runs on the seat Mac.
 - Memory curation (memory-curation, review round 1): a skip covers only one owner turn.
+- Carry (memory-end-ebusy): `tests/profile-fixture.mjs` assumes its roughly one-second folder-removal retry window covers Windows holds on remote.git; the hold duration remains unmeasured.
+- Carry (memory-cuts): `tests/memory-shaping.test.mjs` tags surviving runner-isolation behaviour with retired R-3316 rather than a live requirement.

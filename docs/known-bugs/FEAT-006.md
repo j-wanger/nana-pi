@@ -121,7 +121,6 @@
 - Hard-kill watcher (hard-kill-watcher, plan): only macOS ran the probes. CI's Windows leg is the only check of the Windows paths, and no real pi or Claude builder ran under a hard kill.
 - Hard-kill watcher (hard-kill-watcher, independent check): if the builder's pid record cannot be read, because someone deleted the lane folder or the file, the watcher releases the lock without a builder check. A relaunch can then run a second builder in one worktree.
 - Hard-kill watcher (hard-kill-watcher, independent check): when the recorded builder is dead, the watcher still ends its process group. A stranger leading a group under the freed pid could lose a member; the kernel does not reuse a pid while its group exists.
-- Hard-kill watcher (hard-kill-watcher, independent check): the one-second start-time tolerance never helps a real builder on macOS, because the start time rounds down. It only widens the reuse window toward two seconds, so its stated reason is wrong.
 - Hard-kill watcher (hard-kill-watcher, independent check): a `stopped` end record can name a builder that still runs: when the lock stays because a builder may run, and when the pid record is missing. The pack README does not say so.
 - Hard-kill watcher (hard-kill-watcher, independent check): the start-time read reuses the watcher's git timeout, so retuning one retunes the other.
 - Hard-kill watcher (hard-kill-watcher, independent check): the builder's captured output now sits inside the lane folder, so deleting only that folder loses it (inferred).
@@ -161,3 +160,7 @@
 - Builder preamble (ci-wait-ready, build 1): the preamble's rule to stop when `gh` is missing fires on lanes whose subject is gh, though they need no real gh; the workaround is a brief line saying gh is not needed.
 - Precedent check (precedent-line-parse, plan attack): a bullet whose first word is a tracked folder name and that holds no backticked path passes the Precedent check.
 - Precedent check (precedent-line-parse, final review): a bullet whose first word is a tracked extensionless file or folder and that holds a later non-path code span is now refused, and the rule sentence 'or as its first word' does not explain why; backtick the subject to pass.
+- Carry (watcher-clock): `lib/lane-watcher.mjs` estimates process starts late by whole-second rounding plus ps delay; coarse record timestamps can leave real builders' locks behind.
+- Carry (watcher-clock): `bin/worker-config.mjs` still explains start-time tolerance using ps lstart, although the watcher now reads etime.
+- Carry (watcher-clock): `lib/lane-watcher.mjs` accepts malformed etime text `:30` as thirty seconds, although ps never emits it.
+- Carry (ci-suite): `bin/worker-config.mjs` does not require fallback full-suite evidence on the last commit, allowing an early green run in CI-silent projects.

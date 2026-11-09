@@ -91,3 +91,5 @@
 - Adoption window (adoption-window, plan): the A-025 Artifact line's writer list stays as the assessment found it. So does the state inventory's journal path under PI_CODING_AGENT_DIR.
 - Adoption window (adoption-window, plan): the journal's failure and security events still have no code reader.
 - Adoption window (adoption-window, final review): R-2851 and R-2852 speak of any whole line at or before the window start, but the code checks only the first dated whole line.
+- Carry (ci-flakes): `templates-update.test.mjs` generation once left a stale map; uvx and status checks expose recurrence without explaining the original failure.
+- Carry (setup-tail): `copier.yml` allows Copier 9.0.0, whose update may delete edited pack configuration after the template stopped shipping it.

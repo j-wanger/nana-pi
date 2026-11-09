@@ -150,3 +150,9 @@
 - Windows check timing (windows-first-try, review round 1): a shard set-up over about 2 s can still fail the check.
 - Signal tests (signal-test-race, review round 1): worker-claude R-2720's Ubuntu failure (run 41343316046) ended with the builder gone and the temp files cleaned but the lane lock kept; the lane watcher's release either could not confirm the builder's start time within its 1 s tolerance or the builder outlived the 2 s wait (inferred). It is not a signal race and stays open.
 - Windows test limits (land-test-split, review round 1): `profile-store-guards.test.mjs` takes 249.5 s alone on the Windows laptop and 264 s on the hosted Windows runner, close to the 300 s per-file limit.
+- Carry (knowledge-busy): `packages/nana-knowledge/tests/build-busy.test.mjs` M7 failed once on unrelated Windows CI at 6ed9d275; recurrence and cause remain unconfirmed.
+- Carry (selective-ci): `lib/main-ci.mjs` can post unreadable or wrong-schema records as suite failures, contradicting its missing-input comment.
+- Carry (selective-ci): `lib/ci-records.mjs` marks failed artifact downloads as missing legs; `lib/main-ci.mjs` can post false suite failures for green runs.
+- Carry (selective-ci): `lib/main-ci.mjs` constructs commands by replacing ` --root `, corrupting commands when that text occurs earlier inside the project path.
+- Carry (win-shards): `lib/main-ci.mjs` skips required-job checks outside folders containing the toolkit package manifest.
+- Carry (signal-test-race): `worker-claude.test.mjs` retains unused Windows WC_HOLD_FILE handling because R-2693 skips Windows.

@@ -137,3 +137,6 @@
 - Visual check (visual-check, final review): the watchdog writes the child's error stream into reader.md, so a Claude Code warning can add a stray line.
 - Land report (ci-suite, plan residual): a land that uses CI as the suite does not refresh the land report; fallback lands and hand runs do.
 - Component audit (audit-test-speed, build 1): three other cases audit the real repository and run 5 to 12 seconds locally (R-3101, R-3103, R-3106 at 12.3 s), so they grow with the repository toward the 20 s limit.
+- Carry (audit-test-speed): `component-audit.test.mjs` R-3104 does not distinguish first-parent history from full history after merging its fixture branch.
+- Carry (audit-test-speed): `component-audit.test.mjs` R-3100, R-3105, R-3108 and R-3110 audit the real repository without individual elapsed-time measurements.
+- Carry (hive-retire): `component-audit.test.mjs` R-3777 also passes before preview retirement, so it does not distinguish the removed city-plan coupling.

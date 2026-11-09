@@ -20,3 +20,6 @@
 - Builder anatomy labels (anatomy-label-check, final review): pooled per-function counts use the union of labels from three labellers, which can exceed the pair's κ denominator and make near-threshold counts unclear.
 - Builder anatomy labels (anatomy-label-check, final review): precedent's model:B agreement is displayed as 0.70 to two decimals against a 0.7 bar, so rounding can hide a shortfall.
 - Builder anatomy labels (anatomy-label-check, final review): `report --labels` excludes occurrences that normalize to empty text from every table, while the stated denominator does not name that exclusion.
+- Carry (builder-anatomy): `docs/reviews/builder-anatomy-2026-11-01/anatomy-counts.md` attributes Step 3 to build 1, although its sampler came from build 2.
+- Carry (builder-anatomy): `docs/reviews/builder-anatomy-2026-11-01/anatomy-counts.md` rounds distinct rule agreements identically and keeps no agreement output for rechecking.
+- Carry (bench-retire): `apps/bench/test/anatomy.test.mjs` R-3786 compares CLI output with today's library rather than independently preserved base output.
