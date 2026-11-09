@@ -31,7 +31,7 @@ Tests
 - After adding or deleting a test file, run `node scripts/test.mjs test-runner`.
 - No suite test runs, imports or copies a seat script.
 - Suite tests never re-run the suite or whole-repo checkers.
-  Code map, README, requirements tree, requirements trace and component audit run as seat checks and in their own tests.
+  Code map, README, requirements tree and requirements trace run as seat checks and in their own tests.
 - Never delete a test your brief does not name.
 
 Before you report

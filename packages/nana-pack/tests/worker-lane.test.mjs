@@ -319,7 +319,7 @@ const RULE_LINE = {
 	sharedTemp: "- Test files use the shared `tmpDir` helper for temp folders and never call `mkdtemp`.",
 	testInventory: "- After adding or deleting a test file, run `node scripts/test.mjs test-runner`.",
 	removedTextSearch: "- Before reporting, grep tests for every sentence, path and file name the change removed or renamed.",
-	noNestedCheckers: "- Suite tests never re-run the suite or whole-repo checkers.\n  Code map, README, requirements tree, requirements trace and component audit run as seat checks and in their own tests.",
+	noNestedCheckers: "- Suite tests never re-run the suite or whole-repo checkers.\n  Code map, README, requirements tree and requirements trace run as seat checks and in their own tests.",
 	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
 	reuseNotCopy: "- When your change needs a function a Precedent file already has, import it from that file and never copy it. If it is private, drop the leading underscore, update its existing callers, and import the public name; never import a private name from another module. A move to a shared module needs the brief to name it.",
 	knownBugsContext: "- The feature's known-bug file is context; fix only those the brief names, and report each one the change touches.",
