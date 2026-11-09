@@ -131,6 +131,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/pipe-guard-pwsh-oracle.test.mjs": "module",
   "packages/nana-pack/tests/pipe-guard.test.mjs": "land",
   "packages/nana-pack/tests/planner-prompt.test.mjs": "module",
+  "packages/nana-pack/tests/priority-lock.test.mjs": "land",
   "packages/nana-pack/tests/process-tree.test.mjs": "main",
   "packages/nana-pack/tests/product-detail.test.mjs": "module",
   "packages/nana-pack/tests/product-overview.test.mjs": "module",

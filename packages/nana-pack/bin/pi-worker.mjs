@@ -2,7 +2,7 @@
 /**
  * @module packages/nana-pack/bin/pi-worker.mjs
  * @purpose Run roster-selected lane builders and role children through one pi or Claude Code launch lifecycle.
- * @inputs argv, role or lane brief, machine roster, optional user Claude settings, and lane HEAD, known bugs, git folders and pi sessions
+ * @inputs argv, role or lane brief, user-scope priority lock and machine roster, optional user Claude settings, and lane HEAD, known bugs, git folders and pi sessions
  * @outputs worker output, role/slot load lines, launch and carry diagnostics, and lane-only start/end records and final lane line
  * @effects disk (temporary prompts/settings, output and build records), process (registers no-op start-up signal listeners in lane mode, starts a detached lane watcher, spawns and may kill pi or Claude Code child groups)
  * @errors exit 1 on bad args, invalid lane, refused precedent/roster, failed worker, output failure or ceiling; settings-source and record failures report
@@ -25,6 +25,7 @@ import {
 import { resolveRoster } from './nana-roster.mjs';
 import { resolveRole, lineageWarnings } from '../lib/roster-roles.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
+import { parseJsonBytes } from '../lib/json-text.mjs';
 import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { checkBriefForLaunch } from '../lib/brief-precedent.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
@@ -86,6 +87,37 @@ function laneFailure(reason) {
 	if (laneLock) releaseLaneLock(laneLock);
 	process.stderr.write(`pi-worker: lane refused: ${reason}\n`);
 	process.exit(1);
+}
+// Read on every lane invocation, including rebuilds; only the owner writes this member.
+function checkPriorityLock(commonDir) {
+	const file = path.join(piAgentDir(), 'nana-pack.json');
+	let raw;
+	try { raw = parseJsonBytes(readFileSync(file)); }
+	catch (error) {
+		if (error?.code === 'ENOENT') return;
+		laneFailure(`cannot read priority lock; fix ${file}`);
+	}
+	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) laneFailure(`invalid pack config for priority lock; fix ${file}`);
+	if (!Object.hasOwn(raw, 'priorityLock')) return;
+	const lock = raw.priorityLock;
+	if (!lock || typeof lock !== 'object' || Array.isArray(lock) ||
+		typeof lock.repo !== 'string' || !path.isAbsolute(lock.repo) ||
+		typeof lock.since !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(lock.since) ||
+		!Number.isFinite(Date.parse(lock.since)) || new Date(lock.since).toISOString().slice(0, 10) !== lock.since) {
+		laneFailure(`invalid priority lock; fix ${file}`);
+	}
+	let heldCommon;
+	try {
+		const heldRepo = fsReal(lock.repo);
+		const dir = execFileSync('git', ['rev-parse', '--git-common-dir'], {
+			cwd: heldRepo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+		}).trim();
+		heldCommon = fsReal(path.resolve(heldRepo, dir));
+	} catch { laneFailure(`priority lock repo has no readable git common directory; fix ${file}`); }
+	const same = process.platform === 'win32'
+		? heldCommon.toLowerCase() === commonDir.toLowerCase()
+		: heldCommon === commonDir;
+	if (!same) laneFailure(`priority lock holds ${lock.repo} since ${lock.since}; the owner releases it in ${file}`);
 }
 function trusted(worktree) {
 	const reader = new URL('../lib/objective.ts', import.meta.url).href;
@@ -167,6 +199,7 @@ if (laneMode) {
 	if (cwd !== root) laneFailure('cwd is not the repository root');
 	if (dirs[0] === dirs[1]) laneFailure('main checkout is not a linked worktree');
 	if (branch !== `feat/${lane}`) laneFailure(`checked-out branch is ${branch || '(detached)'}, expected feat/${lane}`);
+	checkPriorityLock(dirs[1]);
 	if (!brief || !existsSync(path.resolve(cwd, brief))) laneFailure('brief file does not exist');
 	if (ownValues.has('--retries') && Number(value('--retries')) > 0) laneFailure('--retries greater than zero is refused in lane mode');
 	if (!Number.isSafeInteger(maxSecs) || maxSecs < 1) laneFailure('--max-secs must be a positive whole number');

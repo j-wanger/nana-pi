@@ -42,4 +42,5 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-11-03: Start with the simplest design meeting the request. For small, low-risk tools, use one brief-check round and explain discarded scope growth; retain deeper checks for isolation, credentials, CI and land tools.
 - 2026-10-05: pi-durable stays parked for desk and seat use until a product needs crash-safe long runs; then probe it first.
 - 2026-11-07: Reduction keeps page readers, adoption detection and the four Claude skills: spec, py-lint, py-review and py-test. The memory factory is paused, not deleted.
+- 2026-11-09: In nana-pi, the owner's priority lock in the pack config holds builds to one repository; pi-worker refuses others. Only the owner sets or releases it.
 - 2026-11-01: Each machine sets how many lanes build there in its roster file; the roster command's lanes line prints the limit, default included. At most two more lanes are planned.

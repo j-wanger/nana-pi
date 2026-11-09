@@ -533,6 +533,8 @@ Supported semantics require git ≥ 2.40 for `git check-attr --source`. The help
 
 ### Workers: `bin/pi-worker.mjs`
 
+The optional user-scope `priorityLock` in the active agent directory's `nana-pack.json` holds every lane build or rebuild to one repository: `{ "repo": "<absolute path to main checkout>", "since": "YYYY-MM-DD" }`; pi-worker compares real git common directories, refuses other repositories or malformed locks before launching a worker, and names the config file to fix. Missing config or key means no lock; slots, reviews and lands are unchanged. Only the owner sets or releases it; nana-pi never writes the lock.
+
 A **worker** (a build agent, not a review) runs under the same watchdog through `pi-worker`,
 which records no review round and can admit no verdict. `pi-review` has no
 worker mode — `--worker` was removed, because a caller-controlled exemption on the review command
