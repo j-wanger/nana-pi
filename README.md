@@ -46,6 +46,30 @@ Windows too. Configure real inputs before treating a green data test as validati
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.
 
+## Claude Code seat waking (nana-pi only)
+
+`packages/nana-setup/claude/hooks/nana-waking.mjs` is a project-scope Stop and
+PreToolUse hook entry, requiring Node ≥ 22.18 and git. Its wiring in
+`.claude/settings.json` is pending; it is not installed by nana-setup and does not
+change other projects or user settings. To enable it, wire Stop and PreToolUse
+(matcher `AskUserQuestion|Bash`) to
+`node "$CLAUDE_PROJECT_DIR/packages/nana-setup/claude/hooks/nana-waking.mjs"`.
+
+The advisory hooks block an unarmed seat turn with open lanes, deny an away-owner
+blocking question, and deny lane launches without their own background call or
+with shell detachment. They never answer `ask`. Any `NANA_ROLE` makes them abstain;
+errors fail open with exit 0 and no stdout. Stop also abstains without the probed
+`session_crons` field or on a repeated stop. A recurring wake must fire at least
+every 30 minutes; a question gets a safe default after 15 minutes of owner silence.
+A default does not authorize destructive or outside-folder actions.
+
+`packages/nana-pack/lib/open-lanes.mjs` reads clone-shared build and land records:
+extant unfinished lanes count even when contained in main; otherwise a lane needs
+activity within 48 hours, a tip outside main and no landed record. Old lanes are
+parked. `packages/nana-pack/lib/waking-config.mjs` holds the chosen policy values;
+these are not sealed. Payloads missing other required data and unreadable
+transcripts fail open. No model, network access or credentials are needed.
+
 ## Offline memory making
 
 `npm run memory:make` (`scripts/memory-make.mjs`) makes private, low-trust candidates
