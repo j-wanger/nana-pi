@@ -1,5 +1,12 @@
 # FEAT-031 — known bugs
 
+- Test retirement (test-retire, review round 1, SHOULD): `requirements-unclaimed.test.mjs` moved from release to main, so template and trace-script pull requests no longer run it; every main platform now runs it, including Windows uvx pytest shards, at an unmeasured cost.
+- Test retirement (test-retire, review round 1, SHOULD): the R-070/R-774 fold tests only `gate.allowPatterns = null`, not all three arrays null, and no longer checks that a benign edit passes to distinguish built-in denies from fail-closed blocking of everything.
+- Test retirement (test-retire, review round 1, NOTE): the trace test's CLI spawn now has a 20 s limit instead of none, bounding a whole-repository checker despite this lane retiring that pattern; its measured runtime was about 0.2 s.
+- Test retirement (test-retire, review round 1, NOTE): `Repository checks` runs only on macOS, so Linux and Windows lose the full map and README command-line runs previously made by deleted land cases; in-process checks remain.
+- Test retirement (test-retire, review round 1, NOTE): test-packs-ci M8 now excuses test files deleted by a lane commit, which supports retirement lanes but loosens the check.
+- Test retirement (test-retire, review round 1, NOTE): R-2482 remains implemented while its evidence pins only the limit constant, as its Evidence cell states.
+
 - Records move (records-move, review round 1, S2): the one-time evidence command spawns git hash-object per protected file (3,211 before the merge-only folders were restored), taking 73 s on macOS; its former live-repository test could block the event loop past the harness timer. Fixture tests remain, but no land-pack test checks the live repository.
 - Records move (records-move, review round 1, S3): relative reviews/<folder> paths without the docs/ prefix are not recognised; a frozen design document's reference was missed, though the archive command can recover the records.
 

@@ -146,7 +146,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/requirements-deliverables.test.mjs": "module",
   "packages/nana-pack/tests/requirements-lift.test.mjs": "module",
   "packages/nana-pack/tests/requirements-regroup.test.mjs": "module",
-  "packages/nana-pack/tests/requirements-trace.test.mjs": "main",
+  "packages/nana-pack/tests/requirements-trace.test.mjs": "land",
   "packages/nana-pack/tests/requirements-tree.test.mjs": "land",
   "packages/nana-pack/tests/requirements-unclaimed.test.mjs": "main",
   "packages/nana-pack/tests/review-launch.test.mjs": "main",
