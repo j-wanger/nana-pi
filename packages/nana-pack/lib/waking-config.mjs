@@ -16,11 +16,10 @@ export const OWNER_WINDOW_MS = 15 * 60 * 1000;
 export const LANE_TOOL_LAUNCHES = [
  { tool: "pi-worker", flag: "--brief" },
  { tool: "pi-worker.mjs", flag: "--brief" },
- { tool: "pi-review", flag: "--brief" },
- { tool: "pi-review.mjs", flag: "--brief" },
+ { tool: "pi-review", flag: "--item" },
+ { tool: "pi-review.mjs", flag: "--item" },
  { tool: "claude-review.mjs", flag: "--item" },
  { tool: "nana-ci-wait.mjs", flag: "--tip" },
- { tool: "nana-main-ci.mjs", flag: "--wait" },
 ];
 /** chosen: local read-only git queries should finish well inside a hook invocation. */
 export const WAKING_GIT_TIMEOUT_MS = 2000;

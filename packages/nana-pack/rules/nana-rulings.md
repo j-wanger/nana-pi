@@ -15,7 +15,7 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-10-13: A review blocks only on a material problem. A confirmation round reviews only the change since the last round.
 - 2026-10-13: A change to code with tests goes through the builder and reviewer pattern. The roster names the models, and the session-start line shows it.
 - 2026-10-14: Turning a repo into a feature tree is core: lift, an approved regroup, then feature-oriented work.
-- 2026-11-09: In nana-pi, the turn-end check and the launch and question guards hold the waking rule: a recurring wake at least every 30 minutes while a lane is open, every lane tool in its own background call, and no blocking question once the owner has been silent 15 minutes.
+- 2026-11-09: In nana-pi, Claude Code seats: the turn-end check and the launch and question guards hold the waking rule: a recurring wake at least every 30 minutes while a lane is open, every lane tool in its own background call, and no blocking question once the owner has been silent 15 minutes.
 - 2026-10-16: The public repo carries no owner name and nothing about the owner's work.
 - 2026-10-16: A blocking question carries a one-word default.
 - 2026-10-16: Rulings live in this file. A new ruling lands in the reviewed change of the lane that records it, and removes any ruling it replaces.

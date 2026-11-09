@@ -49,10 +49,10 @@ Windows too. Configure real inputs before treating a green data test as validati
 ## Claude Code seat waking (nana-pi only)
 
 `packages/nana-setup/claude/hooks/nana-waking.mjs` is a project-scope Stop and
-PreToolUse hook entry, requiring Node ≥ 22.18 and git. Its wiring in
-`.claude/settings.json` is pending; it is not installed by nana-setup and does not
-change other projects or user settings. To enable it, wire Stop and PreToolUse
-(matcher `AskUserQuestion|Bash`) to
+PreToolUse hook entry, requiring Node ≥ 22.18 and git. The hooks are wired in
+`.claude/settings.json`; they are not installed by nana-setup and do not
+change other projects or user settings. Stop and PreToolUse
+(matcher `Bash|AskUserQuestion`) run
 `node "$CLAUDE_PROJECT_DIR/packages/nana-setup/claude/hooks/nana-waking.mjs"`.
 
 The advisory hooks block an unarmed seat turn with open lanes, deny an away-owner
