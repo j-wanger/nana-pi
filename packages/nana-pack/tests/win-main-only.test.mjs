@@ -110,7 +110,7 @@ await check("M4: green main rejects unnecessary fixes-red and ordinary lands sti
 // req: R-3876
 await check("M5: ruling and shared checklist name the fixes-red landing path", () => {
  const clause = "The fix lands through `nana-land` with `--fixes-red <run-id>`.";
- assert(read("packages/nana-pack/rules/nana-rulings.md").split("\n").find(line => line.startsWith("- 2026-11-02: An independent reviewer")).includes(clause));
+ assert(read("packages/nana-pack/rules/nana-rulings.md").split("\n").find(line => line.startsWith("- 2026-11-09: An independent reviewer")).includes(clause));
  const shared = read("templates/_shared/working-under-nana-pi.md"); assert(shared.split("\n").find(line => line.startsWith("- Land checklist:")).includes(clause));
  assert.equal(read("AGENTS.md").split("<!-- nana:working-under-nana-pi begin -->\n")[1].split("<!-- nana:working-under-nana-pi end -->")[0], shared);
 });

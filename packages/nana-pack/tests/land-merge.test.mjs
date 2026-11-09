@@ -87,6 +87,25 @@ await check('M4: moved main refuses with lane merge remedy and unchanged refs', 
  const landed = executeCleanMerge(f);
  assert.equal(landed.code, 0, landed.text); assert.equal(git(f.main, 'rev-parse', 'HEAD'), f.tip);
 });
+// req: R-3964
+await check('M5: live land guidance requires lane merge CI and computed review coverage', () => {
+ const read = rel => readFileSync(new URL(`../../../${rel}`, import.meta.url), 'utf8');
+ const shared = read('templates/_shared/working-under-nana-pi.md'), agents = read('AGENTS.md');
+ const rulings = read('packages/nana-pack/rules/nana-rulings.md');
+ const ruling = rulings.split('\n').find(line => line.startsWith('- 2026-11-09: An independent reviewer'));
+ assert(ruling, 'dated replacement ruling');
+ const checklist = shared.split('\n').find(line => line.startsWith('- Land checklist:'));
+ const ladder = shared.split('\n').find(line => line.startsWith('- Review ladder:'));
+ for (const text of [ruling, checklist, ladder]) {
+  assert.match(text, /lane merges (?:current )?main/);
+  assert.match(text, /CI.*(?:on|for) (?:that|the) merge/);
+  assert.match(text, /tree matches.*computed merge/);
+ }
+ for (const text of [rulings, shared, agents, read('packages/nana-pack/README.md')]) {
+  assert.doesNotMatch(text, /lands? without new CI|without merge-tip CI|Only the merge made in this run is exempt/);
+ }
+ assert.equal(agents.split('<!-- nana:working-under-nana-pi begin -->\n')[1].split('<!-- nana:working-under-nana-pi end -->')[0], shared);
+});
 }
 import { PI_REVIEW, TEST_LOCKED, assertCiRefused, recordTextReview, runLand, tallyRows, writeTallyRows } from "./land-checks.mjs";
 let failures = 0;

@@ -144,28 +144,6 @@ await check('M6: uncovered lane commits including a lane-authored merge remain r
  }
 });
 
-// req: R-3696, R-3712, R-3832, R-3876
-await check('M9: shared guidance, rendered region, README and ruling agree on the exemption', () => {
- const read=rel=>fs.readFileSync(new URL(`../../../${rel}`,import.meta.url),'utf8');
- const shared=read('templates/_shared/working-under-nana-pi.md'), agents=read('AGENTS.md');
- const begin='<!-- nana:working-under-nana-pi begin -->\n', end='<!-- nana:working-under-nana-pi end -->';
- assert.equal(agents.split(begin)[1].split(end)[0],shared);
- for(const name of ['Review ladder','Land checklist']) {
-  const bullet=shared.split('\n').find(line=>line.startsWith(`- ${name}:`));
-  assert.match(bullet,/without conflict|conflict-free/); assert(!bullet.includes('there are no exemptions'));
- }
- for(const sentence of shared.split(/(?<=\.)\s+/).filter(s=>/every later commit/i.test(s))) assert.match(sentence,/lane authors/);
- assert(shared.includes("In nana-pi, lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands."));
- const readme=read('packages/nana-pack/README.md');
- for(const phrase of ['without new CI or review','merge.renormalize=false','check-attr --source','git ≥ 2.40','bors-ng']) assert(readme.includes(phrase),phrase);
- const exception='a conflict only in the generated files the land contract names, rebuilt by their own generators, counts as no conflict';
- for(const text of [shared,readme])assert(text.includes(exception),exception);
- const ruling='- 2026-11-02: An independent reviewer accepts every revision that reaches main. The one exception: when nana-land merges current main into an accepted tip whose CI passed and git finds no conflict, that merge lands without new CI or review; a generated file the land contract names, changed on both sides and rebuilt by its own generator, counts as no conflict. Nobody commits to main directly, and nothing is written after a land. The fix lands through `nana-land` with `--fixes-red <run-id>`.';
- const rulings=read('packages/nana-pack/rules/nana-rulings.md');
- assert.equal(rulings.split('\n').filter(line=>line===ruling).length,1);
- assert(!rulings.includes('- 2026-10-10: An independent reviewer'));
-});
-
 // req: R-3697
 await check('seal: clean-merge vocabulary and conflict-name cap are declared once', () => {
  assert.equal(C.CLEAN_MERGE_NAME_CAP,10);
