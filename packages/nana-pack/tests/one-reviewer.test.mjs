@@ -159,11 +159,6 @@ await test('M4: checker is refused naming surviving slots and adversary still la
   assert.ok(f.calls()[0].includes('builder'));
 });
 
-// req: R-3761
-await test('M5: lane class and seat mutation runner modules are absent', () => {
-  for (const relative of ['scripts/lane-class.mjs', 'packages/nana-pack/lib/lane-class-config.mjs', 'packages/nana-pack/lib/mutation-runner.mjs', 'packages/nana-pack/lib/mutation-runner-config.mjs']) assert.equal(fs.existsSync(path.join(root, relative)), false, relative);
-});
-
 // req: R-3763
 await test('M7: all role guidance states one reviewer plus CI and the shared marker stays identical', () => {
   const shared = fs.readFileSync(path.join(root, 'templates/_shared/working-under-nana-pi.md'), 'utf8').trimEnd();

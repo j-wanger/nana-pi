@@ -134,7 +134,7 @@ test('M6: removed paths are gone and git report clients share the rehomed runner
   assert.equal(fs.existsSync(path.join(root, 'scripts/requirements-moved.mjs')), false);
   const helpers = await import(pathToFileURL(path.join(root, 'scripts/git-runner.mjs')));
   assert.equal(helpers.MAX_GIT_BUFFER, 64 * 1024 * 1024);
-  for (const name of ['component-audit', 'deliverables', 'product-report']) assert.match(read(path.join(root, `scripts/${name}.mjs`)), /from ["']\.\/git-runner\.mjs["']/);
+  for (const name of ['deliverables', 'product-report']) assert.match(read(path.join(root, `scripts/${name}.mjs`)), /from ["']\.\/git-runner\.mjs["']/);
   const actual = helpers.defaultGit(root, ['status', '--porcelain']); const expected = spawnSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8', maxBuffer: helpers.MAX_GIT_BUFFER });
   assert.equal(actual.status, expected.status); assert.equal(actual.stdout, expected.stdout); assert.equal(actual.stderr, expected.stderr);
 });

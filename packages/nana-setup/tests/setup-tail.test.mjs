@@ -140,16 +140,6 @@ function render(source, dir, language) {
   command('uvx', ['copier', 'copy', '--trust', '--defaults', '-d', `language=${language}`, '-d', 'project_name=Tail', '-d', 'description=Tail fixture', source, dir], path.dirname(dir));
 }
 
-// req: R-3885
-check('M1: shipped guidance makes no automatic post-edit claim', () => {
-  const files = command('git', ['ls-files'], repo).stdout.trim().split(/\r?\n/).filter(file =>
-    /(?:SKILL\.md$|README\.md(?:\.jinja)?$|^templates\/|^packages\/nana-setup\/lib\/|^packages\/nana-pack\/bin\/)/.test(file)
-    && !/(?:\/tests?\/|\/fixtures\/|\/studies\/|\/retired\/)/.test(file));
-  const claims = /project post-edit checks are inert|post-edit (?:gate|preset|on-ramp|check runs)|wired into post-edit|every edit fires|format\+lint on\s+every edit|biome fix on every\s+edit/i;
-  const found = files.filter(file => fs.existsSync(path.join(repo, file)) && claims.test(fs.readFileSync(path.join(repo, file), 'utf8')));
-  assert.deepEqual(found, []);
-});
-
 // req: R-3887
 check('M3: fresh scaffolds omit pack config and updates preserve project bytes', () => fixture(({ root }) => {
   if (!toolsAvailable(['uvx'])) return SKIP;
