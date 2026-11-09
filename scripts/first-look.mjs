@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @module scripts/first-look.mjs
- * @purpose Captures product, desk or reference URL pages for a lane's first visual review.
+ * @purpose Captures product or reference URL pages for a lane's first visual review.
  * @inputs CLI options, git checkout state, report children, Playwright and an optional injected test seam.
  * @outputs Screenshots and a report diff, reference manifest and side-by-side page, or one bounded note.
  * @effects disk (temporary reports/worktree and requested output), process (git, report children and browser).
@@ -32,9 +32,8 @@ function parseArgs(argv) {
     if (!values.has(flag) || !argv[i + 1] || argv[i + 1].startsWith("--") || Object.hasOwn(result, flag)) return null;
     result[flag] = argv[++i];
   }
-  if (!result["--page"] || !["product", "desk", "url"].includes(result["--page"])) return null;
+  if (!result["--page"] || !["product", "url"].includes(result["--page"])) return null;
   if (result["--page"] === "product" && (!result["--out"] || result["--before"] || result["--after"] || result["--reference"] || result["--spec"])) return null;
-  if (result["--page"] === "desk" && (!result["--before"] || !result["--after"] || result["--out"] || result["--reference"] || result["--spec"])) return null;
   if (result["--page"] === "url" && (!result["--after"] || !result["--out"])) return null;
   return result;
 }
@@ -111,7 +110,7 @@ async function snapshotViews(browser, url, pageName, side, readTree, product) {
   const landing = product ? `${url}#overview` : url;
   await page.goto(landing, { waitUntil: "load" });
   const features = product ? await page.evaluate(() => JSON.parse(document.getElementById("report-data").textContent).features.map((feature) => feature.id)) : [];
-  for (const view of product ? [...PRODUCT_VIEWS, ...features] : ["desk"]) {
+  for (const view of [...PRODUCT_VIEWS, ...features]) {
     await page.goto(product ? `${url}#${view}` : url, { waitUntil: "load" });
     trees[view] = withoutProvenance(await readTree(page, view));
   }
@@ -189,7 +188,7 @@ async function runUrlMode(args, root, browser, stdout, prepared) {
 
 export async function runFirstLook(argv = [], injected = {}) {
   const args = parseArgs(argv);
-  if (!args) { (injected.stdout ?? console.log)("Usage: first-look --page product --out <dir> | --page desk --before <url> --after <url> | --page url --after <url> (--before <url> | --reference <folder> --spec <file>) --out <folder>"); return 2; }
+  if (!args) { (injected.stdout ?? console.log)("Usage: first-look --page product --out <dir> | --page url --after <url> (--before <url> | --reference <folder> --spec <file>) --out <folder>"); return 2; }
   const root = path.resolve(injected.root ?? process.cwd());
   const stdout = injected.stdout ?? console.log;
   let base = injected.mergeBase;
@@ -208,7 +207,7 @@ export async function runFirstLook(argv = [], injected = {}) {
       changed = changed.filter(changedPagePath);
       if (!changed.length) { stdout("first-look: no page-shaping changes; nothing to show"); return 0; }
       output = path.resolve(root, args["--out"]);
-    } else output = path.resolve(args['--out'] ?? injected.outputDir ?? path.join(os.tmpdir(), `first-look-desk-${process.pid}`));
+    } else output = path.resolve(args['--out'] ?? injected.outputDir ?? path.join(os.tmpdir(), `first-look-${process.pid}`));
     try {
       browser = injected.browser !== undefined ? await injected.browser?.() : await resolvePlaywright(injected.env ?? process.env, root)?.chromium?.launch();
     } catch { stdout(INSTALL_LINE); return 0; }
@@ -232,7 +231,7 @@ export async function runFirstLook(argv = [], injected = {}) {
     const product = args["--page"] === "product";
     const before = await snapshotViews(browser, beforeUrl, output, "before", readTree, product);
     const after = await snapshotViews(browser, afterUrl, output, "after", readTree, product);
-    const views = product ? [...new Set([...PRODUCT_VIEWS, ...Object.keys(before).filter((key) => !PRODUCT_VIEWS.includes(key))])] : ["desk"];
+    const views = [...new Set([...PRODUCT_VIEWS, ...Object.keys(before).filter((key) => !PRODUCT_VIEWS.includes(key))])];
     const diff = accessibilityDiff(before, after, views);
     await (injected.writeDiff ? injected.writeDiff(output, diff) : import("node:fs/promises").then(({ writeFile }) => writeFile(path.join(output, "accessibility-diff.txt"), diff, "utf8")));
     stdout(`first-look: saved screenshots and accessibility diff in ${output}`);

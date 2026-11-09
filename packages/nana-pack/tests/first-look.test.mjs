@@ -207,8 +207,6 @@ await test('R-3781: surviving capture modes write files and retired options neve
     const refs = path.join(dir, 'refs'); await fs.mkdir(refs); await fs.writeFile(path.join(refs, 'a.png'), 'reference'); const spec = path.join(dir, 'spec.md'); await fs.writeFile(spec, '1. Capture \r\n2. Keep trailing tab\t');
     assert.equal(await capture(['--page', 'url', '--after', 'after', '--reference', refs, '--spec', spec, '--out', out], options), 0);
     for (const file of ['manifest.json', 'side-by-side.html', 'spec.md', 'reference-1.png']) await fs.access(path.join(out, file));
-    assert.equal(await capture(['--page', 'desk', '--before', 'before', '--after', 'after'], { ...options, outputDir: out }), 0);
-    await fs.access(path.join(out, 'accessibility-diff.txt'));
     for (const args of [['--page', 'hive', '--out', out], ['--page', 'url', '--hive', '--before', 'before', '--after', 'after', '--out', out]]) {
       let launches = 0; assert.equal(await capture(args, { ...options, browser: async () => { launches++; return browser(); } }), 2); assert.equal(launches, 0);
     }
