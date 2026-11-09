@@ -46,7 +46,7 @@ Eight extensions provide pi's runtime surfaces:
 ## Install
 
 ```bash
-pi install git:github.com/j-wanger/nana-pi       # canonical for pack-only use; with nana-setup or the desk, register the clone
+pi install git:github.com/j-wanger/nana-pi       # canonical for pack-only use; with nana-setup, register the clone
 pi install /path/to/nana-pi/packages/nana-pack   # local dev
 pi remove ...                                     # uninstall
 ```
@@ -58,8 +58,7 @@ npm test -- nana-pack     # from the repo root: every packages/nana-pack/tests/*
 ```
 
 Zero-dep `node <file>` runs, one process each with a fresh temp `HOME`; pi-dependent tests FAIL
-naming the locations tried when pi is absent. Set `DESK_PI_ROOT` to use another pi install (`DESK_PI_BIN`
-selects the executable for desk tests).
+naming the locations tried when pi is absent. Set `DESK_PI_ROOT` to use another pi install.
 
 ## Commands
 
@@ -68,15 +67,14 @@ selects the executable for desk tests).
 | `/reload-runtime` | Re-read extensions, skills, prompt templates and context files in the RUNNING session — pi's `ctx.reload()`, which is the same flow as the TUI's built-in `/reload`. It re-reads `settings.json` first, so a skills folder added while the session was up counts. |
 
 `/reload-runtime` exists because pi scans those locations at **startup only** and the TUI's
-`/reload` is a TUI-only command: an RPC host (nana code, any RPC client) has no way to reach that
-flow except through an extension command. The desk's own `/reload` is a thin wrapper that sends
-this one. Not named `reload`: pi treats an extension command that matches a built-in interactive
+`/reload` is a TUI-only command: an RPC host (any RPC client) has no way to reach that
+flow except through an extension command. Not named `reload`: pi treats an extension command that matches a built-in interactive
 command as a conflict, warns at every TUI start and skips it in the autocomplete (the built-in
 would shadow it there anyway) — so the two coexist instead, `/reload` in the TUI and
 `/reload-runtime` everywhere.
 
 **What it will not do:** a session started with a narrowed resource set (`--no-skills` + explicit
-`--skill`, or the desk's spawn toggles) re-applies those flags on reload and gains nothing new;
+`--skill`) re-applies those flags on reload and gains nothing new;
 neither does an **untrusted** project — reload preserves the session's trust decision, so
 `.pi/skills` in a project you did not approve stays ignored. Tested hosts on 2026-10-23: pi 1.0.3 and 1.4.0 (suite and install check). The skill claim that follows was verified on pi 0.84.4 and not re-run on 0.87.1 or 1.0.2: a skill
 added to a trusted project's `.pi/skills` after startup goes from absent to present across one
@@ -651,7 +649,7 @@ A roster replaces every slot, whole — there is no merge and no fallback to the
 
 A seat passes a pi reviewer entry to `pi-review` itself, as `pi-review … -- --provider <provider> --model <model> [--thinking <thinking>]`; `pi-review` reads no roster and prints no builder line. For a Claude Code reviewer entry, `claude-review` reads the roster and passes its model to `claude --model`. `pi-worker`'s lane mode reads `--lane-size <small|larger>` to pick `builder` or `largerBuilder`, and passes a Claude Code larger builder's model to `claude --model` — see Lane builder above.
 
-To change one slot without hand-editing the whole file, run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set <slot>[:] <tokens>`, pasting the slot and the tokens a plain run of the command above prints for the entry you want — `set builder example-gateway gpt-6-luna high`, `set largerBuilder claude-code sonnet`, `set reviewer claude-code opus`, `set scout none`, `set planner claude-code opus`, `set adversary openai-codex gpt-6.1-sol high`, `set scout claude-code sonnet`; a printed line's own trailing colon on the slot is accepted. It writes the named slot and the slots already present, preserving legacy `land` and `checker` values and writing `land: null` when absent, so the pre-lane resolver still reads it. These legacy keys are accepted and ignored, never printed or settable. It adds no absent optional slot unless that slot is named by the command. It prints the resulting roster the same way a plain run does, and writes `nana-roster: <slot> was: <previous tokens>` to stderr. It keeps every other top-level member (`objective`, `gate`, `postEdit` and an unrecognised key included) and, before replacing an existing file, copies its previous bytes to `nana-pack.json.bak` in the agent dir — copy that file back over `nana-pack.json` to undo a `set`. `set` must be the first argument: `nana-roster --json set …` prints the roster and sets nothing, and only one `.bak` is kept (the next `set`, or an edit by the desk, replaces it).
+To change one slot without hand-editing the whole file, run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs" set <slot>[:] <tokens>`, pasting the slot and the tokens a plain run of the command above prints for the entry you want — `set builder example-gateway gpt-6-luna high`, `set largerBuilder claude-code sonnet`, `set reviewer claude-code opus`, `set scout none`, `set planner claude-code opus`, `set adversary openai-codex gpt-6.1-sol high`, `set scout claude-code sonnet`; a printed line's own trailing colon on the slot is accepted. It writes the named slot and the slots already present, preserving legacy `land` and `checker` values and writing `land: null` when absent, so the pre-lane resolver still reads it. These legacy keys are accepted and ignored, never printed or settable. It adds no absent optional slot unless that slot is named by the command. It prints the resulting roster the same way a plain run does, and writes `nana-roster: <slot> was: <previous tokens>` to stderr. It keeps every other top-level member (`objective`, `gate`, `postEdit` and an unrecognised key included) and, before replacing an existing file, copies its previous bytes to `nana-pack.json.bak` in the agent dir — copy that file back over `nana-pack.json` to undo a `set`. `set` must be the first argument: `nana-roster --json set …` prints the roster and sets nothing, and only one `.bak` is kept (the next `set` replaces it).
 
 `set` refuses, naming what is wrong, and changes no byte, in three cases: run inside a pi model shell (pi sets `PI_SESSION_ID` there for its own bash and powershell tool calls; a terminal, pi's `!`, and a Claude Code shell are all fine); malformed `set` input (no slot, an unknown slot, or tokens that do not form a valid entry for that slot); and a `nana-pack.json` the roster resolver itself refuses (invalid JSON, a directory, over the 1 MiB cap, and the like) — the path is left exactly as it was, never replaced with the default roster.
 
@@ -659,7 +657,7 @@ Compatibility: setting planner or adversary, or a Claude Code scout, makes check
 
 The notice and role launch line diagnose the resolved adversary/planner lineage pair, fallbacks included. `claude-code` and `anthropic` join as Anthropic; `openai` and `openai-codex` join as OpenAI. Known shared pairs read `shared`/`shares`; an unknown provider or pi seat planner reads `unverified`. Claude Code seats assume Anthropic, including gateway or overridden models. No diagnostic refuses a launch or swaps a model; the owner changes a slot. Both notices show planner and adversary after reviewer, plus scout only when set.
 
-Known limits: no lock, so a writer racing `set` (the desk, the installer, an editor) loses its write; the file is always rewritten as UTF-8 and re-serialized (two-space JSON, LF, BOM dropped, duplicate keys collapsed to the last) with values unchanged, while `nana-pack.json.bak` keeps the original bytes; a file with no roster gets the backward-compatible sealed default written into it, so a later change to that default stops reaching this machine until the `.bak` is copied back; the pi-model-shell guard is advisory — a model that unsets `PI_SESSION_ID`, an MCP or SDK shell that never sets it, and pi older than 0.82.0 all pass it, the same scope as the gate; and a relative `PI_CODING_AGENT_DIR` writes under the current folder exactly as a plain run reads it, with a missing agent dir refused and nothing created.
+Known limits: no lock, so a writer racing `set` (the installer, an editor) loses its write; the file is always rewritten as UTF-8 and re-serialized (two-space JSON, LF, BOM dropped, duplicate keys collapsed to the last) with values unchanged, while `nana-pack.json.bak` keeps the original bytes; a file with no roster gets the backward-compatible sealed default written into it, so a later change to that default stops reaching this machine until the `.bak` is copied back; the pi-model-shell guard is advisory — a model that unsets `PI_SESSION_ID`, an MCP or SDK shell that never sets it, and pi older than 0.82.0 all pass it, the same scope as the gate; and a relative `PI_CODING_AGENT_DIR` writes under the current folder exactly as a plain run reads it, with a missing agent dir refused and nothing created.
 
 #### Windows
 
@@ -876,8 +874,7 @@ nana-writing --report < draft.txt
 
 Known limits: the pre-send report run remains an instruction; nothing verifies that a seat ran
 it. The user-scope `writing.enabled` key reaches pi only; Claude Code keeps its linked rule.
-Windows PowerShell 5.1 pipes non-ASCII input as `?`, so pass a file there. The frozen desk
-refuses to save a `nana-pack.json` that contains `writing`.
+Windows PowerShell 5.1 pipes non-ASCII input as `?`, so pass a file there.
 
 With no path it reads stdin (named `-` in the output). Four checks run always — sentence
 length, passive-voice CANDIDATES (a heuristic, not a parser — see Known limit), a banned word
@@ -925,12 +922,12 @@ provenance, and the check is report-only.
 
 ## What you will see
 
-In TUI and RPC sessions (the desk included) the pack is quiet by design but not invisible.
+In TUI and RPC sessions the pack is quiet by design but not invisible.
 Print/JSON mode (`-p`) has no UI to draw on, so none of this appears there:
 
-- **Chips** (TUI footer / desk header): `nana-pack ✓` at session start and `gate ✓ 12 checked · 1 gated` — inspected and gated tool calls.
+- **Chips** (TUI footer): `nana-pack ✓` at session start and `gate ✓ 12 checked · 1 gated` — inspected and gated tool calls.
 - **Toasts**: context compacted.
-- **Widget** (above the editor, TUI and RPC/desk): the roster notice at every session start —
+- **Widget** (above the editor, TUI and RPC): the roster notice at every session start —
   startup, new, resume and fork — staying until the next widget show or an extension-UI reset. It names
   the builder, any larger-lane builder and the reviewer by model and thinking, never a
   provider (`nana-roster` prints it); a set scout and the resolved planner and adversary follow reviewer, and reads `roster unknown: …` while
@@ -1034,7 +1031,7 @@ project config never contributes to either one, trusted or not.
   cannot stop text that is semantically hostile. Intentional exceptions: the compaction summary BODY
   is payload, injected raw behind its `Source:` / provenance / authority framing, capped at 8000
   UTF-16 code units; structured serialization (journal JSON) is escaped by `JSON.stringify`, not
-  by these renderers. **Out of scope:** `apps/**` (the desk shortens and places paths itself);
+  by these renderers. **Out of scope:** `apps/**` (the bench emits structured JSON rather than pack-rendered model text);
   `packages/nana-knowledge` (its own `clean()` in `packages/nana-knowledge/lib/query.ts`, direct interpolation in
   `packages/nana-knowledge/lib/hook.ts:93` — a separate follow-up); the failure marker in the shell fallback of
   `packages/nana-setup/claude/hooks/nana-objective.mjs`; and any external consumer that copied a renderer,
@@ -1153,7 +1150,7 @@ project config never contributes to either one, trusted or not.
   Matching more command text would not close that class (each form invites another), so none is added.
   **Mitigation, and its limit:** *gate loosening* from such a write waits for the next
   `session_start`. Other active configuration blocks may apply live. The retired `postEdit`, `handoff` and `notify` blocks do nothing. The OS sandbox or container remains the enforcement boundary. The agent edits policy files only through you:
-  `nana-setup`, the desk settings window, or "Allow once". The compaction summary store
+  `nana-setup` or "Allow once". The compaction summary store
   `~/.pi/agent/handoffs/**` is not a policy file. Script files are not inspected, so sandboxing
   remains the enforcement boundary.
 - **Headless blocks name the category and a recovery step:** inspect the named command or path,
@@ -1195,7 +1192,7 @@ project config never contributes to either one, trusted or not.
   value-taking option's value read as the script operand → not floor).
 - **Loosening waits for session start.** The gate policy adopted at `session_start`
   (startup, new, resume, fork, `/reload`) is the session's floor of strictness: a config
-  write mid-session — by you, the desk, or anything the gate did not see — can tighten it at
+  write mid-session — by you or anything the gate did not see — can tighten it at
   once but cannot loosen it until the next session start or `/reload`.
 - **The gate is advisory-by-load-path** — a pi run without the extension has no gate, a
   later extension can still mutate a checked input, and it reads command *text*: it cannot see

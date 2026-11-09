@@ -15,7 +15,7 @@ import type { Db } from "./db.ts";
 import { ftsQuery, meaningfulTokens } from "./tokenize.ts";
 import { tildeify } from "./paths.ts";
 // nana-pack's ONE renderer for model-visible text (lane S2). A cross-package relative import,
-// the shape apps/desk uses for nana-stage's sign.mjs: both packages ship in this one repo and
+// both packages ship in this one repo and
 // one install, and a second copy of the escaping rule is exactly the drift S1 closed.
 import { head, PATH_CAP, promptPath, promptText, str } from "../../nana-pack/lib/display.mjs";
 

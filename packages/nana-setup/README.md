@@ -4,13 +4,11 @@ One command that installs nana setup surfaces outside pi.
 
 `pi install` brings the pi extensions, skills and templates. Everything else used to be
 hand-maintained dotfiles on one Mac: the Claude Code hooks and rules, the settings wiring, the
-two-tier auto-memory, the user-scope pi config, and the PATH entries for `pi-review`, `pi-worker`, `nana-land`, `nana-setup` and `nana-writing`, and the desk
-service. `nana-setup` installs the supported surfaces from the repo, and `nana-setup doctor` reports their state. A bare `uvx copier copy` route keeps its seeded DRAFT objective lines; only the skills ask the owner to ratify both lines.
+two-tier auto-memory, the user-scope pi config, and the PATH entries for `pi-review`, `pi-worker`, `nana-land`, `nana-setup` and `nana-writing`. `nana-setup` installs the supported surfaces from the repo, and `nana-setup doctor` reports their state. A bare `uvx copier copy` route keeps its seeded DRAFT objective lines; only the skills ask the owner to ratify both lines.
 
 ```bash
 node packages/nana-setup/bin/nana-setup.mjs install      # install / repair everything
 node packages/nana-setup/bin/nana-setup.mjs doctor       # one ✓ or ✗ per piece; exits 1 on any ✗ or !
-node packages/nana-setup/bin/nana-setup.mjs install --desk   # + the desk launchd service (macOS)
 node packages/nana-setup/bin/nana-setup.mjs project ~/my-thing   # make a folder a nana project
 node packages/nana-setup/bin/nana-setup.mjs uninstall --dry-run  # preview safe removal
 node packages/nana-setup/bin/nana-setup.mjs trust ~/my-thing --yes # record pi project trust after confirmation
@@ -28,8 +26,7 @@ the packages, and only when they are not registered yet). On Windows it finds th
 `pi.cmd` starts its package's Node entry; any other `.cmd` or `.bat` runs through ComSpec. A missing pi is skipped with the install hint. A found pi whose version
 probe fails is a problem and makes install exit 1. On macOS/Linux, a `pi` whose interpreter is missing
 still reports “not on PATH” because the OS gives the same error. On POSIX the existing PATH lookup remains.
-Install also calls `node` (to build the knowledge index) and `launchctl` (only with `--desk`, only on
-macOS, only against the real home).
+Install also calls `node` to build the knowledge index.
 
 A session-start producer still running at the launcher's 2,500 ms cap is stopped, and its unavailable line prints instead. A hook's producers end by 4,000 ms on the hook's own process clock, leaving 1,000 ms for process start and exit within Claude Code's 5 s limit. A producer in a wait no signal ends, such as a hung network mount, is not stopped, and Claude Code's limit then drops the hook's output.
 
@@ -59,7 +56,6 @@ A session-start producer still running at the launcher's 2,500 ms cap is stopped
 | `nana-land` | `~/.local/bin/nana-land` | POSIX symlink to `packages/nana-pack/bin/nana-land.mjs`; Windows extensionless sh and `.cmd` shims; doctor checks both. |
 | `nana-setup` | `~/.local/bin/nana-setup` | POSIX symlink to `packages/nana-setup/bin/nana-setup.mjs`; Windows extensionless sh and `.cmd` shims; doctor checks both. |
 | `nana-writing` | `~/.local/bin/nana-writing` | POSIX symlink to the executable `packages/nana-pack/bin/nana-writing.mjs`; Windows extensionless sh and `.cmd` shims; doctor checks both. |
-| desk service | `~/Library/LaunchAgents/com.nana.pi-desk.plist` | opt-in `--desk`; rendered from `launchd/*.tmpl`, then loaded with `launchctl bootstrap gui/$UID` and started with plain `kickstart` on first load. After bootout it waits for launchd to report the job absent before bootstrap; an error-5 bootstrap gets one retry after the same wait. Every explicit `--desk` repair restarts an existing service with `kickstart -k`; bootstrap or kickstart failure exits 1. The plist uses a curated PATH (the node binary directory, `~/.local/bin`, Homebrew, `/usr/local/bin`, `/usr/bin`, `/bin`), not the installing shell's PATH. launchd does not inherit your shell's environment, so when the chosen pi agent dir is not `~/.pi/agent` the plist exports it as `PI_CODING_AGENT_DIR` (absolute). Doctor requires `launchctl print` state `running` and the plist's `ProgramArguments[0]` to exist and run Node ≥22.19. macOS only — there is no service definition on other platforms |
 | pi packages | `settings.json` in the pi agent dir | Registration is complete only when every extension directory in the root `package.json` manifest is loaded. A root entry covers both manifests; per-package entries cover their own manifest. Install adds only missing per-package entries, never a root entry atop existing package entries. `install --dry-run` reports decisions made before the first `pi install`, otherwise reports what it would add, and starts no `pi install`. Paths use pi's matching rules (`~`, settings-relative paths, real paths and linked-worktree identity); exact remote entries are also recognized. On Windows, setup and doctor use the first supported external pi on PATH, not PowerShell aliases/functions or a working-directory command; `.cmd`/`.bat` paths or arguments containing `%`, `!`, a quote, line break or NUL, or an argument ending in backslash are refused for manual registration. Doctor reports the version under the same launch rules. Doctor's separate `pi package source` row reports whether the registered source is the checkout supplying hooks and rules. |
 
 The pack no longer supplies per-edit checks, compaction-summary production or desktop notifications. Adoption journaling and pi's gate remain. Legacy `postEdit` and `handoff` configuration is accepted and ignored.
@@ -80,10 +76,9 @@ The shared-memory SessionStart hook writes its unchanged index before dynamicall
 
 ### Update nana-pi
 
-1. Finish or pause desk sessions, then run `launchctl bootout gui/$(id -u)/com.nana.pi-desk` if the service is installed.
-2. Update the source with `git -C <clone> pull --ff-only`. On the machine whose main branch is the live install, landing the change is the update. Quiesce before `nana-land` only when `git diff --name-only main...feat/<lane> -- apps/desk packages/nana-stage packages/nana-pack/lib/agent-dir.mjs` is non-empty.
-3. Run `node packages/nana-setup/bin/nana-setup.mjs install --desk` (drop `--desk` when there is no desk service).
-4. Run `node packages/nana-setup/bin/nana-setup.mjs doctor`.
+1. Update the source with `git -C <clone> pull --ff-only`. On the machine whose main branch is the live install, landing the change is the update.
+2. Run `node packages/nana-setup/bin/nana-setup.mjs install`.
+3. Run `node packages/nana-setup/bin/nana-setup.mjs doctor`.
 
 Session starts report unhealthy installed hook links, hook settings, rules, skills and pi rulings with this checkout's install command. In an adopted project, the stale-copy producer also names every failing objective, frontier, session-log or navigation file row that `project --check` decides from files alone. It names this checkout's `node packages/nana-setup/bin/nana-setup.mjs project` command for rows the command repairs and its `--check` form for rows the owner fixes by hand. When install refuses a skill path, the line first names that existing path to move aside; when a linked Claude home or skills folder causes the refusal, it names that linked folder instead. Doctor's ✗ skill rows name the same linked folder, and its final line lists them as a fix by hand when install's dry run completes. Under a linked Claude home or skills folder, doctor's legacy enforcement-flag and scaffolder rows name the linked folder and every present path to move out of the way by hand, because install will not back these up through that folder. Install refuses before any write when the Claude folder, its rules or shared-memory folder, the shared-memory folder's parent, or off Windows its hooks folder is a link whose target cannot be reached. The refusal names the link to move aside, and doctor's final line names that refusal.
 
@@ -91,10 +86,9 @@ Upgrade pi itself with `npm i -g --ignore-scripts @earendil-works/pi-coding-agen
 
 ### Remove nana setup
 
-1. Boot out the desk service if installed: `launchctl bootout gui/$(id -u)/com.nana.pi-desk`.
-2. Preview with `node packages/nana-setup/bin/nana-setup.mjs uninstall --dry-run`.
-3. Remove confirmed nana-owned pieces with `node packages/nana-setup/bin/nana-setup.mjs uninstall --yes`.
-4. Run `pi list` and `node packages/nana-setup/bin/nana-setup.mjs doctor`; use the doctor's `pi packages` and `pi package source` rows to identify nana-pi entries, then remove those entries with `pi remove`.
+1. Preview with `node packages/nana-setup/bin/nana-setup.mjs uninstall --dry-run`.
+2. Remove confirmed nana-owned pieces with `node packages/nana-setup/bin/nana-setup.mjs uninstall --yes`.
+3. Run `pi list` and `node packages/nana-setup/bin/nana-setup.mjs doctor`; use the doctor's `pi packages` and `pi package source` rows to identify nana-pi entries, then remove those entries with `pi remove`.
 
 Edited seeds, memories, per-project `shared` links, pi trust records, backups, logs, knowledge sources and project files stay. Hand-written hook variants stay. No update command — the runbook is the sequence; build one only after a recorded miss.
 
@@ -114,12 +108,12 @@ State classes:
 |---|---|---|
 | Private rule, shared memory, project memories | durable | Restore from the private archive; the SessionStart hook recreates project `shared` links. |
 | Review-ledger tally, audit and rotated files, and kept review texts | durable | Restore from the private archive. |
-| nana-pack config, objective, pi settings, knowledge sources and pull log, apps and nana share | durable | Restore from the private archive. |
+| nana-pack config, objective, pi settings, knowledge sources and pull log and nana share | durable | Restore from the private archive. |
 | Hook, rule, skill and bin launchers | rebuildable | Run `nana-setup install`. |
-| Knowledge index and desk plist | rebuildable | Build knowledge and use `install --desk` when needed. |
+| Knowledge index | rebuildable | Build knowledge. |
 | Project trust | re-ratified | Run `nana-setup trust <dir>` for every repository. |
-| Ledger locks and reservations, suite lock, knowledge shown/build lock, desk log, MCP cache, handoffs and nana journal | disposable | Recreated as needed; not archived. |
-| Login credentials, MCP/model config, sessions, Claude transcripts, bench agent and desk stage keys | secret | Sign in again or carry by hand; not archived. |
+| Ledger locks and reservations, suite lock, knowledge shown/build lock, MCP cache, handoffs and nana journal | disposable | Recreated as needed; not archived. |
+| Login credentials, MCP/model config, sessions, Claude transcripts, bench agent | secret | Sign in again or carry by hand; not archived. |
 
 Back up the listed files as one archive:
 
@@ -135,8 +129,7 @@ Restore in order:
 4. Run `nana-setup install`.
 5. Sign in again to pi (`/login`) and Claude Code.
 6. Run `nana-setup trust <dir>` for each repository.
-7. Run `install --desk` if the desk is used.
-8. Run `doctor`.
+7. Run `doctor`.
 
 The restore needs the same home path and repository paths: memory keys, nana-pack config, knowledge sources and ledger repository identity use absolute paths. A different username needs hand edits; no re-keying is built. The archive is unencrypted private data. Secret stores are carried by hand or recreated by signing in. macOS `tar -k` keeps existing files; GNU tar errors instead, so the target must be clean. This procedure is macOS-tested only.
 
@@ -207,7 +200,7 @@ text; placeholder-looking text inside a name is not filled again.
 **Trust is yours to decide, too.** Any project `.pi/nana-pack.json` is ignored until you decide this folder's trust. Run
 `nana-setup trust <dir>` and confirm interactively, or pass `--yes` in a script. The command
 records through pi's own `ProjectTrustStore` and prints the store path. `pi -a` / `--approve`
-(and the desk's trust box, which sends `-a`) trusts one run only; it is not a recorded decision.
+trusts one run only; it is not a recorded decision.
 Trust loads pi's store from the pi package in npm's global folder (`npm root -g`). When it is
 missing there or has no `ProjectTrustStore`, trust exits 2 with one line naming the path it
 tried and the pi install command. A pi installed by another package manager is not found there.
@@ -219,8 +212,8 @@ to fill the date; project setup already fills it. What the tool will not do is d
 **Present means present, not readable.** Every "is it already there?" decision about a file this
 installer WRITES is `lstat`, not `existsSync`: a **dangling** symlink reads as absent to
 `existsSync`, and seeding "the missing file" would write straight through the link to whatever it
-names. (The two steps that only ask whether something OTHER than a seed exists — the knowledge
-index and the desk server file — and `doctor`'s presence rows for the memory index and the objective
+names. (The step that only asks whether something OTHER than a seed exists — the knowledge
+index — and `doctor`'s presence rows for the memory index and the objective
 file use `existsSync`; doctor's knowledge row opens the index read-only: nothing is written through those paths.) A symlink of any kind, or a
 directory, at a seed path is reported `skipped` naming what was found, and nothing is written
 through it. The command also checks every folder on the way to a seed. A stray file or dangling
@@ -313,12 +306,12 @@ Doctor's `release status` row is informational (·). It counts template commits 
   install started then exits 2 and writes nothing. Inside the lock, the settings file is re-read and
   compared to the preflight bytes; the temp file is written and `fsync`ed; then the file is compared
   **again**, immediately before the rename. Mode is preserved, and the temp file is removed on any
-  abort. `--dry-run` never takes the lock. The knowledge build, desk service and pi registration run
+  abort. `--dry-run` never takes the lock. The knowledge build and pi registration run
   after release, so a Ctrl-C there leaves no lock.
 
   The lock lives in the Claude home. Two installs with different `--claude-home` values over one pi
   home and bin folder are not kept apart. A second install started after release runs beside the
-  first run's knowledge build, desk step and pi registration; concurrent pi registration still
+  first run's knowledge build and pi registration; concurrent pi registration still
   relies on pi's own settings lock.
 
   **A leftover lock is yours to clear.** If the lock exists, the run aborts before anything is
@@ -345,20 +338,16 @@ Doctor's `release status` row is informational (·). It counts template commits 
   managed copy refreshes without another backup; an edited or unrecorded copy is backed up first.
   The copy path never writes *through* a symlink: it removes the link, leaving its target untouched.
 - Install and project setup never prompt. `trust` requires `--yes` or an interactive owner confirmation.
-- **Never touches the live machine under `--home`** — no `pi install`, no `launchctl`, and `trust`
+- **Never touches the live machine under `--home`** — no `pi install`, and `trust`
   refuses an explicit `--pi-home` outside the supplied `--home`. That is what makes the tests safe.
 
 **Known residuals (astra review lane r1 and r2, 2026-10-04) — recorded, not blocking:**
 
 - The symlink guard (`writeIfChanged`, `linkFile`, `seedFile`) is a pre-check, not race-proof
   filesystem enforcement; concurrent path replacement and symlinked ancestors are outside it.
-- `doctor` still reads the desk plist through a symlink — install refusing to manage a
-  symlinked plist does not make `doctor`'s own read of it safe too.
 - The read-instrumentation test for `writeIfChanged` (`tests/fsops.test.mjs`) spies on
   `fs.readFileSync` only, not every filesystem-reading API; revisit it if the implementation
   changes which call it reads through.
-- Native Windows and real launchd operation are unexercised by the desk-service tests — they
-  stub `launchctl` and never touch the real service or a real win32 box.
 - A tag that exists only locally reads as released, though Copier renders the highest pushed tag.
 - Release counts are only as fresh as the last fetch or push.
 
@@ -367,7 +356,7 @@ Doctor's `release status` row is informational (·). It counts template commits 
 Re-running install is the normal case: the second run prints `nothing to do — everything was already in
 place`. `install --dry-run` reports the same decisions and writes nothing. On the real home the dry run's pi packages step runs install's own pi checks, `pi --version` included, and stops before the first `pi install`, so it cannot foresee a `pi install` failure. Install, its dry run and doctor stop waiting at the limits `PI_LAUNCH_LIMITS_MS` sets in `lib/steps.mjs`, end the pi process tree (taskkill on Windows; without taskkill only cmd.exe ends), and print ✗ naming the command and the limit. On macOS and Linux, install's relay also ends its pi launch when install is killed, even with its whole process group, and still gives pi its grace. On Windows, an npm pi also ends when install is killed. `uninstall --dry-run` previews inventory rows without taking the settings lock or writing. Uninstall requires exactly one of `--dry-run` or `--yes`; edited seeds and hand-written pieces are left.
 
-**Exit codes.** `install`, `project` and `doctor` all exit **1** when any row is ✗ — uninstall exits 1 only for a failure such as a loaded desk service or unsafe settings preflight. `uninstall` exits 2 when its confirmation mode is missing or the platform is win32. Left-by-design items are reported but do not fail. `doctor`
+**Exit codes.** `install`, `project` and `doctor` all exit **1** when any row is ✗ — uninstall exits 1 only for a failure such as unsafe settings preflight. `uninstall` exits 2 when its confirmation mode is missing or the platform is win32. Left-by-design items are reported but do not fail. `doctor`
 also exits 1 on a `!` row, which says what was checked may not be what pi reads, so it never
 reports "all good" — something
 on disk is wrong and only you can fix it (today: a private rule that is not a regular file, or a
@@ -405,7 +394,7 @@ So a brand-new repo links itself on its first session. `/Users/example/a-work-pr
 
 ## Platforms
 
-Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
+Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.
 
 On native Windows, nana-setup wires every Claude Code hook entry in exec form from the checkout, needing Claude Code 2.1.139 or later to run at all. Windows gets no hook file copy, so install and doctor list each hook only by its settings row. It writes extensionless sh and `.cmd` launchers for the five PATH commands; `~/.local/bin` is not on the Windows user Path by default, so add it through Environment Variables before bare names resolve.
 
@@ -421,7 +410,6 @@ On Windows all five runtime-neutral Claude Code skills are mirrored as managed c
 --home <dir>         put every user-scope location under <dir> (tests, dry machines)
 --claude-home <dir>  the .claude directory        (default: CLAUDE_CONFIG_DIR, else ~/.claude)
 --pi-home <dir>      the pi agent directory       (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
---desk               install + load the desk launchd service (macOS, opt-in)
 --dry-run            install: report changes; uninstall: preview removal (writes nothing)
 --yes                uninstall: confirm removal; install never prompts
 ```
@@ -450,8 +438,7 @@ On FAIL, the check prints the hooks block and the last knowledge-pull record aft
 Zero-dep: `node packages/nana-setup/tests/<file>.test.mjs` (each file exits with its failure
 count). The repository runner scrubs `CLAUDE_CONFIG_DIR` before starting each file. Every run
 targets a fresh home under `os.tmpdir()` through its environment and explicit setup flags, so no
-test can touch the real `~/.claude`, `~/.pi`, `~/.local/bin` or LaunchAgents, and none loads a
-launchd service.
+test can touch the real `~/.claude`, `~/.pi` or `~/.local/bin`.
 
 Environment switches (tests and CI only):
 
@@ -487,10 +474,9 @@ loudly and counted, never silent.
 | `tests/doctor-runtime.test.mjs` | pi executable diagnostics and first executable pi-review PATH resolution |
 | `tests/doctor-quiet.test.mjs` | doctor and `project --check` mute the SQLite ExperimentalWarning and MODULE_TYPELESS_PACKAGE_JSON warning while preserving unrelated Node warnings |
 | `tests/doctor-fix-line.test.mjs` | doctor's final line gives install only the ✗ rows its dry run repairs, lists the rest by hand, reports a refusal, preserves ! counts, and writes nothing |
-| `tests/win32-degrade.test.mjs` | every still-posix-only step reporting `skipped (win32)`; install and doctor printing no hook-file row; all eight PATH shim files, install idempotence and collision backup; doctor requiring both shim renderings; the six win32 settings entries wired in exec form with matcher `Bash\|PowerShell`; and the copy path backing up / never writing through a symlink |
+| `tests/win32-degrade.test.mjs` | install and doctor printing no hook-file row; all eight PATH shim files, install idempotence and collision backup; doctor requiring both shim renderings; the six win32 settings entries wired in exec form with matcher `Bash\|PowerShell`; and the copy path backing up / never writing through a symlink |
 | `tests/win32-hook-repair.test.mjs` | Windows repair of carried POSIX shell-form hooks and the first unquoted knowledge form; retired verifier cleanup; second-install and doctor health; owner look-alikes preserved byte-identically; doctor naming dead entries install leaves, excluding entries install repairs, and tolerating refused settings shapes |
 | `tests/win-shims.test.mjs` | bare-name sh, cmd.exe and Windows PowerShell argument and exit-status handoff; PATH node selection; self-rewrite safety; and Windows PATH-resolution diagnosis |
-| `tests/desk-service.test.mjs` | the plist rendering with resolved values, opt-in, and launchctl never being called from a test |
 | `tests/stale-copies.test.mjs` | Claude Code and pi stale-copy notices on POSIX and win32; exact doctor-label parity across hook links, hook settings, rules and skills; blocked skill paths or their linked parent to move; repair clearing the line; a byte-unchanged home; silence when current; and the checker failure marker |
 | `tests/project-stale.test.mjs` | both seats' shared project-stale line; adopted-root, repository and launcher-role guards; exact file-row and by-hand parity with `project --check`; bounded fatal reads; safe command fallbacks; reload clearing; and no child or TypeScript dependency |
 | `tests/linked-claude-folder.test.mjs` | a Claude home or skills folder that is a link, before or after install: no retired row for an absent retired path or a skill link or copy install made; a present retired artifact reported ✗ and left byte-for-byte untouched (an unlinked home still gets it moved or unlinked); doctor's ✗ skill rows naming the linked folder to move aside, matching the session-start line exactly; legacy rows naming every refused path to move by hand and reading ✓ after those paths move; ✓ skill and legacy rows matching an unlinked home; moving a linked folder aside and reinstalling turning every skill row ✓; an unreachable Claude, rules, shared-memory or off-win32 hooks link refusing before any write while broken skills and win32 hooks links do not; and doctor's final line listing skill rows by hand when the dry run completes or naming that refusal |

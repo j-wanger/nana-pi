@@ -35,7 +35,7 @@ function normalizeToolPath(input: string): string {
 	return piNormalizePath(normalized);
 }
 
-// pi's ACTIVE agent dir: ONE implementation, shared with the desk and nana-setup (lib/agent-dir.mjs).
+// pi's ACTIVE agent dir: ONE implementation, shared with nana-setup (lib/agent-dir.mjs).
 export { piAgentDir, piAgentDirIsCwdRelative };
 
 /** pi's ACTIVE trust store: `<piAgentDir()>/trust.json` (ProjectTrustStore.trustPath). */

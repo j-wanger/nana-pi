@@ -1,8 +1,8 @@
 # nana-pi
 
-Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, desk, knowledge search, and project templates.
+Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, knowledge search, and project templates.
 
-Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
+Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.
 Sibling repo to `~/nana-agent-loop`.
 
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
@@ -13,7 +13,6 @@ Sibling repo to `~/nana-agent-loop`.
   dev-workflow skills. Installable via
   `pi install git:` or a local path — which ships `nana-pack` extensions and skills.
   Knowledge search remains an explicit CLI, with no pi extension.
-  `nana-stage`'s extension is NOT in that manifest: the desk loads it per app.
 - `templates/` — copier project templates behind the `scaffold-py`/`scaffold-ts` skills
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
   emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
@@ -36,10 +35,8 @@ Windows too. Configure real inputs before treating a green data test as validati
   `packages/nana-knowledge/README.md`.
 - `packages/nana-setup/` — the one-command bootstrap for everything that is NOT a pi extension:
   the Claude Code half (hooks, rules, skills, `settings.json` wiring, the two-tier auto-memory), the
-  user-scope pi config, `pi-review` on PATH, and the desk service. `nana-setup doctor` is the
+  user-scope pi config and `pi-review` on PATH. `nana-setup doctor` is the
   ✓/✗ instrument for a fresh machine. See `packages/nana-setup/README.md`.
-- `apps/desk/` — the local manifest app host; the desk page is retired. It has no npm
-  dependencies of its own, but requires the installed pi for RPC children (see `apps/desk/README.md`).
 - `scripts/glob-match.mjs` — the shared minimal glob matcher for artifact paths in report consumers.
 - `apps/bench/` — builder and seat context anatomy, plus preserved study records in
   `apps/bench/studies/`. Study execution is retired; see `apps/bench/README.md`.
@@ -145,10 +142,8 @@ the pi-hosted ones. nana supports pi 1.0.3 through 1.4.0. For pi 1.0.3 through 1
 
 | Component | Runtime | Dev / test |
 |---|---|---|
-| `apps/desk/` (app host) | Node ≥ 22.19; globally installed **`@earendil-works/pi-coding-agent`**, spawned as `pi --mode rpc` per manifest app. No in-process transcript parser or npm dependencies of its own. | Playwright (`playwright`/`playwright-core`) and Chromium for browser cases; `PW_ROOT` points at their project. HTTP and persistence tests use deterministic stubs. Details: `apps/desk/README.md`. |
-| `packages/nana-pack/` (the extensions + skills) | pi itself, as an **optional peerDependency** (`@earendil-works/pi-coding-agent: "*"`) — the extensions run inside pi, so pi is the host, not a package they install. No runtime npm dependencies. | Zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests FAIL naming the locations tried when pi is absent. Set `DESK_PI_ROOT` to point pack tests at another install (`DESK_PI_BIN` selects the executable for desk tests). |
-| `packages/nana-stage/` (the stage ledger) | Same: pi as an optional peerDependency, no runtime npm dependencies. | Zero-dep node tests. |
-| `packages/nana-setup/` (the bootstrap) | Node ≥ 22.18 only (the installed objective hook's CLI imports `.ts` via Node's built-in type stripping; older Node → a named `OBJECTIVE UNAVAILABLE` marker and a doctor ✗); no npm dependencies. Shells out to `pi` (registration), `node` (the knowledge build) and `launchctl` (`--desk`, macOS) — each optional, each reported as skipped when missing. | Zero-dep `node packages/nana-setup/tests/*.test.mjs`; every test installs into `os.tmpdir()` via `--home` and never touches the real `~/.claude`, `~/.pi` or LaunchAgents. |
+| `packages/nana-pack/` (the extensions + skills) | pi itself, as an **optional peerDependency** (`@earendil-works/pi-coding-agent: "*"`) — the extensions run inside pi, so pi is the host, not a package they install. No runtime npm dependencies. | Zero-dep `node packages/nana-pack/tests/*.test.mjs`; pi-dependent tests FAIL naming the locations tried when pi is absent. Set `DESK_PI_ROOT` to point pack tests at another install. |
+| `packages/nana-setup/` (the bootstrap) | Node ≥ 22.18 only (the installed objective hook's CLI imports `.ts` via Node's built-in type stripping; older Node → a named `OBJECTIVE UNAVAILABLE` marker and a doctor ✗); no npm dependencies. Shells out to `pi` (registration) and `node` (the knowledge build) — each optional, each reported as skipped when missing. | Zero-dep `node packages/nana-setup/tests/*.test.mjs`; every test installs into `os.tmpdir()` via `--home` and never touches the real `~/.claude`, `~/.pi`. |
 | `packages/nana-knowledge/` (explicit knowledge search) | Node ≥ 22.18 only — `node:sqlite` (bundled SQLite, FTS5) and Node's TypeScript type stripping; no build step, npm dependencies, model calls or pi runtime required. Automatic knowledge delivery is retired in both runtimes. | Zero-dep `node packages/nana-knowledge/tests/*.test.mjs`; no fixtures outside `os.tmpdir()`. Details: `packages/nana-knowledge/README.md`. |
 | `templates/` (copier scaffolds) | `uv` (which ships `uvx`, how copier runs) for both languages; `pnpm` for the TypeScript template. Generated projects carry their own pinned stacks. | — |
 | `apps/bench/` (context anatomy) | Node ≥ 22.19 and git; authenticated Claude CLI on PATH for optional paid labelling. No npm dependencies of its own. Study runners are retired; records remain frozen. | Synthetic `test/*.test.mjs` fixtures use OS temp and make no model calls. Details: `apps/bench/README.md`. |
@@ -161,12 +156,11 @@ The experience has **two halves**, and both are installed from this repo:
    (below). Nothing outside pi is touched.
 2. **The Claude Code half + user-scope config** — the global hooks and rules, the
    `~/.claude/settings.json` wiring, the two-tier auto-memory, `~/.pi/agent/nana-pack.json` and
-   the objective file, `pi-review` on PATH, and (opt-in) the desk service. That is
+   the objective file and `pi-review` on PATH. That is
    `nana-setup`, and it needs the repo files on disk:
 
    ```bash
    node packages/nana-setup/bin/nana-setup.mjs install          # idempotent; re-run any time
-   node packages/nana-setup/bin/nana-setup.mjs install --desk   # + the desk launchd service (macOS)
    node packages/nana-setup/bin/nana-setup.mjs doctor           # one ✓ or ✗ per piece; exits 1 on any ✗
    ```
 
@@ -193,7 +187,7 @@ The experience has **two halves**, and both are installed from this repo:
 1. Install Node ≥ 22.19 with a global npm prefix you can write without sudo (Homebrew, nvm/fnm, or a user prefix), and install git (`xcode-select --install` if it is missing).
 2. Run `npm i -g --ignore-scripts @earendil-works/pi-coding-agent@1.4.0 --before=2026-10-23T18:35:54Z`, then `pi --version`. Do not use pi's managed installer or `pi update`; see the setup README's “Update nana-pi” section.
 3. Run `git clone https://github.com/j-wanger/nana-pi ~/nana-pi`; keep the clone.
-4. Run `cd ~/nana-pi`, then `node packages/nana-setup/bin/nana-setup.mjs install` (`--desk` adds the desk service).
+4. Run `cd ~/nana-pi`, then `node packages/nana-setup/bin/nana-setup.mjs install`.
 5. Run `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile`, then open a new terminal.
 6. Write your objective and current-priority lines over the placeholders in `~/.pi/agent/nana-objective.md`, or set `objective.path` in `~/.pi/agent/nana-pack.json` to an umbrella repo's `OBJECTIVE.md`.
 7. Run `cd ~/nana-pi`, then `nana-setup trust ~/nana-pi` (it asks before it records), then `nana-setup doctor`; expect `all good`.
@@ -254,7 +248,7 @@ pi install git:github.com/j-wanger/nana-pi        # pack-only use; add -l for pr
 # 2. a project — or just ask pi, the scaffold-py/scaffold-ts/adopt-* skills drive this
 uvx copier copy --data language=python https://github.com/j-wanger/nana-pi.git <dest>
 
-# For nana-setup or the desk, install from a local clone instead (see below).
+# For nana-setup, install from a local clone instead (see below).
 ```
 
 Copier renders the latest `v*` tag, never HEAD — tags are cut only by
@@ -263,7 +257,7 @@ tags v0.4.0 and earlier predate it, so pin a commit (or any later `v*` tag) inst
 
 ### From a local clone
 
-Anyone using nana-setup or the desk installs from a local clone; doctor reads ✗ when pi loads a `git:` copy beside that clone.
+Anyone using nana-setup installs from a local clone; doctor reads ✗ when pi loads a `git:` copy beside that clone.
 
 One `git clone https://github.com/j-wanger/nana-pi`, then everything runs off the
 working tree:
@@ -278,11 +272,7 @@ pi install /path/to/nana-pi
 # template edits ARE included (copier warns "dirty template")
 uvx copier copy --data language=python /path/to/nana-pi <dest>
 
-# nana code (the desk)
-node /path/to/nana-pi/apps/desk/server.mjs
-
-# the Claude Code half + user-scope config (add --desk to run the desk as a
-# launchd service instead of by hand)
+# the Claude Code half + user-scope config
 node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs install
 node /path/to/nana-pi/packages/nana-setup/bin/nana-setup.mjs doctor
 ```
@@ -322,7 +312,7 @@ Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/templa
 Canonical upstream coordinates: repo <https://github.com/earendil-works/pi>, npm `@earendil-works/pi-coding-agent`
 (the `@mariozechner/*` scope is deprecated). Latest at repo creation: 0.84.4, Node ≥22.19.
 
-## Product report
+## Run the product report
 
 The component audit at `docs/components/nana-pi.json` tracks workflow and governance parts, their feature coverage, evidence-based status and conversation asks. Run `node scripts/component-audit.mjs --check` to validate the tracked source and print staleness and code-map coverage; `node scripts/component-audit.mjs --out <file>` writes derived contract data, and `node scripts/component-audit.mjs --asks` prints asks ready for the seat to scan and post. The audit uses `scripts/component-contract.mjs` and sealed values in `scripts/component-audit-config.mjs`. A folder part such as `packages/nana-setup/` makes `recentCommits` read busy whenever a file below it changes.
 
@@ -330,7 +320,7 @@ The product report is a generated HTML ledger of capabilities, features, require
 
 The Issues view also lists every implemented row that did not pass in this clone's last measured run, headed by the count of rows listed: a row lands there when any file it cites last recorded FAIL, or when every file it cites has a recorded run and none recorded PASS. A file with no recorded run counts neither way. A label marked "changed since" still decides that listing, and the report still shows the "changed since" mark beside it.
 
-For a first-look comparison after build 1, run `npm run first-look -- --page product --out <dir>`. `scripts/first-look.mjs` builds the report at main and at the current checkout, then saves four screenshots and the report-view accessibility diff. Its sealed inputs live in `scripts/first-look-config.mjs`. The command uses Playwright when available through `PW_ROOT`, the script's module search path or the main checkout; otherwise it prints the Playwright install instruction and exits successfully. The desk mode compares two running URLs with `npm run first-look -- --page desk --before <url> --after <url>` and saves to temporary storage. For a new page or a reference comparison, use `npm run first-look -- --page url --after <url> --reference <folder> --spec <file> --out <folder>`; it saves viewport and full-page shots, numbered reference copies, the spec, a manifest and a side-by-side HTML page. URL-mode output must be outside git. No real browser is launched by the suite; `packages/nana-pack/tests/first-look.test.mjs` uses a fake browser and report runner.
+For a first-look comparison after build 1, run `npm run first-look -- --page product --out <dir>`. `scripts/first-look.mjs` builds the report at main and at the current checkout, then saves four screenshots and the report-view accessibility diff. Its sealed inputs live in `scripts/first-look-config.mjs`. The command uses Playwright when available through `PW_ROOT`, the script's module search path or the main checkout; otherwise it prints the Playwright install instruction and exits successfully. For a new page or a reference comparison, use `npm run first-look -- --page url --after <url> --reference <folder> --spec <file> --out <folder>`; it saves viewport and full-page shots, numbered reference copies, the spec, a manifest and a side-by-side HTML page. URL-mode output must be outside git. No real browser is launched by the suite; `packages/nana-pack/tests/first-look.test.mjs` uses a fake browser and report runner.
 
 After first-look on a product-page lane, run `npm run outside-reader -- --from <first-look folder> --out <folder>` with output outside git. `scripts/outside-reader.mjs` reads the after page and capped diff, the objective producer and newest known bugs, then asks one cold pi model for at most three new weaknesses and checks their page quotes. Use `--url <url or file path>` instead for a page without a diff; `--provider`, `--model` and `--thinking` override the first pi roster entry among scout, land and builder. It needs the same optional Playwright browser as first-look, resolved by `scripts/playwright-resolve.mjs`, plus pi on PATH and its model login. Missing browser, model or purpose prints a note; a failed model attempt exits 1. It saves the prompt, page text and answer outside git, never issues or known bugs. For a referenced page, run `npm run visual-reader -- --from <first-look folder> --out <folder>` before showing the owner the shots. `scripts/visual-reader.mjs` sends the page frames, reference frames and art spec to the Claude Code reviewer in the nana roster, using a cold Claude Code launch; it saves prompt.md and, on success, reader.md outside git, then prints pass or fail and any unjudged spec lines. It requires Playwright for first-look, Claude Code on PATH with its login, and a Claude Code reviewer in the roster; a missing reviewer skips the judge. The tracked prompt is `packages/nana-pack/prompts/outside-reader.md`; sealed caps and the single 600-second attempt live in `scripts/outside-reader-config.mjs`. The visual prompt is `packages/nana-pack/prompts/visual-reader.md`; its launch values live in `scripts/visual-reader-config.mjs`. `scripts/reader-common.mjs` shares the readers' repository-boundary and numbered-item helpers. The suite uses fakes only.
 
@@ -348,14 +338,14 @@ On a shared machine, run a fallback full suite with `npm run test:locked` (imple
 Each unfiltered locked run keeps a suite record in the suite-runs store beneath the clone's shared git directory. Its two closing record lines name the clean baseline and slower files, then repeat the PASS and FAIL counts and every failure with its class and cause, followed by this lane's full-run count and minutes. A land prefixes both lines so its success report retains them. Each CI suite leg uploads the same runner record. `node scripts/ci-records.mjs [<rev>]` prints each leg's totals and slowest files. After a CI-checked land, nana-land keeps the tip's records in the ci-runs store beside suite-runs and notes files that reached half their recorded per-file limit.
 
 `npm test` from the repo root (`scripts/test.mjs`) runs every `packages/*/tests/*.test.mjs`
-and `apps/desk/test/*.test.mjs` one file at a time, each from its package dir with a fresh
+one file at a time, each from its package dir with a fresh
 temp `HOME`/`USERPROFILE`, prints one PASS/FAIL/SKIP line per file plus a total, and exits 1
 if any file fails — also when no file matched the filter, or a `--self-test` fixture missed
 its expected verdict; 130 on Ctrl-C (SIGINT) and 143 on SIGTERM, each after killing the
-active test's process tree. It retries removing each finished file's temporary folder; if the folder stays busy, it prints one FAIL line naming the file, folder and error, counts one failure, and continues. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls); the `*.e2e.mjs` browser suites are not.
+active test's process tree. It retries removing each finished file's temporary folder; if the folder stays busy, it prints one FAIL line naming the file, folder and error, counts one failure, and continues. `apps/bench/test/*.test.mjs` is in it (stubs, zero model calls).
 `npm test -- <substring>` narrows the set; `--verbose` streams output; `--self-test` adds a
 deliberately failing file to prove the runner turns red. On win32 the runner also SKIPs each
-desk or bench file on the declared Windows skip list
+file on the declared Windows skip list
 (`packages/nana-pack/lib/windows-skips-config.mjs`), printing that file's reason without
 starting it.
 

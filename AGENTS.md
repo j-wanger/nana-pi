@@ -1,8 +1,8 @@
 # nana-pi
 
-The toolkit repo: adoption of pi, the nana pack, desk, knowledge search, and project templates. Sibling to `~/nana-agent-loop`.
+The toolkit repo: adoption of pi, the nana pack, knowledge search, and project templates. Sibling to `~/nana-agent-loop`.
 
-Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.
+Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.
 
 Startup: read `HANDOFF.md`; look up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.
 
@@ -22,15 +22,11 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
 - `packages/nana-knowledge/` — a zero-dep FTS5/BM25 index over this machine's markdown
   knowledge stores, searched explicitly with `nana-knowledge query`.
   Automatic knowledge delivery is retired in both runtimes.
-- `packages/nana-stage/` — the staged-block layer behind the UI-centric frontend: validates,
-  HMAC-signs and ledgers code-authored blocks a tool returns.
 - `packages/nana-setup/` — the one-command bootstrap for everything outside pi: the Claude Code
   hooks/rules/`settings.json` wiring, the two-tier auto-memory, user-scope pi config, `pi-review`
-  on PATH, the desk launchd service. The canonical copies of those hooks and rules live HERE
+  on PATH. The canonical copies of those hooks and rules live HERE
   (`claude/`), symlinked into `~/.claude` — edit them in the repo, never in `~/.claude`.
   `nana-setup doctor` is the ✓/✗ instrument for a machine.
-- `apps/desk/` — the local manifest app host; the desk page is retired. Its README carries
-  the Contract notes and Known limits — read them before changing its surface.
 - `apps/bench/` — builder and seat context anatomy; `studies/` holds preserved verdicts and frozen fixtures from retired study runners.
 - `templates/` — copier templates behind `scaffold-py`/`scaffold-ts` and `adopt-py`/`adopt-ts`.
   The copier src is the REPO ROOT (root `copier.yml`, `language` question); tags ship only through
@@ -53,10 +49,8 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
   enforcement stays at the container/sandbox layer.
 - Verify against the locally installed pi version (`pi --version`, docs under
   `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`) before citing API details.
-- Every README states its runtime dependencies, including the globally installed pi package
-  the desk resolves at runtime (the owner, 2026-09-09).
-- Contract changes are declared where the consumer reads them — `apps/desk/README.md`
-  "Contract notes"/"Known limits", the pack README, the design doc — not only in a commit.
+- Every README states its runtime dependencies, including the globally installed pi package.
+- Contract changes are declared where the consumer reads them — the pack README and the design doc — not only in a commit.
 
 ## Working pattern
 
@@ -70,7 +64,7 @@ The bullets below describe pi sessions; other runtimes receive only the surfaces
 | Runtime | Context and rules | Checks and state |
 |---|---|---|
 | Claude Code seat | SessionStart `nana-objective.mjs` (objective/frontier), `nana-adoption.mjs`, `nana-shared-memory.mjs`; nana-soul / nana-standards; shared nana-writing rule and `nana-rulings.md` | No nana Gate or Verifier pipe; Claude-owned Compaction summary, no nana HANDOFF producer; `nana-roster-notice.mjs` notice |
-| pi TUI or desk session | `nana-objective`, `nana-frontier-summary`; `nana-writing`, `nana-rulings`; no soul/standards or shared auto-memory | `nana-gate` for bash/PowerShell; `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction; `nana-roster-notice` widget |
+| pi TUI session | `nana-objective`, `nana-frontier-summary`; `nana-writing`, `nana-rulings`; no soul/standards or shared auto-memory | `nana-gate` for bash/PowerShell; `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction; `nana-roster-notice` widget |
 | pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; frontier adds nothing under `NANA_ROLE` | Same gate/journal; roster notice has no UI |
 | Codex | Unsupported; no nana runtime contract | Not specified |
 
@@ -122,7 +116,7 @@ read — `<agent dir>` is pi's ACTIVE agent dir: `PI_CODING_AGENT_DIR` when set,
 `~/.pi/agent/nana-pack.json` is NOT read (no fallback, no migration); the pack notes that once
 per session only when BOTH the active `<agent dir>/nana-pack.json` is absent AND a stranded
 `~/.pi/agent/nana-pack.json` exists — otherwise it says nothing. "Trusted" means a decided trust: `/trust` in pi for the folder, then restart —
-`pi -a` / the desk's trust box (one run) is not enough for a nana-only `.pi/`. A malformed
+`pi -a` (one run) is not enough for a nana-only `.pi/`. A malformed
 (or over-cap) `gate` block, user or project, falls back to the last valid policy for that scope
 loaded in this process; with none (a fresh process), it stops every gated tool until the owner
 repairs the named file with any editor **outside pi**, or deletes it (missing = defaults, which
@@ -145,8 +139,3 @@ The suite also fails when HANDOFF's Next or Open for the owner section holds a l
 ### The tree in briefs, reviews and lands
 
 A lane brief names its feature as `Feature: FEAT-nnn · <label>`. A lane brief carries a Precedent section unless it is marked `Card: fix`. Both review launchers select known bugs from the brief's feature line.
-
-### The desk
-
-The desk process hosts manifest-configured apps on separate loopback listeners.
-Its main port serves a retired-page note and app links; session-dashboard controls are retired.

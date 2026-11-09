@@ -10,8 +10,8 @@
  */
 /**
  * agent-dir — pi's ACTIVE agent dir, resolved exactly as pi does. The ONE implementation in the
- * repo: nana-pack (lib/gate-paths.ts re-exports it), the desk (apps/desk/server.mjs) and
- * nana-setup (lib/paths.mjs) all import this file, so they cannot disagree about which
+ * repo: nana-pack (lib/gate-paths.ts re-exports it) and
+ * nana-setup (lib/paths.mjs) both import this file, so they cannot disagree about which
  * nana-pack.json / trust.json / settings.json is live. Plain JS so `.mjs` consumers can import it.
  *
  * pi: getAgentDir() = `PI_CODING_AGENT_DIR` (non-empty) through normalizePath, else ~/.pi/agent

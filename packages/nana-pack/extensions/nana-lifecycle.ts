@@ -20,7 +20,7 @@
  * else ~/.pi/agent; lib/config.ts journalFile) and surfaces compaction
  * in the UI. The footer shows "nana-pack ✓" so a loaded pack is visible.
  *
- * Also owns /reload-runtime — the only way a non-TUI host (the desk, any RPC
+ * Also owns /reload-runtime — the only way a non-TUI host (any RPC
  * client) can make a running session pick up a skill added after it started.
  */
 
@@ -69,8 +69,7 @@ export default function (pi: ExtensionAPI) {
 	// pi scans skill/extension/prompt/context locations at STARTUP only. The TUI
 	// has a built-in /reload; RPC has no reload command at all, so an extension
 	// command is the documented entrypoint (docs/extensions.md "ctx.reload()").
-	// It re-reads settings.json first, so a skills folder added from the desk's
-	// ⚙ → Skills tab counts, then re-discovers resources.
+	// It re-reads settings.json first, then re-discovers resources.
 	//
 	// NOT named "reload": pi treats an extension command whose name matches a
 	// built-in interactive one as a conflict — "Skipping in autocomplete" at every
