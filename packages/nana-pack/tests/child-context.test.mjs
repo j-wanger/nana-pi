@@ -42,7 +42,6 @@ export class DefaultResourceLoader {
 }
 `;
   const pkg = path.join(bin,'node_modules/@earendil-works/pi-coding-agent');
-  write(path.join(pkg,'package.json'), JSON.stringify({ name:'@earendil-works/pi-coding-agent', version:'9.9.9-fixture',type:'module',bin:{pi:'cli.cjs'} }));
   write(path.join(pkg,'dist/index.js'), moduleSource);
   const body = `const fs=require('node:fs'); const {pathToFileURL}=require('node:url');
 (async()=>{const a=process.argv.slice(2),prompts=[];
@@ -57,7 +56,11 @@ let sections=null;if(!a.includes('--append-system-prompt-file')&&!a.includes('--
 fs.appendFileSync(process.env.CC_CAPTURE,JSON.stringify({a,prompts,text,sections,role:process.env.NANA_ROLE,refusals})+'\\n');
 console.log('VERDICT: LAND\\nReview complete.');})();`;
   write(path.join(pkg,'cli.cjs'), `#!${process.execPath}\n${body}`);
-  if (process.platform === 'win32') { writeFakePi(bin, body); write(path.join(bin,'claude.cmd'), `@echo off\r\n"${process.execPath}" "${path.join(pkg,'cli.cjs')}" %*\r\n`); }
+  // The Windows shim helper writes CommonJS package metadata. Restore the ESM
+  // loader's metadata afterwards, and exercise this ordering on every platform.
+  writeFakePi(bin, body);
+  write(path.join(pkg,'package.json'), JSON.stringify({ name:'@earendil-works/pi-coding-agent', version:'9.9.9-fixture',type:'module',bin:{pi:'cli.cjs'} }));
+  if (process.platform === 'win32') { write(path.join(bin,'claude.cmd'), `@echo off\r\n"${process.execPath}" "${path.join(pkg,'cli.cjs')}" %*\r\n`); }
   else { fs.chmodSync(path.join(pkg,'cli.cjs'),0o755); fs.symlinkSync(path.join(pkg,'cli.cjs'),path.join(bin,'pi')); fs.symlinkSync(path.join(pkg,'cli.cjs'),path.join(bin,'claude')); }
   const env = { ...process.env, HOME:home, USERPROFILE:home, PI_CODING_AGENT_DIR:agent, PATH:`${bin}${path.delimiter}${process.env.PATH}`, CC_CAPTURE:capture };
   delete env.CLAUDE_CONFIG_DIR; delete env.NANA_ROLE;
@@ -70,7 +73,7 @@ function launch(f, kind, claude = false) {
     : kind === 'claude-review' ? ['--item',`item-${serial}`,'--tree',f.lane,'--brief',f.brief,'--out',out]
     : ['--item',`item-${serial}`,'--out',out,'--poll','0.05','--','--provider','fake','--model','fake','--append-system-prompt',f.brief,'-p','review'];
   const r=spawnSync(process.execPath,[path.join(pack,'bin',kind==='slot'?'pi-worker.mjs':kind+'.mjs'),...args],{cwd:f.lane,env:f.env,encoding:'utf8',timeout:25_000});
-  assert.equal(r.status,0,r.stderr); return rows(f.capture).at(-1);
+  assert.equal(r.status,0,`${kind} runtime exit: actual=${r.status} expected=0; signal=${r.signal}; error=${r.error?.code ?? 'none'}; ${r.stderr}`); return rows(f.capture).at(-1);
 }
 async function compose(file, f, role, opts = {}) {
   if(role===null)delete process.env.NANA_ROLE;else process.env.NANA_ROLE=role;
@@ -120,16 +123,20 @@ test('M5: pi logs composed sections including zero skips and unavailable measure
  for(const kind of ['pi-worker','slot','pi-review']){
   const f=fixture();
   write(path.join(f.agent,'nana-rulings.md'),fs.readFileSync(path.join(pack,'rules/nana-rulings.md'),'utf8'));
+  const format=JSON.parse(fs.readFileSync(path.join(f.pkg,'package.json'),'utf8')).type;
+  assert.equal(format,'module',`${kind} section loader module format: actual=${format} expected=module`);
   const call=launch(f,kind);const line=rows(f.log).at(-1);
   if(kind==='pi-worker')console.log('DELIVERED builder',JSON.stringify(line.parts.map(({name,fullChars,deliveredChars})=>({name,fullChars,deliveredChars}))));
   for(const name of ['nana-objective','nana-rulings','nana-writing','nana-install-stale','nana-project-stale']){
-   const part=line.parts.find(p=>p.name===name);assert.ok(part, name);
-   if(name==='nana-objective')assert.ok(part.deliveredChars>0);else assert.equal(part.deliveredChars,0,name);
+   const part=line.parts.find(p=>p.name===name);assert.ok(part,`${kind} ${name}: actual=${JSON.stringify(part)} expected=present`);
+   if(name==='nana-objective')assert.ok(part.deliveredChars>0,`${kind} ${name}: actual=${part.deliveredChars} expected=>0`);
+   else assert.equal(part.deliveredChars,0,`${kind} ${name}: actual=${part.deliveredChars} expected=0`);
   }
-  for(const part of line.parts.filter(p=>p.name.startsWith('nana-')))assert.equal(part.deliveredChars,(call.sections[part.name]??'').length);
+  for(const part of line.parts.filter(p=>p.name.startsWith('nana-'))){const expected=(call.sections[part.name]??'').length;assert.equal(part.deliveredChars,expected,`${kind} ${part.name}: actual=${part.deliveredChars} expected=${expected}`);}
   write(path.join(f.pkg,'dist/index.js'),'export function loadProjectContextFiles(){return [];}');
-  launch(f,kind);for(const part of rows(f.log).at(-1).parts.filter(p=>p.name.startsWith('nana-')))assert.equal(part.deliveredChars,'unavailable');
-  assert.equal(rows(f.log).at(-1).parts.filter(p=>p.name.startsWith('nana-')).length,5);
+  launch(f,kind);for(const part of rows(f.log).at(-1).parts.filter(p=>p.name.startsWith('nana-')))assert.equal(part.deliveredChars,'unavailable',`${kind} ${part.name}: actual=${part.deliveredChars} expected=unavailable`);
+  const count=rows(f.log).at(-1).parts.filter(p=>p.name.startsWith('nana-')).length;
+  assert.equal(count,5,`${kind} nana section count: actual=${count} expected=5`);
  }
 });
 // req: R-3920
