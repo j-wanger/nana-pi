@@ -1322,7 +1322,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Findings, word count, first Next section, summary text and date validation.
 - **effects** — none
 - **errors** — none; malformed content produces findings or empty sections.
-- **callers** — `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/tests/frontier.test.mjs`
+- **callers** — `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/frontier.test.mjs`
 - **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`
 
 ### `packages/nana-pack/lib/frontier-config.mjs`
@@ -2251,9 +2251,9 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **effects** — disk (OS-temp fixtures), process (git and bounded worker children).
 - **errors** — Failed checks print their title and make the process exit nonzero.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
-- **unresolved launches** — line 137: spawnSync · line 208: spawn
-- **repo-code launches** — line 243: spawnSync
+- **callees** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/build-records-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/pi-install.mjs`, `packages/nana-pack/tests/process-tree-helper.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **unresolved launches** — line 139: spawnSync · line 210: spawn · line 315: spawn
+- **repo-code launches** — line 245: spawnSync
 
 ### `packages/nana-pack/tests/builder-context.test.mjs`
 
@@ -2565,8 +2565,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **effects** — disk (temporary fixtures), process (runs the frontier producer CLI).
 - **errors** — Failed checks set a nonzero exit code; every subprocess has a per-case timeout.
 - **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-frontier-summary.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
-- **unresolved launches** — line 39: spawnSync
+- **callees** — `packages/nana-pack/bin/nana-frontier-summary.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/frontier-check.mjs`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **unresolved launches** — line 40: spawnSync
 
 ### `packages/nana-pack/tests/frontier.test.mjs`
 
@@ -3282,7 +3282,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — sorted names left in a hard-kill case temp folder; kill helpers return none
 - **effects** — disk (reads the case temp folder), process (signals the child or starts taskkill)
 - **errors** — suppresses absent-process and launcher errors
-- **callers** — `packages/nana-pack/tests/worker-claude.test.mjs`
+- **callers** — `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/tests/process-tree.test.mjs`

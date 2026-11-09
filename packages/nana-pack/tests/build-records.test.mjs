@@ -23,6 +23,7 @@ import { collectBuildUsage, readBuildLedger, renderLaneLine } from "../lib/build
 import { findPiRoot } from "./pi-install.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
+import { killWorkerTree } from "./process-tree-helper.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
@@ -106,6 +107,7 @@ const path = require("node:path");
       const other = SessionManager.create(process.env.BR_OTHER_CWD, custom); other.appendSessionInfo("pi-worker-a1-other"); other.appendMessage({ role: "user", content: [{ type: "text", text: "other" }], timestamp: Date.now() }); other.appendMessage({ role: "assistant", content: [], provider: "p", model: "m", usage: ${JSON.stringify(usage(256))}, stopReason: "stop", timestamp: Date.now() });
     }
   }
+  if (process.env.BR_MODE === "hard-sleep") { fs.writeFileSync(process.env.BR_CHILD_PID, String(process.pid)); setInterval(() => {}, 100000); return; }
   if (process.env.BR_MODE === "commit") { fs.writeFileSync(path.join(process.cwd(), "built"), "built\\n"); require("node:child_process").spawnSync("git", ["-c","user.name=Fixture","-c","user.email=fixture@example.invalid","add","built"], { cwd: process.cwd() }); require("node:child_process").spawnSync("git", ["-c","user.name=Fixture","-c","user.email=fixture@example.invalid","commit","-qm","built"], { cwd: process.cwd() }); }
   console.log("worker output");
   if (process.env.BR_MODE === "fail") process.exit(1);
@@ -308,6 +310,26 @@ const workerEnd = lines().filter((row) => row.kind === "end").at(-1);
 const literal = renderLaneLine(readBuildLedger(LEDGER).records, "alpha");
 // req: R-2602 R-3761
 check("R-2602: the build-record stderr line names this build's outcome, minutes and cost and its lane's builds so far; no lane class prints", lineRun.status === 0 && !lineRun.stderr.includes("lane class") && lastLine?.startsWith(`${BUILD_RECORD_LINE_PREFIX} ok, exit 0, 0 min, $${expectedUsage.cost.total.toFixed(2)}; `) && lastLine.endsWith(literal) && /3 builds/.test(literal) && /2 ok/.test(literal) && /1 no end/.test(literal) && workerEnd?.outcome === "ok", JSON.stringify({ stderr: lineRun.stderr, literal }));
+
+resetRecords();
+const hardChild = spawn(process.execPath, workerArgs(), { cwd: LANE, env: { ...baseEnv(), BR_MODE: "hard-sleep" }, stdio: "ignore" });
+const hardClose = waitChild(hardChild);
+const hardStarted = await waitFor(CHILD_PID, hardChild);
+// Let the detached watcher leave its launch hop before killing the worker tree.
+await new Promise((resolve) => setTimeout(resolve, 1000));
+killWorkerTree(hardChild);
+const hardResult = await hardClose;
+const hardDeadline = Date.now() + CASE_LIMIT_MS;
+let hardRecords;
+do {
+	hardRecords = readBuildLedger(LEDGER).records;
+	if (hardRecords.some((row) => row.kind === "end")) break;
+	await new Promise((resolve) => setTimeout(resolve, 25));
+} while (Date.now() < hardDeadline);
+const hardStart = hardRecords.find((row) => row.kind === "start");
+const hardEnds = hardRecords.filter((row) => row.kind === "end" && row.build === hardStart?.build);
+// req: R-2725
+check("R-2725: a hard-killed lane build gets one stopped end record with its session cost", hardStarted && hardResult.signal !== "TIMEOUT" && hardEnds.length === 1 && hardEnds[0].outcome === "stopped" && hardEnds[0].exit === null && hardEnds[0].signal === null && hardEnds[0].cost === expectedUsage.cost.total && JSON.stringify(hardEnds[0].usage) === JSON.stringify(expectedUsage), JSON.stringify({ hardStarted, hardResult, hardRecords }));
 
 // req: R-2596 R-2599 R-2602
 check("seal: build records live at nana/build-records.jsonl in schema 1 and their stderr lines start pi-worker: build record:", BUILD_RECORDS_SUBPATH === "nana/build-records.jsonl" && BUILD_RECORD_SCHEMA === 1 && BUILD_RECORD_LINE_PREFIX === "pi-worker: build record:" && BUILD_SESSION_READ_MAX_BYTES === 64 * 1024 * 1024 && BUILD_LEDGER_READ_MAX_BYTES === 32 * 1024 * 1024);

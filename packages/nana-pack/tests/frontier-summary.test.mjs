@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { BOUNDED_READ_CAP } from "../lib/bounded-read.mjs";
 import { promptPath } from "../lib/display.mjs";
 import { frontierSummary } from "../lib/frontier-summary.mjs";
+import { checkFrontier, frontierSummaryLine } from "../lib/frontier-check.mjs";
 import { FRONTIER_HEADING, FRONTIER_OUTPUT_CAP, FRONTIER_SECTION, FRONTIER_TAG, FRONTIER_TITLE_CAP, FRONTIER_UNAVAILABLE } from "../lib/frontier-summary-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import * as frontierValues from "../lib/frontier-summary-config.mjs";
@@ -79,6 +80,27 @@ const lines = (text) => text?.split("\n") ?? [];
 		withoutPath(crlf) === withoutPath(lf) && withoutPath(bom) === withoutPath(plainBom);
 	// req: R-2607
 	check("R-2607: Next titles and ask tags and titles are listed in block order, and nested items, fences and other sections are not", ok, main ?? "null");
+}
+
+{
+	const sources = [
+		"## Next\n- first\n## Open for the owner\n- ask without tag\n",
+		...["rewritten.md", "legacy.md", "handoff-2026-10-06.md", "handoff-pre-rewrite.md"].map((name) => fs.readFileSync(path.join(ROOT, "packages/nana-pack/tests/fixtures/frontier", name), "utf8")),
+	];
+	const results = sources.flatMap((source) => [source, source.replaceAll("\n", "\r\n"), source.trimEnd() + " \t"]).map((source) => {
+		const result = checkFrontier(source, TODAY);
+		const counts = [];
+		for (const finding of result.findings) {
+			const found = counts.find((entry) => entry.kind === finding.kind);
+			if (found) found.count++;
+			else counts.push({ kind: finding.kind, count: 1 });
+		}
+		const suffix = counts.length ? ` (${counts.map(({ kind, count }) => `${kind} ${count}`).join(", ")})` : "";
+		const expected = `Frontier check: ${frontierSummaryLine(result)}${suffix}`;
+		return { expected, actual: lines(block(source).text).at(-2) };
+	});
+	// req: R-2608
+	check("R-2608: the block ends with the frontier checker's own summary line and counts", results.every(({ expected, actual }) => expected === actual), JSON.stringify(results));
 }
 
 {
