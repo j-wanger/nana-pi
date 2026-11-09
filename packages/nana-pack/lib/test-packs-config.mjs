@@ -156,6 +156,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/requirements-tree.test.mjs": "land",
   "packages/nana-pack/tests/requirements-unclaimed.test.mjs": "release",
   "packages/nana-pack/tests/review-launch.test.mjs": "main",
+  "packages/nana-pack/tests/records-move.test.mjs": "module",
   "packages/nana-pack/tests/review-ledger-launch.test.mjs": "retire",
   "packages/nana-pack/tests/review-ledger-lock.test.mjs": "module",
   "packages/nana-pack/tests/review-ledger-state.test.mjs": "retire",
