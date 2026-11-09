@@ -593,7 +593,8 @@ function checkInstructionContracts() {
 	check("R-2584: the shared working pattern's Plans bullet requires every plan to name its precedent",
 		planner.includes("each entry names one tracked path") && planner.includes("none: <reason>"));
 	// req: R-2955
-	check("R-2955: shared and project Plans bullets point planners to the prompt with the request and grounding",
+	check("R-2955: seat guide points planners to the prompt with the request and grounding",
+		seat.includes("Before writing or briefing a plan, read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
 		planner.includes("Quote the agreed intent reading.") &&
 		planner.includes("An earlier plan is grounding for a decision it records, never a format to copy.") &&
 		markerBlock(frontDoors[1]) === shared);
@@ -626,9 +627,9 @@ function checkInstructionContracts() {
 	check("AGENTS.md carries the macOS install check outside the shared region",
 		// one step, scoped to its own line (seat mutation run 2026-10-13: phrases matched anywhere outside the region
 		// let "on macOS", "before `nana-land`" and "or a hook" be deleted with this check green)
-		outsideSharedRegion.replace(/\r/g, "").split("\n").filter((line) => line.startsWith("Land checklist, nana-pi only (the owner, 2026-10-12): ")).length === 1 &&
+		outsideSharedRegion.replace(/\r/g, "").split("\n").filter((line) => line.startsWith("Local install check, nana-pi only: ")).length === 1 &&
 		outsideSharedRegion.replace(/\r/g, "").split("\n").some((line) =>
-			line.startsWith("Land checklist, nana-pi only (the owner, 2026-10-12): ") &&
+			line.startsWith("Local install check, nana-pi only: ") &&
 			line.includes("a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`")) &&
 		!/install[- ]check/i.test(insideSharedRegion) &&
 		fs.existsSync(path.join(REPO, "packages/nana-setup/bin/install-check.mjs")));
