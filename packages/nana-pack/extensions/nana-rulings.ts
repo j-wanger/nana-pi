@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/extensions/nana-rulings.ts
- * @purpose Append nana's standing rulings, the seat guide for seat sessions, and applicable stale-install or adopted-project guidance to the system prompt.
- * @inputs pi `session_start` and `before_agent_start` events; session cwd; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
+ * @purpose Append seat-only rulings and guide sections, plus applicable stale-install or adopted-project guidance to the system prompt.
+ * @inputs pi `session_start` and `before_agent_start` events; session cwd and role; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
  * @outputs rulings and seat-guide text or unavailable markers in their prompt sections, plus independent stale-install and project-stale sections when applicable.
  * @effects disk (bounded-reads installed rulings and project text, inspects project file rows, and compares shipped sources)
  * @errors none — the handler swallows everything; an unusable file injects the marker rather
@@ -32,7 +32,8 @@ import { readBounded, readFailureCause } from "../lib/bounded-read.mjs";
 import { piAgentDir } from "../lib/agent-dir.mjs";
 import { RULINGS_FILE, RULINGS_HEADING, RULINGS_READ_CAP, RULINGS_SECTION, RULINGS_UNAVAILABLE, SEAT_GUIDE_FILE, SEAT_GUIDE_HEADING, SEAT_GUIDE_READ_CAP, SEAT_GUIDE_SECTION, SEAT_GUIDE_UNAVAILABLE } from "../lib/rulings-config.mjs";
 import { PROJECT_STALE_SECTION, STALE_SECTION } from "../../nana-setup/lib/stale-copies-config.mjs";
-import { LAUNCHER_ROLES, linkOk, projectStaleLine, staleNotice } from "../../nana-setup/lib/stale-copies.mjs";
+import { LAUNCHER_ROLES } from "../lib/frontier-summary-config.mjs";
+import { linkOk, projectStaleLine, staleNotice } from "../../nana-setup/lib/stale-copies.mjs";
 import { pkgRoot } from "../../nana-setup/lib/paths.mjs";
 
 /** One line, addressed to the USER — an agent that reads this tells the user, and never runs
@@ -85,10 +86,10 @@ export default function (pi: ExtensionAPI, opts: { agentDir?: string; env?: Node
 		// every reason, deliberately: a reload must re-read the file from disk (R-1410)
 		try {
 			const agentDir = opts.agentDir ?? piAgentDir();
-			block = buildBlock(agentDir);
 			const env = opts.env ?? process.env;
+			block = LAUNCHER_ROLES.includes(env?.NANA_ROLE) ? null : buildBlock(agentDir);
 			seatGuide = LAUNCHER_ROLES.includes(env?.NANA_ROLE) ? null : buildSeatGuideBlock(agentDir);
-			staleRulings = block.startsWith(`${RULINGS_HEADING}\n\n`) && !linkOk(path.join(agentDir, RULINGS_FILE), fileURLToPath(new URL("../rules/nana-rulings.md", import.meta.url)));
+			staleRulings = Boolean(block?.startsWith(`${RULINGS_HEADING}\n\n`)) && !linkOk(path.join(agentDir, RULINGS_FILE), fileURLToPath(new URL("../rules/nana-rulings.md", import.meta.url)));
 			staleSeatGuide = Boolean(seatGuide?.startsWith(`${SEAT_GUIDE_HEADING}\n\n`)) && !LAUNCHER_ROLES.includes(env?.NANA_ROLE) && !linkOk(path.join(agentDir, SEAT_GUIDE_FILE), path.join(pkgRoot, "claude", "rules", SEAT_GUIDE_FILE));
 		} catch {
 			block = null;

@@ -284,7 +284,7 @@ export function judgePiWorker({ launch, outputText, record, preamble, brief, led
   const system = typeof record.system === "string" ? record.system : "";
   if (typeof preamble !== "string" || !preamble || !system.includes(preamble)) return { passed: false, code: "preamble", detail: "worker system prompt does not hold the rendered builder preamble" };
   if (typeof brief !== "string" || !brief || !system.includes(brief)) return { passed: false, code: "brief", detail: "worker system prompt does not hold the whole brief" };
-  if (!system.includes(PI_TURN.writingTag)) return { passed: false, code: "writing", detail: `worker system prompt does not hold ${PI_TURN.writingTag}` };
+  if (system.includes(PI_TURN.writingTag)) return { passed: false, code: "writing", detail: `worker system prompt still holds ${PI_TURN.writingTag}` };
   if (record.role !== PI_BUILD.role) return { passed: false, code: "role", detail: `worker record role is not ${PI_BUILD.role}` };
   const rows = [];
   try {

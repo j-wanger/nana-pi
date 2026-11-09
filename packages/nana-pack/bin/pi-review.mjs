@@ -231,8 +231,11 @@ try {
   }
   const parts = [...suppliedParts, ...knownBugs.parts, contextPart('standard', reviewStandard.path, reviewStandardText)];
   const childEnv = { ...process.env, ...REVIEWER_CHILD_ENV, NANA_REVIEW_ROOT: tempRoot, ...credentialStripEnv(process.env) };
-  const measured = await piContextLoad({ cwd: tempRootReal, env: childEnv, args: w.piArgs });
-  parts.push(...measured.parts);
+  // childCwd below is canonical checkout identity, not the loader's path spelling.
+  // Match runWatchdog's cwd: Windows can preserve an 8.3 temp path, and both
+  // context file sources and composed objective text must retain runtime paths.
+  const measured = await piContextLoad({ cwd: tempRoot, env: childEnv, args: w.piArgs, sections: true });
+  parts.push(...measured.parts, ...measured.sections);
   const onSpawn = () => appendContextLoad({ launcher: 'pi-review', role: 'reviewer', slot: 'reviewer', runtime: 'pi', piVersion: measured.piVersion, model: piOption(w.piArgs,'--model','-m'), cwd: sourceRoot, childCwd: tempRootReal, item: optionValue('--item'), parts });
   const stopHeartbeat = startHeartbeat(adm.res); // a live, renewing review never loses its reservation
   let r;

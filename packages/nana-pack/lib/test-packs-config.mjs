@@ -65,6 +65,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/config-normalize.test.mjs": "land",
   "packages/nana-pack/tests/config-project-gate-fallback.test.mjs": "module",
   "packages/nana-pack/tests/config-trust.test.mjs": "land",
+  "packages/nana-pack/tests/child-context.test.mjs": "main",
   "packages/nana-pack/tests/context-anatomy.test.mjs": "main",
   "packages/nana-pack/tests/credential-gate.test.mjs": "land",
   "packages/nana-pack/tests/credential-strip.test.mjs": "main",

@@ -103,7 +103,7 @@ async function injectSections(handlers, ctx = { cwd: tempDir() }) {
 		results.push({ role, omitted: !sections[SEAT_GUIDE_SECTION], rulings: typeof sections[RULINGS_SECTION] === "string" });
 	}
 	// req: R-3022
-	check("pi builder and reviewer omit the guide while retaining the rulings section", results.every((result) => result.omitted && result.rulings), JSON.stringify(results));
+	check("pi builder and reviewer omit both guide and rulings sections", results.every((result) => result.omitted && !result.rulings), JSON.stringify(results));
 }
 
 {

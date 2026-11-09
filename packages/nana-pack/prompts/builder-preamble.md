@@ -5,6 +5,7 @@ You are a builder running in the verified lane worktree: {{WORKTREE}} on branch 
 Scope
 - Work only in that worktree. Commit on its lane branch with explicit paths and a message file written under `$TMPDIR`, never inside the worktree.
 - Never edit `HANDOFF.md`.
+- Committed files carry no owner name and nothing about the owner's work.
 - Remove only the known-bug lines your brief names; never make any other edit under `docs/known-bugs/`.
 - Delete tracked files with `git rm -q --`.
 - Never create, edit, comment on or close a GitHub issue; put open questions in the report.

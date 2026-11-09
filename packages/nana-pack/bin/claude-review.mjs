@@ -20,7 +20,7 @@ import { startLaneWatcher } from '../lib/lane-watcher.mjs';
 import { CLAUDE_CODE_RUNTIME, DEFAULT_THINKING_TOKEN, CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_BUILDER_SETTING_SOURCES, CLAUDE_SETTINGS_FLAG, CLAUDE_STRICT_MCP_FLAG, CLAUDE_EFFORT_FLAG, CLAUDE_BUILDER_CHILD_ENV, REVIEWER_CHILD_ENV } from './worker-config.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
 import { reviewKnownBugSection } from '../lib/known-bug-digest.mjs';
-import { appendContextLoad, contextPart } from '../lib/context-load-log.mjs';
+import { appendContextLoad, contextPart, claudeInstructionParts } from '../lib/context-load-log.mjs';
 import {
   CLAUDE_BIN,
   CLAUDE_PRINT_FLAG,
@@ -113,7 +113,7 @@ writeClaudeBuilderSettings(settingsFile, carry);
 const command = [CLAUDE_BIN, CLAUDE_PRINT_FLAG, CLAUDE_MODEL_FLAG, reviewer.model, CLAUDE_ALLOW_FLAG, REVIEWER_ALLOWED_TOOLS, CLAUDE_DENY_FLAG, REVIEWER_DENIED_TOOLS,
   CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_BUILDER_SETTING_SOURCES, CLAUDE_SETTINGS_FLAG, settingsFile, CLAUDE_STRICT_MCP_FLAG,
   ...(carry.effort ? [CLAUDE_EFFORT_FLAG, carry.effort] : [])];
-const parts = [contextPart('brief', briefPath, brief.text), ...knownBugs.parts,
+const parts = [contextPart('brief', briefPath, brief.text), ...knownBugs.parts, ...claudeInstructionParts({ cwd: tree }),
   contextPart('standard', standard.path, standard.text),
   { name: 'settings', source: carry.source, fullChars: carry.fullChars, deliveredChars: JSON.stringify(carry.settings).length }];
 const status = await runReview(ownArgs, command, { admission, input: prompt,
