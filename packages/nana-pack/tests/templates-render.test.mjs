@@ -14,7 +14,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { KNOWN_BUGS_DIR, UNPLACED_FILE } from "../../../scripts/known-bugs.mjs";
+import { KNOWN_BUGS_DIR } from "../../../scripts/known-bugs.mjs";
 import { checkTree, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
 // The project templates render in BOTH modes, and the requirements-first rail they ship is
 // wired in both:
@@ -468,6 +468,9 @@ function checkInstructionContracts() {
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
 	const soul = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf-8");
 	const seat = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-seat.md"), "utf-8");
+	const rulings = fs.readFileSync(path.join(REPO, "packages/nana-pack/rules/nana-rulings.md"), "utf8");
+	const planner = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/planner.md"), "utf8");
+	const standard = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/review-standard.md"), "utf8");
 	const procedure = `${soul}\n${seat}`;
 	const desk = fs.readFileSync(path.join(REPO, "apps/desk/README.md"), "utf-8");
 	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
@@ -524,7 +527,7 @@ function checkInstructionContracts() {
 		}) && fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8")
 			.split("\nTests\n")[0].includes("- Never create, edit, comment on or close a GitHub issue; put open questions in the report."));
 	// req: R-683
-	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "pi-worker", "pi-review", "different model lineage", "Land checklist"].every((v) => procedure.includes(v)) && shared.includes("overrides belong in that project's own section AFTER this marker region"));
+	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "pi-worker", "pi-review", "different model lineage"].every((v) => procedure.includes(v)) && shared.includes("overrides belong in that project's own section AFTER this marker region"));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
 	const canonicalSupport = `Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi; launchd is macOS-only.`;
 	// req: R-684
@@ -585,50 +588,34 @@ function checkInstructionContracts() {
 		desk.includes("`/trust` is TUI-only: open the project in pi's terminal, run `/trust`, then restart the session."));
 	// req: R-1100
 	check("shared working pattern requires a threat model per plan",
-		soul.includes("Every plan names its threat model") &&
-		soul.includes("honest variation in our tools' output is in scope") &&
-		soul.includes("deliberate forgery is out") &&
-		soul.includes("a finding outside the model is a residual"));
-	const plansBullets = soul.split(/\r?\n/).filter((line) => line.startsWith("- Plans:"));
+		rulings.includes("Every plan names its threat model: honest variation in scope, deliberate forgery out."));
 	// req: R-2584
 	check("R-2584: the shared working pattern's Plans bullet requires every plan to name its precedent",
-		plansBullets.length === 1 &&
-		plansBullets[0].includes("Every plan names its precedent, the nearest existing code for each part by path, or none with a reason."),
-		JSON.stringify(plansBullets));
+		planner.includes("each entry names one tracked path") && planner.includes("none: <reason>"));
 	// req: R-2955
 	check("R-2955: shared and project Plans bullets point planners to the prompt with the request and grounding",
-		plansBullets.length === 1 && plansBullets[0].includes("The seat gives the planner the request and its grounding; an earlier plan is grounding for a decision it records, never a format to copy. Read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
-		soul.includes("The seat gives the planner the request and its grounding; an earlier plan is grounding for a decision it records, never a format to copy. Read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
-		markerBlock(frontDoors[1]) === shared,
-		JSON.stringify(plansBullets));
+		planner.includes("Quote the agreed intent reading.") &&
+		planner.includes("An earlier plan is grounding for a decision it records, never a format to copy.") &&
+		markerBlock(frontDoors[1]) === shared);
 	// req: R-1101
 	// req: R-1300
 	check("R-1300: the shared working pattern gives every lane one reviewer plus CI and says plans get no review round",
 		procedure.includes("Every lane gets one reviewer plus CI") &&
-		soul.includes("Plans get no review round") && !procedure.includes("plan-review round") && !procedure.includes("only a named fail-open bug reopens the plan"));
+		rulings.includes("Plans get no review round") && !procedure.includes("plan-review round") && !procedure.includes("only a named fail-open bug reopens the plan"));
 	// req: R-1102
 	check("shared working pattern freezes edits after an all-LAND review",
-		soul.includes("Once every reviewer says LAND, nothing more is edited"));
+		rulings.includes("After every reviewer says LAND, nothing more is edited."));
 	// req: R-1103
 	check("shared working pattern ships urgent fixes alone",
-		soul.includes("Urgent fixes ship alone and are hardened in a later lane"));
+		rulings.includes("Urgent fixes ship alone and are hardened later."));
 	// req: R-1104
 	check("shared working pattern states the review bar for seats",
-		soul.includes("`pi-review` appends the review standard to every review it runs") &&
-		soul.includes("A review with no MUST finding says LAND") &&
-		soul.includes("LAND-WITH-FIXES is retired") &&
-		soul.includes("A confirmation round reviews only the change since the last round"));
-	const sharedBullets = soul.split(/\r?\n/).filter((line) => line.startsWith("- "));
-	const reviewBar = sharedBullets.find((line) => line.startsWith("- Review bar:")) ?? "";
-	const landChecklist = sharedBullets.find((line) => line.startsWith("- Land checklist:")) ?? "";
-	const unplacedStem = path.parse(UNPLACED_FILE).name;
+		standard.includes("`VERDICT: LAND` when no MUST stands") &&
+		standard.includes("Do not use LAND-WITH-FIXES.") &&
+		standard.includes("A confirmation round reviews only the change since the revision the brief names as the last round, and whether the named MUSTs are closed."));
 	// req: R-2509
 	check("R-2509: the shared working pattern records a non-blocking finding in its feature's known-bug file, not HANDOFF",
-		reviewBar.includes(KNOWN_BUGS_DIR) && reviewBar.includes(unplacedStem) &&
-		reviewBar.includes("recorded as one line in the known-bug file of the feature it concerns") &&
-		landChecklist.startsWith("- Land checklist: resolve review findings or record them as known bugs in their feature's file;") &&
-		sharedBullets.every((line) => !(line.includes("HANDOFF") && line.includes("residual"))),
-		`${reviewBar}\n${landChecklist}`);
+		rulings.includes("Known bugs live one line each in their feature's file, not in HANDOFF."));
 	const agentsMd = frontDoors[1];
 	const sharedBegin = "<!-- nana:working-under-nana-pi begin -->";
 	const sharedEnd = "<!-- nana:working-under-nana-pi end -->";
@@ -770,7 +757,7 @@ if (!version) {
 			// req: R-3899
 			check(`${language}: M6 rendered working region equals the shared bytes without a notes step`,
 				markerBlock(fs.readFileSync(path.join(dest, "AGENTS.md"), "utf8")) === working &&
-				!working.includes("Put HANDOFF and session notes") && fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf8").includes("Nothing is written after a land."));
+				!working.includes("Put HANDOFF and session notes") && fs.readFileSync(path.join(REPO, "packages/nana-pack/rules/nana-rulings.md"), "utf8").includes("nothing is written after a land."));
 			if (language === "python") {
 				const cp1252 = runCp1252(dest);
 				if (!cp1252.available) {

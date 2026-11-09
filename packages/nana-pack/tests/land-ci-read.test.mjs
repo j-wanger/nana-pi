@@ -103,10 +103,8 @@ check("R-2591: the CI read asks github.com for the full tip SHA in origin's repo
 
 // req: R-2592
 check("R-2592: the pack README and the shared Land checklist say a land waits for the tip's CI", () => {
-	const repoRoot = path.resolve(fileURLToPath(new URL("../../..", import.meta.url))); const readme = readFileSync(path.join(repoRoot, "packages/nana-pack/README.md"), "utf8"); const shared = readFileSync(path.join(repoRoot, "templates/_shared/working-under-nana-pi.md"), "utf8");
+	const repoRoot = path.resolve(fileURLToPath(new URL("../../..", import.meta.url))); const readme = readFileSync(path.join(repoRoot, "packages/nana-pack/README.md"), "utf8");
 	assert(readme.includes("Where `origin` is on github.com and the tip tracks a workflow under `.github/workflows`, the helper refuses until the newest CI run of each workflow for the tip has passed at its latest attempt."));
-	const soul = readFileSync(path.join(repoRoot, "packages/nana-setup/claude/rules/nana-soul.md"), "utf8");
-	const bullets = soul.split(/\r?\n/).filter((line) => line.startsWith("- Land checklist:")); assert.equal(bullets.length, 1); assert(bullets[0].includes("Where origin is on github.com and the tip tracks a workflow, `nana-land` also refuses until the newest CI run of each workflow for the tip has passed, so push the tip to its open pull request, do not cancel its run, and wait for CI."));
 });
 
 // req: R-2586

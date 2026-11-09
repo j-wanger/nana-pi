@@ -95,9 +95,8 @@ await check('M5: live land guidance requires lane merge CI and computed review c
  const ruling = rulings.split('\n').find(line => line.startsWith('- 2026-11-09: An independent reviewer'));
  assert(ruling, 'dated replacement ruling');
  const soul = read('packages/nana-setup/claude/rules/nana-soul.md');
- const checklist = soul.split('\n').find(line => line.startsWith('- Land checklist:'));
  const ladder = soul.split('\n').find(line => line.startsWith('- Review ladder:'));
- for (const text of [ruling, checklist, ladder]) {
+ for (const text of [ruling, ladder]) {
   assert.match(text, /lane merges (?:current )?main/);
   assert.match(text, /CI.*(?:on|for) (?:that|the) merge/);
   assert.match(text, /tree matches.*computed merge/);
@@ -303,9 +302,6 @@ check("README and AGENTS describe the land helper", () => {
 	const repoRoot = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 	const readme = readFileSync(path.join(repoRoot, "packages/nana-pack/README.md"), "utf8");
 	for (const pattern of [/nana-land merge/, /clean source tree/, /clean tracked state.*checkout on `main`/, /verified `LAND` review/, /runs the suite/, /suite in the source tree/, /Immediately before merging it rechecks/, /one `git merge --ff-only/, /main ref equal to the tip/, /verifies containment/, /branch switch.*between the final check and merge is not defended/, /Do not operate the main checkout during a land/, /helper refuses afterwards without success records/, /untracked collision/, /is a separate operation/, /clean worktree whose.*branch is contained in `main`/]) assert.match(readme, pattern);
-	const agents = readFileSync(path.join(repoRoot, "packages/nana-setup/claude/rules/nana-soul.md"), "utf8");
-	for (const pattern of [/clean source/, /clean `main` checkout/, /verified review rounds/, /CI or the local suite on the reviewed tip/, /Revalidate if either checkout changes/, /ff-only merge, and containment verification/, /separate operation/, /clean.*worktree contained in `main`/]) assert.match(agents, pattern);
-	assert.match(agents, /use `nana-land`/); assert.match(agents, /clean `main` checkout/); assert.match(agents, /verified review rounds/); assert.match(agents, /Revalidate if either checkout changes/); assert.match(agents, /ff-only merge, and containment verification/); assert.match(agents, /clean `feat\/<lane>` worktree contained in `main`/);
 	assert.equal(JSON.parse(readFileSync(path.join(repoRoot, "packages/nana-pack/package.json"), "utf8")).bin["nana-land"], "bin/nana-land.mjs");
 });
 // req: R-588

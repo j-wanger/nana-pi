@@ -48,7 +48,7 @@ if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(file
 	// req: R-3895
 	check("M2: shared land guidance drops pre-review notes and keeps the post-land writing ban",
 		block === shared && !/Put HANDOFF and session notes|Notes go in before the final round/.test(shared) &&
-		fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf8").includes("Nothing is written after a land."));
+		fs.readFileSync(path.join(REPO, "packages/nana-pack/rules/nana-rulings.md"), "utf8").includes("nothing is written after a land."));
 	// req: R-3896
 	check("M3: narrative and session-archive references are removed", (() => {
 		const handoff = fs.readFileSync(path.join(REPO, "HANDOFF.md"), "utf8");

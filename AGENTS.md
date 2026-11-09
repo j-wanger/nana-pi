@@ -85,7 +85,7 @@ Objective: nearest project unless user-disabled. Shared memory: Claude-only; pi 
 ### Working pattern
 
 - Builder pushes: builders do not push. They report the branch, the full tip and the seat checks run on it. The seat pushes after verifying, then waits for CI where the project uses it.
-- Every lane gets one reviewer plus CI. Seat procedure lives in the seat guide and the soul and rulings rules.
+- Every lane gets one reviewer plus CI. Seat guidance lives in the seat guide and the soul and rulings rules.
 - Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions.
 - Builder rules: `$HOME/nana-pi/packages/nana-pack/prompts/builder-preamble.md`; reviewer rules: `$HOME/nana-pi/packages/nana-pack/prompts/review-standard.md`. Follow the assigned brief.
 - Project-specific overrides belong in that project's own section AFTER this marker region; `nana-setup project` replaces everything between the markers.

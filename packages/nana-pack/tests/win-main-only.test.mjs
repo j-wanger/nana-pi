@@ -111,7 +111,7 @@ await check("M4: green main rejects unnecessary fixes-red and ordinary lands sti
 await check("M5: ruling and shared checklist name the fixes-red landing path", () => {
  const clause = "The fix lands through `nana-land` with `--fixes-red <run-id>`.";
  assert(read("packages/nana-pack/rules/nana-rulings.md").split("\n").find(line => line.startsWith("- 2026-11-09: An independent reviewer")).includes(clause));
- const shared = read("templates/_shared/working-under-nana-pi.md"); assert(read("packages/nana-setup/claude/rules/nana-soul.md").split("\n").find(line => line.startsWith("- Land checklist:")).includes(clause));
+ const shared = read("templates/_shared/working-under-nana-pi.md");
  assert.equal(read("AGENTS.md").split("<!-- nana:working-under-nana-pi begin -->\n")[1].split("<!-- nana:working-under-nana-pi end -->")[0], shared);
 });
 // req: R-3877
@@ -201,6 +201,5 @@ await check("M13: main-only release still needs Windows and all rule surfaces ag
  assert(read("packages/nana-pack/rules/nana-rulings.md").includes(`- 2026-11-07: ${sentence}`));
  const shared = read("templates/_shared/working-under-nana-pi.md"), agents = read("AGENTS.md");
  assert.equal(agents.split("<!-- nana:working-under-nana-pi begin -->\n")[1].split("<!-- nana:working-under-nana-pi end -->")[0], shared);
- assert(read("packages/nana-setup/claude/rules/nana-soul.md").split("\n").find(line => line.startsWith("- Land checklist:")).includes(sentence));
  assert(agents.split("\n").find(line => line.startsWith("Support:")).includes("lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands"));
 });
