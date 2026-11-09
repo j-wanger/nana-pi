@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/profile-store.test.mjs
- * @purpose Pin quoted saves and the sealed values; the guards, trust, effective-liveness and pointer checks live in profile-store-guards.test.mjs.
+ * @purpose Pin quoted saves and sealed values; privacy guards live in profile-store-guards.test.mjs.
  * @inputs Synthetic temp homes, local remotes and stubbed gh.
  * @outputs Awaited bounded PASS/FAIL cases.
  * @effects disk, process
@@ -19,7 +19,7 @@ const config = () => import('../lib/profile-config.mjs');
 const store = () => import('../lib/profile-store.mjs');
 const init = f => ok(f.run(['init','--dir',f.dir,'--save']));
 
-// req: R-3230 R-3454
+// req: R-3230
 await check('a save writes one shape record into the private clone and nowhere else', async()=>{
  const C=await config(); const S=await store(); const t=fixture();
  try {

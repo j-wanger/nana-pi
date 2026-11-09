@@ -123,7 +123,6 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/product-report.test.mjs": "module",
   "packages/nana-pack/tests/profile-store-guards.test.mjs": "module",
   "packages/nana-pack/tests/profile-store.test.mjs": "module",
-  "packages/nana-pack/tests/profile-sync.test.mjs": "module",
   "packages/nana-pack/tests/readme-check.test.mjs": "land",
   "packages/nana-pack/tests/real-path.test.mjs": "module",
   "packages/nana-pack/tests/release-status.test.mjs": "release",

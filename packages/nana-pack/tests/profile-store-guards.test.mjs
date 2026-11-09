@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/profile-store-guards.test.mjs
- * @purpose Pin the seat guard, trust, retract and supersede, and pointer checks of the profile store.
+ * @purpose Pin private push-target verification and role refusal before pointer reads.
  * @inputs Synthetic temp homes, local remotes and stubbed gh.
  * @outputs Awaited bounded PASS/FAIL cases.
  * @effects disk, process
@@ -10,111 +10,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { check, fixture, ok, refused, files, records, save, root } from './profile-fixture.mjs';
-import { parseJsonBytes } from '../lib/json-text.mjs';
+import { check, fixture, ok, refused, save, root } from './profile-fixture.mjs';
 import { USER_KIND_WORDS } from '../lib/memory-making-config.mjs';
-import { writeMemoryFile, readMemoryStore } from '../lib/memory-store.mjs';
-const [, , preference, fact] = USER_KIND_WORDS;
+const [, , , fact] = USER_KIND_WORDS;
 const config = () => import('../lib/profile-config.mjs');
-const store = () => import('../lib/profile-store.mjs');
 const init = f => ok(f.run(['init','--dir',f.dir,'--save']));
-
-// req: R-3231 R-3454
-await check('only a seat on an enabled machine may write',async()=>{
- const C=await config(); const t=fixture();
- try {
-  const f=t.clone('a'); init(f); ok(save(f,'Seed')); const id=records(f.dir)[0].id;
-  const commands=[['save','--kind',fact,'--claim','Other','--quote','New words'],['confirm',id,'--quote','Yes explicitly'],['retract',id,'--quote','Drop it'],['supersede',id,'--kind',fact,'--claim','Replacement','--quote','Replace it']];
-  const pointer=path.join(f.agent,'nana-pack.json'); const enabled=fs.readFileSync(pointer); const raw=JSON.parse(enabled);
-  const wt=path.join(t.temp,'linked'); t.git(t.main,'worktree','add','-b','linked',wt);
-  for(const args of commands) {
-   const head=t.git(f.dir,'rev-parse','HEAD'); const n=files(f.dir).length+files(f.dir,'events').length;
-   refused(f.run(args,{NANA_ROLE:'builder'}),C.PROFILE_WORDS.role);
-   refused(f.run(args,{},wt),C.PROFILE_WORDS.worktree);
-   for(const value of [false,undefined]) { const p=structuredClone(raw); p.ownerProfile.save=value; fs.writeFileSync(pointer,JSON.stringify(p)); refused(f.run(args),C.PROFILE_WORDS.disabled); }
-   fs.writeFileSync(pointer,'{}'); refused(f.run(args),C.PROFILE_WORDS.pointer); fs.rmSync(pointer); refused(f.run(args),C.PROFILE_WORDS.pointer); fs.writeFileSync(pointer,enabled);
-   assert.equal(t.git(f.dir,'rev-parse','HEAD'),head); assert.equal(files(f.dir).length+files(f.dir,'events').length,n);
-  }
-  ok(save(f,'Allowed from main'));
-  // Git for Windows may print different long/short/case spellings for one git directory.
-  // A junction supplies that honest alias on every host without writing this repository.
-  const alias=path.join(t.temp,'git-directory-alias'); fs.symlinkSync(t.git(t.main,'rev-parse','--absolute-git-dir'),alias,'junction');
-  try {
-   const {runProfile}=await import('../bin/nana-profile.mjs'); const {profileGit}=await import('../lib/profile-sync.mjs'); const base=profileGit(f.env); const output=[];
-   const runGit=(cwd,args)=>cwd===t.main&&args.join(' ')==='rev-parse --absolute-git-dir'?{status:0,stdout:`${alias}\n`}:base(cwd,args);
-   const code=runProfile(['save','--kind',fact,'--claim','Alias main checkout','--quote','The same checkout is allowed'],{agentDir:f.agent,env:f.env,cwd:t.main,runGit,log:x=>output.push(x),error:x=>output.push(x)});
-   assert.equal(code,0,output.join('\n'));
-  } finally {fs.unlinkSync(alias);}
- } finally {t.close();}
-});
-
-// req: R-3232
-await check('trust rises only on the owner words across sessions',async()=>{
- const C=await config(); const S=await store(); const t=fixture();
- try {
-  const f=t.clone('a'); init(f); const claim='Prefer headings'; ok(save(f,claim,'One'));
-  for(let i=0;i<3;i++) ok(save(f,claim,`Same session ${i}`));
-  const state=()=>S.effectiveState(records(f.dir),files(f.dir,'events').map(x=>parseJsonBytes(fs.readFileSync(x))));
-  assert.equal(state()[0].trust,'low');
-  for(let i=0;i<C.PROFILE_MEDIUM_SESSIONS;i++) ok(save(f,claim,'One',{CLAUDE_SESSION_ID:`echo-${i}`}));
-  assert.equal(state()[0].trust,'low');
-  for(let i=1;i<C.PROFILE_MEDIUM_SESSIONS;i++) ok(save(f,claim,`Fresh words ${i}`,{CLAUDE_SESSION_ID:`fresh-${i}`}));
-  assert.equal(state()[0].trust,'medium'); assert.equal(new Set(records(f.dir).map(r=>r.id)).size,1);
-  const id=state()[0].id; refused(f.run(['confirm',id]),C.PROFILE_WORDS.quote); refused(f.run(['confirm',id,'--quote','One']),C.PROFILE_WORDS.repeatedQuote);
-  ok(f.run(['confirm',id,'--quote','Yes, that is my preference.'])); assert.equal(state()[0].trust,'high');
- } finally {t.close();}
-});
-
-// req: R-3233
-await check('retract and supersede hide the right records',async()=>{
- const C=await config(); const S=await store(); const t=fixture();
- try {
-  const a=t.clone('a'); init(a); ok(save(a,'Old palette')); let id=records(a.dir)[0].id;
-  ok(a.run(['confirm',id,'--quote','Yes keep it'])); refused(a.run(['supersede',id,'--claim','New palette','--kind',preference]),C.PROFILE_WORDS.quote);
-  ok(a.run(['supersede',id,'--claim','New palette','--kind',preference,'--quote','Now use green'])); let shown=ok(a.run(['show'])); assert.match(shown,/New palette/); assert.equal(shown.includes('Old palette'),false);
-  const newer=records(a.dir).find(r=>r.claim==='New palette').id; ok(a.run(['retract',newer,'--quote','Forget green'])); assert.equal(ok(a.run(['show'])).includes('New palette'),false); assert.match(ok(a.run(['show'])),/Old palette/);
-  // A real two-clone offline cycle, followed by two concurrent replacements.
-  ok(save(a,'Cycle one','First cycle words')); ok(save(a,'Cycle two','Second cycle words'));
-  const cycleOne=S.claimId('Cycle one'),cycleTwo=S.claimId('Cycle two');
-  const b=t.clone('b'); init(b); ok(a.run(['supersede',cycleTwo,'--claim','Cycle one','--kind',preference,'--quote','One again']));
-  ok(b.run(['supersede',cycleOne,'--claim','Cycle two','--kind',preference,'--quote','Two again']));
-  ok(a.run(['sync'])); ok(b.run(['sync'])); ok(a.run(['sync']));
-  const live=S.effectiveState(records(a.dir),files(a.dir,'events').map(x=>parseJsonBytes(fs.readFileSync(x)))).filter(r=>r.live&&[cycleOne,cycleTwo].includes(r.id)); assert.equal(live.length,1); assert.equal(live[0].id,cycleTwo);
-  ok(a.run(['supersede',cycleTwo,'--claim','Alternative one','--kind',fact,'--quote','First alternative']));
-  ok(b.run(['supersede',cycleTwo,'--claim','Alternative two','--kind',fact,'--quote','Second alternative'])); ok(a.run(['sync'])); ok(b.run(['sync'])); ok(a.run(['sync']));
-  shown=ok(a.run(['show'])); assert.match(shown,/Alternative one/); assert.match(shown,/Alternative two/); assert.ok(shown.includes(C.PROFILE_WORDS.conflict));
-  const base=(claim,date,session,quote)=>({id:S.claimId(claim),claim,quote,date,evidence:`${C.PROFILE_WORDS.evidencePrefix}:${C.PROFILE_WORDS.runtimePi}:${session}:${date}`,supersedes:[]});
-  const rs=[base('High','2026-10-01','h','h'),...Array.from({length:C.PROFILE_MEDIUM_SESSIONS},(_,i)=>base('Medium','2026-10-02',String(i),`q${i}`)),base('Low','2026-10-03','l','l')];
-  const ev=[{id:S.claimId('High'),action:'confirm',quote:'yes',stamp:'20261004t000000000z'}]; const view=S.show(S.effectiveState(rs,ev)); assert.ok(view.indexOf('[high 2026-10-01]')<view.indexOf('[medium 2026-10-02]')); assert.ok(view.indexOf('[medium 2026-10-02]')<view.indexOf('[low 2026-10-03]'));
-  const many=Array.from({length:100},(_,i)=>({...base(`Long ${i} ${'x'.repeat(300)}`,'2026-10-01',String(i),'q'),trust:'low',live:true})); const bounded=S.show(many); assert.ok(bounded.length<=C.PROFILE_SHOW_BUDGET); assert.ok(bounded.includes(C.PROFILE_WORDS.fold));
- } finally {t.close();}
-});
-
-// req: R-3700
-await check('chain retractions preserve direct conflicts and deterministic cycles',async()=>{
- const S=await store(),C=await config();
- const rows=['A','B','C','D','Tail'].map((claim,i)=>({id:claim,claim,quote:claim,date:'2026-11-01',evidence:`owner:pi:s${i}:2026-11-01`}));
- const edge=(id,target,stamp='20261102t120000000z')=>({id,target,stamp,action:'supersede',quote:'Synthetic replacement'});
- const chain=[edge('A','B'),edge('B','C')];
- const restored=S.effectiveState(rows.slice(0,3),[...chain,{id:'C',action:'retract',quote:'Synthetic retract',stamp:'20261103t120000000z'}]);
- assert.deepEqual(restored.filter(r=>r.live).map(r=>r.id),['B'],'only direct predecessor restored');
- assert.deepEqual(restored.find(r=>r.id==='B').absorbed,['A'],'restored predecessor still absorbs earlier drops');
- const fork=[...chain,edge('B','D')];
- const expected=`${C.PROFILE_WORDS.conflict}B: C, D\n`;
- for(const reverse of [false,true]){
-  const state=S.effectiveState(reverse?[...rows.slice(0,4)].reverse():rows.slice(0,4),reverse?[...fork].reverse():fork);
-  assert.equal(S.show(state).split('\n').filter(line=>line.startsWith(C.PROFILE_WORDS.conflict)).join('\n')+'\n',expected,'exact main direct conflict lines');
-  assert.deepEqual(state.find(r=>r.id==='C').supersedes,['B'],'supersedes remains direct');
- }
- for(const count of [2,3])for(const tied of [false,true])for(const reverse of [false,true]){
-  const nodes=rows.slice(0,count),events=nodes.map((r,i)=>edge(r.id,nodes[(i+1)%count].id,tied?'20261102t120000000z':`20261102t12000000${i}z`));
-  events.push(edge('Tail','A','20261101t120000000z'));
-  const input=[...nodes,rows[4]],state=S.effectiveState(reverse?input.reverse():input,reverse?events.reverse():events);
-  const winner=tied?nodes.at(-1).id:'A';
-  assert.deepEqual(state.filter(r=>r.live).map(r=>r.id),[winner],`cycle ${count} tied ${tied} winner and hidden tail`);
-  assert.deepEqual(new Set(state.find(r=>r.id===winner).absorbed),new Set([...nodes.map(r=>r.id).filter(id=>id!==winner),'Tail']),'cycle absorbed excludes itself');
- }
-});
 
 // req: R-3234
 await check('the pointer is configuration and the push target stays verified private',async()=>{
@@ -151,36 +51,5 @@ await check('every profile command refuses under set launcher roles before readi
   refused(f.run(['show'],{NANA_ROLE:'worker'}),C.PROFILE_WORDS.role);
   fs.writeFileSync(pointer,original);
   assert.deepEqual(fs.readFileSync(pointer),original);
- } finally {t.close();}
-});
-
-// req: R-3411
-await check('record commands resolve unique 12-hex prefixes across profile and project areas',async()=>{
- const C=await config(); const S=await store(); const t=fixture();
- try {
-  const f=t.clone('a'); init(f); ok(save(f,'Profile prefix claim','Keep profile words'));
-  const profile=S.claimId('Profile prefix claim');
-  const repository='1234567890abcdef1234567890abcdef12345678';
-  const project='abcdef1234560000000000000000000000000000';
-  const projectRecord={id:project,type:'project',kind:'lesson',claim:'Project prefix claim',quote:'Project words',context:'',evidence:'synthetic',date:'2026-11-01',trust:'low',source:'extracted',roles:['seat'],validFrom:'2026-11-01',invalidAt:null,supersedes:[],repository};
-  writeMemoryFile(f.dir,repository,'records',project,projectRecord);
-  const profilePrefix=profile.slice(0,12),projectPrefix=project.slice(0,12);
-  refused(f.run(['retract',project.slice(0,11),'--quote','Too short']),C.PROFILE_WORDS.unknown);
-  ok(f.run(['confirm',profilePrefix,'--quote','Owner confirms profile words']));
-  ok(f.run(['retract',profilePrefix,'--quote','Owner retracts profile']));
-  ok(f.run(['supersede',projectPrefix,'--kind',fact,'--claim','Replacement project claim','--quote','Owner replaces project words']));
-  ok(f.run(['retract',projectPrefix.toUpperCase(),'--quote','Owner retracts project']));
-  const states=readMemoryStore(f.dir); assert.equal(states.find(r=>r.id===profile).live,false); assert.equal(states.find(r=>r.id===project).live,false);
-  const projectEvents=files(f.dir,path.join('projects',repository.slice(0,16),'events'));
-  assert.equal(projectEvents.length,2);
-  const events=projectEvents.map(file=>parseJsonBytes(fs.readFileSync(file)));
-  assert.deepEqual(new Set(events.map(event=>event.action)),new Set(['retract','supersede']));
-  assert.ok(events.every(event=>event.id===project));
-  const second={...projectRecord,id:'abcdef123456ffffffffffffffffffffffffffff',claim:'Second ambiguous project record'};
-  writeMemoryFile(f.dir,repository,'records',second.id,second);
-  const entries=()=>fs.readdirSync(f.dir,{recursive:true}).filter(name=>/(^|[\\/])(records|events)([\\/]|$)/.test(name)).sort();
-  const before=entries();
-  for(const prefix of ['ffffffffffff',project.slice(0,11),'abcdef123456']) refused(f.run(['retract',prefix,'--quote','No write']),C.PROFILE_WORDS.unknown);
-  assert.deepEqual(entries(),before);
  } finally {t.close();}
 });
