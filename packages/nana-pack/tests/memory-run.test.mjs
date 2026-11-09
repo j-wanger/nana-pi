@@ -30,7 +30,7 @@ await check('M4: moving records preserves earlier pending evidence and lane brie
  f.env.GIT_COMMITTER_DATE='2026-11-02T12:00:00Z';
  f.review('earlier-2026-11-01','Earlier pending evidence');
  const lane=f.review('later-2026-11-02','Later pending evidence');
- const brief=path.join(lane,'build-brief.md');fs.writeFileSync(brief,'Feature: FEAT-031 · Checks\r\nCard: fix \t');
+ const brief=path.join(lane,'build-brief.md');fs.writeFileSync(brief,'Feature: FEAT-031 · Checks\r\nServes: roadmap step 4 — move records\r\nCard: fix \t');
  f.git(f.main,'add','.');f.git(f.main,'commit','-m','eligible landed reviews');
  await f.command(['make','--lane','earlier'],{caps:{tokens:0}});
  const repository=f.git(f.main,'rev-list','--max-parents=0','HEAD');
@@ -43,7 +43,7 @@ await check('M4: moving records preserves earlier pending evidence and lane brie
  assert.deepEqual(removed,['obsolete-2026-10-20']);
  f.git(f.main,'rm','-r','-q','--',...removed.map(folder=>`docs/reviews/${folder}`));f.git(f.main,'commit','-m','move old records');
  assert.deepEqual(await snapshot(),before);
- assert.equal(fs.readFileSync(brief,'utf8'),'Feature: FEAT-031 · Checks\r\nCard: fix \t');
+ assert.equal(fs.readFileSync(brief,'utf8'),'Feature: FEAT-031 · Checks\r\nServes: roadmap step 4 — move records\r\nCard: fix \t');
  assert.equal(checkBriefForLaunch({briefPath:brief,worktreeRoot:f.main,gitRunner:args=>f.git(f.main,...args)}).ok,true);
 }));
 
