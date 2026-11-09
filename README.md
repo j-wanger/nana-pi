@@ -88,6 +88,10 @@ The search lives in `scripts/code-search.mjs`, with sealed trial settings in `sc
 `scripts/code-map-launch.mjs` adds the links using sealed vocabulary in `scripts/code-map-launch-config.mjs`.
 The ten fixed-base needs are a hypothesis, not a general quality guarantee.
 The command
+`node scripts/records-move.mjs` is the one-time move evidence check against pre-move blobs,
+tracked references and recent history using `scripts/records-move.config.json`.
+The move kept 136 baseline folders and removed 212; unrelated lanes do not run a live-repository assertion.
+
 `npm run readme:check` holds every README in `readme-check.config.json` to its claims. All
 three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and
 `scripts/requirements-trace.mjs` — over the one copy of each tool that the templates ship, and

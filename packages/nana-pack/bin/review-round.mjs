@@ -4,7 +4,8 @@
  *  user-scope lock.
  * @inputs a launcher's own argv (--item, --tree, --revision, --role, --out), the reviewed tree's git
  *  state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr
- *  file identities, captured review text, complete()'s optional rename seam, env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
+ *  file identities, captured review text, complete()'s optional rename seam, withLock's optional open/clock/sleep seams,
+ *  env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
  * @outputs an admission or refusal with its note and warning, a reservation file, a round appended to the
  *  tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the
  *  projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
@@ -57,7 +58,7 @@ import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
 import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD } from '../lib/verdict-config.mjs';
 import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
-import { renameWithRetry } from '../lib/rename-retry.mjs';
+import { renameWithRetry, RENAME_RETRY_CODES } from '../lib/rename-retry.mjs';
 export { reviewShaped } from './review-shape.mjs';
 
 export const LEDGER_MAX_BYTES = 1024 * 1024; // audit log rotation threshold (the tally never rotates)
@@ -469,19 +470,25 @@ function alive(pid) {
 }
 
 /** Run fn under the ledger lock. A lock is taken over only when its holder pid is dead (or it has
- *  no readable pid and is older than LOCK_ORPHAN_MS) — never from a live holder. */
-function withLock(p, fn) {
+ *  no readable pid and is older than LOCK_ORPHAN_MS) — never from a live holder.
+ *  Pending-delete errors wait without inspecting or removing an unowned lock. */
+export function withLock(p, fn, { open = openSync, now = Date.now, sleep = sleepMs } = {}) {
   ensureDir(p.dir);
-  const deadline = Date.now() + LOCK_WAIT_MS;
+  const deadline = now() + LOCK_WAIT_MS;
   let holder = '?';
   for (;;) {
     try {
-      const fd = openSync(p.lock, C.O_WRONLY | C.O_CREAT | C.O_EXCL | C.O_NOFOLLOW, 0o600);
+      const fd = open(p.lock, C.O_WRONLY | C.O_CREAT | C.O_EXCL | C.O_NOFOLLOW, 0o600);
       writeSync(fd, String(process.pid));
       closeSync(fd);
       break;
     } catch (e) {
-      if (e.code !== 'EEXIST') throw e;
+      if (e.code !== 'EEXIST') {
+        if (!RENAME_RETRY_CODES.includes(e.code)) throw e;
+        if (now() > deadline) throw Object.assign(new Error(`review ledger lock ${p.lock} could not be acquired within ${LOCK_WAIT_MS / 1000}s (last code: ${e.code})`, { cause: e }), { code: e.code });
+        sleep(20);
+        continue;
+      }
       const st = lstatOrNull(p.lock);
       if (!st) continue;
       if (!st.isFile()) throw new Error(`lock path ${p.lock} is not a regular file (${st.isDirectory() ? 'a directory' : 'a symlink or special'}) — remove it`);
@@ -489,14 +496,14 @@ function withLock(p, fn) {
       try { text = readFileSync(p.lock, 'utf8').trim(); } catch { continue; }
       const pid = /^\d+$/.test(text) ? Number(text) : NaN;
       holder = text || '?';
-      const stale = Number.isInteger(pid) ? !alive(pid) : Date.now() - st.mtimeMs > LOCK_ORPHAN_MS;
+      const stale = Number.isInteger(pid) ? !alive(pid) : now() - st.mtimeMs > LOCK_ORPHAN_MS;
       if (stale) {
         const again = lstatOrNull(p.lock);
         if (again && again.ino === st.ino) { try { unlinkSync(p.lock); } catch {} }
         continue;
       }
-      if (Date.now() > deadline) throw new Error(`review ledger lock ${p.lock} held by live pid ${holder} for ${LOCK_WAIT_MS / 1000}s`);
-      sleepMs(20);
+      if (now() > deadline) throw new Error(`review ledger lock ${p.lock} held by live pid ${holder} for ${LOCK_WAIT_MS / 1000}s`);
+      sleep(20);
     }
   }
   try { return fn(); } finally { try { unlinkSync(p.lock); } catch {} }

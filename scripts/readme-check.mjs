@@ -10,14 +10,16 @@
 // A shim, not a copy — the checker is ONE source, the template's
 // `templates/typescript/template/scripts/readme-check.mjs`. Not a symlink: a win32
 // checkout does not keep one.
-import { realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { defaultGit } from './git-runner.mjs';
 
 import {
 	checkProject as checkProjectAt,
 	loadConfig,
-	main,
+	main as mainAt,
 } from "../templates/typescript/template/scripts/readme-check.mjs";
 
 /** This repo's root, resolved through symlinks, whatever the cwd. */
@@ -28,8 +30,33 @@ export const REPO_ROOT = resolve(
 
 export { loadConfig };
 
-/** Every configured README of THIS repo, checked. */
-export const checkProject = () => checkProjectAt(REPO_ROOT);
+/** Execute only the documented read-only Git object command, never README shell text. */
+export function checkReviewArchive(root=REPO_ROOT) {
+ const file=resolve(root,'docs/reviews/README.md');
+ if(!existsSync(file))return ['review archive README is missing'];
+ const text=readFileSync(file,'utf8');
+ const command=text.split(/\r?\n/u).map(line=>line.trim()).find(line=>line.startsWith('git show '));
+ const match=/^git show ([a-f0-9]{40}):(docs\/reviews\/[^\s/]+) \1:(\2\/[^\s]+)$/u.exec(command??'');
+ if(!match||!text.includes(`\`${match[1]}\``))return ['review archive command or commit is missing'];
+ const result=defaultGit(root,['show',`${match[1]}:${match[2]}`,`${match[1]}:${match[3]}`]);
+ return result.status===0&&result.stdout.includes(`tree ${match[1]}:${match[2]}`)&&result.stdout.trim().length>0
+  ? [] : ['review archive command cannot list and read the removed folder'];
+}
+
+/** Every configured README plus the executable historical-record pointer, checked. */
+export const checkProject = () => {
+ const result=checkProjectAt(REPO_ROOT),problems=[...result.problems,...checkReviewArchive()];
+ return {...result,problems,line:`readme: ${result.claims.length} claims checked; ${problems.length} problem(s)`};
+};
+
+export function main(argv,root=REPO_ROOT) {
+ const status=mainAt(argv,root);
+ if(status===2)return status;
+ const problems=checkReviewArchive(root);
+ console.log(`review archive: ${problems.length} problems`);
+ for(const problem of problems)console.log(problem);
+ return status||Number(problems.length>0);
+}
 
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
 	process.exit(main(process.argv.slice(2), REPO_ROOT));
