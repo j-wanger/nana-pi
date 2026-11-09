@@ -2279,14 +2279,14 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 ### `packages/nana-pack/tests/ci-records.test.mjs`
 
 - **purpose** — Pin the CI suite-record reader from runner output through fake GitHub responses.
-- **inputs** — The root CI workflow, real test runner, ci-records library and CLI, and a fake gh command.
+- **inputs** — The root CI workflow, real test runner, ci-records library and a fake gh command.
 - **outputs** — Six requirement-tagged PASS or FAIL checks and a nonzero exit when one fails.
-- **effects** — process (runs bounded runner, fake gh and CLI children), disk (temporary fixtures and downloaded artifacts).
+- **effects** — process (runs bounded runner, fake gh children), disk (temporary fixtures and downloaded artifacts).
 - **errors** — Reports the requirement title whose CI-record behavior differs and exits nonzero.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/pack-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/test.mjs`
-- **unresolved launches** — line 94: spawnSync; binding line 209; binding line 245; binding line 271; binding line 323; binding line 348; binding line 350; binding line 353; binding line 356; binding line 358; binding line 360 · line 200: spawnSync
-- **repo-code launches** — line 103: spawnSync
+- **unresolved launches** — line 199: spawnSync
+- **repo-code launches** — line 95: spawnSync · line 102: spawnSync
 
 ### `packages/nana-pack/tests/ci-wait.test.mjs`
 

@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/ci-records.test.mjs
  * @purpose Pin the CI suite-record reader from runner output through fake GitHub responses.
- * @inputs The root CI workflow, real test runner, ci-records library and CLI, and a fake gh command.
+ * @inputs The root CI workflow, real test runner, ci-records library and a fake gh command.
  * @outputs Six requirement-tagged PASS or FAIL checks and a nonzero exit when one fails.
- * @effects process (runs bounded runner, fake gh and CLI children), disk (temporary fixtures and downloaded artifacts).
+ * @effects process (runs bounded runner, fake gh children), disk (temporary fixtures and downloaded artifacts).
  * @errors Reports the requirement title whose CI-record behavior differs and exits nonzero.
  */
 import assert from "node:assert/strict";
@@ -32,7 +32,6 @@ import { fixtureRoot } from "./pack-fixtures.mjs";
 import vm from "node:vm";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const CLI = path.join(REPO, "scripts", "ci-records.mjs");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const WORKFLOW = fs.readFileSync(path.join(REPO, ".github", "workflows", "ci.yml"), "utf8");
 const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "ci-records-test-")));
@@ -91,14 +90,14 @@ function writeState(state) {
 const fakeCommand = Object.freeze([process.execPath, FAKE_GH]);
 function runCli(state, rev = "HEAD", extraEnv = {}) {
 	const stateFile = writeState(state);
-	const result = spawnSync(process.execPath, [CLI, rev], {
-		cwd: REPO,
-		env: { ...process.env, [GH_COMMAND_ENV]: JSON.stringify(fakeCommand), NANA_FAKE_GH_STATE: stateFile, ...extraEnv },
-		encoding: "utf8",
-		timeout: CASE_LIMIT_MS,
-		maxBuffer: GH_OUTPUT_MAX_BYTES,
+	const lines = [];
+	const command = extraEnv[GH_COMMAND_ENV] ? JSON.parse(extraEnv[GH_COMMAND_ENV]) : fakeCommand;
+	const runGh = (cwd, args) => spawnSync(command[0], [...command.slice(1), ...args], {
+		cwd, env: { ...process.env, NANA_FAKE_GH_STATE: stateFile },
+		encoding: "utf8", timeout: CASE_LIMIT_MS, maxBuffer: GH_OUTPUT_MAX_BYTES,
 	});
-	return { ...result, out: `${result.stdout ?? ""}${result.stderr ?? ""}` };
+	const result = readCiRecords([rev], { cwd: REPO, tempRoot: TD, runGh, writeLine: (line) => lines.push(line) });
+	return { ...result, status: result.code, out: lines.join("\n") };
 }
 const fakeRunner = (stateFile) => (cwd, args, options = {}) => spawnSync(fakeCommand[0], [...fakeCommand.slice(1), ...args], {
 	cwd,
