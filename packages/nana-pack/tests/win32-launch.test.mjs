@@ -25,7 +25,7 @@ const watchdogUrl = pathToFileURL(path.join(root, "bin", "pi-watchdog.mjs")).hre
 let piLaunch, loadError = "";
 try { ({ piLaunch } = await import(watchdogUrl)); } catch (e) { loadError = e.message; }
 const { findPi } = await import(pathToFileURL(path.join(root, "lib", "win-command.mjs")).href);
-const { PI_PACKAGE, PI_BIN_NAME, LANE_DEFAULTS } = await import(pathToFileURL(path.join(root, "bin", "worker-config.mjs")).href);
+const { PI_PACKAGE, PI_BIN_NAME, LANE_DEFAULTS, PI_CHILD_SKILLS } = await import(pathToFileURL(path.join(root, "bin", "worker-config.mjs")).href);
 const workerBin = path.join(root, "bin", "pi-worker.mjs");
 const reviewBin = path.join(root, "bin", "pi-review.mjs");
 const reviewLedgerBin = reviewRunHarness(fs.realpathSync(tmpDir(path.join(os.tmpdir(), 'review-command-test-'))));
@@ -152,6 +152,8 @@ console.log("VERDICT: LAND");
 		const laneRun = spawnSync(process.execPath, [workerBin, "--poll", "0.1", "--stall-secs", "15", "--out", laneOut, "--lane", "winlane", "--brief", brief], { cwd: laneWt, encoding: "utf8", timeout: 60000, env });
 		const laneCalls = readRecord();
 		const expectedArgv = ["--provider", LANE_DEFAULTS.provider, "--model", LANE_DEFAULTS.model, "--thinking", LANE_DEFAULTS.thinking, "-t", LANE_DEFAULTS.tools];
+		const laneArgv = laneCalls[0]?.argv ?? [];
+		const providerIndex = laneArgv.indexOf("--provider");
 		const builderLine = laneRun.stderr.split(/\r?\n/).find((l) => l.startsWith("pi-worker: builder:"));
 		// req: R-1125 R-1124 R-3453
 		check("Windows: lane pi-worker prints the builder line and starts the npm-installed pi entry with node and the lane argv",
@@ -159,7 +161,11 @@ console.log("VERDICT: LAND");
 			laneCalls[0].execPath.toLowerCase() === process.execPath.toLowerCase() &&
 			laneCalls[0].entry.toLowerCase() === installedEntry.toLowerCase() &&
 			laneCalls[0].ppid === laneRun.pid &&
-			expectedArgv.every((v, i) => laneCalls[0].argv[i] === v) &&
+			laneArgv[0] === "--no-skills" &&
+			providerIndex === 1 + 2 * PI_CHILD_SKILLS.length &&
+			laneArgv.filter((v) => v === "--skill").length === PI_CHILD_SKILLS.length &&
+			PI_CHILD_SKILLS.every((skill, i) => laneArgv[1 + 2 * i] === "--skill" && laneArgv[2 + 2 * i] === path.join(root, "skills", skill)) &&
+			expectedArgv.every((v, i) => laneArgv[providerIndex + i] === v) &&
 			laneCalls[0].argv.includes("--name"),
 			JSON.stringify({ laneRun, laneCalls }));
 

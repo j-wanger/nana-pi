@@ -3719,8 +3719,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — a missing piLaunch export fails every forced title, not the whole file; failed assertions exit nonzero
 - **callers** — `scripts/test.mjs`
 - **callees** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/win-command.mjs`, `packages/nana-pack/tests/env-path.mjs`, `packages/nana-pack/tests/review-run-harness.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
-- **unresolved launches** — line 120: spawnSync · line 124: spawnSync · line 250: spawnSync · line 266: spawnSync
-- **repo-code launches** — line 292: spawnSync
+- **unresolved launches** — line 120: spawnSync · line 124: spawnSync · line 256: spawnSync · line 272: spawnSync
+- **repo-code launches** — line 298: spawnSync
 
 ### `packages/nana-pack/tests/windows-skip-lines.test.mjs`
 
