@@ -45,7 +45,6 @@
 - Precedent check (precedent-first, plan): on POSIX a tracked file whose name holds a backslash cannot be named.
 - Precedent check (precedent-first, amendment 1): a loose list under a plain `Precedent:` label loses the entries after its first blank line, which go unchecked. The heading form keeps a loose list whole.
 - Precedent check (precedent-first, plan): no tool reads the builder's departure report; it reaches review when the seat puts it in the review brief.
-- brief-check (precedent-first, build 2): its lines start `pi-worker:`, because it prints exactly what pi-worker prints for the same brief.
 - Precedent check (brief-reader-fixes, plan): under a plain label, a bulleted list right after the list with no blank line is still read as entries (`Done:` then `- …`); a blank line ends the section.
 - Precedent check (brief-reader-fixes, plan): a plain-label list that switches from bullets to numbers, or numbers to bullets, drops the items after the switch unchecked; a change of bullet character alone does not end it.
 - Precedent check (brief-reader-fixes, plan): nested sub-list items stay entries and are refused by their first word.
@@ -56,7 +55,6 @@
 - Precedent check (brief-reader-fixes, plan): a heading such as `Precedent (audit)` still counts because only a following word excludes a heading.
 - Precedent check (audit re-check, 2026-10-22): only briefs are checked; nothing checks a plan's must-meet for its Precedent section.
 - Known-bug attachment (audit re-check, 2026-10-22): it needs a `Feature:` line, which only nana-pi's own working section asks a brief to carry.
-- brief-check (brief-reader-fixes, final review round 1): a folder given as `--brief` gets brief-check's own `brief-check:` line, while pi-worker refuses the same input with `pi-worker: lane refused:`; R-2585's equality loop has no folder case.
 - Build records (build-records): the ledger lives in each clone. Deleting or re-cloning a repository loses its records, and one lane name in two clones keeps two ledgers.
 - Build records (build-records): only lane mode records a build. A plain pi-worker run, a Claude Code subagent builder and a build by hand keep no record.
 - Build records (build-records): a stall is recorded as `failed`; the STALL line on stderr is the only sign of it.

@@ -113,7 +113,6 @@
 - Windows flakes (win-flake-hardening, plan): the temp-folder removal retries (5 at 100 ms) are chosen, not measured on a Windows hold.
 - Windows flakes (win-flake-hardening, plan): R-1471's and R-1473's overlap preconditions keep their timing; neither failed in 93 Windows attempts.
 - Windows test limits (win-test-limits, plan): worker-lane's `launchTogether` and build-records keep `--poll 0.1`; neither has a child limit that can fail on time.
-- Windows flakes (win-flake-hardening, plan): build-report's hard-kill worker polls above the test's start wait by reading; no test pins it.
 - Windows flakes (win-flake-hardening, plan): templates-update's adopt failure stays for shared-helpers.
 - Windows flakes (win-flake-hardening, plan): CI re-runs cannot prove the failure rate fell; the proof is the injected schedules and their wrong-code pairs.
 - Windows flakes (win-flake-hardening, final review): in R-2668's and R-2669's fixtures the late file's wait for its partner's ready file has no deadline, so a partner that never starts hangs the fixture until the runner's per-file timeout instead of failing fast; it matters only when the runner is already broken.

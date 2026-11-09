@@ -3,7 +3,6 @@
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - R-3101 accepts a retired row as evidence. Only a row anchor rejects `retired` (R-3108).
-- The shared component contract and fixture hashes are checked by reviewers, not a sha256 test.
 - A folder part such as `packages/nana-setup/` makes `recentCommits` read busy whenever a file below it changes.
 
 - Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
@@ -128,15 +127,8 @@
 - Ask parser (page-needs-you, final review): `inlineValue` names a variable `escaped` that does no escaping; harmless with fixed labels.
 - Ask parser (ask-stakes, plan O5): a gains value written on lines below its label is not read, so the page shows no gains line for that question.
 - Records summary (records-counts, final review): the summary writes `failed`, `skipped` and `unmeasured` inline while `OVERVIEW_LABELS` gains unused `skipped` and `unmeasured` labels, so renaming those labels changes nothing.
-- Component audit (component-audit, final review): "sound" means no planned or violated row and no anchor, not that someone checked the component; 18 of 23 are sound while their features hold many known-bug lines.
-- Component audit (component-audit, final review): absent components have no parts, so the stale count counts every commit and names them stale after 20 commits anywhere.
-- Component audit (component-audit, final review): the library component cites only the dated measurement, not the FEAT-003 known-bug line the plan named.
 - Visual check (visual-check, seat check): the `--control` run has no phone frame among the references, so the 380 px spec line is always unjudged there.
 - Visual check (visual-check, final review): R-3143's test does not check the usage line, nor `--reference` given with `--before`; the code handles both.
 - Visual check (visual-check, final review): the R-3145 demo fixture is a made-up two-line answer, not the adversary's recorded hive answer the plan named.
 - Visual check (visual-check, final review): the watchdog writes the child's error stream into reader.md, so a Claude Code warning can add a stray line.
 - Land report (ci-suite, plan residual): a land that uses CI as the suite does not refresh the land report; fallback lands and hand runs do.
-- Component audit (audit-test-speed, build 1): three other cases audit the real repository and run 5 to 12 seconds locally (R-3101, R-3103, R-3106 at 12.3 s), so they grow with the repository toward the 20 s limit.
-- Carry (audit-test-speed): `component-audit.test.mjs` R-3104 does not distinguish first-parent history from full history after merging its fixture branch.
-- Carry (audit-test-speed): `component-audit.test.mjs` R-3100, R-3105, R-3108 and R-3110 audit the real repository without individual elapsed-time measurements.
-- Carry (hive-retire): `component-audit.test.mjs` R-3777 also passes before preview retirement, so it does not distinguish the removed city-plan coupling.

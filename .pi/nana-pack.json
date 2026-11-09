@@ -1,8 +1,0 @@
-{
-  "postEdit": {
-    "commands": [
-      { "match": "\\.(mjs|js)$", "run": "node --check {file}" },
-      { "match": "\\.ts$", "run": "node --no-warnings --experimental-vm-modules scripts/ts-syntax-check.mjs {file}" }
-    ]
-  }
-}
