@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/land-clean-merge.test.mjs
- * @purpose Pin supported clean merges, refusals, coverage, guidance and the accepted semantic policy limit.
+ * @purpose Pin computed clean-merge trees, unsupported semantics and uncovered authored commits.
  * @inputs Synthetic temporary Git repositories, literal content oracles and injected CI artifacts.
  * @outputs Awaited bounded PASS/FAIL cases.
  * @effects disk, process
@@ -9,10 +9,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { check } from './profile-fixture.mjs';
-import { cleanMergeFixture, executeCleanMerge, mergeSnapshot, commit, git, gitRunner, reviewTip, regenerateFixture, separateGeneratedHunks } from './land-fixtures.mjs';
-import { withReviewLedgerLock } from '../bin/review-round.mjs';
+import { cleanMergeFixture, executeCleanMerge, computeCleanMerge, mergeSnapshot, commit, git, gitRunner, reviewTip, regenerateFixture, separateGeneratedHunks } from './land-fixtures.mjs';
 import * as C from '../lib/land-config.mjs';
 
 const unchanged = (f, before, out) => {
@@ -21,28 +19,9 @@ const unchanged = (f, before, out) => {
 };
 const refresh = f => { f.tip = git(f.feature, 'rev-parse', 'HEAD'); f.capturedMain = git(f.main, 'rev-parse', 'HEAD'); };
 const refused = (f, pattern, options) => {
- const before = mergeSnapshot(f), out = executeCleanMerge(f, options);
+ const before = mergeSnapshot(f), out = computeCleanMerge(f, options);
  unchanged(f, before, out); assert.match(out.text, pattern); return out;
 };
-
-// req: R-3688
-await check('M1: clean moved-main merge lands using only accepted-tip CI and review', () => {
- const f = cleanMergeFixture('m1'), source = mergeSnapshot(f);
- const out = executeCleanMerge(f); assert.equal(out.code, 0, out.text); assert.equal(out.suites, 0);
- const merged = git(f.main, 'rev-parse', 'HEAD');
- assert.deepEqual(git(f.main, 'show', '-s', '--format=%P', merged).split(' '), [f.tip, f.capturedMain]);
- assert.equal(git(f.main, 'merge-base', '--is-ancestor', f.tip, 'main'), '');
- const lists = out.calls.filter(args => args.at(-1).includes('/actions/runs?'));
- assert(lists.length >= 2); assert(lists.every(args => args.at(-1).includes(`head_sha=${f.tip}&`)));
- withReviewLedgerLock(f.home, ({ rounds, reservations }) => {
-  assert(![...rounds, ...reservations].some(row => row.revision === merged));
- });
- assert.equal(git(f.feature, 'rev-parse', 'HEAD'), source.source);
- assert.equal(git(f.feature, 'status', '--porcelain'), '');
- assert.deepEqual(out.text.split(/\r?\n/).filter(line => line.startsWith(C.CLEAN_MERGE_PREFIX)),
-  [`${C.CLEAN_MERGE_PREFIX} ${f.capturedMain} into ${f.tip} as ${merged}`]);
- assert.equal(out.end.outcome, 'landed');
-});
 
 // req: R-3689, R-3830
 await check('M2: clean merge content matches literals and an independent ordinary merge', () => {
@@ -69,13 +48,13 @@ await check('M2: clean merge content matches literals and an independent ordinar
   const clone = path.join(f.root, 'oracle'); git(f.root, 'clone', '--no-hardlinks', f.main, clone);
   git(clone, 'config', 'user.name', 'Synthetic'); git(clone, 'config', 'user.email', 'synthetic@example.invalid');
   git(clone, 'checkout', '--detach', f.tip); git(clone, 'merge', '--no-ff', '--no-edit', f.capturedMain);
-  const out = executeCleanMerge(f); assert.equal(out.code, 0, out.text);
+  const out = computeCleanMerge(f); assert.equal(out.code, 0, out.text);
   for (const [file, text] of Object.entries(expected)) {
-   assert.equal(gitRunner(f.main, ['show', `HEAD:${file}`]).stdout, text);
+   assert.equal(gitRunner(f.main, ['show', `${out.tree}:${file}`]).stdout, text);
    assert.equal(gitRunner(clone, ['show', `HEAD:${file}`]).stdout, text);
   }
-  assert.equal(git(f.main, 'rev-parse', 'HEAD^{tree}'), git(clone, 'rev-parse', 'HEAD^{tree}'));
-  if (kind === 'rename') assert(!fs.existsSync(path.join(f.main, 'shared.txt')));
+  assert.equal(out.tree, git(clone, 'rev-parse', 'HEAD^{tree}'));
+  if (kind === 'rename') assert(!git(f.main, 'ls-tree', '--name-only', out.tree).split('\n').includes('shared.txt'));
  }
 });
 
@@ -97,7 +76,7 @@ await check('M3: unsupported attributes and malformed or failing merge-tree refu
  // Valid line transports remain clean: CRLF, trailing space/tab and no final newline.
  for (const mode of ['crlf', 'space', 'no-final']) {
   const valid = cleanMergeFixture(`m3-${mode}`);
-  const out = executeCleanMerge(valid, {runGit:(cwd,args)=>{
+  const out = computeCleanMerge(valid, {runGit:(cwd,args)=>{
    const r=gitRunner(cwd,args); if(!args.includes('merge-tree') || r.status!==0) return r;
    const id=r.stdout.trim(); return {...r,stdout: mode==='crlf'?`${id}\r\n`:mode==='space'?`${id} \t\n`:id};
   }}); assert.equal(out.code,0,out.text);
@@ -120,28 +99,26 @@ await check('M10: rename destination merge driver refuses before merge-tree unch
  assert.equal(merges, 0); assert.equal(out.calls.length, 0);
 });
 
-// req: R-3697, R-3828, R-3834
+// req: R-3697, R-3834
 await check('M11: separate-hunk generated changes land exact real-generator bytes', () => {
  for (const file of C.CLEAN_MERGE_GENERATED_PATHS) {
   const f = regenerateFixture('m11', []);
   assert.equal(separateGeneratedHunks(f,[file]).status,0);
-  const out = executeCleanMerge(f);
+  const out = computeCleanMerge(f);
   assert.equal(out.code,0,out.text); assert.equal(out.suites,0);
-  assert.equal(fs.readFileSync(path.join(f.main,file),'utf8'),f.expected[file]);
+  assert.equal(gitRunner(f.main,['show',`${out.tree}:${file}`]).stdout,f.expected[file]);
   assert(out.text.includes(file));
-  const merged=git(f.main,'rev-parse','HEAD');
-  assert(out.calls.filter(args=>args.at(-1).includes('/actions/runs?')).every(args=>args.at(-1).includes(`head_sha=${f.tip}&`)));
-  withReviewLedgerLock(f.home,({rounds,reservations})=>assert(![...rounds,...reservations].some(row=>row.revision===merged)));
  }
  assert.deepEqual(C.CLEAN_MERGE_GENERATED_PATHS, ['docs/code-map.md', 'docs/requirements-tree.md']);
 });
 
-// req: R-3688
+// req: R-3963
 await check('M12: descendant main already containing the accepted tip refuses unchanged', () => {
  const f = cleanMergeFixture('m12');
  git(f.main, 'merge', '--no-ff', '--no-edit', f.tip);
  commit(f.main, 'later.txt', 'later\n', 'main advanced after land'); refresh(f);
- const out = refused(f, /already contained/); assert.equal(out.calls.length, 0);
+ const before = mergeSnapshot(f), out = executeCleanMerge(f);
+ unchanged(f, before, out); assert.match(out.text, /already contained/); assert.equal(out.calls.length, 0);
 });
 
 // req: R-3691, R-3830
@@ -152,19 +129,6 @@ await check('M4: conflict names paths and the merge-review-CI remedy before any 
  assert.match(out.text,/conflict/i); assert.equal(out.calls.length, 0);
 });
 
-// req: R-3692
-await check('M5: merge eligibility requires applicable CI, suite proof and unchanged proof paths on both sides', () => {
- const noOrigin = cleanMergeFixture('m5-origin', {}, {origin:null});
- refused(noOrigin,/CI.*no origin|no origin.*CI/);
- refused(cleanMergeFixture('m5-record'), /clean merge needs proven suite: CI suite records could not be read/, {records:false});
- for (const [side, action] of [['lane','runner'], ['main','runner'], ['main','delete'], ['main','rename']]) {
-  const f=cleanMergeFixture(`m5-${side}-${action}`), dir=side==='lane'?f.feature:f.main;
-  if(action==='runner') {fs.mkdirSync(path.join(dir,'scripts'),{recursive:true});commit(dir,'scripts/test.mjs','changed\n','runner');}
-  else {git(dir,action==='delete'?'rm':'mv','.github/workflows/ci.yml',...(action==='rename'?['.github/workflows/renamed.yml']:[]));git(dir,'commit','-m',action);}
-  refresh(f); const out=refused(f,new RegExp(`${side}.*proof|proof.*${side}`)); assert.equal(out.calls.length,0);
- }
-});
-
 // req: R-3693
 await check('M6: uncovered lane commits including a lane-authored merge remain refused', () => {
  for(const kind of ['commit','merge']) {
@@ -172,22 +136,12 @@ await check('M6: uncovered lane commits including a lane-authored merge remain r
   if(kind==='commit') commit(f.feature,'unreviewed.txt','unreviewed\n','unreviewed commit');
   else {
    git(f.feature,'merge','--no-ff','--no-edit',f.capturedMain);
-   commit(f.main,'later.txt','later main\n','later main');
+   fs.writeFileSync(path.join(f.feature,'lane.txt'),'hidden edit\n');
+   git(f.feature,'add','lane.txt');git(f.feature,'commit','--amend','--no-edit');
   }
-  refresh(f); const out=refused(f,/uncovered commits/); assert(out.text.includes(f.tip));
+  refresh(f); const before=mergeSnapshot(f),out=executeCleanMerge(f);
+  unchanged(f,before,out);assert.match(out.text,/uncovered commits/);assert(out.text.includes(f.tip));
  }
-});
-
-// req: R-3695
-await check('M8: accepted policy limit lands a textually clean but semantically broken merge', () => {
- const f=cleanMergeFixture('m8', {'a.mjs':'export const oldName = () => 1;\n'});
- commit(f.feature,'a.mjs','export const newName = () => 1;\n','rename export');
- const moduleName='./a.mjs';
- commit(f.main,'b.mjs',`import { oldName } from ${JSON.stringify(moduleName)}; console.log(oldName());\n`,'new caller'); refresh(f);
- for(const [cwd,file] of [[f.feature,'a.mjs'],[f.main,'b.mjs']]) assert.equal(spawnSync(process.execPath,[file],{cwd,timeout:10000}).status,0);
- const out=executeCleanMerge(f); assert.equal(out.code,0,out.text);
- const broken=spawnSync(process.execPath,['b.mjs'],{cwd:f.main,encoding:'utf8',timeout:10000});
- assert.notEqual(broken.status,0); assert.match(broken.stderr,/does not provide an export named 'oldName'/);
 });
 
 // req: R-3696, R-3712, R-3832, R-3876
@@ -214,13 +168,10 @@ await check('M9: shared guidance, rendered region, README and ruling agree on th
 
 // req: R-3697
 await check('seal: clean-merge vocabulary and conflict-name cap are declared once', () => {
- assert.equal(C.CLEAN_MERGE_MESSAGE,'nana-land: merge current main into accepted tip');
- assert.equal(C.CLEAN_MERGE_PREFIX,'merged main:'); assert.equal(C.CLEAN_MERGE_NAME_CAP,10);
- assert.equal(C.CLEAN_MERGE_REMEDY,'merge main into the lane, then review and CI that tip');
+ assert.equal(C.CLEAN_MERGE_NAME_CAP,10);
+ assert.equal(C.CLEAN_MERGE_REMEDY,"run git merge main in the lane; for a generated-file conflict take main's side and rebuild with its generator; push, wait for that tip's CI, then land (other edits need review)");
  assert.deepEqual(C.CLEAN_MERGE_GIT_CONFIG,['merge.renormalize=false','merge.default=text','merge.renames=true']);
  assert.deepEqual(C.CLEAN_MERGE_REASONS,{
   conflict:'merge conflict', unsupported:'unsupported merge semantics', git:'git merge-tree failed',
-  noCi:'clean merge needs applicable CI', suite:'clean merge needs proven suite',
-  proof:'clean merge proof path changed', ciChanged:'clean merge CI changed before lock',
  });
 });

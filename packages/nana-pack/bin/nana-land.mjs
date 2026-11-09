@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-pack/bin/nana-land.mjs
- * @purpose Land reviewed tips or their eligible clean merge with current main by fast-forward, and safely remove contained lane worktrees.
+ * @purpose Fast-forward reviewed tips and covered lane merges containing main, and safely remove contained lane worktrees.
  * @inputs Merge or cleanup arguments, review storage, and injectable git, command, gh, clock, lock, release-status, and CI-record readers.
  * @outputs Named helpers and command results naming reviews, CI runs, retained records, slow files, release status, and the land-record attempt.
  * @effects process (runs git, gh, and a suite command), network (through gh), disk (git merge, land/CI record storage, and worktree cleanup).
@@ -22,7 +22,7 @@ import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
 import { mainCi } from "../lib/main-ci.mjs";
 import { CI_LANE_PLATFORM, CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, CI_ADVISORY_WORKFLOW, CI_DONE_STATUS, CI_PASS_CONCLUSION, TIP_DIGITS, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
-import { CLEAN_MERGE_MESSAGE, CLEAN_MERGE_PREFIX, CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_GENERATED_PATHS, CLEAN_MERGE_GIT_CONFIG, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
+import { CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_GENERATED_PATHS, CLEAN_MERGE_GIT_CONFIG, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
 import { GENERATOR_CONTRACT, GENERATOR_TIMEOUT_MS, GENERATOR_REASONS } from "../lib/land-config.mjs";
 import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
@@ -198,7 +198,7 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 		const tip = git(runGit, tree, "rev-parse", "HEAD^{commit}");
 		const needsMerge = !isAncestor(runGit, capturedMain, tip, main);
 		if (needsMerge && isAncestor(runGit, tip, capturedMain, main)) throw new Error("source tip is already contained in main");
-		let landedTip = tip;
+		const landedTip = tip;
 		const refs = reviewedPairs(reviewed).map(({ sha, item }) => {
 			if (!/^[0-9a-f]{40,64}$/i.test(sha)) throw new Error(`review revision ${sha} is not a plain commit SHA`);
 			if (git(runGit, tree, "cat-file", "-t", sha) !== "commit") throw new Error(`review revision ${sha} is not a plain commit SHA`);
@@ -235,13 +235,7 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 			const named = unreviewed.map((sha) => `${sha} ${git(runGit, tree, "show", "-s", "--format=%s", sha)}`);
 			throw new Error(`uncovered commits (get it reviewed with a new round on the tip or drop it): ${named.join("; ")}`);
 		}
-		const merge = needsMerge ? cleanMergeTree(runGit, main, tip, capturedMain, { generatorContract, generatorTimeoutMs, runGenerator }) : null;
-		if (needsMerge) {
-			const laneProof = changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", merge.base, tip));
-			if (!laneProof.ok) throw mergeRefusal("proof", "lane contribution");
-			const mainProof = changedSuitePaths(git(runGit, main, "diff", "--no-renames", "--name-only", tip, merge.tree));
-			if (!mainProof.ok) throw mergeRefusal("proof", "main contribution");
-		}
+		if (needsMerge) throw new Error(`main has moved; ${CLEAN_MERGE_REMEDY}`);
 		lifecycle.stage = "ci";
 		const remoteNames = git(runGit, main, "remote");
 		const hasOrigin = remoteNames.split(/\r?\n/).map((name) => name.trim()).includes(CI_REMOTE);
@@ -303,20 +297,17 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 			}
 			return verdict;
 		};
-		let judgedRuns;
 		let ciLines = [];
 		let ciNote = null;
 		let ciReadPassed = false;
 		let suiteProof = { ok: false, reason: scope.note };
 		if (!scope.applies) {
 			if (fixesRed !== undefined) throw new Error("--fixes-red requires toolkit main CI evidence");
-			if (needsMerge) throw mergeRefusal("noCi", scope.note);
 			lifecycle.ci = "skipped";
 			ciNote = `${LAND_NOTE_PREFIX} note: CI not read: ${scope.note}`;
 		} else {
 			lifecycle.ci = "refused";
 			const verdict = readRuns();
-			judgedRuns = verdict.runs;
 			const env = ghEnvironment(process.env);
 			// The toolkit's platform policy must not impose nana-pi job names on adopted projects.
 			const manifest = runGit(tree, ["show", `${tip}:package.json`]);
@@ -329,7 +320,7 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 			ciReadPassed = true;
 			lifecycle.ci = "passed";
 			lifecycle.ciWaitMs = landCiWaitMs(verdict.runs);
-			suiteProof = needsMerge ? { ok: true } : changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", capturedMain, tip));
+			suiteProof = changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", capturedMain, tip));
 			let shardFailure = null;
 			try {
 				const budget = budgetedGh({ runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env }), now: recordsNow });
@@ -346,7 +337,6 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 			// A known incomplete/red sharded leg is CI failure, not permission to substitute locally.
 			if (shardFailure) { lifecycle.ci = "refused"; throw new Error(shardFailure); }
 		}
-		if (needsMerge && !suiteProof.ok) throw mergeRefusal("suite", suiteProof.reason);
 		lifecycle.stage = "suite";
 		lifecycle.suite = suiteProof.ok ? "ci" : "local";
 		lifecycle.suiteWhy = suiteProof.ok ? null : suiteProof.reason;
@@ -363,15 +353,6 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 			if (suiteResult.error || suiteCode !== 0) return { code: 1, text: `suite failed (exit ${suiteResult.status ?? suiteResult.signal ?? "unknown"})\n${resultText(suiteResult)}` };
 		}
 		lifecycle.stage = "merge";
-		if (needsMerge) {
-			landedTip = git(runGit, main, "commit-tree", merge.tree, "-p", tip, "-p", capturedMain, "-m", CLEAN_MERGE_MESSAGE);
-			if (!objectId(landedTip)) throw mergeRefusal("git", "git commit-tree returned malformed output");
-			const identities = (runs) => runs.map((run) => `${run.workflow_id}/${run.id}/${run.run_attempt}`).sort();
-			try {
-				const latest = readRuns();
-				if (JSON.stringify(identities(latest.runs)) !== JSON.stringify(identities(judgedRuns))) throw new Error("newest run id or attempt changed");
-			} catch (error) { throw mergeRefusal("ciChanged", error.message); }
-		}
 		lockReviews(home, ({ rounds, reservations }) => {
 			const repoRounds = rounds.filter((r) => r.repo === repo);
 			checkRecords(repoRounds, reservations.filter((r) => r.repo === repo));
@@ -414,7 +395,7 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 			} catch (error) { recordNotes = [`${LAND_NOTE_PREFIX} note: CI records failed: ${error?.message ?? "unknown error"}`]; }
 		}
 		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...recordNotes];
-		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${needsMerge ? `${CLEAN_MERGE_PREFIX} ${capturedMain} into ${tip} as ${landedTip}\n` : ""}${merge?.regenerated ? `regenerated: ${merge.regenerated.join(", ")}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

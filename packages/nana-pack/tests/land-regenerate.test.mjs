@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { check } from './profile-fixture.mjs';
-import { regenerateFixture, executeCleanMerge, mergeSnapshot, commit, git, gitRunner, generatorRun, separateGeneratedHunks } from './land-fixtures.mjs';
+import { regenerateFixture, computeCleanMerge, mergeSnapshot, commit, git, gitRunner, generatorRun, separateGeneratedHunks } from './land-fixtures.mjs';
 import * as C from '../lib/land-config.mjs';
 
 const outputs=['docs/code-map.md','docs/requirements-tree.md'];
@@ -18,7 +18,7 @@ const refresh=f=>{f.tip=git(f.feature,'rev-parse','HEAD');f.capturedMain=git(f.m
 const registrations=f=>git(f.main,'worktree','list','--porcelain');
 const refuse=(f, reason, options={})=>{
  const before=mergeSnapshot(f), registered=registrations(f);
- const out=executeCleanMerge(f,options);
+ const out=computeCleanMerge(f,options);
  assert.equal(out.code,1,out.text); assert.match(out.text,reason);
  assert.deepEqual(mergeSnapshot(f),before); assert.equal(registrations(f),registered); assert.equal(out.suites,0);
  return out;
@@ -35,14 +35,12 @@ const cleaned=o=>{assert(o.dirs.length>0,'generator reached');for(const dir of o
 await check('M1: generated-only conflicts land actual generator bytes and preserve the merged sources',()=>{
  for(const conflicts of [[outputs[0]],[outputs[1]],outputs]) {
   const f=regenerateFixture('m1',conflicts), registered=registrations(f), source=git(f.feature,'rev-parse','HEAD');
-  const out=executeCleanMerge(f); assert.equal(out.code,0,out.text); assert.equal(out.suites,0);
-  assert.deepEqual(git(f.main,'show','-s','--format=%P','HEAD').split(' '),[f.tip,f.capturedMain]);
+  const out=computeCleanMerge(f); assert.equal(out.code,0,out.text); assert.equal(out.suites,0);
   assert.equal(git(f.feature,'rev-parse','HEAD'),source);assert.equal(git(f.feature,'status','--porcelain'),'');
   assert.equal(registrations(f).replace(/HEAD [0-9a-f]+/g,'HEAD'),registered.replace(/HEAD [0-9a-f]+/g,'HEAD'));
-  for(const file of outputs)assert.equal(fs.readFileSync(path.join(f.main,file),'utf8'),f.expected[file]);
-  for(const script of ['code-map','requirements-tree'])assert.equal(generatorRun(f.main,[`scripts/${script}.mjs`,'--check']).status,0);
-  const sourceEntries=dir=>git(dir,'ls-tree','-r','HEAD').split(/\r?\n/).filter(line=>!outputs.includes(line.split('\t')[1]));
-  assert.deepEqual(sourceEntries(f.main),sourceEntries(f.oracle));
+  for(const file of outputs)assert.equal(gitRunner(f.main,['show',`${out.tree}:${file}`]).stdout,f.expected[file]);
+  const sourceEntries=(dir,tree)=>git(dir,'ls-tree','-r',tree).split(/\r?\n/).filter(line=>!outputs.includes(line.split('\t')[1]));
+  assert.deepEqual(sourceEntries(f.main,out.tree),sourceEntries(f.oracle,'HEAD'));
   assert.match(out.text,/regenerated:/);for(const file of conflicts)assert(out.text.includes(file));
  }
 });
@@ -63,8 +61,8 @@ await check('M2: non-contract and rename conflicts refuse while contract modify-
  refuse(renamed,/merge conflict.*docs\/renamed.md/);
  const deleted=regenerateFixture('m2-delete',[outputs[0]]);
  git(deleted.main,'rm',outputs[0]);git(deleted.main,'commit','-m','delete generated');refresh(deleted);
- const out=executeCleanMerge(deleted);assert.equal(out.code,0,out.text);
- assert.equal(fs.readFileSync(path.join(deleted.main,outputs[0]),'utf8'),deleted.expected[outputs[0]]);
+ const out=computeCleanMerge(deleted);assert.equal(out.code,0,out.text);
+ assert.equal(gitRunner(deleted.main,['show',`${out.tree}:${outputs[0]}`]).stdout,deleted.expected[outputs[0]]);
 });
 
 // req: R-3708
@@ -107,7 +105,7 @@ await check('M5: sealed Node argv ignores npm scripts and replaces decoys across
  for(const transport of ['crlf','space','no-final']) {
   const f=regenerateFixture(`m5-${transport}`,[outputs[0]]),o=observe();
   commit(f.feature,'package.json',JSON.stringify({scripts:{map:'node -e "require(\'fs\').writeFileSync(\'npm-ran\',\'bad\')"'}}),'npm decoy');refresh(f);
-  const out=executeCleanMerge(f,{runGenerator:(argv,cwd,options)=>{
+  const out=computeCleanMerge(f,{runGenerator:(argv,cwd,options)=>{
    assert(C.GENERATOR_CONTRACT.some(entry=>[entry.write,entry.check].some(value=>JSON.stringify(value)===JSON.stringify(argv))));
    assert.equal(options.shell,false);assert.equal(options.timeout,C.GENERATOR_TIMEOUT_MS);
    return o.runGenerator(argv,cwd,options);
@@ -117,7 +115,7 @@ await check('M5: sealed Node argv ignores npm scripts and replaces decoys across
    return {...r,stdout:transport==='crlf'?lines.join('\r\n')+'\r\n':transport==='space'?lines.map(x=>x+' \t').join('\n')+'\n':lines.join('\n')};
   }});
   assert.equal(out.code,0,out.text);cleaned(o);
-  assert.equal(fs.readFileSync(path.join(f.main,outputs[0]),'utf8'),f.expected[outputs[0]]);assert(!fs.existsSync(path.join(f.main,'npm-ran')));
+  assert.equal(gitRunner(f.main,['show',`${out.tree}:${outputs[0]}`]).stdout,f.expected[outputs[0]]);assert(!fs.existsSync(path.join(f.main,'npm-ran')));
  }
 });
 
@@ -136,10 +134,10 @@ await check('both-sides clean generator failures timeout and scope changes refus
 await check('mixed conflict and clean both-sides outputs land both generator oracles',()=>{
  const f=regenerateFixture('mixed',[outputs[0]]);
  assert.equal(separateGeneratedHunks(f,[outputs[1]]).status,1);
- const out=executeCleanMerge(f);assert.equal(out.code,0,out.text);assert.equal(out.suites,0);
- for(const file of outputs)assert.equal(fs.readFileSync(path.join(f.main,file),'utf8'),f.expected[file]);
- const sourceEntries=dir=>git(dir,'ls-tree','-r','HEAD').split(/\r?\n/).filter(line=>!outputs.includes(line.split('\t')[1]));
- assert.deepEqual(sourceEntries(f.main),sourceEntries(f.oracle));
+ const out=computeCleanMerge(f);assert.equal(out.code,0,out.text);assert.equal(out.suites,0);
+ for(const file of outputs)assert.equal(gitRunner(f.main,['show',`${out.tree}:${file}`]).stdout,f.expected[file]);
+ const sourceEntries=(dir,tree)=>git(dir,'ls-tree','-r',tree).split(/\r?\n/).filter(line=>!outputs.includes(line.split('\t')[1]));
+ assert.deepEqual(sourceEntries(f.main,out.tree),sourceEntries(f.oracle,'HEAD'));
 });
 
 // req: R-3711

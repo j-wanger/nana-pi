@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
-import { ciFixture, commit, executeCi, git, gitRunner, ensureCiReview, recordReview, mergeSnapshot } from "./land-fixtures.mjs";
+import { ciFixture, commit, executeCi, git, gitRunner, ensureCiReview, recordReview, mergeSnapshot, mergeInLane } from "./land-fixtures.mjs";
 import { readLandLedger, landRecordsPath } from "../lib/land-records.mjs";
 import { parseLandArgs } from "../bin/nana-land.mjs";
 import { mainCi } from "../lib/main-ci.mjs";
@@ -36,6 +36,7 @@ function fixture({ laneBad, mainBad, state = "failure", missing = false, noMain 
  git(f.feature, "merge", "--no-edit", "main"); f.tip = git(f.feature, "rev-parse", "HEAD");
  if (moved) commit(f.main, "main-only.txt", "main\n", "move main");
  ensureCiReview(f);
+ if (moved) { f.capturedMain = git(f.main, 'rev-parse', 'HEAD'); mergeInLane(f); }
  if (refusal === "uncovered") f.tip = commit(f.feature, "uncovered.txt", "new\n", "uncovered");
  if (refusal === "review") recordReview(f.feature, f.home, "another", "SEND-BACK");
  if (refusal === "conflict") { commit(f.main, "base.txt", "main\n", "conflict main"); f.tip = commit(f.feature, "base.txt", "lane\n", "conflict lane"); f.reviewed = null; }
@@ -129,7 +130,7 @@ await check("M7: changed main CI refuses both landing paths without checkout wri
 });
 // req: R-3879
 await check("M8: fixes-red preserves every other land refusal", () => {
- for (const [refusal, pattern] of [["uncovered", /uncovered commits/], ["review", /non-LAND/], ["workflow", /run 71.*failure/], ["mac", /install-check \(macos-latest, floor\)/], ["suite", /suite failed/], ["conflict", /conflict.*base.txt/]]) {
+ for (const [refusal, pattern] of [["uncovered", /uncovered commits/], ["review", /non-LAND/], ["workflow", /run 71.*failure/], ["mac", /install-check \(macos-latest, floor\)/], ["suite", /suite failed/], ["conflict", /main has moved.*git merge main/]]) {
   const result = fixture({ mainBad: windows[0], fixesRed: "70", refusal, ...(refusal === "mac" ? { laneBad: mac[2], missing: true } : {}) });
   assert.equal(result.land.code, 1, result.land.text); assert.match(result.land.text, pattern); assert.deepEqual(result.after, result.before);
  }

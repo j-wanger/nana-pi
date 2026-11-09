@@ -149,7 +149,7 @@ check("non-fast-forward source tip without CI refuses before running the suite",
 	let suites = 0;
 	const out = executeCi(fixture, [], { runCommand: () => { suites++; return { status: 0 }; } });
 	assert.equal(out.code, 1); assert.equal(suites, 0);
-	assert.match(out.text, /clean merge needs applicable CI: no origin remote/);
+	assert.match(out.text, /main has moved.*git merge main/);
 	assert.equal(git(fixture.main, "rev-parse", "HEAD"), before);
 });
 // req: R-976

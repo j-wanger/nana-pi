@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/lane-push-ci.test.mjs
  * @purpose Pin generated-conflict push CI, duplicate exclusion and event-specific selected Windows coverage.
  * @inputs Workflow expressions, isolated Git fixtures and injected GitHub transport.
- * @outputs Ten awaited bounded requirement-tagged verdicts.
+ * @outputs Awaited bounded requirement-tagged verdicts.
  * @effects disk (OS temp fixtures), process (local Git and fixture Node).
  * @errors Assertions set exit one.
  */
@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { check, fixtureRoot, copyClosure, execute, REPO, TEMP } from './pack-fixtures.mjs';
-import { regenerateFixture, executeCleanMerge, artifactGh, git, gitRunner, workflowRun, runList, mergeSnapshot } from './land-fixtures.mjs';
+import { regenerateFixture, executeCleanMerge, mergeInLane, artifactGh, git, gitRunner, workflowRun, runList, mergeSnapshot } from './land-fixtures.mjs';
 import { ciReadiness, waitForCi } from '../lib/ci-wait.mjs';
 import { judgeRuns, requiredCiJobs } from '../lib/land-ci.mjs';
 import * as C from '../lib/land-config.mjs';
@@ -60,14 +60,6 @@ await check('M2: real conflicts and failed inspection refuse before a run wait',
   assert(!w.calls.some(a=>a[0]==='api'));assert.deepEqual(mergeSnapshot(f),before);
  }
 });
-// req: R-3937
-await check('M3: push CI lands generated conflicts through regeneration without new review or suite',()=>{
- const f=regenerateFixture('push-land'),out=executeCleanMerge(f,{runs:[realRun({head_sha:f.tip})]});
- assert.equal(out.code,0,out.text);assert.equal(out.suites,0);assert.match(out.text,/\(push\) success/);
- for(const file of C.CLEAN_MERGE_GENERATED_PATHS)assert.equal(fs.readFileSync(path.join(f.main,file),'utf8'),f.expected[file]);
- assert.deepEqual(git(f.main,'show','-s','--format=%P','HEAD').split(' '),[f.tip,f.capturedMain]);
- assert(out.calls.filter(a=>a.at(-1).includes('/actions/runs?')).every(a=>a.at(-1).includes(`head_sha=${f.tip}&`)));
-});
 // req: R-3938
 await check('M4: feature pushes execute while same-repository feature PR duplicates skip',()=>{
  assert.match(workflow,/branches: \[main, ['"]?feat\/\*\*['"]?\]/);
@@ -87,7 +79,7 @@ await check('M5: main retains all legs release prerequisites and required Window
 // req: R-3940
 await check('M6: skipped duplicates never decide waiter or land in either event order',async()=>{
  for(const order of [false,true])for(const pass of [false,true])for(const skipped of ['success','skipped']) {
-  const f=regenerateFixture('duplicates'),real=realRun({run_number:order?3:1,conclusion:pass?'success':'failure',head_sha:f.tip}),skip=duplicate({conclusion:skipped,head_sha:f.tip});
+  const f=mergeInLane(regenerateFixture('duplicates')),real=realRun({run_number:order?3:1,conclusion:pass?'success':'failure',head_sha:f.tip}),skip=duplicate({conclusion:skipped,head_sha:f.tip});
   const runs=order?[skip,real]:[real,skip],w=waiter(f,runs,{conflict:false});
   const out=await waitForCi(w.options);assert.equal(out.code,pass?0:1,out.text);
   const record={schema:1,platform:'darwin',filters:[],files:[{path:'selected.test.mjs',label:'PASS',seconds:1}],exitCode:0,jobs:4,wallSeconds:1,

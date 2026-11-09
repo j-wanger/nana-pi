@@ -76,21 +76,16 @@ export const CI_RUN_LIST_RETRIES = 1;
 export const SUITE_FALLBACK_PATHS = Object.freeze([".github/workflows/", "scripts/test.mjs"]);
 export const SUITE_CHANGED_REASON = "the lane changes the CI workflow or test runner";
 
-// chosen 2026-11-02 (R-3697, clean-merge plan O1): identify only the merge this land creates.
-export const CLEAN_MERGE_MESSAGE = "nana-land: merge current main into accepted tip";
-export const CLEAN_MERGE_PREFIX = "merged main:";
 // chosen 2026-11-02 (R-3697, O2): name ten paths before eliding a long conflict list.
 export const CLEAN_MERGE_NAME_CAP = 10;
 // contract (R-3690, R-3697, plan Q3), chosen 2026-11-02: generated outputs need regeneration, not textual merging.
 export const CLEAN_MERGE_GENERATED_PATHS = Object.freeze(["docs/code-map.md", "docs/requirements-tree.md"]);
 // contract (R-3689, R-3697, A2), chosen 2026-11-02: repository settings cannot select a default custom driver or disable rename detection.
 export const CLEAN_MERGE_GIT_CONFIG = Object.freeze(["merge.renormalize=false", "merge.default=text", "merge.renames=true"]);
-// chosen 2026-11-02 (R-3697, O1): every merge refusal points back to the reviewed lane flow.
-export const CLEAN_MERGE_REMEDY = "merge main into the lane, then review and CI that tip";
+// contract (R-3963), chosen 2026-11-09: test the merged result through existing lane CI.
+export const CLEAN_MERGE_REMEDY = "run git merge main in the lane; for a generated-file conflict take main's side and rebuild with its generator; push, wait for that tip's CI, then land (other edits need review)";
 export const CLEAN_MERGE_REASONS = Object.freeze({
 	conflict: "merge conflict", unsupported: "unsupported merge semantics", git: "git merge-tree failed",
-	noCi: "clean merge needs applicable CI", suite: "clean merge needs proven suite",
-	proof: "clean merge proof path changed", ciChanged: "clean merge CI changed before lock",
 });
 
 // contract (R-3711, plan Revision 2), chosen 2026-11-02: only these generated outputs and direct Node argv qualify.

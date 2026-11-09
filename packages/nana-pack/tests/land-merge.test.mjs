@@ -75,6 +75,18 @@ await check('M3: a generated-conflict lane merge is covered after regeneration',
  for (const [file, expected] of Object.entries(f.expected)) assert.equal(readFileSync(path.join(f.main, file), 'utf8'), expected);
 });
 
+// req: R-3963
+await check('M4: moved main refuses with lane merge remedy and unchanged refs', () => {
+ const f = cleanMergeFixture('must-merge-in-lane');
+ const before = mergeSnapshot(f), out = executeCleanMerge(f);
+ assert.equal(out.code, 1, out.text); assert.deepEqual(mergeSnapshot(f), before);
+ for (const phrase of ['git merge main', 'push', 'CI', 'generated', 'generator']) assert(out.text.includes(phrase), out.text);
+ assert.equal(out.suites, 0); assert.equal(out.calls.length, 0);
+ git(f.feature, 'merge', '--no-ff', '--no-edit', 'main');
+ f.tip = git(f.feature, 'rev-parse', 'HEAD');
+ const landed = executeCleanMerge(f);
+ assert.equal(landed.code, 0, landed.text); assert.equal(git(f.main, 'rev-parse', 'HEAD'), f.tip);
+});
 }
 import { PI_REVIEW, TEST_LOCKED, assertCiRefused, recordTextReview, runLand, tallyRows, writeTallyRows } from "./land-checks.mjs";
 let failures = 0;

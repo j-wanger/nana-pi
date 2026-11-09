@@ -14,7 +14,7 @@ import { readLandLedger, landRecordsPath } from "../lib/land-records.mjs";
 import os from "node:os";
 import path from "node:path";
 
-import { runLand } from "../bin/nana-land.mjs";
+import { runLand, cleanMergeTree } from "../bin/nana-land.mjs";
 import { admit, complete } from "../bin/review-round.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { CI_ARTIFACT_PREFIX } from "../lib/suite-records-config.mjs";
@@ -124,6 +124,34 @@ export function executeCleanMerge(f, { records = true, runs = [workflowRun({ pat
 		runGh: (cwd, args, opts) => { calls.push(args); const result = gh(cwd, args, opts); return afterGh(args, calls, result) ?? result; } });
 	const common = path.resolve(f.main, git(f.main, "rev-parse", "--git-common-dir"));
 	return { ...out, suites, calls, end: readLandLedger(landRecordsPath(common)).records.at(-1) };
+}
+
+/** Merge main in the fixture lane, preserving review on the pre-merge first parent. */
+export function mergeInLane(f) {
+ ensureCiReview(f);
+ const result = gitRunner(f.feature, ['merge', '--no-ff', '--no-edit', f.capturedMain]);
+ if (result.status !== 0) {
+  const conflicts = git(f.feature, 'diff', '--name-only', '--diff-filter=U').split('\n').filter(Boolean);
+  assert(conflicts.length && conflicts.every(file => landConfig.CLEAN_MERGE_GENERATED_PATHS.includes(file)), result.stderr);
+  git(f.feature, 'checkout', '--theirs', '--', ...conflicts);
+  git(f.feature, 'add', '--', ...conflicts);
+ }
+ for (const entry of landConfig.GENERATOR_CONTRACT) if (f.expected) {
+  const generated = generatorRun(f.feature, entry.write); assert.equal(generated.status, 0, generated.stderr);
+ }
+ if (f.expected) git(f.feature, 'add', '--', ...landConfig.CLEAN_MERGE_GENERATED_PATHS);
+ if (result.status !== 0) git(f.feature, 'commit', '--no-edit');
+ else if (f.expected) git(f.feature, 'commit', '--amend', '--no-edit');
+ f.tip = git(f.feature, 'rev-parse', 'HEAD');
+ return f;
+}
+
+/** Inspect merge eligibility without landing; coverage uses this same public tree computation. */
+export function computeCleanMerge(f, { runGit = gitRunner, generatorContract = landConfig.GENERATOR_CONTRACT, generatorTimeoutMs = landConfig.GENERATOR_TIMEOUT_MS, runGenerator = (argv, cwd, options) => spawnSync(process.execPath, argv, { ...options, cwd }) } = {}) {
+ try {
+  const merged = cleanMergeTree(runGit, f.main, f.tip, f.capturedMain, { generatorContract, generatorTimeoutMs, runGenerator });
+  return { code: 0, ...merged, text: merged.regenerated ? `regenerated: ${merged.regenerated.join(', ')}` : '', suites: 0, calls: [] };
+ } catch (error) { return { code: 1, text: error.message, suites: 0, calls: [] }; }
 }
 
 /** Copy the real generators and their literal relative-import closure, never seat scripts. */
