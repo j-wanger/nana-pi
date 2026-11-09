@@ -1,5 +1,9 @@
 # FEAT-031 — known bugs
 
+- Context trim (agents-trim, review round 1, SHOULD 3): pi seats reach the issue-posting rules only through the seat-guide pointer.
+- Context trim (agents-trim, review round 1, NOTE): "a finding outside the model is a residual" has no home.
+- Context trim (agents-trim, review round 1, NOTE): the pointer to the unplaced known-bug file is gone for other projects.
+
 - Test retirement (test-retire, review round 1, SHOULD): `requirements-unclaimed.test.mjs` moved from release to main, so template and trace-script pull requests no longer run it; every main platform now runs it, including Windows uvx pytest shards, at an unmeasured cost.
 - Test retirement (test-retire, review round 1, SHOULD): the R-070/R-774 fold tests only `gate.allowPatterns = null`, not all three arrays null, and no longer checks that a benign edit passes to distinguish built-in denies from fail-closed blocking of everything.
 - Test retirement (test-retire, review round 1, NOTE): the trace test's CLI spawn now has a 20 s limit instead of none, bounding a whole-repository checker despite this lane retiring that pattern; its measured runtime was about 0.2 s.

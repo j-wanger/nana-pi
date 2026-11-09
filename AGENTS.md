@@ -60,7 +60,7 @@ Invariant: only user-scope `objective.enabled: false` turns the objective off; p
 
 ## Working pattern
 
-See the shared working pattern below for the defaults and the roster command. Local overrides are explicit in each project.
+See the seat guide for defaults and the roster command; the shared section below links to it. Local overrides are explicit in each project.
 
 <!-- nana:working-under-nana-pi begin -->
 ## Working under nana-pi
@@ -134,7 +134,7 @@ CI covers this repository's suite. Builders run touched tests, commit and report
 
 ### Install check before a land
 
-Land checklist, nana-pi only (the owner, 2026-10-12): a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`. The land also reads CI: the lane runs macOS install checks, and main runs macOS and Windows install checks; the local run stays by the owner's ruling.
+Local install check, nana-pi only: a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`. The land also reads CI: the lane runs macOS install checks, and main runs macOS and Windows install checks; the local run stays by the owner's ruling.
 
 ### HANDOFF writing check
 

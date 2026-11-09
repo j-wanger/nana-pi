@@ -125,7 +125,7 @@ check("a checkout copy cannot mask a removed path in its declared target", judge
 // req: R-629
 check("a missing script flag is rejected by the reused flag judge", judgeClaims({ surface: "fixture", root: REPO, targets: [{ name: "fixture", root: fixtureRoot }], text: "`node scripts/map.mjs --impakt`" }).flagProblems.some((p) => p.includes("--impakt")));
 // req: R-629
-check("a missing nana-command flag is rejected", judgeClaims({ surface: actualShared, root: REPO, targets: cwdTargets, text: working.replace("--brief <file>", "--brieff <file>") }).flagProblems.some((p) => p.includes("--brieff")));
+check("a missing nana-command flag is rejected", judgeClaims({ surface: "packages/nana-setup/claude/rules/nana-seat.md", root: REPO, targets: cwdTargets, text: read("packages/nana-setup/claude/rules/nana-seat.md").replace("--brief <file>", "--brieff <file>") }).flagProblems.some((p) => p.includes("--brieff")));
 // req: R-629
 check("a declared nana subcommand absent from its source is rejected", judgeClaims({ surface: "requirements", root: REPO, targets: cwdTargets, text: "`pi-review reports`" }).flagProblems.some((p) => p.includes("reports")));
 const claimCount = checkoutJudgements.reduce((n, { result }) => n + result.claims, 0);
