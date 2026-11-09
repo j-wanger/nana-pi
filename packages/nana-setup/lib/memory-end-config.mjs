@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-setup/lib/memory-end-config.mjs
- * @purpose Retain released SessionEnd ownership fields and making note vocabulary.
+ * @purpose Retain only released SessionEnd ownership fields for installed-hook retirement.
  * @inputs None.
- * @outputs Named immutable hook and doctor contracts.
+ * @outputs Named immutable retired-hook identity and timeout.
  * @effects none
  * @errors None.
  */
@@ -11,5 +11,3 @@
 export const MEMORY_END_TIMEOUT_SECONDS = 1.5;
 // Contract R-3360: all SessionEnd reasons, no matcher, short neutral UI status.
 export const MEMORY_END_ENTRY = Object.freeze({event:'SessionEnd',file:'nana-memory-end.mjs',statusMessage:'nana: memory'});
-// Contract R-3362: count-only informational doctor vocabulary, 2026-11-01.
-export const MEMORY_MAKING_NOTE = Object.freeze({label:'memory making',disabled:'not enabled',never:'never',unreadable:'unreadable'});

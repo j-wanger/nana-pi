@@ -6,7 +6,6 @@
  * @effects none
  * @errors None.
  */
-import { MEMORY_MAKING_NOTE } from './memory-end-config.mjs';
 // Contract values: Claude Code hooks/runtime matrix, read 2026-10-12; installer timeout in settings.mjs.
 export const HOOKS = [
   { label: "hook objective", shortLabel: "objective", event: "SessionStart", matcher: "startup", script: "nana-objective.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
@@ -43,9 +42,9 @@ export const KNOWN_RED = {
 // Contract values: doctor.mjs informational rows; win32 hook-file rows removed by R-1861, 2026-10-19; floor from R-1060;
 // PATH and skill rows are checks after R-1610 and R-1900.
 export const DOCTOR_NOTES = {
-  darwin: ["pi agent dir", "pi mcp.json", "release status", MEMORY_MAKING_NOTE.label],
-  linux: ["pi agent dir", "pi mcp.json", "release status", MEMORY_MAKING_NOTE.label],
-  win32: ["pi agent dir", "pi mcp.json", "release status", "Claude Code hooks floor", MEMORY_MAKING_NOTE.label],
+  darwin: ["pi agent dir", "pi mcp.json", "release status"],
+  linux: ["pi agent dir", "pi mcp.json", "release status"],
+  win32: ["pi agent dir", "pi mcp.json", "release status", "Claude Code hooks floor"],
 };
 // Hook input samples and report budget are contract values from Claude Code docs, read 2026-10-12.
 export const SAMPLE_INPUTS = {
