@@ -2,7 +2,7 @@
 
 *Frontier only. One line per live decision: rewrite, don't accumulate. The live sections come first, then Landed, then the Known bugs pointer.*
 
-**`OBJECTIVE.md` holds the objective and current priority.** Both runtimes print it at session start, with the umbrella lines from `~/nana-agent-loop/OBJECTIVE.md` below.
+**`OBJECTIVE.md` holds the objective and current priority.** Both runtimes print it at session start.
 
 ## Where things stand
 
