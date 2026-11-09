@@ -2565,7 +2565,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Failed assertions set a nonzero exit status.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/known-bug-digest-config.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`
-- **unresolved launches** — line 62: spawnSync; binding line 79; binding line 95; binding line 117; binding line 133; binding line 156; binding line 175; binding line 178; binding line 188; binding line 197; binding line 212; binding line 219; binding line 220; binding line 224; binding line 256 · line 240: spawnSync; binding line 230; binding line 232; binding line 243
+- **unresolved launches** — line 62: spawnSync; binding line 79; binding line 95; binding line 117; binding line 133; binding line 156; binding line 173; binding line 200; binding line 211; binding line 214; binding line 224; binding line 233; binding line 248; binding line 255; binding line 256; binding line 260; binding line 292 · line 276: spawnSync; binding line 266; binding line 268; binding line 279
 
 ### `packages/nana-pack/tests/credential-gate.test.mjs`
 
