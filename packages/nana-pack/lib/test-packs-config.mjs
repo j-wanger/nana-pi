@@ -107,6 +107,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/land-records.test.mjs": "module",
   "packages/nana-pack/tests/land-regenerate.test.mjs": "module",
   "packages/nana-pack/tests/land.test.mjs": "land",
+  "packages/nana-pack/tests/lane-push-ci.test.mjs": "land",
   "packages/nana-pack/tests/lane-watcher.test.mjs": "module",
   "packages/nana-pack/tests/lane-write-guard.test.mjs": "land",
   "packages/nana-pack/tests/leak-scan.test.mjs": "main",

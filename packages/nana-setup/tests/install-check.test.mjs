@@ -1637,7 +1637,7 @@ check("pin R-2681 to R-2687: the build's sealed runs, lanes, labels, folders, br
     worktreeFolder: "build-worktrees",
     outFolder: "build-out",
     branchPrefix: "feat/",
-    briefHeading: "# Install check build",
+    briefHeading: "# Install check build\n\nServes: roadmap step 3: rehearse offline lane launches.",
     briefTask: "Build nothing and report one line for",
     precedentLabel: "Precedent:",
     launcherArgs: ["--lane-size", "small", "--max-secs", "120"],

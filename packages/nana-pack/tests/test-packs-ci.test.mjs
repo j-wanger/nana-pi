@@ -17,7 +17,7 @@ import { readCiRecords } from "../lib/ci-records.mjs";
 import { ciFixture, commit, executeCi, git as landGit, gitRunner } from "./land-fixtures.mjs";
 import { check, execute, fixtureRoot, git, put, REPO, TEMP } from "./pack-fixtures.mjs";
 const workflow = fs.readFileSync(path.join(REPO, ".github/workflows/ci.yml"), "utf8");
-const evaluate = (expr, event, extra = {}) => vm.runInNewContext(expr, { github: { event_name: event, ref: "refs/heads/main", workflow: "ci", event: { pull_request: { number: 3 } }, run_id: 7 }, fromJSON: JSON.parse, ...extra });
+const evaluate = (expr, event, extra = {}) => vm.runInNewContext(expr, { github: { event_name: event, ref: event === 'push' ? 'refs/heads/main' : 'refs/pull/3/merge', workflow: "ci", event: { pull_request: { number: 3 } }, run_id: 7 }, fromJSON: JSON.parse, ...extra });
 const suite = workflow.split("\n  suite:\n")[1].split("\n  release:\n")[0];
 function suiteArgs(event, shard = "") {
   const line = suite.split("\n").find(line => line.startsWith(shard ? "      - run: npm test -- --verbose" : "      - run: npm test -- --jobs="));
@@ -37,7 +37,7 @@ function runnerFixture(name) {
 await check("M4: PR CI selects macOS packs release watches and cancellation while main runs every OS", async () => {
   assert.match(JSON.parse(fs.readFileSync(path.join(REPO, "package.json"), "utf8")).scripts.release, /--pack=release/);
   const matrix = suite.match(/^        include: \$\{\{ (.+) \}\}$/m)?.[1]; assert(matrix);
-  assert.deepEqual(Array.from(evaluate(matrix, "pull_request"), x => x.os), ["macos-latest"]);
+  assert.deepEqual(Array.from(evaluate(matrix, "pull_request"), x => x.os), ["macos-latest", "ubuntu-latest"]);
   assert.deepEqual(Array.from(evaluate(matrix, "push"), x => x.os), ["macos-latest", "ubuntu-latest", "windows-latest", "windows-latest", "windows-latest"]);
   assert(suiteArgs("pull_request").includes("--pack=land,module"));
   assert(suiteArgs("pull_request").includes("--changed-from=origin/main"));

@@ -16,11 +16,12 @@ let failures = 0;
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const workflow = readFileSync(process.env.CI_WORKFLOW_PATH ?? path.join(repoRoot, ".github/workflows/ci.yml"), "utf8");
-const pushSuiteMatrix = (text) => JSON.parse(text.match(/^        include: \$\{\{ fromJSON\(github.event_name == 'push' && '(\[[^']+\])'/m)?.[1] ?? "[]");
-const pushInstallOs = (text) => JSON.parse(text.match(/^        os: \$\{\{ fromJSON\(github.event_name == 'push' && '(\[[^']+\])'/m)?.[1] ?? "[]");
+const pushSuiteMatrix = (text) => JSON.parse(text.match(/^        include: \$\{\{ fromJSON\(github.event_name == 'push' && github.ref == 'refs\/heads\/main' && '(\[[^']+\])'/m)?.[1] ?? "[]");
+const pushInstallOs = (text) => JSON.parse(text.match(/^        os: \$\{\{ fromJSON\(github.event_name == 'push' && github.ref == 'refs\/heads\/main' && '(\[[^']+\])'/m)?.[1] ?? "[]");
+const suiteJob = text => text.match(/^  suite:\n([\s\S]*?)(?=^  [\w-]+:)/m)?.[1] ?? '';
 // req: R-597
 check("root CI runs the suite on macOS, Linux, and Windows and gates tag release", () => {
-  assert(workflow.includes("on:\n  push:\n    branches: [main]\n  pull_request:"));
+  assert(workflow.includes("on:\n  push:\n    branches: [main, 'feat/**']\n  pull_request:"));
   assert.match(workflow, /^permissions:\n  contents: read/m);
   assert.match(workflow, /^  suite:\n[\s\S]*?^    strategy:/m);
   for (const os of ["macos-latest", "ubuntu-latest", "windows-latest"]) assert(pushSuiteMatrix(workflow).some(item => item.os === os));
@@ -31,7 +32,7 @@ check("root CI runs the suite on macOS, Linux, and Windows and gates tag release
   assert.match(workflow, /^        with:\n          fetch-depth: 0/m);
   assert.match(workflow, /^      - run: git config user\.name "github-actions\[bot\]"\n      - run: git config user\.email "41898282\+github-actions\[bot\]@users\.noreply\.github\.com"\n      - run: npm run release -- --push/m);
   assert(workflow.indexOf("pi --version") < workflow.indexOf("npm test"));
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const release = workflow.match(/^  release:\n([\s\S]*)$/m)?.[1] ?? "";
   for (const [job, body] of [["suite", suite], ["release", release]]) {
     const setup = [
@@ -113,17 +114,17 @@ check("npm's before is never set through the environment or a repository-root .n
 });
 // req: R-996
 check("suite job requires copier on every matrix leg", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const release = workflow.match(/^  release:\n([\s\S]*)$/m)?.[1] ?? "";
-  assert.match(suite, /^    env:\n      NANA_TEST_REQUIRE_COPIER: "1"$/m);
+  assert.match(suite, /^    env: &suite-env\n      NANA_TEST_REQUIRE_COPIER: "1"$/m);
   assert.doesNotMatch(release, /^      NANA_TEST_REQUIRE_COPIER:/m);
 });
 // req: R-1031
 check("suite runs on Windows with bash and the pinned toolchain", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   assert.match(suite, /^    defaults:\n      run:\n        shell: bash$/m);
   assert.match(suite, /windows-latest/);
-  assert.match(suite, /^    env:\n      NANA_TEST_REQUIRE_COPIER: "1"$/m);
+  assert.match(suite, /^    env: &suite-env\n      NANA_TEST_REQUIRE_COPIER: "1"$/m);
   const setup = [
     "uses: actions/checkout@v4",
     "uses: actions/setup-node@v4",
@@ -143,7 +144,7 @@ check("suite runs on Windows with bash and the pinned toolchain", () => {
 // whether that leg's failure stops the release job (R-1530, R-1531). The sole step-level
 // exception is `true` on the upload-artifact@v4 step; every other step-level use is refused.
 function suiteBlocksOn(workflowText) {
-  const suite = workflowText.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflowText);
   const suiteLines = suite.split("\n");
   const lines = suiteLines.filter((line) => line.includes("continue-on-error:"));
   const jobLines = lines.filter((line) => /^ {4}continue-on-error:/.test(line));
@@ -177,7 +178,7 @@ function suiteBlocksOn(workflowText) {
 }
 // req: R-1530
 check("R-1530: a failing macOS or Windows suite leg stops the release job", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const matrixLine = pushSuiteMatrix(suite).map(item => item.os).join(",");
   assert(matrixLine.includes("macos-latest"), "suite matrix must include a macOS leg");
   assert(matrixLine.includes("windows-latest"), "suite matrix must include a Windows leg");
@@ -196,13 +197,13 @@ check("R-1531: a failing Linux suite leg alone does not stop the release job", (
 });
 // req: R-1313
 check("R-1313: the Windows suite leg runs the suite verbose", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   assert.match(suite, /^      - run: npm test -- --verbose --jobs=\$\{\{ env\.NANA_CI_JOBS \}\} --shard=\$\{\{ matrix\.shard \}\} --pack=land,main,module,retire\n        if: matrix\.os == 'windows-latest'$/m);
   assert.match(suite, /^      - run: npm test -- --verbose --jobs=/m);
 });
 // req: R-2556
 check("R-2556: every CI suite step passes the job count to the runner after npm's separator", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const runs = suite.split("\n").filter((line) => /^\s+- run: npm test(?:\s|$)/.test(line));
   assert(runs.length >= 2, "the suite job must have at least two npm test steps");
   for (const line of runs) {
@@ -219,7 +220,7 @@ check("R-2556: every CI suite step passes the job count to the runner after npm'
 });
 // req: R-2557
 check("R-2557: the suite job's count of test files at once is sealed at 4 with a chosen comment directly above it", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const lines = suite.split("\n");
   const keys = lines.map((line, index) => ({ line, index })).filter(({ line }) => /^      NANA_CI_JOBS:/.test(line));
   assert.equal(keys.length, 1, "suite job env must define NANA_CI_JOBS exactly once");
@@ -231,7 +232,7 @@ check("R-2557: the suite job's count of test files at once is sealed at 4 with a
 });
 // req: R-2558
 check("R-2558: the per-file time limit is set once, in the suite job's env, sealed at 900000 with a chosen comment directly above it", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const lines = workflow.split("\n");
   const occurrences = lines.map((line, index) => ({ line, index })).filter(({ line }) => line.includes("NANA_TEST_TIMEOUT_MS"));
   assert.equal(occurrences.length, 1, "the timeout key may occur only once in the workflow");
@@ -245,7 +246,7 @@ check("R-2558: the per-file time limit is set once, in the suite job's env, seal
 });
 // req: R-2631
 check("R-2631: every CI suite step points the runner's record knob at the leg's temp folder", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const lines = suite.split("\n");
   const starts = lines.map((line, index) => /^ {6}- run: npm test(?:\s|$)/.test(line) ? index : -1).filter((index) => index >= 0);
   assert(starts.length >= 2, "the suite job must have at least two npm test steps");
@@ -265,7 +266,7 @@ check("R-2631: every CI suite step points the runner's record knob at the leg's 
 });
 // req: R-2632
 check("R-2632: every suite leg uploads its record after the suite, failed or not, named by leg and attempt, without failing the leg", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const lines = suite.split("\n");
   const starts = lines.map((line, index) => line === "      - uses: actions/upload-artifact@v4" ? index : -1).filter((index) => index >= 0);
   assert.equal(starts.length, 1, "the suite job must have exactly one upload-artifact@v4 step");
@@ -288,7 +289,7 @@ check("R-2632: every suite leg uploads its record after the suite, failed or not
 });
 // req: R-2577
 check("R-2577: the suite job warms the copier cache before its first suite step", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const steps = suite.split("\n").filter((line) => /^      - run:/.test(line));
   const warmups = steps.filter((line) => line === "      - run: uvx copier --version");
   assert.equal(warmups.length, 1, "the suite job must run the exact copier version probe once");
@@ -355,14 +356,14 @@ check("install check job runs in bash and checks pi's version after the pinned i
 
 // req: R-686
 check("suite checkout fetches full history for historical-commit tests", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   assert.match(suite, /uses: actions\/checkout@v4\n        with:\n          fetch-depth: 0/);
 });
 // contract: GitHub Actions' default for jobs.<job_id>.timeout-minutes when a job sets none.
 const GITHUB_DEFAULT_JOB_TIMEOUT_MINUTES = 360;
 // req: R-2060
 check("R-2060: the suite job sets one job-level time limit below GitHub's six-hour default for every leg", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const limitLines = suite.split("\n").filter((line) => /^ {4}timeout-minutes:/.test(line));
   assert.equal(limitLines.length, 1, `the suite job must hold exactly one job-level timeout-minutes line ${limitLines.length} !== 1`);
   const match = limitLines[0].match(/^ {4}timeout-minutes: (\d+)$/);
@@ -372,7 +373,7 @@ check("R-2060: the suite job sets one job-level time limit below GitHub's six-ho
 });
 // req: R-2061
 check("R-2061: the suite job's time limit is sealed at 90 minutes with a chosen comment directly above it", () => {
-  const suite = workflow.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(workflow);
   const lines = suite.split("\n");
   const limitIndex = lines.findIndex((line) => /^ {4}timeout-minutes:/.test(line));
   const firstLine = limitIndex >= 0 ? lines[limitIndex] : undefined;
@@ -384,14 +385,14 @@ check("R-2061: the suite job's time limit is sealed at 90 minutes with a chosen 
 // req: R-597
 check("main pushes run the full suite on all systems without path filters or issue-writing permissions", () => {
   const normalized = workflow.replaceAll("\r\n", "\n").split("\n").map((line) => line.trimEnd()).join("\n");
-  assert.match(normalized, /^on:\n  push:\n    branches: \[main\]\n  pull_request:/m);
+  assert.match(normalized, /^on:\n  push:\n    branches: \[main, 'feat\/\*\*'\]\n  pull_request:/m);
   assert.doesNotMatch(normalized, /^\s*(paths|paths-ignore|issues):/m);
-  const suite = normalized.match(/^  suite:\n([\s\S]*?)(?=^  release:)/m)?.[1] ?? "";
+  const suite = suiteJob(normalized);
   for (const os of ["macos-latest", "ubuntu-latest", "windows-latest"]) assert(pushSuiteMatrix(suite).some(item => item.os === os));
-  assert.doesNotMatch(suite, /^    if:/m);
+  assert.match(suite, /^    if: \$\{\{ github.event_name != 'pull_request'/m);
   const commands = [...suite.matchAll(/^      - run: (npm test[^\n]*)\n        if: ([^\n]*)/gm)];
   assert.deepEqual(commands.map((m) => [m[1], m[2]]), [
-    ["npm test -- --jobs=${{ env.NANA_CI_JOBS }} --pack=${{ github.event_name == 'push' && 'land,main,module,retire' || 'land,module' }} ${{ github.event_name == 'pull_request' && '--changed-from=origin/main' || '' }}", "matrix.os != 'windows-latest'"],
+    ["npm test -- --jobs=${{ env.NANA_CI_JOBS }} --pack=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'land,main,module,retire' || 'land,module' }} ${{ github.ref != 'refs/heads/main' && '--changed-from=origin/main' || '' }}", "matrix.os != 'windows-latest'"],
     ["npm test -- --verbose --jobs=${{ env.NANA_CI_JOBS }} --shard=${{ matrix.shard }} --pack=land,main,module,retire", "matrix.os == 'windows-latest'"],
   ]);
 });
