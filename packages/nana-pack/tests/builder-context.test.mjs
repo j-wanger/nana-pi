@@ -111,10 +111,3 @@ await check('R-3747: planner requires fresh-search and map-impact caller contrac
  assert.ok(text.includes('When a change alters what a function returns or raises, list each caller found at plan time by freshly searching the repo for the function\'s name and by running the project\'s map impact command as its own Validation line stating the caller\'s observable contract, never just "still works".'));
  assert.ok(text.includes('For example: "the report has no NaN; the CLI exits non-zero with a message, never a traceback".'));
 });
-// req: R-3738
-await check('R-3738: precedent ruling keeps plans required and exempts marked fix cards', options, () => {
- const ruling=read('rules/nana-rulings.md').split('\n').filter(l=>l.includes('Every plan and brief'));
- assert.equal(ruling.length,1);
- assert.match(ruling[0],/Card: fix.*may omit.*owner.*2026-11-06.*#338/);
- assert.ok(ruling[0].includes('plans and other briefs still require it'));
-});

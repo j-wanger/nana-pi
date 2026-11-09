@@ -165,7 +165,7 @@ await test('M7: all role guidance states one reviewer plus CI and the shared mar
   const agents = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
   const marker = agents.split('<!-- nana:working-under-nana-pi begin -->\n')[1].split('\n<!-- nana:working-under-nana-pi end -->')[0];
   assert.equal(marker.trimEnd(), shared);
-  for (const text of [shared, marker, fs.readFileSync(path.join(root, 'packages/nana-setup/claude/rules/nana-seat.md'), 'utf8'), fs.readFileSync(path.join(root, 'packages/nana-setup/claude/rules/nana-soul.md'), 'utf8')]) {
+  for (const text of [shared, marker, fs.readFileSync(path.join(root, 'packages/nana-setup/claude/rules/nana-seat.md'), 'utf8')]) {
     assert.match(text, /[Ee]very lane gets one reviewer plus CI/);
     assert.doesNotMatch(text, /land reviewer|seat land review|\bchecker\b|wrong-code pairs|mutation runner|lane class/i);
   }

@@ -3,7 +3,6 @@
 This rule is for the seat, the session that launches builders and reviewers; a session started as a builder or reviewer skips it.
 
 - In Claude Code, launch each builder, reviewer or role child as a background task and end your turn. In pi, run it as one foreground command with no timeout.
-- Start scout (code scouting and research gathering), planner and adversary through `pi-worker --slot <slot> --brief <file> --out <file>`. Node form: `node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs" --slot <slot> --brief <file> --out <file>`; PowerShell: `node "$env:USERPROFILE\nana-pi\packages\nana-pack\bin\pi-worker.mjs" --slot <slot> --brief <file> --out <file>`. A role whose roster line reads `seat` or `none` runs in the seat. Scout and planner launches are the seat's choice; use an adversary once per plan. Read lineage warnings; change a shared or unverified slot rather than silently substituting another model.
 - While a builder or reviewer runs, do not read or judge its partial output, transcript, diffs or test results. Do not re-run its checks before it ends.
 - Leave a running builder or reviewer alone until its completion notification arrives or a monitor reports a failure or a stall. Then act in that turn.
 - Before pushing a lane branch, run `node "$HOME/nana-pi/packages/nana-pack/bin/leak-scan.mjs" --base main --tip HEAD` chained with `&&` to the push; on a hit, fix the commit before any push.
@@ -16,16 +15,13 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - Before writing or briefing a plan, read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.
 - Before carry and issue posting, read Memory discipline and Work habits in `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-soul.md`. Pi does not auto-load that rule.
 - Default worktree root: `~/<repo>-wt/<lane>`; branch: `feat/<lane>`, based on main. One writer per worktree.
-- Builder launcher: `pi-worker --lane <name> --brief <file> --out <file>`. Reviewer launcher: `pi-review` for a pi roster entry; `node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs"` for a Claude Code entry.
-- Larger lanes: when the roster sets `largerBuilder`, a seat builds a larger or riskier lane with it through `pi-worker --lane-size larger`, a pi entry or a Claude Code entry alike; a small lane goes through `pi-worker --lane-size small`. A seat that cannot start that builder stops and asks the user rather than starting another. With no `largerBuilder`, the builder builds every lane.
+- Builder launcher: `pi-worker --lane <name> --brief <file> --out <file>`. Reviewer launcher: `pi-review` for a pi roster entry; `node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs"` for a Claude Code entry. Where the pack commands are not on PATH (Windows), run `node "$HOME/nana-pi/packages/nana-pack/bin/<command>.mjs"` with the same arguments. The reviewer comes from a different model lineage than the builder. Never silently substitute another model for a roster slot: when a slot cannot start, or a launcher warns of a shared or unverified lineage, change the roster or ask.
 - Send findings on a build back in the next brief instead of fixing the builder's work yourself.
-- Before launch, re-read OBJECTIVE.md's priority and judge whether this lane is the best use of the slot. Require `Serves: roadmap step <N>` plus its contribution, or `Serves: owner YYYY-MM-DD` plus the owner's words; the launch check proves only completeness.
 - Re-measure a plan's numbers on current main. Before a fix card or build, reproduce on the current base and make acceptance fail there; if it no longer fails, report the measure and build nothing.
 - After the second fix for one failure, plan a class fix rather than another case fix.
-- Merge briefs preserve main's deletions, never a union of both sides; verify `git diff origin/main HEAD -- <files the lane did not change>` is empty.
-- Run `date` locally and in UTC before writing a dated line; use the owner's local date.
 - When a review blocks one build, sweep sibling builds for that defect class before reporting counts.
 - Each status reports the current priority's measures: median lane hours from first build to land, and net lines removed from main since 2026-11-07; say when unmeasured.
+- A brief names the frontier facts and contract surfaces (such as HANDOFF promises) its lane affects.
 - A brief names the following checks.
   Name the new requirement ID range.
   Name only Precedent files tracked at the lane's current tip.

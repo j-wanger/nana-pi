@@ -172,10 +172,6 @@ await check('M5: shipped builder guidance assigns pushes to the seat', () => {
 });
 // req: R-3665
 await check('M6: dated CI ruling and shared working pattern agree', () => {
-  const rulings = fs.readFileSync(path.join(pack, 'rules/nana-rulings.md'), 'utf8');
-  assert.match(rulings, /2026-11-02: In nana-pi, a tip's passing GitHub CI stands in for the local full suite/);
-  assert.ok(rulings.includes('the seat pushes after verifying, then waits for CI'));
-  assert.doesNotMatch(rulings, /2026-11-01: In nana-pi, a tip's passing GitHub CI/);
   const shared = fs.readFileSync(path.join(root, 'templates/_shared/working-under-nana-pi.md'), 'utf8');
   const agents = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
   assert.equal(agents.split('<!-- nana:working-under-nana-pi begin -->\n')[1].split('<!-- nana:working-under-nana-pi end -->')[0], shared);

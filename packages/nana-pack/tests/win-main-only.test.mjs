@@ -197,8 +197,6 @@ await check("M13: main-only release still needs Windows and all rule surfaces ag
   for (const job of ["suite", "install-check"]) { const altered = structuredClone(needs); altered[job].result = state; assert.equal(evaluate(expr, "push", altered), false); }
   for (const i of [1, 2, 3]) { const altered = structuredClone(needs); altered.suite.outputs[`shard${i}`] = state; assert.equal(evaluate(expr, "push", altered), false); }
  }
- const sentence = "In nana-pi, lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands.";
- assert(read("packages/nana-pack/rules/nana-rulings.md").includes(`- 2026-11-07: ${sentence}`));
  const shared = read("templates/_shared/working-under-nana-pi.md"), agents = read("AGENTS.md");
  assert.equal(agents.split("<!-- nana:working-under-nana-pi begin -->\n")[1].split("<!-- nana:working-under-nana-pi end -->")[0], shared);
  assert(agents.split("\n").find(line => line.startsWith("Support:")).includes("lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands"));

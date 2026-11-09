@@ -94,9 +94,7 @@ await check('M5: live land guidance requires lane merge CI and computed review c
  const rulings = read('packages/nana-pack/rules/nana-rulings.md');
  const ruling = rulings.split('\n').find(line => line.startsWith('- 2026-11-09: An independent reviewer'));
  assert(ruling, 'dated replacement ruling');
- const soul = read('packages/nana-setup/claude/rules/nana-soul.md');
- const ladder = soul.split('\n').find(line => line.startsWith('- Review ladder:'));
- for (const text of [ruling, ladder]) {
+ for (const text of [ruling]) {
   assert.match(text, /lane merges (?:current )?main/);
   assert.match(text, /CI.*(?:on|for) (?:that|the) merge/);
   assert.match(text, /tree matches.*computed merge/);

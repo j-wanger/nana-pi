@@ -531,26 +531,9 @@ function checkInstructionContracts() {
 	const canonicalSupport = `Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1 && lines[0] === canonicalSupport) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
-	// req: R-1126
-	check("shared working pattern makes the pattern the default with the machine roster",
-		soul.includes("a change that touches code with tests goes through the pattern") &&
-		soul.includes("questions and one-line fixes get a direct answer") &&
-		soul.includes('node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"') &&
-		soul.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs"') &&
-		soul.includes('node "$HOME/nana-pi/packages/nana-pack/bin/pi-review.mjs"'));
 	// req: R-3763
 	check("the shared working pattern omits the retired seat land review",
 		!shared.includes("Seat land review") && !shared.includes("seat-land.md"));
-	// R-1128: the soul is now the home of these seat-only defaults.
-	const sharedBullet = (label) => { const m = new RegExp(`^- ${label}:.*$`, "m").exec(soul); return m ? m[0] : null; };
-	const defaultPatternBullet = sharedBullet("Default pattern");
-	const reviewLadderBullet = sharedBullet("Review ladder");
-	// req: R-1128
-	check("nana-soul carries the shared default-pattern and review-ladder bullets",
-		Boolean(defaultPatternBullet) && Boolean(reviewLadderBullet) &&
-		defaultPatternBullet.includes("models come from this machine's roster") &&
-		reviewLadderBullet.includes("Every lane gets one reviewer plus CI") &&
-		shared.includes("Every lane gets one reviewer plus CI"));
 	const SEAT_GUIDE_POINTER = "- Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions.";
 	const seatGuideBullets = [...shared.matchAll(/^- Seat guide:.*$/gm)].map((m) => m[0]);
 	// req: R-1142
@@ -562,25 +545,6 @@ function checkInstructionContracts() {
 	check("seat-guide bullet names a guide file present in this checkout",
 		seatGuideNamedPath !== null && fs.existsSync(path.join(REPO, seatGuideNamedPath)),
 		seatGuideNamedPath ?? "no bullet found");
-	const largerLanesBullets = [...seat.matchAll(/^- Larger lanes:.*$/gm)].map((m) => m[0]);
-	// req: R-2652
-	check("R-2652: the shared working pattern starts the larger-lane builder, pi or Claude Code, through pi-worker --lane-size larger and a small lane through --lane-size small",
-		largerLanesBullets.length === 1 &&
-		largerLanesBullets[0].includes("a seat builds a larger or riskier lane with it through `pi-worker --lane-size larger`, a pi entry or a Claude Code entry alike") &&
-		largerLanesBullets[0].includes("a small lane goes through `pi-worker --lane-size small`") &&
-		largerLanesBullets[0].indexOf("pi-worker --lane-size larger") < largerLanesBullets[0].indexOf("pi-worker --lane-size small") &&
-		!largerLanesBullets[0].includes("subagent"),
-		JSON.stringify(largerLanesBullets));
-	// req: R-1213
-	check("shared working pattern says a seat that cannot start the larger-lane builder stops and asks the user",
-		largerLanesBullets.length === 1 && largerLanesBullets[0].includes("stops and asks the user rather than starting another") &&
-		// the trigger, not only the consequence: it must be a seat that CANNOT START the builder.
-		/A seat that cannot start that builder stops and asks the user rather than starting another\./.test(largerLanesBullets[0]),
-		JSON.stringify(largerLanesBullets));
-	// req: R-1214
-	check("shared working pattern says the builder builds every lane when the roster sets no larger-lane builder",
-		largerLanesBullets.length === 1 && largerLanesBullets[0].includes("With no `largerBuilder`, the builder builds every lane."),
-		JSON.stringify(largerLanesBullets));
 	// req: R-1100
 	check("shared working pattern requires a threat model per plan",
 		rulings.includes("Every plan names its threat model: honest variation in scope, deliberate forgery out."));

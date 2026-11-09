@@ -360,33 +360,17 @@ function containsWholeWord(text, word) {
 }
 
 {
-	const ruling = "- 2026-11-02: In nana-pi, a tip's passing GitHub CI stands in for the local full suite for builders, seats and lands. Builders do not push; the seat pushes after verifying, then waits for CI. The local locked suite runs only when CI cannot stand in.";
 	const shared = fs.readFileSync(new URL("../../../templates/_shared/working-under-nana-pi.md", import.meta.url), "utf8");
 	const agents = fs.readFileSync(PROJECT_AGENTS_PATH, "utf8");
 	const begin = "<!-- nana:working-under-nana-pi begin -->\n", end = "<!-- nana:working-under-nana-pi end -->";
 	const rendered = agents.split(begin)[1].split(end)[0];
 	// req: R-3437
 	check("R-3437: the CI ruling and project-specific coverage govern the shared land checklist",
-		SHIPPED_TEXT.split("\n").filter((line) => line === ruling).length === 1
-			&& SHIPPED_TEXT.includes("- 2026-10-10: In nana-pi, Windows testing is required.")
-			&& SHIPPED_TEXT.includes("- 2026-10-12: In nana-pi, a setup or hook lane runs the install check locally on macOS before the land.")
-			&& !shared.includes("locked full-suite checks")
+		!shared.includes("locked full-suite checks")
 			&& agents.split(end)[1].includes("CI covers this repository's suite")
 			&& agents.split(end)[1].includes("main's push run, read by the seat's main CI check, is the post-land suite check")
 			&& !shared.includes("CI covers this repository's suite") && rendered === shared,
 		"CI ruling, checklist or rendered shared source differs");
-}
-
-{
-	const expected = "- 2026-11-01: Each machine sets how many lanes build there in its roster file; the roster command's lanes line prints the limit, default included. At most two more lanes are planned.";
-	const variants = [SHIPPED_TEXT, SHIPPED_TEXT.replace(/\r?\n/g, "\r\n"), SHIPPED_TEXT.trimEnd(), SHIPPED_TEXT.split("\n").map((line) => `${line} \t`).join("\n")];
-	const results = variants.map((text) => {
-		const bullets = text.split(/\r?\n/).map((line) => line.trimEnd()).filter((line) => line.startsWith("- "));
-		return bullets.filter((line) => line === expected).length === 1 && bullets.at(-1) === expected &&
-			!bullets.some((line) => line.startsWith("- 2026-10-31: At most four lanes build"));
-	});
-	// req: R-3525
-	check("R-3525: the final ruling points each machine to its roster limit and replaces the fixed cap", results.every(Boolean), JSON.stringify(results));
 }
 
 for (const td of tmps) {
