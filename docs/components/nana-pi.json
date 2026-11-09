@@ -139,7 +139,7 @@
       ],
       "features": [
         "FEAT-014",
-        "FEAT-025"
+        "FEAT-023"
       ],
       "status": "sound",
       "gap": null,
@@ -248,34 +248,6 @@
       "anchors": ["R-3178"]
     },
     {
-      "id": "desk",
-      "name": "Desk",
-      "metaphor": "A local host for focused apps",
-      "kind": "workflow",
-      "parts": [
-        "apps/desk/"
-      ],
-      "features": [
-        "FEAT-016",
-        "FEAT-020",
-        "FEAT-021",
-        "FEAT-022",
-        "FEAT-023",
-        "FEAT-024"
-      ],
-      "status": "partial",
-      "gap": "The desk page is retired; app-host child bookkeeping remains unbounded.",
-      "ask": null,
-      "evidence": [
-        "apps/desk/",
-        "R-433"
-      ],
-      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
-      "anchors": [
-        "R-433"
-      ]
-    },
-    {
       "id": "lab",
       "name": "Lab",
       "metaphor": "Experiments with costed evidence",
@@ -300,31 +272,6 @@
       "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
       "anchors": [
         "R-539"
-      ]
-    },
-    {
-      "id": "stage",
-      "name": "Stage",
-      "metaphor": "Signed blocks for focused apps",
-      "kind": "workflow",
-      "parts": [
-        "packages/nana-stage/"
-      ],
-      "features": [
-        "FEAT-025",
-        "FEAT-026",
-        "FEAT-027"
-      ],
-      "status": "partial",
-      "gap": "Output provenance still has violated rows.",
-      "ask": null,
-      "evidence": [
-        "packages/nana-stage/",
-        "R-445"
-      ],
-      "auditedAt": "a2ad3f2121ae96aa0eb6e70d12d060d5918714c7",
-      "anchors": [
-        "R-445"
       ]
     },
     {

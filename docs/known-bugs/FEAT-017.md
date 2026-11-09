@@ -2,7 +2,6 @@
 
 *One line per known bug in this feature. A review finding that does not block a land goes here as one line.*
 - State manifest (artifact audit, 2026-10-24): the list labels the handoff store as pi-owned and disposable.
-- State manifest (artifact audit, 2026-10-24): the list names a desk stage-keys module under a folder where it does not exist.
 - Kept review texts (review-texts-durable, plan): a backup taken while a review completes can make tar fail on a vanished temporary text. Re-run it (inferred, not run).
 - Kept review texts (review-texts-durable, plan): tar reads the tally before the texts. A review that ends between the listing and that read leaves one LAND row with no text (inferred).
 - Kept review texts (review-texts-durable, plan): the check sees only the paths the review ledger names. The seat's one-off legacy copy beside the ledger stays unlisted.

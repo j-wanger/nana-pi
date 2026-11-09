@@ -3,7 +3,7 @@
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - Install check: it proves install and hooks in a temporary home, not a live Claude Code session. Linux runs no install check.
-- Fresh install: the desk's two install hints in its code and the study README still name no cutoff, since the owner froze the desk. We tested PowerShell 7, and the Windows install check runs the README's pi install in cmd (readme-windows-checklist). PowerShell 5.1 should pass the unquoted cutoff unchanged, but nobody has run it.
+- Fresh install: We tested PowerShell 7, and the Windows install check runs the README's pi install in cmd (readme-windows-checklist). PowerShell 5.1 should pass the unquoted cutoff unchanged, but nobody has run it.
 - readme-install: every macOS install check now installs pi over the network for step 2. A network failure there turns the blocking macOS job red (inferred).
 - readme-install: the rehearsal clones the checkout's last commit but reads the README from the working files. A local run with uncommitted changes tests a mix of the two.
 - readme-install: the rehearsal answers yes to the trust prompt, so no check covers the prompt itself.
@@ -102,7 +102,7 @@
 - Windows checklist (readme-windows-checklist, review): step 5 adds a Path entry that holds an unexpanded user-folder variable. It works only because the Path editor stores the user Path as expandable text.
 - Windows checklist (readme-windows-checklist, review): the rehearsal does not redirect the two app-data folders. That predates the lane, and the review found no write there.
 - Doctor's last line (doctor-fix-line): it trusts install's dry run. So some ✗ rows still get run install, and the real install then fails. Examples are a failed knowledge build and a failed pi install. A rules, pi or shared memory folder saved as a file is another. Main's line said the same. A leftover settings lock now has its own row, which the line lists as a fix by hand (win-lock-fix-command).
-- Doctor's last line (doctor-fix-line): it tells the user to fix the other rows as each ✗ line says. Some ✗ lines name no fix. Examples are the desk service and a corrupt knowledge index. A nana config file that does not parse now names its fix (win-config-json-path).
+- Doctor's last line (doctor-fix-line): it tells the user to fix the other rows as each ✗ line says. Some ✗ lines name no fix. One example is a corrupt knowledge index. A nana config file that does not parse now names its fix (win-config-json-path).
 - Doctor's pi-review row (doctor-path-row-remedy, independent check and plan): install's PATH check compares exact strings. A PATH entry may end in a slash or hold a doubled slash. Doctor then says the bin folder is on PATH and to run install. Install then says the folder is not on this shell's PATH. Install still creates the launcher, and doctor then shows ✓.
 - Doctor's pi-review row (doctor-path-row-remedy, independent check and plan): a PATH entry can reach the bin folder through a linked parent folder. Doctor counts such an entry as off PATH. It then gives the old advice to add the bin folder to PATH.
 - Doctor's pi-review row (doctor-path-row-remedy, plan): when an earlier PATH folder holds another pi-review, the row still says to add the bin folder to PATH. That folder is already on PATH, so the advice does not fit. The last line lists the row by hand.
@@ -159,7 +159,7 @@
 - Hook settings on Windows (win-hook-variant-loop, final review): doctor's edit route, offered after install, leaves a duplicate. Install has already added its own entry by then. Editing the owner's entry to the same command makes that hook run twice, so the objective appears twice at session start. The removal route avoids it.
 - Hook settings on Windows (win-hook-variant-loop, review): the printed edit command uses the shell-form spelling. An owner editing an exec-form entry must keep the command as node and the path unquoted in its arguments. The advice does not say which form it is for.
 - pi dependencies row (pi-version-support): the row reads npm layouts only. Bun's global layout gives ✓; pnpm, Volta and pi's own installer give `·`.
-- pi dependencies row (pi-version-support): on a pnpm global the row gives `·`, while the desk ties pnpm's shim to its package by version and imports it, so a mixed pnpm install shows nowhere.
+- pi dependencies row (pi-version-support): on a pnpm global the row gives `·`, so a mixed pnpm install shows nowhere.
 - pi dependencies row (pi-version-support): the row flags a mixed install even when pi's entry still imports, as for pi 1.0.3 at a cutoff that resolves its packages at 1.0.4. pi itself and nana's extensions run on a mixed install; the desk, the bench and nana's suite break.
 - pi dependencies row (pi-version-support): a pre-release or checkout-built pi gives `·` rather than a judgement.
 - pi dependencies row (pi-version-support): the ✗ names only the ceiling install command; a user who must stay on the floor finds its command in the setup README.

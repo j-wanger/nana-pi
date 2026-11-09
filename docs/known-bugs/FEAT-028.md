@@ -38,7 +38,7 @@
 - Capability fields (cap-fields-own, plan): the checkable-code capability is a product tool family, a seat call the owner can reverse. Its README rows and general engineering rows read like a constraint and could be carved out later.
 - Capability fields (cap-fields-own, plan): no stage here names what it needs. The lane loop's inputs come from setup, which sits later in the ledger.
 - Capability fields (cap-fields-own, report): no row names the builder's lane commits, so the lane loop lists no build-stage deliverable.
-- Capability fields (cap-fields-own, final review): four deliverable rows read more like rules than artifacts, R-977, R-264, R-507 and R-873. Each points at an output: main, the stage, the run record and the frontier report. Swapping them is a reversible seat call.
+- Capability fields (cap-fields-own, final review): three deliverable rows read more like rules than artifacts, R-977, R-507 and R-873. Each points at an output: main, the run record and the frontier report. Swapping them is a reversible seat call.
 - Capability fields (cap-fields-own, final review): R-2460's check reads the field lines with its own pattern, not the parsed capability fields. The tree checker refuses a malformed line first, so the two cannot drift today.
 - Deliverable lines (deliverable-fields, plan): the check proves a named path exists at HEAD, not that the code makes or reads the artifact. A command named in a reason is not checked.
 - Deliverable lines (deliverable-fields, plan): the suite never prints the notes. A renamed code path with no ledger edit shows its note only at the next `npm run req:tree` or a `--check` run.
@@ -56,11 +56,10 @@
 - Deliverable count (audit re-check, 2026-10-22): no session-start reader shows the made-and-read count; the session-start frontier lane left it out.
 - Deliverable lines (park-deliverables, plan): the checker reads only a park date's shape, so an impossible date such as 2026-02-30 parks, as HANDOFF's ask tags do.
 - Deliverable lines (park-deliverables, plan): anyone who edits the ledger can park a row. The checker proves the line's shape, not the owner's decision; the movement report shows each park to the reviewer.
-- Deliverable lines (park-deliverables, plan): a park never expires, and nothing flags an old one. Reopening the desk relies on the park reasons and HANDOFF's desk line naming the step.
+- Deliverable lines (park-deliverables, plan): a park never expires, and nothing flags an old one.
 - Deliverable lines (park-deliverables, plan): a park reason cannot hold ` · `; such a line gets a "cannot read" note and parks nothing.
 - Deliverable lines (park-deliverables, plan): lowercase `parked:`, `**Parked:**`, `- Parked:`, or a park line under a feature heading or inside a code fence is prose and gets no note; the row stays counted.
 - Deliverable lines (park-deliverables, plan): a park takes its row out of the count's total, so the ratio rises with no work done. The suffix and the movement report are the only signals.
-- Deliverable lines (park-deliverables, plan): the desk and stage maker and reader lines still say "desk frozen since 2026-10-10" instead of naming the run that makes each deliverable.
 - Movement report (park-deliverables, attack): the AGENTS.md command runs the main checkout's script, so a lane that adds the first park lines shows none of them there.
 - Movement report (park-deliverables, seat): `rowSnapshot` splits maker, reader and park lines with inline label patterns instead of the deliverable label constants, so retuning a label needs a second code edit.
 - Deliverable lines (park-deliverables, final review): R-2641 says the stale note names the row's first `Parked:` line; the code names the first readable one, so a broken park line above a good one gets its own note and the stale note names the second.
