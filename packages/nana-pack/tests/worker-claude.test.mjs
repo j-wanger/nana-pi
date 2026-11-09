@@ -364,7 +364,7 @@ for (const [name, text] of precedentCases) {
 	precedentObservations.push({ name, checked: checked.status, built: built.status, checkLine: selectedBriefLine(checked.stderr), workerLine: selectedBriefLine(built.stderr), ran: readRows(RECORD).length, lock: fs.existsSync(LOCK), pi: fs.existsSync(PI_MARKER) });
 }
 // req: R-2648
-check("R-2648: for a Claude Code builder a failing brief is refused with brief-check's line before the lock and claude, and a passing brief prints brief-check's launch line",
+check("R-2648: a Claude Code builder checks the shared precedent line before the lock and claude",
 	precedentObservations.every((item, index) => item.checked === item.built && item.checkLine === item.workerLine && (index === precedentObservations.length - 1 ? item.built === 0 && item.ran === 1 && item.workerLine?.startsWith("pi-worker: precedent:") : item.built === 1 && item.ran === 0 && !item.lock && !item.pi)),
 	JSON.stringify(precedentObservations));
 

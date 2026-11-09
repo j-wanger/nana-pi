@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/land-records.test.mjs
  * @purpose Pin clone-shared land start/end records, failure isolation, closing lines, CI waits, and ledger registration.
- * @inputs nana-land, build-report, land-record configuration, temporary Git repositories, and injected clocks and runners.
+ * @inputs nana-land, land-record libraries and configuration, temporary Git repositories, and injected clocks and runners.
  * @outputs Six requirement-tagged PASS or FAIL checks plus one sealed-tunable check.
  * @effects disk (OS-temp repositories and ledgers), process (Git commands).
  * @errors Failed checks print their title and make the process exit nonzero.
@@ -225,7 +225,7 @@ check("R-2813: an unwritable land ledger leaves the land's verdict, merge and ou
 });
 
 // req: R-2814
-check("R-2814: every ended land attempt's last line names it and its lane's land line exactly as the build report prints it", () => {
+check("R-2814: every ended land attempt's last line matches the land report library's lane line", () => {
 	const f = makeLand("line");
 	const seed = [
 		{ v: LAND_RECORD_SCHEMA, kind: "start", attempt: "old-refused", startedAt: "2026-10-24T08:00:00.000Z", lane: "alpha", tip: "a".repeat(40) },
