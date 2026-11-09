@@ -1,0 +1,8 @@
+PASS  packages/nana-pack/tests/review-ledger-launch.test.mjs    32 pass  36.0s
+PASS  packages/nana-pack/tests/review-ledger-lock.test.mjs      3 pass  0.0s
+PASS  packages/nana-pack/tests/review-ledger-state.test.mjs     87 pass  46.3s
+PASS  packages/nana-pack/tests/review-ledger-verdicts.test.mjs  16 pass  28.6s
+PASS  packages/nana-pack/tests/review-ledger.test.mjs           24 pass  23.0s
+PASS  packages/nana-pack/tests/review-round.test.mjs            27 pass  0.0s
+
+6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 189 pass, 0 fail, 0 skip · 134.4s
