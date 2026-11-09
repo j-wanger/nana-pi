@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-setup/tests`, `apps/bench/test` — 511 modules, as declared in
+Covers `scripts`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-setup/tests`, `apps/bench/test` — 488 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -35,7 +35,7 @@ The bench and this repo's own scripts — the entry points. They may import the 
 - **effects** — disk, process (read-only git and isolated Claude), network (label only)
 - **errors** — Exit 1 on unsafe output, invalid arguments or failed reads/writes.
 - **callers** — `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `scripts/memory-shape-runners.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-runner-config.mjs`, `apps/bench/lib/anatomy-runners.mjs`, `apps/bench/lib/anatomy.mjs`
 
 ### `apps/bench/lib/anatomy-config.mjs`
 
@@ -77,6 +77,26 @@ The bench and this repo's own scripts — the entry points. They may import the 
 - **callers** — `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy.test.mjs`
 - **callees** — `apps/bench/lib/anatomy-config.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`
 
+### `apps/bench/lib/anatomy-runner-config.mjs`
+
+- **purpose** — Preserve the isolated Claude adapter's existing process bounds and defaults for anatomy.
+- **inputs** — none
+- **outputs** — Model, effort, budget, timeout and capture bounds.
+- **effects** — none
+- **errors** — none
+- **callers** — `apps/bench/anatomy.mjs`, `apps/bench/lib/anatomy-runners.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`
+- **callees** — —
+
+### `apps/bench/lib/anatomy-runners.mjs`
+
+- **purpose** — Adapt an isolated Claude subprocess to anatomy's injected model interface.
+- **inputs** — System prompt, stdin prompt, reply schema and optional injected spawn and Claude options.
+- **outputs** — Safe ok/text/usage results without printing subprocess data.
+- **effects** — process (bounded piped children in OS temp); network (Claude through its CLI)
+- **errors** — Spawn and parse failures return ok false, never raw errors.
+- **callers** — `apps/bench/anatomy.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`
+- **callees** — `apps/bench/lib/anatomy-runner-config.mjs`, `apps/bench/lib/catch-judge.mjs`, `packages/nana-pack/lib/claude-launch.mjs`
+
 ### `apps/bench/lib/anatomy-seat.mjs`
 
 - **purpose** — Adapt streamed Claude Code main-thread seat records into private role contexts.
@@ -85,7 +105,7 @@ The bench and this repo's own scripts — the entry points. They may import the 
 - **effects** — disk (explicit transcript roots only)
 - **errors** — Read failures propagate to the sanitized CLI boundary.
 - **callers** — `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-seat.test.mjs`
-- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/settings.mjs`
+- **callees** — `apps/bench/lib/anatomy-config.mjs`, `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-spans.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/settings.mjs`
 
 ### `apps/bench/lib/anatomy-sessions.mjs`
 
@@ -144,7 +164,7 @@ The bench and this repo's own scripts — the entry points. They may import the 
 - **outputs** — callJudge returns structured out and cost.
 - **effects** — process (bounded judge CLI in OS temp), network (the judge call)
 - **errors** — Throws Error on unavailable judge, failed exit, bad JSON, missing output or wrong model.
-- **callers** — `scripts/memory-shape-runners.mjs`
+- **callers** — `apps/bench/lib/anatomy-runners.mjs`
 - **callees** — —
 - **repo-code launches** — line 16: spawn
 
@@ -165,7 +185,7 @@ The bench and this repo's own scripts — the entry points. They may import the 
 - **outputs** — parseStream returns own and nested usage, completeness, final text, tool counts and stream diagnostics.
 - **effects** — none
 - **errors** — none thrown — an unterminated or malformed stream is reported through `settled: false` and an unpriceable nested call through nestedCostReason.
-- **callers** — `packages/nana-pack/tests/brief-check.test.mjs`, `scripts/memory-shape-runners.mjs`
+- **callers** — `packages/nana-pack/tests/brief-check.test.mjs`
 - **callees** — `packages/nana-pack/lib/pi-usage.mjs`
 
 ### `apps/bench/test/anatomy-labels.test.mjs`
@@ -320,57 +340,6 @@ The bench and this repo's own scripts — the entry points. They may import the 
 - **callers** — `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-pack/tests/worker-refusal.test.mjs`
 - **callees** — `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `scripts/requirements-tree.mjs`
 
-### `scripts/memory-curate.mjs`
-
-- **purpose** — Supply the existing isolated model adapter at the manual curation boundary.
-- **inputs** — Curation arguments and process environment.
-- **outputs** — Private queue or count-only results and exit status.
-- **effects** — disk, process, network
-- **errors** — The curation command returns fixed refusals without model exception text.
-- **callers** — `packages/nana-pack/bin/nana-curate.mjs`
-- **callees** — `packages/nana-pack/bin/nana-curate.mjs`, `scripts/memory-shape-runners.mjs`
-
-### `scripts/memory-make.mjs`
-
-- **purpose** — Run the hand-operated private memory candidate maker without model calls.
-- **inputs** — --repo, --root, --reviews, --project, --from, --to and required --out arguments.
-- **outputs** — Counts by type and kind, capped-claim count and fixed failure lines.
-- **effects** — disk (through the maker); process (exit status and output)
-- **errors** — Invalid inputs or unsafe output paths exit nonzero without source text.
-- **callers** — —
-- **callees** — `packages/nana-pack/lib/memory-making.mjs`
-
-### `scripts/memory-run.mjs`
-
-- **purpose** — Supply the existing isolated model adapter at the automatic-memory command boundary.
-- **inputs** — Automatic-memory command arguments and the process environment.
-- **outputs** — Fixed counts-only command output and exit status.
-- **effects** — disk, process, network
-- **errors** — The command returns fixed refusals; model failures remain pending.
-- **callers** — `packages/nana-pack/bin/nana-memory.mjs`
-- **callees** — `packages/nana-pack/bin/nana-memory.mjs`, `scripts/memory-shape-runners.mjs`
-
-### `scripts/memory-shape-runners.mjs`
-
-- **purpose** — Adapt isolated Claude and pi subprocesses to the memory shaper's injected runner interface.
-- **inputs** — System prompt, stdin prompt, reply schema and optional injected spawn and runner choice.
-- **outputs** — Safe ok/text/usage results without printing subprocess data.
-- **effects** — process (bounded piped children in OS temp); network (the chosen model through its CLI)
-- **errors** — Spawn, parse and incomplete-stream failures return ok false, never raw errors.
-- **callers** — `apps/bench/anatomy.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `scripts/memory-curate.mjs`, `scripts/memory-run.mjs`, `scripts/memory-shape.mjs`
-- **callees** — `apps/bench/lib/catch-judge.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`
-- **repo-code launches** — line 57: spawn
-
-### `scripts/memory-shape.mjs`
-
-- **purpose** — Run the hand-operated private model memory shaper with the sealed runner.
-- **inputs** — --repo, --root, --reviews, --project, --from, --to, --until and required --out arguments.
-- **outputs** — Counts-only unit, spend, cut and classification readings with fixed failure lines.
-- **effects** — disk (private candidates); process and network (isolated model runner)
-- **errors** — Invalid inputs or unsafe output exit nonzero without private text.
-- **callers** — —
-- **callees** — `packages/nana-pack/lib/memory-shaping.mjs`, `scripts/memory-shape-runners.mjs`
-
 ### `scripts/outside-reader-config.mjs`
 
 - **purpose** — Seals the cold outside reader's prompt inputs and run budget.
@@ -438,7 +407,7 @@ The bench and this repo's own scripts — the entry points. They may import the 
 - **outputs** — Protection reasons and missing, changed or excess folder diagnostics.
 - **effects** — disk, process
 - **errors** — Git failures throw; check failures exit one.
-- **callers** — `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/records-move.test.mjs`
+- **callers** — `packages/nana-pack/tests/records-move.test.mjs`
 - **callees** — `scripts/git-runner.mjs`
 
 ### `scripts/requirements-lift-proof.mjs`
@@ -841,16 +810,6 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **callers** — `packages/nana-pack/tests/ci-wait.test.mjs`
 - **callees** — `packages/nana-pack/lib/ci-wait.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-config.mjs`
 
-### `packages/nana-pack/bin/nana-curate.mjs`
-
-- **purpose** — Propose, show and record owner decisions on private memory curation.
-- **inputs** — Subcommands, active agent pointer, cwd, environment, clock, git and injected proposer.
-- **outputs** — Counts-only results or an explicitly private review queue and fixed refusals.
-- **effects** — disk, process, network
-- **errors** — Refusals exit 1; failed transport preserves committed work with a not-synced word.
-- **callers** — `packages/nana-pack/tests/memory-curation.test.mjs`, `scripts/memory-curate.mjs`
-- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/memory-curation-config.mjs`, `packages/nana-pack/lib/memory-curation.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `scripts/memory-curate.mjs`
-
 ### `packages/nana-pack/bin/nana-frontier-summary.mjs`
 
 - **purpose** — Print the bounded HANDOFF frontier block for a Claude Code session-start hook.
@@ -878,7 +837,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Named helpers and command results naming reviews, CI runs, retained records, slow files, release status, and the land-record attempt.
 - **effects** — process (runs git, gh, and a suite command), network (through gh), disk (git merge, land/CI record storage, and worktree cleanup).
 - **errors** — Invalid arguments, missing review evidence, failed preconditions, unreadable or red CI, suite failures, and git failures return a named refusal.
-- **callers** — `packages/nana-pack/lib/ci-wait.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/win-main-only.test.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install.test.mjs`
+- **callers** — `packages/nana-pack/lib/ci-wait.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/win-main-only.test.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/tests/install.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/ci-wait.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/record-ledger.mjs`, `packages/nana-pack/lib/release-status.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`
 - **unresolved launches** — line 189: spawnSync
 - **repo-code launches** — line 36: spawnSync
@@ -892,16 +851,6 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Invalid arguments exit 2; unavailable CI or refused posting exits 1.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/main-ci.mjs`
-
-### `packages/nana-pack/bin/nana-memory.mjs`
-
-- **purpose** — Enable, run and inspect automatic memory for the current repository without exposing text.
-- **inputs** — Command flags, active agent directory, profile pointer and injected machine seams.
-- **outputs** — Exit codes and fixed count-only enable, run and status lines.
-- **effects** — disk, process, network
-- **errors** — Fixed refusals never print raw exceptions, paths or claims.
-- **callers** — `packages/nana-pack/lib/memory-start.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `scripts/memory-run.mjs`
-- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `scripts/memory-run.mjs`
 
 ### `packages/nana-pack/bin/nana-objective.mjs`
 
@@ -920,7 +869,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Saved lines, bounded show text and fixed refusal or sync status lines.
 - **effects** — disk, process, network
 - **errors** — Exits 1 for local refusals or failed explicit sync; a locally committed save survives a push failure with exit 0.
-- **callers** — `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-setup/lib/doctor.mjs`
+- **callers** — `packages/nana-pack/tests/profile-fixture.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`
 
 ### `packages/nana-pack/bin/nana-roster.mjs`
@@ -960,7 +909,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — {ok, text, attempt} with captured output, signal-aborted status, parseCpuSample seconds/null, per-poll `cpu=…s` or `cpu=unreadable` flat=n/m, STALL and attempt lines on stderr, the RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
 - **effects** — process (spawns pi detached, or an injected launch with its requested detached option, per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal, shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and stderr under the optional capture root; explicit persistent pi attempt session files and post-attempt load logs when contextLoad is supplied; on win32 a PATH lookup, a `package.json` read and the entry's stat)
 - **errors** — never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive --stall-secs/--poll or a non-whole --retries, a spawn failure or stall returns ok:false with the partial text, and a win32 launch refusal is returned as `{refused}` and treated as a failed attempt
-- **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/review-ledger-state.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `scripts/memory-shape-runners.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
+- **callers** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/tests/review-ledger-state.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/pi-package.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/win-command.mjs`
 - **repo-code launches** — line 134: execSync · line 135: execSync · line 185: spawn
 
@@ -992,7 +941,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — an admission or refusal with its note and warning, a reservation file, a round appended to the tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
 - **effects** — disk (an O_EXCL lock around every read-decide-write, reservation files, the kept-text store, the never-rotated tally and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing heartbeat interval)
 - **errors** — canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, a retired option, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or a lost reservation
-- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/lib/review-run.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-ledger-lock.test.mjs`, `packages/nana-pack/tests/review-round.test.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
+- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/lib/review-run.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-ledger-lock.test.mjs`, `packages/nana-pack/tests/review-round.test.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/rename-retry.mjs`, `packages/nana-pack/lib/verdict-config.mjs`
 
 ### `packages/nana-pack/bin/review-shape.mjs`
@@ -1122,7 +1071,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — the resolved agent dir, pi's normalizePath result for any input (win32 shell path, `~`, file://), and whether the configured value resolves per-process
 - **effects** — none
 - **errors** — none — every function is total and returns a value even when process.cwd() no longer exists
-- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-roster-notice.ts`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/agent-dir-resolver.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-setup/claude/hooks/nana-roster-notice.mjs`, `packages/nana-setup/lib/paths.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
+- **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/extensions/nana-roster-notice.ts`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/gate-paths.ts`, `packages/nana-pack/tests/agent-dir-resolver.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-setup/claude/hooks/nana-roster-notice.mjs`, `packages/nana-setup/lib/paths.mjs`, `scripts/outside-reader.mjs`, `scripts/visual-reader.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/ask-shape.mjs`
@@ -1142,7 +1091,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — a Buffer containing at most the requested limit plus one bytes, and stable user-facing read-failure causes
 - **effects** — disk (opens and reads one file descriptor)
 - **errors** — throws filesystem errors, ERR_NOT_REGULAR, or ERR_TOO_LARGE
-- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/record-ledger.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/bin/nana-roster.mjs`, `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/config.ts`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/pack-config-write.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/record-ledger.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/brief-config.mjs`
@@ -1162,7 +1111,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Parsed entries, path judgments, or the worker-compatible refusal/launch line and known-bug path.
 - **effects** — disk (the launch check reads the brief and regular known-bug file metadata)
 - **errors** — Read and git failures become fail-closed result objects; pure helpers represent malformed entries as data.
-- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/planner-prompt.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-refusal.test.mjs`, `scripts/deliverables.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/planner-prompt.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-refusal.test.mjs`, `scripts/deliverables.mjs`
 - **callees** — `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/frontier-config.mjs`, `packages/nana-pack/lib/known-bugs-config.mjs`, `packages/nana-pack/lib/markdown-list-sections.mjs`
 
 ### `packages/nana-pack/lib/build-records-config.mjs`
@@ -1222,7 +1171,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — {command, args} for a direct launch, or a named {refused} result.
 - **effects** — disk (PATH and npm package metadata probes).
 - **errors** — Lookup and package-shape failures return named refusals.
-- **callers** — `packages/nana-pack/tests/claude-launch.test.mjs`, `scripts/memory-shape-runners.mjs`
+- **callers** — `apps/bench/lib/anatomy-runners.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`
 - **callees** — `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/claude-launch-config.mjs`, `packages/nana-pack/lib/win-command.mjs`
 
 ### `packages/nana-pack/lib/claude-review-config.mjs`
@@ -1252,7 +1201,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Entries, text, dated days, sorted transcript paths, optional counts-only observations and private folders.
 - **effects** — disk (reads transcripts and creates private folders)
 - **errors** — Filesystem errors propagate; torn JSON lines are skipped; unsafe output folders are refused.
-- **callers** — `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-pulls.mjs`, `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/anatomy.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `apps/bench/test/anatomy.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/config.ts`
@@ -1312,7 +1261,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — one bounded rendering per surface — promptPath/uiPath (one line, JSON-escaped when unsafe, ≤ PATH_CAP, middle-elided), promptText/uiText/fileField (controls, breaks and bidi marks replaced by a space), codeSpan (or null when it would close the span), locator ({text, escaped}, exact and never elided)
 - **effects** — none
 - **errors** — none — every renderer is total: an unprintable value renders as `[unprintable]`, and an unsafe code span is refused with null rather than escaped
-- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
+- **callers** — `packages/nana-knowledge/lib/hook.ts`, `packages/nana-knowledge/lib/query.ts`, `packages/nana-pack/bin/nana-adoption.mjs`, `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/frontier-summary.mjs`, `packages/nana-pack/lib/issue-watch.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/frontier-check.mjs`
@@ -1524,7 +1473,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Process bounds, CI scope, clean-merge policy, verdict and records-budget values, environment names, note prefix, platform policy, main ref, failure policy, display digits, and coverage metadata.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-ci-wait.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/ci-wait.mjs`, `packages/nana-pack/lib/gh-runner-async.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/ci-wait.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-regenerate.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-push-ci.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/win-main-only.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`, `scripts/test-packs.mjs`
+- **callers** — `packages/nana-pack/bin/nana-ci-wait.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/ci-wait.mjs`, `packages/nana-pack/lib/gh-runner-async.mjs`, `packages/nana-pack/lib/gh-runner.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/runtime-map.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/ci-wait.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-regenerate.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-push-ci.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/win-main-only.test.mjs`, `scripts/code-map.mjs`, `scripts/product-report.mjs`, `scripts/runtime-measure.mjs`, `scripts/test-locked.mjs`, `scripts/test-packs.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/land-records-config.mjs`
@@ -1544,7 +1493,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Ledger paths and append/read results, CI waits, paired attempt views, and shared attempt, lane, total, and closing lines.
 - **effects** — disk (record append and bounded ledger reads)
 - **errors** — Appends return named failures; bounded reads throw ERR_TOO_LARGE or filesystem errors.
-- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/open-lanes.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/win-main-only.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/lib/open-lanes.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/win-main-only.test.mjs`
 - **callees** — `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/land-records-config.mjs`, `packages/nana-pack/lib/record-ledger.mjs`
 
 ### `packages/nana-pack/lib/lane-lock.mjs`
@@ -1554,7 +1503,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — true only when the owned lock was removed
 - **effects** — disk (reads and may remove one lock file)
 - **errors** — never throws
-- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-sync.mjs`
+- **callers** — `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/profile-sync.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/lane-watcher-child.mjs`
@@ -1618,105 +1567,25 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **callers** — `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/handoff-asks.mjs`, `packages/nana-pack/lib/handoff-issues.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`
 - **callees** — —
 
-### `packages/nana-pack/lib/memory-curation-config.mjs`
-
-- **purpose** — Seal owner-reviewed curation policy independently of making and profile policy.
-- **inputs** — none
-- **outputs** — Grouping, batching, validation and display bounds with private-store vocabulary.
-- **effects** — none
-- **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/lib/memory-curation.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`
-- **callees** — —
-
-### `packages/nana-pack/lib/memory-curation.mjs`
-
-- **purpose** — Derive private owner-review proposals and a bounded queue without changing live memory.
-- **inputs** — Effective states, immutable proposals/decisions, injected model, day reservation and batch writer.
-- **outputs** — Grouped batches, validated proposals, private queue text and count-only size/spend lines.
-- **effects** — disk (private curation files); network (injected runner only)
-- **errors** — Invalid replies fail closed; filesystem failures propagate to the fixed-word boundary.
-- **callers** — `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`
-- **callees** — `packages/nana-pack/lib/memory-curation-config.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`
-
-### `packages/nana-pack/lib/memory-making-config.mjs`
-
-- **purpose** — Define the shared candidate shape and sealed deterministic memory-making baseline.
-- **inputs** — none
-- **outputs** — Candidate shape, vocabularies, patterns, caps, claim forms and private-output words.
-- **effects** — none
-- **errors** — none
-- **callers** — `apps/bench/lib/anatomy-seat.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/profile-store-guards.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
-- **callees** — —
-
-### `packages/nana-pack/lib/memory-making.mjs`
-
-- **purpose** — Extract private low-trust memory candidates and resolve their source evidence.
-- **inputs** — Injected repository, Claude project and review roots, date window and private output path.
-- **outputs** — Shaped candidate records, evidence statuses and counts-only command output.
-- **effects** — disk (streams transcripts, reads bounded reviews, writes an explicit private JSONL file)
-- **errors** — Library filesystem errors propagate; command failures return nonzero with fixed messages.
-- **callers** — `apps/bench/lib/anatomy-seat.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `scripts/memory-make.mjs`
-- **callees** — `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/memory-curation-config.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/review-findings.mjs`, `packages/nana-setup/lib/project-key.mjs`
-
 ### `packages/nana-pack/lib/memory-run-config.mjs`
 
-- **purpose** — Seal automatic making policy independently of the scored classifier.
-- **inputs** — Shared profile and classifier bounds.
-- **outputs** — Named caps, layouts, fixed words and lane-folder pattern.
+- **purpose** — Retain the existing project-record layout and stale-index bound for profile compatibility.
+- **inputs** — Profile git timeout.
+- **outputs** — Immutable storage layout, folder length and derived index-lock age.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/lib/memory-curation.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-setup/lib/doctor.mjs`
-- **callees** — `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`
-
-### `packages/nana-pack/lib/memory-run.mjs`
-
-- **purpose** — Sweep pending enabled project units with bounded spend and a quiet detached land starter.
-- **inputs** — Repository identity, profile pointer, roots, runner, git, clock, environment and spawner seams.
-- **outputs** — Immutable private memory, count-only health, bounded token ledger and fixed starter line.
-- **effects** — disk, process, network
-- **errors** — Run failures leave unfinished units pending and expose only fixed words.
-- **callers** — `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-setup/lib/doctor.mjs`
-- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/lib/memory-start.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/process-tree.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/suite-records.mjs`
-
-### `packages/nana-pack/lib/memory-shaping-config.mjs`
-
-- **purpose** — Seal model-shaping choices and the classification prompt before scoring.
-- **inputs** — none
-- **outputs** — Runner choices, caps, prompt, output filename and count words.
-- **effects** — none
-- **errors** — none
-- **callers** — `apps/bench/anatomy.mjs`, `packages/nana-pack/lib/memory-curation.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `scripts/memory-shape-runners.mjs`
-- **callees** — —
-
-### `packages/nana-pack/lib/memory-shaping.mjs`
-
-- **purpose** — Shape shared memory units with an injected capped classifier and private counts-only output.
-- **inputs** — Injected roots, optional day/instant window, runModel and output callbacks.
-- **outputs** — Shared candidate records, unit/spend counts and one private JSONL file.
-- **effects** — disk (shared unit walks and exclusive private output); network (only through injected runner)
-- **errors** — Invalid arguments or unsafe output return nonzero with fixed diagnostics; bad calls reject a batch.
-- **callers** — `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `scripts/memory-shape.mjs`
-- **callees** — `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/pi-usage.mjs`
-
-### `packages/nana-pack/lib/memory-start.mjs`
-
-- **purpose** — Start one guarded detached memory CLI shared by land and SessionEnd.
-- **inputs** — CLI argument array, environment, spawner and home seams.
-- **outputs** — Boolean start result; no output.
-- **effects** — process
-- **errors** — Synchronous launch failures return false; asynchronous errors are consumed.
-- **callers** — `packages/nana-pack/lib/memory-run.mjs`
-- **callees** — `packages/nana-pack/bin/nana-memory.mjs`
+- **callers** — `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`
+- **callees** — `packages/nana-pack/lib/profile-config.mjs`
 
 ### `packages/nana-pack/lib/memory-store.mjs`
 
-- **purpose** — Merge saved and extracted claims into one immutable private store and retain narrow evidence.
-- **inputs** — Private clone path, repository root id, candidates and injected clock/random source.
-- **outputs** — Live states, exclusive records/events/seen/evidence/run files and repository collision refusals.
+- **purpose** — Preserve profile saves and events over existing profile and project records.
+- **inputs** — Private clone path, saved claims, existing records and injected clock/random source.
+- **outputs** — Live states and exclusive profile records or area-local events.
 - **effects** — disk
-- **errors** — Filesystem failures and fixed collision refusal.
-- **callers** — `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`
-- **callees** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`
+- **errors** — Filesystem failures propagate to the profile command boundary.
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`
+- **callees** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`
 
 ### `packages/nana-pack/lib/objective-path.mjs`
 
@@ -1755,7 +1624,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — ok with file, or a named problem.
 - **effects** — disk
 - **errors** — Catches read and write failures and removes partial temporary files.
-- **callers** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/roster-set.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/roster-set.mjs`
 - **callees** — `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/json-text.mjs`
 
 ### `packages/nana-pack/lib/pi-package.mjs`
@@ -1775,7 +1644,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — emptyUsage, addUsage, totalTokens, costTotal, and the numeric/cost helpers used by bench parsing.
 - **effects** — none
 - **errors** — none; absent and non-finite fields contribute zero.
-- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/usage.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/lib/build-records.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/usage.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/lib/build-records.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/pipe-guard.mjs`
@@ -1795,7 +1664,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — pidAlive, killProcessTree's boolean outcome, killProcessTreeNoWait, and sealed taskkill/default constants
 - **effects** — process (signals a process group or starts taskkill)
 - **errors** — never throws
-- **callers** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
+- **callers** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-setup/lib/bounded-spawn-child.mjs`, `scripts/test.mjs`
 - **callees** — —
 - **repo-code launches** — line 37: spawnSync · line 63: spawn
 
@@ -1806,8 +1675,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Named sealed values with chosen provenance.
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-curation.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-pack/tests/profile-store-guards.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
-- **callees** — `packages/nana-pack/lib/memory-making-config.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/profile-store-guards.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
+- **callees** — —
 
 ### `packages/nana-pack/lib/profile-guards.mjs`
 
@@ -1816,7 +1685,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Guarded push URL or daily counter state.
 - **effects** — disk, process
 - **errors** — Sealed profile refusals.
-- **callers** — `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`
 - **callees** — `packages/nana-pack/lib/adoption.mjs`, `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/suite-records.mjs`
 
 ### `packages/nana-pack/lib/profile-store.mjs`
@@ -1826,8 +1695,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Exclusive-created JSON records/events, normalized IDs and effective state or show text.
 - **effects** — disk
 - **errors** — Sealed validation refusals and filesystem failures.
-- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-curation.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
-- **callees** — `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`
+- **callees** — `packages/nana-pack/lib/bounded-read.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/suite-records.mjs`
 
 ### `packages/nana-pack/lib/profile-sync.mjs`
 
@@ -1836,7 +1705,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Bounded git results, lock-scoped results and sync success or sealed reason.
 - **effects** — disk, process, network
 - **errors** — Throws sealed refusal lines for local failures; sync returns classified transport failure.
-- **callers** — `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-setup/lib/doctor.mjs`
+- **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/profile-guards.mjs`
 - **callees** — `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`
 - **repo-code launches** — line 20: spawnSync; binding line 101; binding line 109
 
@@ -1907,7 +1776,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — verdictWordOf(text), mustTitlesOf(text)
 - **effects** — none
 - **errors** — none
-- **callers** — `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`
+- **callers** — —
 - **callees** — `packages/nana-pack/lib/review-timeline-config.mjs`
 
 ### `packages/nana-pack/lib/review-run.mjs`
@@ -2028,7 +1897,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — A git common directory, validated run record, Git facts, a stored record path, valid current-schema records, final or slow files, counts, number text, or closing record lines.
 - **effects** — disk (git-common-dir suite record files), process (git queries through the injected runner).
 - **errors** — Throws a named git, filesystem, record-tip, or clock error for callers to report without changing a suite verdict.
-- **callers** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-packs-runner.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/test-locked.mjs`
+- **callers** — `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/land-ci-records.mjs`, `packages/nana-pack/lib/land-ci.mjs`, `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/profile-guards.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/test-packs-runner.test.mjs`, `scripts/deliverables.mjs`, `scripts/product-report.mjs`, `scripts/test-locked.mjs`
 - **callees** — `packages/nana-pack/lib/suite-records-config.mjs`
 
 ### `packages/nana-pack/lib/test-packs-config.mjs`
@@ -2310,13 +2179,13 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 ### `packages/nana-pack/tests/claude-launch.test.mjs`
 
-- **purpose** — Pin safe Windows npm Claude resolution and exact memory-runner process arguments.
+- **purpose** — Pin safe Windows npm Claude resolution and exact anatomy-runner process arguments.
 - **inputs** — Injected Windows PATH and package fixtures plus Claude runner spawn seams.
 - **outputs** — Named PASS/FAIL/SKIP lines.
 - **effects** — disk (OS temporary echo fixtures); process (echo child on Windows).
 - **errors** — Failed assertions set exit code 1.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/memory-shape-runners.mjs`
+- **callees** — `apps/bench/lib/anatomy-runner-config.mjs`, `apps/bench/lib/anatomy-runners.mjs`, `packages/nana-pack/lib/claude-launch.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 - **repo-code launches** — line 122: spawnSync
 
 ### `packages/nana-pack/tests/claude-review-launch.test.mjs`
@@ -2828,7 +2697,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Named repository helpers, reviewed land fixtures, and nana-land results.
 - **effects** — disk (temporary Git repositories and review ledgers), process (Git commands).
 - **errors** — Git, review, and assertion failures escape to the calling test case.
-- **callers** — `packages/nana-pack/tests/ci-wait.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land-regenerate.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-push-ci.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/review-paperwork.test.mjs`, `packages/nana-pack/tests/test-packs-ci.test.mjs`, `packages/nana-pack/tests/win-main-only.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`
+- **callers** — `packages/nana-pack/tests/ci-wait.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-ci-suite.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land-regenerate.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-push-ci.test.mjs`, `packages/nana-pack/tests/review-paperwork.test.mjs`, `packages/nana-pack/tests/test-packs-ci.test.mjs`, `packages/nana-pack/tests/win-main-only.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`
 - **callees** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/land-config.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/code-map.mjs`, `scripts/requirements-tree.mjs`
 - **unresolved launches** — line 150: spawnSync · line 173: spawnSync
 
@@ -2993,97 +2862,6 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Failed assertions set exit code 1.
 - **callers** — —
 - **callees** — `packages/nana-pack/lib/main-ci.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/identity-scan.mjs`
-
-### `packages/nana-pack/tests/memory-curation.test.mjs`
-
-- **purpose** — Pin owner-gated curation with synthetic private stores and stub proposers only.
-- **inputs** — OS temporary clones and injected model replies.
-- **outputs** — Awaited bounded PASS/FAIL titles without record text.
-- **effects** — disk, process
-- **errors** — Failed cases set exit 1 without exposing fixture content.
-- **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-curate.mjs`, `packages/nana-pack/lib/memory-curation-config.mjs`, `packages/nana-pack/lib/memory-curation.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
-
-### `packages/nana-pack/tests/memory-cut-guidance.test.mjs`
-
-- **purpose** — Prove scaffolds and adoption teach explicit search without changing other runtime contracts.
-- **inputs** — Checkout template sources, copier, shared guidance and project adoption helper.
-- **outputs** — One awaited bounded PASS or FAIL case.
-- **effects** — disk (OS-temporary templates/projects), process (bounded copier children)
-- **errors** — Assertions or copier failures fail the case.
-- **callers** — —
-- **callees** — `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/project.mjs`
-
-### `packages/nana-pack/tests/memory-making.test.mjs`
-
-- **purpose** — Pin the synthetic memory maker, evidence, privacy, scope, scorer and sealed settings.
-- **inputs** — Synthetic fixture bytes and temporary project/review roots.
-- **outputs** — Awaited PASS/FAIL lines under a per-case deadline.
-- **effects** — disk (OS temporary fixtures only)
-- **errors** — Failed assertions set exit code 1.
-- **callers** — —
-- **callees** — `packages/nana-pack/lib/claude-transcript.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/lib/review-findings.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/project-key.mjs`
-
-### `packages/nana-pack/tests/memory-run-fixture.mjs`
-
-- **purpose** — Supply synthetic automatic-memory fixtures with local-only git transport.
-- **inputs** — OS temporary directories and injected runners.
-- **outputs** — Temporary homes, profile clones, transcript builders and command adapters.
-- **effects** — disk, process
-- **errors** — Fixture failures throw.
-- **callers** — `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`
-- **callees** — `packages/nana-pack/bin/nana-memory.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-setup/lib/project-key.mjs`
-
-### `packages/nana-pack/tests/memory-run-recovery.test.mjs`
-
-- **purpose** — Pin torn-file recovery, timeout headroom and brief local merge-lock contention.
-- **inputs** — Synthetic temporary clones, injected clocks and models, and a lock-release worker.
-- **outputs** — Awaited bounded PASS or FAIL cases.
-- **effects** — disk, process
-- **errors** — Assertion failures set exit code one.
-- **callers** — —
-- **callees** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
-- **unresolved launches** — line 44: spawnSync
-
-### `packages/nana-pack/tests/memory-run-seals.test.mjs`
-
-- **purpose** — Pin each automatic making tunable to its requirement contract.
-- **inputs** — Sealed configuration and temporary local-only fixtures.
-- **outputs** — Awaited PASS or FAIL lines.
-- **effects** — disk, process
-- **errors** — Assertions set exit code one.
-- **callers** — —
-- **callees** — `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
-
-### `packages/nana-pack/tests/memory-run.test.mjs`
-
-- **purpose** — Pin the eight automatic-memory must-meets with synthetic, local-only fixtures.
-- **inputs** — Temporary homes and bare remotes, injected classifier, clock and spawner.
-- **outputs** — Awaited bounded PASS or FAIL cases.
-- **effects** — disk, process
-- **errors** — Assertion failures set exit code one.
-- **callers** — —
-- **callees** — `packages/nana-pack/bin/nana-land.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/land-records.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `scripts/records-move.mjs`
-
-### `packages/nana-pack/tests/memory-session-end.test.mjs`
-
-- **purpose** — Pin honest push status, machine-local health and store-free empty runs.
-- **inputs** — Synthetic local bare remotes, transcripts, clocks and Git seams.
-- **outputs** — Awaited bounded PASS/FAIL cases.
-- **effects** — disk, process
-- **errors** — Assertion failures set exit code one.
-- **callers** — —
-- **callees** — `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-store.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/memory-end-config.mjs`, `packages/nana-setup/lib/paths.mjs`
-
-### `packages/nana-pack/tests/memory-shaping.test.mjs`
-
-- **purpose** — Pin synthetic model shaping, isolation, accounting and sealed choices.
-- **inputs** — Synthetic fixtures and injected runners or spawn functions only.
-- **outputs** — Awaited PASS/FAIL lines with per-case deadlines.
-- **effects** — disk (OS temporary fixtures only)
-- **errors** — Assertion failures set exit code 1.
-- **callers** — —
-- **callees** — `packages/nana-pack/bin/pi-watchdog.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-shaping-config.mjs`, `packages/nana-pack/lib/memory-shaping.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/project-key.mjs`, `scripts/memory-shape-runners.mjs`
 
 ### `packages/nana-pack/tests/nana-roster-set.test.mjs`
 
@@ -3333,8 +3111,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Fixture paths, CLI and git runners, and record readers.
 - **effects** — disk, process
 - **errors** — Throws on failed fixture commands.
-- **callers** — `packages/nana-knowledge/tests/pull-cut.test.mjs`, `packages/nana-pack/tests/ci-wait.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-regenerate.test.mjs`, `packages/nana-pack/tests/memory-curation.test.mjs`, `packages/nana-pack/tests/memory-cut-guidance.test.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-run-recovery.test.mjs`, `packages/nana-pack/tests/memory-run-seals.test.mjs`, `packages/nana-pack/tests/memory-run.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-pack/tests/profile-store-guards.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/records-move.test.mjs`, `packages/nana-setup/tests/memory-pause.test.mjs`, `packages/nana-setup/tests/pull-cut-turn.test.mjs`
-- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callers** — `packages/nana-knowledge/tests/pull-cut.test.mjs`, `packages/nana-pack/tests/ci-wait.test.mjs`, `packages/nana-pack/tests/land-clean-merge.test.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-regenerate.test.mjs`, `packages/nana-pack/tests/profile-store-guards.test.mjs`, `packages/nana-pack/tests/profile-store.test.mjs`, `packages/nana-pack/tests/records-move.test.mjs`, `packages/nana-setup/tests/memory-pause.test.mjs`, `packages/nana-setup/tests/pull-cut-turn.test.mjs`
+- **callees** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/profile-store-guards.test.mjs`
 
@@ -3344,7 +3122,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **effects** — disk, process
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
+- **callees** — `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/suite-records-config.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
 
 ### `packages/nana-pack/tests/profile-store.test.mjs`
 
@@ -3354,7 +3132,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **effects** — disk, process
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-making-config.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
+- **callees** — `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/profile-config.mjs`, `packages/nana-pack/lib/profile-store.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`
 
 ### `packages/nana-pack/tests/pwsh-oracle.mjs`
 
@@ -3857,7 +3635,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — The created temporary directory path.
 - **effects** — disk (creates and removes temporary directories), process (registers exit cleanup)
 - **errors** — Propagates directory creation errors and ignores cleanup errors.
-- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-policy.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/child-context.test.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/claude-review-launch.test.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/code-map-land.test.mjs`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-handlers-malformed.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/credential-gate.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/data-pack.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/first-look.test.mjs`, `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/gate-corpus.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-rm-inside.test.mjs`, `packages/nana-pack/tests/gate-rm-outside.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/gate-status.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/identity-scan.test.mjs`, `packages/nana-pack/tests/identity-tree.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-watcher.test.mjs`, `packages/nana-pack/tests/lane-write-guard.test.mjs`, `packages/nana-pack/tests/leak-scan-cli.test.mjs`, `packages/nana-pack/tests/leak-scan.test.mjs`, `packages/nana-pack/tests/lifecycle-journal.test.mjs`, `packages/nana-pack/tests/lifecycle-reload.test.mjs`, `packages/nana-pack/tests/line-endings.test.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/main-ci.test.mjs`, `packages/nana-pack/tests/memory-cut-guidance.test.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/objective-smoke.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/pack-fixtures.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`, `packages/nana-pack/tests/priority-lock.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/pwsh-oracle.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-pack/tests/records-move.test.mjs`, `packages/nana-pack/tests/release-status.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/requirements-unclaimed.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-ledger-lock.test.mjs`, `packages/nana-pack/tests/review-paperwork.test.mjs`, `packages/nana-pack/tests/review-standard.test.mjs`, `packages/nana-pack/tests/review-test-waits.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-pack/tests/skill-claims.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/template-release.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `packages/nana-pack/tests/templates-working.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`, `packages/nana-pack/tests/win32-forced.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-pack/tests/worker-refusal.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`
+- **callers** — `packages/nana-pack/tests/adoption-producer.test.mjs`, `packages/nana-pack/tests/adoption-reader.test.mjs`, `packages/nana-pack/tests/agent-dir-config.test.mjs`, `packages/nana-pack/tests/agent-dir-hostile.test.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/agent-dir-policy.test.mjs`, `packages/nana-pack/tests/agent-dir-var-spellings.test.mjs`, `packages/nana-pack/tests/bounded-read.test.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`, `packages/nana-pack/tests/build-records.test.mjs`, `packages/nana-pack/tests/builder-context.test.mjs`, `packages/nana-pack/tests/child-context.test.mjs`, `packages/nana-pack/tests/ci-records.test.mjs`, `packages/nana-pack/tests/claude-launch.test.mjs`, `packages/nana-pack/tests/claude-review-launch.test.mjs`, `packages/nana-pack/tests/claude-review.test.mjs`, `packages/nana-pack/tests/code-map-land.test.mjs`, `packages/nana-pack/tests/code-map-launch.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/config-display-text.test.mjs`, `packages/nana-pack/tests/config-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-handlers-malformed.test.mjs`, `packages/nana-pack/tests/config-normalize.test.mjs`, `packages/nana-pack/tests/config-project-gate-fallback.test.mjs`, `packages/nana-pack/tests/config-trust.test.mjs`, `packages/nana-pack/tests/context-anatomy.test.mjs`, `packages/nana-pack/tests/credential-gate.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/data-pack.test.mjs`, `packages/nana-pack/tests/display-surfaces.test.mjs`, `packages/nana-pack/tests/first-look.test.mjs`, `packages/nana-pack/tests/frontier-golden.test.mjs`, `packages/nana-pack/tests/frontier-summary.test.mjs`, `packages/nana-pack/tests/frontier.test.mjs`, `packages/nana-pack/tests/gate-corpus.test.mjs`, `packages/nana-pack/tests/gate-policy-paths.test.mjs`, `packages/nana-pack/tests/gate-rm-inside.test.mjs`, `packages/nana-pack/tests/gate-rm-outside.test.mjs`, `packages/nana-pack/tests/gate-self-protection.test.mjs`, `packages/nana-pack/tests/gate-status.test.mjs`, `packages/nana-pack/tests/gate-survives-mutation.test.mjs`, `packages/nana-pack/tests/handoff-issues.test.mjs`, `packages/nana-pack/tests/handoff-writer-role.test.mjs`, `packages/nana-pack/tests/identity-scan.test.mjs`, `packages/nana-pack/tests/identity-tree.test.mjs`, `packages/nana-pack/tests/immutable-review.test.mjs`, `packages/nana-pack/tests/issue-watch.test.mjs`, `packages/nana-pack/tests/known-bugs.test.mjs`, `packages/nana-pack/tests/land-checks.mjs`, `packages/nana-pack/tests/land-ci-edge.test.mjs`, `packages/nana-pack/tests/land-ci-read.test.mjs`, `packages/nana-pack/tests/land-ci-records.test.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/land-merge.test.mjs`, `packages/nana-pack/tests/land-records.test.mjs`, `packages/nana-pack/tests/land.test.mjs`, `packages/nana-pack/tests/lane-watcher.test.mjs`, `packages/nana-pack/tests/lane-write-guard.test.mjs`, `packages/nana-pack/tests/leak-scan-cli.test.mjs`, `packages/nana-pack/tests/leak-scan.test.mjs`, `packages/nana-pack/tests/lifecycle-journal.test.mjs`, `packages/nana-pack/tests/lifecycle-reload.test.mjs`, `packages/nana-pack/tests/line-endings.test.mjs`, `packages/nana-pack/tests/linked-launch.test.mjs`, `packages/nana-pack/tests/main-ci.test.mjs`, `packages/nana-pack/tests/nana-roster-set.test.mjs`, `packages/nana-pack/tests/nana-roster.test.mjs`, `packages/nana-pack/tests/objective-golden.test.mjs`, `packages/nana-pack/tests/objective-injection.test.mjs`, `packages/nana-pack/tests/objective-smoke.test.mjs`, `packages/nana-pack/tests/one-reviewer.test.mjs`, `packages/nana-pack/tests/pack-config-utf16.test.mjs`, `packages/nana-pack/tests/pack-fixtures.mjs`, `packages/nana-pack/tests/path-spelling.test.mjs`, `packages/nana-pack/tests/pi-install.test.mjs`, `packages/nana-pack/tests/pipe-guard.test.mjs`, `packages/nana-pack/tests/priority-lock.test.mjs`, `packages/nana-pack/tests/process-tree.test.mjs`, `packages/nana-pack/tests/product-detail.test.mjs`, `packages/nana-pack/tests/product-overview.test.mjs`, `packages/nana-pack/tests/product-report.test.mjs`, `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-pack/tests/pwsh-oracle.mjs`, `packages/nana-pack/tests/readme-check.test.mjs`, `packages/nana-pack/tests/real-path.test.mjs`, `packages/nana-pack/tests/records-move.test.mjs`, `packages/nana-pack/tests/release-status.test.mjs`, `packages/nana-pack/tests/requirements-cap-kinds.test.mjs`, `packages/nana-pack/tests/requirements-deliverables.test.mjs`, `packages/nana-pack/tests/requirements-lift.test.mjs`, `packages/nana-pack/tests/requirements-regroup.test.mjs`, `packages/nana-pack/tests/requirements-trace.test.mjs`, `packages/nana-pack/tests/requirements-tree.test.mjs`, `packages/nana-pack/tests/requirements-unclaimed.test.mjs`, `packages/nana-pack/tests/review-launch.test.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`, `packages/nana-pack/tests/review-ledger-lock.test.mjs`, `packages/nana-pack/tests/review-paperwork.test.mjs`, `packages/nana-pack/tests/review-standard.test.mjs`, `packages/nana-pack/tests/review-test-waits.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-pack/tests/rulings.test.mjs`, `packages/nana-pack/tests/runtime-land.test.mjs`, `packages/nana-pack/tests/runtime-map.test.mjs`, `packages/nana-pack/tests/setup-retire.test.mjs`, `packages/nana-pack/tests/skill-claims.test.mjs`, `packages/nana-pack/tests/suite-records.test.mjs`, `packages/nana-pack/tests/template-acceptance.test.mjs`, `packages/nana-pack/tests/template-release.test.mjs`, `packages/nana-pack/tests/templates-render.test.mjs`, `packages/nana-pack/tests/templates-update.test.mjs`, `packages/nana-pack/tests/templates-working.test.mjs`, `packages/nana-pack/tests/test-locked.test.mjs`, `packages/nana-pack/tests/test-runner-parallel.test.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/watchdog-cpu.test.mjs`, `packages/nana-pack/tests/watchdog-exit.test.mjs`, `packages/nana-pack/tests/win-shards.test.mjs`, `packages/nana-pack/tests/win32-forced.test.mjs`, `packages/nana-pack/tests/win32-launch.test.mjs`, `packages/nana-pack/tests/worker-claude.test.mjs`, `packages/nana-pack/tests/worker-lane.test.mjs`, `packages/nana-pack/tests/worker-refusal.test.mjs`, `packages/nana-pack/tests/writing-check.test.mjs`, `packages/nana-pack/tests/writing-injection.test.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/tests/visual-reader.test.mjs`
@@ -4048,16 +3826,6 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **callees** — `packages/nana-setup/lib/hook-producer.mjs`
 - **repo-code launches** — line 17: runHookProducer · line 18: runHookProducer
 
-### `packages/nana-setup/claude/hooks/nana-memory-end.mjs`
-
-- **purpose** — Retired SessionEnd placeholder, kept only until machines reinstall.
-- **inputs** — stdin, read and ignored without parsing.
-- **outputs** — Nothing; exits 0 after stdin ends.
-- **effects** — process (drains stdin only; never starts memory making).
-- **errors** — none; stdin errors also exit 0.
-- **callers** — `packages/nana-setup/tests/memory-pause.test.mjs`
-- **callees** — —
-
 ### `packages/nana-setup/claude/hooks/nana-objective.mjs`
 
 - **purpose** — Launch the canonical objective and frontier producers for the active Claude project under one output budget.
@@ -4147,8 +3915,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — an array of { status, label, detail, installLabel? } rows, including pi's `pi dependencies` row, linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR; knowledgeIndexState(), knowledgeSourcesState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR ("22.18"); PI_NODE_FLOOR ("22.19"); nodeMeetsFloor(); versionAtLeast(); skillLinkState() { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
 - **effects** — disk (reads only), process (spawns node and a bounded pi --version process tree to probe)
 - **errors** — none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a cwd-relative PI_CODING_AGENT_DIR a warn row, and a posix-only piece on win32 a note row
-- **callers** — `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-floor.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-pi-dependencies.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/memory-pause.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/seat-pull-off.test.mjs`, `packages/nana-setup/tests/setup-tail.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`
-- **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/sources-file.mjs`, `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/memory-run.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/profile-sync.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/release-status.mjs`, `packages/nana-pack/lib/rulings-config.mjs`, `packages/nana-pack/lib/win-command.mjs`, `packages/nana-setup/lib/bounded-spawn.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/memory-end-config.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/pi-dependencies.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/settings-lock.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/win-shims.mjs`
+- **callers** — `packages/nana-pack/tests/code-search.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-floor.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-pi-dependencies.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/memory-pause.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/seat-pull-off.test.mjs`, `packages/nana-setup/tests/setup-tail.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`
+- **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-knowledge/lib/sources-file.mjs`, `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/lib/display.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/release-status.mjs`, `packages/nana-pack/lib/rulings-config.mjs`, `packages/nana-pack/lib/win-command.mjs`, `packages/nana-setup/lib/bounded-spawn.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/pi-dependencies.mjs`, `packages/nana-setup/lib/pi-invocation.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/settings-lock.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/win-shims.mjs`
 
 ### `packages/nana-setup/lib/fsops.mjs`
 
@@ -4187,8 +3955,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — Hook, environment, review, build, known-red, doctor-note and filesystem-path contracts.
 - **effects** — none
 - **errors** — None.
-- **callers** — `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-setup/lib/install-check-review.mjs`, `packages/nana-setup/lib/install-check-turn.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/tests/install-check-builder-env.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/memory-pause.test.mjs`, `packages/nana-setup/tests/pull-cut-turn.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/seat-pull-off.test.mjs`
-- **callees** — `packages/nana-setup/lib/memory-end-config.mjs`
+- **callers** — `packages/nana-setup/lib/install-check-review.mjs`, `packages/nana-setup/lib/install-check-turn.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/tests/install-check-builder-env.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/memory-pause.test.mjs`, `packages/nana-setup/tests/pull-cut-turn.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/rulings-install.test.mjs`, `packages/nana-setup/tests/seat-pull-off.test.mjs`
+- **callees** — —
 
 ### `packages/nana-setup/lib/install-check-review.mjs`
 
@@ -4223,12 +3991,12 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 ### `packages/nana-setup/lib/memory-end-config.mjs`
 
-- **purpose** — Retain released SessionEnd ownership fields and making note vocabulary.
+- **purpose** — Retain only released SessionEnd ownership fields for installed-hook retirement.
 - **inputs** — None.
-- **outputs** — Named immutable hook and doctor contracts.
+- **outputs** — Named immutable retired-hook identity and timeout.
 - **effects** — none
 - **errors** — None.
-- **callers** — `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/retired.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/tests/install-check.test.mjs`
+- **callers** — `packages/nana-setup/lib/retired.mjs`, `packages/nana-setup/lib/settings.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/npm-root.mjs`
@@ -4249,7 +4017,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — pkgRoot, repoRoot, SHARED_DIR; a layout object of absolute paths — base, claudeHome + claudeHomeSource + claudeHomeCwdRelative, hooksDir, rulesDir, skillsDir, projectsDir, sharedMemoryDir, claudeSettings, copyRecord, piHome + piHomeSource + piHomeCwdRelative, piSettings, piPackConfig, piObjective, piRulings, piSeatGuide, knowledgeHome (always under the layout BASE unless --pi-home/--home named it), subagentConfig, reviewerAgent, piSubagentsPackage, mcpConfig, binDir, isRealHome; platform(); tildeify()
 - **effects** — disk (one realPath read at import to canonicalize pkgRoot; all other work is path arithmetic and env/homedir reads)
 - **errors** — none — it never throws; an unreadable cwd degrades to a descriptive placeholder string
-- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/memory-session-end.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/lib/working-region.mjs`, `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-pi-dependencies.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install-overlap.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/memory-pause.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/paths.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/pull-cut-turn.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/seat-pull-off.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/setup-tail.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
+- **callers** — `packages/nana-pack/extensions/nana-rulings.ts`, `packages/nana-pack/lib/roster-notice.mjs`, `packages/nana-pack/tests/agent-dir-parity.test.mjs`, `packages/nana-pack/tests/code-map.test.mjs`, `packages/nana-pack/tests/credential-strip.test.mjs`, `packages/nana-pack/tests/roster-notice.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/bin/stale-copies.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/hook-health.mjs`, `packages/nana-setup/lib/project.mjs`, `packages/nana-setup/lib/readme-rehearsal.mjs`, `packages/nana-setup/lib/stale-copies.mjs`, `packages/nana-setup/lib/state-manifest.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/lib/working-region.mjs`, `packages/nana-setup/tests/agent-dir-consumers.test.mjs`, `packages/nana-setup/tests/doctor-detail.test.mjs`, `packages/nana-setup/tests/doctor-knowledge.test.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/doctor-package-source.test.mjs`, `packages/nana-setup/tests/doctor-pi-dependencies.test.mjs`, `packages/nana-setup/tests/doctor-release.test.mjs`, `packages/nana-setup/tests/doctor-runtime.test.mjs`, `packages/nana-setup/tests/doctor-trust.test.mjs`, `packages/nana-setup/tests/fresh-machine.test.mjs`, `packages/nana-setup/tests/hooks-win32-exec.test.mjs`, `packages/nana-setup/tests/install-overlap.test.mjs`, `packages/nana-setup/tests/install.test.mjs`, `packages/nana-setup/tests/linked-claude-folder.test.mjs`, `packages/nana-setup/tests/memory-pause.test.mjs`, `packages/nana-setup/tests/objective-path-shapes.test.mjs`, `packages/nana-setup/tests/paths.test.mjs`, `packages/nana-setup/tests/pi-launch-limits.test.mjs`, `packages/nana-setup/tests/pi-registration.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/pull-cut-turn.test.mjs`, `packages/nana-setup/tests/readme-rehearsal.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/retired-artifacts.test.mjs`, `packages/nana-setup/tests/seat-pull-off.test.mjs`, `packages/nana-setup/tests/settings-merge.test.mjs`, `packages/nana-setup/tests/setup-tail.test.mjs`, `packages/nana-setup/tests/stale-copies.test.mjs`, `packages/nana-setup/tests/state-manifest.test.mjs`, `packages/nana-setup/tests/uninstall.test.mjs`, `packages/nana-setup/tests/verifier-pipe.test.mjs`, `packages/nana-setup/tests/win32-hook-repair.test.mjs`
 - **callees** — `packages/nana-pack/lib/agent-dir.mjs`, `packages/nana-pack/lib/objective-path.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/lib/rulings-config.mjs`, `packages/nana-setup/lib/claude-config-home.mjs`
 
 ### `packages/nana-setup/lib/pi-dependencies.mjs`
@@ -4289,7 +4057,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — KEY_MAX (200); slug() and pathHash() strings; projectKey() (the slug, or 200 chars plus "-<base36 32-bit hash>"); projectMemoryDir() path; sharedLinkState() — "absent" | "not-a-symlink" | "linked" | "elsewhere"
 - **effects** — disk (lstat and readlink only, read-only)
 - **errors** — none — a missing or unreadable link reads as "absent"
-- **callers** — `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `packages/nana-pack/lib/memory-making.mjs`, `packages/nana-pack/tests/memory-making.test.mjs`, `packages/nana-pack/tests/memory-run-fixture.mjs`, `packages/nana-pack/tests/memory-shaping.test.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/project-key.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`
+- **callers** — `apps/bench/lib/anatomy-seat.mjs`, `apps/bench/test/anatomy-seat.test.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/tests/doctor-memory-links.test.mjs`, `packages/nana-setup/tests/install-check.test.mjs`, `packages/nana-setup/tests/project-key.test.mjs`, `packages/nana-setup/tests/restore.test.mjs`, `packages/nana-setup/tests/shared-link-state.test.mjs`, `packages/nana-setup/tests/shared-memory-hook.test.mjs`, `packages/nana-setup/tests/shared-memory-input.test.mjs`
 - **callees** — —
 
 ### `packages/nana-setup/lib/project-rows.mjs`
@@ -4309,7 +4077,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — setupProject() reports change and by-hand rows and checkProject() asynchronously reports readiness rows; on disk — `git init`, OBJECTIVE.md, HANDOFF.md, docs/sessions/README.md, docs/sessions/<YYYY-MM>.md, an AGENTS.md stub plus a one-line CLAUDE.md import (`@AGENTS.md`, every platform), the .nana-not-a-project marker; also re-exports SHARED_DIR, WORKING_BEGIN, WORKING_END, today() and CLAUDE_IMPORT; exports fillSeed(), monthHeader(), agentsStub(), BUILD_LOCK_MARK, REFRESH_DEADLINE_MS and REFRESH_KILL_GRACE_MS
 - **effects** — disk, process (`git init` / `git rev-parse`, an async `nana-knowledge build` with a parent-side deadline — SIGTERM then SIGKILL after the grace)
 - **errors** — SetupError when the folder holds .nana-not-a-project, or when --not-a-project names a path that is not a git repository root; everything else is a row — SKIPPED for an odd seed entry or folder path, a nested-repo `git init`, a failed `git init`, a missing index, a held build lock, a build failure or the refresh deadline
-- **callers** — `packages/nana-pack/tests/memory-cut-guidance.test.mjs`, `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`
+- **callers** — `packages/nana-setup/bin/nana-setup.mjs`, `packages/nana-setup/tests/entry-guidance.test.mjs`, `packages/nana-setup/tests/project-stale.test.mjs`, `packages/nana-setup/tests/project-working-region.test.mjs`, `packages/nana-setup/tests/project.test.mjs`
 - **callees** — `packages/nana-knowledge/bin/nana-knowledge.ts`, `packages/nana-pack/lib/objective.ts`, `packages/nana-pack/lib/rename-retry.mjs`, `packages/nana-setup/lib/fsops.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/project-rows.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/working-region.mjs`
 - **unresolved launches** — line 349: spawn; binding line 400
 
@@ -4737,8 +4505,8 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **effects** — process
 - **errors** — Failed checks set a nonzero exit code.
 - **callers** — —
-- **callees** — `packages/nana-pack/lib/win-command.mjs`, `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/install-check-review.mjs`, `packages/nana-setup/lib/install-check-turn.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/memory-end-config.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
-- **repo-code launches** — line 342: spawn · line 424: spawn · line 434: spawn · line 687: spawn · line 692: spawn · line 715: spawn · line 730: spawn · line 758: spawn · line 849: spawn · line 855: spawn · line 861: spawn · line 868: spawn · line 877: spawn · line 895: spawn · line 918: spawn · line 980: spawn · line 1087: spawn · line 1104: spawn · line 1215: spawn · line 1216: spawnSync · line 1540: spawn · line 1548: spawn · line 1621: spawn
+- **callees** — `packages/nana-pack/lib/win-command.mjs`, `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/install-check-review.mjs`, `packages/nana-setup/lib/install-check-turn.mjs`, `packages/nana-setup/lib/install-check.mjs`, `packages/nana-setup/lib/project-key.mjs`, `packages/nana-setup/lib/stale-copies-config.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **repo-code launches** — line 341: spawn · line 423: spawn · line 433: spawn · line 686: spawn · line 691: spawn · line 714: spawn · line 729: spawn · line 757: spawn · line 848: spawn · line 854: spawn · line 860: spawn · line 867: spawn · line 876: spawn · line 894: spawn · line 917: spawn · line 979: spawn · line 1086: spawn · line 1103: spawn · line 1214: spawn · line 1215: spawnSync · line 1539: spawn · line 1547: spawn · line 1620: spawn
 
 ### `packages/nana-setup/tests/install-overlap.test.mjs`
 
@@ -4789,7 +4557,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **effects** — disk (temporary homes), process (doctor probes)
 - **errors** — Assertion failures fail the owning case.
 - **callers** — —
-- **callees** — `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-setup/claude/hooks/nana-memory-end.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
+- **callees** — `packages/nana-pack/tests/profile-fixture.mjs`, `packages/nana-setup/lib/doctor.mjs`, `packages/nana-setup/lib/install-check-config.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/settings.mjs`, `packages/nana-setup/lib/steps.mjs`, `packages/nana-setup/lib/uninstall.mjs`, `packages/nana-setup/tests/stub-pi.mjs`, `packages/nana-setup/tests/tmp-dir.mjs`
 
 ### `packages/nana-setup/tests/objective-path-shapes.test.mjs`
 

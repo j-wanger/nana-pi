@@ -61,7 +61,7 @@ Generated from `REQUIREMENTS.md`; feature lifecycle and shared requirements are 
     Status: active
     Also applies: —
     Parent: CAP-01 · Rows: 128 · IDs: R-3188–R-3209, R-3230–R-3269, R-3290–R-3309, R-3340–R-3342, R-3350–R-3362, R-3410, R-3411, R-3470–R-3474, R-3560–R-3577, R-3698–R-3702
-    Artifacts: A-088, A-090, A-091, A-093, A-100
+    Artifacts: A-090
     - **SUB-023 · Keep a private owner profile**
       Purpose: Keep what the seat learns about its owner in a private, synced store, ranked by trust the owner's words earn.
       Parent: FEAT-040 · Rows: 22 · IDs: R-3230–R-3249, R-3410, R-3411
