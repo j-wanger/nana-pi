@@ -366,14 +366,18 @@ lost-round rail and comments. It prints `check:lane: pass` on success;
 `check:lane: fail: <check>` ends at the first red check with exit 1, while a spawn
 error or signal prints `check:lane: error: <check>` with exit 2. This supplements CI.
 No script means unchanged output and record shape; plain/role workers and failed
-builder attempts do not run it. The shared bounded-spawn relay and Windows command
-resolver supply deadlines, output bounds and npm launching without a new shell mechanism.
+builder attempts do not run it. Checks run asynchronously with bounded output and
+process-tree deadlines, using the shared Windows command resolver for npm.
+Before running the script, pi-worker reads `git status --porcelain`; tracked or untracked
+changes report `pi-worker: lane checks: uncommitted: uncommitted` with the paths instead.
+A passing script is followed by another status read, catching regenerated files too.
 
-Stderr adds exactly one result line: `pi-worker: lane checks: pass`, or
-`pi-worker: lane checks: fail: <check>`, `pi-worker: lane checks: error: <check>`, or
+Stderr adds one result line per check run: `pi-worker: lane checks: pass`, or
+`pi-worker: lane checks: fail: <check>`, `pi-worker: lane checks: error: <check>`,
+`pi-worker: lane checks: uncommitted: uncommitted`, or
 `pi-worker: lane checks: red-on-base: <check>`. Failing output follows as
 `pi-worker: lane checks output: <line>` and is appended to the builder report.
-A failure or runner crash changes the build outcome to failed and exit to 1;
+An unrepaired failure or runner crash changes the build outcome to failed and exit to 1;
 the existing worker summary becomes `[pi-worker] FAILED: lane checks <status>: <check>`.
 A runner without a named failure marker is an error naming `check:lane`.
 
@@ -386,12 +390,23 @@ Cleanup failures print `pi-worker: lane checks cleanup: <detail>`.
 The optional end-record `laneChecks` field holds `status`, `check` and bounded `output`,
 with an optional `base` object of the same shape and optional `cleanupError`.
 Pass uses a null check and empty output; base may have status `absent`.
+After a resume it also holds `initial` (the first check result), `resumed: true`, and
+`resume: {ok, signal, ceiling}`; the top-level fields describe the re-check.
+The build's attempt count still counts initial watchdog attempts, not this repair.
 Hard-stop watcher records have no field. Bounds live in `lib/lane-checks-config.mjs`.
 
-This is run-and-report only: no builder resumes automatically. The required finished-session
-resume probe was not run because the lane forbids model sessions. The existing watchdog
-session-file mechanism is unchanged; this is not evidence that resume needs more
-than its existing path. Resume still needs that probe; no alternate mechanism was built.
+For `fail` or `uncommitted`, a pi builder with an attempt session file resumes once
+through that same file, with stdin closed, the same model, tools, environment, stall
+limit and original wall-clock ceiling. The bounded diagnostic prompt names the check
+and asks the builder to fix it, commit and stop. Stderr prints
+`pi-worker: lane checks: resume: <check>`, then a second check result. Both builder
+reports and failing diagnostics remain in the output file. A second failure ends the
+build; `red-on-base` and `error` never resume. A missing session file or a Claude Code
+builder stays run-and-report only; this path does not create a replacement session.
+
+A stop signal during checks kills their process tree, cleans up the detached base
+checkout and records `stopped` with the signal. Stderr reports
+`pi-worker: lane checks: stopped: <check>` and the worker's existing aborted line.
 
 #### Role launches
 

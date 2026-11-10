@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/bin/pi-watchdog.mjs
  * @purpose Start pi, or an injected command launch, under a CPU-liveness watchdog that kills and retries flat attempts and cleans up child trees on signals.
- * @inputs launcher argv and child args, child CPU samples, caller accept predicate, optional launch resolver, capture root, spawn callback and pi context-load metadata, and Windows PATH, PATHEXT and pi package metadata
- * @outputs {ok, text, attempt} with captured output, signal-aborted status, parseCpuSample seconds/null,
+ * @inputs launcher argv and child args, child CPU samples, caller accept predicate, optional launch resolver, capture root, spawn callback, pi context-load metadata, continuation sessionFile and shared startedAt, and Windows PATH, PATHEXT and pi package metadata
+ * @outputs {ok, text, attempt, sessionFile?} with captured output, signal-aborted status, parseCpuSample seconds/null,
  *  per-poll `cpu=…s` or `cpu=unreadable` flat=n/m, STALL and attempt lines on stderr, the
  *  RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
  * @effects process (spawns pi detached, or an injected launch with its requested detached option,
@@ -156,10 +156,10 @@ async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, sta
   const { piArgs, stallSecs, pollSecs, cwd, accept = nonEmpty, childEnv = {}, maxSecs } = opts;
   const tmp = join(mkdtempSync(join(opts.captureRoot ?? tmpdir(), 'pi-review-')), 'out.txt');
   const fd = openSync(tmp, 'w'); // 'w' truncates; stdio writes go here
-  // Fresh session each attempt (a stalled session id can re-stall): append a per-attempt --name.
-  const args = [...piArgs, '--name', `${tag}-a${attempt}-${Date.now() % 100000}`];
-  let sessionFile, sessionReason;
-  if (opts.contextLoad) {
+  // Fresh session for retries; an explicit sessionFile continues the completed attempt.
+  const args = opts.sessionFile ? [...piArgs] : [...piArgs, '--name', `${tag}-a${attempt}-${Date.now() % 100000}`];
+  let sessionFile = opts.sessionFile, sessionReason;
+  if (opts.contextLoad && !sessionFile) {
     try {
       const stamp = `${new Date().toISOString().replace(/[:.]/g, '-')}_${randomUUID()}`;
       const folder = buildSessionDir(cwd, childEnv.PI_CODING_AGENT_SESSION_DIR ?? process.env.PI_CODING_AGENT_SESSION_DIR);
@@ -168,6 +168,7 @@ async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, sta
       args.push('--session', sessionFile);
     } catch { sessionReason = 'attempt session directory unavailable'; }
   }
+  if (opts.sessionFile) args.push('--session', opts.sessionFile);
   try {
   const launcher = opts.launch ?? piLaunch;
   const launch = launcher(args, { cwd });
@@ -254,7 +255,7 @@ async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, sta
   // Child exited on its own — `ended` is already settled (that's why the loop broke); read output.
   await ended;
   const text = readOut();
-  return { ok: child.exitCode === 0 && text.trim() !== '' && accept(text), text };
+  return { ok: child.exitCode === 0 && text.trim() !== '' && accept(text), text, ...(sessionFile ? { sessionFile } : {}) };
   } finally {
     if (opts.contextLoad) {
       try { await appendPiSessionLoad(opts.contextLoad, { sessionFile, attempt, reason: sessionReason, cwd, env: { ...process.env, ...childEnv } }); }
@@ -264,12 +265,14 @@ async function runOnce(tag, opts, attempt, onChild, interrupted, signalWait, sta
 }
 
 /** Run `pi <piArgs>`: one attempt plus opts.retries re-attempts. opts.accept(text) = the caller's
- *  success predicate beyond exit 0 + non-empty output. Returns {ok, text, attempt} (text = last). */
+ *  success predicate beyond exit 0 + non-empty output. An optional sessionFile continues the
+ *  completed session; startedAt preserves its original wall-clock budget across calls.
+ *  Returns {ok, text, attempt, sessionFile?} (text = last). */
 export async function runWatchdog(tag, opts) {
   const attempts = opts.retries + 1;
   let last = '', signal = null, active = null, notifySignal;
   const signalWait = new Promise((resolve) => { notifySignal = resolve; });
-  const startedAt = Date.now();
+  const startedAt = opts.startedAt ?? Date.now();
   const stop = (name) => {
     if (signal) return;
     signal = name;
@@ -296,7 +299,7 @@ export async function runWatchdog(tag, opts) {
       active = null;
       last = result.text;
       if (result.signal || signal) return { ok: false, text: last, attempt: a, signal: signal ?? result.signal };
-      if (result.ok) return { ok: true, text: last, attempt: a };
+      if (result.ok) return { ok: true, text: last, attempt: a, ...(result.sessionFile ? { sessionFile: result.sessionFile } : {}) };
       process.stderr.write(`[${tag}] attempt ${a} did not succeed${a < attempts ? ' — retrying' : ''}\n`);
     }
     return { ok: false, text: last, attempt: attempts, signal };
