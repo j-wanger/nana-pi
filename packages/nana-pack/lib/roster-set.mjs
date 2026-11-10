@@ -15,17 +15,17 @@ import { PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN, CLAUDE_CO
 
 /** The value `set`'s tokens describe for one already-known slot, or a problem naming it. */
 function parseEntry(slot, tokens) {
+  if ((tokens.length === 2 || tokens.length === 3) && tokens[0] === CLAUDE_CODE_RUNTIME) {
+    return { value: { runtime: CLAUDE_CODE_RUNTIME, model: tokens[1], ...(tokens.length === 3 ? { effort: tokens[2] } : {}) } };
+  }
   if (tokens.length === 3) {
     const [provider, model, thinking] = tokens;
     return { value: { provider, model, thinking: thinking === DEFAULT_THINKING_TOKEN ? null : thinking } };
   }
-  if (tokens.length === 2 && tokens[0] === CLAUDE_CODE_RUNTIME) {
-    return { value: { runtime: CLAUDE_CODE_RUNTIME, model: tokens[1] } };
-  }
   if (tokens.length === 1 && tokens[0] === SLOT_NULL_TOKENS[slot]) {
     return { value: null };
   }
-  return { problem: `${slot}: tokens are not a printed entry (set <slot>[:] <provider> <model> <level|default>, "claude-code <model>", or the printed null token)` };
+  return { problem: `${slot}: tokens are not a printed entry (set <slot>[:] <provider> <model> <level|default>, "claude-code <model> [effort]", or the printed null token)` };
 }
 
 /** The tokens `nana-roster` would print for one slot of an already-resolved roster. */

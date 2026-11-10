@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
-import { LANE_LIMIT_DEFAULT, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, LEGACY_ROSTER_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN } from './worker-config.mjs';
+import { LANE_LIMIT_DEFAULT, ROSTER_DEFAULTS, ROSTER_SLOTS, NULLABLE_SLOTS, OPTIONAL_SLOTS, LEGACY_ROSTER_SLOTS, CLAUDE_CODE_SLOTS, CLAUDE_CODE_RUNTIME, CLAUDE_CODE_SUBAGENT_MODELS, SLOT_PRINT_ORDER, THINKING_LEVELS, CLAUDE_EFFORT_LEVELS, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN } from './worker-config.mjs';
 
 const ENTRY_FIELDS = Object.freeze(['provider', 'model', 'thinking']);
 
@@ -52,14 +52,17 @@ function kindOf(value) {
   return typeof value;
 }
 
-/** Validate one Claude Code entry ({runtime, model}). Returns a problem string or null. */
+/** Validate one Claude Code entry ({runtime, model, effort?}). Returns a problem string or null. */
 function claudeCodeEntryProblem(slot, value) {
   const keys = Object.keys(value);
-  const extra = keys.filter((k) => !['runtime', 'model'].includes(k));
+  const extra = keys.filter((k) => !['runtime', 'model', 'effort'].includes(k));
   if (extra.length) return `roster.${slot} has an unexpected field ${extra.join(', ')}`;
   if (!('model' in value)) return `roster.${slot} is missing model`;
   if (!CLAUDE_CODE_SUBAGENT_MODELS.includes(value.model)) {
     return `roster.${slot}.model must be one of the Claude Code subagent model names (got ${JSON.stringify(value.model)})`;
+  }
+  if ('effort' in value && !CLAUDE_EFFORT_LEVELS.includes(value.effort)) {
+    return `roster.${slot}.effort must be one of ${CLAUDE_EFFORT_LEVELS.join(', ')} (got ${JSON.stringify(value.effort)})`;
   }
   return null;
 }
@@ -163,7 +166,7 @@ export function formatRosterLines(roster, source, lanes = resolveLaneLimit()) {
   const lines = SLOT_PRINT_ORDER.map((slot) => {
     const value = roster[slot];
     if (value == null) return `${slot}: ${SLOT_NULL_TOKENS[slot]}`;
-    if (value.runtime === CLAUDE_CODE_RUNTIME) return `${slot}: ${CLAUDE_CODE_RUNTIME} ${value.model}`;
+    if (value.runtime === CLAUDE_CODE_RUNTIME) return `${slot}: ${CLAUDE_CODE_RUNTIME} ${value.model}${value.effort ? ` ${value.effort}` : ''}`;
     return `${slot}: ${value.provider} ${value.model} ${value.thinking ?? DEFAULT_THINKING_TOKEN}`;
   });
   lines.push(`lanes: ${lanes.limit}`);

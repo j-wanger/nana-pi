@@ -85,6 +85,32 @@ test('R-3210: reviewer isolation and configured effort preserve exact argv order
     assert.deepEqual(r.call.argv, expected); assert.ok(path.relative(f.lane, r.call.settings).startsWith('..'));
   }
 });
+// req: R-4001 R-3210 R-1122
+test('roster effort: Claude reviewer honors an explicit level without alias expansion', async () => {
+  const { setRosterSlot } = await import('../lib/roster-set.mjs');
+  const { formatRosterLines } = await import('../bin/nana-roster.mjs');
+  const { rosterNotice } = await import('../lib/roster-notice.mjs');
+  const { CLAUDE_EFFORT_LEVELS } = await import('../bin/worker-config.mjs');
+  assert.deepEqual(CLAUDE_EFFORT_LEVELS, ['low', 'medium', 'high', 'xhigh', 'max']);
+  const f = fixture();
+  write(path.join(f.home, '.claude/settings.json'), JSON.stringify({ effortLevel: 'medium', modelSettings: { 'claude-opus-5-5': { effortLevel: 'low' } } }));
+  for (const level of CLAUDE_EFFORT_LEVELS) {
+    const set = setRosterSlot(f.agent, ['reviewer', 'claude-code', 'opus', level], { env: {} });
+    assert.equal(set.ok, true, set.problem);
+    assert.equal(set.roster.reviewer.effort, level);
+    assert.ok(formatRosterLines(set.roster, set.file).includes(`reviewer: claude-code opus ${level}`));
+    assert.ok(rosterNotice({ ...set, source: set.file }, set.file, false).includes(`reviewer opus ${level} (Claude Code only)`));
+  }
+  for (const level of ['off', 'minimal', 'extreme', '', null, 1]) {
+    const { validateRosterShape } = await import('../bin/nana-roster.mjs');
+    const { ROSTER_DEFAULTS } = await import('../bin/worker-config.mjs');
+    assert.match(validateRosterShape({ ...ROSTER_DEFAULTS, reviewer: { runtime: 'claude-code', model: 'opus', effort: level } }).problem, /reviewer.effort/);
+  }
+  assert.equal(setRosterSlot(f.agent, ['reviewer', 'claude-code', 'opus', 'xhigh'], { env: {} }).ok, true);
+  const r = launch(f, 'claude-review'); good(r);
+  assert.equal(r.call.argv[r.call.argv.indexOf('--effort') + 1], 'xhigh');
+  assert.equal(rows(f.log).at(-1).effort, 'xhigh');
+});
 // req: R-3219 R-2560 R-2646
 test('R-3219: both Claude launchers exclude ancestor memory while keeping tree instructions eligible', async () => {
   const { CLAUDE_ANCESTOR_MEMORY_PATHS } = await import('../bin/worker-config.mjs');

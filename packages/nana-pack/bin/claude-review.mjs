@@ -104,6 +104,7 @@ const admission = admit(ownArgs, { launcher: 'claude-review', model: reviewer.mo
 if (!admission.ok) die(admission.message);
 process.once('exit', () => release(admission.id));
 const carry = readClaudeBuilderSettings({ ...CLAUDE_BUILDER_CHILD_ENV, ...REVIEWER_CHILD_ENV, ...credentialStripEnv(process.env) }, 'claude-review', reviewer.model, tree);
+carry.effort = reviewer.effort ?? carry.effort;
 process.stderr.write(`${carry.line}\n`);
 const folder = mkdtempSync(join(tmpdir(), 'nana-claude-review-'));
 const settingsFile = join(folder, 'reviewer-settings.json');

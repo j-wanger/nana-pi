@@ -100,6 +100,8 @@ export const CLAUDE_SETTING_SOURCES_FLAG = '--setting-sources';
 export const CLAUDE_SETTINGS_FLAG = '--settings';
 // contract: Claude Code 2.1.310 --help, read 2026-10-31 (R-3210).
 export const CLAUDE_EFFORT_FLAG = '--effort';
+// contract: R-1122 — Claude Code effort levels accepted by roster entries.
+export const CLAUDE_EFFORT_LEVELS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
 // contract, measured 2026-10-22: named by Claude Code's `--bare` text though absent from `--help` (R-2646).
 export const CLAUDE_APPEND_PROMPT_FILE_FLAG = '--append-system-prompt-file';
 // chosen 2026-10-22: pi's sealed builder tools mapped one-to-one, without Agent, web or notebook tools (R-2646).

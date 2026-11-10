@@ -32,7 +32,7 @@ const PATH_PLACEHOLDER = '￼-nana-roster-path-￼';
 
 /** One roster entry's text: model and thinking only (R-1195), never the provider field. */
 function entryText(entry) {
-	if (entry.runtime === CLAUDE_CODE_RUNTIME) return `${entry.model} ${CLAUDE_CODE_MARK}`;
+	if (entry.runtime === CLAUDE_CODE_RUNTIME) return `${entry.model}${entry.effort ? ` ${entry.effort}` : ''} ${CLAUDE_CODE_MARK}`;
 	return entry.thinking ? `${entry.model} ${entry.thinking}` : entry.model;
 }
 
