@@ -64,7 +64,7 @@ check("M6 adoption preserves pack files and previous release updates cleanly", (
   run("uvx", ["copier", "copy", "--trust", "--defaults", "--overwrite", "--skip", "scripts/data_checks.py", "--skip", "tests/test_data_checks.py", "--vcs-ref", "HEAD", "-d", "language=python", "-d", "project_name=Fixture", "-d", "adopt=true", "-d", "data_checks=true", snapshot(), dest]);
   for (const rel of packFiles) assert.equal(fs.readFileSync(path.join(dest, rel), "utf8"), "owner bytes\n");
   const old = path.join(root, "old-source");
-  run("git", ["clone", "--local", "--no-hardlinks", repo, old]);
+  run("git", ["-c", "core.longpaths=true", "clone", "--local", "--no-hardlinks", repo, old]);
   const previous = run("git", ["describe", "--tags", "--abbrev=0", "--match", "v*"], old).trim();
   run("git", ["checkout", previous], old);
   // Advance the same source repository so Copier retains its update relationship.

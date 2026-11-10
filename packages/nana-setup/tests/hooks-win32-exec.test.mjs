@@ -57,8 +57,8 @@ const removeWorktree = () => {
 	fs.rmSync(worktree, { recursive: true, force: true });
 };
 
-const added = spawnSync("git", ["worktree", "add", "--detach", worktree, "HEAD"], { cwd: repoRoot, encoding: "utf8" });
-check("setup: a detached worktree of HEAD was added", added.status === 0, added.stderr);
+const added = spawnSync("git", ["-c", "core.longpaths=true", "worktree", "add", "--detach", worktree, "HEAD"], { cwd: repoRoot, encoding: "utf8" });
+check("setup: a detached worktree of HEAD was added", added.status === 0, `git exit status ${added.status}; error ${added.error?.message ?? 'none'}; stderr:\n${added.stderr ?? ''}`);
 
 try {
 	const cli = path.join(worktree, "packages", "nana-setup", "bin", "nana-setup.mjs");

@@ -55,6 +55,9 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   fs.writeFileSync(recorder, `const fs=require('node:fs'), path=require('node:path'), {spawnSync}=require('node:child_process');
     ${processStarts.toString()}
     const file=path.join(${JSON.stringify(processRecords)}, String(process.pid));
+    // Publish presence before the native identity query: PowerShell can outlive a short check deadline.
+    fs.writeFileSync(file+'.tmp', JSON.stringify({pid:process.pid, role:process.argv[1] || 'node', start:null}));
+    fs.renameSync(file+'.tmp', file);
     fs.writeFileSync(file+'.tmp', JSON.stringify({pid:process.pid, role:process.argv[1] || 'node', start:processStarts([process.pid]).get(process.pid) ?? null}));
     fs.renameSync(file+'.tmp', file);`);
   env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require ${JSON.stringify(recorder)}`;
@@ -191,15 +194,27 @@ await check('R-3998: a named check already red on the starting commit reports re
 
 // req: R-3997
 await check('lane check crashes and deadlines report error; diagnostics accept CRLF, trailing blanks and no final newline', async () => {
-  await fixture(async ({ lane, env, base, put, commit, launch }) => {
+  await fixture(async ({ root, lane, env, base, put, commit, launch }) => {
     put(lane, "throw Error('runner crash');"); commit();
     const crash = await checkLane({ cwd: lane, env, base }); assert.equal(crash.status, 'error');
     assert.match(crash.output, /runner crash/); assert.equal(crash.base, undefined);
     // Error is not a model-repair request.
     const r = launch(); assert.equal(r.calls.length, 1); assert.equal(r.end.laneChecks.status, 'error');
-    put(lane, 'setInterval(()=>{},1000);'); commit();
-    const timeout = await checkLane({ cwd: lane, env, base, timeout: 100 });
-    assert.equal(timeout.status, 'error'); assert.match(timeout.output, /ETIMEDOUT/);
+    const marker = join(root, 'deadline-check-started');
+    put(lane, `require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'ready'); setInterval(()=>{},1000);`); commit();
+    let watcher;
+    const ready = new Promise(resolve => {
+      watcher = fs.watch(root, () => {
+        if (fs.existsSync(marker)) { watcher.close(); resolve(); }
+      });
+    });
+    try {
+      const timeout = await checkLane({ cwd: lane, env, base, timeout: 100, signal: AbortSignal.timeout(CASE_LIMIT_MS),
+        run: (command, args, options) => boundedSpawn(command, args, { ...options, ...(args.some(arg => arg.includes('check:lane')) ? { timeoutStart: ready } : {}) }),
+      });
+      assert.ok(fs.existsSync(marker), 'the deadline must stop a started check, not its preload');
+      assert.equal(timeout.status, 'error'); assert.match(timeout.output, /ETIMEDOUT/);
+    } finally { watcher.close(); }
     for (const ending of ['\n', '\r\n', '']) {
       const output = `detail \t${ending || '\n'}check:lane: fail: readme-check \t${ending}`;
       const r = await checkLane({ cwd: lane, env, base: null, run: (command) => command === 'git' ? { status: 0, stdout: '' } : { status: 1, stdout: output, stderr: '' } });

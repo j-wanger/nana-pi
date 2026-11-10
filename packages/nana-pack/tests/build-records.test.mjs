@@ -24,6 +24,7 @@ import { findPiRoot } from "./pi-install.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import { killWorkerTree } from "./process-tree-helper.mjs";
+import { pidAlive } from "../lib/process-tree.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
@@ -316,6 +317,7 @@ resetRecords();
 const hardChild = spawn(process.execPath, workerArgs(), { cwd: LANE, env: { ...baseEnv(), BR_MODE: "hard-sleep" }, stdio: "ignore" });
 const hardClose = waitChild(hardChild);
 const hardStarted = await waitFor(CHILD_PID, hardChild);
+const hardBuilderPid = hardStarted ? Number(fs.readFileSync(CHILD_PID, "utf8")) : null;
 // Let the detached watcher leave its launch hop before killing the worker tree.
 await new Promise((resolve) => setTimeout(resolve, 1000));
 killWorkerTree(hardChild);
@@ -335,5 +337,12 @@ check("R-2725: a hard-killed lane build gets one stopped end record with its ses
 // req: R-2596 R-2599 R-2602
 check("seal: build records live at nana/build-records.jsonl in schema 1 and their stderr lines start pi-worker: build record:", BUILD_RECORDS_SUBPATH === "nana/build-records.jsonl" && BUILD_RECORD_SCHEMA === 1 && BUILD_RECORD_LINE_PREFIX === "pi-worker: build record:" && BUILD_SESSION_READ_MAX_BYTES === 64 * 1024 * 1024 && BUILD_LEDGER_READ_MAX_BYTES === 32 * 1024 * 1024);
 
+// taskkill returning and the watcher's end record do not imply the builder has
+// exited: Windows cleanup may still be releasing its lane working directory.
+const builderExitDeadline = Date.now() + CASE_LIMIT_MS;
+while (hardBuilderPid && pidAlive(hardBuilderPid)) {
+	if (Date.now() >= builderExitDeadline) throw new Error(`hard-kill builder ${hardBuilderPid} survived fixture teardown`);
+	await new Promise((resolve) => setTimeout(resolve, 25));
+}
 fs.rmSync(TD, { recursive: true, force: true });
 process.exit(failures ? 1 : 0);

@@ -229,7 +229,7 @@ function piHomeWith(packages) {
 	} else {
 		const mainCheckout = path.dirname(common.stdout.trim()); // <main clone>/.git -> <main clone>
 		const wt = tmpDir(path.join(os.tmpdir(), "nana-setup-wt-"));
-		const added = spawnSync("git", ["-C", repo, "worktree", "add", "--detach", "-q", wt, "HEAD"], { encoding: "utf8" });
+		const added = spawnSync("git", ["-c", "core.longpaths=true", "-C", repo, "worktree", "add", "--detach", "-q", wt, "HEAD"], { encoding: "utf8" });
 		if (added.status !== 0) {
 			console.log("SKIP could not create a throwaway worktree: " + added.stderr.trim());
 			fs.rmSync(wt, { recursive: true, force: true });

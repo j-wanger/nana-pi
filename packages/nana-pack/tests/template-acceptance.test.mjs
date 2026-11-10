@@ -111,7 +111,7 @@ check("a dirty template edit is excluded from a SHA render", () => {
   assert.notEqual(available.error?.code, "ENOENT", "required tool uvx is missing; install uv to run the dirty SHA render");
   assert.equal(available.status, 0, `copier availability probe failed: ${available.stderr}`);
   const repo = path.join(root, "dirty-copier-repo");
-  execFileSync("git", ["clone", "--local", "--no-hardlinks", path.resolve(fileURLToPath(new URL("../../../", import.meta.url))), repo], { stdio: "ignore" });
+  execFileSync("git", ["-c", "core.longpaths=true", "clone", "--local", "--no-hardlinks", path.resolve(fileURLToPath(new URL("../../../", import.meta.url))), repo], { stdio: "ignore" });
   const sha = execFileSync("git", ["-C", repo, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const template = path.join(repo, "templates/python/template/.gitignore");
   fs.appendFileSync(template, "dirty-uncommitted-template-marker\n");

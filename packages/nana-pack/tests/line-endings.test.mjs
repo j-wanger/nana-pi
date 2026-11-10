@@ -28,7 +28,7 @@ const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, 
 	const dest = path.join(tmpDir(path.join(os.tmpdir(), "line-endings-clone-")), "clone");
 	execFileSync(
 		"git",
-		["clone", "-q", "--local", "--no-hardlinks", "-c", "core.autocrlf=true", REPO, dest],
+		["-c", "core.longpaths=true", "clone", "-q", "--local", "--no-hardlinks", "-c", "core.autocrlf=true", REPO, dest],
 		{ stdio: "ignore" },
 	);
 
