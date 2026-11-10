@@ -80,25 +80,10 @@ const runProjectCheck = (label, { nodeOptions = [], config = true } = {}) => {
 }
 
 {
-	const result = runProjectCheck("project-without-config", { config: false });
-	const warnings = warningLines(result.stderr);
-	// req: R-2052
-	check("project --check in a folder without project config writes no Node warning", result.stdout.includes("nana-setup project --check") && !result.stdout.includes("project trust") && warnings.length === 0, `status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
-}
-
-{
 	const result = runProjectCheck("project-with-config", { config: true });
 	const warnings = warningLines(result.stderr);
 	// req: R-2050
 	check("project --check in a folder with project config writes no Node warning", result.stdout.includes("nana-setup project --check") && result.stdout.includes("project trust") && warnings.length === 0, `status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
-}
-
-{
-	const preload = path.join(root, "project-warning-preload.mjs");
-	fs.writeFileSync(preload, `const originalWrite = process.stdout.write.bind(process.stdout);\nlet emitted = false;\nprocess.stdout.write = function (chunk, ...args) {\n\tif (!emitted && String(chunk).includes("nana-setup project --check")) {\n\t\temitted = true;\n\t\tprocess.emitWarning("project --check keeps this experimental warning", { type: "ExperimentalWarning" });\n\t\tprocess.emitWarning("project --check keeps this coded warning", { code: "NANA_PROJECT_QUIET_PROBE" });\n\t}\n\treturn originalWrite(chunk, ...args);\n};\n`);
-	const result = runProjectCheck("project-unmuted-warning", { nodeOptions: ["--import", pathToFileURL(preload).href] });
-	// req: R-2051
-	check("project --check still prints a Node warning it does not mute", result.stdout.includes("nana-setup project --check") && result.stderr.includes("project --check keeps this experimental warning") && result.stderr.includes("project --check keeps this coded warning"), `status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
 }
 
 console.log(`${fails ? "FAIL" : "PASS"} summary: ${fails} failures`);

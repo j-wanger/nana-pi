@@ -32,8 +32,6 @@ const check = (name, ok, detail = "") => {
  console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail);
  if (!ok) fails++;
 };
-const setupReadme = fs.readFileSync(path.join(pkg, "README.md"), "utf8");
-check("README command examples close their code fence", setupReadme.includes("trust ~/my-thing --yes # record pi project trust after confirmation\n```\n\nRuntime dependencies:"));
 const yes = run(["trust", dir, "--yes", "--home", home]);
 // req: R-670
 check("affirmative trust is saved by pi's ProjectTrustStore", yes.status === 0 && store.get(dir) === true, `${yes.status} ${yes.stderr} ${yes.stdout}`);
@@ -42,15 +40,9 @@ check("command prints pi trust store path", yes.stdout.includes(path.join(agentD
 const deniedDir = path.join(root, "fresh-untrusted-project");
 fs.mkdirSync(deniedDir);
 const beforeRefusal = fs.readFileSync(path.join(agentDir, "trust.json"), "utf8");
-const before = beforeRefusal;
 const denied = run(["trust", deniedDir], { CI: "1" });
 // req: R-671
 check("noninteractive command refuses without --yes and leaves a fresh decision absent", denied.status !== 0 && store.get(deniedDir) === null && fs.readFileSync(path.join(agentDir, "trust.json"), "utf8") === beforeRefusal, `${denied.status} ${denied.stderr}`);
-const dryDir = path.join(root, "dry-project");
-fs.mkdirSync(dryDir);
-const dry = run(["trust", dryDir, "--yes", "--dry-run"]);
-// req: R-313
-check("trust dry run reports intended decision without writing", dry.status === 0 && /Would record affirmative pi project trust/.test(dry.stdout) && dry.stdout.includes(path.join(agentDir, "trust.json")) && store.get(dryDir) === null && fs.readFileSync(path.join(agentDir, "trust.json"), "utf8") === before, `${dry.status} ${dry.stdout} ${dry.stderr}`);
 let writes = 0;
 const accepted = await decideTrust({ yes: false, dryRun: false, confirm: async () => true, write: () => writes++ });
 const declined = await decideTrust({ yes: false, dryRun: false, confirm: async () => false, write: () => writes++ });

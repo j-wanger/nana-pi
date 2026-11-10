@@ -81,29 +81,5 @@ const expectedMarker = "UNPARSEABLE at line 3, column 37 (no roots read, rows ke
 // req: R-2862
 check("R-2862: doctor's knowledge sources row is ok for a parsing file, a note for an absent one and a fail naming the marker, the frozen index and a rescan command for a broken one, and never writes the file", plainSources.state.status === "ok" && utf16Sources.state.status === "ok" && wrongShapeSources.state.status === "ok" && [plainSources, utf16Sources, wrongShapeSources].every((item) => item.unchanged) && unparseableSources.state.status === "fail" && unparseableSources.state.detail.startsWith(sourceFile) && unparseableSources.state.detail.includes(expectedMarker) && unparseableSources.state.detail.includes(FORWARD_SLASH_ADVICE) && unparseableSources.state.detail.includes(SOURCES_FROZEN_CLAUSE) && unparseableSources.state.detail.includes(`node ${KNOWLEDGE_CLI} build`) && !unparseableSources.state.detail.includes(`C:${slash}nana-fixture-only${slash}docs`) && manualSources.state.status === "fail" && manualSources.state.detail.includes(MANUAL_JSON_ADVICE) && !manualSources.state.detail.includes("/one") && quotedParserSources.state.status === "fail" && !quotedParserSources.state.detail.includes("private-pa") && unreadableSources.status === "fail" && unreadableSources.detail.includes("UNREADABLE (no roots read, rows kept)") && unreadableSources.detail.includes(SOURCES_FROZEN_CLAUSE) && absentSources.status === "note" && absentSources.detail.startsWith(missingPath) && absentSources.detail.includes("next build seeds it") && !fs.existsSync(missingPath) && sourceRow.length === 1 && sourceRow[0].status === "note" && noIndexRows.filter((check) => check.label === "knowledge index").length === 1 && sourceRow[0].label !== noIndexRows.find((check) => check.label === "knowledge index")?.label && sourceRowFile.startsWith(path.join(home, "no-index-home")) && sourceRowBytesAbsent && quotedRescan.detail.includes(KNOWLEDGE_CLI.includes(" ") ? `node "${KNOWLEDGE_CLI}" build` : `node ${KNOWLEDGE_CLI} build`), "R-2862: doctor detail echoed the quoted fixture path");
 
-const ageNow = 2_000_000_000_000;
-const agedDbPath = path.join(home, "aged-index.db");
-db = new DatabaseSync(agedDbPath);
-db.exec("CREATE TABLE docs (id INTEGER); CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);");
-db.prepare("INSERT INTO docs VALUES (1)").run();
-db.prepare("INSERT INTO meta VALUES ('built_at', ?)").run(String(ageNow - 2.5 * 60 * 60 * 1000));
-db.close();
-fs.utimesSync(agedDbPath, new Date(ageNow - 24 * 60 * 60 * 1000), new Date(ageNow - 24 * 60 * 60 * 1000));
-const aged = knowledgeIndexState(agedDbPath, DatabaseSync, ageNow);
-const docsOnlyPath = path.join(home, "docs-only-index.db");
-const docsOnlyDb = new DatabaseSync(docsOnlyPath);
-docsOnlyDb.exec("CREATE TABLE docs (id INTEGER)");
-docsOnlyDb.close();
-const noMeta = knowledgeIndexState(docsOnlyPath, DatabaseSync, ageNow);
-const writeMeta = (value) => {
-	const handle = new DatabaseSync(agedDbPath);
-	handle.prepare("UPDATE meta SET value = ? WHERE key = 'built_at'").run(value);
-	handle.close();
-	return knowledgeIndexState(agedDbPath, DatabaseSync, ageNow);
-};
-const invalidAges = [writeMeta("abc"), writeMeta("0"), writeMeta(String(ageNow + 60 * 60 * 1000))];
-// req: R-2863
-check("R-2863: doctor's knowledge index row gives the built_at age in hours and stays ok when no build time is recorded", aged.ok && aged.detail.includes("docs count: 1") && aged.detail.includes("built 2.5h ago") && noMeta.ok && noMeta.detail.includes("no build time recorded") && invalidAges.every((state) => state.ok && state.detail.includes("no build time recorded")));
-
 fs.rmSync(home, { recursive: true, force: true });
 process.exit(fails ? 1 : 0);

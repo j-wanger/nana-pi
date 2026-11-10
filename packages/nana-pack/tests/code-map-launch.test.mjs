@@ -145,6 +145,9 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		['packages/nana-setup/tests/doctor-memory-links.test.mjs -> packages/nana-setup/lib/doctor.mjs', 'FEAT-031 diet2 retains the dangling-link CLI regression, dropping the preventive in-process lint matrices.'],
+		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-pack/lib/adoption.mjs', 'FEAT-031 diet2 removes preventive malformed-mark variants; ordinary encoding and privacy regressions remain.'],
+		['packages/nana-setup/tests/doctor-runtime.test.mjs -> packages/nana-setup/tests/stub-pi.mjs', 'FEAT-031 diet2 removes the stub self-check, retaining real PATH probes.'],
 		['packages/nana-setup/tests/hooks-closed-output.test.mjs -> packages/nana-knowledge/bin/nana-knowledge.ts', 'FEAT-031 diet2 removes the retired knowledge-hook closed-output case; four active-hook regressions remain.'],
 		['packages/nana-pack/tests/requirements-lift.test.mjs -> scripts/requirements-tree.mjs', 'diet1 consolidates the lift proof and main-use fixture.'],
 		...['extensions/nana-roster-notice.ts', 'lib/adoption.mjs'].map(target => [`packages/nana-pack/tests/agent-dir-config.test.mjs -> packages/nana-pack/${target}`, 'diet1 removes the unearned stranded-config read watcher.']),
@@ -184,6 +187,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
 	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
 	const retiredSources = new Map([
+		...['doctor-floor', 'doctor-release'].map(name => [`packages/nana-setup/tests/${name}.test.mjs`, 'FEAT-031 diet2 removes value-only floor pins and informational release fixtures; behaviour remains untested.']),
 		['apps/bench/lib/usage.mjs', 'FEAT-007 review fix removes the unused stream parser after the memory factory cut.'],
 		...['apps/bench/test/retire.test.mjs', ...['preview-retirement', 'gate-config-robustness', 'experiment-cut', 'memory-cut-checks'].map(name => `packages/nana-pack/tests/${name}.test.mjs`), 'packages/nana-setup/tests/stale-copies-slow.test.mjs'].map(file => [file, 'FEAT-031 test-retire removes the named Lane A test file; its live cases or markers move to kept tests.']),
 		...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),

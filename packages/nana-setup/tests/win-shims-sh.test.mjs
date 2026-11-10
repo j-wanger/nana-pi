@@ -7,84 +7,14 @@
  * @errors each case is awaited under a timeout; a failed assertion prints FAIL and makes the process exit nonzero.
  */
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-import { findGitBash } from "../lib/install-check.mjs";
-import { renderWinShims, WIN_CMD_SHIM_LAYOUT, WIN_SHIM_LINE_ENDINGS, WIN_SHIM_SUFFIXES } from "../lib/win-shims.mjs";
-import { tmpDir } from "./tmp-dir.mjs";
+import { WIN_SHIM_LINE_ENDINGS, WIN_SHIM_SUFFIXES } from "../lib/win-shims.mjs";
+import { CASE_TIMEOUT_MS, createShimFixture } from "./win-shims.test.mjs";
 
-// Chosen 2026-10-19: one shell case must finish well below hosted CI's job timeout.
-const CASE_TIMEOUT_MS = 30_000;
 const cases = [];
 const test = (title, row, platforms, fn) => cases.push({ title, row, platforms, fn });
-const shq = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
-const psq = (value) => `'${String(value).replaceAll("'", "''")}'`;
-const cmdq = (value) => `"${String(value)}"`;
-const real = (value) => fs.realpathSync.native(value);
-let caseRuns = [];
-const recordRun = (label, run) => {
-	caseRuns.push({ label, status: run.status, stdout: run.stdout ?? "", stderr: run.stderr ?? "", error: run.error?.message ?? "" });
-	return run;
-};
-const runDiagnostics = () => caseRuns.map((run) => `${run.label}: ${JSON.stringify(run)}`).join("\n");
-const withPath = (env, value) => {
-	const result = { ...env };
-	for (const key of Object.keys(result)) if (key.toLowerCase() === "path") delete result[key];
-	result[process.platform === "win32" ? "Path" : "PATH"] = value;
-	return result;
-};
-
-const root = tmpDir(path.join(os.tmpdir(), "nana shim space & % ( ) ' $a é-"));
-const shims = path.join(root, "shims");
-const binDir = path.join(root, "bin 100%&(x)");
-const callerDir = path.join(root, "callers with a space");
-const briefDir = path.join(root, "brief folder");
-for (const directory of [shims, binDir, callerDir, briefDir]) fs.mkdirSync(directory, { recursive: true });
-const brief = path.join(briefDir, "two line brief.md");
-fs.writeFileSync(brief, "first line  \r\nsecond line\t");
-const bin = path.join(binDir, "probe.mjs");
-fs.writeFileSync(bin, `#!/usr/bin/env node\nimport fs from "node:fs";\nif (process.argv[2] === "--rewrite") {\n  const target = process.env.NANA_REWRITE_SHIM;\n  const line = target.toLowerCase().endsWith(".cmd") ? "@echo NANA_REWRITE_MARKER\\r\\n" : "echo NANA_REWRITE_MARKER\\n";\n  fs.writeFileSync(target, line.repeat(200));\n}\nconst stdin = fs.readFileSync(0, "utf8");\nprocess.stdout.write(JSON.stringify({ argv: process.argv.slice(2), execPath: fs.realpathSync(process.execPath), stdin }) + "\\n");\nprocess.exit(7);\n`);
-const rendered = renderWinShims(bin, shims);
-fs.writeFileSync(path.join(shims, "pi-review"), rendered.sh);
-fs.chmodSync(path.join(shims, "pi-review"), 0o755);
-fs.writeFileSync(path.join(shims, "pi-review.cmd"), rendered.cmd);
-
-const nodeDir = path.dirname(process.execPath);
-const windowsPath = `${shims};${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`;
-const posixPath = `${shims}:${nodeDir}:${process.env.PATH ?? ""}`;
-const shellEnv = (shim) => ({
-	...withPath(process.env, process.platform === "win32" ? windowsPath : posixPath),
-	PATHEXT: ".COM;.EXE;.BAT;.CMD",
-	NANA_REWRITE_SHIM: shim,
-});
-const shRunner = () => {
-	if (process.platform !== "win32") return "/bin/sh";
-	const key = Object.keys(process.env).find((name) => name.toLowerCase() === "path");
-	return findGitBash(String(key ? process.env[key] : "").split(";"));
-};
-const runShCaller = (args, rewrite = false, stdinFile = null) => {
-	const caller = path.join(callerDir, rewrite ? "rewrite caller.sh" : "argument caller.sh");
-	const pipeline = stdinFile ? `cat ${shq(stdinFile)} | ` : "";
-	fs.writeFileSync(caller, `#!/bin/sh\n${pipeline}pi-review ${args.map(shq).join(" ")}\n`);
-	const runner = shRunner();
-	if (!runner) return null;
-	return spawnSync(runner, [], { cwd: callerDir, input: fs.readFileSync(caller), encoding: "utf8", env: shellEnv(path.join(shims, "pi-review")), timeout: CASE_TIMEOUT_MS });
-};
-const system32 = path.win32.join(process.env.SystemRoot ?? "C:\\Windows", "System32");
-const cmdExe = process.env.ComSpec ?? path.win32.join(system32, "cmd.exe");
-const runCmdCaller = (args, env = shellEnv(path.join(shims, "pi-review.cmd")), commandName = "pi-review") => {
-	const command = `chcp 437>nul & ${commandName} ${args.map(cmdq).join(" ")}`.trimEnd();
-	return spawnSync(cmdExe, ["/d", "/v:off", "/s", "/c", `"${command}"`], { cwd: callerDir, encoding: "utf8", env, windowsVerbatimArguments: true, timeout: CASE_TIMEOUT_MS });
-};
-const runPowerShellCaller = (args) => {
-	const caller = path.join(callerDir, "argument caller.ps1");
-	fs.writeFileSync(caller, `& pi-review ${args.map(psq).join(" ")}\nexit $LASTEXITCODE\n`);
-	return spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", caller], { cwd: callerDir, encoding: "utf8", env: shellEnv(path.join(shims, "pi-review.cmd")), timeout: CASE_TIMEOUT_MS });
-};
-const jsonResult = (run) => JSON.parse(run.stdout.trim().split(/\r?\n/).at(-1));
+const { root, callerDir, brief, rendered, runShCaller, jsonResult } = createShimFixture();
 
 // req: R-1611
 test("sh shim hands node every argument unchanged and returns the bin's exit status", "R-1611", "all", () => {
@@ -117,7 +47,6 @@ test("an sh shim rewritten by its own bin runs none of the new text", "R-1617", 
 
 let failures = 0;
 for (const current of cases) {
-	caseRuns = [];
 	if (current.platforms === "win32" && process.platform !== "win32") {
 		console.log("SKIP", `${current.row} Windows leg only`);
 		continue;
@@ -131,7 +60,7 @@ for (const current of cases) {
 		console.log("PASS", current.title);
 	} catch (error) {
 		failures++;
-		console.log("FAIL", current.title, `${error?.message ?? String(error)}${caseRuns.length ? `\n${runDiagnostics()}` : ""}`);
+		console.log("FAIL", current.title, error?.message ?? String(error));
 	} finally {
 		clearTimeout(timer);
 	}

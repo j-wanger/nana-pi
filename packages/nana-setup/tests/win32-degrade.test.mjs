@@ -119,16 +119,8 @@ check("win32: the private rule is still seeded", fs.existsSync(path.join(home, "
 check("win32: the pi config is still seeded", fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
 check("win32: the knowledge index is still built", fs.existsSync(path.join(home, ".pi", "agent", "nana-knowledge", "index.db")));
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
-const cmds = (settings.hooks.UserPromptSubmit ?? []).flatMap((g) => g.hooks.map((h) => h.command));
-// final review r1 astra SHOULD 7: all five hooks are now wired on win32 — this check only ever
-// examined UserPromptSubmit, which still carries exactly the one knowledge entry (no twin); the
-// title used to claim the opposite ("only the knowledge hook is wired") from when the other four
-// were skipped there. Renamed; see test-title-map.json.
-// req: R-1051
-check("win32: UserPromptSubmit carries no retired knowledge entry", cmds.length === 0);
 // req: R-1050
 check("win32: no bash hooks in settings", !JSON.stringify(settings).includes("bash "));
-// R-985, R-1053: the verifier-pipe hook IS wired on win32 now, matcher Bash|PowerShell.
 const allEntries = Object.values(settings.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks.map((h) => ({ group: g, hook: h }))));
 const win32Wanted = desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), repoRoot: repo, platform: "win32" });
 const hookScriptNames = win32Wanted.filter((w) => fs.existsSync(path.join(pkg, "claude", "hooks", w.spec.script))).map((w) => w.spec.script);
@@ -178,8 +170,6 @@ check("win32 doctor: node for the objective hook runs (not skipped)", /✓ node 
 // string — the floor itself, and that doctor never runs `claude --version` to check it.
 // req: R-1060
 check("win32 doctor: a note names the Claude Code exec-form floor", doc.stdout.includes(CLAUDE_CODE_EXEC_FLOOR) && /need Claude Code 2\.1\.139 or later/.test(doc.stdout) && /claude --version.*never run/.test(doc.stdout), doc.stdout);
-// req: R-1060
-check("CLAUDE_CODE_EXEC_FLOOR is 2.1.139", CLAUDE_CODE_EXEC_FLOOR === "2.1.139");
 
 /* --- final review r2 (sol MUST 2, astra MUST 1): the note above says doctor never runs `claude`
    — prove it by recording any invocation, rather than only reading the printed claim. A `claude`

@@ -17,7 +17,7 @@ import { renderWinShims, WIN_CMD_SHIM_LAYOUT, WIN_SHIM_LINE_ENDINGS, WIN_SHIM_SU
 import { tmpDir } from "./tmp-dir.mjs";
 
 // Chosen 2026-10-19: one shell case must finish well below hosted CI's job timeout.
-const CASE_TIMEOUT_MS = 30_000;
+export const CASE_TIMEOUT_MS = 30_000;
 const cases = [];
 const test = (title, row, platforms, fn) => cases.push({ title, row, platforms, fn });
 const shq = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
@@ -37,6 +37,7 @@ const withPath = (env, value) => {
 	return result;
 };
 
+export function createShimFixture() {
 const root = tmpDir(path.join(os.tmpdir(), "nana shim space & % ( ) ' $a é-"));
 const shims = path.join(root, "shims");
 const binDir = path.join(root, "bin 100%&(x)");
@@ -85,7 +86,11 @@ const runPowerShellCaller = (args) => {
 	return spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", caller], { cwd: callerDir, encoding: "utf8", env: shellEnv(path.join(shims, "pi-review.cmd")), timeout: CASE_TIMEOUT_MS });
 };
 const jsonResult = (run) => JSON.parse(run.stdout.trim().split(/\r?\n/).at(-1));
+return { root, shims, bin, brief, callerDir, nodeDir, rendered, shellEnv, runShCaller, runCmdCaller, runPowerShellCaller, jsonResult, system32, cmdExe };
+}
 
+if (path.resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
+const { root, shims, bin, brief, callerDir, nodeDir, rendered, shellEnv, runCmdCaller, runPowerShellCaller, jsonResult, system32, cmdExe } = createShimFixture();
 // req: R-1612
 test("Windows: cmd.exe hands a .cmd shim's bin every double-quoted argument unchanged on the PATH node and returns its exit status", "R-1612", "win32", () => {
 	fs.writeFileSync(path.join(callerDir, "node.cmd"), "@exit /b 42\r\n");
@@ -217,3 +222,4 @@ for (const current of cases) {
 }
 fs.rmSync(root, { recursive: true, force: true });
 if (failures) process.exitCode = 1;
+}

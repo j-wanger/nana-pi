@@ -17,7 +17,7 @@ await check("M6: all core capabilities have land guards", () => {
   const guards = [
     ...["adoption-producer", "agent-dir-config", "bounded-read", "config-gate-fallback", "config-handlers-malformed", "config-normalize", "config-trust", "credential-gate", "first-look", "frontier-summary", "gate-corpus", "gate-policy-paths", "gate-rm-inside", "gate-self-protection", "issue-watch", "land", "lane-write-guard", "main-ci", "nana-roster", "objective-injection", "outside-reader", "pipe-guard", "readme-check", "requirements-trace", "requirements-tree", "review-standard", "roster-notice", "rulings", "skill-claims", "visual-reader", "writing-check", "data-pack-land", "ci-workflow",
       "leak-scan-cli", "identity-tree", "worker-refusal", "objective-smoke", "templates-working", "win32-forced", "claude-review-launch", "agent-dir-policy", "agent-dir-resolver", "code-map-land", "brief-check", "writing-injection", "frontier", "known-bugs", "handoff-issues"].map(name => `${pack}${name}.test.mjs`),
-    ...["agent-dir-consumers", "doctor-runtime", "fsops", "hook-producers", "install", "paths", "pi-registration", "project-key", "project-working-region", "roster-notice-hook", "settings-merge", "shared-memory-hook", "shared-memory-input", "uninstall", "doctor-floor", "win-shims-sh"].map(name => `${setup}${name}.test.mjs`),
+    ...["agent-dir-consumers", "doctor-runtime", "fsops", "hook-producers", "install", "paths", "pi-registration", "project-key", "project-working-region", "roster-notice-hook", "settings-merge", "shared-memory-hook", "shared-memory-input", "uninstall", "win-shims-sh"].map(name => `${setup}${name}.test.mjs`),
   ];
   for (const file of guards) {
     assert.equal(TEST_PACKS[file], "land", `core guard not in land: ${file}`);

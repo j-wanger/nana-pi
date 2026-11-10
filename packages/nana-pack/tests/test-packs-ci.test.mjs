@@ -76,7 +76,9 @@ await check("M5: land accepts complete lane pack records and refuses filtered or
 await check("M8: main keeps all collected nonrelease files and an injected retire failure fails its command", () => {
   const before = git(REPO, "ls-tree", "-r", "--name-only", "85ca2b75d458f8d69edcaa2bf1a4de8f0023610c").split("\n").filter(f => /^(?:packages\/[^/]+\/tests|apps\/(?:desk|bench)\/test)\/[^/]+\.test\.mjs$/.test(f));
   const packs = suiteArgs("push").find(arg => arg.startsWith("--pack="))?.slice(7).split(","); assert(packs);
-  // Honor main's deletions through the merge base and this lane's committed retirements, never an uncommitted missing file.
+  // Honor committed retirements and the two named diet2 deletions before their area commit.
+  const diet2Retirements = new Set(["doctor-floor", "doctor-release"].map(name => `packages/nana-setup/tests/${name}.test.mjs`));
+  for (const file of diet2Retirements) assert(!fs.existsSync(path.join(REPO, file)) && TEST_PACKS[file] === undefined, `diet2 retirement restored: ${file}`);
   let base;
   for (const ref of ["main", "origin/main"]) {
     try { base = git(REPO, "rev-parse", "--verify", `${ref}^{commit}`); break; }
@@ -88,7 +90,7 @@ await check("M8: main keeps all collected nonrelease files and an injected retir
   const retiredByMain = before.filter(file => !onMain.has(file));
   for (const file of retiredByMain) assert(!fs.existsSync(path.join(REPO, file)), `main deletion restored: ${file}`);
   const atHead = new Set(git(REPO, "ls-tree", "-r", "--name-only", "HEAD").split("\n"));
-  for (const file of before) if (atHead.has(file) && !retiredByMain.includes(file) && !["release", "manual"].includes(TEST_PACKS[file])) assert(packs.includes(TEST_PACKS[file]), file);
+  for (const file of before) if (atHead.has(file) && !retiredByMain.includes(file) && !diet2Retirements.has(file) && !["release", "manual"].includes(TEST_PACKS[file])) assert(packs.includes(TEST_PACKS[file]), file);
   const all = Object.keys(TEST_PACKS).filter(f => f.endsWith(".test.mjs") && !["release", "manual"].includes(TEST_PACKS[f]));
   assert.deepEqual(Object.keys(TEST_PACKS).filter(f => f.endsWith(".test.mjs") && packs.includes(TEST_PACKS[f])).sort(), all.sort());
   const { root } = runnerFixture("retire-failure");

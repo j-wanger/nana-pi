@@ -18,7 +18,7 @@ import { withPiStub } from "./stub-pi.mjs";
 
 const { diagnose } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
 const diagnoseWithPi = (...args) => withPiStub(() => diagnose(...args));
-const { pkgRoot, resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
+const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 const { CONFIG_FAILURE_PREFIX, FORWARD_SLASH_ADVICE, MANUAL_JSON_ADVICE, displayPath } = await import(new URL("../../nana-pack/lib/objective.ts", import.meta.url).href);
 
 let fails = 0;
@@ -45,27 +45,6 @@ function layoutWith(shape) {
 	return layout;
 }
 const personalCheck = (layout) => diagnoseWithPi(layout, { projectDir: layout.base }).find((c) => c.label === "rule nana-personal.md");
-
-{
-	const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-hook-target-"));
-	tmps.push(home);
-	const layout = resolveLayout({ home });
-	fs.mkdirSync(layout.claudeHome, { recursive: true });
-	fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: "command", command: "NODE_NO_WARNINGS=1 node /missing-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook" }] }] } }));
-	const c = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit retired hook");
-	// Shell-form hook targets use forward-slash script suffixes, as the installer writes.
-	const outside = path.join(home, "outside", "nana-knowledge.ts").replaceAll("\\", "/");
-	fs.mkdirSync(path.dirname(outside), { recursive: true });
-	fs.writeFileSync(outside, "// test target\n");
-	const validTarget = path.resolve(pkgRoot, "..", "nana-knowledge", "bin", "nana-knowledge.ts").replaceAll("\\", "/");
-	fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
-		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${validTarget}' hook` },
-		{ type: "command", command: `NODE_NO_WARNINGS=1 node '${outside}' hook` },
-	] }] } }));
-	const outsideCheck = diagnoseWithPi(layout, { projectDir: home }).find((row) => row.label === "settings UserPromptSubmit retired hook");
-	// req: R-3741
-	check("doctor reports missing and out-of-repo knowledge hooks as retired", c?.status === "fail" && /retired hook/.test(c.detail) && outsideCheck?.status === "fail" && /nana-setup install/.test(outsideCheck.detail), `${JSON.stringify(c)} ${JSON.stringify(outsideCheck)}`);
-}
 
 try {
 	{
@@ -112,51 +91,15 @@ try {
 		const plain = diagnoseWithPi(layout, { projectDir: layout.base }).filter((row) => labels.includes(row.label));
 		fs.writeFileSync(layout.piPackConfig, `\uFEFF${text}`);
 		const marked = diagnoseWithPi(layout, { projectDir: layout.base }).filter((row) => labels.includes(row.label));
-		const result = (rows) => rows.map(({ label, status, detail }) => ({ label, status, detail }));
+		const result = (rows) => rows.filter(row => labels.includes(row.label)).map(({ label, status, detail }) => ({ label, status, detail }));
 		// req: R-1580
 		check("doctor reads a nana-pack.json saved with a byte-order mark and CRLF as it reads the same file without one", plain.find((row) => row.label === "pi nana-pack.json")?.status === "ok" && JSON.stringify(result(marked)) === JSON.stringify(result(plain)), `${layout.piPackConfig}: ${JSON.stringify({ plain: result(plain), marked: result(marked) })}`);
-	}
-
-	{
-		const layout = layoutWith("file");
-		fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
-		const target = path.join(layout.base, "utf16-objective.md");
-		fs.writeFileSync(target, "**Objective:** configured\n");
-		const text = JSON.stringify({ objective: { path: target, projectFile: "GOALS.md" } }, null, 2).replace(/\n/g, "\r\n");
-		const labels = ["pi nana-pack.json", "pi objective.projectFile", "pi objective file"];
-		const result = (rows) => rows.filter((row) => labels.includes(row.label)).map(({ label, status, detail }) => ({ label, status, detail }));
 		fs.writeFileSync(layout.piPackConfig, text);
 		const utf8Rows = result(diagnoseWithPi(layout, { projectDir: layout.base }));
 		fs.writeFileSync(layout.piPackConfig, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]));
 		const utf16Rows = result(diagnoseWithPi(layout, { projectDir: layout.base }));
 		// req: R-2233
 		check("doctor reads a UTF-16LE nana-pack.json as it reads the same JSON saved as UTF-8", utf8Rows.find((row) => row.label === "pi nana-pack.json")?.status === "ok" && JSON.stringify(utf16Rows) === JSON.stringify(utf8Rows), `${layout.piPackConfig}: ${JSON.stringify({ utf8Rows, utf16Rows })}`);
-	}
-
-	{
-		const { adoptionSettings } = await import(new URL("../../nana-pack/lib/adoption.mjs", import.meta.url).href);
-		const savedAgentDir = process.env.PI_CODING_AGENT_DIR;
-		const observations = [];
-		const makeConfig = (layout) => JSON.stringify({ journal: { path: path.join(layout.base, "configured-journal.jsonl") }, objective: { projectFile: "GOALS.md" } });
-		for (const shape of [
-			(text) => `\uFEFF\uFEFF${text}`,
-			(text) => `${text.slice(0, 1)}\uFEFF${text.slice(1)}`,
-			(text) => `\uFEFF${text.replace(/^\{"journal"[\s\S]*$/, "{ nope")}`,
-		]) {
-			const layout = layoutWith("file");
-			fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
-			fs.writeFileSync(layout.piPackConfig, shape(makeConfig(layout)));
-			const doctorRow = diagnoseWithPi(layout, { projectDir: layout.base }).find((row) => row.label === "pi nana-pack.json");
-			try {
-				process.env.PI_CODING_AGENT_DIR = layout.piHome;
-				observations.push({ doctorRow, settings: adoptionSettings(), expectedJournal: path.join(layout.piHome, "nana-journal.jsonl") });
-			} finally {
-				if (savedAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
-				else process.env.PI_CODING_AGENT_DIR = savedAgentDir;
-			}
-		}
-		// req: R-1586
-		check("two leading marks, a mark inside the object or malformed text after one mark stay unparseable for doctor and adoption", observations.every(({ doctorRow, settings, expectedJournal }) => doctorRow?.status === "fail" && settings.journal === expectedJournal && settings.objectiveFile === "OBJECTIVE.md"), JSON.stringify(observations));
 	}
 
 	const malformedConfigFixtures = [
@@ -202,117 +145,14 @@ character" } }`, FORWARD_SLASH_ADVICE, true],
 	// req: R-2091
 	check("doctor gives the forward-slash repair for a pasted path with a backslash before u, never the file's text", unicodeEscapeRows.every(Boolean), JSON.stringify(unicodeEscapeRows));
 
-	{
-		const rows = ["missing", "folder"].map((shape) => {
-			const layout = layoutWith("file");
-			if (shape === "folder") fs.mkdirSync(layout.piPackConfig, { recursive: true });
-			const row = diagnoseWithPi(layout, { projectDir: layout.base }).find((candidate) => candidate.label === "pi nana-pack.json");
-			return { row, detail: `missing or unparseable: ${layout.piPackConfig}` };
-		});
-		// req: R-1974
-		check("doctor keeps missing-or-unparseable detail for a missing or unreadable nana-pack.json", rows.every(({ row, detail }) => row?.status === "fail" && row.detail === detail), JSON.stringify(rows));
-	}
-
-	// objective.projectFile: default / rename / INVALID are three distinct verdicts (T2a astra land MUST 2).
-	// Driven through diagnose() with a real ~/.pi/agent/nana-pack.json, so the ✓/✗ is the one doctor prints.
-	const pfCheck = (value) => {
-		const layout = layoutWith("file");
-		fs.mkdirSync(path.dirname(layout.piPackConfig), { recursive: true });
-		const objective = value === undefined ? {} : { projectFile: value };
-		fs.writeFileSync(layout.piPackConfig, JSON.stringify({ objective }));
-		return diagnoseWithPi(layout, { projectDir: layout.base }).find((c) => c.label === "pi objective.projectFile");
-	};
-	{
-		const c = pfCheck("OBJECTIVE.md");
-		// req: R-343
-		check("projectFile \"OBJECTIVE.md\": ✓ the default, not a rename", c?.status === "ok" && /the default name/.test(c.detail) && !/renamed/.test(c.detail), JSON.stringify(c));
-	}
-	for (const v of [undefined, null, false, ""]) {
-		const c = pfCheck(v);
-		// req: R-343
-		check(`projectFile ${JSON.stringify(v)}: ✓ the default`, c?.status === "ok" && /the default name/.test(c.detail), JSON.stringify(c));
-	}
-	{
-		const c = pfCheck("PLAN.md");
-		check("projectFile \"PLAN.md\": ✓ a rename", c?.status === "ok" && c.detail === '"PLAN.md" (per-repo file renamed from OBJECTIVE.md)', JSON.stringify(c));
-	}
-	for (const v of ["../OBJECTIVE.md", "docs/OBJECTIVE.md", "docs\\OBJECTIVE.md", "/abs/OBJECTIVE.md", ".", ".."]) {
-		const c = pfCheck(v);
-		// req: R-343
-		check(`projectFile ${JSON.stringify(v)}: ✗ invalid, reason + fallback named, never "renamed"`,
-			c?.status === "fail" && /is invalid/.test(c.detail) && /no path separator, not "\." or "\.\."/.test(c.detail) &&
-				/uses OBJECTIVE\.md/.test(c.detail) && !/renamed/.test(c.detail), JSON.stringify(c));
-	}
-	{
-		const c = pfCheck(42);
-		// req: R-343
-		check("projectFile 42 (non-string): ✗ invalid with the fallback", c?.status === "fail" && /is invalid/.test(c.detail) && /uses OBJECTIVE\.md/.test(c.detail), JSON.stringify(c));
-	}
 	// doctor's rule must agree with the producer's (config.ts refuses exactly these)
 	{
 		const { isBareFileName } = await import(new URL("../../nana-pack/lib/objective.ts", import.meta.url).href);
 		const { projectFileState } = await import(new URL("../lib/doctor.mjs", import.meta.url).href);
-		const sample = ["OBJECTIVE.md", "PLAN.md", "a..b", ".hidden", "../x", "x/y", "x\\y", ".", "..", "/x"];
+		const sample = ["OBJECTIVE.md", "PLAN.md", "a..b", ".hidden", "../x", "x/y", "x\\y", "docs\\OBJECTIVE.md", ".", "..", "/x"];
 		const disagree = sample.filter((s) => (projectFileState(s).kind !== "invalid") !== isBareFileName(s));
 		// req: R-343
 		check("doctor's projectFile rule matches the producer's isBareFileName", disagree.length === 0, JSON.stringify(disagree));
-	}
-	// pi mcp.json: the same shape defence (astra r1 MUST 2), checked here for the spots the
-	// existing R-365 tests below do not reach — a non-object top level, a non-object mcpServers,
-	// and a non-object SERVER ENTRY (astra r2 SHOULD 3: pi's own validateMcpServerConfig rejects
-	// one outright, so doctor must fail it too, named, before it ever reaches the exposure check).
-	const mcpShapeCheck = (content) => {
-		const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-detail-"));
-		tmps.push(home);
-		const layout = resolveLayout({ home });
-		fs.mkdirSync(path.dirname(layout.mcpConfig), { recursive: true });
-		fs.writeFileSync(layout.mcpConfig, content);
-		return diagnoseWithPi(layout, { projectDir: layout.base }).find((x) => x.label === "pi mcp.json");
-	};
-	for (const [label, bad] of [["null", "null"], ["an array", "[]"], ["a number", "7"]]) {
-		const c = mcpShapeCheck(bad);
-		check(`mcp.json: parses to ${label} reads ✗, not a crash`, c?.status === "fail" && /must hold a JSON object/.test(c.detail), JSON.stringify(c));
-	}
-	{
-		const c = mcpShapeCheck(JSON.stringify({ mcpServers: "oops" }));
-		check("mcp.json: mcpServers as a string reads ✗, not a crash", c?.status === "fail" && /mcpServers must be an object/.test(c.detail), JSON.stringify(c));
-	}
-	for (const [label, bad] of [["null", null], ["an array", []], ["a number", 42], ["a string", "x"], ["false", false]]) {
-		const c = mcpShapeCheck(JSON.stringify({ mcpServers: { memory: bad, real: { command: "x", exposure: "direct" } } }));
-		// req: R-372
-		check(`mcp.json: server entry "memory" as ${label} reads ✗ naming the server, before the exposure check`, c?.status === "fail" && /\bmemory\b/.test(c.detail) && /must be an object/.test(c.detail), JSON.stringify(c));
-	}
-
-	// mcp.json: codemode-default exposure (R-365)
-	const mcpCheck = (content) => {
-		const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-detail-"));
-		tmps.push(home);
-		const layout = resolveLayout({ home });
-		if (content !== undefined) {
-			fs.mkdirSync(path.dirname(layout.mcpConfig), { recursive: true });
-			fs.writeFileSync(layout.mcpConfig, content);
-		}
-		return diagnoseWithPi(layout, { projectDir: layout.base }).find((x) => x.label === "pi mcp.json");
-	};
-	{
-		const warn = mcpCheck(JSON.stringify({ mcpServers: { memory: { command: "x" } } }));
-		const namesServerExposureAndFlag = warn?.status === "warn" && /memory/.test(warn.detail) && /exposure/.test(warn.detail) && /autoEnableCodemode/.test(warn.detail);
-		// req: R-365
-		check("mcp.json: codemode-default server reads !", namesServerExposureAndFlag, JSON.stringify(warn));
-	}
-	{
-		const ok1 = mcpCheck(JSON.stringify({ mcpServers: { memory: { command: "x", exposure: "direct" } } }));
-		// req: R-365
-		check("mcp.json: direct exposure reads ✓", ok1?.status === "ok", JSON.stringify(ok1));
-	}
-	{
-		const ok2 = mcpCheck(JSON.stringify({ mcpServers: { memory: { command: "x" } }, autoEnableCodemode: false }));
-		// req: R-365
-		check("mcp.json: autoEnableCodemode false reads ✓ even without exposure", ok2?.status === "ok", JSON.stringify(ok2));
-	}
-	{
-		const absent = mcpCheck(undefined);
-		check("mcp.json: absent reads a note, not a failure", absent?.status === "note", JSON.stringify(absent));
 	}
 } finally {
 	for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });

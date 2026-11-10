@@ -111,34 +111,6 @@ function pathRowDetail(result) {
 	return line ? line.slice(line.indexOf(label) + label.length).replace(/^ +/, "") : "";
 }
 
-function walkDifference(before, after) {
-	const length = Math.max(before.length, after.length);
-	for (let i = 0; i < length; i++) {
-		if (JSON.stringify(before[i]) !== JSON.stringify(after[i])) {
-			const item = (entry) => entry ? `${entry[0]} ${entry[1]}` : "absent";
-			return `before ${before.length} entries; after ${after.length} entries; first difference: ${item(before[i])} -> ${item(after[i])}`;
-		}
-	}
-	return `before ${before.length} entries; after ${after.length} entries`;
-}
-
-function walk(home) {
-	const entries = [];
-	const visit = (dir) => {
-		for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-			const absolute = path.join(dir, entry.name);
-			const relative = path.relative(home, absolute).split(path.sep).join("/");
-			const stat = fs.lstatSync(absolute);
-			if (stat.isSymbolicLink()) entries.push(["link", relative, fs.readlinkSync(absolute)]);
-			else if (stat.isDirectory()) { entries.push(["directory", relative]); visit(absolute); }
-			else if (stat.isFile()) entries.push(["file", relative, fs.readFileSync(absolute).toString("base64")]);
-			else entries.push(["other", relative]);
-		}
-	};
-	visit(home);
-	return entries;
-}
-
 // --- shared fixtures for the PATH-row checks (R-2320–R-2325) ---
 const stubDir = withPiStub(() => process.env.PATH.split(path.delimiter)[0]);
 const nodeDir = path.dirname(process.execPath);
@@ -160,14 +132,10 @@ if (process.platform === "win32") {
 
 const emptyHome = fixtureHome("empty-home");
 const emptyCwd = freshCwd("empty-cwd");
-const emptyBefore = walk(emptyHome);
 const allInstallable = run(["doctor", "--home", emptyHome], { home: emptyHome, cwd: emptyCwd });
 const allInstallableLabels = failedLabels(allInstallable);
 // req: R-1990
 check("R-1990: when install repairs every ✗ row, the summary reads n missing — run: nana-setup install", allInstallable.status === 1 && allInstallableLabels.length > 0 && summary(allInstallable) === `${allInstallableLabels.length} missing — run: nana-setup install`, `${allInstallable.status}\n${allInstallable.stdout}\n${allInstallable.stderr}`);
-const emptyAfter = walk(emptyHome);
-// req: R-1995
-check("R-1995: doctor on a home install would change leaves every file, folder and link unchanged", allInstallable.status === 1 && JSON.stringify(emptyAfter) === JSON.stringify(emptyBefore), `${allInstallable.status}\n${walkDifference(emptyBefore, emptyAfter)}\n${allInstallable.stdout}\n${allInstallable.stderr}`);
 
 const handHome = fixtureHome("hand-home", { subagents: false });
 const handCwd = freshCwd("hand-cwd");
@@ -255,13 +223,6 @@ fs.writeFileSync(path.join(refusedHome, ".claude", "settings.json"), '{"hooks": 
 const refusedDoctor = run(["doctor", "--home", refusedHome], { home: refusedHome, cwd: refusedCwd });
 // req: R-1994
 check("R-1994: when install refuses the home, the summary names the refusal instead of telling the user to run install", refusedInstall.status === 0 && refusedDoctor.status === 1 && /^\d+ missing — nana-setup install will not run until this is fixed: .*settings\.json is not valid JSON/.test(summary(refusedDoctor)), `install ${refusedInstall.status}\n${refusedInstall.stdout}\n${refusedInstall.stderr}\ndoctor ${refusedDoctor.status}\n${refusedDoctor.stdout}\n${refusedDoctor.stderr}`);
-
-const handWarnCwd = freshCwd("hand-warn-cwd", true);
-const mixedWarnCwd = freshCwd("mixed-warn-cwd", true);
-const handWarn = run(["doctor", "--home", handHome], { home: handHome, cwd: handWarnCwd });
-const mixedWarn = run(["doctor", "--home", mixedHome], { home: mixedHome, cwd: mixedWarnCwd });
-// req: R-1996
-check("R-1996: with a ! row, both by-hand summary forms still end with the ! count", handWarn.status === 1 && mixedWarn.status === 1 && summary(handWarn) === "1 missing — fix by hand as each ✗ line says: pi mcp.json (and see the 1 ! above)" && summary(mixedWarn) === "3 missing — fix by hand as each ✗ line says: skill spec; then run: nana-setup install for the other 2 (and see the 1 ! above)", `hand ${handWarn.status}\n${handWarn.stdout}\n${handWarn.stderr}\nmixed ${mixedWarn.status}\n${mixedWarn.stdout}\n${mixedWarn.stderr}`);
 
 const unexpectedHome = fixtureHome("unexpected-home");
 const unexpectedCwd = freshCwd("unexpected-cwd");

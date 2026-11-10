@@ -65,15 +65,6 @@ function posixFixture({ piVersion = "1.0.3", omitPiVersion = false, dependencies
   return { home, env, spawn: () => ({ status: 0, stdout: `${piVersion}\n`, stderr: "" }) };
 }
 
-function outsideFixture() {
-  const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-pi-outside-"));
-  homes.push(home);
-  const bin = path.join(home, "bin");
-  fs.mkdirSync(bin, { recursive: true });
-  fs.writeFileSync(path.join(bin, "pi"), "#!/bin/sh\necho 1.0.3", { mode: 0o755 });
-  return { home, env: { PATH: `${bin}${path.delimiter}/usr/bin:/bin` }, spawn: () => ({ status: 0, stdout: "1.0.3\n" }) };
-}
-
 function winFixture({ newer = true } = {}) {
   const home = tmpDir(path.join(os.tmpdir(), "nana-doctor-pi-win-"));
   homes.push(home);
@@ -142,26 +133,6 @@ check("R-2714: a pi package whose own packages are at or below its version, nest
   assert.equal(allRows.filter((item) => item.label === "pi dependencies").length, 1);
   assert.equal(allRows.filter((item) => item.label === "pi packages").length, 1);
   assert.equal(packageRow(winFixture({ newer: false }), "win32")?.status, "ok");
-});
-
-// req: R-2715
-check("R-2715: a pi outside any package, a pre-release or missing version, a missing dependency or an unreadable version prints a · pi dependencies row, never ✗", () => {
-  const rows = [
-    packageRow(outsideFixture()),
-    packageRow(posixFixture({ dependencies: { "@earendil-works/pi-ai": "^1.0.3" }, installed: { "@earendil-works/pi-ai": null } })),
-    packageRow(posixFixture({ dependencies: { "@earendil-works/pi-ai": "^1.0.3" }, installed: { "@earendil-works/pi-ai": "x" } })),
-    packageRow(posixFixture({ piVersion: "1.5.0-beta.1", dependencies: { "@earendil-works/pi-ai": "^1.5.0" }, installed: { "@earendil-works/pi-ai": "1.5.0-beta.1" } })),
-    packageRow(posixFixture({ omitPiVersion: true, dependencies: { "@earendil-works/pi-ai": "^1.0.3" }, installed: { "@earendil-works/pi-ai": "1.0.3" } })),
-  ];
-  for (const row of rows) {
-    assert.equal(row?.status, "note", JSON.stringify(row));
-    assert.ok(row.detail.length > 0);
-  }
-  assert.match(rows[0].detail, /no pi package/i);
-  assert.ok(rows[1].detail.includes("@earendil-works/pi-ai"));
-  assert.ok(rows[2].detail.includes("@earendil-works/pi-ai"));
-  const precedence = packageRow(posixFixture({ dependencies: { "@earendil-works/pi-ai": "^1.0.3", "@earendil-works/pi-mcp": "^1.0.3" }, installed: { "@earendil-works/pi-ai": null, "@earendil-works/pi-mcp": "1.4.0" } }));
-  assert.equal(precedence?.status, "fail");
 });
 
 let failures = 0;

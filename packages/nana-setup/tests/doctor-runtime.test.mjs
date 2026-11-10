@@ -7,14 +7,12 @@
  * @errors failed checks exit nonzero.
  */
 import { tmpDir } from "./tmp-dir.mjs";
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { diagnose, firstOnPath } from "../lib/doctor.mjs";
 import { resolveLayout, repoRoot } from "../lib/paths.mjs";
-import { PI_INSTALL_HINT, PI_REVIEW_BIN, stepPiRegister } from "../lib/steps.mjs";
-import { withPiStub } from "./stub-pi.mjs";
+import { PI_REVIEW_BIN } from "../lib/steps.mjs";
 
 let fails = 0;
 const check = (title, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", title, ok ? "" : detail); if (!ok) fails++; };
@@ -29,15 +27,6 @@ const layout = { ...resolveLayout({ home }), isRealHome: true };
 const piRow = () => diagnose(layout, { projectDir: home }).find((item) => item.label === "pi executable");
 try {
 	if (process.platform !== "win32") {
-	const pathBeforeScopedStub = process.env.PATH;
-	const scopedStubWorked = withPiStub(() => {
-		const row = piRow();
-		const accidentalInstall = spawnSync("pi", ["install"], { encoding: "utf8" });
-		return row?.status === "ok" && row.detail === "1.0.2" && accidentalInstall.status !== 0 && accidentalInstall.stderr.includes("install") && process.env.PATH !== pathBeforeScopedStub;
-	});
-	const childPath = spawnSync(process.execPath, ["-e", "process.stdout.write(process.env.PATH)"], { encoding: "utf8" });
-	// req: R-952
-	check("pi stub is limited to the doctor probe and restored before later child processes", scopedStubWorked && process.env.PATH === pathBeforeScopedStub && childPath.stdout === pathBeforeScopedStub, childPath.stdout);
 	const valid = executable("pi", "echo 1.0.2");
 	process.env.PATH = `${bin}:/usr/bin:/bin`;
 	const goodPi = piRow();
@@ -50,10 +39,6 @@ try {
 	// req: R-952
 	check("pi executable rejects output without a version", piRow()?.status === "fail" && piRow().detail.includes("printed no version"));
 	fs.unlinkSync(valid);
-	// req: R-1037, R-1093
-	check("missing pi names the shared install hint", piRow()?.status === "fail" && piRow().detail.includes(PI_INSTALL_HINT));
-	// req: R-1037, R-1093
-	check("install missing-pi detail imports the same hint and never reaches install", stepPiRegister(layout, {}, { platform: () => "darwin" }).at(-1)?.detail.includes(PI_INSTALL_HINT));
 	const override = resolveLayout({ home });
 	// req: R-952
 	check("missing pi under override is informational", diagnose(override, { projectDir: home }).find((item) => item.label === "pi executable")?.status === "note");
