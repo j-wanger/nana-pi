@@ -46,7 +46,7 @@ function launchFixture(dir) {
   for (const folder of ['bin', 'lib', 'prompts']) fs.cpSync(path.join(pack, folder), path.join(copied, folder), { recursive: true });
   const setupLib = path.resolve(copied, '../nana-setup/lib');
   fs.mkdirSync(setupLib, { recursive: true });
-  for (const file of ['stale-copies-config.mjs', 'claude-config-home.mjs']) fs.copyFileSync(path.resolve(pack, '../nana-setup/lib', file), path.join(setupLib, file));
+  for (const file of ['stale-copies-config.mjs', 'claude-config-home.mjs', 'bounded-spawn.mjs', 'bounded-spawn-child.mjs']) fs.copyFileSync(path.resolve(pack, '../nana-setup/lib', file), path.join(setupLib, file));
   const repo = path.join(dir, 'repo');
   const fixture = ledgerRepo(repo);
   assert.equal(fixture.git('init', '-q', '-b', 'main').status, 0);
