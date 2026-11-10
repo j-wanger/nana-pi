@@ -95,7 +95,7 @@ import { tmp, outs, PI_REVIEW, LEDGER_CLI, mod, home, agent, tallyFile, auditFil
 	const results = [];
 	for (const ending of ['\n', '\r\n']) for (const suffix of ['', ending, ` \t${ending}`]) {
 		results.push(mod.readVerdict(`${opener}${ending}Review body.${ending}VERDICT: LAND${suffix}`).verdict === 'LAND');
-		for (const label of ['SEND-BACK', 'send-back', 'ＳＥＮＤ-ＢＡＣＫ', 'SΕND-BACK']) {
+		for (const label of ['SEND-BACK', 'send-back', 'ＳＥＮＤ-ＢＡＣＫ', 'SΕND-BACK', 'send back', 'Send back.', 'SEND–BACK', 'SEND‑BACK', 'SEND\u2010BACK', 'SEND\u2012BACK', 'SEND\u2014BACK', 'SEND\u2015BACK', 'fix first', 'blocked on X', 'request changes', 'reject', 'rejected', 'send\u00ADback', 'fix\u00ADfirst']) {
 			const conflict = mod.readVerdict(`**Verdict: ${label}**${ending}Review body.${ending}VERDICT: LAND${suffix}`);
 			results.push(conflict.verdict === null && conflict.condition === UNREAD_VERDICT_CONDITIONS.FIRST_LINE_CONFLICT);
 		}

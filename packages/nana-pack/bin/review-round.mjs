@@ -56,7 +56,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join, resolve, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
-import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS } from '../lib/verdict-config.mjs';
+import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS, FIRST_LINE_LABEL_STEMS } from '../lib/verdict-config.mjs';
 import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 import { renameWithRetry, RENAME_RETRY_CODES } from '../lib/rename-retry.mjs';
 export { reviewShaped } from './review-shape.mjs';
@@ -607,7 +607,12 @@ export function readVerdict(text) {
     if (nonblank.length > 1 && carries(first.text)) {
       const firstWord = firstGrammar.exec(first.text)?.[1] ?? null;
       const labelWords = new Set([...FIRST_LINE_LABEL_WORDS, verdict.toLowerCase()]);
-      const holdsLabel = firstWord !== null || (canon(first.text).match(/[a-z]+(?:-[a-z]+)*/g) ?? []).some(word => labelWords.has(word));
+      const labelText = canon(first.text.replace(/\u00AD/g, ' '))
+        .replace(/[\u2010-\u2015]/g, '-')
+        .replace(/\b(send)\s+(back)\b|\b(fix)\s+(first)\b|\b(request)\s+(changes)\b/g,
+          (_, send, back, fix, first, request, changes) => `${send ?? fix ?? request}-${back ?? first ?? changes}`);
+      const holdsLabel = firstWord !== null || (labelText.match(/[a-z]+(?:-[a-z]+)*/g) ?? [])
+        .some(word => labelWords.has(word) || FIRST_LINE_LABEL_STEMS.some(stem => word.startsWith(stem)));
       if (holdsLabel && firstWord !== verdict) {
         return { verdict: null, selected: final, condition: UNREAD_VERDICT_CONDITIONS.FIRST_LINE_CONFLICT, trigger: first };
       }
@@ -624,6 +629,12 @@ export function readVerdict(text) {
     return { verdict: null, selected: first, condition: UNREAD_VERDICT_CONDITIONS.LATER_MENTION, trigger };
   }
   return { verdict, selected: first, condition: null, trigger: null };
+}
+/** Format the selected physical line and conflict for both recording and confirmation diagnostics. */
+export function unreadVerdictDetail(parsed) {
+  const selected = parsed.selected ?? { number: 1, text: '' };
+  const trigger = parsed.trigger ? `; line ${parsed.trigger.number} ${JSON.stringify(parsed.trigger.text)}` : '';
+  return `selected line ${selected.number} ${JSON.stringify(selected.text)} — ${parsed.condition}${trigger}`;
 }
 const sameItem = (a, b) => a.repo === b.repo && a.item === b.item;
 
@@ -853,10 +864,8 @@ export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1
           `now ${why ? `underivable: ${why}` : shortRev(now)}) — the verdict is NOT recorded as valid for either state; round ${round} ` +
           `was consumed for the admitted revision. Re-review the current state (output kept at ${out ?? held.out})` };
       }
-      const selected = parsed.selected ?? { number: 1, text: '' };
-      const trigger = parsed.trigger ? `; line ${parsed.trigger.number} ${JSON.stringify(parsed.trigger.text)}` : '';
       const unread = parsed.verdict === null ? `verdict unread for item ${held.item} at ${shortRev(held.revision)} (round ${round}): ` +
-        `selected line ${selected.number} ${JSON.stringify(selected.text)} — ${parsed.condition}${trigger}; ` +
+        `${unreadVerdictDetail(parsed)}; ` +
         `nana-land will refuse this revision for good — make a new commit and review it; ` +
         `review kept at ${out ?? held.out}` : null;
       return { ok: true, round, verdict: parsed.verdict, unread };

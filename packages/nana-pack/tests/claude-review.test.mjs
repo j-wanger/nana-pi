@@ -191,18 +191,19 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 	git(repo, "add", "tracked-out.md");
 	git(repo, "commit", "-qm", "track output");
 	fs.writeFileSync(path.join(repo, "large.md"), "x".repeat(256 * 1024));
+	git(repo, 'add', 'large.md'); git(repo, 'commit', '-qm', 'track large brief');
 	const large = runLauncher({ cwd: temp, tree: repo, brief: "large.md", out: trackedOut, item: "outcome-large", env: baseEnv(refusedHome, fakeBin, record) });
 
 	const missingText = fs.existsSync(missingOut) ? fs.readFileSync(missingOut, "utf8") : "";
 	// req: R-2565 R-3990
 	check("R-2565: claude-review passes the reviewer's outcome through",
 		missing.status === 1 && /claude-review: cannot start claude:/.test(missing.stderr) && missingText.startsWith("cannot start claude:") && ledgerState(noClaudeHome.home, "outcome-missing").rounds.length === 0 &&
-		formatted.status === 1 && /verdict unread/i.test(formatted.stderr) && fs.readFileSync(formattedOut, "utf8") === formattedAnswer && ledgerState(formattedHome.home, 'outcome-formatted').rounds.length === 0 &&
+		formatted.status === 1 && /verdict unread/i.test(formatted.stderr) && fs.readFileSync(formattedOut, "utf8") === `${formattedAnswer}\n\n--- Verdict confirmation ---\n${formattedAnswer}` && /selected line 2.*allowed verdict grammar/.test(formatted.stderr) && ledgerState(formattedHome.home, 'outcome-formatted').rounds.length === 0 &&
 		recovered.status === 0 && fs.readFileSync(recoveredOut, 'utf8') === formattedAnswer && confirmedRows.length === 1 && confirmedRows[0].verdict === 'LAND' && confirmedRows[0].attempts === 2 &&
 		confirmation?.argv[confirmation.argv.indexOf('--resume') + 1] === session && confirmation.stdin.includes('Do not review again') && confirmation.argv.includes('--tools') &&
 		fs.readFileSync(path.join(recoveredHome.agent, 'review-ledger.texts', `${confirmedRows[0].text.sha256}.md`), 'utf8') === 'VERDICT: LAND\r\n' &&
 		plain.status === 0 && fs.readFileSync(plainOut, "utf8") === plainAnswer &&
-		large.status === 1 && fs.readFileSync(trackedOut, "utf8") === "original\n" && !/EPIPE|write after end/i.test(large.stderr) && noStack(large.stderr),
+		large.status === 1 && /tracked.*--out|--out.*tracked/i.test(large.stderr) && fs.readFileSync(trackedOut, "utf8") === "original\n" && !/EPIPE|write after end/i.test(large.stderr) && noStack(large.stderr),
 		JSON.stringify({ missing, missingText, formatted, plain, large }));
 }
 

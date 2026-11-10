@@ -1914,7 +1914,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 - **purpose** — Defines verdict-label vocabulary, look-alike folds and diagnostic conditions for unread verdicts.
 - **inputs** — none
-- **outputs** — VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS and UNREAD_VERDICT_CONDITIONS frozen tables
+- **outputs** — VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS, FIRST_LINE_LABEL_STEMS and UNREAD_VERDICT_CONDITIONS frozen tables
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/tests/review-ledger-verdicts.test.mjs`

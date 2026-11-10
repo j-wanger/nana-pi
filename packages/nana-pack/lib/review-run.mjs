@@ -10,7 +10,7 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
-import { admit, complete, release, startHeartbeat, readVerdict } from '../bin/review-round.mjs';
+import { admit, complete, release, startHeartbeat, readVerdict, unreadVerdictDetail } from '../bin/review-round.mjs';
 import { reviewShaped } from '../bin/review-shape.mjs';
 import { reviewLaunch } from '../bin/review-launch.mjs';
 import { CLAUDE_BUILDER_CHILD_ENV, CLAUDE_SETTINGS_FLAG, REVIEWER_CHILD_ENV } from '../bin/worker-config.mjs';
@@ -97,11 +97,13 @@ export async function runReview(args, command, { input, onSpawn, admission, unre
     catch (error) { note(`cannot write ${out}: ${error.message} — reservation returned`); return 1; }
     let attempts = 1;
     if (unreadRetry && result.status === 0 && !readVerdict(text).verdict) {
-      note('verdict unread; asking the same reviewer for its verdict line only (no new review)');
+      note(`verdict unread: ${unreadVerdictDetail(readVerdict(text))}; asking the same reviewer for its verdict line only (no new review)`);
       result = await run(unreadRetry.command, unreadRetry.input);
       attempts++;
       text = result.text ?? '';
       if (result.error || result.status !== 0 || !readVerdict(text).verdict || text.trim().split(/\r?\n/).length !== 1) {
+        try { writeFileSync(out, `${readFileSync(out, 'utf8')}\n\n--- Verdict confirmation ---\n${text}`); }
+        catch (error) { note(`cannot keep confirmation at ${out}: ${error.message}`); }
         note('verdict unread or failed on confirmation — reservation returned, no round consumed');
         return result.status || 1;
       }

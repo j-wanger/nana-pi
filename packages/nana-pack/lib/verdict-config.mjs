@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/verdict-config.mjs
  * @purpose Defines verdict-label vocabulary, look-alike folds and diagnostic conditions for unread verdicts.
  * @inputs none
- * @outputs VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS and UNREAD_VERDICT_CONDITIONS frozen tables
+ * @outputs VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS, FIRST_LINE_LABEL_STEMS and UNREAD_VERDICT_CONDITIONS frozen tables
  * @effects none
  * @errors none
  */
@@ -16,7 +16,9 @@ export const VERDICT_LOOKALIKE_FOLD = Object.freeze({
 });
 
 // chosen: review labels already used by the reader's corpus, plus the selected final word at runtime.
-export const FIRST_LINE_LABEL_WORDS = Object.freeze(['land', 'send-back', 'block', 'fix-first', 'land-with-fixes']);
+// chosen: negative opener stems include ordinary inflections such as blocked and rejected.
+export const FIRST_LINE_LABEL_STEMS = Object.freeze(['block', 'reject']);
+export const FIRST_LINE_LABEL_WORDS = Object.freeze(['land', 'send-back', 'fix-first', 'land-with-fixes', 'request-changes']);
 
 /**
  * Chosen: 2026-10-19. Reason: stable user-facing wording names R-1010's four unread
