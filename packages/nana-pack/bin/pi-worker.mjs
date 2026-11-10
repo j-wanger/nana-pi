@@ -40,6 +40,7 @@ import { releaseLaneLock } from '../lib/lane-lock.mjs';
 import { startLaneWatcher } from '../lib/lane-watcher.mjs';
 import { errorText } from '../lib/record-ledger.mjs';
 import { scanCommitRange, leakScanLines } from '../lib/leak-scan.mjs';
+import { checkLane, laneCheckLines } from '../lib/lane-checks.mjs';
 
 const USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
 const LANE_USAGE = 'usage: pi-worker.mjs --out <file> [--stall-secs N] [--retries 0] [--poll N] --lane <name> --brief <file> [--max-secs N] [--lane-size <small|larger>]\n';
@@ -131,6 +132,7 @@ let laneRoot, laneGitDir, laneCommonDir, briefPath, preambleFile, laneLock, know
 let selectedBuilder, selectedLaneSize, selectedSlot, selectedFeature, claudeLaunch;
 let buildStartTip = null, buildId = null, buildStart = null, buildStartKept = false, buildEnd = null, buildEndKept = false;
 let builderLaunchKind = 'direct';
+let laneChecks;
 let precedentLine = '';
 let contextLoad = null;
 let launchSpec = null;
@@ -354,6 +356,7 @@ function keepBuildEnd(result, outputError) {
 	catch { leaks = { unavailable: 'cannot scan commit range' }; }
 	buildEnd = buildEndRecord(buildStart, {
 		leaks,
+		laneChecks,
 		attempts: result.attempt,
 		exit,
 		outcome,
@@ -405,6 +408,12 @@ try {
 		finally { rmSync(preambleDir, { recursive: true, force: true }); }
 	} else r = await runWatchdog('pi-worker', { ...w, childEnv });
 } catch (error) { if (laneLock) releaseLaneLock(laneLock); throw error; }
+if (laneMode && r.ok) {
+	laneChecks = checkLane({ cwd: laneRoot, base: buildStartTip, env: { ...process.env, ...childEnv } });
+	if (laneChecks && laneChecks.status !== 'pass') r.ok = false;
+	for (const line of laneCheckLines(laneChecks)) process.stderr.write(`${line}\n`);
+	if (laneChecks && laneChecks.status !== 'pass') r.text += `\n${laneCheckLines(laneChecks).join('\n')}\n`;
+}
 let outputError = null;
 try {
 	if (r.text.trim()) writeFileSync(w.outPath, r.text);
@@ -417,6 +426,7 @@ try {
 const exit = outputError ? 1 : workerExit(r);
 if (r.signal) process.stderr.write(`[pi-worker] aborted by ${r.signal}\n`);
 else if (outputError) process.stderr.write(`[pi-worker] FAILED: cannot write ${w.outPath}: ${errorText(outputError)}\n`);
+else if (laneChecks && laneChecks.status !== 'pass') process.stderr.write(`[pi-worker] FAILED: lane checks ${laneChecks.status}: ${laneChecks.check}\n`);
 else process.stderr.write(r.ok
 	? `[pi-worker] SUCCESS on attempt ${r.attempt} (${r.text.length} chars → ${w.outPath})\n`
 	: r.ceiling ? `[pi-worker] FAILED: wall-clock ceiling ${maxArg}s reached\n` : `[pi-worker] FAILED after ${w.retries + 1} attempt(s) (endpoint likely in a bad stretch)\n`);

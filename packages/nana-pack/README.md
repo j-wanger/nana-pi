@@ -355,6 +355,37 @@ Lane launches set `NANA_WORKTREE_ROOT` and `NANA_ROLE=worker`; a Claude Code lau
 
 Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any existing lock refuses the launch, naming its path and recorded pid when readable; a later launch never reclaims it automatically. The hard-stop watcher releases only a lock that still names its pi-worker and only after the recorded builder group is gone; on Windows it keeps the lock for a builder launched through `cmd.exe`. A builder's tool command in its own process group can still outlive that builder group. Before removing a lock by hand, confirm that no builder process group or tool process for that worktree is running. The lane wall-clock ceiling is **28,800 seconds (8 hours)**; `--max-secs N` overrides it for one launch. The ceiling kills the entire builder process group and reports FAILED. If no affirmative trust record covers the worktree, the launcher prints a legacy `trust: none for <worktree>` notice and continues. The pack no longer runs per-edit commands. After taking the lock, a lane build appends a start record before the builder starts and an end record before releasing the lock on each handled exit. Its final build-record stderr line gives this build's outcome, elapsed minutes and recorded cost, followed by the lane summary.
 
+#### Builder-stop checks
+
+After a successful lane attempt, if the worktree declares a `check:lane` package script,
+pi-worker runs `npm run check:lane` (silently, via npm's `-s`) before the end record.
+It uses the builder's credential-stripped environment, with a bounded deadline and output.
+The project owns the script; nana-pi's root script runs the recorded lost-round rail.
+No script means unchanged output and record shape; failed builder attempts do not run it.
+
+Stderr adds exactly one result line: `pi-worker: lane checks: pass`, or
+`pi-worker: lane checks: fail: <check>`, `pi-worker: lane checks: error: <check>`, or
+`pi-worker: lane checks: red-on-base: <check>`. Failing output follows as
+`pi-worker: lane checks output: <line>` and is appended to the builder report.
+A failure or runner crash changes the build outcome to failed and exit to 1;
+the existing worker summary becomes `[pi-worker] FAILED: lane checks <status>: <check>`.
+A runner without a named failure marker is an error naming `check:lane`.
+
+For a named failure, a temporary detached checkout of the build's starting commit runs
+its own script. The same named failure is `red-on-base`; a different failure or absent
+base script stays `fail`. Base checkout/check errors print
+`pi-worker: lane checks base: error: <check-or-checkout>: <detail>`.
+Cleanup failures print `pi-worker: lane checks cleanup: <detail>`.
+The optional end-record `laneChecks` field holds `status`, `check` and bounded `output`,
+with an optional `base` object of the same shape and optional `cleanupError`.
+Pass uses a null check and empty output; base may have status `absent`.
+Hard-stop watcher records have no field. Bounds live in `lib/lane-checks-config.mjs`.
+
+This is run-and-report only: no builder resumes automatically. The required finished-session
+resume probe was not run because the lane forbids model sessions. The existing watchdog
+session-file mechanism is unchanged. See `docs/builder-stop-checks.md` at the repository root
+for the design, replay results and remaining resume work.
+
 #### Role launches
 
 Use `pi-worker --slot <scout|planner|adversary> --brief <file> --out <file> [--max-secs N]` from any folder. The Node fallback is `node "$HOME/nana-pi/packages/nana-pack/bin/pi-worker.mjs" --slot <slot> --brief <file> --out <file>`; PowerShell uses `node "$env:USERPROFILE\nana-pi\packages\nana-pack\bin\pi-worker.mjs" --slot <slot> --brief <file> --out <file>`. Role mode starts the resolved slot entry, or its named fallback, without a lane lock, build record, preamble or known-bug attachment. Only the brief and existing Claude settings carry are delivered; the seat's brief names what to read. The internal launch specification carries role, supplying slot, entry, cwd, brief, parts, tools and env for later context policy.

@@ -74,6 +74,7 @@ export function buildEndRecord(start, {
 	found = collectBuildUsage(start),
 	outputError = null,
 	leaks,
+	laneChecks,
 } = {}) {
 	return {
 		v: BUILD_RECORD_SCHEMA,
@@ -94,6 +95,7 @@ export function buildEndRecord(start, {
 		sessionBadLines: found.sessionBadLines,
 		outputError,
 		...(leaks === undefined ? {} : { leaks }),
+		...(laneChecks === undefined ? {} : { laneChecks }),
 	};
 }
 

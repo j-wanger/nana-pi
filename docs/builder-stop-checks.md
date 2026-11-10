@@ -9,6 +9,33 @@ The first nonzero check ends the rail with `check:lane: fail: <check>` and exit 
 A spawn error or signal produces `check:lane: error: <check>` and exit 2.
 Success prints `check:lane: pass`. This rail supplements, not replaces, CI.
 
+## Worker lifecycle (R-3997, R-3998)
+
+The worker runs the rail only after a successful lane attempt and before writing
+its end record, beside the existing post-build leak scan. Plain workers, role
+workers, failed attempts and trees without a script keep their old behaviour.
+The shared bounded-spawn relay supplies process-tree deadline and output bounds;
+the existing Windows command resolver launches npm without a new shell mechanism.
+The same credential-stripped child environment is inherited by npm and git.
+
+A pass retains success; a failure or crash ends the build with exit 1 and the
+bounded failing tail appended to its report. The optional `laneChecks` end field
+and prefixed stderr lines are described in the pack README. A named failure
+triggers a temporary detached starting-commit checkout: only the same named failure
+there earns `red-on-base`. There is no dependency installation in that checkout.
+Cleanup failures are report data; the lane's checkout and branch never move.
+
+No automatic builder resume ships here. The lane prohibits starting model sessions,
+so its requested finished print-session resume probe could not be performed.
+The watchdog's explicit attempt session file and its callers remain unchanged.
+Resume support needs that probe first; no alternate resume mechanism was built.
+This is the permitted run-and-report fallback, not evidence that resume needs
+anything beyond the existing session-file path.
+
+The new suite tests exercise fake lane builders and tiny fixture-owned npm scripts,
+never the repository rail, a seat script or a real model. They cover pass, absence,
+named failure, base-red, runner crash, deadline and diagnostic line endings.
+
 ## Replay validation
 
 Each revision was checked in a detached temporary git worktree outside the repository.
