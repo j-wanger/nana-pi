@@ -96,7 +96,7 @@ The search lives in `scripts/code-search.mjs`, with sealed trial settings in `sc
 The ten fixed-base needs are a hypothesis, not a general quality guarantee.
 Lane records (briefs, plans, build and review texts, CI excerpts and evidence) live outside
 this checkout in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`);
-`<project>` is the repository folder name. Old records stay in git history;
+`<project>` is the main checkout's folder name, the folder that holds the shared git directory, not the lane worktree's name. Old records stay in git history;
 `docs/reviews/README.md` gives checked commands for both archive snapshots.
 
 `npm run check:lane` runs the project-owned builder-stop rail in `scripts/check-lane.mjs`:

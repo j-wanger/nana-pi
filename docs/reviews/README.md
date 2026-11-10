@@ -3,7 +3,7 @@
 Lane records (briefs, plans, build and review texts, CI excerpts and evidence) live in
 `~/nana-records/<project>/<lane>/`, never in the repository.
 On Windows, use `%USERPROFILE%\nana-records\<project>\<lane>\`.
-`<project>` is the repository folder name. The store is a plain private folder,
+`<project>` is the main checkout's folder name, the folder that holds the shared git directory, not the lane worktree's name. The store is a plain private folder,
 not configuration; old records remain in git history.
 Runtime dependency: Git for reading history.
 

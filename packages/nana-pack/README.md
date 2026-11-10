@@ -241,10 +241,10 @@ When the roster's `reviewer` slot is a Claude Code entry, run its review through
 
 ```bash
 scratch=$(mktemp -d)
-node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs" --item <slug> --tree <worktree> --brief <file-relative-to-tree> --out "$scratch/claude-r1.md" [--role R]
+node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs" --item <slug> --tree <worktree> --brief <absolute-or-tree-relative-file> --out "$scratch/claude-r1.md" [--role R]
 ```
 
-The launcher requires `--item`, `--tree`, `--brief` and `--out`; it resolves the brief against the
+The launcher requires `--item`, `--tree`, `--brief` and `--out`; it accepts an absolute brief path or resolves a relative brief path against the
 reviewed tree and resolves the output path against the launcher folder. It reads the reviewer model from the
 machine roster and refuses uncommitted tracked changes or untracked non-ignored files before admission, naming up to ten paths: commit or remove them, then review. Ignored files are allowed. Unlike this live-tree launcher, `pi-review` uses its separate immutable-checkout path and still supports dirty snapshots. It sends the brief, shared review standard and read-only reviewer sentence on standard
 input, then runs `claude -p --model <model> --allowedTools Read,Grep,Glob,Bash --disallowedTools Edit,Write,NotebookEdit`

@@ -16,8 +16,7 @@
 - Test retirement (test-retire, review round 1, NOTE): test-packs-ci M8 now excuses test files deleted by a lane commit, which supports retirement lanes but loosens the check.
 - Test retirement (test-retire, review round 1, NOTE): R-2482 remains implemented while its evidence pins only the limit constant, as its Evidence cell states.
 
-- Records move (records-move, review round 1, S2): the one-time evidence command spawns git hash-object per protected file (3,211 before the merge-only folders were restored), taking 73 s on macOS; its former live-repository test could block the event loop past the harness timer. Fixture tests remain, but no land-pack test checks the live repository.
-- Records move (records-move, review round 1, S3): relative reviews/<folder> paths without the docs/ prefix are not recognised; a frozen design document's reference was missed, though the archive command can recover the records.
+- Records out (review 1, NOTE 4): parked R-3178..R-3186 evidence cells still cite removed selective-ci record files; comments in packages/nana-pack/bin/worker-config.mjs, packages/nana-pack/lib/runtime-map*.mjs, packages/nana-pack/lib/test-runner-config.mjs, packages/nana-pack/lib/windows-skips-config.mjs, packages/nana-setup/lib/working-config.mjs and scripts/code-search-config.mjs cite record paths now only in git history.
 
 - CI pack coverage (ci-packs, review round 3): `setup-tail.test.mjs` sits in the release pack, so no CI leg runs it on Windows, and PRs that change `nana-pack/lib/config.ts` or `nana-gate.ts` do not run its M2/M7 cases.
 

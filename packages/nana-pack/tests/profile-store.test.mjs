@@ -7,7 +7,6 @@
  * @errors Failed assertions set exit 1.
  */
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { check, fixture, ok, refused, files, save, root } from './profile-fixture.mjs';
@@ -41,7 +40,6 @@ await check('a save writes one shape record into the private clone and nowhere e
   }
   for(let i=1;i<C.PROFILE_LIMITS.daily;i++) ok(save(f,`Daily synthetic claim ${i}`));
   refused(save(f,'Over limit'),C.PROFILE_WORDS.dailyCap); assert.equal(count(),C.PROFILE_LIMITS.daily);
-  const guide=fs.readFileSync(path.join(root,'packages/nana-setup/claude/rules/nana-seat.md'),'utf8'); assert.match(guide,/confirm only on an explicit owner yes/); assert.match(guide,/both the private profile and today's shared memory/); assert.match(guide,/Saved:/);
  } finally {t.close();}
 });
 

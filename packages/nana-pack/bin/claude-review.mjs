@@ -38,7 +38,7 @@ import {
   renderReviewerSentence,
 } from '../lib/claude-review-config.mjs';
 
-const USAGE = 'usage: claude-review.mjs --item <slug> --tree <path> --brief <file-relative-to-tree> --out <file> [--role R]\n';
+const USAGE = 'usage: claude-review.mjs --item <slug> --tree <path> --brief <absolute-or-tree-relative-file> --out <file> [--role R]\n';
 const REQUIRED = ['--item', '--tree', '--brief', '--out'];
 const OPTIONAL = ['--role'];
 const ALLOWED = new Set([...REQUIRED, ...OPTIONAL]);

@@ -90,7 +90,6 @@
 - Artifact readers (artifact-readers, plan): the impact command's artifact block lists Reads lines only. An own-code Read by reader does not show in a file's impact.
 - Artifact readers (artifact-readers, plan): the checker proves only that git tracks an own-code Read by path. It does not prove the path belongs to the maker feature or reads the artifact.
 - Artifact readers (artifact-readers, plan): a person reader or a park clears the coverage note. Only the owner's reading of those lines judges them.
-- Artifact readers (artifact-readers, plan): a direct reference inherits every reader kind of its row, so A-048 looks code-read through R-1070.
 - Artifact readers (artifact-readers, plan): the rule that a currency or presence check is not a reader is prose. The checker cannot tell, and A-053's Reads line still counts.
 - Artifact readers (artifact-readers, plan): the test-reader rule is a file-name rule, so spec files and test helpers without `.test.` pass.
 - Artifact readers (artifact-readers, plan): the outline does not list artifact Read by or Parked lines; the movement report does.
