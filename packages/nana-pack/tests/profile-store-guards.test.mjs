@@ -55,6 +55,16 @@ await check('profile git detail redacts home and remote URL credentials after th
   assert.match(lines[1],/fatal: cannot open ~/);assert.match(lines[1],/https:\/\/host\/example\/profile.git refused/);
   assert.ok(!lines.join('\n').includes(t.temp));assert.ok(!lines.join('\n').includes('user:token'));
   console.log(lines.join('\n'));
+  const home='C:\\Users\\fixture',short='C:\\Users\\FIXTUR~1';
+  for(const given of [home,short,'']) {
+   const detail=`c:/users/fixture/file C:\\Users\\FIXTUR~1/file /c/Users/fixture/file https://host/repo?access_token=hidden&api_key=hidden&secret=hidden&password=hidden&keep=visible`;
+   const output=[];
+   runProfile(['init','--dir',t.temp],{agentDir:path.join(t.temp,'agent'),env:{},home:given,platform:'win32',realpath:candidate=>{if([home,short].includes(candidate))return home;throw Error('missing');},runGit:()=>({status:128,stderr:detail}),error:line=>output.push(line)});
+   assert.equal(output[0],C.PROFILE_WORDS.git);
+   assert.ok(!output[1].includes('hidden'));assert.ok(output[1].includes('&keep=visible'));
+   if(given) assert.equal(output[1].split('~/file').length-1,3);
+   else assert.ok(output[1].startsWith('c:/users/fixture/file '),'empty home leaves non-secret text intact');
+  }
  } finally {
   for(const [key,value] of Object.entries(previous)) {if(value===undefined)delete process.env[key];else process.env[key]=value;}
   t.close();

@@ -18,7 +18,11 @@ import { withinCaseLimit } from './report-fixtures.mjs';
 import { checkLane, laneCheckLines } from '../lib/lane-checks.mjs';
 import { buildEndRecord } from '../lib/build-records.mjs';
 import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
+import { processStartedAt } from '../lib/lane-watcher.mjs';
 import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
+
+const startedAt = pid => processStartedAt(pid, { exact: true })?.getTime();
+const sameProcess = member => member.startedAt !== undefined && pidAlive(member.pid) && startedAt(member.pid) === member.startedAt;
 
 const worker = fileURLToPath(new URL('../bin/pi-worker.mjs', import.meta.url));
 let failures = 0, caseTitle;
@@ -39,21 +43,22 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   // including detached pipe holders which can outlive boundedSpawn's result.
   const processRecords = join(root, 'processes'); fs.mkdirSync(processRecords);
   const recorder = join(root, 'record-process.cjs');
-  fs.writeFileSync(recorder, `require('node:fs').writeFileSync(require('node:path').join(${JSON.stringify(processRecords)}, String(process.pid)), JSON.stringify({pid:process.pid, role:process.argv[1] || 'node'}));`);
+  const watcherModule = new URL('../lib/lane-watcher.mjs', import.meta.url).href;
+  fs.writeFileSync(recorder, `import(${JSON.stringify(watcherModule)}).then(({processStartedAt})=>{const startedAt=processStartedAt(process.pid,{exact:true})?.getTime();require('node:fs').writeFileSync(require('node:path').join(${JSON.stringify(processRecords)}, String(process.pid)), JSON.stringify({pid:process.pid, startedAt, role:process.argv[1] || 'node'}));});`);
   env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require ${JSON.stringify(recorder)}`;
   const tracked = new Map();
-  const track = (pid, role) => { if (Number.isInteger(pid)) tracked.set(pid, { pid, role }); };
+  const track = (pid, role, start = startedAt(pid)) => { if (Number.isInteger(pid) && !tracked.has(pid)) tracked.set(pid, { pid, role, startedAt: start }); };
   const label = caseTitle;
   const liveProcesses = () => {
     for (const name of fs.readdirSync(processRecords)) {
       const member = JSON.parse(fs.readFileSync(join(processRecords, name), 'utf8'));
-      track(member.pid, member.role);
+      if (member.startedAt !== undefined) track(member.pid, member.role, member.startedAt);
     }
-    return [...tracked.values()].filter(member => pidAlive(member.pid));
+    return [...tracked.values()].filter(sameProcess);
   };
   const awaitExit = async () => {
     const deadline = Date.now() + RELAY_SIGNAL_GRACE_MS + RELAY_BACKSTOP_MS;
-    while (liveProcesses().length && Date.now() < deadline) await new Promise(resolve => setImmediate(resolve));
+    while (liveProcesses().length && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
     return liveProcesses();
   };
   const gitArgs = ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false'];
@@ -115,8 +120,9 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
       // Wait for natural relay/watcher shutdown first. The escaped pipe holder
       // and failure paths need explicit termination, but never signal strangers.
       const survivors = await awaitExit();
-      for (const { pid } of survivors) {
-        if (pidAlive(pid)) { try { process.kill(pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; } }
+      for (const member of survivors) {
+        const { pid } = member;
+        if (sameProcess(member)) { try { process.kill(pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; } }
       }
       const remaining = await awaitExit();
       assert.deepEqual(remaining, [], `${label}: recorded processes survived fixture teardown`);
@@ -275,7 +281,8 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       args.unshift('--import', pathToFileURL(preload).href);
     }
     const child = spawn(process.execPath, args, { cwd: lane, env, stdio: ['ignore', 'pipe', 'pipe'] });
-    track(child.pid, 'worker');
+    const workerIdentity = { pid: child.pid, startedAt: startedAt(child.pid) };
+    track(child.pid, 'worker', workerIdentity.startedAt);
     let stderr = ''; child.stderr.on('data', data => { stderr += data; }); child.stdout.resume();
     const ended = new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })));
     let checkPids;
@@ -328,10 +335,8 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       const callCount = readCalls().length;
       assert.equal(callCount, 1, actual('builder call count', callCount));
     } finally {
-      if (child.exitCode === null && child.signalCode === null && pidAlive(child.pid)) killProcessTree(child.pid, { fallback: signal => child.kill(signal) });
-      if (checkPids) for (const member of checkPids.pids) {
-        if (pidAlive(member.pid)) killProcessTree(member.pid, { fallback: signal => { try { process.kill(member.pid, signal); } catch {} } });
-      }
+      if (child.exitCode === null && child.signalCode === null && sameProcess(workerIdentity)) killProcessTree(child.pid, { fallback: signal => child.kill(signal) });
+      // Descendants are stopped by identity-checked fixture teardown.
     }
   }, onBase ? root => checkSource(root, true) : null);
   function checkSource(root, onBase) {
@@ -405,18 +410,12 @@ await check('a check with an escaped output-pipe holder still returns at the rel
     const child=cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},15000)'], {detached:true, stdio:['ignore',1,2]});
     fs.writeFileSync(${JSON.stringify(marker)}, String(child.pid)); child.unref();`);
   commit();
-  try {
-    const started = Date.now();
-    const result = await checkLane({ cwd: lane, env, timeout: 1000 });
-    assert.equal(result.status, 'error'); assert.match(result.output, /ETIMEDOUT/);
-    assert.ok(Date.now() - started < 1000 + RELAY_SETTLE_MS + 2500, 'pipe holder delayed the relay result');
-    assert.ok(fs.existsSync(marker), 'the fixture must actually start its pipe holder');
-  } finally {
-    if (fs.existsSync(marker)) {
-      const pid = Number(fs.readFileSync(marker, 'utf8'));
-      if (pidAlive(pid)) killProcessTree(pid, { fallback: signal => { try { process.kill(pid, signal); } catch {} } });
-    }
-  }
+  const started = Date.now();
+  const result = await checkLane({ cwd: lane, env, timeout: 1000 });
+  assert.equal(result.status, 'error'); assert.match(result.output, /ETIMEDOUT/);
+  assert.ok(Date.now() - started < 1000 + RELAY_SETTLE_MS + 2500, 'pipe holder delayed the relay result');
+  assert.ok(fs.existsSync(marker), 'the fixture must actually start its pipe holder');
+  // Fixture teardown uses the preload's recorded start time before signalling.
 }));
 
 // req: R-3997
@@ -442,9 +441,7 @@ await check('off Windows, a hard-killed check caller leaves no running check tre
       assert.equal(pidAlive(pids.pid), false); assert.equal(pidAlive(pids.child), false);
     } finally {
       if (caller.exitCode === null && caller.signalCode === null) caller.kill('SIGKILL');
-      if (pids) for (const pid of [pids.pid, pids.child]) {
-        if (pidAlive(pid)) { try { process.kill(pid, 'SIGKILL'); } catch {} }
-      }
+      // Descendants are stopped by identity-checked fixture teardown.
     }
   });
 });

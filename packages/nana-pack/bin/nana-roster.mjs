@@ -61,6 +61,7 @@ function claudeCodeEntryProblem(slot, value) {
   if (!CLAUDE_CODE_SUBAGENT_MODELS.includes(value.model)) {
     return `roster.${slot}.model must be one of the Claude Code subagent model names (got ${JSON.stringify(value.model)})`;
   }
+  if ('effort' in value && slot !== 'reviewer') return `roster.${slot}.effort is only supported on reviewer`;
   if ('effort' in value && !CLAUDE_EFFORT_LEVELS.includes(value.effort)) {
     return `roster.${slot}.effort must be one of ${CLAUDE_EFFORT_LEVELS.join(', ')} (got ${JSON.stringify(value.effort)})`;
   }

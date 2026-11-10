@@ -60,7 +60,7 @@ function layout(dir,runGit) {
  gitText(runGit,dir,['add','--',L.marker,'.gitattributes','readme.md',L.records,L.events]);
  gitText(runGit,dir,['commit','-m','Initialize private profile']);
 }
-export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=process.cwd(),runGit=profileGit(env),runGh=ghFromEnvironment(env,{timeoutMs:PROFILE_GIT_TIMEOUT_MS}),now=()=>new Date(),log=console.log,error=console.error}={}) {
+export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=process.cwd(),runGit=profileGit(env),runGh=ghFromEnvironment(env,{timeoutMs:PROFILE_GIT_TIMEOUT_MS}),now=()=>new Date(),log=console.log,error=console.error,home=homedir(),platform=process.platform,realpath=fs.realpathSync.native}={}) {
  try {
   if(env.NANA_ROLE!==undefined) throw Error(W.role);
   const p=parse(args);
@@ -128,9 +128,36 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
   const message=String(e?.message??''); const known=Object.values(W).some(v=>typeof v==='string'&&v===message)||W.reasons.some(r=>message===`${W.notPushed}${r}`);
   error(known?message:W.git);
   if(e?.detail) {
-   const home=homedir();
-   const detail=String(e.detail).replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s/]*@/gi, match=>match.slice(0,match.indexOf('://')+3));
-   error(detail.split(home).join('~').split(home.replaceAll('\\','/')).join('~'));
+   let detail=String(e.detail)
+    .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s/]*@/gi, match=>match.slice(0,match.indexOf('://')+3))
+    .replace(/([?&][^\s?&#=]*(?:token|key|secret|password)[^\s?&#=]*=)[^\s&#]*/gi,'$1');
+   const homes=new Set(home?[home]:[]);
+   if(home&&platform==='win32') {
+    try {
+     const native=realpath(home),canonical=native.replaceAll('\\','/').toLowerCase();
+     homes.add(native);
+     // A log can use an 8.3 alias even when HOME already has its long spelling.
+     const depth=canonical.split('/').filter(Boolean).length-1;
+     if(depth>0) {
+      const prefix=new RegExp(`\\b[a-z]:[\\\\/](?:[^\\\\/\\r\\n]+[\\\\/]){${depth-1}}[^\\\\/\\s]+`,'gi');
+      detail=detail.replace(prefix,candidate=>{
+       try {if(realpath(candidate).replaceAll('\\','/').toLowerCase()===canonical) return '~';}catch {}
+       return candidate;
+      });
+     }
+    }catch {}
+   }
+   for(const spelling of [...homes]) {
+    if(!spelling) continue;
+    const forward=spelling.replaceAll('\\','/');
+    homes.add(forward);
+    if(platform==='win32') homes.add(forward.replace(/^([a-z]):\//i,'/$1/'));
+   }
+   for(const spelling of [...homes].filter(Boolean).sort((a,b)=>b.length-a.length)) {
+    const escaped=spelling.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    detail=detail.replace(new RegExp(escaped,platform==='win32'?'gi':'g'),'~');
+   }
+   error(detail);
   }
   return 1;
  }

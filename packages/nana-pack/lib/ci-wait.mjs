@@ -218,6 +218,14 @@ export async function waitForMainCi(options={}) {
     if(run.status!==CI_DONE_STATUS) {pending=true;continue;}
     state.waiting=false;
     const jobs=ciRunJobs(run,{...options,repository,budget:b,latest:true});
+    if(run.run_attempt>1 && !state.failures.size && !state.recovered) {
+     const first={...run,run_attempt:1};
+     const prior=ciRunJobs(first,{...options,repository,budget:b});
+     for(const job of prior.filter(job=>job.run_attempt===1&&job.status===CI_DONE_STATUS&&![CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion))) {
+      state.failures.set(job.name,logFiles(first,job,repository));
+     }
+     state.recovered=true;
+    }
     for(const [name,files] of state.failures) {
      const job=jobs.find(job=>job.name===name);
      if(job?.status===CI_DONE_STATUS&&job.conclusion===CI_PASS_CONCLUSION) {

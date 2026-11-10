@@ -88,6 +88,13 @@ await check('M2: capacity retries wait for attempt advancement and stop after tw
  const two=fake({runs:n=>[n<3?cancelled():workflowRun({run_attempt:2}),n<5?cancelled(1,{workflow_id:2,id:202,name:'other'}):workflowRun({workflow_id:2,id:202,name:'other',run_attempt:2})]});const both=await waitForCi(two.options);assert.equal(both.code,0,both.text);assert.equal(two.reruns().length,2);
 });
 
+// req: R-4000
+await check('R-4000: UNKNOWN readiness at an unchanged head permits the capacity rerun',async()=>{
+ const {waitForCi}=await api();let reads=0;
+ const f=fake({prs:()=>[pr({mergeable:++reads===1?'MERGEABLE':'UNKNOWN'})],runs:n=>[n===1?cancelled():workflowRun({run_attempt:2})]});
+ const out=await waitForCi(f.options);assert.equal(out.code,0,out.text);assert.equal(f.reruns().length,1);assert.equal(reads,2);
+});
+
 // req: R-3722
 await check('M3: real PR job lists distinguish advisory Linux failure from blocking failures and partial data',async()=>{
  const {classifyRun,waitForCi}=await api();
@@ -175,7 +182,12 @@ function mainWaitFake({id=101,fail=true,persistent=false,extraPending=false,abse
    return {status:0,stdout:''};
   }
   const endpoint=args.at(-1);let body;
-  if(endpoint.includes('/jobs?')) {const list=endpoint.includes('/runs/202/')?[{name:'check',status:'completed',conclusion:'success',run_attempt:1}]:latestJobs();body={total_count:list.length,jobs:list};}
+  if(endpoint.includes('/jobs?')) {
+   const saved=attempt;
+   if(endpoint.includes('/attempts/1/')) attempt=1;
+   const list=endpoint.includes('/runs/202/')?[{name:'check',status:'completed',conclusion:'success',run_attempt:1}]:latestJobs();
+   attempt=saved;body={total_count:list.length,jobs:list};
+  }
   else if(endpoint.includes('/artifacts?')) body={artifacts:['macos-latest','ubuntu-latest','windows-latest'].map((leg,i)=>({id:i+1,name:`suite-record-${leg}-${attempt}`}))};
   else {
    reads++;
@@ -222,6 +234,13 @@ await check('M11: recorded main rerun prints recovery and restart never requests
  const out=await waitForMainCi(recovered.options);assert.equal(out.code,0,out.text);
  assert.match(out.text,/green after rerun/);assert.match(out.text,/flake: packages\/nana-pack\/tests\/profile-store.test.mjs/);
  console.log(out.text.trim());
+ const greenRestart=mainWaitFake({id:42718705179,startAttempt:2,log:'FAIL packages/nana-pack/tests/profile-store.test.mjs\r\n'});
+ const resumed=await waitForMainCi(greenRestart.options);assert.equal(resumed.code,0,resumed.text);
+ assert.equal(greenRestart.calls.filter(a=>a[1]==='rerun').length,0);
+ assert.match(resumed.text,/flake: packages\/nana-pack\/tests\/profile-store.test.mjs/);
+ assert(greenRestart.calls.some(a=>a.at(-1).includes('/attempts/1/jobs?')));
+ const kept=readSuiteRecords({root:greenRestart.root,runGit:greenRestart.runGit,subpath:CI_STORE_SUBPATH});
+ assert.equal(kept[0].flake.file,'packages/nana-pack/tests/profile-store.test.mjs');
  const restarted=mainWaitFake({id:42718705179,startAttempt:2,persistent:true});
  const red=await waitForMainCi(restarted.options);assert.equal(red.code,1,red.text);
  assert.equal(restarted.calls.filter(a=>a[1]==='rerun').length,0);console.log('restart at attempt 2: 0 reruns');
