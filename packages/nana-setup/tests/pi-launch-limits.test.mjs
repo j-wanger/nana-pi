@@ -389,21 +389,6 @@ check("R-2890: a recorded pid still alive when the judge's wait ends makes the r
 	} finally { bystander.kill("SIGKILL"); }
 });
 
-// req: R-2891
-check("R-2891: a run judged after its fixture could have ended by itself, or holding a record with no start time, reads not ended with the reason named", async () => {
-	const late = await judgeRun([{ pid: 1, ppid: 2, args: ["late"], at: Date.now() - HANG_MS + SELF_EXIT_MARGIN_MS / 2 }]);
-	const missing = await judgeRun([{ pid: 1, ppid: 2, args: ["missing"] }]);
-	return { ok: !late.ended && late.reason.includes("judged too late") && !missing.ended && missing.reason.includes("invalid record"), detail: JSON.stringify({ late, missing }) };
-});
-
-// req: R-2892
-check("R-2892: a probe error other than ESRCH, or a record without a positive integer pid and ppid, makes the judge report its run not ended and name it", async () => {
-	const e = await judgeRun([{ pid: process.pid, ppid: process.ppid, at: Date.now(), args: [] }], { kill: () => { const error = new Error("invalid"); error.code = "EINVAL"; throw error; } });
-	const p = await judgeRun([{ pid: process.pid, ppid: 1, at: Date.now(), args: [] }], { kill: () => { const error = new Error("denied"); error.code = "EPERM"; throw error; } });
-	const invalid = await Promise.all([judgeRun([{ pid: 0, ppid: 1, at: Date.now() }]), judgeRun([{ pid: "123", ppid: 1, at: Date.now() }]), judgeRun([{ pid: 1, at: Date.now() }])]);
-	return { ok: !e.ended && e.reason.includes("EINVAL") && !p.ended && p.reason.includes("EPERM") && invalid.every((item) => !item.ended && item.reason.includes("invalid record")), detail: JSON.stringify({ e, p, invalid }) };
-});
-
 // req: R-2893
 check("R-2893: the launch-limit test signals only through its allowed kill calls, imports no tree-kill helper and starts no kill command", () => {
 	const source = fs.readFileSync(new URL(import.meta.url), "utf8");

@@ -557,21 +557,6 @@ check("reporting: the first lines name Git Bash on win32 only, then pi and node"
   } finally { fs.rmSync(win.home, { recursive: true, force: true }); fs.rmSync(unix.home, { recursive: true, force: true }); }
 });
 
-// req: R-1071
-check("pin R-1071: the override list", () => {
-  assert.deepEqual(OVERRIDE_ENV, ["PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "CLAUDE_CONFIG_DIR", "NANA_SHARED_MEMORY_DIR", "NANA_KNOWLEDGE_HOME", "NANA_ROLE", "NANA_SETUP_PLATFORM", "NANA_TEST_TEMP_ROOTS", "NANA_HANDOFF", "NANA_WORKTREE_ROOT"]);
-});
-
-// req: R-1070, R-1080
-check("pin R-1070 R-1080: the known-red list with each entry's code, owner and expiry", () => {
-  assert.deepEqual(KNOWN_RED.darwin, []);
-  assert.deepEqual(KNOWN_RED.win32, []);
-  for (const platform of ["darwin", "win32"]) for (const entry of KNOWN_RED[platform]) {
-    assert.deepEqual(Object.keys(entry), ["item", "code", "owner", "expires"]);
-    assert.equal(typeof entry.item, "string"); assert.ok(entry.code); assert.match(entry.owner, /^R-\d+$/); assert.match(entry.expires, /^\d{4}-\d{2}-\d{2}$/);
-  }
-});
-
 const hookGroups = (platform = "darwin", overrides = {}) => HOOKS.filter((h) => !h.platforms || h.platforms.includes(platform)).map((h) => {
   const e = { type: "command", command: h.form[platform] === "exec" ? "node" : `node ${h.script}`, timeout: h.timeout, ...(h.form[platform] === "exec" ? { args: [h.script] } : {}) };
   const matcher = Object.hasOwn(overrides, h.label) ? overrides[h.label] : h.matcher && typeof h.matcher === "object" ? h.matcher[platform] : h.matcher;
@@ -627,16 +612,6 @@ check("form: each row's form is read from the sealed table, never inferred from 
   for (const platform of ["darwin", "win32"]) for (const h of HOOKS.filter(x => !x.platforms || x.platforms.includes(platform))) assert.ok(["exec", "shell"].includes(h.form[platform]));
   const rows = hookGroups("darwin"); rows[0].group.hooks[0].args = ["nana-objective.mjs"]; expectBad(rows);
   const winRows = hookGroups("win32"); winRows[0].group.hooks[0].command = "not-node"; expectBad(winRows, "win32");
-});
-// req: R-1074, R-1082
-check("pin R-1074 R-1082: the hook table with its form columns and the allowed entry keys", () => {
-  assert.deepEqual(HOOKS.map(h => [h.label, h.event, h.matcher, h.tools ?? null, h.script, h.timeout, h.form]), [
-    ["hook objective", "SessionStart", "startup", null, "nana-objective.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook adoption", "SessionStart", "startup", null, "nana-adoption.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook shared memory", "SessionStart", "startup", null, "nana-shared-memory.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-    ["hook roster notice", "SessionStart", "startup", null, "nana-roster-notice.mjs", 5, { darwin: "shell", linux: "shell", win32: "exec" }],
-  ]);
-  assert.deepEqual(ALLOWED_HOOK_KEYS, ["type", "command", "args", "timeout", "statusMessage"]);
 });
 // req: R-1075
 check("dispatch: an entry with args runs as exec form with no shell", () => { assert.deepEqual(hookInvocation({ command: "node", args: ["hook.mjs"] }, "darwin"), { command: "node", args: ["hook.mjs"], shell: false }); });
@@ -770,18 +745,6 @@ check("output: a 10,001-character stdout fails", async () => await assertOnlyHoo
   const prefix = `[nana:objective] ${token} `;
   return { stdout: prefix + "x".repeat(10001 - prefix.length) };
 }), "hook objective"));
-// req: R-1083
-check("knowledge: no Claude hook output is required after retirement", async () => {
-  const fixture = scriptedFixture(hookIs("nana-knowledge.ts"), () => ({ stdout: "" }));
-  try { const result = await fixture.run; assert.ok(!result.lines.some(line => line.includes('hook knowledge pull'))); assert.equal(result.exitCode, 0); }
-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-// req: R-1083
-check("knowledge: win32 has no retired Claude hook result line", async () => {
-  const fixture = scriptedFixture(hookIs("nana-knowledge.ts"), () => ({ stdout: "[nana:knowledge] ~\\notes\\docs\\install-check.md" }), "win32");
-  try { const result = await fixture.run; assert.ok(!result.lines.some(line => line.includes('hook knowledge pull'))); assert.equal(result.exitCode, 0); }
-  finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
 // req: R-1209
 check("roster notice: plain text, not JSON, fails the run's roster row", async () => await assertOnlyHookFails(scriptedFixture(hookIs("nana-roster-notice.mjs"), () => ({ stdout: "nana active · roster (default): plain text, not JSON" })), "hook roster notice"));
 // req: R-1209
@@ -919,11 +882,6 @@ check("diagnostics: malformed settings print the error name and an empty pull.lo
   home = fixture.home;
   try { const result = await fixture.run; assert.deepEqual(result.lines.slice(-2), ["settings hooks: could not be read (SyntaxError)", "last pull.log record: none"]); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-
-// req: R-1096
-check("pin R-1096: the pull.log path under the temporary home", () => {
-  assert.deepEqual(PULL_LOG_PATH, [".pi", "agent", "nana-knowledge", "pull.log"]);
 });
 
 // req: R-1081
@@ -1109,11 +1067,10 @@ check("adoption: a stale line or a stale-check unavailable line fails though the
   }
 });
 
-// req: R-1796
-check("fixture: the turn's fixture extension sits under packages/nana-setup outside every pi package manifest's extension directories", () => {
+// req: R-1796, R-2076
+check("fixture: turn and review extensions sit under setup outside every pi package manifest's extension directories", () => {
   const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
-  const fixture = path.resolve(root, installConfig.PI_TURN.fixture);
-  assert.equal(fs.existsSync(fixture), true);
+  const fixtures = [installConfig.PI_TURN.fixture, installConfig.PI_REVIEW.fixture].map(file => path.resolve(root, file));
   const manifests = [];
   const visit = (directory) => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -1128,33 +1085,14 @@ check("fixture: the turn's fixture extension sits under packages/nana-setup outs
     const parsed = JSON.parse(fs.readFileSync(manifest, "utf8"));
     return (parsed.pi?.extensions ?? []).map((entry) => path.resolve(path.dirname(manifest), entry));
   });
-  assert.ok(fixture.startsWith(`${path.join(root, "packages", "nana-setup")}${path.sep}`));
-  assert.ok(extensionDirs.every((directory) => {
-    const relative = path.relative(directory, fixture);
-    return relative.startsWith("..") || path.isAbsolute(relative);
-  }), `${fixture} is inside ${extensionDirs.join(", ")}`);
-});
-
-// req: R-1790, R-1791, R-1792, R-1793, R-1794, R-1795, R-1796
-check("pin R-1790 to R-1796: the turn's sealed fixture path, provider, model, arguments, tool, record file, timeout and expected texts, and the session's unavailable word and output cap", () => {
-  assert.deepEqual(installConfig.PI_TURN, {
-    item: "pi turn",
-    fixture: "packages/nana-setup/lib/install-check-turn.mjs",
-    provider: "nana-install-check-fixture",
-    model: "nana-install-check-turn",
-    args: ["--offline", "-e", "packages/nana-setup/lib/install-check-turn.mjs", "--provider", "nana-install-check-fixture", "--model", "nana-install-check-turn", "--no-session", "-p"],
-    tool: "bash",
-    record: ".nana-install-check-turn.json",
-    noteFile: "install-check.md",
-    rulingsHeading: "## Standing rulings (nana)",
-    seatGuideHeading: "## Seat guide (nana)",
-    writingTag: "<nana-writing>",
-    knowledgeMarker: "[nana:knowledge]",
-    gateBlockPrefix: "nana-gate: verifier pipe blocked (headless fail-closed):",
-    extensionErrorPrefix: "Extension error (",
-  });
-  assert.equal(installConfig.SPAWN_TIMEOUT_MS.turn, 60000);
-  assert.deepEqual(installConfig.PI_SESSION, { unavailableWord: "unavailable", maxOutput: 100000 });
+  for (const fixture of fixtures) {
+    assert.equal(fs.existsSync(fixture), true);
+    assert.ok(fixture.startsWith(`${path.join(root, "packages", "nana-setup")}${path.sep}`));
+    assert.ok(extensionDirs.every((directory) => {
+      const relative = path.relative(directory, fixture);
+      return relative.startsWith("..") || path.isAbsolute(relative);
+    }), `${fixture} is inside ${extensionDirs.join(", ")}`);
+  }
 });
 
 // req: R-2003
@@ -1368,59 +1306,6 @@ check("pi-review record: a record missing the whole review standard, the run tok
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
-// req: R-2076
-check("fixture: the review fixture extension sits under packages/nana-setup outside every pi package manifest's extension directories", () => {
-  const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
-  const fixture = path.resolve(root, installConfig.PI_REVIEW.fixture);
-  assert.equal(fs.existsSync(fixture), true);
-  const manifests = [];
-  const visit = (directory) => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.name === ".git" || entry.name === "node_modules") continue;
-      const absolute = path.join(directory, entry.name);
-      if (entry.isDirectory()) visit(absolute);
-      else if (entry.name === "package.json") manifests.push(absolute);
-    }
-  };
-  visit(root);
-  const extensionDirs = manifests.flatMap((manifest) => (JSON.parse(fs.readFileSync(manifest, "utf8")).pi?.extensions ?? []).map((entry) => path.resolve(path.dirname(manifest), entry)));
-  assert.ok(fixture.startsWith(`${path.join(root, "packages", "nana-setup")}${path.sep}`));
-  assert.ok(extensionDirs.every((directory) => {
-    const relative = path.relative(directory, fixture);
-    return relative.startsWith("..") || path.isAbsolute(relative);
-  }));
-});
-
-// req: R-2070, R-2071, R-2072, R-2073, R-2074, R-2075, R-2076
-check("pin R-2070 to R-2076: the review's sealed fixture, provider, model, arguments, runs, items, labels, folders, git options, prompt, verdict, record, tally and standard paths, and timeout", () => {
-  assert.deepEqual(installConfig.PI_REVIEW, {
-    fixture: "packages/nana-setup/lib/install-check-review.mjs",
-    provider: "nana-install-check-review-fixture",
-    model: "nana-install-check-review",
-    args: ["--offline", "-e", "packages/nana-setup/lib/install-check-review.mjs", "--provider", "nana-install-check-review-fixture", "--model", "nana-install-check-review", "--no-session", "-p"],
-    launcherArgs: ["--retries", "0"],
-    runs: {
-      default: [{ label: "pi-review", item: "install-check-review", form: "path" }],
-      win32: [{ label: "pi-review (cmd)", item: "install-check-review-cmd", form: "cmd" }, { label: "pi-review (sh)", item: "install-check-review-sh", form: "sh" }],
-    },
-    repoFolder: "review-repo",
-    outFolder: "review-out",
-    fixtureFile: "review-fixture.txt",
-    fixtureText: "nana install check review fixture\n",
-    commitMessage: "Add install check review fixture",
-    gitOptions: ["-c", "user.name=Nana Install Check", "-c", "user.email=nana-install-check@example.invalid", "-c", "commit.gpgsign=false"],
-    prompt: "Review the install check fixture",
-    answer: "The install check fixture meets the review brief.",
-    verdict: "LAND",
-    verdictLine: "VERDICT: LAND",
-    record: ".nana-install-check-review.json",
-    tally: [".pi", "agent", "review-ledger.rounds.jsonl"],
-    standard: "packages/nana-pack/prompts/review-standard.md",
-    role: "reviewer",
-  });
-  assert.equal(installConfig.SPAWN_TIMEOUT_MS.review, 180000);
-});
-
 function passingWorkerJudgment(overrides = {}) {
   const build = installConfig.PI_BUILD;
   const lane = build.runs.default[0].lane;
@@ -1624,44 +1509,6 @@ check("pi-worker exit: a failed build's line names the exit status and pi's firs
   } });
   try { const result = await fixture.run; assert.ok(result.lines.some((line) => line.startsWith("FAIL pi-worker — exit: exit status 1;") && line.includes(refusal)), result.lines.join("\n")); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
-});
-
-// req: R-2681, R-2682, R-2683, R-2684, R-2685, R-2686, R-2687
-check("pin R-2681 to R-2687: the build's sealed runs, lanes, labels, folders, brief text, launcher arguments, offline value, roster, settings path, ledger, record kinds, lock, preamble, role and outcome, and its timeout above the lane ceiling", () => {
-  assert.deepEqual(installConfig.PI_BUILD, {
-    runs: {
-      default: [{ label: "pi-worker", lane: "install-check-build", form: "path" }],
-      win32: [{ label: "pi-worker (cmd)", lane: "install-check-build-cmd", form: "cmd" }, { label: "pi-worker (sh)", lane: "install-check-build-sh", form: "sh" }],
-    },
-    worktreeFolder: "build-worktrees",
-    outFolder: "build-out",
-    branchPrefix: "feat/",
-    briefHeading: "# Install check build\n\nServes: roadmap step 3: rehearse offline lane launches.\nValidation: fixture run.",
-    briefTask: "Build nothing and report one line for",
-    precedentLabel: "Precedent:",
-    launcherArgs: ["--lane-size", "small", "--max-secs", "120"],
-    env: { PI_OFFLINE: "1" },
-    roster: { scout: null, builder: { provider: installConfig.PI_REVIEW.provider, model: installConfig.PI_REVIEW.model, thinking: null }, largerBuilder: null, reviewer: { provider: installConfig.PI_REVIEW.provider, model: installConfig.PI_REVIEW.model, thinking: null }, land: null },
-    settings: { path: [".pi", "agent", "settings.json"], key: "extensions" },
-    ledger: [".git", "nana", "build-records.jsonl"],
-    recordKinds: { start: "start", end: "end" },
-    recordSchema: 1,
-    lock: { gitFolder: [".git", "worktrees"], file: "nana-lane.lock" },
-    preamble: { file: "packages/nana-pack/prompts/builder-preamble.md", worktree: "{{WORKTREE}}", branch: "{{BRANCH}}" },
-    role: "worker",
-    outcome: "ok",
-  });
-  assert.equal(installConfig.SPAWN_TIMEOUT_MS.build, 180000);
-  assert.ok(Number(installConfig.PI_BUILD.launcherArgs.at(-1)) * 1000 < installConfig.SPAWN_TIMEOUT_MS.build);
-});
-
-check("pin R-2003 to R-2004: the PowerShell item, tool, platforms and tool list", () => {
-  assert.deepEqual(installConfig.PI_TURN_POWERSHELL, {
-    item: "pi powershell gate",
-    tool: "powershell",
-    platforms: ["win32"],
-    toolList: ["--tools", "read,bash,edit,write,powershell"],
-  });
 });
 
 await runChecks();

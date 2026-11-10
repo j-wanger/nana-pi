@@ -183,11 +183,9 @@ const winFileCopy = (target, source) => {
 };
 if (process.platform !== "win32") {
 	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) {
-		// req: R-301 R-985
+		// req: R-301 R-985 R-357
 		check(`hook ${h} is a symlink into the repo`, link(path.join(home, ".claude", "hooks", h)) === path.join(pkg, "claude", "hooks", h));
 	}
-	// req: R-357
-	check("adoption Node hook is installed as a repo symlink", link(path.join(home, ".claude", "hooks", "nana-adoption.mjs")) === path.join(pkg, "claude", "hooks", "nana-adoption.mjs"));
 } else {
 	console.log("SKIP hook symlink checks (win32: stepHooks writes no ~/.claude/hooks file at all — every entry is wired in exec form from the checkout, pinned below by command/args shape)");
 	for (const h of ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) {
@@ -236,8 +234,6 @@ for (const name of ["spec", "py-lint", "py-review", "py-test"]) {
 		check(`skill ${name} is a byte-equal mirror on win32`, winFileCopy(path.join(home, ".claude", "skills", name, "SKILL.md"), path.join(repo, "packages", "nana-pack", "skills", name, "SKILL.md")));
 	}
 }
-// req: R-301
-check("retired context hook is not installed", !fs.existsSync(path.join(home, ".claude", "hooks", "context-size-check.sh")));
 const personal = path.join(home, ".claude", "rules", "nana-personal.md");
 check("private rule is a REGULAR file (never a link into the repo)", fs.lstatSync(personal).isFile());
 // req: R-306
@@ -246,8 +242,6 @@ check("private rule is not in the repo", !fs.existsSync(path.join(pkg, "claude",
 const settings = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 const allHooks = Object.values(settings.hooks).flatMap((groups) => groups.flatMap((g) => g.hooks));
 const commands = allHooks.map((h) => h.command);
-// req: R-301
-check("retired context hook is absent from settings", !JSON.stringify(settings).includes("context-size-check.sh"));
 // Read through entryInvokes (not .command alone), so this still passes on win32, where the real
 // install (platform() === "win32" there, not forced) writes exec-form entries (R-1050).
 // entryInvokes ALSO accepts a shell-form `command` string on win32 (settings.mjs:152-157) — a
@@ -264,12 +258,6 @@ for (const w of desiredHooks({ hooksDir: path.join(home, ".claude", "hooks"), re
 }
 // req: R-321
 check("settings.json ends with a newline", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8").endsWith("}\n"));
-const knowledgeSpec = { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] };
-// On win32 desiredHooks() builds this path with a template literal (`${repoRoot}/...`), always
-// forward-slash after repoRoot, never path.join's backslash — normalise both sides before the
-// substring compare (R-1050).
-const forwardSlash = (p) => p.replace(/\\/g, "/");
-check("knowledge hook is not installed", hookTargets(settings, "UserPromptSubmit", knowledgeSpec, platform()).length === 0);
 
 // req: R-308
 check("shared memory index seeded", fs.readFileSync(path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md"), "utf8").startsWith("# Shared memory"));

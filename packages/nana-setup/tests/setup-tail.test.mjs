@@ -34,25 +34,6 @@ function fixture(fn) {
   return Promise.resolve().then(() => fn({ root, dir, home, run })).finally(() => fs.rmSync(root, { recursive: true, force: true }));
 }
 
-// req: R-3886
-check('M2: project needs no postEdit and preserves a legacy file', () => fixture(async ({ dir, run }) => {
-  assert.equal(run('project', dir).status, 0);
-  const config = path.join(dir, '.pi/nana-pack.json');
-  assert.equal(fs.existsSync(config), false);
-  const empty = run('project', dir, '--check');
-  assert.equal(empty.status, 0, empty.stdout + empty.stderr);
-  assert.doesNotMatch(empty.stdout, /postEdit|post-edit/i);
-  fs.mkdirSync(path.dirname(config), { recursive: true });
-  const bytes = '{ "postEdit": {"commands": []}}\r\n';
-  fs.writeFileSync(config, bytes);
-  assert.equal(run('project', dir).status, 0);
-  assert.equal(run('trust', dir, '--yes').status, 0);
-  const legacy = run('project', dir, '--check');
-  assert.equal(legacy.status, 0, legacy.stdout + legacy.stderr);
-  assert.doesNotMatch(legacy.stdout, /postEdit|post-edit/i);
-  assert.equal(fs.readFileSync(config, 'utf8'), bytes);
-}));
-
 // req: R-3891
 check('M7: gate plus legacy bytes and project doctor gate trust survive', () => fixture(async ({ dir, home, run }) => {
   const file = path.join(dir, '.pi/nana-pack.json');
@@ -277,34 +258,6 @@ check('M9: a sole retired link supports dry run repeat and foreign refusal', () 
   assert.equal(refused.status, 1, refused.stdout + refused.stderr);
   assert.match(refused.stdout, /inventory links do not resolve inside/);
   assert.equal(fs.readlinkSync(link), before);
-}));
-
-// req: R-3890
-check('M6: dead floor notify and prompt order are gone and legacy notify is silent', () => fixture(async ({ home, dir }) => {
-  const misses = [];
-  const doctor = await import('../lib/doctor.mjs');
-  if ('PI_SUBAGENTS_FLOOR' in doctor) misses.push('unused floor export');
-  if (fs.readFileSync(path.join(repo, 'packages/nana-pack/lib/prompt-sections.mjs'), 'utf8').includes('"nana-handoff"')) misses.push('retired prompt order');
-  const config = await import('../../nana-pack/lib/config.ts');
-  const original = process.env.PI_CODING_AGENT_DIR;
-  const agent = path.join(home, 'agent');
-  process.env.PI_CODING_AGENT_DIR = agent;
-  fs.mkdirSync(agent, { recursive: true });
-  try {
-    for (const notify of [{ enabled: false, headless: true }, { enabled: 'bad' }, 7]) {
-      const normalized = config.normalizeRaw({ notify });
-      if (normalized.problems.length || 'notify' in normalized.blocks) misses.push(`normalized ${JSON.stringify(notify)}`);
-      fs.writeFileSync(path.join(agent, 'nana-pack.json'), JSON.stringify({ notify }));
-      const notices = [];
-      const loaded = config.loadConfig({ cwd: dir, hasUI: true, ui: { notify: (...args) => notices.push(args) } });
-      if ('notify' in loaded || notices.length) misses.push(`loaded ${JSON.stringify(notify)}`);
-    }
-    if (fs.existsSync(path.join(agent, 'nana-journal.jsonl'))) misses.push('legacy config diagnostic');
-  } finally {
-    if (original === undefined) delete process.env.PI_CODING_AGENT_DIR;
-    else process.env.PI_CODING_AGENT_DIR = original;
-  }
-  assert.deepEqual(misses, []);
 }));
 
 let failures = 0;

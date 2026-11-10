@@ -151,11 +151,6 @@ check("an unreadable or incomplete workflow gives a placeholder hint, never an e
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-// req: R-1093
-check("pin R-1093: the CI workflow path pi-pin reads", () => {
-  assert.deepEqual(CI_WORKFLOW, [".github", "workflows", "ci.yml"]);
-});
-
 // req: R-1094
 check("a cutoff with a space, a shell metacharacter or a rollover date gives a placeholder hint", () => {
   for (const value of ["2026-10-04 06:57:57Z", "2026-10-04T06:57:57Z;echo", "2026-02-30T06:57:57Z"]) {

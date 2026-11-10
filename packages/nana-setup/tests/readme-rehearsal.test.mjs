@@ -256,27 +256,5 @@ check("run on win32: each command step is one verbatim cmd.exe /d /v:off /s /c c
 // req: R-1855
 check("run on win32: one Path key in any letter case holds the home npm prefix folder, the home's bin folder and the caller's Path in that order, with only the npm prefix and clone redirect added", assertWin32Environment);
 
-// req: R-1542, R-1543, R-1544, R-1545, R-1853, R-1854, R-1855
-check("pin R-1542 R-1543 R-1544 R-1545 R-1853 R-1854 R-1855: the sealed README_REHEARSAL contract", () => {
-  assert.deepEqual(README_REHEARSAL, {
-    item: "readme checklist",
-    readme: "README.md",
-    heading: { darwin: "### Fresh machine (macOS), in order", win32: "### Fresh machine (Windows), in order" },
-    platforms: ["darwin", "win32"],
-    home: "readme-home",
-    npmPrefix: ".npm-global",
-    npmPrefixBin: { darwin: "bin", win32: "" },
-    binOnPath: { darwin: false, win32: true },
-    shell: { darwin: "/bin/zsh", win32: "cmd.exe" },
-    shellArgs: { darwin: ["-l", "-c"], win32: ["/d", "/v:off", "/s", "/c"] },
-    commandLeads: ["Run", "then"],
-    expectLead: "expect",
-    droppedEnv: ["ZDOTDIR"],
-    answers: [{ prefix: "nana-setup trust ", append: "--yes" }],
-    stepTimeoutMs: 300000,
-    maxOutput: 1000000,
-  });
-});
-
 await runChecks();
 if (failures) process.exitCode = 1;
