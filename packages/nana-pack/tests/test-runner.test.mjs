@@ -663,13 +663,13 @@ const testRoots = [
 const tempFiles = testRoots.flatMap((dir) => fs.existsSync(dir)
 	? fs.readdirSync(dir).filter((name) => name.endsWith(".mjs") && name !== "tmp-dir.mjs").map((name) => path.join(dir, name))
 	: []);
-const tempSourceOk = tempFiles.every((file) => {
+const tempSourceOffenders = tempFiles.filter((file) => {
 	const source = fs.readFileSync(file, "utf8");
-	return !/\b(?:fs\.)?mkdtempSync\s*\(/.test(source)
-		&& (!/\btmpDir\s*\(/.test(source) || source.includes('import { tmpDir } from "./tmp-dir.mjs";'));
-});
+	return /\b(?:fs\.)?mkdtempSync\s*\(/.test(source)
+		|| (/\btmpDir\s*\(/.test(source) && !/import\s*\{\s*tmpDir\s*\}\s*from\s*(['"])\.\/tmp-dir\.mjs\1\s*;?/.test(source));
+}).map((file) => path.relative(REPO, file));
 // req: R-917
-check("the source check detects direct mkdtemp calls while ignoring only generated leak fixtures", tempSourceOk);
+check("the source check detects direct mkdtemp calls while ignoring only generated leak fixtures", tempSourceOffenders.length === 0, tempSourceOffenders.join(", "));
 const helperProbe = path.join(TD, "helper-probe.txt");
 const helperRun = spawnSync(process.execPath, ["--input-type=module", "-e", [
 	`import { tmpDir } from ${JSON.stringify(new URL("./tmp-dir.mjs", import.meta.url).href)};`,
