@@ -352,14 +352,17 @@ await check('stop during base checkout add lets git finish before removing its w
       added = true;
       // Abort exactly at the add boundary; it must not interrupt git's locked metadata transaction.
       controller.abort('SIGTERM');
-      assert.equal(options.signal, undefined);
+      assert.equal(options.signal, undefined, 'base checkout add: git must not receive the abort signal');
     }
     return boundedSpawn(command, args, options);
   };
   const result = await checkLane({ cwd: lane, env, base, signal: controller.signal, run });
-  assert.equal(added, true); assert.equal(result.status, 'stopped'); assert.equal(result.cleanupError, undefined);
+  assert.equal(added, true, 'base checkout add: add boundary was reached');
+  assert.equal(result.status, 'stopped', 'base checkout add: check status');
+  assert.equal(result.cleanupError, undefined, 'base checkout add: cleanup error');
   const trees = spawnSync('git', ['worktree', 'list', '--porcelain'], { cwd: repo, env, encoding: 'utf8', timeout: 10000 });
-  assert.equal(trees.status, 0); assert.equal((trees.stdout.match(/^worktree /gm) ?? []).length, 2);
+  assert.equal(trees.status, 0, `base checkout add: worktree list failed: ${trees.stderr}`);
+  assert.equal((trees.stdout.match(/^worktree /gm) ?? []).length, 2, 'base checkout add: only main and lane worktrees remain');
 }, red));
 
 // req: R-3997

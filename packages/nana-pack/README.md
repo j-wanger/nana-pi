@@ -409,7 +409,7 @@ reports and failing diagnostics remain in the output file. A second failure ends
 build; `red-on-base` and `error` never resume. A missing session file or a Claude Code
 builder stays run-and-report only; this path does not create a replacement session.
 
-A stop signal during checks kills their process tree and waits for the async relay
+A stop signal during checks kills their process tree (the tip/base stop test is skipped on Windows after CI run 42794109537; that platform's claim is not yet verified) and waits for the async relay
 to exit before cleanup and the end record, bounded by the relay's signal grace plus
 backstop from `packages/nana-setup/lib/bounded-spawn.mjs`. If that bound expires, the
 end record's `laneChecks.relayExitError` and stderr's `pi-worker: lane checks relay: <detail>`
