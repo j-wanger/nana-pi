@@ -1,6 +1,0 @@
-requirements: 2591 total (2195 implemented · 7 planned · 233 retired · 151 untested · 5 violated); 2202 traced by tests
-ears: 0 rows off form (allowance 0)
-(node:6154) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://~/nana-pi-wt/review-paperwork/templates/typescript/template/tests/requirements-trace.ts is not specified and it doesn't parse as CommonJS.
-Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
-To eliminate this warning, add "type": "module" to ~/nana-pi-wt/review-paperwork/package.json.
-(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,6 +1,0 @@
-PASS  packages/nana-pack/tests/setup-retire.test.mjs                3 pass  25.1s
-PASS  packages/nana-setup/tests/install-check-builder-env.test.mjs  3 pass  0.7s
-PASS  packages/nana-setup/tests/install-check.test.mjs              126 pass  0.9s
-PASS  packages/nana-setup/tests/win32-degrade.test.mjs              78 pass  5.6s
-
-4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 210 pass, 0 fail, 0 skip · 32.7s

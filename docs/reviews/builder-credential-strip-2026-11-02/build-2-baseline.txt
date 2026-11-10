@@ -1,9 +1,0 @@
-command: node <temp>\credential-baseline-t3HcGO\scripts\test.mjs packages/nana-pack/tests/context-anatomy.test.mjs
-NANA_WORKTREE_ROOT: cleared
-FAIL  packages/nana-pack/tests/context-anatomy.test.mjs  10 pass, 1 fail  60.1s  — exit 1
-      | FAIL R-3211: reviewer carries only allowed settings and cleans normal failure and signal exits AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 10 pass, 1 fail, 0 skip · 60.1s
-failed: packages/nana-pack/tests/context-anatomy.test.mjs
-
-exit: 1

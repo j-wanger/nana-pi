@@ -1,1 +1,0 @@
-install: packages/nana-setup/lib/install-check-config.mjs — nana-setup library

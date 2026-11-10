@@ -1,9 +1,0 @@
-FAIL M1: every collected file has exactly one pack and omissions name the file Expected values to be strictly deep-equal:
-+ actual - expected
-
-+ [
-+   'test pack missing or ambiguous: packages/nana-pack/tests/review-paperwork.test.mjs'
-+ ]
-- []
-
-PASS M7: R-3856 watch globs and fail-safe paths are sealed with provenance

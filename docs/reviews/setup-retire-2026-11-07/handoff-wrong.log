@@ -1,6 +1,0 @@
-FAIL  packages/nana-pack/tests/setup-retire.test.mjs  0 pass, 2 fail  0.9s  — exit 1
-      | FAIL M3: real discovery journals one canonical root per day and the real hook lists only unadopted roots AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
-      | FAIL M6: both scopes ignore legacy blocks without warnings errors or gate fallback AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 0 pass, 2 fail, 0 skip · 1.3s
-failed: packages/nana-pack/tests/setup-retire.test.mjs

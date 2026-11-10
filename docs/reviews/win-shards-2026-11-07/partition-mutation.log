@@ -1,5 +1,0 @@
-FAIL  packages/nana-pack/tests/win-shards.test.mjs  8 pass, 1 fail  14.4s  — exit 1
-      | FAIL M1: real file shards are stable disjoint and complete across path spellings AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 8 pass, 1 fail, 0 skip · 14.8s
-failed: packages/nana-pack/tests/win-shards.test.mjs

@@ -1,5 +1,0 @@
-requirements tree: 0 problems; rows 2484; features 43
-deliverables: 21 of 23 made and read by code, 21 more parked
-deliverable note: A-093 Artifact: writer path "packages/nana-pack/bin/nana-curate.mjs" is not a tracked file at HEAD
-deliverable note: line 493: Read by: A-100 reader path "packages/nana-pack/lib/memory-curation.mjs" is not a tracked file at HEAD
-deliverable note: A-100 has no declared reader

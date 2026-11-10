@@ -1,2 +1,0 @@
-exit: 1
-FAIL M5: both launchers and land preserve old store records and path spellings $TMPDIR/review paperwork 1IMlyW/1/home/.pi/agent/review-ledger.rounds.jsonl:1: malformed record "{\"v\":1,\"kind\":\"round\",\"repo\":\"path:/old/mac checkout\",\"item\":\"old\",\"revision\":\"o" — admission refused. Repair the line or delete it (README "Trust model"); a corrupted record never grants a free review

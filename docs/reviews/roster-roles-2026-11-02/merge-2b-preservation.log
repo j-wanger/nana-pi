@@ -1,6 +1,0 @@
-Unrelated files differing from origin/main: 0
-Main R-3530 and R-3531: byte-identical, each occurs once
-Main seal tests: byte-identical
-Session archive: main plus exactly one whole lane entry, unchanged this continuation
-Known bugs: exactly four requested round-1 notes retained; no fixes
-Preservation: PASS

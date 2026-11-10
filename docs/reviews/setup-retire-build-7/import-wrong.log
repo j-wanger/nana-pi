@@ -1,6 +1,0 @@
-FAIL  packages/nana-pack/tests/setup-retire.test.mjs  3 pass, 2 fail  2.6s  — exit 1
-      | FAIL M4: pi gate imports the shared pipe predicate which blocks masking and allows standalone verification AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
-      | FAIL M7: active docs retired rows artifacts and component status pass the contract checks AssertionError [ERR_ASSERTION]: code-map.mjs: code map: 543 modules over scripts, apps/desk, apps/bench, packages/nana-pack/lib, packages/nana-pack/bin, packages/nana-pack/extensions, packages/nana-knowledge/lib, packages/nana-knowledge/bin, packages/nana-knowledge/extensions, packages/nana-stage/lib, packages/nana-stage/extensions, packages/nana-setup/lib, packages/nana-setup/bin, packages/nana-setup/claude/hooks, packages/nana-pack/tests, packages/nana-knowledge/tests, packages/nana-stage/tests, packages/nana-setup/tests, apps/desk/test, apps/bench/test; 0 without a usable contract header; 1 problem(s)
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 3 pass, 2 fail, 0 skip · 3.1s
-failed: packages/nana-pack/tests/setup-retire.test.mjs

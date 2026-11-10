@@ -1,4 +1,0 @@
-PASS  packages/nana-pack/tests/component-audit.test.mjs   11 pass  41.3s
-PASS  packages/nana-pack/tests/review-paperwork.test.mjs  10 pass  20.9s
-
-2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 21 pass, 0 fail, 0 skip · 62.5s

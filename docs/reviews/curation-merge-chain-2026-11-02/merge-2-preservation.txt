@@ -1,7 +1,0 @@
-All non-lane staged files equal MERGE_HEAD (including deletions).
-Three lane modules and two lane test files equal 33b72899 byte-for-byte.
-R-3698 through R-3702 equal lane baseline.
-R-3560 through R-3577 equal MERGE_HEAD; SUB-027 is retained under FEAT-040.
-MERGE_HEAD: 99fd0d18dc68bc7282e56275efe1ea972e210070
-origin/main: 99fd0d18dc68bc7282e56275efe1ea972e210070
-Conflicts: none (inherited merge record; staged index has no unmerged entries).

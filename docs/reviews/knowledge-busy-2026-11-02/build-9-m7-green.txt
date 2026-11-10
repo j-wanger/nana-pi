@@ -1,3 +1,0 @@
-PASS M7: repeated BUSY failures return hits while budget allows
-PASS M7: persistent BUSY queries stop before budget with a query reserve
-PASS M7: seal: hook query reserve is 150 ms

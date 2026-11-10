@@ -1,3 +1,0 @@
-PASS  packages/nana-setup/tests/project.test.mjs  124 pass  27.3s
-
-1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 124 pass, 0 fail, 0 skip · 27.8s

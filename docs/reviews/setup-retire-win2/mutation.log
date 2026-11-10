@@ -1,5 +1,0 @@
-M7 / R-3805: temp README reintroduces retired extension nana-notify
-wrong document: M7 exit 1 (expected assertion failure)
-restored document: M7 exit 0
-Mutation changes the document, not the assertions; M7 body evaluated verbatim.
-Fixtures: OS temporary directory; repository documents unchanged.

@@ -1,8 +1,0 @@
-PASS  packages/nana-pack/tests/land-ci-read.test.mjs           6 pass  15.8s
-PASS  packages/nana-pack/tests/land-clean-merge-race.test.mjs  2 pass  15.3s
-PASS  packages/nana-pack/tests/land-clean-merge.test.mjs       12 pass  42.2s
-PASS  packages/nana-pack/tests/main-ci.test.mjs                1 pass  0.1s
-PASS  packages/nana-pack/tests/rulings.test.mjs                23 pass  0.1s
-PASS  packages/nana-pack/tests/win-main-only.test.mjs          13 pass  82.8s
-
-6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 57 pass, 0 fail, 0 skip · 156.7s

@@ -1,3 +1,0 @@
-R-3728: use parent agent dir; wrong exit 1; restored exit 0
-FAIL R-3728: context measurement resolves the child agent dir and relative cwd AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
-PASS R-3728: context measurement resolves the child agent dir and relative cwd

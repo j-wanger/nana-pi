@@ -1,9 +1,0 @@
-PASS R-2750: after the merge, its containment check and outside the ledger lock, the land reads the tip's CI records from github.com in its gh environment and prints the reader's lines
-PASS R-2751: each CI record read at a land is kept once in the clone's ci-runs store with its tip, run, attempt, leg, event and time, never among local suite records
-PASS R-2752: the ci-runs store keeps only the newest CI_RECORDS_KEEP records
-PASS R-2754: a land notes each CI file at or above its share of the record's own per-file limit, slowest first and capped
-PASS R-2755: a CI-record failure after the merge is one land note and the land still succeeds
-PASS R-2756: the CI-record read starts no gh call past its budget and gives each call a whole-millisecond limit within the time left
-PASS seal: CI records are kept in nana/ci-runs up to 4000, files are noted at half their limit, and the read stops after 60 seconds
-
-all checks passed

@@ -1,4 +1,0 @@
-PASS  packages/nana-pack/tests/setup-retire.test.mjs  5 pass  30.3s
-PASS  packages/nana-setup/tests/restore.test.mjs      17 pass  1.7s
-
-2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 22 pass, 0 fail, 0 skip · 32.4s

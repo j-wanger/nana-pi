@@ -1,7 +1,0 @@
-ordinary
-also reaches: packages/nana-pack/lib/profile-store.mjs — also reaches packages/nana-pack/bin/nana-land.mjs
-also reaches: packages/nana-pack/lib/profile-store.mjs — also reaches packages/nana-setup/bin/install-check.mjs
-also reaches: packages/nana-pack/lib/profile-store.mjs — also reaches packages/nana-setup/bin/nana-setup.mjs
-also reaches: packages/nana-pack/lib/profile-store.mjs — also reaches packages/nana-setup/bin/stale-copies.mjs
-also reaches: packages/nana-pack/lib/profile-store.mjs — also reaches packages/nana-setup/lib/doctor.mjs
-also reaches: packages/nana-pack/lib/profile-store.mjs — also reaches packages/nana-setup/lib/install-check.mjs

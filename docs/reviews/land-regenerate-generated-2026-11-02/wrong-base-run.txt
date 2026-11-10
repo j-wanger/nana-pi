@@ -1,7 +1,0 @@
-copying base proof tree
-base proof tree copied
-running packages/nana-pack/tests/land-regenerate.test.mjs
-running packages/nana-pack/tests/land-clean-merge.test.mjs
-running packages/nana-pack/tests/land-regenerate.test.mjs
-running packages/nana-pack/tests/land-clean-merge.test.mjs
-base failed files 2; builder failed files 0

@@ -1,4 +1,0 @@
-Command: four `node -e "for(;;){}"` processes started before the run; `node --experimental-strip-types packages/nana-pack/tests/post-edit-status.test.mjs`; all four processes stopped after the run.
-Exit: 0.
-PASS timeoutMs 0 arms no deadline and a slow check passes
-Restore: the four CPU-load processes were stopped and waited for after the run; no source or product mutation was made.

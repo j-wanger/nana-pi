@@ -1,7 +1,0 @@
-PASS  packages/nana-setup/tests/memory-pause.test.mjs       2 pass  0.7s
-FAIL  packages/nana-setup/tests/settings-merge.test.mjs     212 pass, 1 fail  3.8s  — exit 1
-      | FAIL forced-win32 removeInstallerHooks removes exactly the five entries ["SessionStart objective","SessionStart adoption","SessionStart shared-memory","SessionStart roster notice"]
-PASS  packages/nana-setup/tests/win32-hook-repair.test.mjs  9 pass  2.1s
-
-3 files: 2 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 223 pass, 1 fail, 0 skip · 7.0s
-failed: packages/nana-setup/tests/settings-merge.test.mjs

@@ -1,4 +1,0 @@
-PASS  packages/nana-knowledge/tests/build-busy.test.mjs  14 pass  11.1s
-PASS  packages/nana-pack/tests/worker-claude.test.mjs    24 pass, 3 skip  30.5s
-
-2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 38 pass, 0 fail, 3 skip · 42.0s

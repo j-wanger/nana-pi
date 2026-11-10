@@ -1,8 +1,0 @@
-wrong HANDOFF (lf): FAIL M3: narrative and session-archive references are removed; exit 1
-current surfaces (lf): PASS M3: narrative and session-archive references are removed; exit 0
-wrong HANDOFF (crlf): FAIL M3: narrative and session-archive references are removed; exit 1
-current surfaces (crlf): PASS M3: narrative and session-archive references are removed; exit 0
-wrong HANDOFF (trailing): FAIL M3: narrative and session-archive references are removed; exit 1
-current surfaces (trailing): PASS M3: narrative and session-archive references are removed; exit 0
-wrong HANDOFF (no-final-newline): FAIL M3: narrative and session-archive references are removed; exit 1
-current surfaces (no-final-newline): PASS M3: narrative and session-archive references are removed; exit 0

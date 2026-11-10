@@ -1,4 +1,0 @@
-PASS  packages/nana-pack/tests/requirements-trace.test.mjs  61 pass  4.5s
-PASS  packages/nana-pack/tests/requirements-tree.test.mjs   98 pass  2.5s
-
-2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 159 pass, 0 fail, 0 skip · 7.5s

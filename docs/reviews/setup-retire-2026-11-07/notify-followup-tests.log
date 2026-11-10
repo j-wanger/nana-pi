@@ -1,5 +1,0 @@
-PASS  packages/nana-pack/tests/code-map-launch.test.mjs     12 pass  1.8s
-PASS  packages/nana-pack/tests/readme-check.test.mjs        11 pass  0.3s
-PASS  packages/nana-pack/tests/requirements-trace.test.mjs  61 pass  5.0s
-
-3 files: 3 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 84 pass, 0 fail, 0 skip · 7.7s

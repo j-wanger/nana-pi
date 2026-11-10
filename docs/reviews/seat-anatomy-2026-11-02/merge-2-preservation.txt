@@ -1,4 +1,0 @@
-PASS: every difference from origin/main belongs to the lane file set.
-PASS: all non-shared lane files match the pre-merge tip byte for byte.
-PASS: every session entry from both parents remains whole.
-PASS: HANDOFF and all known-bug files match origin/main.

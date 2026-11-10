@@ -1,8 +1,0 @@
-PASS R-2585: brief-check prints what pi-worker would print for the same brief and starts nothing 
-PASS R-2670: brief-check and pi-worker give the same line for every brief while a CPU sampler slower than the child limit is first on PATH, and the sampler never runs 
-PASS seal: R-2585's children have a 30-second limit and the worker polls less often than that 
-PASS R-2621: brief-check names the brief path it tried and the base a relative brief resolves from 
-FAIL R-3718: literal legacy subjects keep their values and membership outcomes 
-PASS R-3716: prose-first code spans launch with one checked entry 
-PASS R-3717: refusals quote the original bullet and rule identically without starting pi 
-PASS R-3719: planner and README state selection and seal the quote cap 

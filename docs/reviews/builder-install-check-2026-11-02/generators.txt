@@ -1,7 +1,0 @@
-
-> nana-pi@0.5.0 map
-> node scripts/code-map.mjs --write
-
-docs/code-map.md: 606 modules
-requirements tree: 0 problems; rows 2492; features 43
-deliverables: 21 of 23 made and read by code, 21 more parked

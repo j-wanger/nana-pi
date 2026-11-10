@@ -1,4 +1,0 @@
-PASS  packages/nana-pack/tests/land-clean-merge.test.mjs  12 pass  46.5s
-PASS  packages/nana-pack/tests/land-regenerate.test.mjs   8 pass  73.3s
-
-2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 20 pass, 0 fail, 0 skip · 120.2s

@@ -1,7 +1,0 @@
-exit: 1
-FAIL M10: native Claude shim keeps spaced argv prompt and sealed settings with cleanup Expected values to be strictly equal:
-+ actual - expected
-
-+ 'fixture-hostile'
-- ''
-

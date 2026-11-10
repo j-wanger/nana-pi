@@ -1,3 +1,0 @@
-R-3727: omit real pi context; wrong exit 1; restored exit 0
-FAIL R-3727: installed pi chooses AGENTS over CLAUDE in the same directory AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
-PASS R-3727: installed pi chooses AGENTS over CLAUDE in the same directory

@@ -1,4 +1,0 @@
-PASS  packages/nana-pack/tests/templates-render.test.mjs  173 pass  70.0s
-PASS  packages/nana-pack/tests/templates-update.test.mjs  35 pass  125.9s
-
-2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 208 pass, 0 fail, 0 skip · 196.7s

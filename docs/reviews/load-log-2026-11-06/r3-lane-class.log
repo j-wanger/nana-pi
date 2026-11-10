@@ -1,3 +1,0 @@
-install: packages/nana-pack/bin/worker-config.mjs — directly imported by packages/nana-setup/lib/pi-dependencies.mjs
-also reaches: packages/nana-pack/bin/worker-config.mjs — also reaches packages/nana-pack/bin/claude-review.mjs
-also reaches: packages/nana-pack/lib/pi-context-load.mjs — also reaches packages/nana-pack/bin/pi-review.mjs

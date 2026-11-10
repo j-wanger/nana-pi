@@ -1,5 +1,0 @@
-PASS  packages/nana-pack/tests/nana-roster.test.mjs  27 pass, 2 skip  4.9s
-
-1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 27 pass, 0 fail, 2 skip · 5.7s
-
-COMMAND EXIT: 0

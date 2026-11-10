@@ -1,7 +1,0 @@
-PASS  packages/nana-pack/tests/credential-strip.test.mjs      6 pass  15.6s
-PASS  packages/nana-pack/tests/test-packs.test.mjs            2 pass  0.0s
-PASS  packages/nana-pack/tests/test-runner-parallel.test.mjs  11 pass  33.4s
-PASS  packages/nana-pack/tests/test-runner.test.mjs           53 pass  30.1s
-PASS  packages/nana-setup/tests/setup-tail.test.mjs           9 pass  49.1s
-
-5 files: 5 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 81 pass, 0 fail, 0 skip · 129.6s

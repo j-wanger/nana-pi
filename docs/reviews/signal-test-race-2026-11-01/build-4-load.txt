@@ -1,7 +1,0 @@
-# Build 4 CPU-load probe
-
-- Cause: `stopFixtureBuilder` can read an empty pid file before fake Claude writes its pid. `Number("")` is 0, so `process.kill(-0, "SIGKILL")` targets the test process group. The reviewer places this during R-2692 cleanup, before R-2693, in CI run 41367446804.
-- The small fake pi waits for its configured `WC_HOLD_FILE` to exist. The startup signal case keeps that builder held until pi-worker handles the signal; a missed attempt still sends SIGTERM.
-- Before fix: worker-claude test under four `yes > /dev/null` CPU loaders — 10 passed, 0 failed.
-- After fix: worker-claude test under four `yes > /dev/null` CPU loaders — 10 passed, 0 failed.
-- The R-2693 assertion is unchanged. No product code changed.

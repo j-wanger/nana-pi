@@ -1,5 +1,0 @@
-FAIL  packages/nana-pack/tests/test-packs-core.test.mjs  0 pass, 1 fail  0.0s  — exit 1
-      | FAIL M6: all core capabilities have land guards and moved cases keep their bytes AssertionError [ERR_ASSERTION]: core guard not in land: packages/nana-pack/tests/leak-scan-cli.test.mjs
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 0 pass, 1 fail, 0 skip · 0.4s
-failed: packages/nana-pack/tests/test-packs-core.test.mjs

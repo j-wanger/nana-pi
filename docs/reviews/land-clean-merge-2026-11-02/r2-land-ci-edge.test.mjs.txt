@@ -1,2 +1,0 @@
-PASS R-2589: a CI read that cannot complete refuses before the suite and names the cause
-PASS R-2590: a repository or tip without GitHub CI skips the CI read and notes why

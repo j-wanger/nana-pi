@@ -1,9 +1,0 @@
-PASS  packages/nana-pack/tests/config-handlers-malformed.test.mjs   95 pass  0.3s
-PASS  packages/nana-pack/tests/config-normalize.test.mjs            22 pass  0.5s
-PASS  packages/nana-pack/tests/config-trust.test.mjs                26 pass  0.6s
-PASS  packages/nana-pack/tests/display-surfaces.test.mjs            173 pass  0.2s
-PASS  packages/nana-pack/tests/windows-skip-lines.test.mjs          7 pass  0.0s
-PASS  packages/nana-setup/tests/install-check-builder-env.test.mjs  3 pass  0.8s
-PASS  packages/nana-setup/tests/install-check.test.mjs              139 pass  1.1s
-
-7 files: 7 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 465 pass, 0 fail, 0 skip · 3.9s

@@ -1,9 +1,0 @@
-6e8a326e2212a61e3ea48c7cc272a455154f2c69 Merge current main and keep retired memory hook harmless
-8c5ebc331eaff555bf4f7c19ec5de446c02e0b42 Merge main into feat/setup-retire
-a9eceb1a9aa0abaa8f0a697f482ae1ba244e704d Publish explicit-search guidance and complete memory-cuts proofs
-60e74835bd333075175d1a55193fdc8b03d03eea setup-retire: retire unused subagent seeds and doctor checks
-656d91e2ebac660ebf380a6ebb8104fe451c30cc Pause automatic memory runs at land and session end
-9689fe0dd48481136391e3cb19a55b06c6f90173 feat(review): remove review paperwork while preserving verified LAND gates
-e4ee61a63313a26ee5ff321fdf90f3b37feb6a52 Fix credential lane regression checks and extend direct-command floor
-22be12e5a395056ddb84d9e773b1e3389329a2d8 Seal direct Claude ledger settings and close review follow-ups
-b4dbd82da3f26039d33b10559ca3077d774e6534 feat: strip builder and reviewer git credential dispatch

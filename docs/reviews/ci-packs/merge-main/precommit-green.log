@@ -1,9 +1,0 @@
-PASS  packages/nana-pack/tests/templates-working.test.mjs  7 pass  0.1s
-PASS  packages/nana-pack/tests/test-packs-ci.test.mjs      4 pass  21.9s
-PASS  packages/nana-pack/tests/test-packs-core.test.mjs    1 pass  0.9s
-PASS  packages/nana-pack/tests/test-packs-runner.test.mjs  5 pass  23.8s
-PASS  packages/nana-pack/tests/test-packs.test.mjs         2 pass  0.1s
-PASS  packages/nana-setup/tests/doctor-detail.test.mjs     49 pass  24.3s
-PASS  packages/nana-setup/tests/doctor-floor.test.mjs      3 pass  0.1s
-
-7 files: 7 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 71 pass, 0 fail, 0 skip · 72.1s

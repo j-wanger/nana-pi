@@ -1,9 +1,0 @@
-PASS M1: real file shards are stable disjoint and complete across path spellings
-PASS M2: bad shards refuse before any file executes
-PASS M3: CI runs three Windows shards with distinct artifacts and unchanged other legs
-PASS M4: land and main require every successful Windows shard
-PASS M5: historical single-record Windows runs still pass both readers
-PASS M6: CI reports each Windows shard's wall time and warns without failing at 20 minutes
-PASS M7: release blocks each failed cancelled or skipped Windows shard and Linux stays advisory
-PASS M8: partial reruns select the latest execution per shard and count each file once
-PASS M9: real sharded two-job runner executes only assigned files and isolates RUN_ALONE

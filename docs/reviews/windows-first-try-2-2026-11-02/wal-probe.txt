@@ -1,6 +1,0 @@
-WAL probe on the reference Windows 11 laptop, 2026-11-02, Node v22.22.2, base 0bd1df89.
-Script: a real index built by 'nana-knowledge build' over one fixture file; index.db marked two hours old; a second build run twice,
-first with a read-only connection open but no transaction, then with that connection inside a read transaction (BEGIN; SELECT).
-
-{"readerHoldsTxn":false,"buildStatus":0,"mtimeMovedWhileReaderOpen":true,"walBytes":0,"builtAtAdvanced":true,"mtimeMovedAfterReaderClosed":true}
-{"readerHoldsTxn":true,"buildStatus":0,"mtimeMovedWhileReaderOpen":false,"walBytes":4152,"builtAtAdvanced":true,"mtimeMovedAfterReaderClosed":false}

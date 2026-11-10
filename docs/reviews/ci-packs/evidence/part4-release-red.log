@@ -1,5 +1,0 @@
-FAIL  packages/nana-pack/tests/test-packs-ci.test.mjs  3 pass, 1 fail  9.4s  — exit 1
-      | FAIL M4: PR CI selects macOS packs release watches and cancellation while main runs every OS AssertionError [ERR_ASSERTION]: The input did not match the regular expression /--pack=release/. Input:
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 3 pass, 1 fail, 0 skip · 9.9s
-failed: packages/nana-pack/tests/test-packs-ci.test.mjs

@@ -1,3 +1,0 @@
-R-3730: always label builder; wrong exit 1; restored exit 0
-FAIL R-3730: both pi lane sizes log the selected roster slot AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-PASS R-3730: both pi lane sizes log the selected roster slot

@@ -1,5 +1,0 @@
-FAIL  packages/nana-pack/tests/setup-retire.test.mjs  4 pass, 1 fail  8.4s  — exit 1
-      | FAIL M4: pi gate imports the shared pipe predicate which blocks masking and allows standalone verification AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type object (null)
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 4 pass, 1 fail, 0 skip · 8.9s
-failed: packages/nana-pack/tests/setup-retire.test.mjs

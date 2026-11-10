@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "packages/nana-pack/tests/data-pack-fixtures.py", line 75, in <module>
-    assert any(f["severity"] == severity for f in findings(check)), (check, findings(check))
-           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError: ('stable-ids', [])

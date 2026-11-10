@@ -1,3 +1,0 @@
-packages/nana-pack/tests/keep-movement.test.mjs
-packages/nana-pack/tests/requirements-moved.test.mjs
-packages/nana-pack/tests/review-movement.test.mjs

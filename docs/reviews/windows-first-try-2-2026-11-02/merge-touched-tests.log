@@ -1,8 +1,0 @@
-
-> nana-pi@0.5.0 test
-> node scripts/test.mjs packages/nana-pack/tests/objective-golden.test.mjs packages/nana-setup/tests/hooks-win32-exec.test.mjs
-
-PASS  packages/nana-pack/tests/objective-golden.test.mjs   1280 pass  32.6s
-SKIP  packages/nana-setup/tests/hooks-win32-exec.test.mjs  runs only on the Windows leg (process.platform !== "win32")
-
-2 files: 1 PASS, 0 FAIL, 1 SKIP, 0 WARN · checks: 1280 pass, 0 fail, 0 skip · 32.9s

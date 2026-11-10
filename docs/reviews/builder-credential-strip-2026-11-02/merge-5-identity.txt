@@ -1,1 +1,0 @@
-summary files=6507 findings=0 totals=5,0,0,4

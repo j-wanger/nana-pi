@@ -1,3 +1,0 @@
-PASS  packages/nana-pack/tests/win-shards.test.mjs  9 pass  17.0s
-
-1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 9 pass, 0 fail, 0 skip · 17.4s

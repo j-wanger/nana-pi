@@ -1,8 +1,0 @@
-FAIL  packages/nana-pack/tests/roster-notice.test.mjs  19 pass, 2 fail, 1 skip  1.0s  — exit 1
-      | FAIL MM7: both seats show resolved roles after land
-      | FAIL R-3523: notice shows lane limit after land, marks fallback, and omits it when unknown [["default",false],["default-relative",true],["written",false],["written-relative",true],["malformed",false],["malformed-relative",true],["older result",false],["refused",true]]
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 19 pass, 2 fail, 1 skip · 1.8s
-failed: packages/nana-pack/tests/roster-notice.test.mjs
-
-COMMAND EXIT: 1

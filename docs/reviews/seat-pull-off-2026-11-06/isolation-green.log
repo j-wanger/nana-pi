@@ -1,8 +1,0 @@
-PASS  packages/nana-pack/tests/config-trust.test.mjs   27 pass  0.5s
-PASS  packages/nana-pack/tests/handoff-trust.test.mjs  53 pass  0.1s
-PASS  packages/nana-setup/tests/doctor-trust.test.mjs  1 pass  0.5s
-PASS  packages/nana-setup/tests/project.test.mjs       124 pass  31.0s
-PASS  packages/nana-setup/tests/restore.test.mjs       17 pass  1.6s
-PASS  packages/nana-setup/tests/trust.test.mjs         13 pass  1.2s
-
-6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 235 pass, 0 fail, 0 skip · 35.4s

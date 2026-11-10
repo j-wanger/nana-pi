@@ -1,5 +1,0 @@
-Unrelated tracked files differing from origin/main: 0
-Heading test equals origin/main byte-for-byte; lane heading-count pins dropped
-Lane production code and memory tests equal pre-merge HEAD byte-for-byte
-Every session entry from both parents kept whole; dated entries newest first
-Known-bug files equal origin/main; no lane-specific known-bug lines to carry

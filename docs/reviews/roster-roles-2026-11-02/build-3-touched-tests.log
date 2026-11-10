@@ -1,8 +1,0 @@
-PASS  packages/nana-pack/tests/hive-city.test.mjs        19 pass  61.8s
-PASS  packages/nana-pack/tests/nana-roster-set.test.mjs  11 pass  2.2s
-PASS  packages/nana-pack/tests/nana-roster.test.mjs      27 pass  1.3s
-PASS  packages/nana-pack/tests/roster-notice.test.mjs    21 pass  0.3s
-PASS  packages/nana-pack/tests/worker-claude.test.mjs    24 pass, 3 skip  29.5s
-PASS  packages/nana-setup/tests/seat-rule.test.mjs       18 pass  0.0s
-
-6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 120 pass, 0 fail, 3 skip · 95.4s

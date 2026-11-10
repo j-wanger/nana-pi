@@ -1,7 +1,0 @@
-Read-only preservation comparison: exit 0
-HEAD session entries: 260 whole, 0 missing
-origin/main session entries: 260 whole, 0 missing
-Non-lane differences: 0
-Prior lane reviews and both known-bug files retain their pre-merge bytes.
-R-3436, R-3437 and R-3660 through R-3667 retain their pre-merge bytes.
-Every other requirement row matches origin/main.

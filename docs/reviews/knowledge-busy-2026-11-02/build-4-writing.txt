@@ -1,2 +1,0 @@
-summary sentences=6 words=107 over=0 passive=0 banned=0 verdict=n/a identifiers=0
-exit=0

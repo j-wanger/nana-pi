@@ -1,6 +1,0 @@
-
-> nana-pi@0.5.0 req:tree
-> node scripts/requirements-tree.mjs --write
-
-requirements tree: 0 problems; rows 2604; features 43
-deliverables: 21 of 23 made and read by code, 15 more parked

@@ -1,7 +1,0 @@
-
-> nana-pi@0.5.0 test
-> node scripts/test.mjs packages/nana-pack/tests/data-pack.test.mjs
-
-PASS  packages/nana-pack/tests/data-pack.test.mjs  7 pass  227.8s
-
-1 files: 1 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 7 pass, 0 fail, 0 skip · 229.3s

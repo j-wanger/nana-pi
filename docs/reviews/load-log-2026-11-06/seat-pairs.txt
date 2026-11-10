@@ -1,4 +1,0 @@
-Seat wrong-code pairs (2026-11-06, tip 91f279dc, scratch worktree):
-- R-3726: reversed order -> fail 1; restored -> pass 1.
-- R-3731: -nc check dropped -> fail 1.
-- R-3728: parent agent dir instead of child env -> fail 1.

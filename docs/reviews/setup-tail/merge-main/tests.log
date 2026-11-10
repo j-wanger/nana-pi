@@ -1,8 +1,0 @@
-PASS  packages/nana-pack/tests/pi-install.test.mjs        7 pass  0.4s
-PASS  packages/nana-setup/tests/install.test.mjs          102 pass  8.4s
-PASS  packages/nana-setup/tests/memory-pause.test.mjs     2 pass  0.7s
-PASS  packages/nana-setup/tests/rulings-install.test.mjs  13 pass  3.3s
-PASS  packages/nana-setup/tests/setup-tail.test.mjs       9 pass  55.6s
-PASS  packages/nana-setup/tests/uninstall.test.mjs        31 pass  2.2s
-
-6 files: 6 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 164 pass, 0 fail, 0 skip · 71.8s

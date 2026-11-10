@@ -1,5 +1,0 @@
-FAIL  packages/nana-pack/tests/win-shards.test.mjs  8 pass, 1 fail  12.9s  — exit 1
-      | FAIL M9: real sharded two-job runner executes only assigned files and isolates RUN_ALONE AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 8 pass, 1 fail, 0 skip · 13.4s
-failed: packages/nana-pack/tests/win-shards.test.mjs

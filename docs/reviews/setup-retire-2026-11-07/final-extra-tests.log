@@ -1,6 +1,0 @@
-PASS  packages/nana-pack/tests/readme-check.test.mjs      11 pass  0.3s
-PASS  packages/nana-pack/tests/rulings.test.mjs           23 pass  0.1s
-PASS  packages/nana-setup/tests/rulings-install.test.mjs  12 pass  3.5s
-PASS  packages/nana-setup/tests/verifier-pipe.test.mjs    14 pass  2.0s
-
-4 files: 4 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 60 pass, 0 fail, 0 skip · 6.3s

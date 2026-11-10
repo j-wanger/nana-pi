@@ -1,8 +1,0 @@
-
-> nana-pi@0.5.0 test
-> node scripts/test.mjs code-map-launch setup-retire
-
-PASS  packages/nana-pack/tests/code-map-launch.test.mjs  12 pass  1.7s
-PASS  packages/nana-pack/tests/setup-retire.test.mjs     5 pass  30.4s
-
-2 files: 2 PASS, 0 FAIL, 0 SKIP, 0 WARN · checks: 17 pass, 0 fail, 0 skip · 32.5s

@@ -1,6 +1,0 @@
-FAIL R-3732: context measurement deadline seal is 3000 ms AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-
-3001 !== 3000
-
-    at Object.fn (file://~/nana-pi-wt/load-log/packages/nana-pack/tests/context-anatomy.test.mjs:420:10)
-    at async file://~/nana-pi-wt/load-log/packages/nana-pack/tests/context-anatomy.test.mjs:444:9

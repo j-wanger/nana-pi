@@ -1,5 +1,0 @@
-FAIL  packages/nana-pack/tests/hive-city.test.mjs  18 pass, 1 fail  58.0s  — exit 1
-      | FAIL R-3187: every claimed flow matches one working code line and no text revives a retired claim AssertionError [ERR_ASSERTION]: ledger/bay-1: evidence line missing or duplicated
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 18 pass, 1 fail, 0 skip · 58.3s
-failed: packages/nana-pack/tests/hive-city.test.mjs

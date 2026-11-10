@@ -1,4 +1,0 @@
-Preservation: all 41 tracked differences from origin/main belong to the lane.
-Preservation: 37 non-shared lane files match the pre-merge tip byte for byte.
-Preservation: every session entry from both parents remains whole; dates are newest first.
-Preservation: known-bug files and HANDOFF match origin/main.

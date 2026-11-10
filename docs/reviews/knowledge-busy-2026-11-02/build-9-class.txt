@@ -1,1 +1,0 @@
-hook: packages/nana-knowledge/lib/build.ts — directly imported by packages/nana-knowledge/bin/nana-knowledge.ts

@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "packages/nana-pack/tests/data-pack-fixtures.py", line 125, in <module>
-    assert not findings("identifier-types", scoped), findings("identifier-types", scoped)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError: [{'check': 'identifier-types', 'severity': 'error', 'location': 'fixture.sqlite:other_domain.item_id', 'detail': 'declared TEXT, manifest says INTEGER'}, {'check': 'identifier-types', 'severity': 'error', 'location': 'fixture.sqlite:other_domain.item_id', 'detail': "stored values of type [('text', 1)], expected integer"}]

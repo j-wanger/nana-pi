@@ -1,8 +1,0 @@
-packages/nana-pack/lib/profile-store.mjs: unchanged lane bytes; main unchanged since branch base
-packages/nana-pack/lib/memory-curation.mjs: unchanged lane bytes; main unchanged since branch base
-packages/nana-pack/bin/nana-curate.mjs: unchanged lane bytes; main unchanged since branch base
-packages/nana-pack/tests/memory-curation.test.mjs: unchanged lane bytes; main unchanged since branch base
-packages/nana-pack/tests/profile-store-guards.test.mjs: unchanged lane bytes; main unchanged since branch base
-SUB-027: all 18 existing rows identical to origin/main at new location
-Code map regenerated: identical to origin/main
-Git merge: no conflicts; no same-line main/lane changes requiring reapplication

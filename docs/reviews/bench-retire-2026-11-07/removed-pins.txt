@@ -1,9 +1,0 @@
-Scanned 297 existing tracked tests (including frozen fixtures and the new retirement file).
-Compared 502 removed prose/path patterns, including 146 removed flattened sentences.
-grep exit: 0; normalized scan matches: 0.
-Remaining references are classified in report.md.
-apps/bench/test/retire.test.mjs:19:const cuts = ["run.mjs", "aggregate.mjs", "catch-ledger.mjs", "ext/bench-nested-usage.ts", ...["nested", "pi-exports", "profiles", "catch-extract", "eval-module", "fixture", "agentdir", "plan", "checkers", "catch-stats"].map(n => `lib/${n}.mjs`)].map(p => `apps/bench/${p}`);
-apps/bench/test/retire.test.mjs:67: const original = git("show", `${base}:apps/bench/lib/checkers.mjs`);
-packages/nana-pack/tests/code-map-launch.test.mjs:164:		"aggregate.mjs", "catch-ledger.mjs", "run.mjs", "ext/bench-nested-usage.ts",
-packages/nana-pack/tests/code-map-launch.test.mjs:168:	losses.set("scripts/deliverables.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
-packages/nana-pack/tests/code-map-launch.test.mjs:169:	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");

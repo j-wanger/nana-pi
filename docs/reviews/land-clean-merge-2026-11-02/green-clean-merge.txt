@@ -1,9 +1,0 @@
-PASS M1: clean moved-main merge lands using only accepted-tip CI and review
-PASS M2: clean merge content matches literals and an independent ordinary merge
-PASS M3: unsupported attributes and malformed or failing merge-tree refuse unchanged
-PASS M4: conflict names paths and the merge-review-CI remedy before any CI read
-PASS M5: merge eligibility requires applicable CI, suite proof and unchanged proof paths on both sides
-PASS M6: uncovered lane commits including a lane-authored merge remain refused
-PASS M8: accepted policy limit lands a textually clean but semantically broken merge
-PASS M9: shared guidance, rendered region, README and ruling agree on the exemption
-PASS seal: clean-merge vocabulary and conflict-name cap are declared once

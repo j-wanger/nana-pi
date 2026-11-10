@@ -1,2 +1,0 @@
-summary names=0 sizes=0
-exit 0

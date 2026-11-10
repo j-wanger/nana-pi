@@ -1,5 +1,0 @@
-FAIL  packages/nana-pack/tests/test-packs-ci.test.mjs  3 pass, 1 fail  7.4s  — exit 1
-      | FAIL M8: main keeps all collected nonrelease files and an injected retire failure fails its command Error: M8 requires main or origin/main to resolve to a commit; fetch the main branch before running this check.
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 3 pass, 1 fail, 0 skip · 8.6s
-failed: packages/nana-pack/tests/test-packs-ci.test.mjs

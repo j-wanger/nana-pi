@@ -1,9 +1,0 @@
-PASS R-2810: a land attempt appends one start record under the main clone's git common folder before it compares the checkouts
-PASS R-2811: each way a land ends appends one end record naming its start, with a null suite time when the suite never ran
-PASS R-2812: a CI-passed land records the longest judged run span as its CI wait, and a run without times still lands with a null wait
-PASS R-2813: an unwritable land ledger leaves the land's verdict, merge and output unchanged and names why in one last line
-PASS R-2814: every ended land attempt's last line names it and its lane's land line exactly as the build report prints it
-PASS R-2816: the ledger lists the land records as a CAP-02 deliverable read by code at the store's own path
-PASS seal: land records live at nana/land-records.jsonl in schema 1, are read up to 32 MiB, and their line starts [nana-land] land record:
-
-all checks passed

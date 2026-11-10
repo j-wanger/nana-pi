@@ -1,6 +1,0 @@
-Unrelated tracked files differing from current main: 0
-Every lane-only source, test, README, command and requirement edit preserved exactly as added/deleted lines
-Heading test equals current main byte-for-byte
-Every entry from main and the lane remains whole; dated entries newest first
-Known-bug files equal current main; no fixes, deletions or additions by this lane
-Compared against 68a616bc35605e23d93955e8b40262e27115b843

@@ -1,3 +1,0 @@
-PASS M1: Windows contention waits then runs the locked step once
-PASS M2: persistent Windows contention times out naming path and last code
-PASS M3: unrelated open errors throw immediately unchanged

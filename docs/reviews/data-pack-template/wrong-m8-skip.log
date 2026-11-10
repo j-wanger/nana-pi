@@ -1,5 +1,0 @@
-FAIL  packages/nana-pack/tests/data-pack.test.mjs  7 pass, 1 fail  71.7s  — exit 1
-      | FAIL M8 release acceptance runs native opt-in scaffold and adoption gates a skipped data test is not acceptance
-
-1 files: 0 PASS, 1 FAIL, 0 SKIP, 0 WARN · checks: 7 pass, 1 fail, 0 skip · 72.2s
-failed: packages/nana-pack/tests/data-pack.test.mjs
