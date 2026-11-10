@@ -11,7 +11,7 @@
 - **Builder context (2026-11-06).** Builders get four lessons lines; fix briefs marked `Card: fix` may skip Precedent. Plans state each caller's observable contract.
 - **Load log (2026-11-06).** Each pi builder and pi reviewer launch now logs the context files pi loads, the pi version and the roster slot. Claude Code launches still log no context files.
 - **Seat knowledge lookup retired (2026-11-06).** Claude Code seats no longer get per-prompt knowledge pointers; `nana-knowledge query` stays. Re-run `nana-setup install` to remove the hook.
-- **Leak guard (2026-11-07).** Before every lane push the seat runs `leak-scan.mjs` chained with `&&`; builds warn on leaked paths.
+- **Leak guard (2026-11-07; hook 2026-11-10).** Setup installs a pre-push hook that scans each pushed range, including commit authors and messages. Builds warn on leaked paths.
 - **Memory factory cut (2026-11-09).** The owner chose to cut it. The owner profile store stays. Re-run `nana-setup install` on each machine to clear a stale session-end hook entry.
 
 ## Next
