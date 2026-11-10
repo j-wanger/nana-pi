@@ -119,7 +119,7 @@ await test("R-3786: every anatomy CLI subcommand preserves fixture output", asyn
  }
 });
 
-// req: R-3270
+// req: R-3270, R-4028
 await test("R-3270: pushed parts and recorded attempts preserve committed context", async () => {
  const f = fixture(); const result = extractContexts({ repo: f.repo, sessions: f.sessions });
  assert.equal(result.contexts.length, 1); const c = result.contexts[0]; assert.equal(c.lane, "alpha"); assert.equal(c.attempts, 2); assert.equal(c.startTip, f.tip); assert.equal(c.briefBlob, `${f.tip}:${f.start.brief}`);
@@ -132,6 +132,25 @@ await test("R-3270: pushed parts and recorded attempts preserve committed contex
  assert.equal(c.excluded.filter((x) => x.reason === "compaction" && x.chars === 7).length, 2);
  assert.equal(c.excluded.filter((x) => x.reason === "context-edit" && x.chars === 4).length, 2);
  assert.equal(result.skipped.filter((s) => s.reason === "not-builder").length, 1);
+ // New build records point at private files; no committed copy of this text exists.
+ for (const eol of ['\n', '\r\n']) {
+  const outside = fixture();
+  const brief = outside.brief.replaceAll('\r\n', eol).replace('Synthetic', 'Outside-only');
+  const file = put(path.join(folder('private-records'), 'build-brief-1.md'), brief);
+  const ledgerFile = path.join(outside.repo, '.git/nana/build-records.jsonl');
+  jsonl(ledgerFile, readRows(ledgerFile).map(r => r.kind === 'start' ? { ...r, brief: file } : r));
+  for (const name of fs.readdirSync(outside.sd).filter(n => n.endsWith('.jsonl') && n !== 'review.jsonl')) {
+   const rows = readRows(path.join(outside.sd, name));
+   rows.find(r => r.message?.role === 'system').message.sections.addendum = `Preamble\n${brief}\n## Known bugs\nSynthetic mistake.`;
+   jsonl(path.join(outside.sd, name), rows);
+  }
+  const extracted = extractContexts({ repo: outside.repo, sessions: outside.sessions });
+  assert.equal(extracted.denominators.splitRecorded, 1);
+  assert.equal(extracted.contexts[0].briefBlob, null);
+  assert(extracted.contexts[0].parts.filter(p => p.name === 'brief').every(p => p.raw.includes(brief)));
+  fs.unlinkSync(file);
+  assert.equal(extractContexts({ repo: outside.repo, sessions: outside.sessions }).denominators.briefUnmatched, 2);
+ }
  fs.unlinkSync(path.join(f.repo, ".git/nana/build-records.jsonl"));
  const fallback = extractContexts({ repo: f.repo, sessions: f.sessions }); assert.equal(fallback.contexts.length, 2); assert(fallback.contexts.every((x) => x.parts.some((p) => p.name === "brief")));
  const name = path.join(f.sd, "2026-01-01T00-00-03-000Z_unknown.jsonl"); jsonl(name, [{ type: "session", cwd: f.cwd }, { type: "session_info", name: "pi-worker-a1-unknown" }, { type: "message", message: { role: "system", sections: { addendum: "No matching brief." } } }]);

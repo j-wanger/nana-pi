@@ -30,17 +30,22 @@ export const REPO_ROOT = resolve(
 
 export { loadConfig };
 
-/** Execute only the documented read-only Git object command, never README shell text. */
+/** Execute only documented read-only Git object commands, never README shell text. */
 export function checkReviewArchive(root=REPO_ROOT) {
  const file=resolve(root,'docs/reviews/README.md');
  if(!existsSync(file))return ['review archive README is missing'];
  const text=readFileSync(file,'utf8');
- const command=text.split(/\r?\n/u).map(line=>line.trim()).find(line=>line.startsWith('git show '));
- const match=/^git show ([a-f0-9]{40}):(docs\/reviews\/[^\s/]+) \1:(\2\/[^\s]+)$/u.exec(command??'');
- if(!match||!text.includes(`\`${match[1]}\``))return ['review archive command or commit is missing'];
- const result=defaultGit(root,['show',`${match[1]}:${match[2]}`,`${match[1]}:${match[3]}`]);
- return result.status===0&&result.stdout.includes(`tree ${match[1]}:${match[2]}`)&&result.stdout.trim().length>0
-  ? [] : ['review archive command cannot list and read the removed folder'];
+ const commands=text.split(/\r?\n/u).map(line=>line.trim()).filter(line=>line.startsWith('git show '));
+ if(!commands.length)return ['review archive command or commit is missing'];
+ const problems=[];
+ for(const command of commands) {
+  const match=/^git show ([a-f0-9]{40}):(docs\/(?:reviews\/[^\s/]+|plan|evidence|sessions)) \1:(\2\/[^\s]+)$/u.exec(command);
+  if(!match||!text.includes(`\`${match[1]}\``)){problems.push('review archive command or commit is missing');continue;}
+  const result=defaultGit(root,['show',`${match[1]}:${match[2]}`,`${match[1]}:${match[3]}`]);
+  if(result.status!==0||!result.stdout.includes(`tree ${match[1]}:${match[2]}`)||!result.stdout.trim().length)
+   problems.push('review archive command cannot list and read the removed folder');
+ }
+ return problems;
 }
 
 /** Every configured README plus the executable historical-record pointer, checked. */

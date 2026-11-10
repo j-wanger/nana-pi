@@ -7,6 +7,9 @@
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import assert from 'node:assert/strict';
+import { check as test } from './profile-fixture.mjs';
+import { produceObjective } from '../lib/objective.ts';
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -48,6 +51,20 @@ function session() {
 	ext({ on: (name, fn) => { handlers[name] = fn; } });
 	return { td, handlers, ctx: { cwd: td, hasUI: false, isProjectTrusted: () => true } };
 }
+
+// req: R-3933
+await test('M5: objective prints the full code-lines priority', () => {
+ const text = fs.readFileSync(new URL('../../../OBJECTIVE.md', import.meta.url), 'utf8');
+ const priority = text.split(/\r?\n/u).find(line => line.startsWith('**Current priority'));
+ assert.ok(priority.includes('net code lines removed from packages, apps, scripts and templates since 2026-11-07'));
+ const root = tmpDir(path.join(os.tmpdir(), 'objective-priority-'));
+ try {
+  fs.writeFileSync(path.join(root, 'OBJECTIVE.md'), text);
+  const output = produceObjective(root, { path: null });
+  assert.equal(output.unavailable, false);
+  assert.ok(output.text.includes(priority), 'full priority survives the output cap');
+ } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
 
 // (a) pickup + injection: heading, file content, and the charge line.
 {
@@ -353,4 +370,4 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 }
 
 fs.rmSync(home, { recursive: true, force: true });
-process.exit(fails);
+process.exit(fails || process.exitCode ? 1 : 0);

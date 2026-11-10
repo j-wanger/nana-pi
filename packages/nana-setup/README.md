@@ -158,7 +158,7 @@ Limits recorded at landing (2026-10-04):
 
 `install` sets up the MACHINE. It does not give a folder the three files the per-project
 mechanisms read: `OBJECTIVE.md` (what session start prints, and what the close scores the
-session against), `HANDOFF.md` (the frontier) and `docs/sessions/` (the narrative). Neither did
+session against), `HANDOFF.md` (the frontier) and `<project>/docs/sessions/` (the generated project's narrative). Neither did
 anything else outside pi — the scaffold and adopt skills only exist inside pi, so a folder used
 from Claude Code had no path to them at all. That gap is what `project` closes:
 

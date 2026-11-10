@@ -679,7 +679,8 @@ Tests: `tests/main-ci.test.mjs` injects gh and fixture records without network c
 
 Zero-dep, Node only, cross-platform; the pure checks live in
 `lib/writing-check.mjs`, every tunable in `lib/writing-config.mjs` (spec:
-`docs/reviews/writing-trial-2026-10-04/design-ruling.md` and its Amendment 1). The rule it is
+`5722fc0353e8ca718fe420bfef1f006ec3b3817c:docs/reviews/writing-trial-2026-10-04/design-ruling.md`
+and its Amendment 1, readable through the history pointer in `docs/reviews/README.md`). The rule it is
 named by, `rules/nana-writing.md`, reaches pi through the `nana-writing` extension above (an
 append, not a context-file link — Amendment 1 §A1, after astra r1 found a link could both hide
 a user's own `AGENTS.md`/`CLAUDE.md` and be hidden by one). After `nana-setup install`, the
@@ -716,7 +717,8 @@ It exits 0 whatever it finds — this CLI reports, it never blocks.
 **Completed trial tally.** During the trial, the seat ran one invocation per report sent
 (`--report`) and a separate one per `HANDOFF.md` edit (no `--report` — verdict and identifiers
 did not apply there). It recorded the day's counts in
-`docs/reviews/writing-trial-2026-10-04/tally.md` in two columns, never mixed (astra r2 SHOULD 3):
+`5722fc0353e8ca718fe420bfef1f006ec3b3817c:docs/reviews/writing-trial-2026-10-04/tally.md`
+in git history, in two columns, never mixed (astra r2 SHOULD 3):
 reports checked, verdict passes, report sentences/over-cap, HANDOFF sentences/over-cap, and any
 lost-detail complaint. The trial stopped at day 14 or 20 reports (HANDOFF did not count toward
 this), whichever came first, or after two lost-detail complaints.
@@ -1044,10 +1046,10 @@ project config never contributes to either one, trusted or not.
   (file, directory, symlink) counts: it is a decision record whose content is never read. A root is
   adopted by a project objective file (including the configured filename), a saved compaction summary, a dismissal
   marker, or the complete Nana structure: a regular root `HANDOFF.md`, root `AGENTS.md`, and a
-  `docs/sessions/` directory; `HANDOFF.md` alone does not count. Repository roots under the real
+  `<project>/docs/sessions/` directory in the adopted project; `HANDOFF.md` alone does not count. Repository roots under the real
   operating-system temporary directory are excluded; on POSIX, the canonical `/tmp` root is excluded too.
   `NANA_TEST_TEMP_ROOTS` is a test seam, not configuration: when set, the reader prints a warning; on a STARTUP session, the producer journals the override once per process. Resume, fork and reload sessions do not journal it. Adopt with `nana-setup project <dir>`; dismiss once with `nana-setup project <dir> --not-a-project`.
-  The reader says listed repositories lack the complete Nana structure: a regular root `HANDOFF.md`, root `AGENTS.md`, and `docs/sessions/`. A `HANDOFF.md`-only repository remains listed, and the text does not claim it lacks that file.
+  The reader says listed repositories lack the complete Nana structure: a regular root `HANDOFF.md`, root `AGENTS.md`, and `<project>/docs/sessions/`. A `HANDOFF.md`-only repository remains listed, and the text does not claim it lacks that file.
 - **Compaction** belongs to pi. Nana neither writes nor injects compaction summaries. Existing summaries remain untouched and still count as adoption evidence. Legacy `handoff`, `postEdit` and `notify` configuration blocks are accepted and ignored. `NANA_HANDOFF=off` continues to suppress adoption journaling in reviewer and worker children.
 - **Objective** injects the user's objective + current priority file into every system
   prompt, under `## Objective and current priority (nana)` plus one line charging the session

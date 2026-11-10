@@ -7,6 +7,8 @@
  * @errors a failed check prints FAIL with the problem list and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import assert from 'node:assert/strict';
+import { check as test } from './profile-fixture.mjs';
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -19,7 +21,7 @@ import * as path from "node:path";
 //
 // Reads this checkout only — no temp HOME needed, no network, no model.
 // Run: node --experimental-strip-types <this file>
-const { REPO_ROOT, checkProject, loadConfig } = await import(
+const { REPO_ROOT, checkProject, loadConfig, checkReviewArchive } = await import(
 	new URL("../../../scripts/readme-check.mjs", import.meta.url).href
 );
 
@@ -102,5 +104,33 @@ try {
 	fs.rmSync(scratch, { recursive: true, force: true });
 }
 
+// req: R-3931
+await test('M3: archive README command lists and reads removed records', () => {
+ const text = fs.readFileSync(path.join(REPO_ROOT, 'docs/reviews/README.md'), 'utf8');
+ assert.match(text, /git show [a-f0-9]{40}:docs\/reviews\//u);
+ assert.deepEqual(checkReviewArchive(REPO_ROOT), []);
+ const root = tmpDir(path.join(os.tmpdir(), 'readme-archive-'));
+ const put = (file, value) => { fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true }); fs.writeFileSync(path.join(root, file), value); };
+ const git = (...args) => {
+  const r = spawnSync('git', ['-c', 'user.name=Example', '-c', 'user.email=example@example.invalid', ...args], { cwd: root, encoding: 'utf8', timeout: 20000 });
+  assert.equal(r.status, 0, r.stderr); return r.stdout.trim();
+ };
+ try {
+  git('init', '-q');
+  for (const m of text.matchAll(/^git show [a-f0-9]{40}:\S+ [a-f0-9]{40}:(\S+)$/gmu)) put(m[1], 'Synthetic archive record.');
+  git('add', '.'); git('commit', '-qm', 'archive');
+  const snapshot = text.replaceAll(/\b[a-f0-9]{40}\b/gu, git('rev-parse', 'HEAD'));
+  for (const eol of ['\n', '\r\n']) {
+   put('docs/reviews/README.md', snapshot.trimEnd().split('\n').map(line => line + ' \t').join(eol));
+   assert.deepEqual(checkReviewArchive(root), []);
+  }
+  // Corrupt only the later snapshot: checking just the older archive must fail.
+  put('docs/reviews/README.md', snapshot.replace(/(git show [a-f0-9]{40}:docs\/reviews\/agents-trim )([a-f0-9]{40})/u, (_, prefix) => prefix + '0'.repeat(40)));
+  assert.ok(checkReviewArchive(root).length > 0);
+  put('docs/reviews/README.md', snapshot.replaceAll(/\b[a-f0-9]{40}\b/gu, '0'.repeat(40)));
+  assert.ok(checkReviewArchive(root).length > 0, 'an unreadable archive must fail');
+ } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
 console.log(fails ? `\n${fails} FAILED` : "\nall passed");
-process.exit(fails ? 1 : 0);
+process.exit(fails || process.exitCode ? 1 : 0);

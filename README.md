@@ -17,7 +17,7 @@ Sibling repo to `~/nana-agent-loop`.
   (greenfield) and `adopt-py`/`adopt-ts` (retrofit onto an existing project — adopt mode
   emits configs only, source tree untouched). Opinionated Python and TypeScript stacks,
   folder-by-feature, nested AGENTS.md, explicit project checks, and the three frontier seeds
-  (`OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/`) from the one `templates/_shared` source
+  (`OBJECTIVE.md`, `HANDOFF.md`, `<project>/docs/sessions/`) from the one `templates/_shared` source
   every path shares. The copier src is the
   REPO ROOT (root `copier.yml`, `language` question) — canonically
   `https://github.com/j-wanger/nana-pi.git` — so copies are tag-versioned and re-sync
@@ -94,10 +94,10 @@ import-only links; the artifact block explains its `(no import path)` marks.
 The search lives in `scripts/code-search.mjs`, with sealed trial settings in `scripts/code-search-config.mjs`;
 `scripts/code-map-launch.mjs` adds the links using sealed vocabulary in `scripts/code-map-launch-config.mjs`.
 The ten fixed-base needs are a hypothesis, not a general quality guarantee.
-The command
-`node scripts/records-move.mjs` is the one-time move evidence check against pre-move blobs,
-tracked references and recent history using `scripts/records-move.config.json`.
-The move kept 136 baseline folders and removed 212; unrelated lanes do not run a live-repository assertion.
+Lane records (briefs, plans, build and review texts, CI excerpts and evidence) live outside
+this checkout in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`);
+`<project>` is the repository folder name. Old records stay in git history;
+`docs/reviews/README.md` gives checked commands for both archive snapshots.
 
 `npm run check:lane` runs the project-owned builder-stop rail in `scripts/check-lane.mjs`:
 requirements trace, requirements-tree check, map check, README check, then test-packs,
@@ -212,7 +212,7 @@ Before the first session:
 1. Ratify the two DRAFT lines in `OBJECTIVE.md`: give one objective line and one current-priority line; your words are written, never invented.
 2. Run `nana-setup trust <dir>`.
 
-It seeds `OBJECTIVE.md`, `HANDOFF.md`, `docs/sessions/` (README + this month's file),
+In the generated project, it seeds `OBJECTIVE.md`, `HANDOFF.md`, `<project>/docs/sessions/` (README + this month's file),
 `AGENTS.md` + a one-line `CLAUDE.md` import and a `.pi/nana-pack.json` on-ramp, `git init`s when
 needed, and refreshes the knowledge index. Nothing existing is ever overwritten;
 `project --check` prints one ✓/✗ per file. Scaffolded and adopted projects get the same three

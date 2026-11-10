@@ -1,7 +1,7 @@
 /**
  * @module apps/bench/lib/anatomy-sessions.mjs
  * @purpose Extract ordered pushed context and pulls from pi builder sessions grouped through build records.
- * @inputs Explicit sessions and repository roots, committed brief history and clone-shared ledgers.
+ * @inputs Explicit sessions and repository roots, absolute brief files, committed brief history and clone-shared ledgers.
  * @outputs Private segmented contexts, counted exclusions, skip reasons and extraction denominators.
  * @effects disk (explicit roots), process (read-only bounded git queries)
  * @errors Filesystem or git discovery failures propagate to the counts-only CLI boundary.
@@ -27,9 +27,18 @@ function git(repo, args, optional = false) {
 }
 function ledger(file, read) { return fs.existsSync(file) ? read(file).records : []; }
 function briefAt(repo, start) {
- if (!start?.tip || !start.brief) return null;
+ if (!start?.brief) return null;
  let file = start.brief;
- if (path.isAbsolute(file)) file = path.relative(repo, file);
+ if (path.isAbsolute(file)) {
+  try {
+   const text = fs.readFileSync(file, 'utf8');
+   return text ? { text, blob: null, file } : null;
+  } catch (error) {
+   if (!['ENOENT', 'ENOTDIR'].includes(error.code)) throw error;
+  }
+  file = path.relative(repo, file);
+ }
+ if (!start.tip) return null;
  if (file.startsWith("..")) return null;
  const blob = `${start.tip}:${slash(file)}`, text = git(repo, ["show", blob], true);
  return text === null || !text ? null : { text, blob, file };

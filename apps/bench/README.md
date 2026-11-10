@@ -189,7 +189,7 @@ No causal claim follows from these descriptive counts. The seat's private baseli
 anatomy.mjs         role anatomy CLI: segment, report, sample, agree, assemble, label (label spends)
 lib/anatomy.mjs     private writer policy and counts-only subcommand boundary
 lib/anatomy-config.mjs  vocabulary, rules, splitters, sampling and reporting choices with provenance
-lib/anatomy-sessions.mjs  committed brief matching and multi-attempt pi context extraction
+lib/anatomy-sessions.mjs  absolute brief-file matching, historical fallback and multi-attempt pi context extraction
 lib/anatomy-seat.mjs  streamed Claude Code seat adapter, boundaries and private event identity
 lib/anatomy-slots.mjs  role-neutral kind totals, coverage, repeats, reads and correction joins
 lib/anatomy-spans.mjs  lossless Markdown units and glue with deterministic labels

@@ -313,7 +313,7 @@ async function builderGolden() {
 await test('R-3648: reusable adapters labels and builder golden regression', async () => {
  const actual = await builderGolden();
  if (process.env.SEAT_RECORD_GOLDEN) put(process.env.SEAT_RECORD_GOLDEN, JSON.stringify(actual, null, 2) + '\n');
- else assert.deepEqual(actual, JSON.parse(fs.readFileSync(new URL('../../../docs/reviews/seat-anatomy-2026-11-02/builder-golden.json', import.meta.url), 'utf8')));
+ else assert.deepEqual(actual, JSON.parse(fs.readFileSync(new URL('./fixtures/builder-golden.json', import.meta.url), 'utf8')));
  const s = await segment(fixture([{ rows: [snapshot('system'), user('unique'), attachment('skill_listing', { content: 'x'.repeat(24000) })] }]));
  let sent = 0; const labels = path.join(folder(), 'labels');
  assert.equal((await cli(['label', '--in', s.out, '--out', labels], { runModel: async input => { sent += JSON.parse(input.prompt).length; return good(input); } })).exit, 0);
