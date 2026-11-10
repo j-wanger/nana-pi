@@ -20,6 +20,9 @@ import { buildEndRecord } from '../lib/build-records.mjs';
 import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
 import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
 
+// Chosen: 10 seconds lets npm and a cold Node check start on loaded Windows runners;
+// the former 1-second budget missed the holder in CI runs 42826448231 and 42841920622.
+const PIPE_HOLDER_TIMEOUT_MS = 10_000;
 const worker = fileURLToPath(new URL('../bin/pi-worker.mjs', import.meta.url));
 let failures = 0, caseTitle;
 async function check(title, action) {
@@ -407,9 +410,9 @@ await check('a check with an escaped output-pipe holder still returns at the rel
   commit();
   try {
     const started = Date.now();
-    const result = await checkLane({ cwd: lane, env, timeout: 1000 });
+    const result = await checkLane({ cwd: lane, env, timeout: PIPE_HOLDER_TIMEOUT_MS });
     assert.equal(result.status, 'error'); assert.match(result.output, /ETIMEDOUT/);
-    assert.ok(Date.now() - started < 1000 + RELAY_SETTLE_MS + 2500, 'pipe holder delayed the relay result');
+    assert.ok(Date.now() - started < PIPE_HOLDER_TIMEOUT_MS + RELAY_SETTLE_MS + 2500, 'pipe holder delayed the relay result');
     assert.ok(fs.existsSync(marker), 'the fixture must actually start its pipe holder');
   } finally {
     if (fs.existsSync(marker)) {
