@@ -77,6 +77,7 @@
 - Overview (page-overview, plan): Gaps names parked items by count only; each Product line marks a parked row, and its claims sit on its home feature's page.
 - Overview (page-overview, plan): the Product view's `· gap` mark (status not implemented) and the overview's gap (not made and read by code) answer different questions.
 - Overview (page-overview, plan): other projects get the overview at once through the shared script, without a template tag.
+- Feature pages (page-detail, plan): the age text shows twice on one detail page when the home feature registers the entry it names: 31 of today's 38 direct artifact lines.
 - Feature pages (page-detail, plan): a read shows on both ends: the card's `Read in:` line on the maker's page and the `Reads:` line on the reader's page.
 - Feature pages (page-detail, plan): the `Registers:` index line repeats the card headings below it.
 - Feature pages (page-detail, plan): `not read by code` repeats the reader kinds whenever they hold neither code nor prompt.

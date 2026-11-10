@@ -42,13 +42,14 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   // including detached pipe holders which can outlive boundedSpawn's result.
   const processRecords = join(root, 'processes'); fs.mkdirSync(processRecords);
   const recorder = join(root, 'record-process.cjs');
-  fs.writeFileSync(recorder, `require('node:fs').writeFileSync(require('node:path').join(${JSON.stringify(processRecords)}, String(process.pid)), JSON.stringify({pid:process.pid, role:process.argv[1] || 'node'}));`);
+  fs.writeFileSync(recorder, `const fs=require('node:fs'), path=require('node:path'); const file=path.join(${JSON.stringify(processRecords)}, String(process.pid)); const temp=file+'.tmp'; fs.writeFileSync(temp, JSON.stringify({pid:process.pid, role:process.argv[1] || 'node'})); fs.renameSync(temp, file);`);
   env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require ${JSON.stringify(recorder)}`;
   const tracked = new Map();
   const track = (pid, role) => { if (Number.isInteger(pid)) tracked.set(pid, { pid, role }); };
   const label = caseTitle;
   const liveProcesses = () => {
     for (const name of fs.readdirSync(processRecords)) {
+      if (!/^[1-9]\d*$/.test(name)) continue; // Ignore unpublished atomic-write temp files.
       const member = JSON.parse(fs.readFileSync(join(processRecords, name), 'utf8'));
       track(member.pid, member.role);
     }
@@ -360,7 +361,9 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
           }
         }
       }
-      fs.writeFileSync(${JSON.stringify(join(root, 'check-started'))}, JSON.stringify({cwd:process.cwd(),pids,parentsReadable}));
+      const marker=${JSON.stringify(join(root, 'check-started'))};
+      fs.writeFileSync(marker+'.tmp', JSON.stringify({cwd:process.cwd(),pids,parentsReadable}));
+      fs.renameSync(marker+'.tmp', marker);
       setInterval(()=>{},1000);
     }`;
   }

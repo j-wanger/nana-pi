@@ -136,4 +136,3 @@ await test('R-3745: install retains matcher siblings and drops only groups empti
     assert.equal(JSON.stringify(after.hooks.UserPromptSubmit), JSON.stringify([{ matcher: '*', hooks: [sibling] }, empty]));
   });
 });
-
