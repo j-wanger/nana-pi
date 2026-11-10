@@ -51,7 +51,7 @@ function launchFixture(dir) {
   const fixture = ledgerRepo(repo);
   assert.equal(fixture.git('init', '-q', '-b', 'main').status, 0);
   fs.writeFileSync(path.join(repo, 'seed'), 'seed'); fixture.commit('seed');
-  fs.writeFileSync(path.join(repo, 'brief.md'), 'Review the revision.');
+  fs.writeFileSync(path.join(repo, 'brief.md'), 'Review the revision.'); fixture.commit('brief');
   const bin = path.join(dir, 'fake-bin'); fs.mkdirSync(bin);
   const record = path.join(dir, 'children.jsonl');
   const body = `const fs=require('node:fs'); fs.appendFileSync(${JSON.stringify(record)},JSON.stringify(process.argv.slice(2))+'\\n'); process.stdin.resume(); process.stdin.on('end',()=>process.stdout.write('Review complete.\\nVERDICT: LAND\\n'));`;

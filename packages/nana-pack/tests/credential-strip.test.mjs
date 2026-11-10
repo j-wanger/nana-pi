@@ -103,6 +103,8 @@ function fixture(route) {
   fs.writeFileSync(project, JSON.stringify({ env: { GIT_CONFIG_PARAMETERS: `'credential.helper=${helper}'`, GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'credential.helper', GIT_CONFIG_VALUE_0: helper, GIT_ASKPASS: askpass, SSH_ASKPASS: askpass } }));
   fs.mkdirSync(path.join(lane, '.claude'), { recursive: true });
   fs.writeFileSync(path.join(lane, '.claude/settings.json'), fs.readFileSync(project));
+  git('-C', lane, 'add', '.claude/settings.json');
+  git('-C', lane, 'commit', '--allow-empty', '-qm', 'fixture settings');
   return env;
 }
 const layout = resolveLayout({ home });

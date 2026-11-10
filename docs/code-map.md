@@ -2334,7 +2334,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Assertion failures set exit 1; fixture setup failures throw.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/credential-strip-config.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/test-runner-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/lib/paths.mjs`, `packages/nana-setup/lib/steps.mjs`
-- **repo-code launches** — line 45: spawnSync; binding line 118; binding line 134
+- **repo-code launches** — line 45: spawnSync; binding line 120; binding line 136
 
 ### `packages/nana-pack/tests/data-pack-land.test.mjs`
 
