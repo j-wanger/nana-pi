@@ -18,15 +18,15 @@ git show 5722fc0353e8ca718fe420bfef1f006ec3b3817c:docs/reviews/adopt-closes-chec
 
 ## Remaining records
 
-The pre-removal snapshot is `1bb0d90387a364e57185bba5717bdcff0ee768cc`.
+The last pre-removal commit is `5667a2515bdc2152efc90ec6a4c1017f20da41c4`.
 It contains the remaining reviews, plans, evidence and session archives.
 For example, the agents-trim brief exists here but not in the older archive:
 
 ```sh
-git show 1bb0d90387a364e57185bba5717bdcff0ee768cc:docs/reviews/agents-trim 1bb0d90387a364e57185bba5717bdcff0ee768cc:docs/reviews/agents-trim/review-brief-1.md
-git show 1bb0d90387a364e57185bba5717bdcff0ee768cc:docs/plan 1bb0d90387a364e57185bba5717bdcff0ee768cc:docs/plan/agents-trim.md
-git show 1bb0d90387a364e57185bba5717bdcff0ee768cc:docs/evidence 1bb0d90387a364e57185bba5717bdcff0ee768cc:docs/evidence/land-fix-red/report.md
-git show 1bb0d90387a364e57185bba5717bdcff0ee768cc:docs/sessions 1bb0d90387a364e57185bba5717bdcff0ee768cc:docs/sessions/2026-10.md
+git show 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/reviews/agents-trim 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/reviews/agents-trim/review-brief-1.md
+git show 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/plan 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/plan/agents-trim.md
+git show 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/evidence 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/evidence/land-fix-red/report.md
+git show 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/sessions 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/sessions/2026-10.md
 ```
 
 Substitute another historical folder and file in the object names to read it.
