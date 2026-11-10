@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { tmpDir } from './tmp-dir.mjs';
+import { tmpDir } from "./tmp-dir.mjs";
 import { readSuiteRecords } from '../lib/suite-records.mjs';
 import { RECORD_SCHEMA, CI_STORE_SUBPATH } from '../lib/suite-records-config.mjs';
 import { spawnSync } from 'node:child_process';
