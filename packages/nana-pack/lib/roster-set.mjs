@@ -16,6 +16,7 @@ import { PI_MODEL_SHELL_ENV, SLOT_NULL_TOKENS, DEFAULT_THINKING_TOKEN, CLAUDE_CO
 /** The value `set`'s tokens describe for one already-known slot, or a problem naming it. */
 function parseEntry(slot, tokens) {
   if ((tokens.length === 2 || tokens.length === 3) && tokens[0] === CLAUDE_CODE_RUNTIME) {
+    if (tokens.length === 3 && slot !== 'reviewer') return { problem: `roster.${slot}.effort is only supported on reviewer` };
     return { value: { runtime: CLAUDE_CODE_RUNTIME, model: tokens[1], ...(tokens.length === 3 ? { effort: tokens[2] } : {}) } };
   }
   if (tokens.length === 3) {

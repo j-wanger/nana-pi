@@ -56,13 +56,20 @@ await check('profile git detail redacts home and remote URL credentials after th
   assert.ok(!lines.join('\n').includes(t.temp));assert.ok(!lines.join('\n').includes('user:token'));
   console.log(lines.join('\n'));
   const home='C:\\Users\\fixture',short='C:\\Users\\FIXTUR~1';
-  for(const given of [home,short,'']) {
-   const detail=`c:/users/fixture/file C:\\Users\\FIXTUR~1/file /c/Users/fixture/file https://host/repo?access_token=hidden&api_key=hidden&secret=hidden&password=hidden&keep=visible`;
+  for(const newline of ['\n','\r\n']) for(const ending of ['',` \t${newline}`]) for(const given of [home,short,'']) {
+   const detail=String.raw`c:/users/fixture/file C:\Users\FIXTUR~1/file /c/Users/fixture/file /c/Users/FIXTUR~1/file
+copy C:\a to C:\Users\FIXTUR~1\file 'C:\Users\FIXTUR~1' C:\\Users\\fixture
+https://host/repo?access_token=hidden&api_key=hidden&secret=hidden&password=hidden&sig=hidden&X-Amz-Signature=hidden&X-Amz-Credential=hidden&auth=hidden&keep=visible#access_token=hidden
+Authorization: Bearer hidden`.replaceAll('\n',newline)+ending;
    const output=[];
    runProfile(['init','--dir',t.temp],{agentDir:path.join(t.temp,'agent'),env:{},home:given,platform:'win32',realpath:candidate=>{if([home,short].includes(candidate))return home;throw Error('missing');},runGit:()=>({status:128,stderr:detail}),error:line=>output.push(line)});
    assert.equal(output[0],C.PROFILE_WORDS.git);
    assert.ok(!output[1].includes('hidden'));assert.ok(output[1].includes('&keep=visible'));
-   if(given) assert.equal(output[1].split('~/file').length-1,3);
+   if(given) {
+    assert.equal(output[1].split('~/file').length-1,4,output[1]);
+    assert.ok(!/fixture|FIXTUR~1/i.test(output[1]),output[1]);
+    assert.ok(output[1].includes(String.raw`copy C:\a to ~\file '~' ~`),output[1]);
+   }
    else assert.ok(output[1].startsWith('c:/users/fixture/file '),'empty home leaves non-secret text intact');
   }
  } finally {

@@ -230,6 +230,7 @@ export async function waitForMainCi(options={}) {
      const job=jobs.find(job=>job.name===name);
      if(job?.status===CI_DONE_STATUS&&job.conclusion===CI_PASS_CONCLUSION) {
       recordMainFlakes(run,new Map([[name,files]]),{cwd,runGit,writeLine:line});
+      state.recovered=true;
       line(`Main CI: ${name}: green after rerun`);
       state.failures.delete(name);
      }

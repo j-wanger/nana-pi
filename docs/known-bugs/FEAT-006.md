@@ -2,6 +2,7 @@
 
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
+- Lane-check test teardown kills recorded process IDs without a start-time check, so on Windows a reused ID could end another test file's process (lane-checks-win review S-1).
 - Builder credential strip (builder-credential-strip, plan): scripts can invoke a helper or credential store directly; the environment control stops git's dispatch, and the gate catches only direct shell forms.
 - Builder credential strip (builder-credential-strip, plan): a child can remove the credential controls for its own subprocess.
 - Builder credential strip (builder-credential-strip, plan): managed Claude policy can supply environment above flag settings.

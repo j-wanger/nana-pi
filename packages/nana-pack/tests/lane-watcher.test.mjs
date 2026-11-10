@@ -8,6 +8,7 @@
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
+import assert from "node:assert/strict";
 import * as path from "node:path";
 
 import { tmpDir } from "./tmp-dir.mjs";
@@ -82,7 +83,8 @@ try {
 		platform: "darwin",
 		alive: (pid) => pid === 77,
 		now: () => r2726Now,
-		run: (_command, args) => {
+		run: (command, args) => {
+			assert.deepEqual([command, ...args], ["ps", "-o", "etime=", "-p", "77"]);
 			r2726PsArgs = args;
 			return { status: 0, stdout: args.includes("etime=") ? "00:30:00\n" : "Sun Nov  1 01:00:00 2026\n" };
 		},

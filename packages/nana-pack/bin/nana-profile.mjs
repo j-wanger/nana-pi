@@ -130,7 +130,9 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
   if(e?.detail) {
    let detail=String(e.detail)
     .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s/]*@/gi, match=>match.slice(0,match.indexOf('://')+3))
-    .replace(/([?&][^\s?&#=]*(?:token|key|secret|password)[^\s?&#=]*=)[^\s&#]*/gi,'$1');
+    .replace(/([?&][^\s?&#=]*(?:token|key|secret|password)[^\s?&#=]*=|[?&](?:sig|X-Amz-Signature|X-Amz-Credential|auth)=|#access_token=)[^\s&#]*/gi,'$1')
+    .replace(/(\bAuthorization:)[^\r\n]*/gi,'$1');
+   if(platform==='win32') detail=detail.replace(/\\{2,}/g,'\\');
    const homes=new Set(home?[home]:[]);
    if(home&&platform==='win32') {
     try {
@@ -139,9 +141,11 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
      // A log can use an 8.3 alias even when HOME already has its long spelling.
      const depth=canonical.split('/').filter(Boolean).length-1;
      if(depth>0) {
-      const prefix=new RegExp(`\\b[a-z]:[\\\\/](?:[^\\\\/\\r\\n]+[\\\\/]){${depth-1}}[^\\\\/\\s]+`,'gi');
+      const segment=String.raw`[^\\/\s"'<>|:]+`;
+      const prefix=new RegExp(String.raw`(?:\b[a-z]:[\\/]|/[a-z]/)(?:${segment}[\\/]){${depth-1}}${segment}`,'gi');
       detail=detail.replace(prefix,candidate=>{
-       try {if(realpath(candidate).replaceAll('\\','/').toLowerCase()===canonical) return '~';}catch {}
+       const nativeCandidate=candidate.replace(/^\/([a-z])\//i,(_match,drive)=>`${drive.toUpperCase()}:/`).replaceAll('/','\\');
+       try {if(realpath(nativeCandidate).replaceAll('\\','/').toLowerCase()===canonical) return '~';}catch {}
        return candidate;
       });
      }
@@ -151,7 +155,10 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
     if(!spelling) continue;
     const forward=spelling.replaceAll('\\','/');
     homes.add(forward);
-    if(platform==='win32') homes.add(forward.replace(/^([a-z]):\//i,'/$1/'));
+    if(platform==='win32') {
+     homes.add(forward.replaceAll('/','\\'));
+     homes.add(forward.replace(/^([a-z]):\//i,'/$1/'));
+    }
    }
    for(const spelling of [...homes].filter(Boolean).sort((a,b)=>b.length-a.length)) {
     const escaped=spelling.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');

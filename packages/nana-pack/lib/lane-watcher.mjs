@@ -190,7 +190,7 @@ export async function cleanLane(spec, options = {}) {
 	const platform = options.platform ?? process.platform;
 	const alive = options.alive ?? pidAlive;
 	const killTree = options.killTree ?? killProcessTree;
-	const startedAt = options.processStartedAt ?? ((pid) => processStartedAt(pid, { run: options.run, now: options.now }));
+	const startedAt = options.processStartedAt ?? ((pid) => processStartedAt(pid, { run: options.run, now: options.now, platform }));
 	const waitForExit = options.waitForExit ?? ((pid) => defaultWaitForExit(pid, LANE_WATCHER_STOP_WAIT_MS, alive));
 	const exists = options.exists ?? fs.existsSync;
 	try {

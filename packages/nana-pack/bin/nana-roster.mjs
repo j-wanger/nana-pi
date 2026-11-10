@@ -61,7 +61,6 @@ function claudeCodeEntryProblem(slot, value) {
   if (!CLAUDE_CODE_SUBAGENT_MODELS.includes(value.model)) {
     return `roster.${slot}.model must be one of the Claude Code subagent model names (got ${JSON.stringify(value.model)})`;
   }
-  if ('effort' in value && slot !== 'reviewer') return `roster.${slot}.effort is only supported on reviewer`;
   if ('effort' in value && !CLAUDE_EFFORT_LEVELS.includes(value.effort)) {
     return `roster.${slot}.effort must be one of ${CLAUDE_EFFORT_LEVELS.join(', ')} (got ${JSON.stringify(value.effort)})`;
   }
@@ -119,12 +118,20 @@ export function validateRosterShape(value) {
   const allowedSlots = [...ROSTER_SLOTS, ...OPTIONAL_SLOTS];
   const extra = keys.filter((k) => !allowedSlots.includes(k) && !LEGACY_ROSTER_SLOTS.includes(k));
   if (extra.length) return { problem: `roster has an unexpected field ${extra.join(', ')}` };
+  const normalised = { ...value };
+  const ignored = [];
   for (const slot of allowedSlots) {
     if (!(slot in value)) continue;
-    const problem = entryProblem(slot, value[slot]);
+    const entry = value[slot];
+    if (slot !== 'reviewer' && entry?.runtime === CLAUDE_CODE_RUNTIME && Object.hasOwn(entry, 'effort')) {
+      const { effort, ...withoutEffort } = entry;
+      normalised[slot] = withoutEffort;
+      ignored.push(`roster.${slot}.effort`);
+    }
+    const problem = entryProblem(slot, normalised[slot]);
     if (problem) return { problem };
   }
-  const normalised = { ...value };
+  if (ignored.length) console.warn(`nana-roster: ${ignored.join(', ')} ignored: effort is only supported on reviewer`);
   for (const slot of OPTIONAL_SLOTS) if (!(slot in normalised)) normalised[slot] = null;
   return { roster: normalised };
 }
