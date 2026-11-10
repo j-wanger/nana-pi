@@ -15,7 +15,7 @@ export const WIN_SHIM_LINE_ENDINGS = Object.freeze({ sh: "\n", cmd: "\r\n" });
 // Contract provenance for the find_dp0/SETLOCAL/endLocal-goto template (design §Design, R-1612/R-1614).
 export const WIN_CMD_SHIM_LAYOUT = "npm cmd-shim 7.0.0";
 
-const shellQuote = (value) => `'${value.replaceAll("'", `'\\''`)}'`;
+export const shellQuote = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
 const batchPath = (value) => value.replaceAll("/", "\\").replaceAll("%", "%%");
 
 function sameWindowsDrive(left, right) {

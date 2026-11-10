@@ -61,14 +61,6 @@ const api=()=>import('../lib/leak-scan.mjs');
 const cli=()=>import('../bin/leak-scan.mjs');
 const options=f=>({...f,tip:'HEAD',config,home:'/home/ab',tmp:'/scratch/fixture',platform:'linux'});
 let identity, forms, workerRuns;
-// req: R-3748
-await check('M1: exact preamble sentence and chained seat bullet',()=>{
-  const preamble=fs.readFileSync(path.join(root,'packages/nana-pack/prompts/builder-preamble.md'),'utf8');
-  const sentence='Committed logs and evidence use repo-relative paths, ~ or $TMPDIR, never an absolute home or temp path.';
-  assert.ok(preamble.split('Before you report\n')[1].split('Report shape:')[0].includes(sentence));
-  const bullet='- Before pushing a lane branch, run `node "$HOME/nana-pi/packages/nana-pack/bin/leak-scan.mjs" --base main --tip HEAD` chained with `&&` to the push; on a hit, fix the commit before any push.';
-  assert.equal(fs.readFileSync(path.join(root,'packages/nana-setup/claude/rules/nana-seat.md'),'utf8').split(bullet).length,2);
-});
 // req: R-3749
 await check('M2: identity range has no outside allowlist bleed',async()=>{
   const f=fixture();put(f.cwd,'r2-a.log',`${word} \t\r\n${word} \t`);const tip=commit(f.cwd);

@@ -97,7 +97,7 @@ check("sealed override list removes every listed key and caller npm config keys 
 // req: R-1071
 check("install invokes real-home mode without sandbox flags", () => {
   const source = readFileSync(fileURLToPath(new URL("../lib/install-check.mjs", import.meta.url)), "utf8");
-  assert.ok(source.includes('[path.join(root, "packages/nana-setup/bin/nana-setup.mjs"), "install"]'));
+  assert.ok(source.includes('[path.join(root, "packages/nana-setup/bin/nana-setup.mjs"), "install", \'--repository\', hookCheckout]'));
   assert.doesNotMatch(source, /"install", "--(?:home|claude-home|pi-home)/);
 });
 
@@ -471,7 +471,7 @@ check("install: an install that exits non-zero prints FAIL install with its exit
 // req: R-1071
 check("install: the command line carries no override flag", async () => {
   const fixture = recordingRun();
-  try { await fixture.run; const call = fixture.calls.find((item) => item.args.includes("install") && item.args.some((arg) => arg.includes("nana-setup.mjs"))); assert.ok(call); assert.deepEqual(call.args.slice(1), ["install"]); }
+  try { await fixture.run; const call = fixture.calls.find((item) => item.args.includes("install") && item.args.some((arg) => arg.includes("nana-setup.mjs"))); assert.ok(call); assert.deepEqual(call.args.slice(1), ["install", "--repository", path.join(fixture.home, "hook-checkout")]); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 

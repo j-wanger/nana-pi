@@ -3,7 +3,7 @@
  * @module packages/nana-setup/bin/nana-setup.mjs
  * @purpose The nana-setup CLI parses argv, resolves one layout, runs its command and prints results.
  * @inputs argv (`install` | `uninstall` | `doctor` | `project [dir]` | `state` | `trust <dir>`, trust store, plus --home, --claude-home, --pi-home,
- *  --paths, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
+ *  --repository, --paths, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
  *  defaulted project dir; whatever resolveLayout reads (HOME, CLAUDE_CONFIG_DIR, PI_CODING_AGENT_DIR,
  *  NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
  * @outputs stdout: the install root / claude home / pi home banner, a "<mark> <label> <status>
@@ -57,6 +57,8 @@ const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
   nana-setup trust <dir> [--yes]      record pi project trust after confirmation
 
 Options
+  --repository <dir>   install: explicit checkout for the pre-push hook (default: this checkout;
+                       home overrides omit it unless named)
   --home <dir>         put every user-scope location under <dir> (tests, dry machines)
   --claude-home <dir>  the .claude directory            (default: CLAUDE_CONFIG_DIR, else ~/.claude)
   --pi-home <dir>      the pi agent directory           (default: PI_CODING_AGENT_DIR, else ~/.pi/agent)
@@ -77,8 +79,8 @@ function parse(argv) {
 	const opts = { _: [] };
 	for (let i = 0; i < argv.length; i++) {
 		const a = argv[i];
-		if (a === "--home" || a === "--claude-home" || a === "--pi-home") {
-			const key = a === "--home" ? "home" : a === "--claude-home" ? "claudeHome" : "piHome";
+		if (a === "--home" || a === "--claude-home" || a === "--pi-home" || a === "--repository") {
+			const key = a === "--repository" ? "repository" : a === "--home" ? "home" : a === "--claude-home" ? "claudeHome" : "piHome";
 			opts[key] = argv[++i];
 			if (!opts[key]) throw new SetupError(`${a} needs a directory`);
 		} else if (a === "--name") {
@@ -180,7 +182,8 @@ function runInstall(opts) {
 	console.log(`  install root  ${repoRoot}`);
 	console.log(`  claude home   ${tildeify(layout.claudeHome)}${layout.claudeHomeSource === "default" ? "" : `  (from ${layout.claudeHomeSource})`}`);
 	console.log(`  pi home       ${tildeify(layout.piHome)}\n`);
-	const results = install(layout, opts);
+	const repository = opts.repository ?? (opts.home || opts.claudeHome || opts.piHome ? undefined : repoRoot);
+	const results = install(layout, { ...opts, repository });
 	const width = Math.max(...results.map((r) => r.label.length));
 	for (const r of results) {
 		const detail = r.detail ? `  ${r.detail}` : "";

@@ -15,6 +15,7 @@ import { projectKey } from "./project-key.mjs";
 import { runReadmeRehearsal } from "./readme-rehearsal.mjs";
 import { STALE_PREFIX, STALE_UNAVAILABLE_PREFIX } from "./stale-copies-config.mjs";
 import { CONTEXT_LOAD_FILE } from "../../nana-pack/lib/context-load-log.mjs";
+import { shellQuote } from './win-shims.mjs';
 
 export function buildEnvironment(source, home, platformName = process.platform) {
   const env = {};
@@ -303,10 +304,6 @@ export function judgePiWorker({ launch, outputText, record, preamble, brief, led
   return { passed: true, code: null, detail: "" };
 }
 
-function shellQuote(value) {
-  return `'${String(value).replaceAll("'", `'\\''`)}'`;
-}
-
 export async function runInstallCheck({ root, home, platformName, env, spawn, exists, now = () => new Date(), out = () => {} }) {
   const lines = [];
   const emitLine = (line) => { lines.push(line); out(line); };
@@ -354,8 +351,10 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
   };
   const okay = (r) => !r?.error && r?.status === 0;
   const reason = (r) => r?.error?.code === "ETIMEDOUT" ? `timed out after ${r.ms ?? 0} ms` : `exit status ${r?.status ?? "unknown"}${r?.signal ? ` (signal ${r.signal})` : ""}${r?.stderr?.trim() ? `; last stderr: ${r.stderr.trim().split(/\r?\n/).at(-1)}` : ""}`;
-  const install = await invoke(process.execPath, [path.join(root, "packages/nana-setup/bin/nana-setup.mjs"), "install"], { cwd: root, timeout: SPAWN_TIMEOUT_MS.install });
-  report("install", install.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(install) && gitRootOkay, okay(install) ? (gitRootOkay ? "" : "fixture git init failed") : reason(install));
+  const hookCheckout = path.join(home, 'hook-checkout');
+  const hookClone = await invoke('git', ['clone','--quiet','--no-hardlinks','--',root,hookCheckout], {timeout:SPAWN_TIMEOUT_MS.git});
+  const install = await invoke(process.execPath, [path.join(root, "packages/nana-setup/bin/nana-setup.mjs"), "install", '--repository', hookCheckout], { cwd: root, timeout: SPAWN_TIMEOUT_MS.install });
+  report("install", install.error?.code === "ETIMEDOUT" ? "timeout" : "exit", okay(install) && gitRootOkay && okay(hookClone), okay(install) ? (gitRootOkay && okay(hookClone) ? "" : "fixture git init or hook clone failed") : reason(install));
   if (okay(install)) {
     fs.writeFileSync(path.join(home, ".pi", "agent", "nana-objective.md"), `**Objective (since 2026-10-12):** ${token}.\n\n**Current priority (since 2026-10-12):** install-check ${token}.\n`);
     const memory = path.join(home, ".claude", "nana-memory", "shared", "MEMORY.md");

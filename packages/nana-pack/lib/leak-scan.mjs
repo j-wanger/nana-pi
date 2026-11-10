@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/lib/leak-scan.mjs
- * @purpose Scan each range commit's changed blobs and repository-relative names for identity words and literal machine paths.
- * @inputs Repository cwd, base/tip commit refs, optional digest config, home, temp root, platform and real-path resolver.
+ * @purpose Scan range commits' changed blobs, names and metadata for identity words and literal machine paths.
+ * @inputs Repository cwd, base/tip commit refs, optional commit count, digest config, home, temp root, platform and real-path resolver; metadata text.
  * @outputs Counts-only hits, visible skips, and shared diagnostic lines without matched text.
  * @effects disk (checkout-relative config and machine-folder realpath), process (git history and bounded blob reads)
  * @errors Throws fixed unavailable reasons for config, refs or git failures without echoing inputs.
@@ -29,11 +29,30 @@ export function machineCount(text, value, platform, resolveRealPath) {
   return [...text.matchAll(pattern)].length;
 }
 
-export function scanCommitRange({ cwd = process.cwd(), base, tip, config, home = homedir(), tmp = tmpdir(), platform = process.platform, realPath: resolveRealPath = realPath } = {}) {
+function identityConfig(config) {
   try {
     config ??= JSON.parse(readFileSync(new URL('../../../identity-scan.config.json', import.meta.url), 'utf8'));
     validateConfig(config);
+    return config;
   } catch { throw new Error('identity config unavailable'); }
+}
+
+/** Shared metadata counter for range commits and annotated tags; never returns text. */
+export function scanMetadata({ content, commit, path = '(commit metadata)', config, home = homedir(), tmp = tmpdir(), platform = process.platform, realPath: resolveRealPath = realPath }) {
+  config = identityConfig(config);
+  const hits = [];
+  countIdentityWords({content,config}).forEach((count,wordIndex)=> {
+    if (count) hits.push({path,commit,kind:'identity',wordIndex,count});
+  });
+  for (const [kind,value] of [['home',home],['temp',tmp]]) {
+    const count = machineCount(content,value,platform,resolveRealPath);
+    if (count) hits.push({path,commit,kind,count});
+  }
+  return hits;
+}
+
+export function scanCommitRange({ cwd = process.cwd(), base, tip, includeCommitCount = false, config, home = homedir(), tmp = tmpdir(), platform = process.platform, realPath: resolveRealPath = realPath } = {}) {
+  config = identityConfig(config);
   const git = (args, maxBuffer = Infinity) => {
     try { return execFileSync('git', args, { cwd, maxBuffer, stdio: ['ignore','pipe','pipe'] }); }
     catch { throw new Error('git range or blob unavailable'); }
@@ -48,6 +67,8 @@ export function scanCommitRange({ cwd = process.cwd(), base, tip, config, home =
   const hits = [], skipped = [];
   for (const revision of commits) {
     const commit = git(['rev-parse','--short',revision]).toString('utf8').trim();
+    const content = git(['show','-s','--format=%an%n%ae%n%cn%n%ce%n%B',revision]).toString('utf8');
+    hits.push(...scanMetadata({content,commit,config,home,tmp,platform,realPath:resolveRealPath}));
     const files = git(['diff-tree','--root','--no-commit-id','-r','-m','--first-parent','--find-renames','--name-only','-z','--diff-filter=d',revision,'--']).toString('utf8').split('\0').filter(Boolean);
     for (const file of files) {
       // Inspect size before requesting bytes: an over-cap blob is never read, even partially.
@@ -65,7 +86,7 @@ export function scanCommitRange({ cwd = process.cwd(), base, tip, config, home =
       }
     }
   }
-  return {hits,skipped};
+  return {hits,skipped,...(includeCommitCount ? {commitsScanned:commits.length} : {})};
 }
 
 /** Both launchers use these counts-only lines; a skip never reads as clean. */

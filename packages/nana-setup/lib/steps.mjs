@@ -1,13 +1,13 @@
 /**
  * @module packages/nana-setup/lib/steps.mjs
  * @purpose The install steps and the `install` sequencer link, seed, retire, merge or register one piece of the experience and report { label, status, detail }.
- * @inputs a layout from resolveLayout; { dryRun, afterTempWrite }; this package's own sources
+ * @inputs a layout from resolveLayout; { dryRun, afterTempWrite, repository (explicit hook destination) }; this package's own sources
  *  (claude/hooks, claude/rules, claude/rules/nana-personal.example.md, claude/memory/MEMORY.seed.md,
  *  pi/nana-pack.seed.json, pi/nana-objective.seed.md, historical pi/retired seed bytes) and packages/nana-pack/skills and
  *  packages/nana-pack/rules (the writing rule, rulings file and canonical seat guide); the
  *  live <claudeHome>/settings.json, <piHome>/nana-pack.json and <piHome>/settings.json;
  *  <claudeHome>/nana-setup-copies.json; pi's npm package.json; NANA_SETUP_PLATFORM
- * @outputs an array of { label, status, detail }; on disk — symlinks in <claudeHome>/hooks and
+ * @outputs an array of { label, status, detail }; an opt-in marked repository pre-push shim; on disk — symlinks in <claudeHome>/hooks and
  *  rules (copies on win32), a seeded nana-personal.md, the missing hook entries
  *  merged into <claudeHome>/settings.json; on win32 a copy record tracks the last installed bytes;
  *  install takes the O_EXCL .settings.json.nana-setup.lock before its first write and holds it
@@ -45,7 +45,7 @@ import { matchesRetiredArtifact, retiredArtifacts, RETIRED_HOOK_FILES, retiredHo
 import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import { piInvocation } from "./pi-invocation.mjs";
-import { renderWinShims, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
+import { renderWinShims, shellQuote, WIN_SHIM_SUFFIXES } from "./win-shims.mjs";
 import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
 import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
@@ -983,6 +983,52 @@ export function stepPiRegister(layout, o, { platform: getPlatform = platform, en
 	return [{ label: "pi packages", status: CREATED, detail: o.dryRun ? `would add per-package entries for ${state.missing.join(", ")}` : `added per-package entries: ${added.join(", ")}` }];
 }
 
+/* -------------------------------------------------------------------- repository push hook */
+
+export const PRE_PUSH_MARKER = '# nana-setup: pre-push leak scan';
+
+/** No ambient checkout fallback: library installs must opt into repository writes. */
+export function stepPrePush({ repository, dryRun = false } = {}) {
+	const label = 'git pre-push leak scan';
+	const skipped = detail => [{label,status:SKIPPED,detail}];
+	if (!repository) return skipped('no repository explicitly named');
+	const git = args => {
+		const result = spawnSync('git', ['-C', repository, ...args], {encoding:'utf8'});
+		if (result.error || result.status !== 0) throw new Error('git unavailable');
+		return result.stdout.trim();
+	};
+	try {
+		const common = gitCommonDir(repository);
+		const own = realpathSafe(git(['rev-parse','--absolute-git-dir']));
+		if (!common) return skipped('repository unavailable');
+		if (own !== common) return skipped('linked worktree; install from the main checkout');
+		const hooksPath = spawnSync('git', ['-C',repository,'config','--get','core.hooksPath'], {encoding:'utf8'});
+		if (hooksPath.status === 0) return skipped('core.hooksPath is set; left untouched');
+		if (hooksPath.error || hooksPath.status !== 1) throw new Error('git config unavailable');
+		const checkout = git(['rev-parse','--show-toplevel']);
+		const scanner = path.join(checkout,'packages','nana-pack','bin','leak-scan.mjs');
+		if (!lstatSafe(scanner)?.isFile()) return skipped('checkout scanner unavailable');
+		const hooks = git(['rev-parse','--path-format=absolute','--git-path','hooks']);
+		const target = path.join(hooks,'pre-push');
+		const stat = lstatSafe(target);
+		if (stat && (!stat.isFile() || stat.isSymbolicLink())) return skipped('existing pre-push is not a managed regular file');
+		const current = stat ? fs.readFileSync(target,'utf8') : null;
+		if (current !== null && !current.split(/\r?\n/).includes(PRE_PUSH_MARKER)) return skipped('existing pre-push has no setup marker; left untouched');
+		const shellPath = process.platform === 'win32' ? scanner.replaceAll('\\','/') : scanner;
+		const text = `#!/bin/sh\n${PRE_PUSH_MARKER}\nexec node ${shellQuote(shellPath)} --pre-push "$@"\n`;
+		const executable = win() || !stat || (stat.mode & 0o111) === 0o111;
+		if (current === text && executable) return [{label,status:UNCHANGED,detail:'marked hook already installed'}];
+		if (!dryRun) {
+			fs.mkdirSync(hooks,{recursive:true});
+			fs.writeFileSync(target,text,{mode:0o755});
+			if (!win()) fs.chmodSync(target,0o755);
+		}
+		return [{label,status:stat ? UPDATED : CREATED,detail:dryRun ? 'would install marked hook' : 'installed marked hook'}];
+	} catch {
+		return [{label,status:PROBLEM,detail:'cannot install repository pre-push hook'}];
+	}
+}
+
 /* ------------------------------------------------------------------------------- install */
 
 export function installExitCode(results) {
@@ -1026,6 +1072,7 @@ export function install(layout, opts = {}) {
 		results.push(...stepPiConfig(layout, fileOptions));
 		results.push(...retiredSeedRows(layout).map(row => retireSeed(row, { ...fileOptions, root: layout.piHome })));
 		results.push(...stepPath(layout, fileOptions));
+		results.push(...stepPrePush({repository:opts.repository,dryRun:o.dryRun}));
 		if (copyRecord) results.push(...copyRecord.save(fileOptions));
 	};
 	if (o.dryRun) fileSteps(false);
