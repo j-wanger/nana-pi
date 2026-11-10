@@ -36,3 +36,4 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-11-09: A failure that repeats becomes a check in the tool at its moment. Judgment stays a short posture line. Neither becomes a memory line.
 - 2026-11-09: A test stays only if it pins a recorded failure, the main use of a kept feature, or a safety line.
 - 2026-11-09: The memory factory is cut (owner D3). The owner profile store stays.
+- 2026-11-09: A red main leg re-runs once at the same commit; a green re-run keeps lands open, and the flake is recorded per file and fixed in source. Lane tips do not run the full Windows suite for now. The lane-built code map and requirements tree move out of each lane's commits in their own lane.

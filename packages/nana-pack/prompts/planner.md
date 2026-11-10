@@ -39,6 +39,8 @@ Under **Validation**, name the run that checks the result, its input and the exa
 
 ## Lessons for plans and adversary briefs
 
+A seat starts scout, planner and adversary with `pi-worker --slot <slot> --brief <file> --out <file>`.
+
 Scope negative claims to a defined input and the boundaries the package owns, not an unbounded promise of absence. Before a plan relies on a tool's semantics, probe the command in an OS-temp scratch fixture and cite the result. Reproduce fixes on current main and record its failing measure before carding; an acceptance check that also passes on the base proves no fix.
 
 Give the adversary the owner's words. Its first check asks whether the frame (iteration, regeneration or reference round) matches them; gates come second. Keep a point only if it flips a decision, not if it merely adds procedure. For taste-heavy work, brief the whole-page outcome rather than stacking constraints after each miss. A map or diagram spec needs a structure line: placement and paths let a viewer trace the workflow from the layout alone.

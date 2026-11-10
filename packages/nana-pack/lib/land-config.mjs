@@ -28,6 +28,9 @@ export const CI_RUNS_PAGE_SIZE = 100;
 
 // chosen 2026-11-02 (R-3721, R-3725): two capacity recoveries before asking the seat.
 export const CI_CANCEL_RERUNS = 2;
+// contract (R-3994, R-3995), owner decision 2026-11-09: one same-commit retry, repeated file flakes need source fixes.
+export const MAIN_CI_RED_RERUNS = 1;
+export const MAIN_CI_FLAKE_FIX_COUNT = 2;
 // chosen 2026-11-02 (R-3720, R-3725): allow GitHub two seconds to compute mergeability.
 export const CI_READY_READS = 3;
 export const CI_READY_DELAY_MS = 1_000;

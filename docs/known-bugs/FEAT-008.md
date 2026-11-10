@@ -77,7 +77,6 @@
 - Carry (ci-wait-ready): `bin/nana-ci-wait.mjs` omits the progress callback, buffering rerun notices until the wait ends.
 - Carry (win-shards): `nana-land.mjs` refuses after one failed CI jobs-list read rather than retrying or falling back locally.
 - Carry (win-shards): `.github/workflows/ci.yml` can skip release after partial reruns if shard success flags do not carry; this fails safely.
-- Carry (win-shards): `nana-land.mjs` refuses while main's newest push run is unfinished; it offers no main-run wait helper.
 - Carry (land-fix-red): `nana-land.mjs` blocks `--fixes-red` when a failed main leg leaves no readable record.
 - Carry (land-fix-red): `nana-land.mjs` holds the review-ledger lock during its final main-CI reread, delaying review admission and completion.
 - Carry (land-fix-red): `main-ci.mjs` marks cancelled main runs with complete records red-readable, allowing `--fixes-red` to authorize them.

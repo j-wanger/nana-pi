@@ -67,7 +67,7 @@ function renderBlock(file, result, next, asks, selected, issues, watchLine, main
 	if (issues && !issues.failure) {
 		const ownerAsks = asks.filter((item) => item.tag?.kind !== "blocking");
 		const counts = askCounts(ownerAsks);
-		out.push(ownerAsks.length ? `Open for the owner (${ownerAsks.length}: ${counts.map(({ count, kind }) => `${count} ${kind}`).join(", ")})${FRONTIER_OWNER_ASKS_LOOKUP}` : "Open for the owner: none found.");
+		out.push(ownerAsks.length ? `Open for the owner (${ownerAsks.length}: ${counts.map(({ count, kind }) => `${count} ${kind}`).join(", ")})${FRONTIER_OWNER_ASKS_LOOKUP.replace('<owner>', issues.owner)}` : "Open for the owner: none found.");
 	} else if (asks.length === 0) { if (!issues?.failure) out.push("Open for the owner: none found."); }
 	else {
 		const counts = askCounts(asks);

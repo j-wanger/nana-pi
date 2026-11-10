@@ -9,6 +9,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import { tmpDir } from './tmp-dir.mjs';
+import { readSuiteRecords } from '../lib/suite-records.mjs';
+import { RECORD_SCHEMA, CI_STORE_SUBPATH } from '../lib/suite-records-config.mjs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { check } from './profile-fixture.mjs';
@@ -25,7 +29,7 @@ const jobs = (attempt=1, extra={}) => [
  {name:'release',status:'completed',conclusion:'skipped',run_attempt:attempt},
 ].map(j=>({...j,...(extra[j.name]??{})}));
 const cancelled = (attempt=1, extra={}) => workflowRun({run_attempt:attempt,conclusion:'cancelled',path:'.github/workflows/ci.yml',...extra});
-function fake({prs=[pr()], runs=()=>[workflowRun()], jobList=r=>jobs(r.run_attempt), fail, slow}={}) {
+function fake({prs=[pr()], runs=()=>[workflowRun()], jobList=r=>jobs(r.run_attempt), log='', fail, slow}={}) {
  let time=0, reads=0; const calls=[], sleeps=[], output=[];
  const options={cwd:process.cwd(),repository,branch,tip,workflowText,env:{GH_HOST:'wrong.invalid',GH_REPO:'wrong/other'},
   now:()=>time, sleep:ms=>{sleeps.push(ms);time+=ms;}, writeLine:l=>output.push(l),
@@ -35,7 +39,7 @@ function fake({prs=[pr()], runs=()=>[workflowRun()], jobList=r=>jobs(r.run_attem
    if(fail?.(args)) return {status:1,stderr:'injected API failure\r\nmore'};
    let body;
    if(args[0]==='pr') body=typeof prs==='function'?prs():prs;
-   else if(args[0]==='run') return {status:0,stdout:''};
+   else if(args[0]==='run') return {status:0,stdout:args[1]==='view'?log:''};
    else if(args.some(a=>a.includes('/jobs?'))) {
     const endpoint=args.find(a=>a.includes('/jobs?'));
     const attempt=Number(/attempts\/(\d+)/.exec(endpoint)[1]);
@@ -44,7 +48,7 @@ function fake({prs=[pr()], runs=()=>[workflowRun()], jobList=r=>jobs(r.run_attem
    } else body=JSON.parse(runList(runs(++reads)));
    return {status:0,stdout:JSON.stringify(body)};
   }};
- return {options,calls,sleeps,output, reruns:()=>calls.filter(c=>c.args[0]==='run'), time:()=>time};
+ return {options,calls,sleeps,output, reruns:()=>calls.filter(c=>c.args[0]==='run'&&c.args[1]==='rerun'), time:()=>time};
 }
 const api = () => import('../lib/ci-wait.mjs');
 
@@ -125,6 +129,89 @@ await check('M5: waiter and Node-fake CLI print judgeRuns success lines and reru
  const cli=fileURLToPath(new URL('../bin/nana-ci-wait.mjs',import.meta.url));
  const child=spawnSync(process.execPath,[cli,'--tip',fixture.tip],{cwd:fixture.feature,env,encoding:'utf8',timeout:30000});assert.equal(child.status,0,child.stderr+child.stdout);assert.match(child.stdout,/ci: ci run 101/);const calls=fs.readFileSync(log,'utf8').trim().split('\n').map(JSON.parse);assert(calls[0].includes(branch));assert(calls[0].includes('github.com/example/fixture'));
  const invalid=spawnSync(process.execPath,[cli,'--bogus'],{cwd:fixture.feature,env,encoding:'utf8',timeout:30000});assert.equal(invalid.status,2);assert.match(invalid.stderr,/usage/);
+});
+
+// req: R-3992
+await check('M7: superseded capacity waiters never rerun each other',async()=>{
+ const {waitForCi}=await api();
+ const old='b'.repeat(40), head='c'.repeat(40);
+ for(const waited of [tip,old]) {
+  let reads=0;
+  const f=fake({prs:()=>[pr({headRefOid:++reads===1?waited:head})],runs:()=>[cancelled()]});
+  const out=await waitForCi({...f.options,tip:waited});
+  assert.equal(out.code,1);assert.equal(out.text,`ci: superseded at ${waited}: branch now at ${head}\n`);assert.equal(f.reruns().length,0);
+  console.log(out.text.trim());
+ }
+});
+
+// req: R-3993
+await check('M8: red lane jobs print FAIL paths across line endings',async()=>{
+ const {waitForCi}=await api();
+ for(const suffix of ['\n','\r\n',' \t\r\n','']) {
+  const f=fake({runs:()=>[workflowRun({conclusion:'failure'})],jobList:()=>[{id:71,name:'suite (macos-latest)',status:'completed',conclusion:'failure',run_attempt:1}],log:`suite\ttest\t2026-11-09T00:00:00Z FAIL  packages/p/tests/red.test.mjs${suffix}`});
+  const out=await waitForCi(f.options);assert.equal(out.code,1);assert.match(out.text,/ci: suite \(macos-latest\): packages\/p\/tests\/red.test.mjs/);assert.equal(f.reruns().length,0);
+  assert(f.calls.some(c=>c.args.includes('--attempt')&&c.args.includes('71')));
+ }
+});
+
+function mainWaitFake({id=101,fail=true,persistent=false,extraPending=false,absent=false}={}) {
+ const root=tmpDir(path.join(os.tmpdir(),'main-wait-')),calls=[];
+ let time=0,attempt=1,reads=0;
+ const run=()=>workflowRun({id,workflow_id:1,head_sha:tip,head_branch:'main',event:'push',path:'.github/workflows/ci.yml',run_attempt:attempt,conclusion:fail&&(attempt===1||persistent)?'failure':'success'});
+ const latestJobs=()=>[
+  ...['macos-latest','ubuntu-latest','windows-latest'].map((leg,i)=>({id:70+i,name:`suite (${leg})`,status:'completed',conclusion:leg==='windows-latest'&&fail&&(attempt===1||persistent)?'failure':'success',run_attempt:attempt})),
+  ...['macos-latest','windows-latest'].flatMap(os=>['floor','ceiling'].map(pi=>({name:`install-check (${os}, ${pi})`,status:'completed',conclusion:'success',run_attempt:attempt}))),
+ ];
+ const runGit=(_root,args)=>({status:0,stdout:args[0]==='remote'?'https://github.com/example/fixture.git':args.includes('--git-common-dir')?root:tip});
+ const options={cwd:root,tempRoot:root,sha:tip,env:{GH_REPO:'wrong/other',GH_HOST:'wrong.invalid'},runGit,now:()=>time,sleep:ms=>{time+=ms;},runGh:(_root,args,opts)=>{
+  calls.push(args);assert(calls.length<2000);assert(opts.timeoutMs>0&&opts.timeoutMs<=C.CI_READ_TIMEOUT_MS);
+  if(args[0]==='repo') return {status:0,stdout:JSON.stringify({nameWithOwner:'example/fixture'})};
+  if(args[0]==='run') {
+   if(args[1]==='rerun') {attempt++;return {status:0,stdout:''};}
+   if(args[1]==='view') return {status:0,stdout:'job\tstep\t2026-11-09 FAIL  packages/p/tests/red.test.mjs \t\r\n'};
+   const leg=args[args.indexOf('--name')+1].replace('suite-record-','').replace(/-\d+$/,'');
+   const folder=args[args.indexOf('--dir')+1];fs.mkdirSync(folder,{recursive:true});
+   fs.writeFileSync(path.join(folder,'record.json'),JSON.stringify({schema:RECORD_SCHEMA,platform:leg,exitCode:leg==='windows-latest'&&persistent?1:0,files:[{path:'packages/p/tests/red.test.mjs',label:leg==='windows-latest'&&persistent?'FAIL':'PASS'}]}));
+   return {status:0,stdout:''};
+  }
+  const endpoint=args.at(-1);let body;
+  if(endpoint.includes('/jobs?')) {const list=endpoint.includes('/runs/202/')?[{name:'check',status:'completed',conclusion:'success',run_attempt:1}]:latestJobs();body={total_count:list.length,jobs:list};}
+  else if(endpoint.includes('/artifacts?')) body={artifacts:['macos-latest','ubuntu-latest','windows-latest'].map((leg,i)=>({id:i+1,name:`suite-record-${leg}-${attempt}`}))};
+  else {
+   reads++;
+   body={workflow_runs:absent?[]:[run(),...(extraPending?[workflowRun({id:202,workflow_id:2,path:'.github/workflows/other.yml',head_sha:tip,head_branch:'main',event:'push',status:reads<3?'in_progress':'completed',conclusion:reads<3?null:'success'})]:[])]};
+  }
+  return {status:0,stdout:JSON.stringify(body)};
+ }};
+ return {options,calls,root,runGit,time:()=>time};
+}
+
+// req: R-3994
+await check('M9: main wait covers every workflow retries red once and reports persistent red',async()=>{
+ const {waitForMainCi}=await api();
+ for(const persistent of [false,true]) {
+  const f=mainWaitFake({persistent,extraPending:true});
+  const out=await waitForMainCi(f.options);assert.equal(out.code,persistent?1:0,out.text);
+  assert.equal(f.calls.filter(a=>a[1]==='rerun').length,1);assert.match(out.text,persistent?/suite \(windows-latest\): red: packages\/p\/tests\/red.test.mjs/:/flake: packages\/p\/tests\/red.test.mjs/);
+  assert.match(out.text,/workflow ci run 202 green/);assert(f.time()>=2*C.CI_POLL_INTERVAL_MS);
+  assert(f.calls.find(a=>a[0]==='repo').includes('github.com/example/fixture'));
+  assert(f.calls.filter(a=>a[0]==='api'&&a.at(-1).includes('/actions/workflows/')).every(a=>a.at(-1).includes(`head_sha=${tip}`)));
+  console.log(out.text.trim());
+ }
+ const green=mainWaitFake({fail:false});delete green.options.sha;
+ const out=await waitForMainCi(green.options);assert.equal(out.code,0,out.text);assert.equal(green.calls.filter(a=>a[1]==='rerun').length,0);console.log(out.text.trim());
+ const absent=mainWaitFake({absent:true});const no=await waitForMainCi({...absent.options,deadline:17});assert.equal(no.code,1);assert.equal(absent.time(),17);assert.match(no.text,/deadline: no run/);
+});
+
+// req: R-3995
+await check('M10: successful main retries retain per-file flakes and repeated files need a fix lane',async()=>{
+ const {waitForMainCi}=await api();
+ const first=mainWaitFake();const out=await waitForMainCi(first.options);assert.equal(out.code,0,out.text);
+ const again=mainWaitFake({id:102});const second=await waitForMainCi({...again.options,cwd:first.root,runGit:first.runGit});assert.equal(second.code,0,second.text);assert.match(second.text,/needs fix lane: packages\/p\/tests\/red.test.mjs/);
+ const stored=readSuiteRecords({root:first.root,runGit:first.runGit,subpath:CI_STORE_SUBPATH});assert.equal(stored.length,2);assert(stored.every(r=>r.flake.file==='packages/p/tests/red.test.mjs'));
+ const duplicate=mainWaitFake({id:102});assert.equal((await waitForMainCi({...duplicate.options,cwd:first.root,runGit:first.runGit})).code,0);
+ assert.equal(readSuiteRecords({root:first.root,runGit:first.runGit,subpath:CI_STORE_SUBPATH}).length,2);
+ assert.equal(C.MAIN_CI_RED_RERUNS,1);assert.equal(C.MAIN_CI_FLAKE_FIX_COUNT,2);
 });
 
 // req: R-3725
