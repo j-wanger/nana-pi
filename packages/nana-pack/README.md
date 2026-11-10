@@ -391,15 +391,19 @@ The optional end-record `laneChecks` field holds `status`, `check` and bounded `
 with an optional `base` object of the same shape and optional `cleanupError`.
 Pass uses a null check and empty output; base may have status `absent`.
 After a resume it also holds `initial` (the first check result), `resumed: true`, and
-`resume: {ok, signal, ceiling}`; the top-level fields describe the re-check.
+`resume: {ok, signal, ceiling, changedFiles}`; `changedFiles` lists paths changed between
+the tip before the resume and HEAD. The top-level fields describe the re-check.
 The build's attempt count still counts initial watchdog attempts, not this repair.
 Hard-stop watcher records have no field. Bounds live in `lib/lane-checks-config.mjs`.
 
 For `fail` or `uncommitted`, a pi builder with an attempt session file resumes once
 through that same file, with stdin closed, the same model, tools, environment, stall
 limit and original wall-clock ceiling. The bounded diagnostic prompt names the check
-and asks the builder to fix it, commit and stop. Stderr prints
-`pi-worker: lane checks: resume: <check>`, then a second check result. Both builder
+and asks the builder to fix its own change, commit and stop, without editing a check,
+a test, a checker script or their configuration to make the check pass. If it believes
+the check itself is wrong, it must stop without that edit and say so in its report.
+Stderr prints `pi-worker: lane checks: resume: <check>`, then
+`pi-worker: lane checks: resume changed files: <JSON path list>` and a second check result. Both builder
 reports and failing diagnostics remain in the output file. A second failure ends the
 build; `red-on-base` and `error` never resume. A missing session file or a Claude Code
 builder stays run-and-report only; this path does not create a replacement session.

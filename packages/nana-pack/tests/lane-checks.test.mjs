@@ -160,7 +160,13 @@ await check('R-4004: one same-session resume repairs a named failure or dirty si
     const prompt = r.calls[1].args[r.calls[1].args.indexOf('-p') + 1];
     assert.match(prompt, dirty ? /uncommitted.*Fix/s : /test-packs.*Fix/s);
     assert.match(prompt, dirty ? /leftover.txt/ : /lost-round output/);
+    assert.match(prompt, /Fix your own change so the named check passes/);
+    assert.match(prompt, /Do not edit a check, a test, a checker script or their configuration to make the check pass/);
+    assert.match(prompt, /If you believe the check itself is wrong, stop without that edit and say so in your report/);
     assert.match(prompt, /commit.*stop/);
+    const changedFiles = dirty ? ['added-test.mjs', 'leftover.txt'] : ['check.cjs'];
+    assert.deepEqual(r.end.laneChecks.resume.changedFiles, changedFiles);
+    assert.ok(r.stderr.includes(`pi-worker: lane checks: resume changed files: ${JSON.stringify(changedFiles)}\n`));
     assert.equal(r.end.laneChecks.initial.status, dirty ? 'uncommitted' : 'fail');
     assert.equal(r.end.laneChecks.resumed, true); assert.equal(r.end.laneChecks.resume.ok, true);
     assert.equal(r.end.laneChecks.status, 'pass'); assert.equal(r.end.outcome, 'ok');
