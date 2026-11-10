@@ -826,6 +826,7 @@ Reads: A-061 · packages/nana-pack/bin/pi-worker.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-3996 | The project-owned `check:lane` command shall run requirements trace, requirements-tree check, map check, README check and the recorded lost-round test groups in order, stopping at the first failure and naming it. | untested | Historical-tip replay is seat validation, not suite evidence. |
 | R-3970 | WHEN a seat stops with an open lane and no recurring wake, the turn-end hook shall exit 0 and block with the lane name and an instruction to arm a recurring wake. | implemented | `packages/nana-setup/tests/waking-stop.test.mjs::R-3970: an open lane without a recurring wake blocks turn end` |
 | R-3971 | WHEN a seat asks a blocking question with an open lane and an old human prompt, the question hook shall exit 0 and deny with a default-and-continue instruction that excludes destructive and outside-folder acts. | implemented | `packages/nana-setup/tests/waking-question.test.mjs::R-3971: an old owner prompt cannot freeze an open lane on a question` |
 | R-3972 | WHEN a seat detaches a lane-tool launch, the launch hook shall exit 0 and deny with an instruction to use its own background call. | implemented | `packages/nana-setup/tests/waking-launch.test.mjs::R-3972: a detached lane-tool launch is denied` |

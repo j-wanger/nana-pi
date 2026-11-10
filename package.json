@@ -8,6 +8,7 @@
 	"scripts": {
 		"test": "node scripts/test.mjs",
 		"test:locked": "node scripts/test-locked.mjs",
+		"check:lane": "node scripts/check-lane.mjs",
 		"map": "node scripts/code-map.mjs --write",
 		"map:check": "node scripts/code-map.mjs --check",
 		"map:search": "node scripts/code-map.mjs --search",

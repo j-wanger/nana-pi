@@ -98,6 +98,12 @@ The command
 tracked references and recent history using `scripts/records-move.config.json`.
 The move kept 136 baseline folders and removed 212; unrelated lanes do not run a live-repository assertion.
 
+`npm run check:lane` runs the project-owned builder-stop rail in `scripts/check-lane.mjs`:
+requirements trace, requirements-tree check, map check, README check, then test-packs,
+code-map-launch, requirements-deliverables, requirements-cap-kinds, readme-check, known-bugs
+and test-runner through the canonical test runner. It stops at the first failure and names it;
+the ordered list comments identify the recorded lost rounds. This is not a full suite.
+
 `npm run readme:check` holds every README in `readme-check.config.json` to its claims. All
 three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and
 `scripts/requirements-trace.mjs` — over the one copy of each tool that the templates ship, and
