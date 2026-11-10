@@ -59,6 +59,7 @@
     { "path": "packages/nana-pack/tests/requirements-lift.test.mjs", "reason": "Shell invokes the requirements skill fixture." },
     { "path": "packages/nana-pack/tests/slow-sampler.mjs", "reason": "Sampling command runs under a shell." },
     { "path": "packages/nana-pack/tests/templates-render.test.mjs", "reason": "Shell and dynamically selected template toolchain programs." },
+    { "path": "packages/nana-pack/tests/tmp-dir.mjs", "reason": "Windows temp-root alias probes evaluate PowerShell COM expressions." },
     { "path": "packages/nana-pack/tests/win-command.test.mjs", "reason": "Command builder supplies native executable spellings." },
     { "path": "packages/nana-pack/tests/win32-launch.test.mjs", "reason": "Shell starts the Windows launch fixture." },
     { "path": "packages/nana-pack/tests/claude-launch.test.mjs", "reason": "Fixture and native executable launches are selected dynamically." },

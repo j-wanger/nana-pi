@@ -299,7 +299,10 @@ console.log("VERDICT: LAND");
 		const shortPath = shortPathProbe.status === 0 ? shortPathProbe.stdout.trim() : null;
 		let shortRunOk = Boolean(shortPath && shortPath.toLowerCase() !== longWt.toLowerCase());
 		let shortNote = JSON.stringify({ shortPath, longWt, stderr: shortPathProbe.stderr });
-		if (shortRunOk) {
+		if (!shortRunOk && !process.env.CI) {
+			console.log("SKIP Windows: lane pi-worker starts pi from a short worktree path — no distinct 8.3 path is available");
+			shortRunOk = true;
+		} else if (shortRunOk) {
 			const shortRun = spawnSync(process.execPath, [workerBin, "--poll", "0.1", "--stall-secs", "15", "--out", path.join(temp, "short-out.md"), "--lane", "altpath", "--brief", brief], { cwd: shortPath, encoding: "utf8", timeout: 60000, env });
 			shortRunOk = shortRun.status === 0;
 			shortNote = JSON.stringify(shortRun);

@@ -20,6 +20,21 @@ import { buildEndRecord } from '../lib/build-records.mjs';
 import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
 import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
 
+// Exact OS start tokens, not pid liveness alone, authorize fixture cleanup signals.
+// Kept serializable so the preload records the same token before fixture code runs.
+function processStarts(pids, { run = spawnSync } = {}) {
+  if (!pids.length) return new Map();
+  const windows = process.platform === 'win32';
+  const result = windows
+    ? run('powershell', ['-NoProfile', '-Command', `Get-Process -Id ${pids.join(',')} -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Id) $($_.StartTime.ToUniversalTime().Ticks)" }`], { encoding: 'utf8', timeout: 10000, windowsHide: true })
+    : run('ps', ['-o', 'pid=', '-o', 'lstart=', '-p', pids.join(',')], { encoding: 'utf8', timeout: 10000, env: { ...process.env, LC_ALL: 'C' } });
+  const starts = new Map();
+  for (const line of String(result.stdout ?? '').split(/\r?\n/)) {
+    const match = /^\s*(\d+)\s+(.+?)\s*$/.exec(line);
+    if (match) starts.set(Number(match[1]), match[2]);
+  }
+  return starts;
+}
 const worker = fileURLToPath(new URL('../bin/pi-worker.mjs', import.meta.url));
 let failures = 0;
 async function check(title, action) {
@@ -34,6 +49,48 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   const repo = join(root, 'repo'), lane = join(root, 'lane'), bin = join(root, 'bin'), agent = join(root, 'agent');
   fs.mkdirSync(repo); fs.mkdirSync(bin); fs.mkdirSync(agent);
   const env = { ...process.env, HOME: root, USERPROFILE: root, PI_CODING_AGENT_DIR: agent, CLAUDE_CONFIG_DIR: root, PATH: `${bin}${process.platform === 'win32' ? ';' : ':'}${process.env.PATH}` };
+  // Record all Node descendants, including watcher hops and detached pipe holders.
+  const processRecords = join(root, 'processes'); fs.mkdirSync(processRecords);
+  const recorder = join(root, 'record-process.cjs');
+  fs.writeFileSync(recorder, `const fs=require('node:fs'), path=require('node:path'), {spawnSync}=require('node:child_process');
+    ${processStarts.toString()}
+    const file=path.join(${JSON.stringify(processRecords)}, String(process.pid));
+    fs.writeFileSync(file+'.tmp', JSON.stringify({pid:process.pid, role:process.argv[1] || 'node', start:processStarts([process.pid]).get(process.pid) ?? null}));
+    fs.renameSync(file+'.tmp', file);`);
+  env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require ${JSON.stringify(recorder)}`;
+  const tracked = new Map();
+  const refresh = () => {
+    for (const name of fs.readdirSync(processRecords)) {
+      if (!/^[1-9]\d*$/.test(name)) continue;
+      const member = JSON.parse(fs.readFileSync(join(processRecords, name), 'utf8'));
+      tracked.set(member.pid, member);
+    }
+  };
+  const track = (pid, role) => {
+    refresh();
+    if (!tracked.has(pid)) tracked.set(pid, { pid, role, start: processStarts([pid]).get(pid) ?? null });
+  };
+  const liveProcesses = () => {
+    refresh();
+    const members = [...tracked.values()].filter(member => pidAlive(member.pid));
+    const starts = processStarts(members.map(member => member.pid));
+    // An unreadable identity remains a cleanup failure, never permission to signal.
+    return members.filter(member => !member.start || !starts.has(member.pid) || starts.get(member.pid) === member.start);
+  };
+  const recordedAlive = pid => liveProcesses().some(member => member.pid === pid);
+  const killRecorded = (pid, signal = 'SIGKILL', tree = true) => {
+    refresh();
+    const member = tracked.get(pid);
+    if (member?.start && processStarts([pid]).get(pid) === member.start) {
+      if (tree) killProcessTree(pid, { signal, fallback: signal => { try { process.kill(pid, signal); } catch {} } });
+      else { try { process.kill(pid, signal); } catch {} }
+    }
+  };
+  const awaitExit = async () => {
+    const deadline = Date.now() + RELAY_SIGNAL_GRACE_MS + RELAY_BACKSTOP_MS;
+    while (liveProcesses().length && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+    return liveProcesses();
+  };
   const gitArgs = ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false'];
   function gitAt(cwd, ...args) {
     const r = spawnSync('git', [...gitArgs, ...args], { cwd, env, encoding: 'utf8', timeout: 10000 });
@@ -86,10 +143,12 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   };
   const commit = () => { git('add', '.'); git('commit', '-qF', message); };
   let actionError;
-  try { return await action({ root, repo, lane, env, base, put, launch, args, records, readCalls, git, commit }); }
+  try { return await action({ root, repo, lane, env, base, put, launch, args, records, readCalls, git, commit, track, recordedAlive, killRecorded }); }
   catch (error) { actionError = error; throw error; }
   finally {
     try {
+      for (const member of await awaitExit()) killRecorded(member.pid);
+      assert.deepEqual(await awaitExit(), [], 'recorded process identities survived fixture teardown');
       remove(root, { recursive: true, force: true });
     }
     catch (cleanupError) {
@@ -206,21 +265,25 @@ await check('R-4005: a second failure ends the build without a second resume', (
   assert.equal((r.stderr.match(/lane checks: fail: test-packs/g) ?? []).length, 2);
 }));
 
-// req: R-4006
+// req: R-4022
 await check('fixture cleanup keeps an action error with its cleanup error attached or reports cleanup alone', async () => {
+  for (const ending of ['\n', '\r\n', '']) {
+    const starts = processStarts([42], { run: () => ({ stdout: ` 42 native-start-token \t${ending}` }) });
+    assert.equal(starts.get(42), 'native-start-token');
+  }
   const actionError = new Error('check tree is alive'), cleanupError = new Error('cleanup is busy');
   const remove = (root, options) => { fs.rmSync(root, options); throw cleanupError; };
   await assert.rejects(fixture(() => { throw actionError; }, null, { remove }), error => error === actionError && error.cleanupError === cleanupError);
   await assert.rejects(fixture(() => {}, null, { remove }), error => error === cleanupError);
 });
 
-// req: R-4006
-await check('R-4006: a stop during tip or base checks kills the check tree and removes the base checkout', async () => {
+// req: R-4022
+await check('R-4022: a stop during tip or base checks kills the check tree and removes the base checkout', async () => {
   for (const { onBase, relayDelay = 0 } of [
     { onBase: false }, { onBase: true },
     { onBase: false, relayDelay: 2 * RELAY_SIGNAL_GRACE_MS },
     { onBase: true, relayDelay: RELAY_BACKSTOP_MS + 2 * RELAY_SIGNAL_GRACE_MS },
-  ]) await fixture(async ({ root, repo, lane, env, put, args, records, readCalls }) => {
+  ]) await fixture(async ({ root, repo, lane, env, put, args, records, readCalls, track, recordedAlive, killRecorded }) => {
     const actual = (assertion, value) => `onBase=${onBase}, relayDelay=${relayDelay}: ${assertion}; actual=${JSON.stringify(value)}`;
     const marker = join(root, 'check-started');
     if (!onBase) put(lane, checkSource(root, false));
@@ -245,6 +308,7 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       args.unshift('--import', pathToFileURL(preload).href);
     }
     const child = spawn(process.execPath, args, { cwd: lane, env, stdio: ['ignore', 'pipe', 'pipe'] });
+    track(child.pid, 'worker');
     let stderr = ''; child.stderr.on('data', data => { stderr += data; }); child.stdout.resume();
     const ended = new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })));
     let checkPids;
@@ -253,6 +317,8 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       while (!fs.existsSync(marker) && child.exitCode === null && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
       assert.ok(fs.existsSync(marker), actual('check-started marker exists', { exists: fs.existsSync(marker), stderr }));
       checkPids = JSON.parse(fs.readFileSync(marker, 'utf8'));
+      track(child.pid, 'worker');
+      for (const member of checkPids.pids) track(member.pid, member.role);
       assert.equal(checkPids.cwd === lane, !onBase, actual('check cwd matches lane', { cwd: checkPids.cwd, lane }));
       assert.ok(checkPids.pids.some(member => member.role === 'check'), actual('check pid recorded', checkPids.pids));
       assert.ok(checkPids.pids.some(member => member.role === 'child'), actual('child pid recorded', checkPids.pids));
@@ -263,7 +329,7 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       }
       // Windows has no POSIX signal delivery: exercise its handler with a local event.
       if (process.platform === 'win32') fs.writeFileSync(stopFile, 'stop');
-      else child.kill('SIGTERM');
+      else killRecorded(child.pid, 'SIGTERM', false);
       const result = await Promise.race([ended, new Promise((_, reject) => { const t=setTimeout(()=>reject(Error('worker did not stop')),10000); t.unref(); })]);
       assert.equal(result.code, 143, actual('worker exit code', { ...result, stderr }));
       const end = records().at(-1); assert.equal(end.outcome, 'stopped', actual('build outcome', end.outcome)); assert.equal(end.signal, 'SIGTERM', actual('build signal', end.signal));
@@ -283,9 +349,9 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       }
       assert.equal(end.laneChecks.cleanupError, undefined, actual('no cleanup error', end.laneChecks));
       const deadline2 = Date.now() + 5000;
-      while (checkPids.pids.some(member => pidAlive(member.pid)) && Date.now() < deadline2) await new Promise(resolve => setTimeout(resolve, 20));
+      while (checkPids.pids.some(member => recordedAlive(member.pid)) && Date.now() < deadline2) await new Promise(resolve => setTimeout(resolve, 20));
       for (const member of checkPids.pids) {
-        const alive = pidAlive(member.pid);
+        const alive = recordedAlive(member.pid);
         assert.equal(alive, false, actual(`${member.role} pid ${member.pid} survived the stop`, alive));
       }
       if (onBase) assert.equal(fs.existsSync(checkPids.cwd), false, actual('base checkout still exists', fs.existsSync(checkPids.cwd)));
@@ -296,10 +362,8 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       const callCount = readCalls().length;
       assert.equal(callCount, 1, actual('builder call count', callCount));
     } finally {
-      if (child.exitCode === null && child.signalCode === null && pidAlive(child.pid)) killProcessTree(child.pid, { fallback: signal => child.kill(signal) });
-      if (checkPids) for (const member of checkPids.pids) {
-        if (pidAlive(member.pid)) killProcessTree(member.pid, { fallback: signal => { try { process.kill(member.pid, signal); } catch {} } });
-      }
+      if (child.exitCode === null && child.signalCode === null) killRecorded(child.pid);
+      if (checkPids) for (const member of checkPids.pids) killRecorded(member.pid);
     }
   }, onBase ? root => checkSource(root, true) : null);
   function checkSource(root, onBase) {
@@ -346,7 +410,7 @@ await check('resume rename diagnostics list both test paths', () => fixture(({ l
   repair: "fs.renameSync('original-test.mjs', 'renamed-test.mjs'); commit();",
 }));
 
-// req: R-4006
+// req: R-4022
 await check('stop during base checkout add lets git finish before removing its worktree entry', () => fixture(async ({ repo, lane, env, base }) => {
   const controller = new AbortController();
   let added = false;
@@ -369,7 +433,7 @@ await check('stop during base checkout add lets git finish before removing its w
 }, red));
 
 // req: R-3997
-await check('a check with an escaped output-pipe holder still returns at the relay deadline', () => fixture(async ({ root, lane, env, put, commit }) => {
+await check('a check with an escaped output-pipe holder still returns at the relay deadline', () => fixture(async ({ root, lane, env, put, commit, track, killRecorded }) => {
   const marker = join(root, 'pipe-holder');
   const holder = `const fs=require('node:fs'), marker=${JSON.stringify(marker)};
     fs.writeFileSync(marker+'.tmp', String(process.pid)); fs.renameSync(marker+'.tmp', marker); setTimeout(()=>{},15000);`;
@@ -386,19 +450,19 @@ await check('a check with an escaped output-pipe holder still returns at the rel
   const controller = new AbortController();
   const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(CASE_LIMIT_MS)]);
   const running = checkLane({ cwd: lane, env, signal, timeout: 100,
-    run: (command, args, options) => boundedSpawn(command, args, { ...options, ...(args.includes('check:lane') ? { timeoutStart: ready } : {}) }),
+    run: (command, args, options) => boundedSpawn(command, args, { ...options, ...(args.some(arg => arg.includes('check:lane')) ? { timeoutStart: ready } : {}) }),
   });
   try {
     const result = await running;
     assert.ok(started, 'the fixture must actually start its pipe holder');
     assert.equal(result.status, 'error'); assert.match(result.output, /ETIMEDOUT/);
-    assert.ok(Date.now() - started < RELAY_SETTLE_MS + RELAY_BACKSTOP_MS, 'pipe holder delayed the relay result');
+    assert.ok(Date.now() - started < RELAY_SETTLE_MS + 2000, 'pipe holder delayed the relay result');
   } finally {
     watcher.close(); controller.abort('SIGTERM');
     await running;
     if (fs.existsSync(marker)) {
       const pid = Number(fs.readFileSync(marker, 'utf8'));
-      if (pidAlive(pid)) killProcessTree(pid, { fallback: signal => { try { process.kill(pid, signal); } catch {} } });
+      track(pid, 'pipe-holder'); killRecorded(pid);
     }
   }
 }));
@@ -406,7 +470,7 @@ await check('a check with an escaped output-pipe holder still returns at the rel
 // req: R-3997
 await check('off Windows, a hard-killed check caller leaves no running check tree', async () => {
   if (process.platform === 'win32') { console.log('SKIP parent-death relay polling is POSIX-only'); return; }
-  await fixture(async ({ root, lane, env, put, commit }) => {
+  await fixture(async ({ root, lane, env, put, commit, track, recordedAlive, killRecorded }) => {
     const marker = join(root, 'orphan-check');
     put(lane, `const cp=require('node:child_process'), fs=require('node:fs');
       const child=cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},15000)'], {stdio:'ignore'});
@@ -416,21 +480,21 @@ await check('off Windows, a hard-killed check caller leaves no running check tre
     commit();
     const module = new URL('../lib/lane-checks.mjs', import.meta.url).href;
     const caller = spawn(process.execPath, ['--input-type=module', '-e', `import {checkLane} from ${JSON.stringify(module)}; await checkLane({cwd:process.cwd(),env:process.env,timeout:10000});`], { cwd: lane, env, stdio: 'ignore' });
+    track(caller.pid, 'caller');
     const ended = new Promise(resolve => caller.once('exit', resolve));
     let pids;
     try {
       const startDeadline = Date.now() + 5000;
       while (!fs.existsSync(marker) && caller.exitCode === null && Date.now() < startDeadline) await new Promise(resolve => setTimeout(resolve, 20));
       assert.ok(fs.existsSync(marker), 'check did not start'); pids = JSON.parse(fs.readFileSync(marker, 'utf8'));
-      caller.kill('SIGKILL'); await ended;
+      track(caller.pid, 'caller'); track(pids.pid, 'check'); track(pids.child, 'child');
+      killRecorded(caller.pid); await ended;
       const deadline = Date.now() + RELAY_PARENT_POLL_MS + RELAY_SIGNAL_GRACE_MS + 2000;
-      while ((pidAlive(pids.pid) || pidAlive(pids.child)) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
-      assert.equal(pidAlive(pids.pid), false); assert.equal(pidAlive(pids.child), false);
+      while ((recordedAlive(pids.pid) || recordedAlive(pids.child)) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
+      assert.equal(recordedAlive(pids.pid), false); assert.equal(recordedAlive(pids.child), false);
     } finally {
-      if (caller.exitCode === null && caller.signalCode === null) caller.kill('SIGKILL');
-      if (pids) for (const pid of [pids.pid, pids.child]) {
-        if (pidAlive(pid)) { try { process.kill(pid, 'SIGKILL'); } catch {} }
-      }
+      if (caller.exitCode === null && caller.signalCode === null) killRecorded(caller.pid);
+      if (pids) for (const pid of [pids.pid, pids.child]) killRecorded(pid);
     }
   });
 });

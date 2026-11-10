@@ -7,6 +7,9 @@
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { withTempRootAlias } from "./tmp-dir.mjs";
+import { withinCaseLimit } from './report-fixtures.mjs';
+import { adoptionTempRoots } from "../lib/adoption.mjs";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -137,16 +140,13 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	const temporary = run(process.execPath, [BIN, "--cwd", base], productionEnv);
 	// req: R-640
 	check("reader: production temporary root is skipped without override", temporary.stdout === "");
-	if (process.platform !== "win32") {
-		const aliasBase = tmpDir(path.join(os.tmpdir(), "adoption-reader-alias-"));
-		const aliasRepo = path.join(aliasBase, "repo");
-		fs.mkdirSync(path.join(aliasRepo, ".git"), { recursive: true });
-		fs.writeFileSync(JOURNAL, line(aliasRepo, 1));
-		const alias = run(process.execPath, [BIN, "--cwd", base], productionEnv);
+	const aliasTitle = "reader: explicit temporary-root alias is canonicalized without override";
+	await withinCaseLimit(aliasTitle, () => withTempRootAlias(base, aliasTitle, async (tempAlias) => {
+		const alias = run(process.execPath, [BIN, "--cwd", base], { ...productionEnv, TMPDIR: tempAlias, TEMP: tempAlias, TMP: tempAlias });
+		// Pin the roots themselves: POSIX /tmp must not mask a missing canonicalization.
 		// req: R-640
-		check("reader: canonical /tmp alias is skipped without override", alias.stdout === "");
-		fs.rmSync(aliasBase, { recursive: true, force: true });
-	} else console.log("SKIP reader: canonical /tmp alias is skipped without override — Windows has no /tmp alias");
+		check("reader: explicit temporary-root alias is canonicalized without override", adoptionTempRoots()[0] === base && alias.status === 0 && alias.stdout === "");
+	}));
 }
 // Injected temp roots let the reader predicate be tested without hiding ordinary temp fixtures.
 {

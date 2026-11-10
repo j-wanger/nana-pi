@@ -129,8 +129,11 @@ function otherSpellings(canonical, label) {
     // folds a mere case difference away.
     const shortProbe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${canonical}').ShortPath`], { encoding: "utf8" });
     const shortPath = shortProbe.status === 0 ? shortProbe.stdout.trim() : null;
-    ok(shortPath && shortPath.toLowerCase() !== canonical.toLowerCase(), `${label}: a distinct 8.3 path is required: ${shortProbe.stderr}`);
-    out.push({ kind: "8.3", path: shortPath });
+    if (shortPath && shortPath.toLowerCase() !== canonical.toLowerCase()) out.push({ kind: "8.3", path: shortPath });
+    else if (process.env.CI) check(`${label}: a distinct 8.3 path is available in CI`, () => {
+      ok(false, `a distinct 8.3 path is required: ${shortProbe.stderr}`);
+    });
+    else console.log(`SKIP ${label} (8.3): no distinct short path is available`);
   }
   return out;
 }

@@ -260,7 +260,7 @@ check("an exit-0 file that printed only SKIP lines is FAIL without a declared pr
 // req: R-608
 check("a silent exit-0 file is FAIL without a declared precondition", labelFor(A.out, "j-silent.test.mjs") === "FAIL" && A.out.includes("no check passed and no skip was declared"));
 check("without --verbose a passing file's output is hidden and a failing file's diagnostic lines are shown", !A.out.includes("probe-marker") && A.out.includes("| FAIL diagnostic check 1"));
-// req: R-916
+// req: R-4023
 check("in non-verbose mode a failing file prints its first 20 failing check lines", A.out.includes("| not ok - diagnostic assertion") && A.out.includes("| FAIL diagnostic check 19") && !A.out.includes("| FAIL diagnostic check 20") && !A.out.includes("| FAIL diagnostic check 21") && (A.out.match(/^      \| (?:FAIL|not ok)\b/gm) ?? []).length === 20);
 // req: R-616
 check("one line per file, then a totals line with both tallies, exiting 1 on a failure", tA?.files === EXPECTED_TALLY.files && tA.pass === EXPECTED_TALLY.pass && tA.fail === EXPECTED_TALLY.fail && tA.skip === EXPECTED_TALLY.skip && tA.checks.pass === EXPECTED_TALLY.checks.pass && tA.checks.fail === EXPECTED_TALLY.checks.fail && tA.checks.skip === EXPECTED_TALLY.checks.skip && A.code === 1);
@@ -563,7 +563,7 @@ const recordCoverage = path.join(TD, "suite-record-coverage");
 const recordedSerial = runRecorded("record-serial", [], { [COVERAGE_ENV]: recordCoverage, PATH: noPath });
 const recordedParallel = runRecorded("record-parallel", ["--jobs=2"], { PATH: noPath });
 const recordByPath = (record) => new Map((record?.files ?? []).map((entry) => [entry.path, entry]));
-// req: R-916
+// req: R-4023
 check("a nonzero exit without a failure line prints the stderr tail, serial and parallel", [recordedSerial, recordedParallel].every(({ result }) => result.code === 1 && result.out.includes("| cause 4 ") && result.out.includes("| cause 23") && !result.out.includes("| cause 3 ") && !result.out.includes("| stdout must not replace stderr")), recordedSerial.result.out + recordedParallel.result.out);
 const serialFiles = recordByPath(recordedSerial.record);
 const parallelFiles = recordByPath(recordedParallel.record);

@@ -245,7 +245,10 @@ if (process.platform === "win32") {
 	const shortPath = shortPathProbe.status === 0 ? shortPathProbe.stdout.trim() : null;
 	shortPathOk = Boolean(shortPath && shortPath.toLowerCase() !== LANE.toLowerCase());
 	shortPathDetail = JSON.stringify({ shortPath, lane: LANE, stderr: shortPathProbe.stderr });
-	if (shortPathOk) {
+	if (!shortPathOk && !process.env.CI) {
+		console.log("SKIP R-2598: session usage through a short worktree path — no distinct 8.3 path is available");
+		shortPathOk = true;
+	} else if (shortPathOk) {
 		resetRecords();
 		const shortRun = runWorker({ cwd: shortPath });
 		const shortStart = lines().find((row) => row.kind === "start");

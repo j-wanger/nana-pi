@@ -6,17 +6,5 @@
  * @effects disk (creates and removes temporary directories), process (registers exit cleanup)
  * @errors Propagates directory creation errors and ignores cleanup errors.
  */
-import { mkdtempSync, rmSync } from "node:fs";
-
-const roots = new Set();
-process.on("exit", () => {
-  for (const root of roots) {
-    try { rmSync(root, { recursive: true, force: true }); } catch {}
-  }
-});
-
-export function tmpDir(prefix) {
-  const root = mkdtempSync(prefix);
-  roots.add(root);
-  return root;
-}
+// One canonicalization and exit-cleanup policy for runner and direct invocations.
+export { tmpDir } from "../../nana-pack/tests/tmp-dir.mjs";

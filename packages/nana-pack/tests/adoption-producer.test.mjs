@@ -7,6 +7,8 @@
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
+import { withTempRootAlias } from "./tmp-dir.mjs";
+import { withinCaseLimit } from './report-fixtures.mjs';
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -160,15 +162,13 @@ check("adoption: design comment names complete Nana structure and temporary-root
 	await prompt(r);
 	// req: R-640
 	check("adoption: production temporary root is skipped without override", reportsFor(r).length === 0);
-	if (process.platform !== "win32") {
-		const aliasBase = tmpDir(path.join(os.tmpdir(), "adoption-producer-alias-"));
-		const alias = path.join(aliasBase, "repo");
-		fs.mkdirSync(path.join(alias, ".git"), { recursive: true });
-		await prompt(alias);
+	const aliasTitle = "adoption: explicit temporary-root alias is canonicalized without override";
+	await withinCaseLimit(aliasTitle, () => withTempRootAlias(base, aliasTitle, async () => {
+		await prompt(r);
+		// Pin the roots themselves: POSIX /tmp must not mask a missing canonicalization.
 		// req: R-640
-		check("adoption: canonical /tmp alias is skipped without override", reportsFor(alias).length === 0);
-		fs.rmSync(aliasBase, { recursive: true, force: true });
-	} else console.log("SKIP adoption: canonical /tmp alias is skipped without override — Windows has no /tmp alias");
+		check("adoption: explicit temporary-root alias is canonicalized without override", lib.adoptionTempRoots()[0] === base && reportsFor(r).length === 0);
+	}));
 	process.env.NANA_TEST_TEMP_ROOTS = "";
 }
 // Test-only injected temp roots: production defaults skip OS temp roots, ordinary fixtures opt out.
