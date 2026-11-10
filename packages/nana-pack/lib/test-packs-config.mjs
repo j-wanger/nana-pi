@@ -84,7 +84,6 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/land-clean-merge.test.mjs": "main",
   "packages/nana-pack/tests/land-merge.test.mjs": "main",
   "packages/nana-pack/tests/land-records.test.mjs": "module",
-  "packages/nana-pack/tests/land-regenerate.test.mjs": "module",
   "packages/nana-pack/tests/land.test.mjs": "land",
   "packages/nana-pack/tests/lane-checks.test.mjs": "module",
   "packages/nana-pack/tests/lane-push-ci.test.mjs": "land",

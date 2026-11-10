@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { check } from './profile-fixture.mjs';
-import { cleanMergeFixture, executeCleanMerge, computeCleanMerge, mergeSnapshot, commit, git, gitRunner, reviewTip, regenerateFixture, separateGeneratedHunks } from './land-fixtures.mjs';
+import { cleanMergeFixture, executeCleanMerge, computeCleanMerge, mergeSnapshot, commit, git, gitRunner, reviewTip } from './land-fixtures.mjs';
 import * as C from '../lib/land-config.mjs';
 
 const unchanged = (f, before, out) => {
@@ -99,19 +99,6 @@ await check('M10: rename destination merge driver refuses before merge-tree unch
  assert.equal(merges, 0); assert.equal(out.calls.length, 0);
 });
 
-// req: R-3697, R-3834
-await check('M11: separate-hunk generated changes land exact real-generator bytes', () => {
- for (const file of C.CLEAN_MERGE_GENERATED_PATHS) {
-  const f = regenerateFixture('m11', []);
-  assert.equal(separateGeneratedHunks(f,[file]).status,0);
-  const out = computeCleanMerge(f);
-  assert.equal(out.code,0,out.text); assert.equal(out.suites,0);
-  assert.equal(gitRunner(f.main,['show',`${out.tree}:${file}`]).stdout,f.expected[file]);
-  assert(out.text.includes(file));
- }
- assert.deepEqual(C.CLEAN_MERGE_GENERATED_PATHS, ['docs/code-map.md', 'docs/requirements-tree.md']);
-});
-
 // req: R-3963
 await check('M12: descendant main already containing the accepted tip refuses unchanged', () => {
  const f = cleanMergeFixture('m12');
@@ -147,7 +134,7 @@ await check('M6: uncovered lane commits including a lane-authored merge remain r
 // req: R-3697
 await check('seal: clean-merge vocabulary and conflict-name cap are declared once', () => {
  assert.equal(C.CLEAN_MERGE_NAME_CAP,10);
- assert.equal(C.CLEAN_MERGE_REMEDY,"run git merge main in the lane; for a generated-file conflict take main's side and rebuild with its generator; push, wait for that tip's CI, then land (other edits need review)");
+ assert.equal(C.CLEAN_MERGE_REMEDY,"run git merge main in the lane; push, wait for that tip's CI, then land (conflict resolutions and other edits need review)");
  assert.deepEqual(C.CLEAN_MERGE_GIT_CONFIG,['merge.renormalize=false','merge.default=text','merge.renames=true']);
  assert.deepEqual(C.CLEAN_MERGE_REASONS,{
   conflict:'merge conflict', unsupported:'unsupported merge semantics', git:'git merge-tree failed',

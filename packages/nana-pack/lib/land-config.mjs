@@ -81,25 +81,13 @@ export const SUITE_CHANGED_REASON = "the lane changes the CI workflow or test ru
 
 // chosen 2026-11-02 (R-3697, O2): name ten paths before eliding a long conflict list.
 export const CLEAN_MERGE_NAME_CAP = 10;
-// contract (R-3690, R-3697, plan Q3), chosen 2026-11-02: generated outputs need regeneration, not textual merging.
-export const CLEAN_MERGE_GENERATED_PATHS = Object.freeze(["docs/code-map.md", "docs/requirements-tree.md"]);
 // contract (R-3689, R-3697, A2), chosen 2026-11-02: repository settings cannot select a default custom driver or disable rename detection.
 export const CLEAN_MERGE_GIT_CONFIG = Object.freeze(["merge.renormalize=false", "merge.default=text", "merge.renames=true"]);
 // contract (R-3963), chosen 2026-11-09: test the merged result through existing lane CI.
-export const CLEAN_MERGE_REMEDY = "run git merge main in the lane; for a generated-file conflict take main's side and rebuild with its generator; push, wait for that tip's CI, then land (other edits need review)";
+export const CLEAN_MERGE_REMEDY = "run git merge main in the lane; push, wait for that tip's CI, then land (conflict resolutions and other edits need review)";
 export const CLEAN_MERGE_REASONS = Object.freeze({
 	conflict: "merge conflict", unsupported: "unsupported merge semantics", git: "git merge-tree failed",
 });
-
-// contract (R-3711, plan Revision 2), chosen 2026-11-02: only these generated outputs and direct Node argv qualify.
-export const GENERATOR_CONTRACT = Object.freeze([
- Object.freeze({ path: "docs/code-map.md", write: Object.freeze(["scripts/code-map.mjs", "--write"]), check: Object.freeze(["scripts/code-map.mjs", "--check"]) }),
- Object.freeze({ path: "docs/requirements-tree.md", write: Object.freeze(["scripts/requirements-tree.mjs", "--write"]), check: Object.freeze(["scripts/requirements-tree.mjs", "--check"]) }),
-]);
-// chosen 2026-11-02 (R-3711): thirty seconds bounds each local generator command, without a shell or npm.
-export const GENERATOR_TIMEOUT_MS = 30_000;
-// contract (R-3711): independent vocabulary preserves the existing clean-merge seal.
-export const GENERATOR_REASONS = Object.freeze({ generatorFailed: "generatorFailed", generatorCheck: "generatorCheck", generatorScope: "generatorScope" });
 
 // contract (R-3430, R-3431): one source line on a successful land.
 export const SUITE_LINE_PREFIX = "suite:";

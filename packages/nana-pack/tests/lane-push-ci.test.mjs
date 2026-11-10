@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/lane-push-ci.test.mjs
- * @purpose Pin generated-conflict push CI, duplicate exclusion and event-specific selected Windows coverage.
+ * @purpose Pin conflicting-PR refusals, push CI duplicate exclusion and event-specific selected Windows coverage.
  * @inputs Workflow expressions, isolated Git fixtures and injected GitHub transport.
  * @outputs Awaited bounded requirement-tagged verdicts.
  * @effects disk (OS temp fixtures), process (local Git and fixture Node).
@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { check, fixtureRoot, copyClosure, execute, REPO, TEMP } from './pack-fixtures.mjs';
-import { regenerateFixture, executeCleanMerge, mergeInLane, artifactGh, git, gitRunner, workflowRun, runList, mergeSnapshot } from './land-fixtures.mjs';
+import { cleanMergeFixture, executeCleanMerge, mergeInLane, artifactGh, git, gitRunner, workflowRun, runList, mergeSnapshot } from './land-fixtures.mjs';
 import { ciReadiness, waitForCi } from '../lib/ci-wait.mjs';
 import { judgeRuns, requiredCiJobs } from '../lib/land-ci.mjs';
 import * as C from '../lib/land-config.mjs';
@@ -36,29 +36,14 @@ function waiter(f, runs, {conflict=true, runGit}={}) {
  git(f.feature,'update-ref','refs/remotes/origin/main',git(f.main,'rev-parse','HEAD'));
  return {options,calls};
 }
-// req: R-3935
-await check('M1: generated-only conflicts wait for exact tip push CI across line transports',async()=>{
- for(const file of C.CLEAN_MERGE_GENERATED_PATHS) for(const transport of ['lf','crlf','space','no-final']) {
-  const f=regenerateFixture(`push-${transport}`,[file]);
-  const w=waiter(f,[realRun({head_sha:f.tip})],{runGit:(cwd,args)=>{
-   if(args[0]==='fetch') return {status:0};
-   const r=gitRunner(cwd,args); if(!args.includes('merge-tree'))return r;
-   const lines=r.stdout.trimEnd().split('\n');return {...r,stdout:transport==='crlf'?lines.join('\r\n')+'\r\n':transport==='space'?lines.map(l=>l+' \t').join('\n')+'\n':transport==='no-final'?lines.join('\n'):r.stdout};
-  }});
-  const before=mergeSnapshot(f),out=await waitForCi(w.options); assert.equal(out.code,0,out.text);assert.match(out.text,/\(push\) success/);
-  assert(w.calls.some(a=>a.some(x=>x.includes(`head_sha=${f.tip}&`))));assert.deepEqual(mergeSnapshot(f),before);
- }
-});
 // req: R-3936
-await check('M2: real conflicts and failed inspection refuse before a run wait',async()=>{
- for(const mode of ['ordinary','fetch','malformed','unsupported']) {
-  const f=regenerateFixture(`refuse-${mode}`);
-  if(mode==='ordinary'){fs.writeFileSync(path.join(f.main,'base.txt'),'main conflict\n');git(f.main,'add','base.txt');git(f.main,'commit','-m','main conflict');fs.writeFileSync(path.join(f.feature,'base.txt'),'lane conflict\n');git(f.feature,'add','base.txt');git(f.feature,'commit','-m','lane conflict');f.tip=git(f.feature,'rev-parse','HEAD');}
-  const w=waiter(f,[realRun()],{runGit:(cwd,args)=>args[0]==='fetch'?{status:mode==='fetch'?1:0}:args.includes('merge-tree')&&mode==='malformed'?{status:1,stdout:'not a tree\n'}:args[0]==='check-attr'&&mode==='unsupported'?{status:1}:gitRunner(cwd,args)});
-  const before=mergeSnapshot(f),out=await waitForCi(w.options);assert.equal(out.code,1,out.text);
-  assert.match(out.text,/PR #7 conflicts with main; merge main into the lane; GitHub starts no CI for it/);
-  assert(!w.calls.some(a=>a[0]==='api'));assert.deepEqual(mergeSnapshot(f),before);
- }
+await check('M2: conflicting PRs refuse without git inspection or a run wait',async()=>{
+ const f=cleanMergeFixture('refuse-conflicting');
+ let gitCalls=0;
+ const w=waiter(f,[realRun()],{runGit:()=>{gitCalls++;throw Error('unexpected git inspection');}});
+ const before=mergeSnapshot(f),out=await waitForCi(w.options);assert.equal(out.code,1,out.text);
+ assert.match(out.text,/PR #7 conflicts with main; merge main into the lane; GitHub starts no PR CI for it/);
+ assert.equal(gitCalls,0);assert(!w.calls.some(a=>a[0]==='api'));assert.deepEqual(mergeSnapshot(f),before);
 });
 // req: R-3938
 await check('M4: feature pushes execute while same-repository feature PR duplicates skip',()=>{
@@ -79,7 +64,7 @@ await check('M5: main retains all legs release prerequisites and required Window
 // req: R-3940
 await check('M6: skipped duplicates never decide waiter or land in either event order',async()=>{
  for(const order of [false,true])for(const pass of [false,true])for(const skipped of ['success','skipped']) {
-  const f=mergeInLane(regenerateFixture('duplicates')),real=realRun({run_number:order?3:1,conclusion:pass?'success':'failure',head_sha:f.tip}),skip=duplicate({conclusion:skipped,head_sha:f.tip});
+  const f=mergeInLane(cleanMergeFixture('duplicates')),real=realRun({run_number:order?3:1,conclusion:pass?'success':'failure',head_sha:f.tip}),skip=duplicate({conclusion:skipped,head_sha:f.tip});
   const runs=order?[skip,real]:[real,skip],w=waiter(f,runs,{conflict:false});
   const out=await waitForCi(w.options);assert.equal(out.code,pass?0:1,out.text);
   const record={schema:1,platform:'darwin',filters:[],files:[{path:'selected.test.mjs',label:'PASS',seconds:1}],exitCode:0,jobs:4,wallSeconds:1,

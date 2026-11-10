@@ -24,7 +24,7 @@ const { LAND_NOTE_PREFIX, LAND_TIP_ENV } = landConfig;
 import { COMPLETION_FILE, COVERAGE_ENV } from "../lib/runtime-map-config.mjs";
 import { checkoutDrift, hashFile } from "../lib/runtime-map.mjs";
 import { check as boundedCheck } from './profile-fixture.mjs';
-import { cleanMergeFixture, executeCleanMerge, regenerateFixture, mergeSnapshot } from './land-fixtures.mjs';
+import { cleanMergeFixture, executeCleanMerge, mergeSnapshot } from './land-fixtures.mjs';
 
 {
 const check = boundedCheck;
@@ -58,29 +58,12 @@ await check('M2: a hidden merge edit is uncovered and named', () => {
  assert.deepEqual(mergeSnapshot(f), before); assert.equal(out.calls.length, 0);
 });
 
-// req: R-3962
-await check('M3: a generated-conflict lane merge is covered after regeneration', () => {
- const f = regenerateFixture('covered');
- const accepted = reviewTip(f.feature, f.home); f.reviewed = [`${accepted}=item`];
- // The oracle independently merged ordinary sources and ran the real generators.
- git(f.oracle, 'add', '--', ...landConfig.CLEAN_MERGE_GENERATED_PATHS);
- git(f.oracle, 'commit', '-m', 'independent regenerated oracle');
- git(f.feature, 'fetch', f.oracle, 'HEAD');
- const expectedTree = git(f.oracle, 'write-tree');
- const merged = git(f.feature, 'commit-tree', expectedTree, '-p', accepted, '-p', f.capturedMain, '-m', 'regenerated lane merge');
- git(f.feature, 'reset', '--hard', merged); f.tip = merged;
- const out = executeCleanMerge(f);
- assert.equal(out.code, 0, out.text); assert.equal(out.suites, 0);
- assert.equal(git(f.main, 'rev-parse', 'HEAD'), merged);
- for (const [file, expected] of Object.entries(f.expected)) assert.equal(readFileSync(path.join(f.main, file), 'utf8'), expected);
-});
-
 // req: R-3963
 await check('M4: moved main refuses with lane merge remedy and unchanged refs', () => {
  const f = cleanMergeFixture('must-merge-in-lane');
  const before = mergeSnapshot(f), out = executeCleanMerge(f);
  assert.equal(out.code, 1, out.text); assert.deepEqual(mergeSnapshot(f), before);
- for (const phrase of ['git merge main', 'push', 'CI', 'generated', 'generator']) assert(out.text.includes(phrase), out.text);
+ for (const phrase of ['git merge main', 'push', 'CI', 'conflict resolutions and other edits need review']) assert(out.text.includes(phrase), out.text);
  assert.equal(out.suites, 0); assert.equal(out.calls.length, 0);
  git(f.feature, 'merge', '--no-ff', '--no-edit', 'main');
  f.tip = git(f.feature, 'rev-parse', 'HEAD');

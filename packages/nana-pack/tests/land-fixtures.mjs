@@ -7,9 +7,8 @@
  * @errors Git, review, and assertion failures escape to the calling test case.
  */
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync, readFileSync, copyFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { readLandLedger, landRecordsPath } from "../lib/land-records.mjs";
 import os from "node:os";
 import path from "node:path";
@@ -18,7 +17,6 @@ import { runLand, cleanMergeTree } from "../bin/nana-land.mjs";
 import { admit, complete } from "../bin/review-round.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { CI_ARTIFACT_PREFIX } from "../lib/suite-records-config.mjs";
-import * as landConfig from "../lib/land-config.mjs";
 
 export const git = (cwd, ...args) => execFileSync("git", args[0] === 'clone' ? ['clone', '--config', 'core.autocrlf=false', ...args.slice(1)] : args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 
@@ -129,95 +127,17 @@ export function executeCleanMerge(f, { records = true, runs = [workflowRun({ pat
 /** Merge main in the fixture lane, preserving review on the pre-merge first parent. */
 export function mergeInLane(f) {
  ensureCiReview(f);
- const result = gitRunner(f.feature, ['merge', '--no-ff', '--no-edit', f.capturedMain]);
- if (result.status !== 0) {
-  const conflicts = git(f.feature, 'diff', '--name-only', '--diff-filter=U').split('\n').filter(Boolean);
-  assert(conflicts.length && conflicts.every(file => landConfig.CLEAN_MERGE_GENERATED_PATHS.includes(file)), result.stderr);
-  git(f.feature, 'checkout', '--theirs', '--', ...conflicts);
-  git(f.feature, 'add', '--', ...conflicts);
- }
- for (const entry of landConfig.GENERATOR_CONTRACT) if (f.expected) {
-  const generated = generatorRun(f.feature, entry.write); assert.equal(generated.status, 0, generated.stderr);
- }
- if (f.expected) git(f.feature, 'add', '--', ...landConfig.CLEAN_MERGE_GENERATED_PATHS);
- if (result.status !== 0) git(f.feature, 'commit', '--no-edit');
- else if (f.expected) git(f.feature, 'commit', '--amend', '--no-edit');
+ git(f.feature, 'merge', '--no-ff', '--no-edit', f.capturedMain);
  f.tip = git(f.feature, 'rev-parse', 'HEAD');
  return f;
 }
 
 /** Inspect merge eligibility without landing; coverage uses this same public tree computation. */
-export function computeCleanMerge(f, { runGit = gitRunner, generatorContract = landConfig.GENERATOR_CONTRACT, generatorTimeoutMs = landConfig.GENERATOR_TIMEOUT_MS, runGenerator = (argv, cwd, options) => spawnSync(process.execPath, argv, { ...options, cwd }) } = {}) {
+export function computeCleanMerge(f, { runGit = gitRunner } = {}) {
  try {
-  const merged = cleanMergeTree(runGit, f.main, f.tip, f.capturedMain, { generatorContract, generatorTimeoutMs, runGenerator });
-  return { code: 0, ...merged, text: merged.regenerated ? `regenerated: ${merged.regenerated.join(', ')}` : '', suites: 0, calls: [] };
+  const merged = cleanMergeTree(runGit, f.main, f.tip, f.capturedMain);
+  return { code: 0, ...merged, text: '', suites: 0, calls: [] };
  } catch (error) { return { code: 1, text: error.message, suites: 0, calls: [] }; }
-}
-
-/** Copy the real generators and their literal relative-import closure, never seat scripts. */
-export function copyGenerators(destination) {
- const root = fileURLToPath(new URL('../../../', import.meta.url)), copied = new Set();
- const copy = rel => {
-  if (copied.has(rel)) return; copied.add(rel);
-  const source = readFileSync(path.join(root, rel), 'utf8');
-  mkdirSync(path.dirname(path.join(destination, rel)), {recursive:true});
-  copyFileSync(path.join(root, rel), path.join(destination, rel));
-  for (const match of source.matchAll(/(?:from\s*|import\s*\()\s*["'](\.[^"']+)["']/g)) {
-   const dep = path.normalize(path.join(path.dirname(rel), match[1]));
-   if (/\.(mjs|js|ts)$/.test(dep)) copy(dep);
-  }
- };
- copy('scripts/code-map.mjs'); copy('scripts/requirements-tree.mjs');
-}
-
-export const generatorRun = (cwd, argv, options = {}) => spawnSync(process.execPath, argv, {cwd, encoding:'utf8', timeout:landConfig.GENERATOR_TIMEOUT_MS, ...options});
-export const fixtureModule = name => `/**\n * @module src/${name}.mjs\n * @purpose Declare ${name}.\n * @inputs none\n * @outputs A named value.\n * @effects none\n * @errors none\n */\nexport const ${name} = 1;\n`;
-export const fixtureLedger = (main = false, lane = false) => `# CAP-01 · Fixture\nPurpose: Exercise merged rows.\n\n## FEAT-001 · Main\nPurpose: Hold main rows.\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | Base shall exist. | planned | |\n${main ? '| R-002 | Main shall exist. | planned | |\n' : ''}\n\n\n\n\n\n\n\n\n\n## FEAT-002 · Lane\nPurpose: Hold lane rows.\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-003 | Lane base shall exist. | planned | |\n${lane ? '| R-004 | Lane shall exist. | planned | |\n' : ''}`;
-
-/** Real-generator conflicts with main-only tracked content and independently rendered output oracles. */
-export function regenerateFixture(name, conflicts = ['docs/code-map.md', 'docs/requirements-tree.md']) {
- const f = cleanMergeFixture(`regenerate-${name}`);
- git(f.main, 'reset', '--hard', f.base); git(f.feature, 'reset', '--hard', f.base);
- copyGenerators(f.main);
- mkdirSync(path.join(f.main, 'src')); mkdirSync(path.join(f.main, 'docs'));
- writeFileSync(path.join(f.main, 'src/base.mjs'), fixtureModule('base'));
- writeFileSync(path.join(f.main, 'REQUIREMENTS.md'), fixtureLedger());
- writeFileSync(path.join(f.main, 'code-map.config.json'), JSON.stringify({mapPath:'docs/code-map.md', roots:['src'], moduleExtensions:['.mjs'], packages:[{name:'fixture',prefix:''}], layers:[{id:'code', title:'Code', blurb:'Fixture', match:'.*'}]}));
- writeFileSync(path.join(f.main, 'package.json'), JSON.stringify({scripts:{map:'node -e "process.exit(99)"'}}));
- for (const script of ['code-map','requirements-tree']) assert.equal(generatorRun(f.main,[`scripts/${script}.mjs`,'--write']).status,0);
- git(f.main,'add','.'); git(f.main,'commit','-m','generator base'); f.base=git(f.main,'rev-parse','HEAD');
- git(f.feature,'reset','--hard', f.base);
- // An ordinary clean merge supplies the independent non-contract tree and output oracle.
- commit(f.feature,'src/lane.mjs',fixtureModule('lane'),'lane module');
- commit(f.feature,'REQUIREMENTS.md',fixtureLedger(false,true),'lane row');
- commit(f.main,'src/main.mjs',fixtureModule('main'),'main module');
- commit(f.main,'REQUIREMENTS.md',fixtureLedger(true,false),'main row');
- const oracle=path.join(f.root,'oracle'); git(f.root,'clone','--no-hardlinks',f.main,oracle);
- git(oracle,'config','user.name','Synthetic'); git(oracle,'config','user.email','synthetic@example.invalid');
- git(oracle,'checkout','--detach',git(f.feature,'rev-parse','HEAD')); git(oracle,'merge','--no-ff','--no-edit',git(f.main,'rev-parse','HEAD'));
- f.expected = {};
- for (const script of ['code-map','requirements-tree']) {
-  const r=generatorRun(oracle,[`scripts/${script}.mjs`,'--write']); assert.equal(r.status,0,r.stderr);
- }
- for (const file of ['docs/code-map.md','docs/requirements-tree.md']) {
-  f.expected[file]=readFileSync(path.join(oracle,file),'utf8');
-  for (const [dir, side] of [[f.feature,'lane'],[f.main,'main']]) commit(dir,file,conflicts.includes(file)?`${side} hand merge decoy\n`:f.expected[file],`${side} generated decoy`);
- }
- f.oracle=oracle; f.tip=git(f.feature,'rev-parse','HEAD'); f.capturedMain=git(f.main,'rev-parse','HEAD');
- return f;
-}
-
-/** Replace distant generated hunks with decoys and prove git merges them textually. */
-export function separateGeneratedHunks(f, files = landConfig.CLEAN_MERGE_GENERATED_PATHS) {
- for (const file of files) {
-  const base = gitRunner(f.main, ['show', `${f.base}:${file}`]).stdout;
-  const lines = base.trimEnd().split('\n'); assert(lines.length > 8);
-  commit(f.feature, file, ['lane decoy', ...lines.slice(1)].join('\n')+'\n', 'lane first generated hunk');
-  commit(f.main, file, [...lines.slice(0,-1), 'main decoy'].join('\n')+'\n', 'main last generated hunk');
- }
- f.tip=git(f.feature,'rev-parse','HEAD'); f.capturedMain=git(f.main,'rev-parse','HEAD');
- const result=gitRunner(f.main,['merge-tree','--write-tree','--name-only','--no-messages',f.tip,f.capturedMain]);
- return result;
 }
 
 export const ensureCiReview = (fixture) => {
