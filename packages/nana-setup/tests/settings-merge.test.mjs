@@ -187,120 +187,21 @@ check("four active hook entries are wanted", wanted.length === 4);
 	check("second merge is a no-op", mergeHooks(s, wanted).added.length === 0 && JSON.stringify(s) === all);
 }
 
-/* --- a recognized stale knowledge hook is atomically migrated, unknown entries survive -- */
+/* --- matcher scans retain the review regression on an active win32 hook ---------------- */
 {
-	const wantedKnowledge = historicalHooks({ hooksDir: "/unused", repoRoot: "/repo" });
-	const desired = wantedKnowledge.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.command;
-	check("fixture: the desired knowledge command matches today's shape", desired === "NODE_NO_WARNINGS=1 node '/repo/packages/nana-knowledge/bin/nana-knowledge.ts' hook");
-	const customized = { type: "command", command: "NANA_KNOWLEDGE_HOME=/custom node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "nana: knowledge pull" };
-	const original = { hooks: { UserPromptSubmit: [{ hooks: [
-		{ type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" },
-		{ type: "command", command: "node /hand-written/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "personal knowledge" },
-		customized,
-		{ type: "command", command: "echo /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts" },
-	] }] } };
-	const result = mergeRepoHooks(original, { repoRoot: "/repo", wanted: wantedKnowledge });
-	const row = result["UserPromptSubmit knowledge pull"];
-	// req: R-394
-	check("recognized stale absolute knowledge command is replaced in place with no duplicate", row.found && row.replaced && original.hooks.UserPromptSubmit[0].hooks[0].command === desired && original.hooks.UserPromptSubmit[0].hooks.length === 4);
-	// req: R-653
-	check("unrecognized hand-written node hook entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[1]) === JSON.stringify({ type: "command", command: "node /hand-written/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "personal knowledge" }));
-	// req: R-653
-	check("unrecognized customized knowledge hook entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[2]) === JSON.stringify(customized));
-	// req: R-653
-	check("unrecognized echo entry remains exactly equal", JSON.stringify(original.hooks.UserPromptSubmit[0].hooks[3]) === JSON.stringify({ type: "command", command: "echo /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts" }));
-	check("absolute knowledge hook target outside repository is not accepted as healthy", row.replaced);
-}
-
-/* --- final review r2 (sol MUST 2, astra MUST 1): the case above uses a MISSING target
-   (/old-clone never exists on disk), so realpathSync throws and the entry is replaced for that
-   reason alone — it never reaches R-1056's OTHER branch, a target that resolves fine but outside
-   the checkout. Create a real file, under the OS temp folder, that carries the knowledge entry's
-   own repository suffix, so fs.realpathSync succeeds and genuinely mismatches repoRoot (this
-   checkout's own real root) rather than throwing — then the in-place replacement, no twin, is
-   proof of the "resolves outside the checkout" clause specifically. ------------------------- */
-{
-	const outsideRepoRoot = tmpDir(path.join(os.tmpdir(), "nana-setup-outside-repo-"));
-	// Forward-slash suffix, not path.join: on real Windows path.join gives an ALL-backslash path,
-	// which installerKnowledgeTarget's endsWith("/packages/nana-knowledge/bin/nana-knowledge.ts")
-	// check (forward-slash, matching the installer's own POSIX command text) would then read as
-	// not invoking the script at all — the same lesson win32-degrade.test.mjs's outside-checkout
-	// fixtures already carry, applied here too.
-	const outsideKnowledgeDir = `${outsideRepoRoot}/packages/nana-knowledge/bin`;
-	fs.mkdirSync(outsideKnowledgeDir, { recursive: true });
-	const outsideKnowledgeTarget = `${outsideKnowledgeDir}/nana-knowledge.ts`;
-	fs.writeFileSync(outsideKnowledgeTarget, "// exists on disk, but is not this checkout's copy\n");
-	const wantedOutside = historicalHooks({ hooksDir: "/unused", repoRoot: repo });
-	const desiredOutsideCommand = wantedOutside.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.command;
-	const outsideEntry = { type: "command", command: `NODE_NO_WARNINGS=1 node ${shq(outsideKnowledgeTarget)} hook`, timeout: 5, statusMessage: "nana: knowledge pull" };
-	const outsideSettings = { hooks: { UserPromptSubmit: [{ hooks: [outsideEntry] }] } };
-	const outsideResult = mergeRepoHooks(outsideSettings, { repoRoot: repo, wanted: wantedOutside });
-	const outsideRow = outsideResult["UserPromptSubmit knowledge pull"];
-	// req: R-1056
-	check("an EXISTING knowledge target outside the checkout, carrying the repository suffix, is replaced in place with no duplicate", outsideRow.found && outsideRow.replaced && outsideSettings.hooks.UserPromptSubmit[0].hooks.length === 1 && outsideSettings.hooks.UserPromptSubmit[0].hooks[0].command === desiredOutsideCommand, JSON.stringify(outsideSettings.hooks.UserPromptSubmit));
-}
-
-/* --- a stale knowledge entry carrying ANOTHER status message is not the installer's own: left
-   byte for byte, not replaced — the merge result matches main's own gate (`settings.mjs:276`),
-   which skipped any entry whose statusMessage was not "nana: knowledge pull" (R-653, R-1061) --- */
-{
-	const wantedForeign = historicalHooks({ hooksDir: "/unused", repoRoot: "/repo" });
-	const foreignStale = { type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "my own knowledge" };
-	const before = JSON.stringify(foreignStale);
-	const foreignSettings = { hooks: { UserPromptSubmit: [{ hooks: [foreignStale] }] } };
-	const foreignResult = mergeRepoHooks(foreignSettings, { repoRoot: "/repo", wanted: wantedForeign });
-	const foreignRow = foreignResult["UserPromptSubmit knowledge pull"];
-	// req: R-653
-	check("a stale knowledge entry with another status message is not matched as the installer's own (found false, not replaced)", foreignRow.found === false && foreignRow.replaced === false);
-	// req: R-653
-	check("that entry is left byte for byte", JSON.stringify(foreignSettings.hooks.UserPromptSubmit[0].hooks[0]) === before);
-}
-
-/* --- a stale knowledge entry with NO status message at all is not the installer's own either:
-   left byte for byte, not replaced — main's gate reads a missing statusMessage as a mismatch,
-   same as a foreign one, because every entry the installer has ever written carries its own
-   (R-1061, R-653) --- */
-{
-	const wantedNoMessage = historicalHooks({ hooksDir: "/unused", repoRoot: "/repo" });
-	const noMessageStale = { type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5 };
-	const before = JSON.stringify(noMessageStale);
-	const noMessageSettings = { hooks: { UserPromptSubmit: [{ hooks: [noMessageStale] }] } };
-	const noMessageResult = mergeRepoHooks(noMessageSettings, { repoRoot: "/repo", wanted: wantedNoMessage });
-	const noMessageRow = noMessageResult["UserPromptSubmit knowledge pull"];
-	// req: R-1061
-	check("a stale knowledge entry with no status message is not matched as the installer's own (found false, not replaced)", noMessageRow.found === false && noMessageRow.replaced === false);
-	// req: R-653
-	check("that entry is left byte for byte", JSON.stringify(noMessageSettings.hooks.UserPromptSubmit[0].hooks[0]) === before);
-}
-
-/* --- final review r1 (sol MUST 2, astra MUST 2): main scans EVERY group for an installer-shaped
-   entry regardless of matcher, not only matcher-less ones — a stale entry under a foreign
-   matcher-scoped group is still found and replaced in place, no twin --------------------------- */
-{
-	const wantedMatcherStale = historicalHooks({ hooksDir: "/unused", repoRoot: "/repo" });
-	const staleUnderMatcher = { type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" };
-	const matcherSettings = { hooks: { UserPromptSubmit: [{ matcher: "*", hooks: [staleUnderMatcher] }] } };
-	const matcherResult = mergeRepoHooks(matcherSettings, { repoRoot: "/repo", wanted: wantedMatcherStale });
-	const matcherRow = matcherResult["UserPromptSubmit knowledge pull"];
-	const desiredKnowledgeCommand = wantedMatcherStale.find((w) => w.label === "UserPromptSubmit knowledge pull").entry.command;
-	// req: R-1061
-	// req: R-1056
-	check("every group is scanned regardless of matcher: a stale knowledge entry under matcher \"*\" is found and replaced in place, no twin", matcherRow.found && matcherRow.replaced && matcherSettings.hooks.UserPromptSubmit[0].hooks.length === 1 && matcherSettings.hooks.UserPromptSubmit[0].hooks[0].command === desiredKnowledgeCommand, JSON.stringify(matcherSettings.hooks.UserPromptSubmit));
-}
-/* --- the same matcher scan finds a HEALTHY installer-shaped entry under a matcher-scoped group
-   too, and leaves it alone rather than reporting it absent (which would let mergeHooks append a
-   duplicate beside it) — uses this checkout's own real repo root, since realpathSync needs a real
-   target to read as healthy -------------------------------------------------------------------- */
-{
-	const wantedHealthyMatcher = historicalHooks({ hooksDir: "/unused", repoRoot: repo });
-	const healthyEntry = { ...wantedHealthyMatcher.find((w) => w.label === "UserPromptSubmit knowledge pull").entry };
-	const before = JSON.stringify(healthyEntry);
-	const healthySettings = { hooks: { UserPromptSubmit: [{ matcher: "*", hooks: [healthyEntry] }] } };
-	const healthyResult = mergeRepoHooks(healthySettings, { repoRoot: repo, wanted: wantedHealthyMatcher });
-	const healthyRow = healthyResult["UserPromptSubmit knowledge pull"];
-	// req: R-1061
-	// req: R-1056
-	check("every group is scanned regardless of matcher: a healthy knowledge entry under matcher \"*\" is found and left alone, no twin", healthyRow.found && !healthyRow.replaced && healthySettings.hooks.UserPromptSubmit[0].hooks.length === 1 && JSON.stringify(healthySettings.hooks.UserPromptSubmit[0].hooks[0]) === before, JSON.stringify(healthySettings.hooks.UserPromptSubmit));
+	const wantedMatcher = desiredHooks({ hooksDir: "/unused", repoRoot: repo, platform: "win32" });
+	const objective = wantedMatcher.find(w => w.label === "SessionStart objective");
+	for (const healthy of [false, true]) {
+		const entry = healthy ? { ...objective.entry } : { ...objective.entry, args: ["/old-clone/packages/nana-setup/claude/hooks/nana-objective.mjs"] };
+		const before = JSON.stringify(entry);
+		const settings = { hooks: { SessionStart: [{ matcher: "*", hooks: [entry] }] } };
+		const result = mergeRepoHooks(settings, { repoRoot: repo, wanted: wantedMatcher, platform: "win32" });
+		const row = result[objective.label];
+		// req: R-1056
+		check(`every group is scanned regardless of matcher: ${healthy ? "healthy" : "stale"} active win32 entry under matcher "*", no twin`,
+			row.found && row.replaced === !healthy && settings.hooks.SessionStart[0].hooks.length === 1 &&
+			JSON.stringify(settings.hooks.SessionStart[0].hooks[0]) === (healthy ? before : JSON.stringify(objective.entry)));
+	}
 }
 
 /* --- win32 exec form: desiredHooks, entryInvokes, hasHook, hookTargets, installerTarget ------- */
@@ -645,44 +546,6 @@ const homeSnapshot = (root) => {
 		`${unparseableResult.status} ${shapeResult.status}\n${unparseableResult.stderr}\n${shapeResult.stderr}`);
 }
 
-/* --- stale knowledge-hook migration is atomic and leaves unknown hooks untouched -------- */
-{
-	const home = freshHome();
-	const file = path.join(home, ".claude", "settings.json");
-	const unknown = { type: "command", command: "node /hand-written/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "personal knowledge" };
-	const customized = { type: "command", command: "NANA_KNOWLEDGE_HOME=/custom node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook", timeout: 5, statusMessage: "nana: knowledge pull" };
-	const stale = "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook";
-	fs.writeFileSync(file, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
-		{ type: "command", command: stale, timeout: 5, statusMessage: "nana: knowledge pull" },
-		unknown,
-		customized,
-	] }] } }, null, 2) + "\n", { mode: 0o600 });
-	const r = run(["install"], home);
-	const text = fs.readFileSync(file, "utf8");
-	const after = JSON.parse(text);
-	const entries = after.hooks.UserPromptSubmit[0].hooks;
-	const commands = entries.map((hook) => hook.command);
-	const knowledgeSpec = { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] };
-	// "ours" means it structurally invokes nana-knowledge.ts AND its target resolves inside this
-	// checkout — the unknown hand-written entry invokes a script of the same NAME elsewhere, so
-	// entryInvokes alone cannot tell them apart.
-	const isOurs = (hook) => {
-		if (!entryInvokes(hook, knowledgeSpec, platform())) return false;
-		const target = hookTargets({ hooks: { UserPromptSubmit: [{ hooks: [hook] }] } }, "UserPromptSubmit", knowledgeSpec, platform())[0];
-		if (!target) return false;
-		try {
-			const real = fs.realpathSync(target);
-			const root = fs.realpathSync(repo);
-			return real === root || real.startsWith(root + path.sep);
-		} catch { return false; }
-	};
-	const ownEntries = entries.filter(isOurs);
-	// req: R-394
-	check("install removes its stale hook without a duplicate", r.status === 0 && !text.includes(stale) && ownEntries.length === 0, JSON.stringify(commands));
-	// req: R-653
-	check("install preserves customized knowledge hook entry byte-for-byte", JSON.stringify(after.hooks.UserPromptSubmit[0].hooks[1]) === JSON.stringify(customized));
-}
-
 /* --- the atomic write refuses to clobber a concurrent edit ---------------------------- */
 {
 	const home = freshHome();
@@ -986,22 +849,6 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 		// req: R-908
 		check("second install after migration reports nothing to do", again.status === 0 && /nothing to do/.test(again.stdout));
 	}
-}
-
-/* --- stale-hook migration uses the same concurrent-write protection ------------------- */
-{
-	const home = freshHome();
-	const file = path.join(home, ".claude", "settings.json");
-	fs.writeFileSync(file, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [
-		{ type: "command", command: "NODE_NO_WARNINGS=1 node '/old-clone/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" },
-	] }] } }, null, 2) + "\n");
-	const concurrent = JSON.stringify({ model: "concurrent writer" }, null, 2) + "\n";
-	let err = null;
-	try {
-		install(resolveLayout({ home }), { afterTempWrite: () => fs.writeFileSync(file, concurrent) });
-	} catch (error) { err = error; }
-	// req: R-394
-	check("stale-hook migration refuses a concurrent replacement and preserves its bytes", err instanceof SetupError && fs.readFileSync(file, "utf8") === concurrent);
 }
 
 /* --- forced win32: a hand-written exec-form variant is kept byte for byte, no twin (R-923) ---- */

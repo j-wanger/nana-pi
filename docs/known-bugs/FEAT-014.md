@@ -17,7 +17,6 @@
 - Project check warnings (project-check-quiet): the checks pin the quiet project check on Node 22 only. The plan infers the same for Node 23 and early 24; nobody has run either.
 - Project check warnings (project-check-quiet): no check pins that project setup prints no warning. It is quiet today. A new TypeScript import there would make it warn, and no check would fail.
 - Project check warnings (project-check-quiet): no check stops the mute from spreading to other commands. Such a change would touch install, doctor or trust, so it belongs in another lane.
-- Adoption markers (adopt-structure-markers): the project check does not see a bare copy of the working section left beside the marked block. Only the skill's wording forbids a second copy, and the check pins only that wording.
 - Adoption markers (adopt-structure-markers): an agent may not tell where an older bare copy ends. Older shared sections held parts that later moved into project sections. The skill tells the agent to ask the owner then.
 - Adoption markers (adopt-structure-markers): an agent that also copies the code-fence lines gets ! for the working region. The project check ignores markers inside a fence. Only the skill's prose warns against it.
 - Adoption markers (adopt-structure-markers): nobody ran the fallback commands in PowerShell or cmd. The check runs each command's script through node directly. It bans the characters those shells read specially, so the plan infers the same output there.

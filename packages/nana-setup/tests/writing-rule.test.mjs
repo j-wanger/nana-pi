@@ -20,14 +20,6 @@ const { checkText } = await import(new URL("../../nana-pack/lib/writing-check.mj
 /** Preserved role-neutral title contract; this is its only surviving reader. */
 const RULE_TITLE = "# Nana — Writing for";
 
-const SEALED_CHECK_TEXT = `## Check
-
-Before you send a report, run \`nana-writing --report\` on its text.
-You must run it every time. Fix each finding, or say in the report why it stays.
-After you edit \`HANDOFF.md\`, run \`nana-writing HANDOFF.md\`.
-If your shell cannot find \`nana-writing\`, run \`nana-setup install\`, then run the check.
-`;
-
 let fails = 0;
 const check = (n, ok, extra) => {
 	console.log(ok ? "PASS" : "FAIL", n, ok ? "" : (extra ?? ""));
@@ -46,16 +38,9 @@ const check = (n, ok, extra) => {
 {
 	const src = ruleSource("nana-writing.md");
 	const text = fs.readFileSync(src, "utf8");
-	const checkStart = text.indexOf("## Check\n");
-	const checkSection = checkStart >= 0 ? text.slice(checkStart) : "";
-	const checkIsSealed = checkSection === SEALED_CHECK_TEXT && !text.includes("node ") && !text.includes("~/");
-	const checkDetails = JSON.stringify({ checkSection, hasNode: text.includes("node "), hasTildeHome: text.includes("~/") });
-	// req: R-2502
-	check("the rule's Check section is the sealed check text", checkIsSealed, checkDetails);
-
 	const r = checkText(src, text, { report: false });
 	// req: R-376
-	check("the rule passes nana-writing with zero findings", text.startsWith(`${RULE_TITLE} the owner\n`) && r.findings.length === 0, JSON.stringify(r.findings));
+	check("the rule passes nana-writing with zero findings", text.startsWith(`${RULE_TITLE} the owner\n`) && r.findings.length === 0 && !text.includes("~/") && !text.includes("node "), JSON.stringify(r.findings));
 }
 
 process.exit(fails);

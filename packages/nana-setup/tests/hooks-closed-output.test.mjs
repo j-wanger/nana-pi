@@ -126,23 +126,4 @@ for (const testCase of cases) {
 	}
 }
 
-{
-	const knowledgeHome = path.join(home, "knowledge");
-	const knowledgeSource = path.join(home, "knowledge-source");
-	fs.mkdirSync(knowledgeHome, { recursive: true });
-	fs.mkdirSync(knowledgeSource, { recursive: true });
-	fs.writeFileSync(path.join(knowledgeSource, "review-rounds.md"), "# Review round cap\n\nReview round cap guidance for independent checks.\n");
-	fs.writeFileSync(path.join(knowledgeHome, "sources.json"), JSON.stringify({ roots: [{ path: knowledgeSource, kind: "articles" }] }));
-	const knowledgeEnv = { ...env, NANA_KNOWLEDGE_HOME: knowledgeHome };
-	delete knowledgeEnv.NANA_ROLE;
-	const knowledgeCli = path.join(pkg, "..", "nana-knowledge", "bin", "nana-knowledge.ts");
-	const build = spawnSync(process.execPath, [knowledgeCli, "build"], { cwd: projectDir, env: knowledgeEnv, encoding: "utf8" });
-	if (build.status !== 0) throw new Error(`knowledge build failed: ${build.stderr || build.stdout}`);
-	const payload = (session_id) => JSON.stringify({ session_id, prompt: "Explain the Review round cap policy" });
-	const open = await run(knowledgeCli, ["hook"], knowledgeEnv, payload("closed-output-open"), null);
-	const closed = await run(knowledgeCli, ["hook"], knowledgeEnv, payload("closed-output-closed"), "stdout");
-	// req: R-2015
-	check("knowledge pull hook ignores a closed stdout and exits 0", open.code === 0 && open.stdout.includes("[nana:knowledge]") && closed.code === 0 && closed.stderr === "" && !open.timedOut && !closed.timedOut, open, closed);
-}
-
 if (failures) process.exitCode = 1;

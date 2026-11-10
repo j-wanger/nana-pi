@@ -209,7 +209,6 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-setup/tests/install.test.mjs": "land",
   "packages/nana-setup/tests/linked-claude-folder.test.mjs": "main",
   "packages/nana-setup/tests/memory-pause.test.mjs": "module",
-  "packages/nana-setup/tests/pull-cut-turn.test.mjs": "module",
   "packages/nana-setup/tests/objective-path-shapes.test.mjs": "module",
   "packages/nana-setup/tests/paths.test.mjs": "land",
   "packages/nana-setup/tests/pi-install-pin.test.mjs": "module",

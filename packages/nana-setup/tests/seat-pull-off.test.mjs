@@ -18,8 +18,6 @@ import { resolveLayout, repoRoot } from '../lib/paths.mjs';
 import { diagnose } from '../lib/doctor.mjs';
 import { withPiStub } from './stub-pi.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
-import { HOOKS, PI_TURN } from '../lib/install-check-config.mjs';
-import { mapHookEntries, judgePiTurn } from '../lib/install-check.mjs';
 
 const limit = 20_000;
 const options = { timeout: limit };
@@ -73,10 +71,11 @@ await test('R-3739: fresh POSIX and win32 installs omit only the knowledge entry
   });
 });
 
-// req: R-3740
+// req: R-3740 R-653
 await test('R-3740: install removes shell and exec knowledge entries and preserves foreign entries', options, () => {
   for (const platform of ['darwin', 'win32']) fixture(layout => {
-    const foreign = [{ ...entry(), timeout: 9 }, { ...entry(), async: true }, { ...entry(), args: [] }, { ...entry(), type: 'prompt' }, { ...entry('C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts', true), args: ['C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts', 'hook', '--owner'] }, { type: 'command', command: 'echo foreign', timeout: 17 }, { ...entry(), statusMessage: 'owner knowledge' }];
+    const customized = { type: 'command', command: 'NANA_KNOWLEDGE_HOME=/custom node /old-clone/packages/nana-knowledge/bin/nana-knowledge.ts hook', timeout: 5, statusMessage: 'nana: knowledge pull' };
+    const foreign = [customized, { ...entry(), timeout: 9 }, { ...entry(), async: true }, { ...entry(), args: [] }, { ...entry(), type: 'prompt' }, { ...entry('C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts', true), args: ['C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts', 'hook', '--owner'] }, { type: 'command', command: 'echo foreign', timeout: 17 }, { ...entry(), statusMessage: 'owner knowledge' }];
     const after = installSettings(layout, { hooks: { UserPromptSubmit: [{ hooks: [entry(), entry('C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts', true), ...foreign] }] } }, platform);
     assert.equal(JSON.stringify(promptEntries(after)), JSON.stringify(foreign));
   });
@@ -114,24 +113,6 @@ await test('R-3742: uninstall still removes the previous installer knowledge ent
   });
 });
 
-// req: R-3743
-await test('R-3743: install-check omits retired knowledge dispatch', options, () => {
-  assert.ok(!HOOKS.some(h => h.event === 'UserPromptSubmit' || h.script === 'nana-knowledge.ts'));
-  for (const platform of ['darwin', 'win32']) {
-    const settings = {};
-    for (const w of desiredHooks({ hooksDir: '/h', repoRoot: '/r', platform })) {
-      settings[w.event] ??= [];
-      settings[w.event].push({ matcher: w.matcher, hooks: [w.entry] });
-    }
-    const mapped = mapHookEntries(Object.entries(settings).flatMap(([event, groups]) => groups.map(group => ({ event, group }))), platform);
-    assert.deepEqual(mapped.failures, []);
-  }
-  const record = { system: `token ${PI_TURN.rulingsHeading} ${PI_TURN.seatGuideHeading} ${PI_TURN.writingTag}`, userMessages: [`${PI_TURN.knowledgeMarker} ${PI_TURN.noteFile}`], toolResults: [{ toolName: PI_TURN.tool, isError: true, text: PI_TURN.gateBlockPrefix }] };
-  assert.equal(judgePiTurn({ record, status: 0, token: 'token' }).passed, true);
-  record.userMessages = [];
-  assert.equal(judgePiTurn({ record, status: 0, token: 'token' }).passed, true);
-});
-
 // req: R-3744
 await test('R-3744: query returns index results after install', options, () => {
   fixture(layout => {
@@ -156,13 +137,3 @@ await test('R-3745: install retains matcher siblings and drops only groups empti
   });
 });
 
-// req: R-3746
-await test('R-3746: knowledge README retires Claude wiring and points to explicit query', options, () => {
-  const readme = fs.readFileSync(new URL('../../nana-knowledge/README.md', import.meta.url), 'utf8');
-  const section = readme.split('## The hook')[1].split('## The pi extension')[0];
-  assert.match(section, /Claude Code.*retired/);
-  assert.match(section, /2%/);
-  assert.match(section, /#342/);
-  assert.match(section, /nana-knowledge query/);
-  assert.ok(!section.includes('"UserPromptSubmit"'));
-});

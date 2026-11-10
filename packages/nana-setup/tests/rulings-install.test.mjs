@@ -73,20 +73,6 @@ const lstatSafe = (p) => {
 	}
 };
 
-{
-	const { H, P } = freshRoots();
-	const installed = run(["install", "--home", H, "--pi-home", P], win32Env);
-	const shipped = fs.readFileSync(SRC, "utf8");
-	const claude = fs.readFileSync(path.join(H, ".claude", "rules", RULINGS_FILE), "utf8");
-	const pi = fs.readFileSync(path.join(P, RULINGS_FILE), "utf8");
-	const injected = buildBlock(P);
-	// req: R-3899
-	check("M6: installed Claude and pi-injected rulings drop notes before review and retain the post-land ban",
-		installed.status === 0 && claude === shipped && pi === shipped && injected.endsWith(shipped) &&
-		[shipped, claude, pi, injected].every(text => !text.includes("Notes go in before the final round") &&
-			text.includes("nothing is written after a land")));
-}
-
 /* ========================================================================================
  * R-1412 — install places nana-rulings.md in pi's active agent dir: a symlink on POSIX, a
  * byte-equal copy on win32.

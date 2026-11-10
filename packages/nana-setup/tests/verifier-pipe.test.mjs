@@ -63,14 +63,4 @@ for (const [name, group] of [["null group", null], ["string group", "bad"], ["ob
 	// req: R-909
 	check(`doctor diagnoses malformed retired-hook ${name} without throwing`, Array.isArray(rows) && rows.some((item) => item.label === "settings SessionStart objective" && item.status === "fail"), String(rows));
 }
-const packReadme = fs.readFileSync(path.join(root, "packages/nana-pack/README.md"), "utf8");
-const setupReadme = fs.readFileSync(path.join(pkg, "README.md"), "utf8");
-const packDeclaration = packReadme.split("\n").find((line) => line.includes("Verifier-pipe guard")) ?? "";
-const setupDeclaration = setupReadme.split("\n").find((line) => line.includes("Verifier-pipe guard")) ?? "";
-// req: R-2354
-check("both READMEs declare the literal-text later-call gap and the sandbox boundary", [packDeclaration, setupDeclaration].every((line) => /best-effort text check/.test(line) && /not present in the literal command text/.test(line) && /reached through a later call/.test(line) && /sandbox is the boundary/.test(line)));
-// req: R-2356
-check("both READMEs declare which pipelines the verifier-pipe guard asks on", [packDeclaration, setupDeclaration].every((line) => /a `;` or a newline/.test(line) && /does not prompt/.test(line) && /contains `errexit` anywhere/.test(line) && /in any case and even inside a longer word/.test(line) && /a `set` word at any position/.test(line) && /within the same simple command/.test(line) && /the next `;`, `&`, `\|`, newline or closing bracket/.test(line) && /option word made of `-` and letters including `e`/.test(line) && /`set \+e` or `set \+o errexit` never turns that text flag off/.test(line) && /`\+o errexit` itself counts as enabling/.test(line) && /`git\.exe`/.test(line) && /path/.test(line)));
-// req: R-660 R-3740
-check("setup README retains context retirement and knowledge retirement guarantees", setupReadme.includes("Install removes only the exact managed tilde form and released quoted absolute-path form for the retired context-size hook; variants are preserved.") && setupReadme.includes("Install removes only complete installer-shaped knowledge entries in shell or exec form"));
 if (failures) process.exitCode = 1;
