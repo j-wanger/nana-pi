@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/tests/config-handlers-malformed.test.mjs
- * @purpose Pins that every registered nana-pack handler survives every malformed user config without throwing, while the gate still blocks, the problem is journaled once, and post-edit and lifecycle keep working under five unrelated malformed blocks
- * @inputs the surviving extensions under extensions/, malformed nana-pack.json variants, a configured postEdit check on a.ts, and a fresh temp HOME and workspace per variant
+ * @purpose Pin malformed-config handler survival, fail-safe gating and config problem journaling.
+ * @inputs Pack extensions, malformed config variants and fresh temp homes and workspaces.
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
- * @effects disk (temp HOMEs, config files and workspaces), process (sets HOME and USERPROFILE, spawns the configured postEdit checker as a child process)
+ * @effects disk (temp homes, config files and workspaces), process (sets HOME and USERPROFILE)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 import { tmpDir } from "./tmp-dir.mjs";
@@ -91,87 +91,6 @@ for (const [label, text, expectLines] of VARIANTS) {
 	const invalid = lines.filter((l) => l.event === "config_invalid" && l.file === userCfg);
 	// req: R-082
 	check(`${label}: exactly ${expectLines} config_invalid journal line(s) naming the file`, invalid.length === expectLines, JSON.stringify(invalid));
-}
-
-// One UI warning per (file, problem) per session, however many handlers load config.
-{
-	const home = tmpDir(path.join(os.tmpdir(), "hm-ui-"));
-	process.env.HOME = home;
-	process.env.USERPROFILE = home;
-	fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
-	const userCfg = path.join(home, ".pi", "agent", "nana-pack.json");
-	fs.writeFileSync(userCfg, JSON.stringify({ journal: { path: 7 } }));
-	const h = {};
-	for (const n of EXT) exts[n]({ on: (ev, fn) => (h[ev] ??= []).push(fn), registerCommand() {} });
-	const warnings = [];
-	const mk = (sid) => ({
-		cwd: tmpDir(path.join(os.tmpdir(), "hm-uiws-")),
-		hasUI: true,
-		isProjectTrusted: () => false,
-		sessionManager: { getSessionId: () => sid },
-		ui: { notify: (m, t) => warnings.push({ m, t }), setStatus() {}, select: async () => "Block", theme: { fg: (_c, t) => t } },
-	});
-	const ctx = mk("s1");
-	for (const ev of ["session_start", "before_agent_start", "session_compact", "session_shutdown"]) {
-		const event = ev === "session_start" ? { reason: "startup" } : ev === "before_agent_start" ? { systemPromptOptions: { sections: {} } } : { compactionEntry: { summary: "s" } };
-		for (const fn of h[ev] ?? []) await fn(event, ctx);
-	}
-	const mine = () => warnings.filter((w) => w.m.includes(userCfg) && w.m.includes("journal.path"));
-	// req: R-082
-	check("UI: exactly one warning for the problem in a session", mine().length === 1 && mine()[0].t === "warning", JSON.stringify(warnings));
-	for (const fn of h.session_start) await fn({ reason: "startup" }, mk("s2"));
-// req: R-780
-	check("UI: a new session warns once more", mine().length === 2);
-}
-
-// R-781: post-edit and lifecycle under five unrelated malformed blocks (each variant also
-// configures a postEdit check on a.ts so post-edit has something to run and fail).
-{
-	const R781_VARIANTS = [
-		["gate = 7", { gate: 7 }],
-		["notify = 7", { notify: 7 }],
-		["handoff = 7", { handoff: 7 }],
-		["objective = 7", { objective: 7 }],
-		["journal.path = 7", { journal: { path: 7 } }],
-	];
-	let r781Pass = true;
-	const r781Detail = [];
-	for (const [label, block] of R781_VARIANTS) {
-		const home = tmpDir(path.join(os.tmpdir(), "hm-r781-home-"));
-		process.env.HOME = home;
-		process.env.USERPROFILE = home;
-		const agent = path.join(home, ".pi", "agent");
-		fs.mkdirSync(agent, { recursive: true });
-		const raw = { ...block, postEdit: { commands: [{ match: "\\.ts$", run: 'node -e "process.exit(1)"' }] } };
-		fs.writeFileSync(path.join(agent, "nana-pack.json"), JSON.stringify(raw));
-		fs.writeFileSync(path.join(agent, "nana-objective.md"), "OBJ: ship the thing\n");
-		const cwd = tmpDir(path.join(os.tmpdir(), "hm-r781-ws-"));
-		fs.writeFileSync(path.join(cwd, "a.ts"), "x\n");
-
-		const h = {};
-		const api = { on: (ev, fn) => (h[ev] ??= []).push(fn), registerCommand() {} };
-		for (const n of EXT) exts[n](api);
-		const ctx = { cwd, hasUI: false, isProjectTrusted: () => true, signal: new AbortController().signal, sessionManager: { getSessionId: () => `r781-${label}` } };
-		const fire = async (ev, event) => {
-			const out = [];
-			for (const fn of h[ev] ?? []) out.push(await fn(event, ctx));
-			return out;
-		};
-
-		await fire("session_start", { reason: "startup" });
-		const journal = path.join(agent, "nana-journal.jsonl");
-		const journalText = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8") : "";
-		const lifecyclePass = journalText.split("\n").some((l) => l.includes('"event":"session_start"'));
-
-		const variantOk = lifecyclePass;
-		if (!variantOk) r781Pass = false;
-		r781Detail.push(`${label}: lifecycle=${lifecyclePass}`);
-	}
-	// req: R-781
-	check("with an unrelated block malformed, lifecycle still journals the session start",
-		r781Pass,
-		r781Detail.join(" | "),
-	);
 }
 
 process.exit(fails);

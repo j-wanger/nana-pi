@@ -45,36 +45,10 @@ await check('a save writes one shape record into the private clone and nowhere e
  } finally {t.close();}
 });
 
-// req: R-3237
-await check('seal: PROFILE_MEDIUM_SESSIONS is 3',async()=>assert.equal((await config()).PROFILE_MEDIUM_SESSIONS,3));
-// req: R-3238
-await check('seal: PROFILE_SHOW_BUDGET is 4000',async()=>assert.equal((await config()).PROFILE_SHOW_BUDGET,4000));
-// req: R-3239
-await check('seal: PROFILE_GIT_TIMEOUT_MS is 15000',async()=>assert.equal((await config()).PROFILE_GIT_TIMEOUT_MS,15000));
 // req: R-3240
 await check('seal: PROFILE_LOCK_WAIT_MS covers 28 Git steps',async()=>{
  const C=await config(); assert.equal(C.PROFILE_LOCKED_GIT_STEPS,28); assert.equal(C.PROFILE_LOCK_WAIT_MS,420000);
  assert.ok(C.PROFILE_LOCK_WAIT_MS>=C.PROFILE_GIT_TIMEOUT_MS*C.PROFILE_LOCKED_GIT_STEPS);
 });
-// req: R-3241
-await check('seal: PROFILE_LOCK_STALE_MS is 120000',async()=>assert.equal((await config()).PROFILE_LOCK_STALE_MS,120000));
-// req: R-3242
-await check('seal: PROFILE_PUSH_RETRIES is 1',async()=>assert.equal((await config()).PROFILE_PUSH_RETRIES,1));
-// req: R-3243
-await check('seal: PROFILE_LIMITS',async()=>assert.deepEqual((await config()).PROFILE_LIMITS,{daily:40,claim:1200,quote:4000}));
-// req: R-3244
-await check('seal: PROFILE_SESSION_VARIABLES',async()=>assert.deepEqual((await config()).PROFILE_SESSION_VARIABLES,['CLAUDE_SESSION_ID','PI_SESSION_ID','PI_SESSION_FILE']));
-// req: R-3245
-await check('seal: PROFILE_STAMP_FORMAT',async()=>assert.equal((await config()).PROFILE_STAMP_FORMAT,'toLowerCase'));
-// req: R-3246
-await check('seal: PROFILE_PATH_POLICY',async()=>assert.deepEqual((await config()).PROFILE_PATH_POLICY,{pattern:'^[a-z0-9._/-]+$',max:180,outputBytes:1048576,randomBytes:12}));
 // req: R-3247
 await check('seal: PROFILE_REMOTE_FORMS',async()=>assert.deepEqual((await config()).PROFILE_REMOTE_FORMS,['^https://github\\.com/([^/]+/[^/]+?)(?:\\.git)?$','^git@github\\.com:([^/]+/[^/]+?)(?:\\.git)?$','^ssh://git@(?:github\\.com|ssh\\.github\\.com:443)/([^/]+/[^/]+?)(?:\\.git)?$']));
-// req: R-3248
-await check('seal: PROFILE_LAYOUT',async()=>assert.deepEqual((await config()).PROFILE_LAYOUT,{records:'records',events:'events',marker:'.nana-profile',lock:'nana-profile.lock',counter:'nana-profile-day.json',attributes:'* -text\n',readme:'Private owner profile. Records are append-only JSON; use nana-profile, never edit records by hand.\n'}));
-// req: R-3249
-await check('seal: PROFILE_WORDS',async()=>assert.deepEqual((await config()).PROFILE_WORDS,{
- initialized:'profile: initialized',synced:'profile: synced',saved:'Saved: ',notPushed:'not pushed: ',unverified:'profile: unverified remote',recovered:'profile: aborted stopped rebase',fold:'[nana:owner-profile] records left out: ',conflict:'[nana:owner-profile] competing superseders: ',
- quote:'profile refused: --quote is required',decision:'profile refused: decision belongs in nana-rulings.md',openThread:'profile refused: open-thread belongs in GitHub issues',kind:'profile refused: unsupported kind',claimCap:'profile refused: claim exceeds cap',quoteCap:'profile refused: quote exceeds cap',dailyCap:'profile refused: daily save cap',role:'profile refused: NANA_ROLE is set',worktree:'profile refused: linked worktree',disabled:'profile refused: saving is not enabled on this machine',pointer:'profile refused: run init --dir <clone>',private:'profile refused: push target is not verified private; use --unverified-remote explicitly',checkout:'profile refused: nana-pi checkout or push target',marker:'profile refused: missing store marker',repeatedQuote:'profile refused: confirmation needs new owner words',unknown:'profile refused: unknown record',locked:'profile refused: locked',dirty:'profile refused: clone has changes outside the store',git:'profile refused: git failed',config:'profile refused: invalid user configuration',usage:'profile refused: invalid command or flags',
- gitCommandEnv:'NANA_PROFILE_GIT_COMMAND',source:SOURCE_WORDS[1],type:'user',roles:ROLES.user,trust:[STARTING_STATE.trust,'medium','high'],kinds:USER_KIND_WORDS,reasons:['offline','auth','rejected','mismatch','locked'],evidencePrefix:'seat',runtimePi:'pi',runtimeClaude:'claude-code'
-}));

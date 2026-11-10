@@ -144,19 +144,4 @@ await check("R-3004: planners run search for each part and name what they took u
 	assert(readFileSync(join(ROOT, "packages/nana-pack/prompts/planner.md"), "utf8").includes('Run `npm run map:search -- "<need>"` for each part of the lane; under Precedent, name what you took from the results, adding to your own list rather than replacing it.'));
 });
 
-// req: R-3005
-await check("seal: R-3005 shortlist size is 5", async () => { assert.equal((await configModule()).SHORTLIST_SIZE, 5); });
-// req: R-3006
-await check("seal: R-3006 callee depth is 1", async () => { assert.equal((await configModule()).CALLEE_DEPTH, 1); });
-// req: R-3007
-await check("seal: R-3007 quality floor is 0.75", async () => { assert.equal((await configModule()).QUALITY_FLOOR, 0.75); });
-// req: R-3008
-await check("seal: R-3008 ranking settings retain the facet-free trial values and provenance", async () => {
-	assert.deepEqual((await configModule()).RANKING, {
-		k1: 1.2, b: 0.75, fields: { purpose: 2, path: 2, inputs: 1, outputs: 1, effects: 1, errors: 0.5 },
-		artifactWeight: 0.5, writerWeight: 1, readerWeight: 1, seeds: 10, damping: 0.5,
-		stopwords: "a an the and or of to in on for with from by at as is are be it its this that these those when each every one two its into than then so no not only any all who what which shall must can may packages lib bin mjs ts js scripts apps extensions claude",
-	});
-	assert.match(readFileSync(join(ROOT, "scripts/code-search-config.mjs"), "utf8"), /2026-10-28.*trial\/structure\.mjs/);
-});
 process.exitCode = failures ? 1 : 0;

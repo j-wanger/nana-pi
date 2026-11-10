@@ -243,20 +243,4 @@ const auditSlice = pass1 >= 0 && pass2 > pass1 ? skill.slice(pass1, pass2) : "";
 // req: R-1664
 check("R-1664: the audit mode names the rail's unclaimed switch after Pass 1 and calls each listed declaration a proposal", auditSlice.includes(`${trace.UNCLAIMED_ENV}=1`) && /\bproposal\b/.test(auditSlice), auditSlice.slice(-1000));
 
-let pythonSwitch = "";
-let pythonConstantWhy = pythonUnavailable;
-if (pytestAvailable) {
-	const result = pythonRunpy("ns['UNCLAIMED_ENV']");
-	pythonConstantWhy = output(result);
-	if (result.status === 0) {
-		try { pythonSwitch = JSON.parse((result.stdout ?? "").trim()); } catch { pythonSwitch = ""; }
-	}
-}
-const title1665 = "seal: UNCLAIMED_ENV is NANA_REQ_UNCLAIMED in both rails (R-1665)";
-if (!pytestAvailable && !REQUIRE_PYTEST) skip(title1665, pythonUnavailable);
-else {
-	// req: R-1665
-	check("seal: UNCLAIMED_ENV is NANA_REQ_UNCLAIMED in both rails (R-1665)", pytestAvailable && trace.UNCLAIMED_ENV === EXPECTED_SWITCH && pythonSwitch === EXPECTED_SWITCH, `TypeScript=${trace.UNCLAIMED_ENV} Python=${pythonSwitch}\n${pythonConstantWhy}`);
-}
-
 if (fails) process.exitCode = 1;

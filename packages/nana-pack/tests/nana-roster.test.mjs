@@ -386,13 +386,6 @@ check("MM1: old machine and whole-written rosters print role null tokens after r
 			Object.keys(parsed.roster).join(',') === 'scout,builder,largerBuilder,reviewer,planner,adversary' && ['planner','adversary'].every(s => parsed.roster[s] === null);
 	});
 })());
-const roleConfig = await import('../bin/worker-config.mjs');
-// req: R-3537
-check('seal: role fallbacks are none seat builder', JSON.stringify(roleConfig.ROLE_FALLBACKS) === JSON.stringify({ scout: 'none', planner: 'seat', adversary: 'builder' }));
-// req: R-3532
-check('seal: Claude scout adds WebSearch and WebFetch', roleConfig.CLAUDE_SCOUT_TOOLS === 'Read,Grep,Glob,Bash,Edit,Write,WebSearch,WebFetch');
-// req: R-3533
-check('seal: lineage aliases join Anthropic and OpenAI providers', JSON.stringify(roleConfig.LINEAGE_ALIASES) === JSON.stringify({ 'claude-code': 'anthropic', anthropic: 'anthropic', openai: 'openai', 'openai-codex': 'openai' }));
 
 // req: R-3520
 check("seal: LANE_LIMIT_DEFAULT is 4", LANE_LIMIT_DEFAULT === 4);

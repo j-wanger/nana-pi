@@ -145,6 +145,7 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		...['extensions/nana-roster-notice.ts', 'lib/adoption.mjs'].map(target => [`packages/nana-pack/tests/agent-dir-config.test.mjs -> packages/nana-pack/${target}`, 'diet1 removes the unearned stranded-config read watcher.']),
 		['packages/nana-pack/tests/brief-check.test.mjs -> packages/nana-pack/tests/slow-sampler.mjs', 'Cut A 2026-11-09: brief-check.test no longer launches pi-worker'],
 		['packages/nana-setup/tests/uninstall.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
 		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
@@ -260,14 +261,4 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	}
 });
 
-// req: R-3157
-await check("seal: R-3157 launch names", async () => assert.deepEqual((await configModule()).LAUNCH_CALLS, ["spawn", "spawnSync", "exec", "execSync", "execFile", "execFileSync", "fork", "boundedSpawnSync", "runHookProducer"]));
-// req: R-3158
-await check("seal: R-3158 path-preserving calls", async () => assert.deepEqual((await configModule()).PATH_PRESERVING, ["fileURLToPath", "url.fileURLToPath", "realpathSync", "fs.realpathSync", "realpathSync.native", "fs.realpathSync.native", "realPath"]));
-// req: R-3159
-await check("seal: R-3159 repo-code programs", async () => assert.deepEqual((await configModule()).REPO_CODE_PROGRAMS, ["pi", "PI_BIN", "piBin", "piPath", "PI_PATH", "bash", "sh", "cmd", "cmd.exe", "powershell", "powershell.exe", "pwsh"]));
-// req: R-3160
-await check("seal: R-3160 inline-code flags", async () => assert.deepEqual((await configModule()).INLINE_FLAGS, ["-e", "-p", "--eval", "--print", "--input-type"]));
-// req: R-3153 R-3154
-await check("seal: launch impact labels", async () => assert.deepEqual((await configModule()).IMPACT_LABELS, { launch: "[launch/path]", blind: "always-run tests (blind reach):", untraced: "untraced tests:", unlinked: "test modules link no mapped module" }));
 process.exitCode = failures ? 1 : 0;

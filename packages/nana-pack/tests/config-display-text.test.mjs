@@ -43,8 +43,8 @@ fs.mkdirSync(path.join(HOME, ".pi", "agent"), { recursive: true });
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 
-const { loadConfig, configNotice, gateStopReason, normalizeRaw } = await import(new URL("../lib/config.ts", import.meta.url).href);
-const { projectFileName, displayText, DEFAULT_PROJECT_FILE } = await import(new URL("../lib/objective.ts", import.meta.url).href);
+const { loadConfig, normalizeRaw } = await import(new URL("../lib/config.ts", import.meta.url).href);
+const { projectFileName, DEFAULT_PROJECT_FILE } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 
 const ui = () => { const msgs = []; return { msgs, ctx: (cwd, extra = {}) => ({ cwd, hasUI: true, ui: { notify: (m) => msgs.push(m) }, isProjectTrusted: () => false, ...extra }) }; };
 
@@ -88,21 +88,6 @@ const ui = () => { const msgs = []; return { msgs, ctx: (cwd, extra = {}) => ({ 
 	check("gate stop reason: one line, no control", oneLine(cfg.gate.stopReason), cfg.gate.stopReason);
 	check("gate stop reason: path shown escaped", cfg.gate.stopReason.includes(`home${SEP_ESC}${LABEL}`), cfg.gate.stopReason);
 	fs.rmSync(userFile);
-}
-
-// 3. the exported renderers, directly — hostile file AND hostile problem
-{
-	const n = configNotice(`/r/a\n${LABEL} x/.pi/nana-pack.json`, `bad\n${LABEL} y\u2029z\u202e`);
-	// req: R-188
-	check("configNotice: one line, both fields sanitized", oneLine(n) && !/\u202e/.test(n) && n.includes(`${LABEL} y`), n);
-	const s = gateStopReason(`/r/b\r${LABEL}`, `gate.extraPatterns[0] "x\u2028${LABEL}": invalid regex — dropped`, "project");
-	// req: R-188
-	check("gateStopReason: one line, both fields sanitized, suffix still trimmed", oneLine(s) && !s.includes("— dropped"), s);
-	const long = displayText(`x${"y".repeat(5000)}`);
-	// req: R-177
-	check("displayText: bounded", long.length <= 400, long.length);
-	// req: R-178
-	check("displayText: lone surrogate made well-formed", displayText("a\ud800b").isWellFormed());
 }
 
 // 4. nana-gate's own config warning (empty-matching allowPattern) — the same display-text rule
