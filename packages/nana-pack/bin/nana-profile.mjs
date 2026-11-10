@@ -9,6 +9,7 @@
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { profileGuard, seatGuard, dailyCounter } from '../lib/profile-guards.mjs';
@@ -125,7 +126,13 @@ export function runProfile(args,{agentDir=piAgentDir(),env=process.env,cwd=proce
   });
  } catch(e) {
   const message=String(e?.message??''); const known=Object.values(W).some(v=>typeof v==='string'&&v===message)||W.reasons.some(r=>message===`${W.notPushed}${r}`);
-  error(known?message:W.git);return 1;
+  error(known?message:W.git);
+  if(e?.detail) {
+   const home=homedir();
+   const detail=String(e.detail).replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s/]*@/gi, match=>match.slice(0,match.indexOf('://')+3));
+   error(detail.split(home).join('~').split(home.replaceAll('\\','/')).join('~'));
+  }
+  return 1;
  }
 }
 if(process.argv[1]&&fs.realpathSync(process.argv[1])===fs.realpathSync(fileURLToPath(import.meta.url))) process.exitCode=runProfile(process.argv.slice(2));

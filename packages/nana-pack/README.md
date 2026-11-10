@@ -128,6 +128,7 @@ characters and folds omitted lines. No search cache exists.
 
 One clone lock covers writes and sync, with dead-writer stale recovery. Offline saves stay
 committed and exit successfully with a fixed `not pushed:` reason; explicit sync fails.
+Local git failures print stderr after the fixed refusal line, replacing the home folder with `~` and removing remote URL credentials.
 A stopped rebase is aborted and reported before writing. Sync rebases unique append-only
 paths and retries a rejected push once. Attributes disable line-ending conversion on Windows.
 Caps bound daily saves, claim and quote length. Session identifiers use runtime shell variables

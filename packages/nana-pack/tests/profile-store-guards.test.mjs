@@ -36,6 +36,31 @@ await check('the pointer is configuration and the push target stays verified pri
  } finally {t.close();}
 });
 
+// req: R-4002
+await check('profile git detail redacts home and remote URL credentials after the sealed line',async()=>{
+ const { runProfile } = await import('../bin/nana-profile.mjs');
+ const { gitText, commitProfile } = await import('../lib/profile-sync.mjs');
+ const C=await config(),t=fixture();
+ const previous={HOME:process.env.HOME,USERPROFILE:process.env.USERPROFILE};
+ try {
+  process.env.HOME=t.temp;process.env.USERPROFILE=t.temp;
+  const stderr=`fatal: cannot open ${path.join(t.temp,'private','index')}\nremote: https://user:token@host/example/profile.git refused`;
+  const failed=()=>({status:128,stderr});
+  for(const operation of [()=>gitText(failed,t.temp,['status']),()=>commitProfile(t.temp,failed,'fixture'),()=>commitProfile(t.temp,(_dir,args)=>args[0]==='status'?{status:0,stdout:''}:args[0]==='add'?{status:0}:failed(),'fixture')]) {
+   assert.throws(operation,e=>e.message===C.PROFILE_WORDS.git&&e.detail===stderr);
+  }
+  const lines=[];
+  const status=runProfile(['init','--dir',t.temp],{agentDir:path.join(t.temp,'agent'),cwd:t.temp,env:{},runGit:failed,error:line=>lines.push(line)});
+  assert.equal(status,1);assert.equal(lines[0],C.PROFILE_WORDS.git);
+  assert.match(lines[1],/fatal: cannot open ~/);assert.match(lines[1],/https:\/\/host\/example\/profile.git refused/);
+  assert.ok(!lines.join('\n').includes(t.temp));assert.ok(!lines.join('\n').includes('user:token'));
+  console.log(lines.join('\n'));
+ } finally {
+  for(const [key,value] of Object.entries(previous)) {if(value===undefined)delete process.env[key];else process.env[key]=value;}
+  t.close();
+ }
+});
+
 // req: R-3410
 await check('every profile command refuses under set launcher roles before reading the pointer',async()=>{
  const C=await config(); const t=fixture();

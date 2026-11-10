@@ -19,8 +19,11 @@ export function profileGit(env = process.env) {
  if(env[W.gitCommandEnv]) { command=JSON.parse(env[W.gitCommandEnv]); if(!Array.isArray(command)||!command.length||command.some(x=>typeof x!=='string')) throw Error(W.git); }
  return (cwd,args)=>spawnSync(command[0],[...command.slice(1),...args],{cwd,env,encoding:'utf8',timeout:PROFILE_GIT_TIMEOUT_MS,maxBuffer:PROFILE_PATH_POLICY.outputBytes,stdio:['ignore','pipe','pipe']});
 }
+export function profileGitFailure(result) {
+ return Object.assign(Error(W.git),{detail:String(result?.stderr??'').trim()});
+}
 export function gitText(runGit,dir,args) {
- const r=runGit(dir,args); if(r.error||r.status!==0) throw Error(W.git); return String(r.stdout??'').trim();
+ const r=runGit(dir,args); if(r.error||r.status!==0) throw profileGitFailure(r); return String(r.stdout??'').trim();
 }
 /** Keep the precedent's pid-owned release; acquisition waits and evicts only old dead writers. */
 export function withProfileLock(dir,runGit,fn,{waitMs=PROFILE_LOCK_WAIT_MS}={}) {
@@ -49,7 +52,7 @@ export function recoverProfile(dir,runGit,log=()=>{},{now=()=>new Date()}={}) {
 }
 /** Never accidentally include unrelated staged changes in a private-record commit. */
 export function commitProfile(dir,runGit,message) {
- const result=runGit(dir,['status','--porcelain','-z']); if(result.error||result.status!==0) throw Error(W.git);
+ const result=runGit(dir,['status','--porcelain','-z']); if(result.error||result.status!==0) throw profileGitFailure(result);
  const status=String(result.stdout??'');
  // -z reports unquoted paths; status codes occupy the first three bytes.
  const entries=status ? status.split('\0').filter(Boolean) : [];
@@ -60,7 +63,7 @@ export function commitProfile(dir,runGit,message) {
  }
  gitText(runGit,dir,['add','--',...[L.records,L.events,STORE_LAYOUT.projects].filter(folder=>fs.existsSync(path.join(dir,folder)))]);
  const diff=runGit(dir,['diff','--cached','--quiet']);
- if(diff.status===1) gitText(runGit,dir,['commit','-m',message]); else if(diff.status!==0||diff.error) throw Error(W.git);
+ if(diff.status===1) gitText(runGit,dir,['commit','-m',message]); else if(diff.status!==0||diff.error) throw profileGitFailure(diff);
 }
 function reason(result) {
  const text=String(result?.stderr??'');

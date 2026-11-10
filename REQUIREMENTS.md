@@ -1235,6 +1235,7 @@ Reads: A-022 · packages/nana-pack/bin/nana-land.mjs, packages/nana-pack/lib/lan
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | R-3992 | WHEN a capacity-cancelled lane tip is no longer its remote branch head, nana-ci-wait shall exit 1 naming both SHAs without requesting a rerun. | implemented | `packages/nana-pack/tests/ci-wait.test.mjs::M7: superseded capacity waiters never rerun each other` |
+| R-4002 | WHEN nana-profile reports a local git failure, it shall print git stderr after the sealed refusal line with the home folder replaced by ~ and remote URL credentials removed. | implemented | `packages/nana-pack/tests/profile-store-guards.test.mjs::profile git detail redacts home and remote URL credentials after the sealed line` |
 | R-3999 | IF a main wait cannot read a failed job log, it shall print log unavailable and continue with no failing files from that log. | implemented | `packages/nana-pack/tests/ci-wait.test.mjs::M11: recorded main rerun prints recovery and restart never requests a third attempt` |
 | R-4000 | WHEN a capacity rerun's final readiness read is UNKNOWN at the same remote head, nana-ci-wait shall continue recovery rather than abandon it. | untested | Validation replay in the tool-fix lane. |
 | R-3993 | WHEN a lane run ends red, nana-ci-wait shall name each failed job and the failing test paths found on its job-log FAIL lines. | implemented | `packages/nana-pack/tests/ci-wait.test.mjs::M8: red lane jobs print FAIL paths across line endings` |

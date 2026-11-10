@@ -11,7 +11,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalCwd } from './adoption.mjs';
 import { gitCommonDir } from './suite-records.mjs';
-import { gitText } from './profile-sync.mjs';
+import { gitText, profileGitFailure } from './profile-sync.mjs';
 import { parseJsonBytes } from './json-text.mjs';
 import { readBounded } from './bounded-read.mjs';
 import { PROFILE_LAYOUT as L, PROFILE_WORDS as W } from './profile-config.mjs';
@@ -28,7 +28,8 @@ export function seatGuard(pointer,cwd,env,runGit) {
 }
 export function profileGuard(dir,runGit) {
  let common,own;
- try {common=fs.realpathSync(gitCommonDir(dir,{runGit}));own=fs.realpathSync(gitCommonDir(checkout,{runGit}));} catch {throw Error(W.git);}
+ const checkedGit=(root,args)=>{const result=runGit(root,args);if(result.error||result.status!==0)throw profileGitFailure(result);return result;};
+ try {common=fs.realpathSync(gitCommonDir(dir,{runGit:checkedGit}));own=fs.realpathSync(gitCommonDir(checkout,{runGit:checkedGit}));} catch(error) {if(error.detail!==undefined)throw error;throw Error(W.git);}
  const inside=(base,target)=>{const relative=path.relative(base,target);return !relative||(!relative.startsWith(`..${path.sep}`)&&relative!=='..'&&!path.isAbsolute(relative));};
  if(inside(own,common)||inside(checkout,common)||inside(path.dirname(own),common)) throw Error(W.checkout);
  const remote=gitText(runGit,dir,['remote','get-url','--push','origin']); const ownUrl=runGit(checkout,['remote','get-url','--push','origin']);
