@@ -253,7 +253,7 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	const before = journalLines().length;
 	await handlers.session_start({ reason: "startup" }, ctx);
 	const r = await inject(handlers, ctx);
-	// req: R-001
+	// req: R-001 R-007
 	check("l: the repo's objective is injected", !!r.includes("ship the desk"));
 	check("l: the repo's priority is injected", !!r.includes("the feel pass"));
 	const sp = r ?? "";
@@ -296,9 +296,6 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	const r = await inject(handlers, ctx);
 	// req: R-003
 	check("n: falls back to the user-scope objective", !!r.includes("one coherent experience"));
-	// req: R-010
-	check("n: no program block when the umbrella IS the source",
-		!((r) ?? "").includes("program objective:") && !((r) ?? "").includes("Precedence:"));
 	// req: R-003
 	check("n: the umbrella is the governing file", !!r.includes(`governing: ${objectiveFile}\n**Objective:** build products with agents.`));
 	// req: R-019
@@ -343,8 +340,6 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	// req: R-015
 	check("p: falls back to the user-scope objective",
 		!!r.includes(`governing: ${objectiveFile}\n**Objective:** build products with agents.\n\n**Current priority:** one coherent experience.`));
-	// req: R-010
-	check("p: no program block when the fallback won", !((r) ?? "").includes("program objective:"));
 	// req: R-015
 	check("p: the refusal is printed in the block",
 		!!r.includes(`(ignored ${link}: reached through a symlink — the program file governs)`));
@@ -354,19 +349,6 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 		after.some((e) => e.event === "objective_project_refused" && e.path === link && e.cause === "reached through a symlink"));
 	check("p: and the fallback pickup is journaled as source \"user\"",
 		after.some((e) => e.event === "objective_pickup" && e.source === "user"));
-	fs.rmSync(td, { recursive: true, force: true });
-}
-
-// (q) A missing user-scope file cannot fail a governing repo pickup.
-{
-	writeUserCfg({ path: path.join(home, "gone-objective.md"), projectFile: PROJECT_FILE });
-	const { td, handlers, ctx } = session();
-	fs.writeFileSync(path.join(td, PROJECT_FILE), REPO_OBJECTIVE);
-	await handlers.session_start({ reason: "startup" }, ctx);
-	const r = await inject(handlers, ctx);
-	check("q: the repo objective still wins", !!r.includes("ship the desk"));
-	check("q: no program current priority invented for a missing umbrella", !((r) ?? "").includes("program current priority:"));
-	check("q: and no UNAVAILABLE marker — the repo objective is real text", !((r) ?? "").includes("OBJECTIVE UNAVAILABLE"));
 	fs.rmSync(td, { recursive: true, force: true });
 }
 

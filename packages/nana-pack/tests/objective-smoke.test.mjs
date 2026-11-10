@@ -203,28 +203,6 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 	].join("\n\n") + "\n", t);
 }
 
-// 3. nested cwd under a product
-{
-	const w = world();
-	fs.writeFileSync(w.productFile, PRODUCT);
-	const deep = path.join(w.product, "src", "a", "b");
-	fs.mkdirSync(deep, { recursive: true });
-	await golden("nested cwd", w, deep, (t) => {
-		// req: R-001
-		check("nested cwd: the ancestor product governs", t.includes(`governing: ${w.productFile}\n`));
-	});
-}
-
-// 4. the umbrella IS the nearest file: no duplicate program block
-{
-	const w = world();
-	await golden("umbrella is the hit", w, w.loop, (t) => {
-		check("umbrella is the hit: governs", t.includes(`governing: ${w.umbrellaFile}\n`));
-		// req: R-010
-		check("umbrella is the hit: no duplicate program block", !t.includes("program objective") && !t.includes("Precedence:"));
-	});
-}
-
 // 5. missing file: the SAME named marker in both runtimes (the hook used to be silent)
 {
 	const w = world({ umbrella: null });

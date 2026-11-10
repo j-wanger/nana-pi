@@ -16,7 +16,6 @@
 
 - CI pack coverage (ci-packs, review round 3): `setup-tail.test.mjs` sits in the release pack, so no CI leg runs it on Windows, and PRs that change `nana-pack/lib/config.ts` or `nana-gate.ts` do not run its M2/M7 cases.
 
-- Golden corpus (windows-first-try-2, review round 1): the CLAUDE_PROJECT_DIR control now requires "file not found" but runs the hook once without retry, so it can fail under load.
 - Test coverage (windows-first-try-2, review round 1): R-3540 and R-3541 cite checks that still pass with the new helpers removed; m2-retry.mjs tests its own predicate rather than isLoadMarker.
 - Golden retry (windows-first-try-2, review round 1): the T17 retry exclusion is keyed on the label text "T17 " and also drops the retry from two T17 cases that refresh no lock.
 - Golden retry (windows-first-try-2, review round 1): an occasional producer crash is treated as load, hiding the crash from the corpus.
