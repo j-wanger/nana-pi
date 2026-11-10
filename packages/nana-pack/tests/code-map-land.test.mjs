@@ -36,7 +36,7 @@ const check = (n, ok, why = "") => {
 const { problems, line } = checkRepo();
 console.log(line);
 // req: G-004 G-009 G-010
-check("the repo's code map is current and every module has a contract header", problems.length === 0, problems.join("\n  "));
+check("the current source graph builds with valid module headers and layer directions", problems.length === 0, problems.join("\n  "));
 // CI's Repository checks step runs the real map CLI directly.
 
 if (fails) process.exitCode = 1;

@@ -95,7 +95,7 @@ const rootsWithoutTests = TEST_ROOTS.filter((r) => !mappedTests.some((p) => p.st
 check("every test root contributes mapped modules", rootsWithoutTests.length === 0, rootsWithoutTests.join(", "));
 // The in-memory map lists test modules as first-class entries, not merely collected sources.
 const unlisted = mappedTests.filter((p) => !markdown.includes(`### \`${p}\``));
-check("every mapped test module has an entry in docs/code-map.md", unlisted.length === 0, unlisted.join(", "));
+check("every mapped test module has an entry in the in-memory map", unlisted.length === 0, unlisted.join(", "));
 // and the ignored suites stay out: a browser-only e2e file is not a module here
 check("the browser-only e2e suites are still outside the map",
 	!graph.order.some((p) => p.endsWith(".e2e.mjs")),
