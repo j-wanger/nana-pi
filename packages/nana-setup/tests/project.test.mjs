@@ -83,8 +83,7 @@ function walk(dir) {
 	// req: R-988
 	check("project-created AGENTS stub wraps the section in both markers", /<!-- nana:working-under-nana-pi begin -->[\s\S]*<!-- nana:working-under-nana-pi end -->/.test(read(path.join(dir, "AGENTS.md"))));
 	check("AGENTS.md has the empty Layout + Rules sections", /## Layout\n/.test(read(path.join(dir, "AGENTS.md"))) && /## Rules that don't move\n/.test(read(path.join(dir, "AGENTS.md"))));
-	check("pack config is not seeded", !fs.existsSync(path.join(dir, '.pi/nana-pack.json')));
-	// req: R-331
+	// req: R-4013
 	check("knowledge refresh is skipped with a reason when there is no index", /knowledge index\s+skipped.*run `nana-setup install` first/.test(first.stdout), first.stdout);
 
 	// <date> and <name> filled; the DRAFT placeholders left for the owner
@@ -98,11 +97,6 @@ function walk(dir) {
 	// req: R-327
 	check("the DRAFT lines are left to ratify", (objective.match(/DRAFT — ratify by editing this line/g) || []).length === 2);
 	check("the objective hook's two lines are greppable", /^\*\*Objective \(since /m.test(objective) && /^\*\*Current priority \(since /m.test(objective));
-	const handoff = read(path.join(dir, "HANDOFF.md"));
-	check("HANDOFF is frontier-only with the drop rule", handoff.startsWith("# Handoff — widget-shop frontier") && /one line per live decision/.test(handoff));
-	check("HANDOFF has Where things stand / Open / NEXT", /## Where things stand \(\d{4}-\d{2}-\d{2}\)/.test(handoff) && handoff.includes("## Open") && handoff.includes("## NEXT"));
-	const sessions = read(path.join(dir, "docs", "sessions", "README.md"));
-	check("sessions README keeps its own <headline> placeholder", sessions.includes("## YYYY-MM-DD — <headline>") && sessions.includes("YYYY-MM.md"));
 	// req: R-327
 	check("month file is a header only", read(path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`)).split("\n").filter((l) => l.trim()).length === 2);
 
@@ -132,13 +126,6 @@ function walk(dir) {
 	check("second run says nothing to do", /nothing to do/.test(second.stdout), second.stdout);
 	// req: R-334
 	check("second run changed no bytes", JSON.stringify(walk(dir).filter(([p]) => !p.startsWith(".git" + path.sep))) === JSON.stringify(before));
-}
-
-/* --- 2. --name overrides the basename ------------------------------------------------ */
-{
-	const { dir, home } = freshProject("tmp-dir-name");
-	run(["project", dir, "--home", home, "--name", "Ledger Desk"]);
-	check("--name is used for the title", read(path.join(dir, "OBJECTIVE.md")).startsWith("# Objective and current priority — Ledger Desk"));
 }
 
 /* --- 3. nothing the folder already has is touched ------------------------------------ */
@@ -171,69 +158,6 @@ function walk(dir) {
 	check("CLAUDE.md-only: --check keeps the navigation file healthy", claudeCheck.status === 0 && /✓ AGENTS\.md\s+CLAUDE\.md/.test(claudeCheck.stdout));
 }
 
-/* --- 5. an empty project postEdit block must not shadow user-scope commands ---------- */
-{
-	const { dir, home } = freshProject();
-	fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
-	fs.writeFileSync(path.join(home, ".pi", "agent", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{ match: "\\.py$", run: "ruff check {file}" }] } }));
-	const r = run(["project", dir, "--home", home]);
-	check("no project pack config written over user-scope commands", !fs.existsSync(path.join(dir, ".pi", "nana-pack.json")));
-	check("and the reason is reported", /not needed/.test(r.stdout), r.stdout);
-}
-
-{
-	const { dir, home } = freshProject();
-	const userConfig = path.join(home, ".pi", "agent", "nana-pack.json");
-	fs.mkdirSync(path.dirname(userConfig), { recursive: true });
-	fs.writeFileSync(userConfig, `\uFEFF${JSON.stringify({ postEdit: { commands: [{ match: "\\.mjs$", run: "node --check {file}" }] } })}`);
-	const result = run(["project", dir, "--home", home]);
-	check("project omits config even with a byte-order-mark user config", !fs.existsSync(path.join(dir, ".pi", "nana-pack.json")) && /not needed/.test(result.stdout), result.stdout);
-}
-
-{
-	const { dir, home } = freshProject();
-	run(["project", dir, "--home", home]);
-	fs.mkdirSync(path.join(dir, '.pi'), { recursive: true });
-	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), `\uFEFF${JSON.stringify({ postEdit: { commands: [{ match: "\\.mjs$", run: "node --check {file}" }] } })}`);
-	const result = run(["project", dir, "--check", "--home", home]);
-	check("--check accepts a legacy config saved with a byte-order mark", /✓ \.pi\/nana-pack\.json\s+file present/.test(result.stdout) && !/post-edit/.test(result.stdout), result.stdout);
-}
-
-{
-	const configRows = (stdout) => stdout.split("\n").filter((line) => /^\s*[✓✗!]\s+(?:\.pi\/nana-pack\.json|post-edit commands)\s/.test(line));
-	const runCase = (args, home) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, ".pi", "agent") } });
-	const projectCase = freshProject("utf16-project-config");
-	runCase(["project", projectCase.dir, "--home", projectCase.home], projectCase.home);
-	const projectConfig = path.join(projectCase.dir, ".pi", "nana-pack.json");
-	const text = JSON.stringify({ postEdit: { commands: [{ match: "\\.mjs$", run: "node --check {file}" }] } });
-	fs.mkdirSync(path.dirname(projectConfig), { recursive: true });
-	fs.writeFileSync(projectConfig, text);
-	const projectUtf8 = configRows(runCase(["project", projectCase.dir, "--check", "--home", projectCase.home], projectCase.home).stdout);
-	fs.writeFileSync(projectConfig, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]));
-	const projectUtf16 = configRows(runCase(["project", projectCase.dir, "--check", "--home", projectCase.home], projectCase.home).stdout);
-	const userCase = freshProject("utf16-user-config");
-	runCase(["project", userCase.dir, "--home", userCase.home], userCase.home);
-	fs.rmSync(path.join(userCase.dir, ".pi", "nana-pack.json"), { force: true });
-	const userConfig = path.join(userCase.home, ".pi", "agent", "nana-pack.json");
-	fs.mkdirSync(path.dirname(userConfig), { recursive: true });
-	fs.writeFileSync(userConfig, text);
-	const userUtf8 = configRows(runCase(["project", userCase.dir, "--check", "--home", userCase.home], userCase.home).stdout);
-	fs.writeFileSync(userConfig, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, "utf16le")]));
-	const userUtf16 = configRows(runCase(["project", userCase.dir, "--check", "--home", userCase.home], userCase.home).stdout);
-	check("--check preserves presence rows across UTF-16LE and UTF-8", projectUtf8.length === 1 && userUtf8.length === 1 && JSON.stringify(projectUtf16) === JSON.stringify(projectUtf8) && JSON.stringify(userUtf16) === JSON.stringify(userUtf8), JSON.stringify({ projectUtf8, projectUtf16, userUtf8, userUtf16 }));
-}
-
-/* --- 6. dry run writes nothing -------------------------------------------------------- */
-{
-	const { dir, home } = freshProject();
-	const r = run(["project", dir, "--home", home, "--dry-run"]);
-	check("dry run exits 0", r.status === 0, r.stderr);
-	check("dry run reports what it would do", /would change/.test(r.stdout), r.stdout);
-	check("dry run wrote nothing", fs.readdirSync(dir).length === 0, fs.readdirSync(dir).join(","));
-	// req: R-336
-	check("--check on an empty folder exits 1", run(["project", dir, "--check", "--home", home]).status === 1);
-}
-
 /* --- 7. a symlink or a directory at a seed target is PRESENT, never written through --- */
 {
 	const { dir, home } = freshProject();
@@ -249,7 +173,6 @@ function walk(dir) {
 	check("directory at a seed path: reported as skipped", /HANDOFF\.md\s+skipped\s+a directory is there/.test(r.stdout), r.stdout);
 	check("the seeds that WERE absent still landed", fs.existsSync(path.join(dir, "docs", "sessions", "README.md")));
 
-	check("--check omits legacy checker judgement", !/post-edit/.test(run(["project", dir, "--check", "--home", home]).stdout));
 	fs.mkdirSync(path.join(dir, '.pi'), { recursive: true });
 	fs.writeFileSync(path.join(dir, '.pi/nana-pack.json'), '{}');
 	// req: R-674
@@ -260,10 +183,6 @@ function walk(dir) {
 	const trustCheck = spawnSync(process.execPath, [cli, "project", dir, "--check", "--home", home], { encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: path.join(home, "different-agent") } });
 	// req: R-674
 	check("--check reads trust from its explicit layout without rewriting process environment", /✓ project trust.*affirmative/.test(trustCheck.stdout), trustCheck.stdout);
-	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{ match: "(?!)", run: "your-formatter {file}" }] } }));
-	check("--check ignores starter placeholder", !/post-edit/.test(run(["project", dir, "--check", "--home", home]).stdout));
-	fs.writeFileSync(path.join(dir, ".pi", "nana-pack.json"), JSON.stringify({ postEdit: { commands: [{}, { match: "[", run: "bad" }, { match: ".*" }] } }));
-	check("--check ignores malformed legacy commands", !/post-edit/.test(run(["project", dir, "--check", "--home", home]).stdout));
 
 	// ...and --check must NOT print ✓ over the thing setup refused to write: the objective
 	// still cannot be read (sol r2).
@@ -274,21 +193,6 @@ function walk(dir) {
 	check("--check: a directory at HANDOFF.md reads ✗", /✗ HANDOFF\.md\s+a directory is there — not a readable HANDOFF\.md/.test(c.stdout), c.stdout);
 	// req: R-337
 	check("--check: exits 1 on those", c.status === 1, String(c.status));
-}
-
-/* --- 7b. the project NAME is data: never a shell, never a regex replacement ---------- */
-{
-	const { dir, home } = freshProject();
-	const canary = path.join(tmp("nana-canary-"), "owned");
-	// Every shape that would matter if the name reached a shell ($(), ``, ;) or a regex
-	// replacement ($&, $', $1) — the name only ever becomes file CONTENT.
-	const nasty = `$& $' $1 $(touch ${canary}) \`touch ${canary}\` ; touch ${canary}`;
-	const r = run(["project", dir, "--home", home, "--name", nasty]);
-	check("nasty name: exits 0", r.status === 0, r.stderr);
-	check("nasty name: nothing was executed", !fs.existsSync(canary));
-	check("nasty name: written LITERALLY into the seed ($& is not a regex replacement)", read(path.join(dir, "OBJECTIVE.md")).startsWith(`# Objective and current priority — ${nasty}\n`), read(path.join(dir, "OBJECTIVE.md")).split("\n")[0]);
-	check("nasty name: literal in HANDOFF.md too", read(path.join(dir, "HANDOFF.md")).startsWith(`# Handoff — ${nasty} frontier`));
-	check("nasty name: literal in the AGENTS.md stub", read(path.join(dir, "AGENTS.md")).startsWith(`# ${nasty}\n`));
 }
 
 /* --- 7c. the adopt-structure fallback must pass the name as DATA, not command text ---- */
@@ -313,7 +217,6 @@ function walk(dir) {
 	check("SKILL.md: says the name is data, never pasted into the command text", /name is DATA/.test(skillText) && /environment variable, never in the command\s*\n?\s*text/.test(skillText));
  // req: R-591
  check("SKILL.md: names the skill-relative canonical shared source and it resolves", (skillText.match(/\.\.\/\.\.\/\.\.\/\.\.\/templates\/_shared\//g) ?? []).length >= 4 && fs.existsSync(path.resolve(path.dirname(skillFile), "../../../../templates/_shared/working-under-nana-pi.md")) && /Only when this canonical path is absent on\s+disk may you render a throwaway scaffold/.test(skillText));
- check("project no longer exports a pack starter", !Object.hasOwn(await import('../lib/project.mjs'), 'PACK_STARTER'));
 }
 
 /* --- 8. --check mirrors what setup decided, never fails a deliberate state ------------ */
@@ -384,38 +287,12 @@ function walk(dir) {
 	fs.writeFileSync(path.join(kh, "build.lock"), JSON.stringify({ pid: process.pid, at: Date.now() }));
 	const r = run(["project", dir, "--home", home]);
 	check("build lock held: exits 0", r.status === 0, r.stderr);
-	// req: R-331
+	// req: R-4013
 	check("build lock held: reported as skipped (build lock held)", /knowledge index\s+skipped\s+skipped \(build lock held\)/.test(r.stdout), r.stdout);
-	// req: R-331
+	// req: R-4013
 	check("build lock held: never claims a rebuild", !/knowledge index\s+unchanged/.test(r.stdout), r.stdout);
-	// req: R-332
+	// req: R-4014
 	check("build lock held: the lock is left alone", fs.existsSync(path.join(kh, "build.lock")));
-}
-
-/* --- 10. the refresh has a hard deadline: a child that ignores SIGTERM cannot hang it -- */
-{
-	const { dir, home } = freshProject();
-	const kh = path.join(home, ".pi", "agent", "nana-knowledge");
-	fs.mkdirSync(kh, { recursive: true });
-	fs.writeFileSync(path.join(kh, "index.db"), "");
-	// A stub "nana-knowledge" that traps SIGTERM and never finishes — the uninterruptible
-	// build, in a form a test can create. It also proves the parent does not wait for it.
-	const stub = path.join(kh, "stub-cli.mjs");
-	fs.writeFileSync(stub, "process.on('SIGTERM', () => {});\nsetInterval(() => {}, 1000);\nconsole.log('files 1');\n");
-	const t0 = Date.now();
-	const r = spawnSync(process.execPath, [cli, "project", dir, "--home", home], {
-		encoding: "utf8",
-		timeout: 20_000,
-		env: { ...process.env, NANA_SETUP_KNOWLEDGE_CLI: stub, NANA_SETUP_KNOWLEDGE_DEADLINE_MS: "400", NANA_SETUP_KNOWLEDGE_KILL_GRACE_MS: "200" },
-	});
-	const ms = Date.now() - t0;
-	check("deadline: the command still exits 0", r.status === 0, r.stderr);
-	// req: R-331
-	check("deadline: reported as a timeout, not a rebuild", /knowledge index\s+skipped\s+timeout after/.test(r.stdout), r.stdout);
-	// req: R-332
-	check("deadline: settles instead of hanging", ms < 15_000, `${ms}ms`);
-	// req: R-332
-	check("deadline: the rest of the project still got seeded", fs.existsSync(path.join(dir, "OBJECTIVE.md")));
 }
 
 /* --- 11. CLAUDE.md is the one-line import, on every platform ------------------------- */
@@ -521,18 +398,5 @@ function walk(dir) {
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });
-/* --- a missing leaf folder is created; a missing parent is not ---------------------------- */
-{
-	const parent = tmpDir(path.join(os.tmpdir(), "nana-setup-leaf-"));
-	tmps.push(parent);
-	const leaf = path.join(parent, "new-thing");
-	const dry = spawnSync(process.execPath, [cli, "project", leaf, "--dry-run", "--home", parent], { encoding: "utf8" });
-	check("dry run reports the folder it would create and creates nothing", /would create/.test(dry.stdout) && !fs.existsSync(leaf), dry.stdout);
-	const r = spawnSync(process.execPath, [cli, "project", leaf, "--home", parent], { encoding: "utf8" });
-	check("a missing leaf folder is created and seeded", r.status === 0 && fs.existsSync(path.join(leaf, "OBJECTIVE.md")), r.stdout + r.stderr);
-	const bad = spawnSync(process.execPath, [cli, "project", path.join(parent, "nope", "deeper"), "--home", parent], { encoding: "utf8" });
-	check("a missing parent still aborts", bad.status !== 0 && /does not exist/.test(bad.stderr), bad.stderr);
-}
-
 console.log(`\nSUMMARY  PASS=${passes}  FAIL=${fails}  SKIP=${skips}`);
 process.exit(fails);

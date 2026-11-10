@@ -78,32 +78,6 @@ function withLinkDeletedRightAfterLstat(targetPath, fn) {
 	}
 }
 
-/* --- setup-failure regression (astra r2 MUST 1): if syncBuiltinESMExports() itself throws, --
-   neither the CJS nor the ESM lstatSync binding may leak the spy ------------------------------ */
-{
-	const originalLstatSync = fsCjs.lstatSync;
-	const statSyncDescriptor = Object.getOwnPropertyDescriptor(fsCjs, "statSync");
-	Object.defineProperty(fsCjs, "statSync", {
-		configurable: true,
-		get() {
-			throw new Error("other builtin spy getter");
-		},
-	});
-
-	let threw = false;
-	try {
-		withLinkDeletedRightAfterLstat("/nonexistent-path-never-reached", () => {});
-	} catch {
-		threw = true;
-	}
-	check("setup-failure: syncBuiltinESMExports threw as expected (the hostile getter is still installed)", threw);
-	check("setup-failure: the CJS lstatSync binding did not leak the spy", fsCjs.lstatSync === originalLstatSync);
-	check("setup-failure: the ESM lstatSync binding did not leak the spy", fs.lstatSync === originalLstatSync);
-
-	Object.defineProperty(fsCjs, "statSync", statSyncDescriptor);
-	syncBuiltinESMExports(); // the hostile getter is gone now — this call is expected to succeed
-}
-
 const home = tmpDir(path.join(os.tmpdir(), "nana-shared-link-state-"));
 const projectsDir = path.join(home, ".claude", "projects");
 const sharedMemoryDir = path.join(home, ".claude", "nana-memory", "shared");

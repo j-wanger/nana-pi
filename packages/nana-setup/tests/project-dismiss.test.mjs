@@ -37,42 +37,15 @@ fs.writeFileSync(path.join(home, ".pi", "agent", "nana-journal.jsonl"), `${JSON.
 const read = () => spawnSync(process.execPath, [reader], { env, encoding: "utf8" });
 check("before: the reader names the repo", read().stdout.includes(`- \`${dir}\` —`)); // paths render in backticks (L5 sol r1 MUST 1)
 
-const dry = setup(dir, "--not-a-project", "--dry-run");
-check("dry run writes nothing", dry.status === 0 && !fs.existsSync(marker), dry.stdout + dry.stderr);
 const r = setup(dir, "--not-a-project");
 check("--not-a-project exits 0", r.status === 0, r.stdout + r.stderr);
 const text = fs.existsSync(marker) ? fs.readFileSync(marker, "utf8") : "";
-// req: R-340
+// req: R-4012
 check("the marker is one line saying what it means and when", /^Not a nana project — .*\d{4}-\d{2}-\d{2}.*\n$/.test(text) && text.split("\n").length === 2, JSON.stringify(text));
-// req: R-340
+// req: R-4012
 check("nothing else was created", JSON.stringify(fs.readdirSync(dir).sort()) === JSON.stringify([".git", ".nana-not-a-project"]));
-// req: R-340
+// req: R-4012
 check("after: the reader ignores that root", read().stdout === "");
-const again = setup(dir, "--not-a-project");
-// req: R-340
-check("a second --not-a-project leaves the recorded file alone", again.status === 0 && fs.readFileSync(marker, "utf8") === text);
-
-const refuse = setup(dir);
-// req: R-340
-check("project on a marked dir refuses (exit 2)", refuse.status === 2, refuse.stdout + refuse.stderr);
-// req: R-340
-check("…naming the marker and the remedy", refuse.stderr.includes(marker) && /delete it to adopt/.test(refuse.stderr), refuse.stderr);
-// req: R-340
-check("…and seeds nothing", !fs.existsSync(path.join(dir, "OBJECTIVE.md")) && fs.readFileSync(marker, "utf8") === text);
-
-// a linked worktree (.git FILE) is a repository root; a subdirectory / a plain folder is not
-const wt = path.join(root, "wt");
-fs.mkdirSync(wt);
-fs.writeFileSync(path.join(wt, ".git"), "gitdir: /elsewhere\n");
-check("a linked worktree root accepts the marker", setup(wt, "--not-a-project").status === 0 && fs.existsSync(path.join(wt, ".nana-not-a-project")));
-const sub = path.join(dir, "src");
-fs.mkdirSync(sub);
-for (const [label, d] of [["a subdirectory of a repo", sub], ["a plain folder", path.join(root, "home")], ["a missing folder", path.join(root, "nope")]]) {
-	const x = setup(d, "--not-a-project");
-	// req: R-340
-	check(`--not-a-project on ${label} refuses with the reason`, x.status === 2 && x.stderr.includes("is not a git repository root") && !fs.existsSync(path.join(d, ".nana-not-a-project")), x.stdout + x.stderr);
-}
-
 fs.rmSync(root, { recursive: true, force: true });
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

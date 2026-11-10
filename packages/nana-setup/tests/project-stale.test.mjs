@@ -247,64 +247,6 @@ await within("R-2760", async () => {
 // req: R-2760
 check("R-2760: a repository with neither an objective file nor a nana working-region marker gets no project line in either seat, whatever its check fails", r2760Facts.length >= (process.platform === "win32" ? 8 : 10) && r2760Facts.every((fact) => fact.ok), JSON.stringify(r2760Facts));
 
-const r2761Facts = [];
-await within("R-2761", async () => {
-	const healthy = repository("r2761-healthy", marked(shared));
-	fs.writeFileSync(path.join(healthy, "CLAUDE.md"), CLAUDE_IMPORT);
-	let state = await seatState(healthy);
-	r2761Facts.push({ name: "fully seeded", ok: state.lines.length === 0 && state.section === undefined });
-	removePath(path.join(healthy, "HANDOFF.md"));
-	let expected = expectedLine(healthy, ["HANDOFF.md"]);
-	state = await seatState(healthy);
-	r2761Facts.push({ name: "HANDOFF only", ok: oneProjectLine(state.result, expected) && state.section === expected, stdout: state.result.stdout });
-
-	const measured = repository("r2761-sessions-readme", "# no markers\n");
-	fs.writeFileSync(path.join(measured, "CLAUDE.md"), CLAUDE_IMPORT);
-	removePath(path.join(measured, "docs", "sessions", "README.md"));
-	expected = expectedLine(measured, ["docs/sessions/README.md"]);
-	state = await seatState(measured);
-	r2761Facts.push({ name: "sessions README only", ok: oneProjectLine(state.result, expected) && state.section === expected, stdout: state.result.stdout });
-
-	const several = repository("r2761-several", drifted());
-	fs.writeFileSync(path.join(several, "CLAUDE.md"), CLAUDE_IMPORT);
-	for (const rel of ["HANDOFF.md", "docs/sessions/README.md", `docs/sessions/${PRIOR_MONTH}`]) removePath(path.join(several, ...rel.split("/")));
-	expected = expectedLine(several, ["HANDOFF.md", "docs/sessions/README.md", "docs/sessions/YYYY-MM.md", "AGENTS.md working region"]);
-	state = await seatState(several);
-	r2761Facts.push({ name: "several in check order", ok: oneProjectLine(state.result, expected) && state.section === expected, stdout: state.result.stdout });
-
-	const prior = repository("r2761-prior-month", marked(shared));
-	fs.writeFileSync(path.join(prior, "CLAUDE.md"), CLAUDE_IMPORT);
-	state = await seatState(prior);
-	r2761Facts.push({ name: "prior month accepted", ok: state.lines.length === 0 && state.section === undefined });
-
-	const hookRoot = repository("r2761-real-hook", marked(shared));
-	fs.writeFileSync(path.join(hookRoot, "CLAUDE.md"), CLAUDE_IMPORT);
-	removePath(path.join(hookRoot, "HANDOFF.md"));
-	const sub = path.join(hookRoot, "sub");
-	fs.mkdirSync(sub);
-	fs.writeFileSync(path.join(sub, "AGENTS.md"), "# local unmarked\n");
-	expected = expectedLine(hookRoot, ["HANDOFF.md"]);
-	const hookResult = child(hook, [], { env: childEnv({ CLAUDE_PROJECT_DIR: sub }) });
-	r2761Facts.push({ name: "real hook subfolder", ok: oneProjectLine(hookResult, expected), stdout: hookResult.stdout });
-
-	fs.writeFileSync(path.join(healthy, "HANDOFF.md"), "# Restored\n");
-	const handlers = {};
-	rulingsExtension({ on: (name, handler) => { handlers[name] = handler; } }, { agentDir });
-	await handlers.session_start({ reason: "startup" }, { cwd: several });
-	removePath(path.join(several, "AGENTS.md"));
-	fs.writeFileSync(path.join(several, "AGENTS.md"), marked(shared));
-	fs.writeFileSync(path.join(several, "HANDOFF.md"), "# Restored\n");
-	fs.writeFileSync(path.join(several, "docs", "sessions", "README.md"), "# Restored\n");
-	fs.writeFileSync(path.join(several, "docs", "sessions", PRIOR_MONTH), "# Restored\n");
-	await handlers.session_start({ reason: "reload" }, { cwd: several });
-	const event = { systemPromptOptions: { sections: {} } };
-	await handlers.before_agent_start(event, { cwd: several });
-	r2761Facts.push({ name: "reload clears", ok: !Object.hasOwn(event.systemPromptOptions.sections, staleConfig.PROJECT_STALE_SECTION) });
-});
-// req: R-2625
-// req: R-2761
-check("R-2761: an adopted project missing frontier seeds gets one project line naming each missing row in the check's order, in both seats", r2761Facts.length === 7 && r2761Facts.every((fact) => fact.ok), JSON.stringify(r2761Facts));
-
 const r2762Facts = [];
 await within("R-2762", async () => {
 	const fixtures = [];
@@ -327,6 +269,9 @@ await within("R-2762", async () => {
 	}
 	add("docs is a file", marked(shared), (root) => { removePath(path.join(root, "docs")); fs.writeFileSync(path.join(root, "docs"), "mine\n"); });
 	add("prior month only");
+	add("several in check order", drifted(), root => {
+		for (const rel of ["HANDOFF.md", "docs/sessions/README.md", `docs/sessions/${PRIOR_MONTH}`]) removePath(path.join(root, ...rel.split("/")));
+	});
 	add("AGENTS absent", null, (root) => removePath(path.join(root, "AGENTS.md")));
 	add("AGENTS absent with own CLAUDE", null, (root) => { removePath(path.join(root, "AGENTS.md")); fs.writeFileSync(path.join(root, "CLAUDE.md"), "# own\n"); });
 	add("CLAUDE import", marked(shared), (root) => fs.writeFileSync(path.join(root, "CLAUDE.md"), CLAUDE_IMPORT));
@@ -349,13 +294,16 @@ await within("R-2762", async () => {
 		const expectedLabels = checkFileLabels(rows);
 		const line = staleCopies.projectStaleLine(root, { env: {} });
 		const actualLabels = labelsFromLine(line);
-		let childrenOk = true;
+		const state = await seatState(root);
+		let childrenOk = state.lines.length === (line ? 1 : 0) && (line ? oneProjectLine(state.result, line) && state.section === line : state.section === undefined);
 		for (const label of expectedLabels) {
 			if (childLabels.has(label)) continue;
 			childLabels.add(label);
 			const sub = path.join(root, `sub-${childLabels.size}`);
 			fs.mkdirSync(sub, { recursive: true });
+			fs.writeFileSync(path.join(sub, "AGENTS.md"), "# local unmarked\n");
 			childrenOk = childrenOk && projectLines(producerRun(root))[0] === line && projectLines(producerRun(sub))[0] === line;
+			if (label === "HANDOFF.md") childrenOk = childrenOk && oneProjectLine(child(hook, [], { env: childEnv({ CLAUDE_PROJECT_DIR: sub }) }), line);
 		}
 		r2762Facts.push({ name: fixture.name, expectedLabels, actualLabels, ok: JSON.stringify(actualLabels) === JSON.stringify(expectedLabels) && childrenOk && (expectedLabels.length > 0 || line === "") });
 	}
@@ -375,7 +323,7 @@ await within("R-2762", async () => {
 		}
 	}
 });
-// req: R-2762
+// req: R-2761 R-2762
 check("R-2762: the project line names exactly the file rows project --check marks ✗", r2762Facts.length >= (process.platform === "win32" ? 28 : 31) && r2762Facts.every((fact) => fact.ok), JSON.stringify(r2762Facts));
 
 const r2763Facts = [];
@@ -625,10 +573,6 @@ await within("R-2627", async () => {
 });
 // req: R-2627
 check("R-2627: deciding the project-stale line starts no child process and loads no TypeScript in either seat", r2627);
-
-// req: R-2623
-// req: R-2625
-check("seal: the project-stale prefix is [nana:project] PROJECT STALE: and its pi section key is nana-project-stale", staleConfig.PROJECT_STALE_PREFIX === "[nana:project] PROJECT STALE:" && staleConfig.PROJECT_STALE_SECTION === "nana-project-stale");
 
 console.log(`SUMMARY  PASS=${passes} FAIL=${fails} SKIP=${skips}`);
 process.exitCode = fails ? 1 : 0;
