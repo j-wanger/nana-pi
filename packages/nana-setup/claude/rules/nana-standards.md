@@ -47,9 +47,10 @@ live in `nana-soul.md`; this file is only the mechanics.) Where a project carrie
 
 - Run the impact command before touching a mapped module, and work from its blast radius —
   upstream and downstream both.
-- `map:check` is green at every land. A stale map entry, a missing or malformed header, or an
-  undeclared cross-component import blocks the land; regenerate and commit the map with the
-  change.
+- `map:check` is green at every land. A missing or malformed header or an undeclared
+  cross-component import blocks the land. Where a project tracks its code map, stale entries
+  also block: regenerate and commit the map with the change. Where it generates the map
+  without tracking it (nana-pi), `map:check` proves it builds and no map is committed.
 
 ## README is a contract
 

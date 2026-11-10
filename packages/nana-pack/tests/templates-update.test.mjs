@@ -264,7 +264,7 @@ if (!haveCopier || !hasOldTag || !havePytest) {
    pythonPytestOutput = `${pytestRun.stdout ?? ""}${pytestRun.stderr ?? ""}`;
    pythonPytestExit = pytestRun.status ?? 1;
    // req: R-583 R-3811 R-3812 R-3814
-   check("Python earlier-tag update prints Part G drift", pythonPytestExit === 0 && pythonPytestOutput.includes("part g: 6 cells in REQUIREMENTS.md differ from REQUIREMENTS-general.md (the file governs): G-001, G-003, G-005, G-007, G-008, G-012"), `exit ${pythonPytestExit}; ${pythonPytestOutput.slice(-600)}`);
+   check("Python earlier-tag update prints Part G drift", pythonPytestExit === 0 && pythonPytestOutput.includes("part g: 7 cells in REQUIREMENTS.md differ from REQUIREMENTS-general.md (the file governs): G-001, G-003, G-005, G-007, G-008, G-010, G-012"), `exit ${pythonPytestExit}; ${pythonPytestOutput.slice(-600)}`);
   }
   if (generalExists && language === "python") {
    const mapPath = join(dest, "docs", "code-map.md");

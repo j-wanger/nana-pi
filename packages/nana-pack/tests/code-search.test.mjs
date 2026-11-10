@@ -35,7 +35,7 @@ const mapText = (mods) => mods.map((m) => `### \`${m.path}\`\n\n${Object.entries
 const header = (path, purpose) => `/**\n * @module ${path}\n * @purpose ${purpose}\n * @inputs none\n * @outputs none\n * @effects none\n * @errors none\n */\n`;
 
 // req: R-3000
-await check("R-3000: written launch links are reciprocal and stale links fail the map check", async () => {
+await check("R-3000: generated launch links are reciprocal and checks ignore stale local links", async () => {
 	const { writeMap, checkRepo } = await import("../../../scripts/code-map.mjs");
 	const root = tmpDir(join(tmpdir(), "code-search-launch-"));
 	const put = (p, s) => { mkdirSync(dirname(join(root, p)), { recursive: true }); writeFileSync(join(root, p), s); };
@@ -55,7 +55,9 @@ await check("R-3000: written launch links are reciprocal and stale links fail th
 		assert(readFileSync(join(root, "map.md"), "utf8").includes("`tests/launch.test.mjs`"));
 		put("tests/launch.test.mjs", header("tests/launch.test.mjs", "Start a repo script by path.") + 'spawnSync(process.execPath, ["../scripts/other.mjs"]);');
 		result = checkRepo(root);
-		assert(result.problems.some((p) => /stale/.test(p)), result.problems.join("\n"));
+		assert.deepEqual(result.problems, []);
+		assert(!result.graph.modules.get("scripts/tool.mjs").callers.includes("tests/launch.test.mjs"));
+		assert(result.markdown.includes('### `tests/launch.test.mjs`'));
 		writeMap(root);
 		assert.deepEqual(checkRepo(root).problems, []);
 		const doctor = readFileSync(join(ROOT, "packages/nana-setup/lib/doctor.mjs"), "utf8").split("*/")[0];

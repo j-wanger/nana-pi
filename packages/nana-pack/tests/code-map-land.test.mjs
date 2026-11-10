@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/code-map-land.test.mjs
- * @purpose Holds nana-pi to the code-map rule it ships — every mapped module carries a contract header, the map on disk is current, the layer direction holds, and a test module is covered like any other
- * @inputs scripts/code-map.mjs, code-map.config.json, docs/code-map.md and the modules under the configured roots
+ * @purpose Holds nana-pi to the code-map rule it ships — every mapped module carries a contract header, the map builds from current sources, the layer direction holds, and a test module is covered like any other
+ * @inputs scripts/code-map.mjs, code-map.config.json and the modules under the configured roots
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (reads this checkout; writes a scratch copy of one test module for the mutation check), process (runs the map CLI and a syntax check as child processes)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run

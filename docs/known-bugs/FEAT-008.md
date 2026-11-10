@@ -81,7 +81,5 @@
 - Carry (land-fix-red): `nana-land.mjs` holds the review-ledger lock during its final main-CI reread, delaying review admission and completion.
 - Carry (land-fix-red): `main-ci.mjs` marks cancelled main runs with complete records red-readable, allowing `--fixes-red` to authorize them.
 - Carry (land-merged-tests): `nana-land.mjs` swallows merge-coverage computation errors, leaving only uncovered-commit diagnostics without the refusal cause.
-- Carry (land-merged-tests): `ci-wait.mjs` waits for generated-only conflicting PRs although `nana-land.mjs` refuses their tips when main has moved.
-- Carry (land-merged-tests): `packages/nana-pack/README.md` suggests rebuilding generators on conflicts, omitting clean textual merges whose generated output also needs rebuilding.
 - Carry (land-merged-tests): `nana-land.mjs` checks review coverage before moved-main refusal, so hand-resolved lane merges can hide the needed main-merge remedy.
 - Carry (land-merged-tests): `packages/nana-pack/README.md` phrases `merge.renormalize=false`, `check-attr --source`, `git ≥ 2.40` and `bors-ng` lack direct tests after M9's removal.
