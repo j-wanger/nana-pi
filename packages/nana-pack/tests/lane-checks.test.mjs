@@ -409,7 +409,8 @@ await check('a check with an escaped output-pipe holder still returns at the rel
   const marker = join(root, 'pipe-holder');
   put(lane, `const cp=require('node:child_process'), fs=require('node:fs');
     const child=cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},15000)'], {detached:true, stdio:['ignore',1,2]});
-    fs.writeFileSync(${JSON.stringify(marker)}, String(child.pid)); child.unref();`);
+    const marker=${JSON.stringify(marker)};
+    fs.writeFileSync(marker+'.tmp', String(child.pid)); fs.renameSync(marker+'.tmp', marker); child.unref();`);
   commit();
   try {
     const started = Date.now();
@@ -432,7 +433,9 @@ await check('off Windows, a hard-killed check caller leaves no running check tre
     const marker = join(root, 'orphan-check');
     put(lane, `const cp=require('node:child_process'), fs=require('node:fs');
       const child=cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},15000)'], {stdio:'ignore'});
-      fs.writeFileSync(${JSON.stringify(marker)}, JSON.stringify({pid:process.pid, child:child.pid})); setTimeout(()=>{},15000);`);
+      const marker=${JSON.stringify(marker)};
+      fs.writeFileSync(marker+'.tmp', JSON.stringify({pid:process.pid, child:child.pid}));
+      fs.renameSync(marker+'.tmp', marker); setTimeout(()=>{},15000);`);
     commit();
     const module = new URL('../lib/lane-checks.mjs', import.meta.url).href;
     const caller = spawn(process.execPath, ['--input-type=module', '-e', `import {checkLane} from ${JSON.stringify(module)}; await checkLane({cwd:process.cwd(),env:process.env,timeout:10000});`], { cwd: lane, env, stdio: 'ignore' });
