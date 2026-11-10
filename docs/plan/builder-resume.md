@@ -17,6 +17,10 @@ runner errors, changing check selection, and model-backed validation in this lan
 Keep lane-check classification and report lines in `lib/lane-checks.mjs`.
 Run check children asynchronously so the worker can handle stop signals. Reuse
 `killProcessTree` and `reviewLaunch`; retain bounded diagnostic tails.
+A stop waits for the relay's exit before cleanup and the end record, bounded by
+`RELAY_SIGNAL_GRACE_MS + RELAY_BACKSTOP_MS` from the shared bounded-spawn module.
+An expired exit bound becomes `laneChecks.relayExitError` in the end record and a
+stderr diagnostic. Early relay results send SIGTERM before any forced relay kill.
 Extend the existing watchdog session path with an explicit continuation and retain
 the original wall-clock start. Keep temporary prompts until repair and checks end.
 The leak scan stays after the final tip is known, covering repair commits too.

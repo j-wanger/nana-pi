@@ -2,7 +2,7 @@
  * @module packages/nana-setup/lib/bounded-spawn.mjs
  * @purpose Run synchronous and asynchronous child launches through the shared bounded-spawn relay.
  * @inputs command, args and spawn options including an optional async abort signal; bounded-spawn-child.mjs; process.env, process.pid and process.platform
- * @outputs boundedSpawnSync result or boundedSpawn Promise shaped like child_process.spawnSync; relay parent-poll, result-size, settle, signal-grace and backstop limits
+ * @outputs boundedSpawnSync result or boundedSpawn Promise shaped like child_process.spawnSync with optional relayExitError; relay parent-poll, result-size, settle, signal-grace and backstop limits
  * @effects process (starts the relay detached on POSIX, sends its launch specification on stdin and forwards async stops)
  * @errors launch, relay and timeout failures are returned in result.error with a code and never thrown
  */
@@ -100,32 +100,52 @@ export async function boundedSpawn(command, args, options = {}) {
 				detached: process.platform !== "win32",
 				stdio: ["pipe", "pipe", "pipe", "ipc"],
 			});
-			let stdout = "", stderr = "", bytes = 0, timer, finished = false, stopped;
+			let stdout = "", stderr = "", bytes = 0, timer, finished = false, stopped, exited = false;
+			const exit = new Promise((done) => child.once("exit", () => { exited = true; done(true); }));
 			const stop = () => {
 				// Windows cannot deliver catchable POSIX signals; IPC enters the relay's same termination handler.
 				if (process.platform === "win32") {
-					if (child.connected) child.send({ type: "bounded-spawn-stop", signal: "SIGTERM" }, () => {});
+					try { if (child.connected) child.send({ type: "bounded-spawn-stop", signal: "SIGTERM" }, () => {}); } catch {}
 				} else {
 					try { child.kill("SIGTERM"); } catch {}
 				}
 			};
-			const finish = (result) => {
+			const finish = async (result) => {
 				if (finished) return;
 				finished = true;
 				clearTimeout(timer);
 				options.signal?.removeEventListener("abort", abort);
+				if (child.pid && !exited) {
+					// An early result is not an exited relay. Let its handler finish the tree kill,
+					// including Windows taskkill after the signal grace, before releasing the caller.
+					stop();
+					let exitTimer;
+					const ended = await Promise.race([exit, new Promise((done) => {
+						exitTimer = setTimeout(() => done(false), RELAY_SIGNAL_GRACE_MS + RELAY_BACKSTOP_MS);
+					})]);
+					clearTimeout(exitTimer);
+					if (!ended) {
+						result.relayExitError = "bounded spawn relay did not exit within its signal grace plus backstop";
+						// SIGTERM always precedes this last resort; never skip the relay's tree cleanup grace.
+						try { child.kill("SIGKILL"); } catch {}
+						child.unref();
+					}
+				}
 				child.stdin.destroy();
 				child.stdout.destroy();
 				child.stderr.destroy();
 				if (child.connected) child.disconnect();
 				resolve(result);
 			};
-			const abort = () => { stopped = options.signal.reason; stop(); };
+			const abort = () => {
+				stopped = options.signal.reason;
+				void finish({ status: null, signal: stopped, stdout: "", stderr: "" });
+			};
 			const collect = (stream) => (chunk) => {
+				if (finished) return;
 				bytes += Buffer.byteLength(chunk);
 				if (bytes > RELAY_RESULT_MAX_BYTES) {
-					stop();
-					finish(resultError("ENOBUFS", "bounded spawn relay output exceeded its buffer"));
+					void finish(resultError("ENOBUFS", "bounded spawn relay output exceeded its buffer"));
 				} else if (stream === "stdout") stdout += chunk;
 				else stderr += chunk;
 			};
@@ -140,10 +160,10 @@ export async function boundedSpawn(command, args, options = {}) {
 				: relayResult({ status, signal, stdout, stderr })));
 			options.signal?.addEventListener("abort", abort, { once: true });
 			if (options.signal?.aborted) abort();
-			if (Number.isFinite(timeout) && timeout >= 0) timer = setTimeout(() => {
+			if (!finished && Number.isFinite(timeout) && timeout >= 0) timer = setTimeout(() => {
 				// The relay's own deadline and settle window have already elapsed.
-				try { child.kill("SIGKILL"); } catch {}
-				finish(resultError("ETIMEDOUT", "bounded spawn relay exceeded its backstop"));
+				// finish sends SIGTERM and observes exit before any forced relay kill.
+				void finish(resultError("ETIMEDOUT", "bounded spawn relay exceeded its backstop"));
 			}, timeout + RELAY_BACKSTOP_MS);
 			child.stdin.end(input);
 		});

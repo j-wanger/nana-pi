@@ -18,15 +18,18 @@ import { withinCaseLimit } from './report-fixtures.mjs';
 import { checkLane, laneCheckLines } from '../lib/lane-checks.mjs';
 import { buildEndRecord } from '../lib/build-records.mjs';
 import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
-import { boundedSpawn, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
+import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
 
 const worker = fileURLToPath(new URL('../bin/pi-worker.mjs', import.meta.url));
 let failures = 0;
 async function check(title, action) {
   try { await withinCaseLimit(title, action); console.log('PASS', title); }
-  catch (error) { failures++; console.log('FAIL', title, error.message); }
+  catch (error) {
+    failures++; console.log('FAIL', title, error.stack ?? error);
+    if (error.cleanupError) console.log('cleanup also failed:', error.cleanupError.stack ?? error.cleanupError);
+  }
 }
-async function fixture(action, baseSource = null, { first = '', afterCommit = '', repair = '' } = {}) {
+async function fixture(action, baseSource = null, { first = '', afterCommit = '', repair = '', remove = fs.rmSync } = {}) {
   const root = tmpDir(join(tmpdir(), 'lane-checks-'));
   const repo = join(root, 'repo'), lane = join(root, 'lane'), bin = join(root, 'bin'), agent = join(root, 'agent');
   fs.mkdirSync(repo); fs.mkdirSync(bin); fs.mkdirSync(agent);
@@ -82,8 +85,16 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
     return { ...r, end: records().at(-1), calls: readCalls(), report: fs.readFileSync(out, 'utf8') };
   };
   const commit = () => { git('add', '.'); git('commit', '-qF', message); };
+  let actionError;
   try { return await action({ root, repo, lane, env, base, put, launch, args, records, readCalls, git, commit }); }
-  finally { fs.rmSync(root, { recursive: true, force: true }); }
+  catch (error) { actionError = error; throw error; }
+  finally {
+    try { remove(root, { recursive: true, force: true }); }
+    catch (cleanupError) {
+      if (actionError) actionError.cleanupError = cleanupError;
+      else throw cleanupError;
+    }
+  }
 }
 const red = "console.error('lost-round output'); console.error('check:lane: fail: test-packs'); process.exitCode=1;";
 const pass = "if (!require('node:fs').existsSync('built-tip')) throw Error('checked the base, not the tip'); console.log('check:lane: pass');";
@@ -194,11 +205,37 @@ await check('R-4005: a second failure ends the build without a second resume', (
 }));
 
 // req: R-4006
+await check('fixture cleanup keeps an action error with its cleanup error attached or reports cleanup alone', async () => {
+  const actionError = new Error('check tree is alive'), cleanupError = new Error('cleanup is busy');
+  const remove = (root, options) => { fs.rmSync(root, options); throw cleanupError; };
+  await assert.rejects(fixture(() => { throw actionError; }, null, { remove }), error => error === actionError && error.cleanupError === cleanupError);
+  await assert.rejects(fixture(() => {}, null, { remove }), error => error === cleanupError);
+});
+
+// req: R-4006
 await check('R-4006: a stop during tip or base checks kills the check tree and removes the base checkout', async () => {
-  for (const onBase of [false, true]) await fixture(async ({ root, repo, lane, env, put, args, records, readCalls }) => {
+  for (const { onBase, relayDelay = 0 } of [
+    { onBase: false }, { onBase: true },
+    { onBase: false, relayDelay: 2 * RELAY_SIGNAL_GRACE_MS },
+    { onBase: true, relayDelay: RELAY_BACKSTOP_MS + 2 * RELAY_SIGNAL_GRACE_MS },
+  ]) await fixture(async ({ root, repo, lane, env, put, args, records, readCalls }) => {
     const marker = join(root, 'check-started');
     if (!onBase) put(lane, checkSource(root, false));
     const stopFile = join(root, 'stop');
+    const exitMarker = join(root, 'relay-exiting');
+    if (relayDelay) {
+      const preload = join(root, 'relay-exit.cjs');
+      fs.writeFileSync(preload, `if(process.argv[1]?.endsWith('bounded-spawn-child.mjs')) {
+        const exit=process.exit.bind(process); let pending=false;
+        process.exit=code=>{
+          if(code!==143) return exit(code);
+          if(pending) return; pending=true;
+          require('node:fs').writeFileSync(${JSON.stringify(exitMarker)}, String(Date.now()));
+          setTimeout(()=>{require('node:fs').writeFileSync(${JSON.stringify(`${exitMarker}.done`)}, String(Date.now()));exit(code);}, ${relayDelay});
+        };
+      }`);
+      env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require ${JSON.stringify(preload)}`;
+    }
     if (process.platform === 'win32') {
       const preload = join(root, 'signal.cjs');
       fs.writeFileSync(preload, `const fs=require('node:fs'); const t=setInterval(()=>{if(fs.existsSync(${JSON.stringify(stopFile)})){clearInterval(t);process.emit('SIGTERM');}},20);t.unref();`);
@@ -214,6 +251,13 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       assert.ok(fs.existsSync(marker), stderr);
       checkPids = JSON.parse(fs.readFileSync(marker, 'utf8'));
       assert.equal(checkPids.cwd === fs.realpathSync(lane), !onBase);
+      assert.ok(checkPids.pids.some(member => member.role === 'check'));
+      assert.ok(checkPids.pids.some(member => member.role === 'child'));
+      if (process.platform === 'win32' && checkPids.parentsReadable) {
+        assert.ok(checkPids.pids.some(member => member.role === 'npm'), 'npm node parent was not recorded');
+        assert.ok(checkPids.pids.some(member => member.role === 'cmd.exe'), 'cmd.exe parent was not recorded');
+        assert.ok(checkPids.pids.some(member => member.role === 'relay'), 'relay parent was not recorded');
+      }
       // Windows has no POSIX signal delivery: exercise its handler with a local event.
       if (process.platform === 'win32') fs.writeFileSync(stopFile, 'stop');
       else child.kill('SIGTERM');
@@ -221,23 +265,55 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       assert.equal(result.code, 143, stderr);
       const end = records().at(-1); assert.equal(end.outcome, 'stopped'); assert.equal(end.signal, 'SIGTERM');
       assert.equal(end.laneChecks.status, 'stopped');
+      const exitBound = RELAY_SIGNAL_GRACE_MS + RELAY_BACKSTOP_MS;
+      if (relayDelay > exitBound) {
+        assert.match(end.laneChecks.relayExitError, /did not exit within its signal grace plus backstop/);
+        assert.match(stderr, /lane checks relay:.*did not exit/);
+      } else assert.equal(end.laneChecks.relayExitError, undefined, JSON.stringify(end.laneChecks));
+      if (relayDelay) {
+        assert.ok(fs.existsSync(exitMarker), 'relay did not enter its delayed exit');
+        if (relayDelay < exitBound) {
+          assert.ok(fs.existsSync(`${exitMarker}.done`), 'end record preceded relay exit');
+          assert.ok(Date.parse(end.endedAt) >= Number(fs.readFileSync(`${exitMarker}.done`, 'utf8')), 'end record preceded relay exit');
+        } else assert.equal(fs.existsSync(`${exitMarker}.done`), false, 'relay was not forced down at the exit bound');
+      }
+      assert.equal(end.laneChecks.cleanupError, undefined, JSON.stringify(end.laneChecks));
       const deadline2 = Date.now() + 5000;
-      while ((pidAlive(checkPids.pid) || pidAlive(checkPids.child)) && Date.now() < deadline2) await new Promise(resolve => setTimeout(resolve, 20));
-      assert.equal(pidAlive(checkPids.pid), false); assert.equal(pidAlive(checkPids.child), false);
+      while (checkPids.pids.some(member => pidAlive(member.pid)) && Date.now() < deadline2) await new Promise(resolve => setTimeout(resolve, 20));
+      for (const member of checkPids.pids) assert.equal(pidAlive(member.pid), false, `${member.role} pid ${member.pid} survived the stop`);
       if (onBase) assert.equal(fs.existsSync(checkPids.cwd), false);
       const worktrees = spawnSync('git', ['worktree', 'list', '--porcelain'], { cwd: repo, env, encoding: 'utf8' });
       assert.equal(worktrees.status, 0); assert.equal((worktrees.stdout.match(/^worktree /gm) ?? []).length, 2);
       assert.equal(readCalls().length, 1);
     } finally {
       if (child.exitCode === null && child.signalCode === null) killProcessTree(child.pid, { fallback: signal => child.kill(signal) });
-      if (checkPids) killProcessTree(checkPids.pid);
+      if (checkPids) for (const member of checkPids.pids) killProcessTree(member.pid, { fallback: signal => { try { process.kill(member.pid, signal); } catch {} } });
     }
   }, onBase ? root => checkSource(root, true) : null);
   function checkSource(root, onBase) {
     return `${onBase ? `if (require('node:fs').existsSync('built-tip')) { ${red} } else ` : ''}{
       const cp=require('node:child_process'), fs=require('node:fs');
       const child=cp.spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], {stdio:'ignore'});
-      fs.writeFileSync(${JSON.stringify(join(root, 'check-started'))}, JSON.stringify({cwd:process.cwd(), pid:process.pid, child:child.pid}));
+      const pids=[{pid:process.pid,role:'check'},{pid:child.pid,role:'child'},{pid:process.ppid,role:'parent'}];
+      let parentsReadable=false;
+      if(process.platform==='win32') {
+        const query=cp.spawnSync('powershell', ['-NoProfile','-Command', 'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress'], {encoding:'utf8',windowsHide:true,timeout:10000});
+        if(query.status===0) {
+          const rows=JSON.parse(query.stdout), seen=new Set(), parents=[];
+          let pid=process.ppid;
+          while(pid && !seen.has(pid)) {
+            seen.add(pid);
+            const row=rows.find(item=>item.ProcessId===pid);
+            if(!row || !/^(node|cmd)[.]exe$/i.test(row.Name)) break;
+            const relay=String(row.CommandLine).includes('bounded-spawn-child.mjs');
+            const role=relay?'relay':/npm-cli[.]js/i.test(row.CommandLine)?'npm':row.Name;
+            parents.push({pid,role});
+            if(relay) {parentsReadable=true;pids.push(...parents);break;}
+            pid=row.ParentProcessId;
+          }
+        }
+      }
+      fs.writeFileSync(${JSON.stringify(join(root, 'check-started'))}, JSON.stringify({cwd:process.cwd(),pids,parentsReadable}));
       setInterval(()=>{},1000);
     }`;
   }

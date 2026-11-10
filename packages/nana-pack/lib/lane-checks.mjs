@@ -31,8 +31,9 @@ async function runCheck(cwd, env, run, timeout, signal) {
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`.slice(-LANE_CHECK_OUTPUT_CHARS);
   const marker = [...output.matchAll(/^check:lane: (fail|error): ([^\r\n]+)/gm)].at(-1);
   const check = marker?.[2].trim() || 'check:lane';
-  if (signal?.aborted) return { status: 'stopped', check, output, signal: signal.reason };
-  if (result.error || result.signal || result.status === null) return { status: 'error', check, output: `${output}\n${result.error?.code ?? result.signal ?? 'no exit status'}`.trim() };
+  const relayExit = result.relayExitError ? { relayExitError: result.relayExitError } : {};
+  if (signal?.aborted) return { status: 'stopped', check, output, signal: signal.reason, ...relayExit };
+  if (result.error || result.signal || result.status === null) return { status: 'error', check, output: `${output}\n${result.error?.code ?? result.signal ?? 'no exit status'}`.trim(), ...relayExit };
   if (result.status === 0) return { status: 'pass', check: null, output: '' };
   return { status: marker?.[1] === 'fail' && result.status === 1 ? 'fail' : 'error', check, output };
 }
@@ -43,7 +44,7 @@ export async function checkLane({ cwd, base, env, run = boundedSpawn, timeout = 
   const git = (args, cleanup = false) => run('git', args, { cwd, env, timeout: LANE_CHECK_GIT_TIMEOUT_MS, signal: cleanup ? undefined : signal });
   const clean = async () => {
     const status = await git(['status', '--porcelain', '--untracked-files=all']);
-    if (signal?.aborted) return { status: 'stopped', check: 'check:lane', output: '', signal: signal.reason };
+    if (signal?.aborted) return { status: 'stopped', check: 'check:lane', output: '', signal: signal.reason, ...(status.relayExitError ? { relayExitError: status.relayExitError } : {}) };
     if (status.error || status.signal || status.status !== 0) return { status: 'error', check: 'uncommitted', output: 'cannot read git status' };
     if (status.stdout?.trim()) return { status: 'uncommitted', check: 'uncommitted', output: status.stdout.slice(-LANE_CHECK_OUTPUT_CHARS) };
   };
@@ -59,13 +60,16 @@ export async function checkLane({ cwd, base, env, run = boundedSpawn, timeout = 
     checkout = join(folder, 'base');
     // Like removal, let git finish its metadata transaction even when a stop is pending.
     const added = await git(['worktree', 'add', '--detach', checkout, base], true);
-    if (signal?.aborted) return result = { status: 'stopped', check: result.check, output: result.output, signal: signal.reason };
+    if (signal?.aborted) return result = { status: 'stopped', check: result.check, output: result.output, signal: signal.reason, ...(added.relayExitError ? { relayExitError: added.relayExitError } : {}) };
     if (added.error || added.status !== 0) {
       result.base = { status: 'error', check: null, output: 'cannot create base checkout' };
       return result;
     }
     result.base = declared(checkout) ? await runCheck(checkout, env, run, timeout, signal) : { status: 'absent', check: null, output: '' };
-    if (signal?.aborted) { result.status = 'stopped'; result.signal = signal.reason; }
+    if (signal?.aborted) {
+      result.status = 'stopped'; result.signal = signal.reason;
+      if (result.base.relayExitError) result.relayExitError = result.base.relayExitError;
+    }
     else if (result.base.status === 'fail' && result.base.check === result.check) result.status = 'red-on-base';
     return result;
   } catch (error) {
@@ -89,6 +93,7 @@ export function laneCheckLines(result) {
   if (!result) return [];
   const lines = [`pi-worker: lane checks: ${result.status}${result.check ? `: ${result.check}` : ''}`];
   if (result.output) for (const line of result.output.split(/\r\n|\r|\n/)) if (line.trim()) lines.push(`pi-worker: lane checks output: ${line.trimEnd()}`);
+  if (result.relayExitError) lines.push(`pi-worker: lane checks relay: ${result.relayExitError}`);
   if (result.cleanupError) lines.push(`pi-worker: lane checks cleanup: ${result.cleanupError}`);
   if (result.base?.status === 'error') lines.push(`pi-worker: lane checks base: error: ${result.base.check ?? 'checkout'}: ${result.base.output}`);
   return lines;
