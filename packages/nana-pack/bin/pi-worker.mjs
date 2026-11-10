@@ -424,7 +424,7 @@ try {
 					const tipBeforeResume = git('rev-parse', 'HEAD');
 					process.stderr.write(`pi-worker: lane checks: resume: ${initial.check}\n`);
 					const resumed = await runWatchdog(WORKER_TAG, { ...watchdog, retries: 0, sessionFile: r.sessionFile, piArgs: [...w.piArgs.slice(0, w.piArgs.indexOf('-p') + 1), prompt] });
-					const changedFiles = git('diff', '--name-only', '-z', `${tipBeforeResume}..HEAD`).split('\0').filter(Boolean);
+					const changedFiles = git('diff', '--name-only', '--no-renames', '-z', `${tipBeforeResume}..HEAD`).split('\0').filter(Boolean);
 					process.stderr.write(`pi-worker: lane checks: resume changed files: ${JSON.stringify(changedFiles)}\n`);
 					r.text += `\n${resumed.text}`;
 					r.ok = resumed.ok;

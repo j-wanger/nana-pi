@@ -18,6 +18,7 @@ import { withinCaseLimit } from './report-fixtures.mjs';
 import { checkLane, laneCheckLines } from '../lib/lane-checks.mjs';
 import { buildEndRecord } from '../lib/build-records.mjs';
 import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
+import { boundedSpawn, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
 
 const worker = fileURLToPath(new URL('../bin/pi-worker.mjs', import.meta.url));
 let failures = 0;
@@ -240,5 +241,83 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       setInterval(()=>{},1000);
     }`;
   }
+});
+// req: R-4004
+await check('resume rename diagnostics list both test paths', () => fixture(({ lane, put, launch, git }) => {
+  put(lane, pass);
+  git('config', 'diff.renames', 'true');
+  const r = launch(); assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(r.end.laneChecks.resume.changedFiles, ['original-test.mjs', 'renamed-test.mjs', 'seed']);
+  assert.match(r.stderr, /resume changed files: \["original-test.mjs","renamed-test.mjs","seed"\]/);
+  assert.match(git('diff', '--name-status', 'HEAD~1', 'HEAD'), /R100\s+original-test.mjs\s+renamed-test.mjs/);
+}, null, {
+  first: "fs.writeFileSync('original-test.mjs', '// unchanged test content\\n');",
+  afterCommit: "fs.writeFileSync('seed', 'uncommitted');",
+  repair: "fs.renameSync('original-test.mjs', 'renamed-test.mjs'); commit();",
+}));
+
+// req: R-4006
+await check('stop during base checkout add lets git finish before removing its worktree entry', () => fixture(async ({ repo, lane, env, base }) => {
+  const controller = new AbortController();
+  let added = false;
+  const run = async (command, args, options) => {
+    if (command === 'git' && args[0] === 'worktree' && args[1] === 'add') {
+      added = true;
+      // Abort exactly at the add boundary; it must not interrupt git's locked metadata transaction.
+      controller.abort('SIGTERM');
+      assert.equal(options.signal, undefined);
+    }
+    return boundedSpawn(command, args, options);
+  };
+  const result = await checkLane({ cwd: lane, env, base, signal: controller.signal, run });
+  assert.equal(added, true); assert.equal(result.status, 'stopped'); assert.equal(result.cleanupError, undefined);
+  const trees = spawnSync('git', ['worktree', 'list', '--porcelain'], { cwd: repo, env, encoding: 'utf8', timeout: 10000 });
+  assert.equal(trees.status, 0); assert.equal((trees.stdout.match(/^worktree /gm) ?? []).length, 2);
+}, red));
+
+// req: R-3997
+await check('a check with an escaped output-pipe holder still returns at the relay deadline', () => fixture(async ({ root, lane, env, put, commit }) => {
+  const marker = join(root, 'pipe-holder');
+  put(lane, `const cp=require('node:child_process'), fs=require('node:fs');
+    const child=cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},15000)'], {detached:true, stdio:['ignore',1,2]});
+    fs.writeFileSync(${JSON.stringify(marker)}, String(child.pid)); child.unref();`);
+  commit();
+  try {
+    const started = Date.now();
+    const result = await checkLane({ cwd: lane, env, timeout: 1000 });
+    assert.equal(result.status, 'error'); assert.match(result.output, /ETIMEDOUT/);
+    assert.ok(Date.now() - started < 1000 + RELAY_SETTLE_MS + 2500, 'pipe holder delayed the relay result');
+    assert.ok(fs.existsSync(marker), 'the fixture must actually start its pipe holder');
+  } finally {
+    if (fs.existsSync(marker)) killProcessTree(Number(fs.readFileSync(marker, 'utf8')));
+  }
+}));
+
+// req: R-3997
+await check('off Windows, a hard-killed check caller leaves no running check tree', async () => {
+  if (process.platform === 'win32') { console.log('SKIP parent-death relay polling is POSIX-only'); return; }
+  await fixture(async ({ root, lane, env, put, commit }) => {
+    const marker = join(root, 'orphan-check');
+    put(lane, `const cp=require('node:child_process'), fs=require('node:fs');
+      const child=cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},15000)'], {stdio:'ignore'});
+      fs.writeFileSync(${JSON.stringify(marker)}, JSON.stringify({pid:process.pid, child:child.pid})); setTimeout(()=>{},15000);`);
+    commit();
+    const module = new URL('../lib/lane-checks.mjs', import.meta.url).href;
+    const caller = spawn(process.execPath, ['--input-type=module', '-e', `import {checkLane} from ${JSON.stringify(module)}; await checkLane({cwd:process.cwd(),env:process.env,timeout:10000});`], { cwd: lane, env, stdio: 'ignore' });
+    const ended = new Promise(resolve => caller.once('exit', resolve));
+    let pids;
+    try {
+      const startDeadline = Date.now() + 5000;
+      while (!fs.existsSync(marker) && caller.exitCode === null && Date.now() < startDeadline) await new Promise(resolve => setTimeout(resolve, 20));
+      assert.ok(fs.existsSync(marker), 'check did not start'); pids = JSON.parse(fs.readFileSync(marker, 'utf8'));
+      caller.kill('SIGKILL'); await ended;
+      const deadline = Date.now() + RELAY_PARENT_POLL_MS + RELAY_SIGNAL_GRACE_MS + 2000;
+      while ((pidAlive(pids.pid) || pidAlive(pids.child)) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
+      assert.equal(pidAlive(pids.pid), false); assert.equal(pidAlive(pids.child), false);
+    } finally {
+      if (caller.exitCode === null && caller.signalCode === null) caller.kill('SIGKILL');
+      if (pids) for (const pid of [pids.pid, pids.child]) { try { process.kill(pid, 'SIGKILL'); } catch {} }
+    }
+  });
 });
 process.exitCode = failures ? 1 : 0;

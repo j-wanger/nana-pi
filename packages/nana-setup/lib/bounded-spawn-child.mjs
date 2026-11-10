@@ -2,7 +2,7 @@
 /**
  * @module packages/nana-setup/lib/bounded-spawn-child.mjs
  * @purpose Relay one bounded child launch and end its process tree at the deadline, on termination or when its parent dies.
- * @inputs one JSON launch specification on stdin; relay parent-poll, settle and signal-grace limits; process.env and process.platform
+ * @inputs one JSON launch specification on stdin; optional IPC stop signal; relay parent-poll, settle and signal-grace limits; process.env and process.platform
  * @outputs one JSON result line on stdout
  * @effects process (spawns a detached POSIX group or Windows child, kills its tree when required, then exits)
  * @errors launch and timeout failures are serialized as result.error; malformed specifications become coded relay errors
@@ -99,6 +99,9 @@ function terminate(signal) {
 }
 
 for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(signal, () => terminate(signal));
+process.on("message", (message) => {
+	if (message?.type === "bounded-spawn-stop" && ["SIGINT", "SIGTERM", "SIGHUP"].includes(message.signal)) terminate(message.signal);
+});
 
 let spec;
 try {

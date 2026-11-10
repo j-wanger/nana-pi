@@ -7,10 +7,9 @@
  * @errors Check crashes and base checkout failures become report data; cancellation reports stopped.
  */
 import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
-import { spawn } from 'node:child_process';
+import { boundedSpawn } from '../../nana-setup/lib/bounded-spawn.mjs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { killProcessTree } from './process-tree.mjs';
 import { reviewLaunch } from '../bin/review-launch.mjs';
 import { parseJsonBytes } from './json-text.mjs';
 import { LANE_CHECK_TIMEOUT_MS, LANE_CHECK_OUTPUT_CHARS, LANE_CHECK_GIT_TIMEOUT_MS } from './lane-checks-config.mjs';
@@ -25,33 +24,6 @@ function declared(cwd) {
   }
 }
 
-// Unlike the synchronous relay, this runner keeps the worker's signal listeners live.
-// Retain only bounded tails, and wait for close after killing the whole process tree.
-function runChild(command, args, { cwd, env, timeout, signal, ...options }) {
-  return new Promise(resolve => {
-    if (signal?.aborted) { resolve({ status: null, signal: signal.reason }); return; }
-    let stdout = '', stderr = '', error, stopped, timer;
-    const child = spawn(command, args, { ...options, cwd, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
-    const stop = reason => {
-      stopped = reason;
-      killProcessTree(child.pid, { fallback: name => child.kill(name) });
-    };
-    const abort = () => stop(signal.reason);
-    child.stdout.on('data', data => { stdout = (stdout + data).slice(-LANE_CHECK_OUTPUT_CHARS); });
-    child.stderr.on('data', data => { stderr = (stderr + data).slice(-LANE_CHECK_OUTPUT_CHARS); });
-    child.on('error', failure => { error = failure; });
-    child.once('close', (status, childSignal) => {
-      clearTimeout(timer);
-      signal?.removeEventListener('abort', abort);
-      resolve({ status, signal: stopped ?? childSignal, stdout, stderr, error });
-    });
-    signal?.addEventListener('abort', abort, { once: true });
-    timer = setTimeout(() => {
-      error = Object.assign(new Error('lane check timed out'), { code: 'ETIMEDOUT' });
-      stop('SIGKILL');
-    }, timeout);
-  });
-}
 async function runCheck(cwd, env, run, timeout, signal) {
   const launch = reviewLaunch(['npm', 'run', '-s', 'check:lane'], { cwd, env });
   if (launch.refused) return { status: 'error', check: 'check:lane', output: `npm launch refused: ${launch.refused}` };
@@ -66,7 +38,7 @@ async function runCheck(cwd, env, run, timeout, signal) {
 }
 
 /** No script means no change to the worker's existing output or record shape. */
-export async function checkLane({ cwd, base, env, run = runChild, timeout = LANE_CHECK_TIMEOUT_MS, signal }) {
+export async function checkLane({ cwd, base, env, run = boundedSpawn, timeout = LANE_CHECK_TIMEOUT_MS, signal }) {
   let folder, checkout, result;
   const git = (args, cleanup = false) => run('git', args, { cwd, env, timeout: LANE_CHECK_GIT_TIMEOUT_MS, signal: cleanup ? undefined : signal });
   const clean = async () => {
@@ -85,7 +57,8 @@ export async function checkLane({ cwd, base, env, run = runChild, timeout = LANE
     if (result.status !== 'fail' || !base) return result;
     folder = mkdtempSync(join(tmpdir(), 'nana-lane-base-'));
     checkout = join(folder, 'base');
-    const added = await git(['worktree', 'add', '--detach', checkout, base]);
+    // Like removal, let git finish its metadata transaction even when a stop is pending.
+    const added = await git(['worktree', 'add', '--detach', checkout, base], true);
     if (signal?.aborted) return result = { status: 'stopped', check: result.check, output: result.output, signal: signal.reason };
     if (added.error || added.status !== 0) {
       result.base = { status: 'error', check: null, output: 'cannot create base checkout' };
