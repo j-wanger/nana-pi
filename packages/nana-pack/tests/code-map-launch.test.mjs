@@ -145,7 +145,9 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		['packages/nana-pack/tests/requirements-lift.test.mjs -> scripts/requirements-tree.mjs', 'diet1 consolidates the lift proof and main-use fixture.'],
 		...['extensions/nana-roster-notice.ts', 'lib/adoption.mjs'].map(target => [`packages/nana-pack/tests/agent-dir-config.test.mjs -> packages/nana-pack/${target}`, 'diet1 removes the unearned stranded-config read watcher.']),
+		...[...['ask-shape', 'build-records-config', 'build-records', 'frontier-config', 'handoff-asks', 'suite-records-config', 'suite-records'].map(name => `packages/nana-pack/lib/${name}.mjs`), 'scripts/deliverables.mjs', 'scripts/requirements-tree.mjs'].map(target => [`packages/nana-pack/tests/product-report.test.mjs -> ${target}`, 'diet1 consolidates report drawing and retires unearned detail and age matrices.']),
 		['packages/nana-pack/tests/brief-check.test.mjs -> packages/nana-pack/tests/slow-sampler.mjs', 'Cut A 2026-11-09: brief-check.test no longer launches pi-worker'],
 		['packages/nana-setup/tests/uninstall.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
 		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
