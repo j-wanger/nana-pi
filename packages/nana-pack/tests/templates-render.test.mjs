@@ -31,7 +31,7 @@ import { checkTree, readRequirementRows } from "../../../scripts/requirements-tr
 // Needs `uvx copier`; without it every row SKIPs. Temp HOME.
 // Run: node --experimental-strip-types <this file>
 const { desiredHooks, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../../nana-setup/lib/settings.mjs", import.meta.url).href);
-const NANA_HOME = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-home-")));
+const NANA_HOME = tmpDir(path.join(os.tmpdir(), "nana-home-"));
 process.env.HOME = NANA_HOME;
 process.env.USERPROFILE = NANA_HOME;
 

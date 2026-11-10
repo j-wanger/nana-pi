@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 // closed code span in the seat's Markdown, no extra field in the file we write).
 // Run: node --experimental-strip-types <this file>
 const here = path.dirname(fileURLToPath(import.meta.url));
-const HOME = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "display-surfaces-")));
+const HOME = tmpDir(path.join(os.tmpdir(), "display-surfaces-"));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 delete process.env.PI_CODING_AGENT_DIR;

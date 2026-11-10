@@ -16,7 +16,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
 import { LAUNCHER_ROLES } from '../lib/frontier-summary-config.mjs';
 const pack = fileURLToPath(new URL('../', import.meta.url));
-const temp = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'child-context-')));
+const temp = tmpDir(path.join(os.tmpdir(), 'child-context-'));
 const write = (file, text) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); };
 const rows = file => fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim().split(/\r?\n/).filter(Boolean).map(JSON.parse) : [];
 let serial = 0;

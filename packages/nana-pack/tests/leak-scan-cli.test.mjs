@@ -18,7 +18,7 @@ import { writeFakePi } from './fake-pi.mjs';
 import { buildRecordsPath, buildReportLines, buildEndRecord } from '../lib/build-records.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
-const temp = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'leak-guard-')));
+const temp = tmpDir(path.join(os.tmpdir(), 'leak-guard-'));
 const word = 'quux';
 const config = { wordDigests: [createHash('sha256').update(word).digest('hex')], wordLengths: [4], allowlist: [{path:'outside.log',counts:[1],reason:'byte-pinned'}] };
 let failures = 0, serial = 0, detail;

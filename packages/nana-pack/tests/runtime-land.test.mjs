@@ -41,7 +41,7 @@ const RUNTIME_MEASURE = path.join(REPO, "scripts", "runtime-measure.mjs");
 const TEST_LOCKED_URL = pathToFileURL(TEST_LOCKED).href;
 const RUNTIME_MEASURE_URL = pathToFileURL(RUNTIME_MEASURE).href;
 const SUITE_RECORDS_CONFIG_URL = pathToFileURL(path.join(REPO, "packages", "nana-pack", "lib", "suite-records-config.mjs")).href;
-const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runtime-land-test-")));
+const TD = tmpDir(path.join(os.tmpdir(), "runtime-land-test-"));
 const LAND_REPORT_SUBPATH = productReportModule.LAND_REPORT_SUBPATH ?? "nana/product-report.html";
 const CASE_LIMIT_MS = 30_000;
 const MEASURED_PLATFORM = "linux";
@@ -278,7 +278,7 @@ await check("R-2740: a passing land writes the product report for HEAD under the
 		if (name === "report-measured-pass" || name === "report-rerun-pass") assert.match(ageFor(model, "R-8500"), new RegExp(`^measured at tip ${head.slice(0, TIP_DIGITS)} .*\\b0 commits?\\b`), name);
 		const notes = productReportNotes(c.result);
 		assert.equal(notes.length, 1, `${name}: ${c.result.stdout}`);
-		assert.ok(notes[0].includes(fs.realpathSync.native(page)), `${name}: ${notes[0]}`);
+		assert.ok(notes[0].includes(page), `${name}: ${notes[0]}`);
 		assert.ok(notes[0].endsWith(`for ${head.slice(0, TIP_DIGITS)}`), `${name}: ${notes[0]}`);
 	}
 	const linkedCase = cases.find(([name]) => name === "report-linked")[1];

@@ -25,7 +25,7 @@ import { ISSUES_READ_LIMIT_MS, ISSUES_WRITE_RESERVE_MS } from "../../nana-pack/l
 delete process.env.NANA_ROLE;
 
 const checkoutRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-hook-deadlines-")));
+const root = tmpDir(path.join(os.tmpdir(), "nana-hook-deadlines-"));
 const tempHome = path.join(root, "home");
 const hooksDir = path.join(root, "packages", "nana-setup", "claude", "hooks");
 const copiedLib = path.join(root, "packages", "nana-setup", "lib");

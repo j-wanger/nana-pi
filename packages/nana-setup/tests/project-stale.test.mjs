@@ -31,7 +31,7 @@ const hook = path.join(here, "..", "claude", "hooks", "nana-adoption.mjs");
 const producer = path.join(here, "..", "bin", "stale-copies.mjs");
 const cli = path.join(here, "..", "bin", "nana-setup.mjs");
 const shared = fs.readFileSync(path.join(SHARED_DIR, "working-under-nana-pi.md"), "utf8").replace(/\r\n/g, "\n");
-const base = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-project-stale-")));
+const base = tmpDir(path.join(os.tmpdir(), "nana-project-stale-"));
 const home = path.join(base, "home");
 const agentDir = path.join(home, ".pi", "agent");
 fs.mkdirSync(agentDir, { recursive: true });

@@ -77,7 +77,7 @@ import { tmp, outs, PI_WORKER, mod, home, agent, tallyFile, resDir, freshHome, e
 	check("tally holds exactly 4 rounds, audit exactly 4 verdicts", roundsOf("four").length === 4 && verdictsOf("four").length === 4);
 	const rec = roundsOf("four")[0];
 	check("tally record {v,ts,kind:round,repo,item,revision(full sha),role,launcher}",
-		rec.v === 2 && rec.kind === "round" && !Number.isNaN(Date.parse(rec.ts)) && rec.repo === `git:${fs.realpathSync.native(path.join(A.d, ".git"))}` &&
+		rec.v === 2 && rec.kind === "round" && !Number.isNaN(Date.parse(rec.ts)) && rec.repo === `git:${path.join(A.d, ".git")}` &&
 		rec.item === "four" && rec.revision === A.shas[0] && rec.role === "sol" && rec.launcher === "pi-review", `${JSON.stringify(rec)} compared: ${pathForms(path.join(A.d, ".git"))}`);
 	const viaLedger = reviewAt("four", 4, ["--role", "opus"]);
 	// req: R-971

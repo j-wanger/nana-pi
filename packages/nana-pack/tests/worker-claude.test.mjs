@@ -54,7 +54,7 @@ const STARTUP_SIGNAL_READY_LIMIT_MS = 5_000; // Chosen to bound fixture readines
 const BLOCKING_READ_END_MS = 2_000; // Chosen to bound a lost SIGTERM well below the per-case watchdog.
 const BLOCKING_HELPER_HANG_MS = 30_000; // Chosen to outlast both the bounded signal wait and the per-case watchdog.
 const BLOCKING_HELPER_STOP_MS = 1_000; // Chosen to bound orphan cleanup after a FIFO is released or a helper is killed.
-const TEMP = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "worker-claude-")));
+const TEMP = tmpDir(path.join(os.tmpdir(), "worker-claude-"));
 const REPO = path.join(TEMP, "repo");
 const LANE = path.join(TEMP, "lane");
 const HOME = path.join(TEMP, "home");
@@ -79,7 +79,6 @@ const git = (cwd, ...args) => {
 	if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
 	return result.stdout.trim();
 };
-const real = (value) => process.platform === "win32" ? fs.realpathSync.native(value) : fs.realpathSync(value);
 const readRows = (file) => {
 	try { return fs.readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean).map(JSON.parse); }
 	catch { return []; }
@@ -109,8 +108,8 @@ git(REPO, "commit", "-qm", "seed");
 git(REPO, "worktree", "add", "-q", "-b", "feat/alpha", LANE);
 const BUG_BYTES = fs.readFileSync(path.join(LANE, "docs", "known-bugs", "FEAT-006.md"));
 fs.writeFileSync(path.join(AGENT, "nana-pack.json"), JSON.stringify({ roster }));
-const GIT_DIR = real(path.resolve(LANE, git(LANE, "rev-parse", "--git-dir")));
-const COMMON_DIR = real(path.resolve(LANE, git(LANE, "rev-parse", "--git-common-dir")));
+const GIT_DIR = path.resolve(LANE, git(LANE, "rev-parse", "--git-dir"));
+const COMMON_DIR = path.resolve(LANE, git(LANE, "rev-parse", "--git-common-dir"));
 const LOCK = path.join(GIT_DIR, "nana-lane.lock");
 const LEDGER = path.join(COMMON_DIR, "nana", "build-records.jsonl");
 
@@ -263,7 +262,7 @@ const stopFixtureBuilder = () => {
 };
 const selectedBriefLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.startsWith("pi-worker: lane refused:") || line.startsWith("pi-worker: precedent:")) ?? null;
 const expectedPrompt = (briefBytes, withBugs, launchedCwd = LANE) => {
-	const worktree = process.platform === "win32" ? fs.realpathSync.native(launchedCwd) : fs.realpathSync(launchedCwd);
+	const worktree = launchedCwd;
 	const preamble = fs.readFileSync(PREAMBLE, "utf8").replaceAll("{{WORKTREE}}", worktree).replaceAll("{{BRANCH}}", "feat/alpha");
 	return Buffer.concat([Buffer.from(preamble), Buffer.from("\n\n"), servesBrief(briefBytes), ...(withBugs ? [Buffer.from("\n\n"), BUG_BYTES] : [])]);
 };
@@ -274,7 +273,7 @@ const countBytes = (haystack, needle) => {
 };
 const sealedEnv = () => ({
 	NANA_ROLE: "worker",
-	NANA_WORKTREE_ROOT: real(LANE),
+	NANA_WORKTREE_ROOT: LANE,
 	NANA_HANDOFF: "off",
 	CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1",
 	BASH_DEFAULT_TIMEOUT_MS: String(CLAUDE_BUILDER_BASH_LIMIT_MS),
@@ -303,7 +302,7 @@ const nameTail = launchCall?.argv.slice(expectedArgv.length) ?? [];
 // req: R-2646
 check("R-2646: lane size larger starts a Claude Code larger-lane builder as claude -p with its model, default permission mode, project settings only, no MCP servers and the builder tools, in the locked worktree",
 	launch.status === 0 && readRows(RECORD).length === 1 && argvPrefixOk && nameTail.length === 2 && nameTail[0] === "--name" && /^pi-worker-a1-\d+$/.test(nameTail[1]) &&
-	launchCall.cwd === real(LANE) && launchCall.lock && launchCall.env.NANA_ROLE === "worker" && launchCall.env.NANA_WORKTREE_ROOT === real(LANE) && launchCall.env.NANA_HANDOFF === "off" &&
+	launchCall.cwd === LANE && launchCall.lock && launchCall.env.NANA_ROLE === "worker" && launchCall.env.NANA_WORKTREE_ROOT === LANE && launchCall.env.NANA_HANDOFF === "off" &&
 	!launchCall.argv.includes("--provider") && !launchCall.argv.includes("--thinking") && !launchCall.argv.includes("-t") && fs.readFileSync(OUT, "utf8") === "fake Claude builder report\n" &&
 	!fs.existsSync(LOCK) && !fs.existsSync(PI_MARKER), JSON.stringify({ status: launch.status, stderr: launch.stderr, call: launchCall, expectedArgv }));
 
@@ -321,7 +320,7 @@ const promptChecks = {
 	briefAfterPreamble: promptCopy.indexOf(promptBrief) > 0,
 	bugsAfterBrief: promptCopy.indexOf(BUG_BYTES) > promptCopy.indexOf(promptBrief),
 	bugsOnce: countBytes(promptCopy, BUG_BYTES) === 1,
-	outsideWorktree: typeof promptCall?.prompt === "string" && typeof promptCall.cwd === "string" && !path.relative(real(LANE), promptCall.prompt).split(path.sep).every((part) => part !== ".."),
+	outsideWorktree: typeof promptCall?.prompt === "string" && typeof promptCall.cwd === "string" && !path.relative(LANE, promptCall.prompt).split(path.sep).every((part) => part !== ".."),
 	removed: typeof promptCall?.prompt === "string" && !fs.existsSync(promptCall.prompt),
 };
 const noFeatureBrief = Buffer.from("No feature line here.\r\n\r\nPrecedent:\r\n- seed\t");
@@ -481,7 +480,7 @@ const configCall = readRows(RECORD)[0];
 check("R-2655: a Claude Code builder gets a settings file outside the worktree carrying only the login keys and network env names from the user settings, named in one line without values, and gone after the build",
 	carryRun.status === 0 && carryCall && JSON.stringify(carryTop) === JSON.stringify(["apiKeyHelper", "awsAuthRefresh", "awsCredentialExport", "claudeMdExcludes", "env", "proxyAuthHelper"]) &&
 	JSON.stringify(carryEnv) === JSON.stringify(expectedCarryEnv) && carried.apiKeyHelper === "/fake/api-helper" && carried.env.ANTHROPIC_API_KEY === secretOne && carried.env.no_proxy === "localhost" &&
-	carryLines.length === 1 && carryLines[0] === expectedCarryLine && !allCarryOutput.includes(secretOne) && !path.relative(real(LANE), carryCall.settings).split(path.sep).every((part) => part !== "..") &&
+	carryLines.length === 1 && carryLines[0] === expectedCarryLine && !allCarryOutput.includes(secretOne) && !path.relative(LANE, carryCall.settings).split(path.sep).every((part) => part !== "..") &&
 	!fs.existsSync(carryCall.settings) && (process.platform === "win32" || (carryCall.settingsMode & 0o077) === 0) && git(LANE, "status", "--porcelain") === "" &&
 	configCarryRun.status === 0 && configCall?.env.CLAUDE_CONFIG_DIR === configDir && configCarried?.env.HTTPS_PROXY === "http://cfg.invalid:2" && configCarryRun.stderr.includes(`source: ${configSettings}`),
 	JSON.stringify({ carryResult: carryRun.status, carryStderr: carryRun.stderr, carryCall, carried, configResult: configCarryRun.status, configStderr: configCarryRun.stderr, configCarried }));
@@ -915,7 +914,7 @@ let r2728 = {};
 	const beta = path.join(TEMP, "lane-beta");
 	if (!fs.existsSync(beta)) git(REPO, "worktree", "add", "-q", "-b", "feat/beta", beta);
 	const betaBrief = path.join(beta, "brief.md"); fs.writeFileSync(betaBrief, "Serves: roadmap step 3: exercise Claude launch.\nValidation: fixture run.\nFeature: FEAT-006 · Beta\n\nPrecedent:\n- seed\n");
-	const betaGit = real(path.resolve(beta, git(beta, "rev-parse", "--git-dir")));
+	const betaGit = path.resolve(beta, git(beta, "rev-parse", "--git-dir"));
 	const betaLock = path.join(betaGit, "nana-lane.lock");
 	removeArtifacts(); fs.rmSync(LOCK, { force: true }); fs.rmSync(betaLock, { force: true });
 	const root = caseTemp("two-lanes");
@@ -985,8 +984,8 @@ for(const [slot,slots,expected,tools] of [
 	['adversary',{},'gpt-6.1-sol',null],
 ]) {
 	resetRole(slots);const r=runRole(slot);const call=readRows(RECORD)[0];const a=call?.argv??[];
-	roleObservations.push({slot,status:r.status,stderr:r.stderr,call,ok:r.status===0&&readRows(RECORD).length===1&&a[a.indexOf('--model')+1]===expected&&call.env.NANA_ROLE==='worker'&&call.env.NANA_WORKTREE_ROOT===real(roleRoot)&&fs.readFileSync(OUT,'utf8')==='fake Claude builder report\n'&&
-		(tools ? a.includes('-p')&&a[a.indexOf('--tools')+1]===tools&&a[a.indexOf('--allowedTools')+1]===tools&&fs.readFileSync(PROMPT_COPY,'utf8')===fs.readFileSync(BRIEF,'utf8') : a[a.indexOf('--provider')+1]===(slot==='planner'?'openai':'openai-codex')&&a[a.indexOf('--thinking')+1]===(slot==='planner'?'high':'medium')&&a[a.indexOf('-t')+1]===config.LANE_DEFAULTS.tools&&a[a.indexOf('--append-system-prompt')+1]===real(BRIEF)&&a.filter(x=>x==='--append-system-prompt').length===1)&&
+	roleObservations.push({slot,status:r.status,stderr:r.stderr,call,ok:r.status===0&&readRows(RECORD).length===1&&a[a.indexOf('--model')+1]===expected&&call.env.NANA_ROLE==='worker'&&call.env.NANA_WORKTREE_ROOT===roleRoot&&fs.readFileSync(OUT,'utf8')==='fake Claude builder report\n'&&
+		(tools ? a.includes('-p')&&a[a.indexOf('--tools')+1]===tools&&a[a.indexOf('--allowedTools')+1]===tools&&fs.readFileSync(PROMPT_COPY,'utf8')===fs.readFileSync(BRIEF,'utf8') : a[a.indexOf('--provider')+1]===(slot==='planner'?'openai':'openai-codex')&&a[a.indexOf('--thinking')+1]===(slot==='planner'?'high':'medium')&&a[a.indexOf('-t')+1]===config.LANE_DEFAULTS.tools&&a[a.indexOf('--append-system-prompt')+1]===BRIEF&&a.filter(x=>x==='--append-system-prompt').length===1)&&
 		(slot!=='adversary'||tools||r.stderr.includes('adversary (builder)'))});
 }
 for(const [slot,extra,word] of [['planner',[],'seat'],['scout',[],'none'],['builder',[],'--lane'],['largerBuilder',[],'--lane'],['reviewer',[],'pi-review'],['land',[],'scout, planner or adversary'],['checker',[],'scout, planner or adversary'],['adversary',['--lane','alpha'],'--lane'],['adversary',['--lane-size','small'],'--lane-size'],['adversary',['--','-p','override'],'caller'],['adversary',['--retries','1'],'--retries']]) {
@@ -997,7 +996,7 @@ check('MM4: role slots launch exact models tools brief and worker env or refuse 
 const loadObservations=[];
 for(const [slot,slots,fail] of [['adversary',{},false],['adversary',{},true],['planner',{planner:{runtime:'claude-code',model:'opus'}},false]]) {
 	resetRole(slots);const r=runRole(slot,[],{ROLE_EXIT:fail?'1':'0'});const e=readRows(roleLog)[0];
-	loadObservations.push({slot,ok:r.status===(fail?1:0)&&readRows(roleLog).length===1&&e.v===1&&e.launcher==='pi-worker'&&e.role===slot&&e.slot===(slot==='adversary'?'builder':'planner')&&e.runtime===(slot==='adversary'?'pi':'claude-code')&&e.model===(slot==='adversary'?'gpt-6.1-sol':'opus')&&e.cwd===real(roleRoot)&&(slot==='adversary' ? e.parts.length===1&&e.parts[0].name==='session: unavailable'&&e.parts[0].deliveredChars==='unavailable' : e.parts.filter(p=>p.name!=='Claude instruction').length===2&&e.parts[0].name==='brief'&&e.parts[0].source===real(BRIEF)&&e.parts[0].deliveredChars===fs.readFileSync(BRIEF,'utf8').length),stderr:r.stderr,e});
+	loadObservations.push({slot,ok:r.status===(fail?1:0)&&readRows(roleLog).length===1&&e.v===1&&e.launcher==='pi-worker'&&e.role===slot&&e.slot===(slot==='adversary'?'builder':'planner')&&e.runtime===(slot==='adversary'?'pi':'claude-code')&&e.model===(slot==='adversary'?'gpt-6.1-sol':'opus')&&e.cwd===roleRoot&&(slot==='adversary' ? e.parts.length===1&&e.parts[0].name==='session: unavailable'&&e.parts[0].deliveredChars==='unavailable' : e.parts.filter(p=>p.name!=='Claude instruction').length===2&&e.parts[0].name==='brief'&&e.parts[0].source===BRIEF&&e.parts[0].deliveredChars===fs.readFileSync(BRIEF,'utf8').length),stderr:r.stderr,e});
 }
 resetRole({planner:{runtime:'claude-code',model:'opus'}});
 const missing=runRole('planner',[],{PATH:roleAgent});

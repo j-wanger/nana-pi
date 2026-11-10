@@ -21,7 +21,7 @@ import { parseLedger } from "../../../scripts/requirements-tree.mjs";
 import { artifactRegistry, ARTIFACT_CLASSES, ARTIFACT_LOCATION_SHAPES } from "../../../scripts/deliverables.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 const REPO = fileURLToPath(new URL("../../../", import.meta.url));
-const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "handoff-issues-")));
+const TD = tmpDir(path.join(os.tmpdir(), "handoff-issues-"));
 const file = path.join(TD, "HANDOFF.md");
 const log = path.join(TD, "calls.jsonl");
 const fake = path.join(TD, "gh.mjs");

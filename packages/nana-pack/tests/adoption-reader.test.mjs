@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.join(here, "..", "bin", "nana-adoption.mjs");
 const HOOK = path.join(here, "..", "..", "nana-setup", "claude", "hooks", "nana-adoption.mjs");
-const base = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-reader-")));
+const base = tmpDir(path.join(os.tmpdir(), "adoption-reader-"));
 const HOME = path.join(base, "home");
 const AGENT = path.join(HOME, ".pi", "agent");
 fs.mkdirSync(AGENT, { recursive: true });
@@ -138,7 +138,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	// req: R-640
 	check("reader: production temporary root is skipped without override", temporary.stdout === "");
 	if (process.platform !== "win32") {
-		const aliasBase = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-reader-alias-")));
+		const aliasBase = tmpDir(path.join(os.tmpdir(), "adoption-reader-alias-"));
 		const aliasRepo = path.join(aliasBase, "repo");
 		fs.mkdirSync(path.join(aliasRepo, ".git"), { recursive: true });
 		fs.writeFileSync(JOURNAL, line(aliasRepo, 1));
@@ -183,7 +183,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	fs.rmSync(path.join(AGENT, "nana-pack.json"));
 }
 {
-	const hookBase = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-hook-mark-")));
+	const hookBase = tmpDir(path.join(os.tmpdir(), "adoption-hook-mark-"));
 	const hookHome = path.join(hookBase, "home");
 	const hookAgent = path.join(hookHome, "active-agent");
 	const hookRoot = path.join(hookBase, "configured-only-root");
@@ -201,7 +201,7 @@ fs.writeFileSync(path.join(dismissed, ".nana-not-a-project"), "x");
 	fs.rmSync(hookBase, { recursive: true, force: true });
 }
 {
-	const hookBase = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "adoption-hook-utf16-")));
+	const hookBase = tmpDir(path.join(os.tmpdir(), "adoption-hook-utf16-"));
 	const hookHome = path.join(hookBase, "home");
 	const hookAgent = path.join(hookHome, "active-agent");
 	const hookRoot = path.join(hookBase, "configured-journal-only-root");

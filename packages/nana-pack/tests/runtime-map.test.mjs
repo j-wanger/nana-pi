@@ -41,7 +41,7 @@ const TEST_RUNNER_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "test
 const RUNTIME_MAP_READER = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map.mjs");
 const CODE_MAP = path.join(REPO, "scripts", "code-map.mjs");
 const GENERATOR = path.join(REPO, "templates", "typescript", "template", "scripts", "code-map.mjs");
-const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runtime-map-test-")));
+const TD = tmpDir(path.join(os.tmpdir(), "runtime-map-test-"));
 const posix = process.platform !== "win32";
 
 let fails = 0;

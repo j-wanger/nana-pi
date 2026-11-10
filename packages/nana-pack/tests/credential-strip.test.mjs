@@ -22,7 +22,7 @@ import { stepPath } from '../../nana-setup/lib/steps.mjs';
 
 const pack = fileURLToPath(new URL('../', import.meta.url));
 const root = path.resolve(pack, '../..');
-const temp = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'credential-strip-')));
+const temp = tmpDir(path.join(os.tmpdir(), 'credential-strip-'));
 // chosen: fixture cases must finish well before the suite's per-file watchdog.
 const CASE_MS = 30_000;
 // chosen: a fixture credential lookup must neither prompt nor outlast its parent case.

@@ -297,11 +297,9 @@ console.log("VERDICT: LAND");
 		const caseRun = spawnSync(process.execPath, [workerBin, "--poll", "0.1", "--stall-secs", "15", "--out", caseOut, "--lane", "altpath", "--brief", brief], { cwd: flippedCase, encoding: "utf8", timeout: 60000, env });
 		const shortPathProbe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${longWt}').ShortPath`], { encoding: "utf8" });
 		const shortPath = shortPathProbe.status === 0 ? shortPathProbe.stdout.trim() : null;
-		let shortRunOk = true, shortNote = "";
-		if (!shortPath || shortPath.toLowerCase() === longWt.toLowerCase()) {
-			shortNote = "SKIP short-path launch: this volume keeps no 8.3 short name";
-			console.log(shortNote);
-		} else {
+		let shortRunOk = Boolean(shortPath && shortPath.toLowerCase() !== longWt.toLowerCase());
+		let shortNote = JSON.stringify({ shortPath, longWt, stderr: shortPathProbe.stderr });
+		if (shortRunOk) {
 			const shortRun = spawnSync(process.execPath, [workerBin, "--poll", "0.1", "--stall-secs", "15", "--out", path.join(temp, "short-out.md"), "--lane", "altpath", "--brief", brief], { cwd: shortPath, encoding: "utf8", timeout: 60000, env });
 			shortRunOk = shortRun.status === 0;
 			shortNote = JSON.stringify(shortRun);

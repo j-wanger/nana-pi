@@ -27,7 +27,6 @@ import { fileURLToPath } from "node:url";
 const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin");
 const PI_REVIEW = path.join(bin, "pi-review.mjs");
 const PI_WORKER = path.join(bin, "pi-worker.mjs");
-const real = (p) => (process.platform === "win32" ? fs.realpathSync.native(p) : fs.realpathSync(p));
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -60,7 +59,7 @@ const WE6_TIMEOUT_MS = 30_000; // chosen: one short attempt plus lane worktree s
 // inside this guard.
 
 // ---------------------------------------------------------------------- fixture plumbing
-const root = real(tmpDir(path.join(os.tmpdir(), "watchdog-exit-test-")));
+const root = tmpDir(path.join(os.tmpdir(), "watchdog-exit-test-"));
 const agentDir = path.join(root, "agent-empty"); // PI_CODING_AGENT_DIR: empty, so lane mode's
 // roster resolver reads no ambient machine config (worker-lane.test.mjs's defaultAgentDir).
 fs.mkdirSync(agentDir, { recursive: true });
@@ -244,8 +243,9 @@ check("R-1394: a flat-CPU pi is stalled only after --stall-secs",
 // ---------------------------------------------------------------------- WE6 (R-1395), own repo+HOME
 const we6Repo = makeRepo("we6-repo");
 const we6Home = makeHome("we6-home");
-const we6Lane = real((() => { const d = path.join(root, "we6-lane"); git(we6Repo, "worktree", "add", "-qb", "feat/we6lane", d); return d; })());
-const we6GitDir = real(path.resolve(we6Lane, git(we6Lane, "rev-parse", "--git-dir").stdout.trim()));
+const we6Lane = path.join(root, "we6-lane");
+git(we6Repo, "worktree", "add", "-qb", "feat/we6lane", we6Lane);
+const we6GitDir = path.resolve(we6Lane, git(we6Lane, "rev-parse", "--git-dir").stdout.trim());
 const we6LockPath = path.join(we6GitDir, "nana-lane.lock");
 const we6Brief = path.join(root, "we6-brief.md");
 fs.writeFileSync(we6Brief, "Serves: roadmap step 3: exercise the watchdog.\nValidation: fixture run.\nlane brief content for watchdog-exit WE6\n\nPrecedent:\n- none: fixture\n");

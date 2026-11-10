@@ -233,9 +233,7 @@ try {
 	// `weird` would make this claim fail adoption's printable() backtick refusal, which is a
 	// DIFFERENT thing from the Windows exec-form probe this file otherwise runs.
 	fs.mkdirSync(path.join(os.tmpdir(), `nana-ss1-unadopted-${process.pid}`, ".git"), { recursive: true });
-	// realpath'd (as every other temp root in this suite is) — macOS's /var -> /private/var symlink
-	// would otherwise make the printed, canonicalised root differ from this literal join.
-	const ss1Repo = fs.realpathSync.native(path.join(os.tmpdir(), `nana-ss1-unadopted-${process.pid}`));
+	const ss1Repo = path.join(os.tmpdir(), `nana-ss1-unadopted-${process.pid}`);
 	fs.appendFileSync(path.join(home, ".pi", "agent", "nana-journal.jsonl"), `${JSON.stringify({ ts: new Date().toISOString(), event: "directory_unadopted", cwd: ss1Repo, has: { handoff: false, objective: false, agents: false, sessions: false } })}\n`);
 	{
 		const ss1Env = { NANA_TEST_TEMP_ROOTS: "" };

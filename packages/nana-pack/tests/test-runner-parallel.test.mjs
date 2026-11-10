@@ -34,7 +34,7 @@ const LIB_NAMES = [...new Set([
 	...[...RUNNER_SOURCE.matchAll(/from\s+"\.\.\/packages\/nana-pack\/lib\/([\w.-]+\.mjs)"/g)].map((m) => m[1]),
 	"land-config.mjs",
 ])];
-const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runner-parallel-test-")));
+const TD = tmpDir(path.join(os.tmpdir(), "runner-parallel-test-"));
 const posix = process.platform !== "win32";
 
 let fails = 0;

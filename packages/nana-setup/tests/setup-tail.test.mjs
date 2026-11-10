@@ -26,7 +26,7 @@ const cases = [];
 const SKIP = Symbol('skip');
 const check = (title, fn) => cases.push({ title, fn });
 function fixture(fn) {
-  const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), 'setup-tail-')));
+  const root = tmpDir(path.join(os.tmpdir(), 'setup-tail-'));
   const dir = path.join(root, 'project');
   const home = path.join(root, 'home');
   fs.mkdirSync(dir);

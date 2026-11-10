@@ -28,7 +28,7 @@ import { killWorkerTree } from "./process-tree-helper.mjs";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
 const WORKER = path.join(ROOT, "bin", "pi-worker.mjs");
-const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "build-records-test-")));
+const TD = tmpDir(path.join(os.tmpdir(), "build-records-test-"));
 const HOME = path.join(TD, "home");
 const AGENT = path.join(HOME, ".pi", "agent");
 const REPO = path.join(TD, "repo");
@@ -42,7 +42,6 @@ const WORKER_PID = path.join(TD, "worker-pid");
 const PI_ROOT = findPiRoot().root;
 const PI_ENTRY = path.join(PI_ROOT, JSON.parse(fs.readFileSync(path.join(PI_ROOT, "package.json"), "utf8")).exports?.["."]?.import ?? "dist/index.js");
 const CASE_LIMIT_MS = 30_000;
-const real = (value) => process.platform === "win32" ? fs.realpathSync.native(value) : fs.realpathSync(value);
 const git = (cwd, ...args) => {
 	const result = spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", ...args], { cwd, encoding: "utf8" });
 	if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
@@ -56,8 +55,8 @@ fs.writeFileSync(path.join(REPO, "seed"), "seed\n");
 git(REPO, "add", "seed");
 git(REPO, "commit", "-qm", "seed");
 git(REPO, "worktree", "add", "-q", "-b", "feat/alpha", LANE);
-const COMMON = real(path.resolve(LANE, git(LANE, "rev-parse", "--git-common-dir")));
-const GIT_DIR = real(path.resolve(LANE, git(LANE, "rev-parse", "--git-dir")));
+const COMMON = path.resolve(LANE, git(LANE, "rev-parse", "--git-common-dir"));
+const GIT_DIR = path.resolve(LANE, git(LANE, "rev-parse", "--git-dir"));
 const LEDGER = path.join(COMMON, ...BUILD_RECORDS_SUBPATH.split("/"));
 const LOCK = path.join(GIT_DIR, "nana-lane.lock");
 const INSIDE_BRIEF = path.join(LANE, "brief.md");
@@ -175,7 +174,7 @@ const firstFieldsOk = start?.cwd === LANE && start?.sessionDir === sessionDir &&
 resetRecords();
 const outsideRun = runWorker({ brief: OUTSIDE_BRIEF });
 const outsideStart = lines().find((row) => row.kind === "start");
-const defaultSlotOk = outsideRun.status === 0 && outsideStart?.brief === real(OUTSIDE_BRIEF) && outsideStart?.slot === "builder" && outsideStart?.provider === "openai-codex" && outsideStart?.model === "gpt-6-luna" && outsideStart?.thinking === "high";
+const defaultSlotOk = outsideRun.status === 0 && outsideStart?.brief === OUTSIDE_BRIEF && outsideStart?.slot === "builder" && outsideStart?.provider === "openai-codex" && outsideStart?.model === "gpt-6-luna" && outsideStart?.thinking === "high";
 const beforeRefusals = fs.existsSync(LEDGER) ? fs.readFileSync(LEDGER, "utf8") : "";
 fs.writeFileSync(LOCK, "999999999\n");
 const lockRefused = runWorker();
@@ -244,9 +243,9 @@ let shortPathOk = true, shortPathDetail = "not run outside win32";
 if (process.platform === "win32") {
 	const shortPathProbe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${LANE}').ShortPath`], { encoding: "utf8" });
 	const shortPath = shortPathProbe.status === 0 ? shortPathProbe.stdout.trim() : null;
-	if (!shortPath || shortPath.toLowerCase() === LANE.toLowerCase()) {
-		console.log("SKIP short-path build: this volume keeps no 8.3 short name");
-	} else {
+	shortPathOk = Boolean(shortPath && shortPath.toLowerCase() !== LANE.toLowerCase());
+	shortPathDetail = JSON.stringify({ shortPath, lane: LANE, stderr: shortPathProbe.stderr });
+	if (shortPathOk) {
 		resetRecords();
 		const shortRun = runWorker({ cwd: shortPath });
 		const shortStart = lines().find((row) => row.kind === "start");
@@ -282,8 +281,7 @@ fs.mkdirSync(COMMON, { recursive: true }); fs.writeFileSync(path.dirname(LEDGER)
 const blockedPass = runWorker();
 const blockedFail = runWorker({ env: { BR_MODE: "fail" } });
 const blockedLines = [blockedPass, blockedFail].map((result) => result.stderr.split(/\r?\n/).filter((line) => line.startsWith(BUILD_RECORD_LINE_PREFIX)));
-const realLedger = path.join(fs.realpathSync.native(COMMON), ...BUILD_RECORDS_SUBPATH.split("/"));
-const ledgerPathMatches = (line) => line.includes(LEDGER) || line.includes(realLedger);
+const ledgerPathMatches = (line) => line.includes(LEDGER);
 const startError = process.platform === "win32" ? /EEXIST|ENOTDIR|ENOENT/ : /EEXIST|ENOTDIR/;
 const startFailureOk = blockedPass.status === 0 && blockedFail.status === 1 && blockedLines.every((found) => found.length === 1 && ledgerPathMatches(found[0]) && startError.test(found[0])) && fs.existsSync(SPAWNED);
 fs.rmSync(path.dirname(LEDGER), { force: true });

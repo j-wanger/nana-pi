@@ -43,7 +43,7 @@ async function withinLimit(title, fn) {
 }
 
 function freshCase(name) {
-	const home = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), `nana-claude-config-${name}-`)));
+	const home = tmpDir(path.join(os.tmpdir(), `nana-claude-config-${name}-`));
 	const work = path.join(home, "work");
 	const piHome = path.join(home, ".pi", "agent");
 	fs.mkdirSync(path.join(piHome, "nana-knowledge"), { recursive: true });
@@ -119,7 +119,7 @@ await withinLimit("--claude-home and --home win over CLAUDE_CONFIG_DIR", async (
 	const ambient = path.join(fixture.home, "ambient claude");
 	const explicit = path.join(fixture.home, "explicit claude");
 	const explicitRun = runInstall(fixture, ambient, ["--claude-home", explicit]);
-	const secondHome = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-claude-config-flag-home-")));
+	const secondHome = tmpDir(path.join(os.tmpdir(), "nana-claude-config-flag-home-"));
 	const homeRun = runInstall(fixture, ambient, ["--home", secondHome]);
 	const explicitFiles = fs.existsSync(path.join(explicit, "settings.json")) && fs.existsSync(path.join(explicit, "rules", "nana-soul.md"));
 	const homeFiles = fs.existsSync(path.join(secondHome, ".claude", "settings.json")) && fs.existsSync(path.join(secondHome, ".claude", "rules", "nana-soul.md"));
@@ -134,7 +134,7 @@ await withinLimit("--claude-home and --home win over CLAUDE_CONFIG_DIR", async (
 		relativeExplicitLine.includes("(from --claude-home)");
 
 	const relativeHomeFixture = freshCase("relative-home-flag");
-	const relativeHome = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-claude-config-relative-flag-home-")));
+	const relativeHome = tmpDir(path.join(os.tmpdir(), "nana-claude-config-relative-flag-home-"));
 	const relativeHomeRun = runInstall(relativeHomeFixture, "rel-claude", ["--home", relativeHome]);
 	const relativeHomeLine = relativeHomeRun.stdout.split(/\r?\n/).find((line) => line.includes("claude home")) ?? "";
 	const relativeHomeOk = relativeHomeRun.status === 0 &&
@@ -157,7 +157,7 @@ await withinLimit("a relative CLAUDE_CONFIG_DIR: install exits 2 naming the vari
 
 await withinLimit("the install banner names the CLAUDE_CONFIG_DIR folder and its source", async () => {
 	const fixture = freshCase("banner-home");
-	const outside = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-claude-config-banner-folder-")));
+	const outside = tmpDir(path.join(os.tmpdir(), "nana-claude-config-banner-folder-"));
 	const run = runInstall(fixture, outside);
 	const line = run.stdout.split(/\r?\n/).find((candidate) => candidate.includes("claude home")) ?? "";
 	// req: R-2394

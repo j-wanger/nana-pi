@@ -23,7 +23,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import * as timing from "./issue-watch-timing.mjs";
 import { killProcessTreeNoWait, pidAlive } from "../lib/process-tree.mjs";
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
-const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "issue watch ")));
+const TD = tmpDir(path.join(os.tmpdir(), "issue watch "));
 const summaryGh = path.join(TD, "summary-gh.mjs");
 fs.writeFileSync(summaryGh, 'process.stdout.write(process.argv.includes("--jq") ? "User" : "[]");');
 const ghEnv = { [GH_COMMAND_ENV]: JSON.stringify([process.execPath, summaryGh]) };

@@ -33,7 +33,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const LOCKED = path.join(REPO, "scripts", "test-locked.mjs");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
-const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "suite-records-test-")));
+const TD = tmpDir(path.join(os.tmpdir(), "suite-records-test-"));
 const CASE_LIMIT_MS = 20_000;
 let failures = 0;
 const check = (title, ok, detail = "") => {

@@ -8,7 +8,7 @@
  *  dir and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
- *  file in non-verbose mode, one counted FAIL line when a finished file's temporary folder remains busy,
+ *  file in non-verbose mode (last stderr lines when no failure line exists), one counted FAIL line when a finished file's temporary folder remains busy,
  *  a totals line with warnings and the self-test verdict, and the exit code; with
  *  --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output
  *  and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and,
@@ -96,6 +96,7 @@ const TIMEOUT_MS = Number(process.env.NANA_TEST_TIMEOUT_MS) || 5 * 60 * 1000;
 const DRAIN_MS = 2000; // after `exit`, how long stdio may stay open before we stop waiting
 const KILL_GRACE_MS = 5000; // after a timeout kill, how long we wait for `exit` at all
 const posix = process.platform !== "win32";
+const tempRoot = fs.realpathSync.native(os.tmpdir());
 
 // ── --jobs=N (R-1470, R-1477): refused before anything is collected or spawned ──────────────────
 const JOBS_RE = new RegExp(`^${JOBS_FLAG}([0-9]+)$`);
@@ -298,14 +299,14 @@ function runFile(file, cwd, env, timeoutMs, liveVerbose) {
 			windowsHide: true,
 		});
 		active.add(child);
-		let out = "";
+		let out = "", stderr = "";
 		const take = (chunk) => {
 			const s = chunk.toString();
 			out += s;
 			if (liveVerbose) process.stdout.write(s);
 		};
 		child.stdout.on("data", take);
-		child.stderr.on("data", take);
+		child.stderr.on("data", chunk => { stderr += chunk.toString(); take(chunk); });
 		let timedOut = false;
 		let exited = null;
 		let settled = false;
@@ -320,7 +321,7 @@ function runFile(file, cwd, env, timeoutMs, liveVerbose) {
 			child.stdout.destroy();
 			child.stderr.destroy();
 			active.delete(child);
-			resolve({ code: exited?.code ?? null, signal: exited?.signal ?? null, timedOut, pipesHeld, out });
+			resolve({ code: exited?.code ?? null, signal: exited?.signal ?? null, timedOut, pipesHeld, out, stderr });
 		};
 		const timer = setTimeout(() => {
 			timedOut = true;
@@ -392,7 +393,7 @@ if (packArgs.length) {
 	}
 }
 const files = shardFiles(collected.filter(file => !filters.length || filters.some(filter => rel(file).includes(filter))), shard, rel);
-scratch = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-runner-${process.pid}-`));
+scratch = fs.mkdtempSync(path.join(tempRoot, `nana-test-runner-${process.pid}-`));
 const trackedSnapshot = () => {
 	const listed = spawnSync("git", ["ls-files", "-s", "-z"], { cwd: root, encoding: "buffer" });
 	if (listed.error || listed.status !== 0) return null;
@@ -498,7 +499,8 @@ function reportOf(name, r, timeoutMs, fx, secs) {
 	if (!ok) {
 		const tail = r.out.trimEnd().split(/\r?\n/);
 		const shown = noPassingCheck ? tail.filter((l) => /^\s*SKIP\b/.test(l)) : tail.filter((l) => /^\s*(?:FAIL|not ok)\b/.test(l));
-		for (const l of (shown.length ? shown : tail).slice(0, 20)) excerpt.push(`      | ${l}`);
+		const lines = shown.length ? shown.slice(0, 20) : (r.stderr.trimEnd() ? r.stderr.trimEnd().split(/\r?\n/) : tail).slice(-20);
+		for (const l of lines) excerpt.push(`      | ${l}`);
 	}
 	const mismatch = fx && fx.expect !== (ok ? (f ? "PASS+WARN" : "PASS") : "FAIL");
 	return { p, f, s, ok, label, cause, resultLine, excerpt, warn: ok && f, mismatch };
@@ -520,12 +522,11 @@ if (jobs === 1) {
 				continue;
 			}
 			const fx = fixtureOf.get(file);
-			const fileTmp = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-${process.pid}-`));
+			const fileTmp = fs.mkdtempSync(path.join(tempRoot, `nana-test-${process.pid}-`));
 			activeFileTmp.add(fileTmp);
 			const home = fs.mkdtempSync(path.join(scratch, "home-"));
 			const env = { ...BASE_ENV, HOME: home, USERPROFILE: home, TMPDIR: fileTmp, TEMP: fileTmp, TMP: fileTmp };
 			if (covFolder) env.NODE_V8_COVERAGE = covFolder;
-			if (process.platform === "win32") { env.TEMP = fileTmp; env.TMP = fileTmp; }
 			// run from the package dir (the dir holding tests/ or test/), the way every file was written
 			const cwd = fx ? scratch : path.dirname(path.dirname(file));
 			const timeoutMs = fx?.timeoutMs ?? TIMEOUT_MS;
@@ -579,12 +580,11 @@ if (jobs === 1) {
 			return;
 		}
 		const fx = fixtureOf.get(file);
-		const fileTmp = fs.mkdtempSync(path.join(os.tmpdir(), `nana-test-${process.pid}-`));
+		const fileTmp = fs.mkdtempSync(path.join(tempRoot, `nana-test-${process.pid}-`));
 		activeFileTmp.add(fileTmp);
 		const home = fs.mkdtempSync(path.join(scratch, "home-"));
 		const env = { ...BASE_ENV, HOME: home, USERPROFILE: home, TMPDIR: fileTmp, TEMP: fileTmp, TMP: fileTmp };
 		if (covFolder) env.NODE_V8_COVERAGE = covFolder;
-		if (process.platform === "win32") { env.TEMP = fileTmp; env.TMP = fileTmp; }
 		const cwd = fx ? scratch : path.dirname(path.dirname(file));
 		const timeoutMs = fx?.timeoutMs ?? TIMEOUT_MS;
 		const t0 = Date.now();

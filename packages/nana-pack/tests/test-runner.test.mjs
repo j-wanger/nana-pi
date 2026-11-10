@@ -39,7 +39,7 @@ const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runt
 const SUITE_RECORDS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "suite-records-config.mjs");
 const WINDOWS_SKIPS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "windows-skips-config.mjs");
 const TEST_RUNNER_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "test-runner-config.mjs");
-const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "runner-test-")));
+const TD = tmpDir(path.join(os.tmpdir(), "runner-test-"));
 // an isolated HOME for this file too, so it holds when run directly and not through the runner;
 // OUTER_HOME is what a fixture's per-file HOME must NOT be
 const NANA_HOME = path.join(TD, "home");
@@ -193,7 +193,7 @@ const rootA = mkRoot("A", {
 		"\thandoff: String(process.env.NANA_HANDOFF), knowledge: String(process.env.NANA_KNOWLEDGE_HOME),",
 		"\tstage: String(process.env.NANA_STAGE_KEY), knob: String(process.env.NANA_TEST_TIMEOUT_MS),",
 		"\tagent_dir: String(process.env.PI_CODING_AGENT_DIR), claude_dir: String(process.env.CLAUDE_CONFIG_DIR), pi_bin: String(process.env.PI_BIN),",
-		"\tprobe_out: String(!!process.env.PROBE_OUT), tmpdir: process.env.TMPDIR,",
+		"\tprobe_out: String(!!process.env.PROBE_OUT), tmpdir: process.env.TMPDIR, temp: process.env.TEMP, tmp: process.env.TMP, native: fs.realpathSync.native(process.env.TMPDIR),",
 		"}));",
 		'console.log("PASS env fixture ran");',
 		"",
@@ -292,7 +292,7 @@ const prerequisitePresent = run(rootPrerequisite, ["--verbose", "post-edit-harde
 // req: R-607
 check("a tool-dependent file runs when its declared prerequisite exists", labelFor(prerequisitePresent.out, "post-edit-hardening.test.mjs") === "PASS" && prerequisitePresent.out.includes("PASS prerequisite fixture ran") && prerequisitePresent.code === 0);
 
-const spellingProbe = fs.realpathSync.native(tmpDir(path.join(TD, "checkout-spelling-probe-")));
+const spellingProbe = tmpDir(path.join(TD, "checkout-spelling-probe-"));
 const swappedSpelling = path.join(path.dirname(spellingProbe), [...path.basename(spellingProbe)].map((char) => char === char.toLowerCase() ? char.toUpperCase() : char.toLowerCase()).join(""));
 const secondSpellingExists = swappedSpelling !== spellingProbe && fs.existsSync(swappedSpelling);
 const spellingSkipReason = checkoutSpellingSkipReason(TD);
@@ -306,6 +306,15 @@ const spellingRun = run(rootSpelling, ["checkout-spelling"]);
 check("R-1986: checkout spelling skips exactly when the temporary volume has no second letter-case spelling", secondSpellingExists
 	? spellingSkipReason === null && labelFor(spellingRun.out, "checkout-spelling.test.mjs") === "PASS" && spellingRun.code === 0
 	: spellingSkipReason === "no second spelling exists on a case-sensitive volume" && labelFor(spellingRun.out, "checkout-spelling.test.mjs") === "SKIP" && lineFor(spellingRun.out, "checkout-spelling.test.mjs").includes(spellingSkipReason) && spellingRun.code === 0);
+
+const aliasTarget = tmpDir(path.join(TD, "temp-target-")), alias = path.join(TD, "temp-alias");
+fs.symlinkSync(aliasTarget, alias, process.platform === "win32" ? "junction" : "dir");
+try {
+	const aliased = run(rootA, ["h-env", "--jobs=2"], { TMPDIR: alias, TEMP: alias, TMP: alias });
+	const observed = readJson(aliased.out_dir, "env.json");
+	// req: R-917
+	check("an aliased suite temp root gives every child its native spelling", aliased.code === 0 && observed?.tmpdir === observed?.native && observed?.temp === observed?.native && observed?.tmp === observed?.native && observed?.tmpdir.startsWith(aliasTarget + path.sep), aliased.out);
+} finally { fs.unlinkSync(alias); }
 
 // ── case B: the substring filter, and --verbose ───────────────────────────────────────────────
 const B = run(rootA, ["--verbose", "probe/tests/c-pass"]);
@@ -536,7 +545,7 @@ const rootRecord = mkRoot("suite-record", {
 		'console.log("PASS record pass");',
 		'',
 	].join("\n"),
-	"packages/probe/tests/b-exit.test.mjs": 'console.log("PASS reached exit"); process.exit(7);\n',
+	"packages/probe/tests/b-exit.test.mjs": 'console.log("PASS reached exit"); console.log("stdout must not replace stderr"); process.stderr.write(Array.from({length:23}, (_,i)=>`cause ${i+1} \\t`).join("\\r\\n")); process.exitCode=7;\n',
 	"packages/probe/tests/c-silent.test.mjs": 'console.log("diagnostic only");\n',
 	"packages/probe/tests/d-timeout.test.mjs": `setTimeout(() => process.exit(0), ${TIMEOUT_FIXTURE_MS});\n`,
 	"packages/probe/tests/e-signal.test.mjs": 'process.kill(process.pid, "SIGKILL");\n',
@@ -554,6 +563,8 @@ const recordCoverage = path.join(TD, "suite-record-coverage");
 const recordedSerial = runRecorded("record-serial", [], { [COVERAGE_ENV]: recordCoverage, PATH: noPath });
 const recordedParallel = runRecorded("record-parallel", ["--jobs=2"], { PATH: noPath });
 const recordByPath = (record) => new Map((record?.files ?? []).map((entry) => [entry.path, entry]));
+// req: R-916
+check("a nonzero exit without a failure line prints the stderr tail, serial and parallel", [recordedSerial, recordedParallel].every(({ result }) => result.code === 1 && result.out.includes("| cause 4 ") && result.out.includes("| cause 23") && !result.out.includes("| cause 3 ") && !result.out.includes("| stdout must not replace stderr")), recordedSerial.result.out + recordedParallel.result.out);
 const serialFiles = recordByPath(recordedSerial.record);
 const parallelFiles = recordByPath(recordedParallel.record);
 const expectedRecordLabels = new Map([

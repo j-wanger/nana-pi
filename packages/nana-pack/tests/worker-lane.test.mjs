@@ -24,10 +24,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { KNOWN_BUGS_DIR } from "../../../scripts/known-bugs.mjs";
 // R-1125: win32 canonicalizes with the native real path, which keeps an 8.3 or differently cased
 // form the way git itself sees it (mirrors pi-worker's own fsReal); POSIX keeps the JS form.
-const real = (p) => (process.platform === "win32" ? fs.realpathSync.native(p) : fs.realpathSync(p));
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const worker = path.join(root, "bin", "pi-worker.mjs");
-const temp = real(tmpDir(path.join(os.tmpdir(), "worker-lane-")));
+const temp = tmpDir(path.join(os.tmpdir(), "worker-lane-"));
 const repo = path.join(temp, "repo"), lane = path.join(temp, "lane"), stubDir = path.join(temp, "stub");
 fs.mkdirSync(repo); fs.mkdirSync(stubDir);
 const git = (cwd, ...args) => spawnSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", ...args], { cwd, encoding: "utf8" });
@@ -43,7 +42,7 @@ fs.writeFileSync(path.join(repo, "docs", "known-bugs", "unplaced.md"), "# Unplac
 git(repo, "add", "seed", "tracked/nested.mjs", "old-name.mjs", "docs/known-bugs/FEAT-006.md", "docs/known-bugs/unplaced.md"); git(repo, "commit", "-qm", "seed");
 git(repo, "worktree", "add", "-qb", "feat/alpha", lane);
 git(lane, "mv", "old-name.mjs", "moved-name.mjs"); git(lane, "commit", "-qm", "move precedent fixture");
-const laneGitDir = real(path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim()));
+const laneGitDir = path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim());
 const laneLockPath = path.join(laneGitDir, "nana-lane.lock");
 const brief = path.join(temp, "brief.md");
 const defaultBriefText = "Serves: roadmap step 3: exercise the launcher.\nValidation: fixture run.\nlane brief content\n\nPrecedent:\n- seed\n";
@@ -275,7 +274,7 @@ check("R-2581: pi builders receive a known-bug read instruction instead of an in
 		const prompts = output.split("\n").filter((arg) => arg === "--append-system-prompt").length;
 		const copied = promptCount === 3 && fs.existsSync(path.join(temp, "prompt-3")) ? fs.readFileSync(path.join(temp, "prompt-3")) : null;
 		return result.status === 0 && prompts === promptCount && result.stderr.includes(`known bugs: ${launchValue}`) &&
-			(promptCount === 2 ? !fs.existsSync(path.join(temp, "prompt-3")) && !output.includes("unplaced.md") : copied.toString() === (readPath ? `Read \`${readPath}\` (this feature's known bugs) before you change code.` : "No known bugs are recorded for this feature.") && !output.includes(real(bugFile)));
+			(promptCount === 2 ? !fs.existsSync(path.join(temp, "prompt-3")) && !output.includes("unplaced.md") : copied.toString() === (readPath ? `Read \`${readPath}\` (this feature's known bugs) before you change code.` : "No known bugs are recorded for this feature.") && !output.includes(bugFile));
 	});
 	fs.rmSync(bugFile);
 	fs.mkdirSync(bugFile);
@@ -305,7 +304,7 @@ const prompt1Path = path.join(temp, "prompt-1");
 // throwing ENOENT and crashing the rest of the file.
 const prompt1Text = fs.existsSync(prompt1Path) ? fs.readFileSync(prompt1Path, "utf8") : "";
 // req: R-961
-check("verified lane passes preamble and validated brief as ordered file paths", good.status === 0 && /worker:/.test(result) && promptPaths.length === 2 && !fs.existsSync(promptPaths[0]) && promptPaths[1] === real(brief) && prompt1Text.includes("on branch feat/alpha") && fs.readFileSync(path.join(temp, "prompt-2"), "utf8") === defaultBriefText, `${good.stderr}${result} paths=${promptPaths.join(",")}`);
+check("verified lane passes preamble and validated brief as ordered file paths", good.status === 0 && /worker:/.test(result) && promptPaths.length === 2 && !fs.existsSync(promptPaths[0]) && promptPaths[1] === brief && prompt1Text.includes("on branch feat/alpha") && fs.readFileSync(path.join(temp, "prompt-2"), "utf8") === defaultBriefText, `${good.stderr}${result} paths=${promptPaths.join(",")}`);
 const plainWorker = run(lane, [], { NANA_ROLE: "inherited" }, ["-p", "plain"]);
 const plainResult = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 // req: R-286
@@ -595,7 +594,7 @@ writeStub(mainPosixScript(false), mainNodeBody(false));
 // req: R-965
 check("missing trust prints notice before worker attempt", good.stderr.indexOf("trust: none for") >= 0 && good.stderr.indexOf("trust: none for") < good.stderr.indexOf("attempt 1"));
 const trustDir = path.join(temp, ".pi", "agent"); fs.mkdirSync(trustDir, { recursive: true });
-fs.writeFileSync(path.join(trustDir, "trust.json"), JSON.stringify({ [real(lane)]: true }));
+fs.writeFileSync(path.join(trustDir, "trust.json"), JSON.stringify({ [lane]: true }));
 const trusted = run(lane, ["--lane", "alpha", "--brief", brief]);
 // req: R-965
 check("affirmative trust record suppresses notice", trusted.status === 0 && !trusted.stderr.includes("trust: none for"));

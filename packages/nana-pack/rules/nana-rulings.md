@@ -38,3 +38,4 @@ These rulings guide the seat, the session that plans lanes and launches builders
 - 2026-11-09: The memory factory is cut (owner D3). The owner profile store stays.
 - 2026-11-09: A red main leg re-runs once at the same commit; a green re-run keeps lands open, and the flake is recorded per file and fixed in source. Lane tips do not run the full Windows suite for now. The lane-built code map and requirements tree move out of each lane's commits in their own lane.
 - 2026-11-10: The next lane's build may start once the previous lane has LAND and green CI on its own tip, while main CI runs; a red main still blocks every land.
+- 2026-11-10: Process records move to a private folder outside the repo; old records stay in history. The knowledge lookup trial becomes a two-hour offline comparison with plain search, and a cut waits for the owner's explicit go. No outside-project lanes before the 2026-11-22 review.

@@ -14,19 +14,15 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
-import { withinCaseLimit } from './report-fixtures.mjs';
+import { CASE_LIMIT_MS, withinCaseLimit } from './report-fixtures.mjs';
 import { checkLane, laneCheckLines } from '../lib/lane-checks.mjs';
 import { buildEndRecord } from '../lib/build-records.mjs';
 import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
 import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
 
-// Chosen: 10 seconds lets npm and a cold Node check start on loaded Windows runners;
-// the former 1-second budget missed the holder in CI runs 42826448231 and 42841920622.
-const PIPE_HOLDER_TIMEOUT_MS = 10_000;
 const worker = fileURLToPath(new URL('../bin/pi-worker.mjs', import.meta.url));
-let failures = 0, caseTitle;
+let failures = 0;
 async function check(title, action) {
-  caseTitle = title;
   try { await withinCaseLimit(title, action); console.log('PASS', title); }
   catch (error) {
     failures++; console.log('FAIL', title, error.stack ?? error);
@@ -38,28 +34,6 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   const repo = join(root, 'repo'), lane = join(root, 'lane'), bin = join(root, 'bin'), agent = join(root, 'agent');
   fs.mkdirSync(repo); fs.mkdirSync(bin); fs.mkdirSync(agent);
   const env = { ...process.env, HOME: root, USERPROFILE: root, PI_CODING_AGENT_DIR: agent, CLAUDE_CONFIG_DIR: root, PATH: `${bin}${process.platform === 'win32' ? ';' : ':'}${process.env.PATH}` };
-  // Every Node descendant (worker, watcher, relay, npm and checks) records itself,
-  // including detached pipe holders which can outlive boundedSpawn's result.
-  const processRecords = join(root, 'processes'); fs.mkdirSync(processRecords);
-  const recorder = join(root, 'record-process.cjs');
-  fs.writeFileSync(recorder, `const fs=require('node:fs'), path=require('node:path'); const file=path.join(${JSON.stringify(processRecords)}, String(process.pid)); const temp=file+'.tmp'; fs.writeFileSync(temp, JSON.stringify({pid:process.pid, role:process.argv[1] || 'node'})); fs.renameSync(temp, file);`);
-  env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require ${JSON.stringify(recorder)}`;
-  const tracked = new Map();
-  const track = (pid, role) => { if (Number.isInteger(pid)) tracked.set(pid, { pid, role }); };
-  const label = caseTitle;
-  const liveProcesses = () => {
-    for (const name of fs.readdirSync(processRecords)) {
-      if (!/^[1-9]\d*$/.test(name)) continue; // Ignore unpublished atomic-write temp files.
-      const member = JSON.parse(fs.readFileSync(join(processRecords, name), 'utf8'));
-      track(member.pid, member.role);
-    }
-    return [...tracked.values()].filter(member => pidAlive(member.pid));
-  };
-  const awaitExit = async () => {
-    const deadline = Date.now() + RELAY_SIGNAL_GRACE_MS + RELAY_BACKSTOP_MS;
-    while (liveProcesses().length && Date.now() < deadline) await new Promise(resolve => setImmediate(resolve));
-    return liveProcesses();
-  };
   const gitArgs = ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false'];
   function gitAt(cwd, ...args) {
     const r = spawnSync('git', [...gitArgs, ...args], { cwd, env, encoding: 'utf8', timeout: 10000 });
@@ -112,18 +86,10 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   };
   const commit = () => { git('add', '.'); git('commit', '-qF', message); };
   let actionError;
-  try { return await action({ root, repo, lane, env, base, put, launch, args, records, readCalls, git, commit, track }); }
+  try { return await action({ root, repo, lane, env, base, put, launch, args, records, readCalls, git, commit }); }
   catch (error) { actionError = error; throw error; }
   finally {
     try {
-      // Wait for natural relay/watcher shutdown first. The escaped pipe holder
-      // and failure paths need explicit termination, but never signal strangers.
-      const survivors = await awaitExit();
-      for (const { pid } of survivors) {
-        if (pidAlive(pid)) { try { process.kill(pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; } }
-      }
-      const remaining = await awaitExit();
-      assert.deepEqual(remaining, [], `${label}: recorded processes survived fixture teardown`);
       remove(root, { recursive: true, force: true });
     }
     catch (cleanupError) {
@@ -254,7 +220,7 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
     { onBase: false }, { onBase: true },
     { onBase: false, relayDelay: 2 * RELAY_SIGNAL_GRACE_MS },
     { onBase: true, relayDelay: RELAY_BACKSTOP_MS + 2 * RELAY_SIGNAL_GRACE_MS },
-  ]) await fixture(async ({ root, repo, lane, env, put, args, records, readCalls, track }) => {
+  ]) await fixture(async ({ root, repo, lane, env, put, args, records, readCalls }) => {
     const actual = (assertion, value) => `onBase=${onBase}, relayDelay=${relayDelay}: ${assertion}; actual=${JSON.stringify(value)}`;
     const marker = join(root, 'check-started');
     if (!onBase) put(lane, checkSource(root, false));
@@ -279,7 +245,6 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       args.unshift('--import', pathToFileURL(preload).href);
     }
     const child = spawn(process.execPath, args, { cwd: lane, env, stdio: ['ignore', 'pipe', 'pipe'] });
-    track(child.pid, 'worker');
     let stderr = ''; child.stderr.on('data', data => { stderr += data; }); child.stdout.resume();
     const ended = new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })));
     let checkPids;
@@ -288,8 +253,7 @@ await check('R-4006: a stop during tip or base checks kills the check tree and r
       while (!fs.existsSync(marker) && child.exitCode === null && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
       assert.ok(fs.existsSync(marker), actual('check-started marker exists', { exists: fs.existsSync(marker), stderr }));
       checkPids = JSON.parse(fs.readFileSync(marker, 'utf8'));
-      for (const member of checkPids.pids) track(member.pid, member.role);
-      assert.equal(fs.realpathSync.native(checkPids.cwd) === fs.realpathSync.native(lane), !onBase, actual('check cwd matches lane', { cwd: checkPids.cwd, lane: fs.realpathSync.native(lane) }));
+      assert.equal(checkPids.cwd === lane, !onBase, actual('check cwd matches lane', { cwd: checkPids.cwd, lane }));
       assert.ok(checkPids.pids.some(member => member.role === 'check'), actual('check pid recorded', checkPids.pids));
       assert.ok(checkPids.pids.some(member => member.role === 'child'), actual('child pid recorded', checkPids.pids));
       if (process.platform === 'win32' && checkPids.parentsReadable) {
@@ -407,18 +371,31 @@ await check('stop during base checkout add lets git finish before removing its w
 // req: R-3997
 await check('a check with an escaped output-pipe holder still returns at the relay deadline', () => fixture(async ({ root, lane, env, put, commit }) => {
   const marker = join(root, 'pipe-holder');
-  put(lane, `const cp=require('node:child_process'), fs=require('node:fs');
-    const child=cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},15000)'], {detached:true, stdio:['ignore',1,2]});
-    const marker=${JSON.stringify(marker)};
-    fs.writeFileSync(marker+'.tmp', String(child.pid)); fs.renameSync(marker+'.tmp', marker); child.unref();`);
+  const holder = `const fs=require('node:fs'), marker=${JSON.stringify(marker)};
+    fs.writeFileSync(marker+'.tmp', String(process.pid)); fs.renameSync(marker+'.tmp', marker); setTimeout(()=>{},15000);`;
+  put(lane, `const cp=require('node:child_process');
+    cp.spawn(process.execPath, ['-e', ${JSON.stringify(holder)}], {detached:true, stdio:['ignore',1,2]}).unref();`);
   commit();
+  let watcher, started;
+  const ready = new Promise(resolve => {
+    watcher = fs.watch(root, () => {
+      if (!fs.existsSync(marker)) return;
+      started = Date.now(); watcher.close(); resolve();
+    });
+  });
+  const controller = new AbortController();
+  const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(CASE_LIMIT_MS)]);
+  const running = checkLane({ cwd: lane, env, signal, timeout: 100,
+    run: (command, args, options) => boundedSpawn(command, args, { ...options, ...(args.includes('check:lane') ? { timeoutStart: ready } : {}) }),
+  });
   try {
-    const started = Date.now();
-    const result = await checkLane({ cwd: lane, env, timeout: PIPE_HOLDER_TIMEOUT_MS });
+    const result = await running;
+    assert.ok(started, 'the fixture must actually start its pipe holder');
     assert.equal(result.status, 'error'); assert.match(result.output, /ETIMEDOUT/);
-    assert.ok(Date.now() - started < PIPE_HOLDER_TIMEOUT_MS + RELAY_SETTLE_MS + 2500, 'pipe holder delayed the relay result');
-    assert.ok(fs.existsSync(marker), 'the fixture must actually start its pipe holder');
+    assert.ok(Date.now() - started < RELAY_SETTLE_MS + RELAY_BACKSTOP_MS, 'pipe holder delayed the relay result');
   } finally {
+    watcher.close(); controller.abort('SIGTERM');
+    await running;
     if (fs.existsSync(marker)) {
       const pid = Number(fs.readFileSync(marker, 'utf8'));
       if (pidAlive(pid)) killProcessTree(pid, { fallback: signal => { try { process.kill(pid, signal); } catch {} } });

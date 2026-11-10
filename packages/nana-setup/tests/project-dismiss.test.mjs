@@ -22,7 +22,7 @@ const reader = path.resolve(pkg, "..", "nana-pack", "bin", "nana-adoption.mjs");
 let fails = 0;
 const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, ok ? "" : extra); if (!ok) fails++; };
 
-const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "nana-dismiss-")));
+const root = tmpDir(path.join(os.tmpdir(), "nana-dismiss-"));
 const home = path.join(root, "home");
 fs.mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 const env = { ...process.env, HOME: home, USERPROFILE: home, NANA_TEST_TEMP_ROOTS: "" };

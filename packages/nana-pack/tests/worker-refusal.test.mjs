@@ -24,10 +24,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { KNOWN_BUGS_DIR } from "../../../scripts/known-bugs.mjs";
 // R-1125: win32 canonicalizes with the native real path, which keeps an 8.3 or differently cased
 // form the way git itself sees it (mirrors pi-worker's own fsReal); POSIX keeps the JS form.
-const real = (p) => (process.platform === "win32" ? fs.realpathSync.native(p) : fs.realpathSync(p));
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const worker = path.join(root, "bin", "pi-worker.mjs");
-const temp = real(tmpDir(path.join(os.tmpdir(), "worker-lane-")));
+const temp = tmpDir(path.join(os.tmpdir(), "worker-lane-"));
 const repo = path.join(temp, "repo"), lane = path.join(temp, "lane"), stubDir = path.join(temp, "stub");
 fs.mkdirSync(repo); fs.mkdirSync(stubDir);
 const git = (cwd, ...args) => spawnSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", ...args], { cwd, encoding: "utf8" });
@@ -43,7 +42,7 @@ fs.writeFileSync(path.join(repo, "docs", "known-bugs", "unplaced.md"), "# Unplac
 git(repo, "add", "seed", "tracked/nested.mjs", "old-name.mjs", "docs/known-bugs/FEAT-006.md", "docs/known-bugs/unplaced.md"); git(repo, "commit", "-qm", "seed");
 git(repo, "worktree", "add", "-qb", "feat/alpha", lane);
 git(lane, "mv", "old-name.mjs", "moved-name.mjs"); git(lane, "commit", "-qm", "move precedent fixture");
-const laneGitDir = real(path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim()));
+const laneGitDir = path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim());
 const laneLockPath = path.join(laneGitDir, "nana-lane.lock");
 const brief = path.join(temp, "brief.md");
 const defaultBriefText = "Serves: roadmap step 3: exercise refusals.\nValidation: fixture run.\nlane brief content\n\nPrecedent:\n- seed\n";

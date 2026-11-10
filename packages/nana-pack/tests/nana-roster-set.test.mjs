@@ -222,7 +222,7 @@ const statesEqual = (a, b) => a.type === b.type && (a.type !== "file" || a.bytes
 		rWrite.ok === false && beforeWrite.equals(afterWrite) && entriesWrite.length === 1 && entriesWrite[0] === "nana-pack.json" &&
 		rRename.ok === false && beforeRename.equals(afterRename) && entriesRename.every((e) => e === "nana-pack.json" || e === "nana-pack.json.bak") &&
 		rRecord.ok === true && recorded !== null && recorded.text.includes("\"model\": \"b\"") &&
-		fs.realpathSync.native(path.dirname(recorded.from)) === fs.realpathSync.native(path.dirname(fileRecord)),
+		path.dirname(recorded.from) === path.dirname(fileRecord),
 		JSON.stringify({ rNormal: { status: rNormal.status, entriesNormal }, rWrite, entriesWrite, rRename, entriesRename, rRecord: rRecord.ok }));
 }
 

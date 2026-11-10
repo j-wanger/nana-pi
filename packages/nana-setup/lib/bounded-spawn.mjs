@@ -1,13 +1,14 @@
 /**
  * @module packages/nana-setup/lib/bounded-spawn.mjs
  * @purpose Run synchronous and asynchronous child launches through the shared bounded-spawn relay.
- * @inputs command, args and spawn options including an optional async abort signal; bounded-spawn-child.mjs; process.env, process.pid and process.platform
+ * @inputs command, args and spawn options including an optional async abort signal and timeoutStart readiness Promise; bounded-spawn-child.mjs; process.env, process.pid and process.platform
  * @outputs boundedSpawnSync result or boundedSpawn Promise shaped like child_process.spawnSync with optional relayExitError; relay parent-poll, result-size, settle, signal-grace and backstop limits
  * @effects process (starts the relay detached on POSIX, sends its launch specification on stdin and forwards async stops)
  * @errors launch, relay and timeout failures are returned in result.error with a code and never thrown
  */
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { killProcessTree } from "../../nana-pack/lib/process-tree.mjs";
 
 // chosen 2026-10-20: allow closed child pipes one second to settle before the relay reports its timeout.
 export const RELAY_SETTLE_MS = 1_000;
@@ -93,7 +94,7 @@ export async function boundedSpawn(command, args, options = {}) {
 	try {
 		if (options.signal?.aborted) return { status: null, signal: options.signal.reason, stdout: "", stderr: "" };
 		const timeout = Number(options.timeout);
-		const input = launchSpec(command, args, options, timeout);
+		const input = launchSpec(command, args, options, options.timeoutStart ? NaN : timeout);
 		return await new Promise((resolve) => {
 			const child = spawn(process.execPath, [relay], {
 				env: options.env ?? process.env,
@@ -127,7 +128,10 @@ export async function boundedSpawn(command, args, options = {}) {
 					if (!ended) {
 						result.relayExitError = "bounded spawn relay did not exit within its signal grace plus backstop";
 						// SIGTERM always precedes this last resort; never skip the relay's tree cleanup grace.
-						try { child.kill("SIGKILL"); } catch {}
+						killProcessTree(child.pid, { fallback: signal => child.kill(signal) });
+						await Promise.race([exit, new Promise(done => {
+							const timer = setTimeout(done, RELAY_SETTLE_MS); timer.unref();
+						})]);
 						child.unref();
 					}
 				}
@@ -160,11 +164,15 @@ export async function boundedSpawn(command, args, options = {}) {
 				: relayResult({ status, signal, stdout, stderr })));
 			options.signal?.addEventListener("abort", abort, { once: true });
 			if (options.signal?.aborted) abort();
-			if (!finished && Number.isFinite(timeout) && timeout >= 0) timer = setTimeout(() => {
-				// The relay's own deadline and settle window have already elapsed.
-				// finish sends SIGTERM and observes exit before any forced relay kill.
-				void finish(resultError("ETIMEDOUT", "bounded spawn relay exceeded its backstop"));
-			}, timeout + RELAY_BACKSTOP_MS);
+			const armDeadline = () => {
+				if (finished || !Number.isFinite(timeout) || timeout < 0) return;
+				if (options.timeoutStart && child.connected) child.send({ type: "bounded-spawn-deadline", timeout }, () => {});
+				timer = setTimeout(() => {
+					void finish(resultError("ETIMEDOUT", "bounded spawn relay exceeded its backstop"));
+				}, timeout + RELAY_BACKSTOP_MS);
+			};
+			if (options.timeoutStart) Promise.resolve(options.timeoutStart).then(armDeadline, error => finish(resultError("ERELAY", String(error))));
+			else armDeadline();
 			child.stdin.end(input);
 		});
 	} catch (error) {

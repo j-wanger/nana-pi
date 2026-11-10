@@ -70,7 +70,7 @@ try {
       writeFileSync(join(other, "REQUIREMENTS.md"), `${text}\nConcurrent edit.\n`);
       const refused = lift(["--root", dir, "--mapping", mapPath, "--write"]);
       // req: R-1164
-      check("a second worktree's dirty ledger refuses the write", refused.status === 1 && refused.stderr.includes(realpathSync.native(other)) && readFileSync(file).equals(before) && readFileSync(join(other, "REQUIREMENTS.md"), "utf8").endsWith("Concurrent edit.\n"), refused.stderr);
+      check("a second worktree's dirty ledger refuses the write", refused.status === 1 && refused.stderr.includes(other) && readFileSync(file).equals(before) && readFileSync(join(other, "REQUIREMENTS.md"), "utf8").endsWith("Concurrent edit.\n"), refused.stderr);
       gitC(other, "checkout", "--", "REQUIREMENTS.md");
       const written = lift(["--root", dir, "--mapping", mapPath, "--write"]);
       const output = readFileSync(file, "utf8");

@@ -16,7 +16,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { runAcceptance, ACCEPTANCE_COMMANDS } from "../../../scripts/template-acceptance.mjs";
 
 const repo = fileURLToPath(new URL("../../../", import.meta.url));
-const root = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "data-pack-")));
+const root = tmpDir(path.join(os.tmpdir(), "data-pack-"));
 let failures = 0;
 const run = (cmd, args, cwd = root) => {
   const r = spawnSync(cmd, args, { cwd, encoding: "utf8", timeout: 180_000, env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" } });

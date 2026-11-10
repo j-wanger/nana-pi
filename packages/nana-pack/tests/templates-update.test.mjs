@@ -7,19 +7,14 @@
  * @errors Failed checks exit non-zero; unavailable optional Copier tooling is reported as SKIP
  */
 import { tmpDir } from "./tmp-dir.mjs";
-import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const { check: railCheck, printReport } = await import(new URL("../../../templates/typescript/template/tests/requirements-trace.ts", import.meta.url).href);
-// Resolve to the long form before any copier or git call: a hosted runner's short-form
-// temp path (e.g. RUNNER~1) and git/copier's long-form realpath (e.g. runneradmin) name
-// the same directory but compare unequal, which copier's subpath check raises as a
-// ValueError on Windows.
-const toLongPath = (path) => { const real = realpathSync.native(path); return real.startsWith("\\\\?\\") ? real.slice(4) : real; };
-const root = toLongPath(tmpDir(join(tmpdir(), "nana-partg-rail-")));
+const root = tmpDir(join(tmpdir(), "nana-partg-rail-"));
 mkdirSync(join(root, "tests"), { recursive: true });
 let failures = 0;
 const check = (title, ok, detail = "") => {

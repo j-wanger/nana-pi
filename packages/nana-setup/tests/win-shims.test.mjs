@@ -134,7 +134,7 @@ test("Windows: text piped by bare name to nana-writing --report reaches the chec
 	const vendor = path.join(home, ".pi", "agent", "npm", "node_modules", "pi-subagents");
 	fs.mkdirSync(vendor, { recursive: true });
 	fs.writeFileSync(path.join(vendor, "package.json"), JSON.stringify({ version: "0.75.0" }));
-	const install = recordRun("writing setup install", spawnSync(process.execPath, [cli, "install", "--home", home], { cwd: packageRoot, encoding: "utf8", env: process.env, timeout: CASE_TIMEOUT_MS }));
+	const install = recordRun("writing setup install", spawnSync(process.execPath, [cli, "install", "--home", home, "--pi-home", path.join(home, ".pi", "agent")], { cwd: packageRoot, encoding: "utf8", env: process.env, timeout: CASE_TIMEOUT_MS }));
 	assert.equal(install.status, 0, install.stderr);
 	const installedBin = path.join(home, ".local", "bin");
 	const onlyInstalledBinAndNode = withPath(process.env, `${installedBin};${nodeDir}`);
@@ -183,7 +183,7 @@ test("Windows: doctor reads PATH resolves pi-review ✓ only when the bin direct
 	const env = { ...process.env, HOME: home, USERPROFILE: home, Path: `${path.join(home, ".local", "bin")};${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`, PATH: `${path.join(home, ".local", "bin")};${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`, PATHEXT: ".COM;.EXE;.BAT;.CMD" };
 	delete env.CLAUDE_CONFIG_DIR;
 	const invoke = (label, args, extra = {}) => recordRun(label, spawnSync(process.execPath, [cli, ...args], { cwd: packageRoot, encoding: "utf8", env: { ...env, ...extra }, timeout: CASE_TIMEOUT_MS }));
-	assert.equal(invoke("setup install", ["install"]).status, 0);
+	assert.equal(invoke("setup install", ["install", "--pi-home", path.join(home, ".pi", "agent")]).status, 0);
 	const good = invoke("doctor with shim first", ["doctor"]);
 	assert.match(good.stdout, /✓ PATH resolves pi-review/);
 	const absentPath = `${nodeDir};${process.env.Path ?? process.env.PATH ?? ""}`;

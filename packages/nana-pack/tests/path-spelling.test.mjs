@@ -27,10 +27,7 @@ const { admit, complete, readRounds, repoKeyOf } = await import(pathToFileURL(pa
 const win32 = process.platform === "win32";
 // chosen: an impossible owner outside the platform pid range.
 const IMPOSSIBLE_PID = 2_147_483_647;
-// MUST 4 (brief 2): do NOT resolve this to its long/native form. On Windows CI the runner's own
-// os.tmpdir() is already a short 8.3-style path (e.g. under `RUNNER~1`) — the natural second
-// spelling every repo and home built under it inherits for free. Each "canonical" ground truth
-// below is still resolved explicitly, on its own, where it is declared.
+// The suite supplies a long temp root; each Windows case explicitly probes its short alias.
 const tmpRoot = tmpDir(path.join(os.tmpdir(), "path-spelling-test-"));
 const LEDGER_CLI = reviewRunHarness(tmpRoot);
 
@@ -132,8 +129,8 @@ function otherSpellings(canonical, label) {
     // folds a mere case difference away.
     const shortProbe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${canonical}').ShortPath`], { encoding: "utf8" });
     const shortPath = shortProbe.status === 0 ? shortProbe.stdout.trim() : null;
-    if (shortPath && shortPath.toLowerCase() !== canonical.toLowerCase()) out.push({ kind: "8.3", path: shortPath });
-    else console.log(`SKIP ${label} (8.3): this volume keeps no 8.3 short name`);
+    ok(shortPath && shortPath.toLowerCase() !== canonical.toLowerCase(), `${label}: a distinct 8.3 path is required: ${shortProbe.stderr}`);
+    out.push({ kind: "8.3", path: shortPath });
   }
   return out;
 }
@@ -397,7 +394,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   const gp4Repo = repo(tmpRoot, "gp4-repo");
   commit(gp4Repo, "seed.txt", "seed\n", "base");
   const canonicalRepo = fs.realpathSync.native(gp4Repo);
-  const tempParent = fs.realpathSync.native(tmpDir(path.join(tmpRoot, "gp4-temp-")));
+  const tempParent = tmpDir(path.join(tmpRoot, "gp4-temp-"));
   const spellings = otherSpellings(tempParent, "GP4");
   // req: R-1353
   if (spellings.length) check("GP4: a dead review checkout registered under one spelling of the temp folder is reclaimed when pi-review's own temp folder env points at another", () => {
@@ -431,7 +428,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   const gp5Repo = repo(tmpRoot, "gp5-repo");
   commit(gp5Repo, "seed.txt", "seed\n", "base");
   const canonicalRepo = fs.realpathSync.native(gp5Repo);
-  const tempParent = fs.realpathSync.native(tmpDir(path.join(tmpRoot, "gp5-temp-")));
+  const tempParent = tmpDir(path.join(tmpRoot, "gp5-temp-"));
   const spellings = otherSpellings(tempParent, "GP5");
   // req: R-1354
   if (spellings.length) check("GP5: a remaining review checkout registration is reported and refused when the temp folder is spelled differently", () => {

@@ -99,8 +99,18 @@ function terminate(signal) {
 }
 
 for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(signal, () => terminate(signal));
+function armDeadline(timeout) {
+	if (finished || terminatingSignal || !Number.isFinite(timeout) || timeout < 0) return;
+	clearTimeout(deadlineTimer);
+	deadlineTimer = setTimeout(() => {
+		timedOut = true;
+		killTree();
+		settleTimer = setTimeout(() => relay(timeoutResult()), RELAY_SETTLE_MS);
+	}, timeout);
+}
 process.on("message", (message) => {
 	if (message?.type === "bounded-spawn-stop" && ["SIGINT", "SIGTERM", "SIGHUP"].includes(message.signal)) terminate(message.signal);
+	else if (message?.type === "bounded-spawn-deadline") armDeadline(message.timeout);
 });
 
 let spec;
@@ -139,14 +149,7 @@ if (!finished) {
 			else if (timedOut) relay(timeoutResult());
 			else relay({ status: launchError ? null : status, signal, stdout, stderr, ...(launchError ? { error: errorRecord(launchError) } : {}) });
 		});
-		const timeout = Number(spec.options?.timeout);
-		if (Number.isFinite(timeout) && timeout >= 0) {
-			deadlineTimer = setTimeout(() => {
-				timedOut = true;
-				killTree();
-				settleTimer = setTimeout(() => relay(timeoutResult()), RELAY_SETTLE_MS);
-			}, timeout);
-		}
+		armDeadline(Number(spec.options?.timeout));
 	} catch (error) {
 		relay({ status: null, signal: null, stdout, stderr, error: errorRecord(error) }, 1);
 	}

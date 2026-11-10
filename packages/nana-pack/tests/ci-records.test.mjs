@@ -34,7 +34,7 @@ import vm from "node:vm";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const WORKFLOW = fs.readFileSync(path.join(REPO, ".github", "workflows", "ci.yml"), "utf8");
-const TD = fs.realpathSync.native(tmpDir(path.join(os.tmpdir(), "ci-records-test-")));
+const TD = tmpDir(path.join(os.tmpdir(), "ci-records-test-"));
 const CASE_LIMIT_MS = 30_000;
 const ORIGIN_URL = execFileSync("git", ["remote", "get-url", "origin"], { cwd: REPO, encoding: "utf8" }).trim();
 const GITHUB_REPO = githubRepoOf(ORIGIN_URL);
