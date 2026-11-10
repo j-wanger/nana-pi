@@ -111,11 +111,6 @@ export function canonicalItem(raw) {
   return s;
 }
 
-/** Rounds consumed by a list of {revision} entries: the number of DISTINCT revisions (pure). */
-export function roundsUsed(entries) {
-  return new Set(entries.map((e) => e.revision)).size;
-}
-
 /** @deprecated Pure legacy value kept for ~/nana-agent-loop's review-round.mjs forwarder.
  * Nothing in nana-pi calls or consumes this cap export; review admission has no round cap. */
 export const REVIEW_ROUND_CAP = 3;

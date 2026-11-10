@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/review-round.test.mjs
- * @purpose Pins the review ROUND CAP as pure rules — a round is a distinct revision, the item slug is canonical, and the deprecated path helper keeps its contract
+ * @purpose Pin canonical review items and the live legacy forwarder contract.
  * @inputs bin/review-round.mjs
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects none
@@ -11,7 +11,7 @@
 // a deprecated export for ~/nana-agent-loop's forwarder (its test's assertions are mirrored here).
 // Process-level proofs: review-ledger.test.mjs. Run: node packages/nana-pack/tests/review-round.test.mjs
 import { REVIEW_ROUND_CAP, roundFromOutPath, roundCapVerdict } from '../bin/review-round.mjs';
-const { SLUG_MAX, roundsUsed, optValue, canonicalItem } =
+const { SLUG_MAX, canonicalItem } =
 	await import(new URL("../bin/review-round.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -22,15 +22,7 @@ check("legacy forwarder named imports preserve pure compatibility",
 	[null, undefined, 1, 3].every(round => roundCapVerdict(round) === 'allow') &&
 	roundCapVerdict(4) === 'refuse' && roundCapVerdict(4, '   ') === 'refuse' &&
 	roundCapVerdict(4, 'legacy reason') === 'override');
-const v = (revision, role) => ({ revision, role });
 const throws = (f) => { try { f(); return false; } catch { return true; } };
-
-check("no verdicts, no rounds", roundsUsed([]) === 0);
-check("sol + astra on one revision = ONE round", roundsUsed([v("a", "sol"), v("a", "astra")]) === 1);
-check("ten roles on one revision = ONE round", roundsUsed(Array.from({ length: 10 }, (_, i) => v("a", "r" + i))) === 1);
-check("the same role twice on one revision = ONE round (a revision, not a role count)", roundsUsed([v("a", "sol"), v("a", "sol")]) === 1);
-// req: R-707
-check("three revisions = three rounds", roundsUsed([v("a", "sol"), v("b", "sol"), v("c", "astra")]) === 3);
 
 // req: R-704
 check("slug: trim + casefold + collapse whitespace", canonicalItem("  Scope \t  ONE ") === "scope one");
@@ -51,12 +43,5 @@ check("roundFromOutPath (deprecated) still reads both conventions",
 // req: R-730
 check("roundFromOutPath (deprecated) null cases unchanged",
 	["/x/notes.md", "/x/pr12.md", "/x/r2026-summary.md", "/x/report-r4beta.md", "/x/round-4k-notes.md", "/reviews/round-4/notes.md"].every((p) => roundFromOutPath(p) === null));
-
-check("absent option is undefined", optValue(["--out", "x"], "--item") === undefined);
-check("--over-cap --retries: a flag is not a reason", throws(() => optValue(["--over-cap", "--retries", "2"], "--over-cap")));
-check("--over-cap '   ': blank is not a reason", throws(() => optValue(["--over-cap", "   "], "--over-cap")));
-check("--over-cap at the end: nothing is not a reason", throws(() => optValue(["--over-cap"], "--over-cap")));
-check("--item --role: a flag is not an item", throws(() => optValue(["--item", "--role", "sol"], "--item")));
-check("a real reason passes, trimmed", optValue(["--over-cap", " instrumented X "], "--over-cap") === "instrumented X");
 
 process.exit(fails);

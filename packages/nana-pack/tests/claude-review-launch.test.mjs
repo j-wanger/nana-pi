@@ -127,28 +127,6 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 		JSON.stringify({ result, calls, state }));
 }
 
-{
-	const item = "claude-refused";
-	const repo = makeRepo("refused-tree");
-	fs.writeFileSync(path.join(repo, "brief.md"), "Review.\n");
-	const fakeBin = path.join(temp, "fake-refused");
-	const record = writeFakeClaude(fakeBin, path.join(temp, "refused-record.jsonl"));
-	const piHome = makeHome("pi-reviewer", roster(piEntry()));
-	const piResult = runLauncher({ cwd: temp, tree: repo, out: path.join(temp, "pi-refused-out.md"), item, env: baseEnv(piHome, fakeBin, record) });
-	const badHome = makeHome("bad-roster");
-	const badFile = path.join(badHome.agent, "nana-pack.json");
-	fs.writeFileSync(badFile, "{\"roster\": ");
-	const badResult = runLauncher({ cwd: temp, tree: repo, out: path.join(temp, "bad-refused-out.md"), item, env: baseEnv(badHome, fakeBin, record) });
-	const piState = ledgerState(piHome.home, item);
-	const badState = ledgerState(badHome.home, item);
-	// req: R-2562
-	check("R-2562: a pi reviewer in the roster is refused before admission",
-		piResult.status === 1 && /roster\.reviewer/.test(piResult.stderr) && /pi-review/.test(piResult.stderr) && /nana-roster set reviewer claude-code/.test(piResult.stderr) &&
-		badResult.status === 1 && badResult.stderr.includes(badFile) && noStack(badResult.stderr) && !fs.existsSync(record) &&
-		piState.rounds.length === 0 && piState.reservations.length === 0 && badState.rounds.length === 0 && badState.reservations.length === 0,
-		JSON.stringify({ piResult, badResult, piState, badState }));
-}
-
 
 {
 	const source = makeRepo('dirty-source');

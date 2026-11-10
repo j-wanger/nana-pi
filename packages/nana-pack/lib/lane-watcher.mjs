@@ -105,13 +105,11 @@ function elapsedMilliseconds(value) {
 	return Number.isSafeInteger(seconds * 1000) ? seconds * 1000 : null;
 }
 
-/** Read process identity time; exact mode uses a stable start timestamp for repeated comparisons. */
-export function processStartedAt(pid, { run = spawnSync, now = Date.now, platform = process.platform, exact = false } = {}) {
+/** Read the POSIX process start time for cleanup's identity check. */
+function processStartedAt(pid, { run = spawnSync, now = Date.now } = {}) {
 	if (!Number.isSafeInteger(pid) || pid <= 1) return null;
 	try {
-		const result = platform === 'win32'
-			? run('powershell', ['-NoProfile', '-Command', `(Get-Process -Id ${pid} -ErrorAction Stop).StartTime.ToUniversalTime().ToString('o')`], { encoding: 'utf8', windowsHide: true, timeout: LANE_WATCHER_GIT_TIMEOUT_MS })
-			: run("ps", ["-o", exact ? "lstart=" : "etime=", "-p", String(pid)], {
+		const result = run("ps", ["-o", "etime=", "-p", String(pid)], {
 			encoding: "utf8",
 			env: { ...process.env, LC_ALL: "C" },
 			stdio: ["ignore", "pipe", "ignore"],
@@ -119,10 +117,6 @@ export function processStartedAt(pid, { run = spawnSync, now = Date.now, platfor
 			windowsHide: true,
 		});
 		if (result?.status !== 0 || result?.error) return null;
-		if (platform === 'win32' || exact) {
-			const started = new Date(String(result.stdout).trim());
-			return Number.isFinite(started.getTime()) ? started : null;
-		}
 		const elapsed = elapsedMilliseconds(result.stdout);
 		const current = now();
 		const timestamp = current instanceof Date ? current.getTime() : Number(current);
@@ -190,7 +184,7 @@ export async function cleanLane(spec, options = {}) {
 	const platform = options.platform ?? process.platform;
 	const alive = options.alive ?? pidAlive;
 	const killTree = options.killTree ?? killProcessTree;
-	const startedAt = options.processStartedAt ?? ((pid) => processStartedAt(pid, { run: options.run, now: options.now, platform }));
+	const startedAt = options.processStartedAt ?? ((pid) => processStartedAt(pid, { run: options.run, now: options.now }));
 	const waitForExit = options.waitForExit ?? ((pid) => defaultWaitForExit(pid, LANE_WATCHER_STOP_WAIT_MS, alive));
 	const exists = options.exists ?? fs.existsSync;
 	try {

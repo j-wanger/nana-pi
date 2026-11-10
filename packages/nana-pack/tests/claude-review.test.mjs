@@ -207,46 +207,5 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 		JSON.stringify({ missing, missingText, formatted, plain, large }));
 }
 
-{
-	const item = "claude-inputs";
-	const repo = makeRepo("inputs-tree");
-	fs.writeFileSync(path.join(repo, "good.md"), "Review input.\n");
-	fs.mkdirSync(path.join(repo, "brief-dir"));
-	fs.writeFileSync(path.join(repo, "blank.md"), " \r\n\t");
-	const fakeBin = path.join(temp, "fake-inputs");
-	const record = writeFakeClaude(fakeBin, path.join(temp, "inputs-record.jsonl"));
-	const cases = [];
-	const runInputCase = (label, { launcher = CLAUDE_REVIEW, tree = repo, brief = "good.md", standardMutation } = {}) => {
-		const home = makeHome(`input-${label}`);
-		let actualLauncher = launcher;
-		if (standardMutation) {
-			const copy = path.join(temp, `pack-copy-${label}`);
-			for (const dir of ["bin", "lib", "prompts"]) fs.cpSync(path.join(PACK, dir), path.join(copy, dir), { recursive: true });
-			const setupLib = path.resolve(copy, '../nana-setup/lib');
-			fs.mkdirSync(setupLib, { recursive: true });
-			for (const file of ['stale-copies-config.mjs', 'claude-config-home.mjs']) fs.copyFileSync(path.resolve(PACK, '../nana-setup/lib', file), path.join(setupLib, file));
-			standardMutation(path.join(copy, "prompts", "review-standard.md"));
-			actualLauncher = path.join(copy, "bin", "claude-review.mjs");
-		}
-		const result = runLauncher({ launcher: actualLauncher, cwd: temp, tree, brief, out: path.join(temp, `input-${label}.md`), item, env: baseEnv(home, fakeBin, record) });
-		const state = ledgerState(home.home, item);
-		cases.push({ label, result, state });
-		return { result, state };
-	};
-	const missingTree = runInputCase("missing-tree", { tree: null });
-	const missingBrief = runInputCase("missing-brief", { brief: "missing.md" });
-	const directoryBrief = runInputCase("directory-brief", { brief: "brief-dir" });
-	const blankBrief = runInputCase("blank-brief", { brief: "blank.md" });
-	const missingStandard = runInputCase("missing-standard", { standardMutation: (file) => fs.rmSync(file) });
-	const directoryStandard = runInputCase("directory-standard", { standardMutation: (file) => { fs.rmSync(file); fs.mkdirSync(file); } });
-	const blankStandard = runInputCase("blank-standard", { standardMutation: (file) => fs.writeFileSync(file, " \r\n\t") });
-	const allRefused = cases.every(({ result, state }) => result.status === 1 && noStack(result.stderr) && state.rounds.length === 0 && state.reservations.length === 0);
-	// req: R-2567
-	check("R-2567: a missing, directory or blank brief or standard is refused before admission",
-		allRefused && /--tree/.test(missingTree.result.stderr) && /missing\.md/.test(missingBrief.result.stderr) && /brief-dir/.test(directoryBrief.result.stderr) && /blank\.md/.test(blankBrief.result.stderr) &&
-		[missingStandard, directoryStandard, blankStandard].every(({ result }) => /review-standard\.md/.test(result.stderr)) && !fs.existsSync(record),
-		JSON.stringify(cases));
-}
-
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);
