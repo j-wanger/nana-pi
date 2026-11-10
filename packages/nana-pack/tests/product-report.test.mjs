@@ -52,7 +52,7 @@ try {
       assert(!/undefined|\[object Object\]/.test(textOf(renderHtmlAt(html, hash))), hash);
     }
     assert(textOf(decisions).includes("Fixture ask"));
-    // req: R-1511
+    // req: R-4010
     check("credential-bearing origins never become test links", !html.includes("user:pass") && renderHtmlAt(html, "#requirements").nodes.filter(node => node.tag === "a").every(node => !String(node.attrs.href).includes("/blob/")));
     const out = path.join(temp, "git-error.html"); let refused = false;
     try { await generateReport({ root, out, gitRunner: () => ({ status: 1, stdout: "", stderr: "injected git failure" }) }); } catch (error) { refused = /git/i.test(error.message); }
@@ -66,7 +66,7 @@ try {
     const select = view.handlers.find(({ node, type }) => type === "change" && node.attrs["aria-label"] === "Filter by feature");
     const flatten = node => [node, ...(node.children ?? []).flatMap(flatten)];
     const sees = id => { select.node.value = id; select.callback(); return flatten(view.root).some(node => node.tag === "article" && node.textContent.includes("R-002")); };
-    // req: R-1015
+    // req: R-4009
     check("feature requirement filter retains a row for earlier receiver, owner, and later receiver", ["FEAT-001", "FEAT-002", "FEAT-003"].every(sees));
   });
   await withinCaseLimit("inert markup", async () => {
@@ -96,7 +96,7 @@ try {
     const { root } = fixture("crlf");
     fs.writeFileSync(path.join(root, "REQUIREMENTS.md"), ledger.replaceAll("\n", "\r\n"));
     const out = path.join(temp, "crlf.html"); await generateReport({ root, out });
-    // req: R-1014
+    // req: R-4008
     check("CRLF ledger is normalized before parsing", fs.readFileSync(out, "utf8").includes("CAP-01"));
     const bad = fixture("bad-tree");
     fs.appendFileSync(path.join(bad.root, "REQUIREMENTS.md"), "\n| R-9999 | malformed row | implemented | — |\n");

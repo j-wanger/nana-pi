@@ -61,7 +61,6 @@
 - Artifact ages (report-names-artifacts, plan): the land page entry shows "age not measured: clone store".
 - Artifact ages (report-names-artifacts, plan): the runtime map's age follows NANA_RUNTIME_MAP_FILE when it is set, not its registered location.
 - Artifact ages (report-names-artifacts, plan; feature-artifact-lines): the CI run records store, A-059, is a fourth clone store. It shows "age not measured: clone store".
-- Artifact ages (report-names-artifacts, final review): one R-2791 check filters the land page and mismatched-store lines and checks every match. It passes if those lines vanish. Seat pair 9 is red, so the risk is small.
 - Artifact block (report-names-artifacts, final review): IDs sort as text within a claim, so A-1000 would sort before A-999. Every ID has three digits today.
 - Artifacts view (artifact-flow, plan): the page cannot say an artifact is unread, because a feature's reads of its own artifacts are not written down.
 - Artifacts view (artifact-flow, plan): each tracked artifact's age adds one git count. The ages share one log walk, so the cost stays below 30 process starts.
@@ -78,7 +77,6 @@
 - Overview (page-overview, plan): Gaps names parked items by count only; each Product line marks a parked row, and its claims sit on its home feature's page.
 - Overview (page-overview, plan): the Product view's `· gap` mark (status not implemented) and the overview's gap (not made and read by code) answer different questions.
 - Overview (page-overview, plan): other projects get the overview at once through the shared script, without a template tag.
-- Feature pages (page-detail, plan): the age text shows twice on one detail page when the home feature registers the entry it names: 31 of today's 38 direct artifact lines. R-2799 keeps the two equal; the land report asks the owner.
 - Feature pages (page-detail, plan): a read shows on both ends: the card's `Read in:` line on the maker's page and the `Reads:` line on the reader's page.
 - Feature pages (page-detail, plan): the `Registers:` index line repeats the card headings below it.
 - Feature pages (page-detail, plan): `not read by code` repeats the reader kinds whenever they hold neither code nor prompt.

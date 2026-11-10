@@ -92,6 +92,27 @@ try {
       check("committed lift verifies against its base", verified.status === 0, verified.stderr);
     }
   });
+  await withinCaseLimit("mapping write guard", async () => {
+    const sub = "proj", dir = scratchDir("t10"), project = join(dir, sub);
+    mkdirSync(join(project, "maps"), { recursive: true });
+    writeFileSync(join(project, "REQUIREMENTS.md"), flatLedger());
+    gitC(dir, "init", "-q", "-b", "main"); gitC(dir, "config", "core.autocrlf", "false");
+    gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "base");
+    const mapPath = join(project, "maps", "map.json"), file = join(project, "REQUIREMENTS.md"), before = readFileSync(file);
+    const emit = lift(["--root", project, "--emit-mapping", mapPath]);
+    const refused = r => r.status === 1 && r.stderr.includes("map.json") && !/\bERR_[A-Z_]+|^\s+at .+:\d+:\d+\)?$/m.test(r.stderr) && readFileSync(file).equals(before);
+    const r1 = lift(["--root", project, "--mapping", mapPath, "--write"]), untrackedOk = refused(r1);
+    gitC(dir, "add", "-A"); gitC(dir, "commit", "-qm", "mapping");
+    writeFileSync(mapPath, `${readFileSync(mapPath, "utf8")}\n`);
+    const r2 = lift(["--root", project, "--mapping", mapPath, "--write"]), changedOk = refused(r2);
+    gitC(dir, "checkout", "--", `${sub}/maps/map.json`);
+    const outsideMap = join(scratchRoot, "outside-map.json"); writeFileSync(outsideMap, readFileSync(mapPath));
+    const r3 = lift(["--root", project, "--mapping", outsideMap]), outsideOk = refused(r3);
+    const r4 = lift(["--root", project, "--mapping", mapPath, "--write"]), acceptOk = r4.status === 0;
+    // req: R-1164
+    check("R-1164: --write refuses a mapping file in a subfolder that is untracked or differs from HEAD, and one outside the repository, naming the reason, and accepts a committed one", emit.status === 0 && untrackedOk && changedOk && outsideOk && acceptOk,
+      `untracked=${untrackedOk} changed=${changedOk} outside=${outsideOk} accept=${acceptOk} ${r1.stderr}${r2.stderr}${r3.stderr}${r4.stderr}`);
+  });
   await withinCaseLimit("Windows top-level spelling", async () => {
     if (process.platform !== "win32") {
     const dir = scratchDir("t32"), project = join(dir, "proj"); mkdirSync(project);

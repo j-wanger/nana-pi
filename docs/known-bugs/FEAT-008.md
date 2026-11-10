@@ -1,11 +1,11 @@
 # FEAT-008 — known bugs
 
+*One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
+
 - Carry (tool-fix-2, NOTE 1): a short-name home followed by `,`, `)`, `;` or a backtick is not redacted.
 - Carry (tool-fix-2, NOTE 2): signed-URL parameters `X-Goog-Signature`, `X-Goog-Credential` and `Signature` are not removed.
 - Carry (tool-fix-2, NOTE 3): the stray-effort warning goes to stderr, which a Claude Code seat never shows.
 - Carry (tool-fix-2, NOTE 6): home matching has no boundary, so `C:\Users\fixture2` prints as `~2`.
-
-*One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - Land rule: the helper checks that every recorded verdict is LAND, not who reviewed; the round records are a plain file; a narrow review counts for everything up to its revision; a direct commit to main bypasses it (the working pattern forbids that). Every revision reviewed before the land rule needs a fresh review.
 - Lane cleanup (deliverable-fields land): when the lane branch's pushed copy lags its tip, cleanup removes the worktree, then git refuses to delete the branch as not fully merged. A rerun then refuses for lack of a worktree. The seat pushed the branch and deleted it with `git branch -d`.

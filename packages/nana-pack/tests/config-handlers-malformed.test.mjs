@@ -89,7 +89,7 @@ for (const [label, text, expectLines] of VARIANTS) {
 	const journal = path.join(agent, "nana-journal.jsonl");
 	const lines = fs.existsSync(journal) ? fs.readFileSync(journal, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
 	const invalid = lines.filter((l) => l.event === "config_invalid" && l.file === userCfg);
-	// req: R-082
+	// req: R-4011
 	check(`${label}: exactly ${expectLines} config_invalid journal line(s) naming the file`, invalid.length === expectLines, JSON.stringify(invalid));
 }
 

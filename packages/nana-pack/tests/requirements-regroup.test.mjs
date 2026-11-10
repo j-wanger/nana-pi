@@ -9,13 +9,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, lstatSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import { withinCaseLimit } from "./report-fixtures.mjs";
-import { isTextPlaced } from "../../../scripts/requirements-regroup.mjs";
+import { PAGE_HEAD, isTextPlaced } from "../../../scripts/requirements-regroup.mjs";
 
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const REGROUP = join(REPO_ROOT, "scripts/requirements-regroup.mjs"), LIFT = join(REPO_ROOT, "scripts/requirements-lift.mjs");
@@ -23,7 +23,7 @@ const scratchRoot = tmpDir(join(tmpdir(), "regroup-test-"));
 let caseN = 0, fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
 const cleanEnv = () => { const env = { ...process.env }; for (const k of Object.keys(env)) if (/^GIT_/.test(k)) delete env[k]; return env; };
-const node = (args, cwd) => spawnSync(process.execPath, args, { cwd, encoding: "utf8", timeout: 120_000, env: cleanEnv() });
+const node = (args, cwd, extra = {}) => spawnSync(process.execPath, args, { cwd, encoding: "utf8", timeout: 120_000, env: cleanEnv(), ...extra });
 const regroup = args => node([REGROUP, ...args], scratchRoot);
 const sha = buf => createHash("sha256").update(buf).digest("hex");
 const lineOf = (txt, heading, nth = 1) => { let k = 0; const ls = txt.split("\n"); for (let i = 0; i < ls.length; i++) if (ls[i] === heading && ++k === nth) return i + 1; return -1; };
@@ -123,6 +123,68 @@ try {
     const clash = regroup(["--root", dir, "--proposal", prop, "--out", link]);
     // req: R-1171
     check("R-1171: an --out that is a hard link to the proposal is refused and leaves the proposal byte-identical", clash.status === 1 && readFileSync(prop).equals(before) && readFileSync(link).equals(before), clash.stderr);
+  });
+  await withinCaseLimit("T21 earlier-page deletion safety", async () => {
+    const crashed = r => /Cannot find module|\bERR_[A-Z_]+|^\s+at .+:\d+:\d+\)?$/m.test(r.stderr ?? "") || r.status === null;
+    const runFx = (proposal, page) => {
+      const dir = fxRoot(proposal);
+      return regroup(["--root", dir, "--proposal", join(dir, PROP_REL), "--out", page]);
+    };
+    const failing = fxProposal(); failing.regroup.reasons = failing.regroup.reasons.slice(1);
+    const pagePath = join(scratchRoot, "earlier-page.md");
+    const first = runFx(fxProposal(), pagePath), hadPage = existsSync(pagePath);
+    const second = runFx(failing, pagePath);
+    const removed = first.status === 0 && hadPage && second.status === 1 && !crashed(second) && !existsSync(pagePath);
+    const notes = join(scratchRoot, "not-a-page.md"), body = "# my notes\n\nThis file is not a review page.\n";
+    writeFileSync(notes, body);
+    const third = runFx(failing, notes);
+    // Check existence before reading: an unsafe deletion must fail this check, not crash the file.
+    const untouched = third.status === 1 && !crashed(third) && existsSync(notes) && readFileSync(notes, "utf8") === body;
+    const pagePath2 = join(scratchRoot, "earlier-page-shape.md");
+    const firstShape = runFx(fxProposal(), pagePath2), hadPage2 = existsSync(pagePath2);
+    const shapeFail = fxProposal(); shapeFail.regroup.review.verdicts.push(null);
+    const secondShape = runFx(shapeFail, pagePath2);
+    const removedShape = firstShape.status === 0 && hadPage2 && secondShape.status === 1 && !crashed(secondShape) && !existsSync(pagePath2);
+    const prefixOnly = join(scratchRoot, "prefix-only.md"), prefixBody = `${PAGE_HEAD} EXTRA\n\nNot actually a review page.\n`;
+    writeFileSync(prefixOnly, prefixBody);
+    const prefixRun = runFx(failing, prefixOnly);
+    const prefixUntouched = prefixRun.status === 1 && !crashed(prefixRun) && existsSync(prefixOnly) && readFileSync(prefixOnly, "utf8") === prefixBody;
+    const bomPage = join(scratchRoot, "bom-page.md");
+    writeFileSync(bomPage, `\uFEFF${PAGE_HEAD}\n\nBody.\n`);
+    const bomRun = runFx(failing, bomPage);
+    const bomRemoved = bomRun.status === 1 && !crashed(bomRun) && !existsSync(bomPage);
+    const crlfPage = join(scratchRoot, "crlf-page.md");
+    writeFileSync(crlfPage, `${PAGE_HEAD}\r\n\r\nBody.\r\n`);
+    const crlfRun = runFx(failing, crlfPage);
+    const crlfRemoved = crlfRun.status === 1 && !crashed(crlfRun) && !existsSync(crlfPage);
+    const linkTarget = join(scratchRoot, "symlink-target-page.md"), linkPath = join(scratchRoot, "symlink-to-page.md");
+    const linkFirst = runFx(fxProposal(), linkTarget), hadTarget = linkFirst.status === 0 && existsSync(linkTarget);
+    symlinkSync(linkTarget, linkPath);
+    const linkRun = runFx(failing, linkPath);
+    const linkStillThere = (() => { try { return lstatSync(linkPath).isSymbolicLink(); } catch { return false; } })();
+    const symlinkOk = hadTarget && linkRun.status === 1 && !crashed(linkRun) && !existsSync(linkTarget) && linkStillThere;
+    let lineEdges = true;
+    for (const [label, text, remove] of [["space", `${PAGE_HEAD} \n`, false], ["tab", `${PAGE_HEAD}\t\n`, false], ["no-final-newline", PAGE_HEAD, true]]) {
+      const page = join(scratchRoot, `${label}.md`); writeFileSync(page, text);
+      const r = runFx(failing, page);
+      lineEdges = r.status === 1 && !crashed(r) && (remove ? !existsSync(page) : existsSync(page) && readFileSync(page, "utf8") === text) && lineEdges;
+    }
+    // req: R-1171
+    check("R-1171: a failing run removes an earlier review page at --out and leaves a file there that is not a review page unchanged", removed && untouched && removedShape && prefixUntouched && bomRemoved && crlfRemoved && symlinkOk && lineEdges,
+      `removed=${removed} untouched=${untouched} removedShape=${removedShape} prefixUntouched=${prefixUntouched} bomRemoved=${bomRemoved} crlfRemoved=${crlfRemoved} symlinkOk=${symlinkOk} lineEdges=${lineEdges}`);
+  });
+  await withinCaseLimit("FIFO output never hangs a failing run", async () => {
+    if (process.platform !== "win32") {
+      const fifoPath = join(scratchRoot, `page-fifo-${++caseN}`);
+      const mk = spawnSync("mkfifo", [fifoPath], { encoding: "utf8", timeout: 5000 });
+      if (mk.status === 0) {
+        const failing = fxProposal(); failing.regroup.reasons = failing.regroup.reasons.slice(1);
+        const dir = fxRoot(failing);
+        const r = node([REGROUP, "--root", dir, "--proposal", join(dir, PROP_REL), "--out", fifoPath], scratchRoot, { timeout: 5000 });
+        // req: R-1171
+        check("R-1171: a failing run reads --out for an earlier page only when it is a regular file, so a FIFO (standing in for a terminal) never hangs", r.status === 1 && r.signal === null && !/\bERR_[A-Z_]+|^\s+at .+:\d+:\d+\)?$/m.test(r.stderr ?? ""), `status=${r.status} signal=${r.signal} ${r.stderr ?? ""}`);
+      } else console.log("SKIP R-1171: a failing run reads --out for an earlier page only when it is a regular file, so a FIFO (standing in for a terminal) never hangs — mkfifo unavailable");
+    } else console.log("SKIP R-1171: a failing run reads --out for an earlier page only when it is a regular file, so a FIFO (standing in for a terminal) never hangs — Windows has no mkfifo");
   });
   await withinCaseLimit("plain evidence regression", async () => {
     const dir = join(scratchRoot, "rail-form"); mkdirSync(join(dir, "tests"), { recursive: true });

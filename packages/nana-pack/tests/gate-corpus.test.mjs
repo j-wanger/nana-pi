@@ -218,7 +218,7 @@ const ALLOW = [
 	let run = await gate({ allowPatterns: allowList });
 	// req: R-048
 	check("allow cap: entry 201 is not considered, even after an earlier rejection", (await run("rm -rf ../build")) === "BLOCK");
-// req: R-082 R-769
+// req: R-4011 R-769
 	check("allow cap: config_invalid names the entries not considered", lines().some((e) => e.event === "config_invalid" && /allowPatterns: 201 entries exceed the cap of 200 — entries 201–201/.test(e.problem)));
 // req: R-769
 	check("allow cap: the gate is not stopped", (await run("ls")) === "ALLOW");
