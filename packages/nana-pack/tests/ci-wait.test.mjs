@@ -217,9 +217,10 @@ await check('M10: successful main retries retain per-file flakes and repeated fi
 // req: R-3994 R-3995 R-3999
 await check('M11: recorded main rerun prints recovery and restart never requests a third attempt',async()=>{
  const {waitForMainCi}=await api();
- const recovered=mainWaitFake({id:42718705179});
+ // Condensed replay of the named Windows profile failure; unrelated green jobs are synthetic.
+ const recovered=mainWaitFake({id:42718705179,log:'FAIL packages/nana-pack/tests/profile-store.test.mjs\r\n'});
  const out=await waitForMainCi(recovered.options);assert.equal(out.code,0,out.text);
- assert.match(out.text,/green after rerun/);assert.match(out.text,/flake: packages\/p\/tests\/red.test.mjs/);
+ assert.match(out.text,/green after rerun/);assert.match(out.text,/flake: packages\/nana-pack\/tests\/profile-store.test.mjs/);
  console.log(out.text.trim());
  const restarted=mainWaitFake({id:42718705179,startAttempt:2,persistent:true});
  const red=await waitForMainCi(restarted.options);assert.equal(red.code,1,red.text);
