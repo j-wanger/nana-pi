@@ -162,4 +162,3 @@
 - Carry (watcher-clock): `bin/worker-config.mjs` still explains start-time tolerance using ps lstart, although the watcher now reads etime.
 - Carry (watcher-clock): `lib/lane-watcher.mjs` accepts malformed etime text `:30` as thirty seconds, although ps never emits it.
 - Carry (ci-suite): `bin/worker-config.mjs` does not require fallback full-suite evidence on the last commit, allowing an early green run in CI-silent projects.
-- Builder resume: on Windows, R-4006 (a stop during the tip or base check) fails an equality assertion (CI run 42794109537); the case is skipped there; un-skip it on a throwaway branch to read the now-labelled failure.
