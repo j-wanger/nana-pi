@@ -12,6 +12,7 @@
 - **Load log (2026-11-06).** Each pi builder and pi reviewer launch now logs the context files pi loads, the pi version and the roster slot. Claude Code launches still log no context files.
 - **Seat knowledge lookup retired (2026-11-06).** Claude Code seats no longer get per-prompt knowledge pointers; `nana-knowledge query` stays. Re-run `nana-setup install` to remove the hook.
 - **Leak guard (2026-11-07; hook 2026-11-10).** Setup installs a pre-push hook that scans each pushed range, including commit authors and messages. Builds warn on leaked paths.
+- **Records out of the repository (2026-11-10).** Lane records go to a private folder outside the repository, never into it. Older records stay in git history; `docs/reviews/README.md` names the commits.
 - **Memory factory cut (2026-11-09).** The owner chose to cut it. The owner profile store stays. Re-run `nana-setup install` on each machine to clear a stale session-end hook entry.
 
 ## Next
@@ -24,7 +25,7 @@ The owner's open questions are the open issues labelled `ask` at https://github.
 
 ## Landed
 
-- 2026-09-18 to 2026-10-23: moved verbatim to the October session archive (`docs/sessions/2026-10.md`), all but the newest.
+- 2026-09-18 to 2026-10-23: moved verbatim to the October session archive, all but the newest. Git history keeps it: `git show 5667a251:docs/sessions/2026-10.md`.
 - 2026-10-26: product cards show one line per deliverable; feature pages hold the claims and artifact cards; the flow lines retired.
 
 ## Known bugs
