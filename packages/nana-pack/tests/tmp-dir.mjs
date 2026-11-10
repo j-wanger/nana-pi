@@ -54,10 +54,12 @@ export async function withTempRootAlias(root, title, action) {
   }
   const holder = tmpDirUnmanaged(join(dirname(root), "temp-alias-"));
   const alias = join(holder, "alias");
+  let linked = false;
   try {
     symlinkSync(root, alias);
+    linked = true;
     return await exercise(alias);
   } finally {
-    try { unlinkSync(alias); } finally { rmSync(holder, { recursive: true, force: true }); }
+    try { if (linked) unlinkSync(alias); } finally { rmSync(holder, { recursive: true, force: true }); }
   }
 }

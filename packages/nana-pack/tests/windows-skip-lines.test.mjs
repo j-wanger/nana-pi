@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/windows-skip-lines.test.mjs
- * @purpose Pins that each check one of eight test files runs only off Windows prints its own SKIP line, naming the check and a reason, on the branch those files take on Windows.
- * @inputs the eight test files must-meet.md's Design section names (docs/reviews/win-silent-skips-2026-10-19/must-meet.md), read as text from this checkout
+ * @purpose Pins that each check one of the remaining target test files runs only off Windows prints its own SKIP line, naming the check and a reason, on the branch those files take on Windows.
+ * @inputs the remaining target test files from must-meet.md's Design section (docs/reviews/win-silent-skips-2026-10-19/must-meet.md), read as text from this checkout
  * @outputs PASS/FAIL lines per file on stdout, and exit 1 when any file fails
  * @effects none
  * @errors a failing check prints the unmatched titles, or "no guarded check" with a hint to retire the row; an unexpected throw propagates and fails the run
@@ -17,15 +17,13 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 // this lane writes (win-silent-skips, 2026-10-19).
 const SKIP_SEPARATOR = " — ";
 
-// The eight files must-meet.md's Evidence table names as dropping checks silently on Windows
-// (docs/reviews/win-silent-skips-2026-10-19/must-meet.md, win-silent-skips, 2026-10-19), one row
-// each, R-1950 to R-1957.
+// Remaining files from must-meet.md's Evidence table of silent Windows drops
+// (docs/reviews/win-silent-skips-2026-10-19/must-meet.md, 2026-10-19).
+// Adoption alias checks now run on both platforms; R-1953 and R-1955 are retired.
 const TARGET_FILES = [
 	{ req: "R-1950", rel: "packages/nana-pack/tests/requirements-regroup.test.mjs", label: "requirements-regroup.test.mjs" },
 	{ req: "R-1951", rel: "packages/nana-pack/tests/requirements-lift.test.mjs", label: "requirements-lift.test.mjs" },
 	{ req: "R-1952", rel: "packages/nana-pack/tests/bounded-read.test.mjs", label: "bounded-read.test.mjs" },
-	{ req: "R-1953", rel: "packages/nana-pack/tests/adoption-producer.test.mjs", label: "adoption-producer.test.mjs" },
-	{ req: "R-1955", rel: "packages/nana-pack/tests/adoption-reader.test.mjs", label: "adoption-reader.test.mjs" },
 	{ req: "R-1956", rel: "packages/nana-setup/tests/win32-degrade.test.mjs", label: "win32-degrade.test.mjs" },
 	{ req: "R-1957", rel: "packages/nana-pack/tests/test-locked.test.mjs", label: "test-locked.test.mjs" },
 ];
@@ -241,21 +239,11 @@ const check = (title, ok, why = "") => {
 }
 {
 	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[3].rel), TARGET_FILES[3].label);
-	// req: R-1953
-	check("adoption-producer.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
-}
-{
-	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[4].rel), TARGET_FILES[4].label);
-	// req: R-1955
-	check("adoption-reader.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
-}
-{
-	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[5].rel), TARGET_FILES[5].label);
 	// req: R-1956
 	check("win32-degrade.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
 }
 {
-	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[6].rel), TARGET_FILES[6].label);
+	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[4].rel), TARGET_FILES[4].label);
 	// req: R-1957
 	check("test-locked.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
 }

@@ -21,7 +21,7 @@ import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
 import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
 
 // Exact OS start tokens, not pid liveness alone, authorize fixture cleanup signals.
-// Kept serializable so the preload records the same token before fixture code runs.
+// Read in batches by the test process; fixture preloads never launch native queries.
 function processStarts(pids, { run = spawnSync } = {}) {
   if (!pids.length) return new Map();
   const windows = process.platform === 'win32';
@@ -52,27 +52,26 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   // Record all Node descendants, including watcher hops and detached pipe holders.
   const processRecords = join(root, 'processes'); fs.mkdirSync(processRecords);
   const recorder = join(root, 'record-process.cjs');
-  fs.writeFileSync(recorder, `const fs=require('node:fs'), path=require('node:path'), {spawnSync}=require('node:child_process');
-    ${processStarts.toString()}
+  fs.writeFileSync(recorder, `const fs=require('node:fs'), path=require('node:path');
     const file=path.join(${JSON.stringify(processRecords)}, String(process.pid));
-    // Publish presence before the native identity query: PowerShell can outlive a short check deadline.
-    fs.writeFileSync(file+'.tmp', JSON.stringify({pid:process.pid, role:process.argv[1] || 'node', start:null}));
-    fs.renameSync(file+'.tmp', file);
-    fs.writeFileSync(file+'.tmp', JSON.stringify({pid:process.pid, role:process.argv[1] || 'node', start:processStarts([process.pid]).get(process.pid) ?? null}));
+    fs.writeFileSync(file+'.tmp', JSON.stringify({pid:process.pid, role:process.argv[1] || 'node'}));
     fs.renameSync(file+'.tmp', file);`);
   env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require ${JSON.stringify(recorder)}`;
   const tracked = new Map();
-  const refresh = () => {
+  const refresh = (pid, role) => {
+    const added = new Map();
     for (const name of fs.readdirSync(processRecords)) {
       if (!/^[1-9]\d*$/.test(name)) continue;
       const member = JSON.parse(fs.readFileSync(join(processRecords, name), 'utf8'));
-      tracked.set(member.pid, member);
+      if (!tracked.has(member.pid)) added.set(member.pid, member);
+    }
+    if (pid && !tracked.has(pid) && !added.has(pid)) added.set(pid, { pid, role });
+    const starts = processStarts([...added.keys()]);
+    for (const member of added.values()) {
+      tracked.set(member.pid, { ...member, start: starts.get(member.pid) ?? null });
     }
   };
-  const track = (pid, role) => {
-    refresh();
-    if (!tracked.has(pid)) tracked.set(pid, { pid, role, start: processStarts([pid]).get(pid) ?? null });
-  };
+  const track = (pid, role) => refresh(pid, role);
   const liveProcesses = () => {
     refresh();
     const members = [...tracked.values()].filter(member => pidAlive(member.pid));
