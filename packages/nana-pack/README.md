@@ -360,8 +360,13 @@ Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any e
 After a successful lane attempt, if the worktree declares a `check:lane` package script,
 pi-worker runs `npm run check:lane` (silently, via npm's `-s`) before the end record.
 It uses the builder's credential-stripped environment, with a bounded deadline and output.
-The project owns the script; nana-pi's root script runs the recorded lost-round rail.
-No script means unchanged output and record shape; failed builder attempts do not run it.
+The project owns the script; nana-pi's root `scripts/check-lane.mjs` owns the ordered
+lost-round rail and comments. It prints `check:lane: pass` on success;
+`check:lane: fail: <check>` ends at the first red check with exit 1, while a spawn
+error or signal prints `check:lane: error: <check>` with exit 2. This supplements CI.
+No script means unchanged output and record shape; plain/role workers and failed
+builder attempts do not run it. The shared bounded-spawn relay and Windows command
+resolver supply deadlines, output bounds and npm launching without a new shell mechanism.
 
 Stderr adds exactly one result line: `pi-worker: lane checks: pass`, or
 `pi-worker: lane checks: fail: <check>`, `pi-worker: lane checks: error: <check>`, or
@@ -373,7 +378,8 @@ A runner without a named failure marker is an error naming `check:lane`.
 
 For a named failure, a temporary detached checkout of the build's starting commit runs
 its own script. The same named failure is `red-on-base`; a different failure or absent
-base script stays `fail`. Base checkout/check errors print
+base script stays `fail`. No dependencies are installed there; cleanup never moves
+the lane's checkout or branch. Base checkout/check errors print
 `pi-worker: lane checks base: error: <check-or-checkout>: <detail>`.
 Cleanup failures print `pi-worker: lane checks cleanup: <detail>`.
 The optional end-record `laneChecks` field holds `status`, `check` and bounded `output`,
@@ -383,8 +389,8 @@ Hard-stop watcher records have no field. Bounds live in `lib/lane-checks-config.
 
 This is run-and-report only: no builder resumes automatically. The required finished-session
 resume probe was not run because the lane forbids model sessions. The existing watchdog
-session-file mechanism is unchanged. See `docs/builder-stop-checks.md` at the repository root
-for the design, replay results and remaining resume work.
+session-file mechanism is unchanged; this is not evidence that resume needs more
+than its existing path. Resume still needs that probe; no alternate mechanism was built.
 
 #### Role launches
 
