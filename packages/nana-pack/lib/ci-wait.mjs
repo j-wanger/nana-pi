@@ -158,7 +158,7 @@ export async function waitForCi(options={}) {
     const ready=ciReadiness({...options,reads:1,budget:b});
     const head=ready.pr?.headRefOid ?? ready.head;
     if(head && head!==tip) return finish(1,`ci: superseded at ${tip}: branch now at ${head}`);
-    if(!ready.ok) return finish(1,ready.message);
+    if(!ready.ok && !ready.unknown) return finish(1,ready.message);
     try {b.call(['run','rerun',String(run.id),'--failed','--repo',`${CI_HOST}/${repoName(repository)}`]);}
     catch(error) {return finish(1,`rerun ${run.id} failed: ${error.message}`);}
     state.requested.add(identity);
@@ -179,6 +179,10 @@ export async function waitForMainCi(options={}) {
  const {cwd=process.cwd(),sleep=sleepAsync,writeLine=()=>{}}=options;
  const b=budget(options), lines=[], states=new Map();let last=[];
  const line=text=>{lines.push(text);writeLine(text);};
+ const logFiles=(run,job,repository)=>{
+  try {return failedJobFiles(run,job,{repository:repoName(repository),call:b.call});}
+  catch(error) {line(`Main CI: ${job.name}: log unavailable: ${error.message}`);return [];}
+ };
  const finish=code=>({code,text:lines.join('\n')+'\n'});
  try {
   const runGit=(root,args)=>{
@@ -218,14 +222,15 @@ export async function waitForMainCi(options={}) {
      const job=jobs.find(job=>job.name===name);
      if(job?.status===CI_DONE_STATUS&&job.conclusion===CI_PASS_CONCLUSION) {
       recordMainFlakes(run,new Map([[name,files]]),{cwd,runGit,writeLine:line});
+      line(`Main CI: ${name}: green after rerun`);
       state.failures.delete(name);
      }
     }
     const failed=jobs.filter(job=>job.status===CI_DONE_STATUS&&![CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion));
     if(jobs.some(job=>job.status!==CI_DONE_STATUS)) {pending=true;continue;}
-    if(failed.length && state.count<MAIN_CI_RED_RERUNS) {
+    if(failed.length && run.run_attempt<=MAIN_CI_RED_RERUNS) {
      for(const job of failed) {
-      const files=failedJobFiles(run,job,{repository:repoName(repository),call:b.call});
+      const files=logFiles(run,job,repository);
       state.failures.set(job.name,files);
       line(`Main CI: ${job.name}: red${files.length?': '+files.join(', '):''}`);
      }
@@ -237,10 +242,10 @@ export async function waitForMainCi(options={}) {
     if(failed.length||run.conclusion!==CI_PASS_CONCLUSION) red=true;
     if(!state.reported) {
      for(const job of failed) {
-      const files=failedJobFiles(run,job,{repository:repoName(repository),call:b.call});
+      const files=logFiles(run,job,repository);
       line(`Main CI: ${job.name}: red${files.length?': '+files.join(', '):''}`);
      }
-     line(`Main CI: workflow ${run.name??run.path} run ${run.id} ${failed.length||run.conclusion!==CI_PASS_CONCLUSION?'red':'green'}`);
+     line(`Main CI: workflow ${run.name??run.path} run ${run.id} ${failed.length||run.conclusion!==CI_PASS_CONCLUSION?'red':run.run_attempt>1?'green after rerun':'green'}`);
      state.reported=true;
     }
    }

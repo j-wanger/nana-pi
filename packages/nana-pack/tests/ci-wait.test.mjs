@@ -154,13 +154,13 @@ await check('M8: red lane jobs print FAIL paths across line endings',async()=>{
  }
 });
 
-function mainWaitFake({id=101,fail=true,persistent=false,extraPending=false,absent=false}={}) {
+function mainWaitFake({id=101,fail=true,persistent=false,extraPending=false,absent=false,startAttempt=1,failedName='suite (windows-latest)',log='job\tstep\t2026-11-09 FAIL  packages/p/tests/red.test.mjs \t\r\n',logUnavailable=false}={}) {
  const root=tmpDir(path.join(os.tmpdir(),'main-wait-')),calls=[];
- let time=0,attempt=1,reads=0;
+ let time=0,attempt=startAttempt,reads=0;
  const run=()=>workflowRun({id,workflow_id:1,head_sha:tip,head_branch:'main',event:'push',path:'.github/workflows/ci.yml',run_attempt:attempt,conclusion:fail&&(attempt===1||persistent)?'failure':'success'});
  const latestJobs=()=>[
-  ...['macos-latest','ubuntu-latest','windows-latest'].map((leg,i)=>({id:70+i,name:`suite (${leg})`,status:'completed',conclusion:leg==='windows-latest'&&fail&&(attempt===1||persistent)?'failure':'success',run_attempt:attempt})),
-  ...['macos-latest','windows-latest'].flatMap(os=>['floor','ceiling'].map(pi=>({name:`install-check (${os}, ${pi})`,status:'completed',conclusion:'success',run_attempt:attempt}))),
+  ...['macos-latest','ubuntu-latest','windows-latest'].map((leg,i)=>({id:70+i,name:`suite (${leg})`,status:'completed',conclusion:`suite (${leg})`===failedName&&fail&&(attempt===1||persistent)?'failure':'success',run_attempt:attempt})),
+  ...['macos-latest','windows-latest'].flatMap(os=>['floor','ceiling'].map(pi=>({id:80,name:`install-check (${os}, ${pi})`,status:'completed',conclusion:`install-check (${os}, ${pi})`===failedName&&fail&&(attempt===1||persistent)?'failure':'success',run_attempt:attempt}))),
  ];
  const runGit=(_root,args)=>({status:0,stdout:args[0]==='remote'?'https://github.com/example/fixture.git':args.includes('--git-common-dir')?root:tip});
  const options={cwd:root,tempRoot:root,sha:tip,env:{GH_REPO:'wrong/other',GH_HOST:'wrong.invalid'},runGit,now:()=>time,sleep:ms=>{time+=ms;},runGh:(_root,args,opts)=>{
@@ -168,7 +168,7 @@ function mainWaitFake({id=101,fail=true,persistent=false,extraPending=false,abse
   if(args[0]==='repo') return {status:0,stdout:JSON.stringify({nameWithOwner:'example/fixture'})};
   if(args[0]==='run') {
    if(args[1]==='rerun') {attempt++;return {status:0,stdout:''};}
-   if(args[1]==='view') return {status:0,stdout:'job\tstep\t2026-11-09 FAIL  packages/p/tests/red.test.mjs \t\r\n'};
+   if(args[1]==='view') return logUnavailable?{status:1,stderr:'recorded log unavailable'}:{status:0,stdout:log};
    const leg=args[args.indexOf('--name')+1].replace('suite-record-','').replace(/-\d+$/,'');
    const folder=args[args.indexOf('--dir')+1];fs.mkdirSync(folder,{recursive:true});
    fs.writeFileSync(path.join(folder,'record.json'),JSON.stringify({schema:RECORD_SCHEMA,platform:leg,exitCode:leg==='windows-latest'&&persistent?1:0,files:[{path:'packages/p/tests/red.test.mjs',label:leg==='windows-latest'&&persistent?'FAIL':'PASS'}]}));
@@ -212,6 +212,29 @@ await check('M10: successful main retries retain per-file flakes and repeated fi
  const duplicate=mainWaitFake({id:102});assert.equal((await waitForMainCi({...duplicate.options,cwd:first.root,runGit:first.runGit})).code,0);
  assert.equal(readSuiteRecords({root:first.root,runGit:first.runGit,subpath:CI_STORE_SUBPATH}).length,2);
  assert.equal(C.MAIN_CI_RED_RERUNS,1);assert.equal(C.MAIN_CI_FLAKE_FIX_COUNT,2);
+});
+
+// req: R-3994 R-3995 R-3999
+await check('M11: recorded main rerun prints recovery and restart never requests a third attempt',async()=>{
+ const {waitForMainCi}=await api();
+ const recovered=mainWaitFake({id:42718705179});
+ const out=await waitForMainCi(recovered.options);assert.equal(out.code,0,out.text);
+ assert.match(out.text,/green after rerun/);assert.match(out.text,/flake: packages\/p\/tests\/red.test.mjs/);
+ console.log(out.text.trim());
+ const restarted=mainWaitFake({id:42718705179,startAttempt:2,persistent:true});
+ const red=await waitForMainCi(restarted.options);assert.equal(red.code,1,red.text);
+ assert.equal(restarted.calls.filter(a=>a[1]==='rerun').length,0);console.log('restart at attempt 2: 0 reruns');
+ const job='install-check (windows-latest, floor)';
+ for(const logUnavailable of [false,true]) {
+  const install=mainWaitFake({failedName:job,log:'install failed without a test file',logUnavailable});
+  const result=await waitForMainCi(install.options);assert.equal(result.code,0,result.text);
+  assert.match(result.text,/flake: job: install-check \(windows-latest, floor\)/);
+  if(logUnavailable) assert.match(result.text,/log unavailable/);
+  const stored=readSuiteRecords({root:install.root,runGit:install.runGit,subpath:CI_STORE_SUBPATH});
+  assert.equal(stored[0].flake.file,`job: ${job}`);console.log(result.text.trim());
+ }
+ const unavailable=mainWaitFake({startAttempt:2,persistent:true,logUnavailable:true});
+ const result=await waitForMainCi(unavailable.options);assert.equal(result.code,1,result.text);assert.match(result.text,/log unavailable/);
 });
 
 // req: R-3725

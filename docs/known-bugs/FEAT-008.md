@@ -72,6 +72,7 @@
 - CI as the suite (ci-suite, final review): the changed-path listing quotes non-ASCII paths, so a workflow file with a non-ASCII name would not match the workflows folder.
 - CI as the suite (ci-suite, final review): a future `.github/actions/` folder is not on the fallback list.
 - Land test split (land-test-split, review round 1): R-3490's 180 s bound is backed only by lane-folder timing records; no tagged check measures time, so a later slowdown goes uncaught.
+- Main CI wait: failing files come from job-log FAIL text, not CI suite records; a file absent from that text is recorded only by job name.
 - CI wait (ci-wait-ready, plan): a run cancelled by hand looks like a capacity cancellation, so nana-ci-wait re-runs its cancelled jobs up to twice.
 - Carry (ci-wait-ready): `ci-wait.mjs` treats a job cancelled at its timeout as capacity-cancelled, potentially rerunning a real hang; live behaviour remains unconfirmed.
 - Carry (ci-wait-ready): `bin/nana-ci-wait.mjs` omits the progress callback, buffering rerun notices until the wait ends.

@@ -45,7 +45,7 @@ export function failedJobFiles(run, job, { call, repository }) {
 /** Keep idempotent per-file flake evidence in the existing clone CI store. */
 export function recordMainFlakes(run, failures, { cwd, runGit, writeLine }) {
 	const records = readSuiteRecords({ root: cwd, runGit, subpath: CI_STORE_SUBPATH });
-	for (const [job, files] of failures) for (const file of files) {
+	for (const [job, files] of failures) for (const file of files.length ? files : [`job: ${job}`]) {
 		const identity = `${run.id}/${job}/${file}`;
 		let prior = records.filter(record => record.flake?.file === file);
 		if (!prior.some(record => record.flake.identity === identity)) {
