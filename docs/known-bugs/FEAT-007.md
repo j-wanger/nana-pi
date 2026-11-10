@@ -2,6 +2,7 @@
 
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
+- pi-review has no verdict re-ask; an unread verdict still needs a new review, unlike claude-review's confirmation path.
 - Clean revision: a derivation killed outright leaves its scratch folder in the OS temp folder. Nothing reclaims it later.
 - Clean revision: on Windows, antivirus might hold a new object and make the scratch removal fail. That would turn a good result into a refusal. It is a guess; one Windows CI run did not show it.
 - Clean revision: a configured clean filter runs during each derivation. It may write outside the scratch folder or give a different result each run; the README says so.
