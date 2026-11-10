@@ -51,5 +51,5 @@ For portable fixtures, resolve expected temp paths with `fs.realpathSync.native`
 
 For a format written by several repositories, inventory shapes from every writer before tightening its parser; pin each corpus to a commit and recount on the current base. Validate a hand-written lexer against the language's own tokenizer rather than accumulating guessed boundary cases. Give drafters the request's exact words and a row/file budget; put untraceable additions under options, not requirements.
 
-Tracked plans and briefs use repo-relative paths or `~/...`, never absolute home or temp paths. Run the identity scan before committing them.
+Plans and briefs go to `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`), never into the repository; `<project>` is the repository folder name. Record text uses repo-relative paths or `~/...`, never absolute home or temp paths.
 When a change alters what a function returns or raises, list each caller found at plan time by freshly searching the repo for the function's name and by running the project's map impact command as its own Validation line stating the caller's observable contract, never just "still works". For example: "the report has no NaN; the CLI exits non-zero with a message, never a traceback".

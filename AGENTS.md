@@ -34,7 +34,7 @@ Invariant: launcher-role children get no objective block; otherwise only user-sc
   frontier seeds `OBJECTIVE.md` / `HANDOFF.md` / `docs/sessions/README.md`, which the language
   templates pull in with a Jinja `include` (the loader root is the repo root), the skill
   `adopt-structure` copies, and `nana-setup project` fills. Edit them there, never in a copy.
-- `docs/` — design docs, review corpora (`docs/reviews/<slice>-<date>/`), and `docs/sessions/`.
+- `docs/` — design docs and the review-history pointer. Lane records live outside the repository in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`); `<project>` is the repository folder name.
 - `research/` — grounded landscape knowledge. `research/raw/` holds the deep-research
   artifacts the distilled files were written from.
 

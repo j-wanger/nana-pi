@@ -34,7 +34,7 @@ Tests
 
 Before you report
 - Before reporting, grep tests for every sentence, path and file name the change removed or renamed.
-- Committed logs and evidence use repo-relative paths, ~ or $TMPDIR, never an absolute home or temp path.
+- Lane records (briefs, plans, review texts, CI excerpts and evidence) go to `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`), never into the repository; `<project>` is the repository folder name. Record text uses repo-relative paths, ~ or $TMPDIR, never an absolute home or temp path.
 - Each commit follows a green run of the tests your change touches.
 - Run the repository's full suite unless its `AGENTS.md` says CI covers it, with one machine lock when the repo declares one. Read every exit code standalone; no pipe before `&&` or a commit.
 - Run every seat check your brief names on your last commit. DONE means each one passes; a title check passes only at `0 missing`.

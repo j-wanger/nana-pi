@@ -1,5 +1,10 @@
 # FEAT-031 — known bugs
 
+- lane-checks' batched start-time read records a pid's start time the first time the test sees it, which can be after the process exited; on Windows a reused pid could then be matched (and its tree killed) or leave a null start time that fails teardown (win-class review 3, SHOULD; inferred, no observed case).
+- lane-checks' refresh skips pids it already tracks, so a reused pid inside one fixture keeps the old start time; one slow batched query leaves every member of that batch without a start time (review 3, NOTEs).
+- R-640's canonical POSIX `/tmp` root is unpinned: the alias checks test only the first temp root (review 2, NOTE 4).
+- Outside CI on a machine without 8.3 names, `win32-launch` and `build-records` print SKIP and then report PASS under the combined title (review 2, NOTE 5).
+
 - Context trim (agents-trim, review round 1, SHOULD 3): pi seats reach the issue-posting rules only through the seat-guide pointer.
 - Context trim (agents-trim, review round 1, NOTE): "a finding outside the model is a residual" has no home.
 - Context trim (agents-trim, review round 1, NOTE): the pointer to the unplaced known-bug file is gone for other projects.

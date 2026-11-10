@@ -27,7 +27,7 @@ This rule is for the seat, the session that launches builders and reviewers; a s
   Name the tests and known-bug lines a removal lane may delete.
   Require whole-part commits for large lanes.
   Export CI logs when the builder must read a failure.
-  Commit the review brief before the first push.
+  Lane records (briefs, plans, review texts, CI excerpts and evidence) go to `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`), never into the repository; `<project>` is the repository folder name.
   Serialize lanes sharing `templates/_shared/working-under-nana-pi.md`, `AGENTS.md`, `packages/nana-setup/claude/rules/nana-seat.md`, `code-map.config.json`, `packages/nana-pack/tests/code-map-launch.test.mjs` or `REQUIREMENTS.md`.
   Name `node scripts/requirements-trace.mjs` among every brief's seat checks, including small fix briefs.
 - Before you end your turn, name and start what waits on nothing else: another lane's build, separate research agents. Each lane's own steps stay in order.
@@ -37,7 +37,7 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - Keep no more lanes building than the lanes line of this machine's roster command allows, `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"`, and at most two more in planning. A lane in planning has no build yet and no builder working in it. A lane counts as building from its first build until it lands or closes.
 - The builder preamble holds the builder's rules and the review standard holds the reviewer's. Judge review findings by the review standard, and restate neither in a brief.
 
-- On an enabled personal machine, automatically save quoted preferences, corrections, facts and thinking about the owner to both the private profile and today's shared memory until delivery lands. Run `node "$HOME/nana-pi/packages/nana-pack/bin/nana-profile.mjs" save`; never enable saving on a machine without the owner's choice. Show each Saved: line in your reply so the owner can retract it; confirm only on an explicit owner yes with new owner words. Never save as a builder or reviewer, from a linked worktree, or from a disabled machine. Decisions belong in nana-rulings.md and open threads in GitHub issues.
+- Automatic profile saving stays off until something reads the profile (default, 2026-11-10); the private profile store stays. Decisions belong in nana-rulings.md and open threads in GitHub issues.
 
 At session start, run the main CI check command when the block names it, and run it again after each land once that land's main run finishes. Use `--post` when it reports red.
 Land the reviewed fix through `nana-land … --fixes-red <run>`.
