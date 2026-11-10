@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/requirements-tree.test.mjs
  * @purpose Pins the capability-tree requirements on the real ledger and proves each structural rule and outline field rejects a broken fixture.
- * @inputs REQUIREMENTS.md, docs/requirements-tree.md, scripts/requirements-tree.mjs and temporary ledger fixtures.
+ * @inputs REQUIREMENTS.md, scripts/requirements-tree.mjs and temporary ledger fixtures.
  * @outputs PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
  * @effects disk (reads repository files and creates fixtures under the OS temp directory)
  * @errors A failed check prints its reason and exits non-zero.
@@ -20,8 +20,8 @@ let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
 const root = new URL("../../../", import.meta.url);
 const ledger = readFileSync(process.env.REQ_TREE_LEDGER_PATH ?? new URL("REQUIREMENTS.md", root), "utf8");
-const map = readFileSync(new URL("docs/requirements-tree.md", root), "utf8");
 const actual = checkTree(ledger);
+const map = actual.outline;
 const row = (id) => ledger.split("\n").find((line) => line.startsWith(`| ${id} |`)) ?? "";
 // req: R-287
 check("R-287: every real requirement row is in a feature or subgroup table", actual.problems.every((p) => !p.includes("not in a feature or subgroup table")) && row("R-287").startsWith("| R-287 | Every requirement row in REQUIREMENTS.md shall sit in a table"), actual.problems.join("; "));
@@ -48,9 +48,9 @@ check("R-289: real capability, feature and subgroup IDs are unique", actual.prob
 // req: R-290
 check("R-290: real feature and subgroup headings have direct-level parents", actual.problems.every((p) => !p.includes("nested under")), actual.problems.join("\n"));
 // req: R-291
-check("R-291: committed outline equals a fresh render", map === actual.outline, "committed outline differs from renderOutline");
+check("R-291: generated outline equals a fresh render", map === renderOutline(actual.parsed), "generated outline differs from renderOutline");
 // req: R-291
-check("R-291: committed outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
+check("R-291: generated outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
 // R-1640 to R-1643: the rows each heading is expected to carry come from the trace rail's
 // own row reader (requirementRowId), never a typed count, so adding a requirement row
 // changes no number here.
@@ -66,7 +66,7 @@ function treeAccounting(parsed, outline) {
       ? parsed.headings.filter((candidate) => candidate === heading || isDescendant(candidate, heading)).flatMap((candidate) => candidate.rows)
       : heading.rows;
     if (ids.length !== source.length || [...ids].sort().join(",") !== [...source].sort().join(","))
-      problems.push(`${heading.id}: committed IDs differ from its rows`);
+      problems.push(`${heading.id}: generated IDs differ from its rows`);
   }
   const lines = new Map();
   for (const text of parsed.lines) {
@@ -86,7 +86,7 @@ function isDescendant(candidate, ancestor) {
 }
 const accounting = treeAccounting(actual.parsed, map);
 // req: R-291
-check("R-291: every real heading's committed IDs survive expansion and the tree reads every row line once", accounting.length === 0, accounting.join("; "));
+check("R-291: every real heading's generated IDs survive expansion and the tree reads every row line once", accounting.length === 0, accounting.join("; "));
 const r291Row = row("R-291");
 const insertedParsed = parseLedger(ledger.replace(r291Row, `${r291Row}\n| R-9999 | The added row shall be read. | untested | — |`));
 const insertedProblems = treeAccounting(insertedParsed, renderOutline(insertedParsed));
@@ -486,9 +486,12 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   const withoutLines = deliverableTree.replace(/^Made by:.*\n|^Read by:.*\n/gm, "");
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), deliverableTree);
   const rootMode = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
+  const absentMode = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
   const writeMode = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
   const writtenOutline = existsSync(join(docsDir, "requirements-tree.md")) ? readFileSync(join(docsDir, "requirements-tree.md"), "utf8") : "";
   const checkMode = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
+  writeFileSync(join(docsDir, "requirements-tree.md"), "stale local outline\r\n \t");
+  const staleMode = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
   const expectedOutline = renderOutline(parseLedger(withoutLines));
   const goodOutput = (result) => {
     const outputLines = lines(result.stdout);
@@ -513,7 +516,7 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   const readsOutput = (result) => result.status === 0 && lines(result.stdout)[0] === "requirements tree: 0 problems; rows 1; features 1" && lines(result.stdout).filter((line) => line.includes("Reads: A-999") && line.includes("no live entry")).length === 1;
   // req: R-2538
   check("the tree checker prints deliverable notes in every mode and keeps its exit status and outline",
-    goodOutput(rootMode) && goodOutput(writeMode) && goodOutput(checkMode) && writtenOutline === expectedOutline && problemMode.status === 1 && problemMode.stdout === "" && registryOutput(registryRoot) && registryOutput(registryWrite) && registryOutput(registryCheck) && readsOutput(readsRoot) && readsOutput(readsWrite) && readsOutput(readsCheck),
+    goodOutput(rootMode) && goodOutput(absentMode) && goodOutput(staleMode) && goodOutput(writeMode) && goodOutput(checkMode) && writtenOutline === expectedOutline && problemMode.status === 1 && problemMode.stdout === "" && registryOutput(registryRoot) && registryOutput(registryWrite) && registryOutput(registryCheck) && readsOutput(readsRoot) && readsOutput(readsWrite) && readsOutput(readsCheck),
     `root ${rootMode.status}: ${rootMode.stdout} ${rootMode.stderr}\nwrite ${writeMode.status}: ${writeMode.stdout} ${writeMode.stderr}\ncheck ${checkMode.status}: ${checkMode.stdout} ${checkMode.stderr}\nproblem ${problemMode.status}: ${problemMode.stdout} ${problemMode.stderr}\nregistry only: ${registryRoot.status}/${registryWrite.status}/${registryCheck.status}: ${registryRoot.stdout} ${registryWrite.stdout} ${registryCheck.stdout} ${registryCheck.stderr}\nreads only: ${readsRoot.status}/${readsWrite.status}/${readsCheck.status}: ${readsRoot.stdout} ${readsWrite.stdout} ${readsCheck.stdout} ${readsCheck.stderr}`);
 
   const countTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifacts\nKind: product\nDeliverables: R-001, R-002, R-003\nMade by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/read.mjs\nMade by: R-002 · manual: a person makes it\nRead by: R-002 · code: scripts/read.mjs\nMade by: R-003 · suite: scripts/make.mjs\nRead by: R-003 · rule: the workflow asks for it\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n| R-002 | The second artifact shall exist. | untested | — |\n| R-003 | The third artifact shall exist. | untested | — |\n";

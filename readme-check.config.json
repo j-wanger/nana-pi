@@ -10,6 +10,14 @@
   "undocumented": [],
   "externalPaths": [
     {
+      "path": "docs/code-map.md",
+      "reason": "generated local output of npm run map; ignored in nana-pi, not required in a clean checkout"
+    },
+    {
+      "path": "docs/requirements-tree.md",
+      "reason": "generated local output of npm run req:tree; ignored in nana-pi, not required in a clean checkout"
+    },
+    {
       "path": "node_modules",
       "reason": "produced by the install step this README documents; gitignored, never committed; in the knowledge README, a directory name inside a wiki root that the index skips"
     },

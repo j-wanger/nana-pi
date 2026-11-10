@@ -2,10 +2,10 @@
 /**
  * @module scripts/requirements-tree.mjs
  * @purpose Validate the capability and feature structure of REQUIREMENTS.md and render its lifecycle and shared-requirement outline.
- * @inputs REQUIREMENTS.md and, for the CLI, docs/requirements-tree.md plus the ledger folder's HEAD tree through the shared deliverable reporter.
+ * @inputs REQUIREMENTS.md and, for the CLI, the ledger folder's HEAD tree through the shared deliverable reporter.
  * @outputs Parsed headings and tables, structural problem lists, rendered outline Markdown with artifact and read IDs, and shared deliverable report lines.
- * @effects disk (reads the ledger and optionally writes or checks the generated outline), process (CLI reports errors and exit status)
- * @errors Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, nesting, or stale output.
+ * @effects disk (reads the ledger and optionally writes the generated outline), process (CLI reports errors and exit status)
+ * @errors Named structural problems for misplaced rows, invalid purposes, duplicate IDs, invalid capability fields, lifecycle or sharing, or nesting.
  */
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -643,15 +643,6 @@ export function main(argv = process.argv.slice(2)) {
   if (result.problems.length) return 1;
   const target = resolve(REPO_ROOT, "docs/requirements-tree.md");
   if (mode === "--write") writeFileSync(target, result.outline);
-  else {
-    const committed = readFileSync(target, "utf8");
-    if (committed !== result.outline) {
-      const a = committed.split("\n"), b = result.outline.split("\n");
-      const i = a.findIndex((line, n) => line !== b[n]);
-      console.error(`docs/requirements-tree.md:${i + 1}: differs from rendered outline`);
-      return 1;
-    }
-  }
   printDeliverableReport(result.parsed, dirname(resolve(REPO_ROOT, "REQUIREMENTS.md")));
   return 0;
 }

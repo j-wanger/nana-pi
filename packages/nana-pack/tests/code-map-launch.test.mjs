@@ -83,7 +83,7 @@ await check("R-3150: helper bindings resolve per site and non-launching referenc
 }));
 
 // req: R-3152
-await check("R-3152: unresolved sites are numbered without guessing and stale lists fail check", () => {
+await check("R-3152: unresolved sites are numbered without guessing and local maps do not affect check", () => {
 	for (const variant of ["lf", "crlf"]) fixture((f) => {
 	f.put("bin/x.mjs"); f.put("lib/a.mjs");
 	// The unchanged import parser sees import text inside inline code as an external fixture path.
@@ -99,7 +99,12 @@ await check("R-3152: unresolved sites are numbered without guessing and stale li
 	assert.equal(f.cli("--check").status, 0);
 	assert(f.cli("--impact", "bin/x.mjs").stdout.split("always-run tests (blind reach):")[1]?.includes("tests/u.test.mjs"));
 	f.put("tests/u.test.mjs", launches + '\nspawnSync(process.execPath, [process.argv[2]]);');
-	const result = f.cli("--check"); assert.equal(result.status, 1); assert.match(result.stdout, /stale/);
+	const result = f.cli("--check"); assert.equal(result.status, 0, result.stdout);
+	assert.match(checkRepo(f.root).markdown, /line 26:/);
+	writeFileSync(join(f.root, "map.md"), '### `deleted.mjs`\n');
+	assert.equal(f.cli("--check").status, 0);
+	rmSync(join(f.root, "map.md"));
+	assert.equal(f.cli("--check").status, 0);
 	}, variant);
 });
 

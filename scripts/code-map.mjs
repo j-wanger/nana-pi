@@ -5,7 +5,7 @@
  * @inputs argv (--write | --render | --check | --search <need> | --impact <file...>), code-map.config.json, module sources, REQUIREMENTS.md, git and runtime data (NANA_RUNTIME_MAP_FILE override)
  * @outputs docs/code-map.md on --write, check findings, ranked precedent suggestions with callees, or marked impact callers, blind-reach tests, callees, artifact writers and readers, freshness and measured test files
  * @effects disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
- * @errors exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, the map is stale, or a repo-code/untraced program lacks a reasoned launchAlwaysRun entry; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
+ * @errors exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or a repo-code/untraced program lacks a reasoned launchAlwaysRun entry; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
  */
 // A shim, not a copy. The generator is ONE source — the template every project
 // scaffolds from (`templates/typescript/template/scripts/code-map.mjs`) — and nana-pi
@@ -18,7 +18,6 @@ import { fileURLToPath } from "node:url";
 
 import {
 	buildGraph,
-	checkRepo as checkRepoAt,
 	collectModules,
 	formatImpact as formatImportImpact,
 	impact,
@@ -104,20 +103,16 @@ function renderRepoMap(graph) {
 	return text;
 }
 
-/** Keep the generator's validation, then compare its launch-enriched rendering. */
+/** Validate and render current sources, independent of any optional local map. */
 export function checkRepo(root = REPO_ROOT) {
-	const result = checkRepoAt(root);
-	const before = new Set(result.graph.problems);
-	linkRepo(root, result.graph, collectModules(root, result.graph.config));
-	result.problems.push(...result.graph.problems.filter((p) => !before.has(p)));
-	result.markdown = renderRepoMap(result.graph);
-	const { config } = result.graph;
-	const stale = `${config.mapPath} is stale against the code; run '${config.runner} map'`;
-	result.problems = result.problems.filter((p) => p !== stale);
-	const file = resolve(root, config.mapPath);
-	if (existsSync(file) && readFileSync(file, "utf8").replace(/\r\n/g, "\n") !== result.markdown) result.problems.push(stale);
-	result.line = result.line.replace(/\d+ problem\(s\)$/, `${result.problems.length} problem(s)`);
-	return result;
+	const config = loadConfig(root);
+	const sources = collectModules(root, config);
+	const graph = linkRepo(root, buildGraph(sources, config), sources);
+	const problems = [...graph.problems];
+	const headerless = graph.order.filter((p) => !graph.modules.get(p).header && !graph.modules.get(p).exemptReason).length;
+	const excused = graph.order.filter((p) => graph.modules.get(p).exemptReason).length;
+	const line = `code map: ${graph.order.length} modules over ${config.roots.join(", ")}; ${headerless} without a usable contract header; ${excused ? `${excused} exempt; ` : ""}${problems.length} problem(s)`;
+	return { graph, markdown: renderRepoMap(graph), problems, line };
 }
 
 /** Rewrite the template map with this repo's reciprocal launch links. */
@@ -267,8 +262,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
 			process.stderr.write('usage: npm run map:search -- "<need>"\n');
 			code = 2;
 		} else {
-			const config = loadConfig(REPO_ROOT);
-			process.stdout.write(formatSearch(searchCode(need, readFileSync(resolve(REPO_ROOT, config.mapPath), "utf8"), readFileSync(resolve(REPO_ROOT, "REQUIREMENTS.md"), "utf8"))));
+			process.stdout.write(formatSearch(searchCode(need, checkRepo(REPO_ROOT).markdown, readFileSync(resolve(REPO_ROOT, "REQUIREMENTS.md"), "utf8"))));
 			code = 0;
 		}
 	} else code = repoMain(argv, REPO_ROOT);

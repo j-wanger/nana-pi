@@ -1,2 +1,4 @@
 node_modules/
 docs/product-report/out/
+/docs/code-map.md
+/docs/requirements-tree.md

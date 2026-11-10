@@ -62,7 +62,7 @@ Purpose: the code map and its blast-radius command stay generated and checkable.
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | G-009 | The project shall carry a code map, generated from the import graph and the contract headers, that lists every module with its purpose, inputs, outputs, side effects, callers and callees, in a form an agent can read without opening the code. | {{ _status }} | {{ ('`' ~ _g009 ~ '`') if _ev else '—' }} |
-| G-010 | WHEN a module exists without a map entry, a map entry names a module that no longer exists, or a header is missing or malformed, the suite shall fail. | {{ _status }} | {{ ('`' ~ _g010 ~ '`') if _ev else '—' }} |
+| G-010 | WHEN a header is missing or malformed, or, where a project tracks its map, a module exists without a map entry or a map entry names a module that no longer exists, the suite shall fail. | {{ _status }} | {{ ('`' ~ _g010 ~ '`') if _ev else '—' }} |
 | G-011 | WHEN a change touches a module, its blast radius (transitive callers and callees) shall be derivable from the map by one command. | {{ _status }} | {{ ('`' ~ _g011 ~ '`') if _ev else '—' }} |
 
 ### SUB-903 · Documentation
