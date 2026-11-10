@@ -56,7 +56,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join, resolve, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
-import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD } from '../lib/verdict-config.mjs';
+import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS } from '../lib/verdict-config.mjs';
 import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 import { renameWithRetry, RENAME_RETRY_CODES } from '../lib/rename-retry.mjs';
 export { reviewShaped } from './review-shape.mjs';
@@ -182,7 +182,7 @@ export function repoKeyOf(tree) {
 /** Repository identity + the reviewed tree's revision parts. repo = repoKeyOf(tree) (shared by all
  *  worktrees of one repository). Non-Git admission throws; legacy `path:` keys are readable only in
  *  existing tallies. `exclude` = absolute paths left out of the snapshot. */
-export function treeScope(cwd = process.cwd(), { exclude = [] } = {}) {
+export function treeScope(cwd = process.cwd(), { exclude = [], requireClean = false } = {}) {
   const tree = resolve(cwd);
   const r = gitOut(tree, ['rev-parse', '--show-toplevel'], { okStatus: [0, 128] });
   if (r.status !== 0) {
@@ -191,7 +191,7 @@ export function treeScope(cwd = process.cwd(), { exclude = [] } = {}) {
   }
   const top = r.stdout.trim();
   const root = realPath(top, { mustExist: true });
-  const { head, snapshot } = workingState(root, exclude);
+  const { head, snapshot } = workingState(root, exclude, { requireClean });
   return { repo: repoKeyOf(tree), inGit: true, root, head, snapshot };
 }
 
@@ -218,6 +218,9 @@ function writeAlternates(file, objectsDir) {
   writeFileSync(file, `${process.platform === 'win32' ? objectsDir.split('\\').join('/') : objectsDir}\n`);
 }
 
+// chosen: bound a launch refusal without hiding the instruction beneath a long path list.
+export const CLEAN_REVIEW_PATH_CAP = 10;
+
 /** {head, snapshot}: snapshot = null when the working tree equals HEAD's tree and no nested repository is
  *  dirty or new, else the FULL sha256 of "tree <id>\0" plus every nested record below, sorted in byte order.
  *  The tree is what `git add -A` would record over HEAD (W7c amend, 2026-10-18 — plan-design.md, amended by
@@ -240,7 +243,16 @@ function writeAlternates(file, objectsDir) {
  *      recorded as "sub <head>+snap:<x>\t<path>" only when dirty — a clean one needs no record, since its
  *      gitlink already lands on its HEAD commit, same as the superproject's own tree.
  *  "Equals HEAD" compares the scratch tree's id against `git rev-parse <head>^{tree}`. */
-export function workingState(root, exclude = []) {
+export function workingState(root, exclude = [], { requireClean = false } = {}) {
+  if (requireClean) {
+    const entries = nulList(gitOut(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all']).stdout);
+    const paths = [];
+    for (let i = 0; i < entries.length; i++) {
+      paths.push(entries[i].slice(3));
+      if (/[RC]/.test(entries[i].slice(0, 2))) i++; // -z rename/copy source follows the destination.
+    }
+    if (paths.length) throw new Error(`uncommitted paths: ${paths.slice(0, CLEAN_REVIEW_PATH_CAP).map(p => JSON.stringify(p)).join(', ')}; commit or remove them, then review`);
+  }
   const head = headOf(root);
   if (!head) return { head: null, snapshot: null };
   // Reads the REAL index (git needs it to know what is "other"), so a corrupt index still refuses here,
@@ -568,7 +580,7 @@ export function readRounds(home = homedir(), { repo, item } = {}) {
 }
 
 /** Read the selected final or plain first line; detection folds but acceptance stays raw. */
-function readVerdict(text) {
+export function readVerdict(text) {
   text = String(text ?? '');
   if (text.startsWith('\uFEFF')) text = text.slice(1);
   const lines = text.split(/\r?\n/);
@@ -594,7 +606,9 @@ function readVerdict(text) {
     }
     if (nonblank.length > 1 && carries(first.text)) {
       const firstWord = firstGrammar.exec(first.text)?.[1] ?? null;
-      if (firstWord !== verdict) {
+      const labelWords = new Set([...FIRST_LINE_LABEL_WORDS, verdict.toLowerCase()]);
+      const holdsLabel = firstWord !== null || (canon(first.text).match(/[a-z]+(?:-[a-z]+)*/g) ?? []).some(word => labelWords.has(word));
+      if (holdsLabel && firstWord !== verdict) {
         return { verdict: null, selected: final, condition: UNREAD_VERDICT_CONDITIONS.FIRST_LINE_CONFLICT, trigger: first };
       }
     }

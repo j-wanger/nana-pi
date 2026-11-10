@@ -9,13 +9,14 @@
  */
 import { readFileSync, statSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { readReviewStandard } from '../lib/review-standard.mjs';
 import { runReview } from '../lib/review-run.mjs';
 import { resolveRoster } from './nana-roster.mjs';
-import { admit, release } from './review-round.mjs';
+import { admit, release, treeScope } from './review-round.mjs';
 import { startLaneWatcher } from '../lib/lane-watcher.mjs';
 import { CLAUDE_CODE_RUNTIME, DEFAULT_THINKING_TOKEN, CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_BUILDER_SETTING_SOURCES, CLAUDE_SETTINGS_FLAG, CLAUDE_STRICT_MCP_FLAG, CLAUDE_EFFORT_FLAG, CLAUDE_BUILDER_CHILD_ENV, REVIEWER_CHILD_ENV } from './worker-config.mjs';
 import { readClaudeBuilderSettings, writeClaudeBuilderSettings } from '../lib/claude-settings-carry.mjs';
@@ -27,6 +28,9 @@ import {
   CLAUDE_MODEL_FLAG,
   CLAUDE_ALLOW_FLAG,
   CLAUDE_DENY_FLAG,
+  CLAUDE_SESSION_FLAG,
+  CLAUDE_RESUME_FLAG,
+  VERDICT_CONFIRMATION_PROMPT,
   REVIEWER_ALLOWED_TOOLS,
   REVIEWER_DENIED_TOOLS,
   REVIEW_SLOT,
@@ -94,6 +98,7 @@ const knownBugs = reviewKnownBugSection(tree, null, brief.text);
 const prompt = `${brief.text}\n\n${knownBugs.text === null ? '' : `${knownBugs.text}\n\n`}${STANDARD_HEADING}\n\n${standard.text}\n\n${renderReviewerSentence(value('--item'), tree)}\n`;
 const ownArgs = ['--item', value('--item'), '--out', resolve(value('--out')), '--tree', tree];
 for (const name of OPTIONAL) if (parsed.values.has(name)) ownArgs.push(name, value(name));
+try { treeScope(tree, { requireClean: true }); } catch (error) { die(error.message); }
 // Admission precedes settings reads; the reservation belongs to this launcher, not an intermediary.
 const admission = admit(ownArgs, { launcher: 'claude-review', model: reviewer.model, attempts: 1 });
 if (!admission.ok) die(admission.message);
@@ -113,10 +118,14 @@ writeClaudeBuilderSettings(settingsFile, carry);
 const command = [CLAUDE_BIN, CLAUDE_PRINT_FLAG, CLAUDE_MODEL_FLAG, reviewer.model, CLAUDE_ALLOW_FLAG, REVIEWER_ALLOWED_TOOLS, CLAUDE_DENY_FLAG, REVIEWER_DENIED_TOOLS,
   CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_BUILDER_SETTING_SOURCES, CLAUDE_SETTINGS_FLAG, settingsFile, CLAUDE_STRICT_MCP_FLAG,
   ...(carry.effort ? [CLAUDE_EFFORT_FLAG, carry.effort] : [])];
+const session = randomUUID();
+const retryCommand = [...command, CLAUDE_RESUME_FLAG, session, '--tools', ''];
+command.push(CLAUDE_SESSION_FLAG, session);
 const parts = [contextPart('brief', briefPath, brief.text), ...knownBugs.parts, ...claudeInstructionParts({ cwd: tree }),
   contextPart('standard', standard.path, standard.text),
   { name: 'settings', source: carry.source, fullChars: carry.fullChars, deliveredChars: JSON.stringify(carry.settings).length }];
 const status = await runReview(ownArgs, command, { admission, input: prompt,
+  unreadRetry: { command: retryCommand, input: VERDICT_CONFIRMATION_PROMPT },
   onSpawn: () => appendContextLoad({ launcher: 'claude-review', role: 'reviewer', runtime: CLAUDE_CODE_RUNTIME, model: reviewer.model, effort: carry.effort, cwd: tree, item: value('--item'), parts }) });
 process.exitCode = status;
 cleanup();

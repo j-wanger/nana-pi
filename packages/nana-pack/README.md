@@ -245,7 +245,7 @@ node "$HOME/nana-pi/packages/nana-pack/bin/claude-review.mjs" --item <slug> --tr
 
 The launcher requires `--item`, `--tree`, `--brief` and `--out`; it resolves the brief against the
 reviewed tree and resolves the output path against the launcher folder. It reads the reviewer model from the
-machine roster, sends the brief, shared review standard and read-only reviewer sentence on standard
+machine roster and refuses uncommitted tracked changes or untracked non-ignored files before admission, naming up to ten paths: commit or remove them, then review. Ignored files are allowed. Unlike this live-tree launcher, `pi-review` uses its separate immutable-checkout path and still supports dirty snapshots. It sends the brief, shared review standard and read-only reviewer sentence on standard
 input, then runs `claude -p --model <model> --allowedTools Read,Grep,Glob,Bash --disallowedTools Edit,Write,NotebookEdit`
 directly through `lib/review-run.mjs`, which admits, spawns, records and releases the review. It preserves a nonzero reviewer exit status and refuses an unread or unverified verdict. A pi reviewer entry is refused before
 admission and must use `pi-review`; there is no fallback model. Set the Claude Code reviewer from a
@@ -259,7 +259,7 @@ The reviewer adds `--setting-sources project,local`, an external `--settings` fi
 
 Known limits: the reviewer uses the live tree, not an immutable checkout, so a reviewer or concurrent
 builder edit makes the verdict unverified and consumes the round. It has no liveness watchdog, launcher
-retry or retry beyond Claude Code's own request retries; a hung `claude` hangs the launcher. The ledger
+retry of the review itself; a hung `claude` hangs the launcher. An unread verdict gets one confirmation turn via the exact session id, with tools disabled and no new review. A second unread or failed reply returns the reservation without recording a round. On success, the original output stays at `--out` and the confirmed line is the captured text kept in the store and read for the record. The ledger
 records the alias such as `opus`, not the resolved model id, and records a null provider. The launcher
 is not on PATH and has no doctor line, so every platform starts it through Node. Read-only is an
 instruction rather than enforcement because Bash is allowed. Only the reviewer slot is supported. On Windows the allowed tool list has no PowerShell. A logged-out `claude` exits 1
@@ -449,6 +449,8 @@ can append only to the audit log before the first version-2 row exists. **Budget
 the provider's limits. **Repair:** to reset an item, remove its
 lines from `review-ledger.rounds.jsonl` only with the understanding that this erases the verdict history
 used by the land check (and clear stale files under `review-ledger.reservations/`). Reviews have no round limit; the retired override flag is refused.
+
+When a valid final verdict follows a first-line `Verdict:` prose opener with no folded label word, the reader uses the final label. An opener holding a conflicting label still refuses, including case and configured Unicode look-alikes. Malformed agreeing verdict openers still refuse; other selection and grammar rules are unchanged.
 
 ### Migration (callers outside this repo — document only)
 

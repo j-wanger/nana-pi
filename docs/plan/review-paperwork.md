@@ -36,6 +36,13 @@ Honest variation in our tools' output, old store records and Windows paths are i
 - `packages/nana-pack/bin/nana-land.mjs` (`checkRecords`, lines 215–243): the review check simplified.
 - `docs/plan/review-paperwork/removal-map.md` group 2: every file, test, row and checker to touch.
 
+## Review-fix follow-up contract (2026-11-09)
+
+- R-1010: a valid final verdict may follow a prose `Verdict:` opener without a folded verdict-label word. Conflicting labels and malformed agreeing label lines still refuse; every other selection rule stays fail-closed.
+- R-3989: the live-tree Claude launcher asks review-round's working-state reader to refuse tracked or non-ignored untracked changes before admission, listing at most ten paths. The separate immutable pi launch path retains dirty snapshots.
+- R-3990: the Claude launcher assigns a session id and resumes that exact review once for a verdict line only, with tools disabled. The original output remains at `--out`; completion keeps and reads the confirmation line. A failed or unread confirmation releases the reservation and records no round. No new review is requested.
+- Public API: `readVerdict` is exported from review-round for the shared runner and replay validation. `treeScope` forwards the optional `requireClean` flag to `workingState`; default behavior and existing return shapes stay unchanged.
+
 ## Outside precedent
 
 none: in-house process removal.

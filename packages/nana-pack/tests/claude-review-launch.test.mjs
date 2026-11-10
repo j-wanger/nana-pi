@@ -109,6 +109,7 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 	fs.mkdirSync(outside);
 	const brief = path.join(repo, "brief.md");
 	fs.writeFileSync(brief, "Review the named revision.\n");
+	git(repo, 'add', 'brief.md'); git(repo, 'commit', '-qm', 'brief');
 	const home = makeHome("main");
 	const fakeBin = path.join(temp, "fake-main");
 	const record = writeFakeClaude(fakeBin, path.join(temp, "main-record.jsonl"));
@@ -120,7 +121,7 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 	// req: R-2560
 	check("R-2560: claude-review starts the roster's Claude Code reviewer and records its round",
 		result.status === 0 && calls.length === 1 &&
-		JSON.stringify(calls[0].argv) === JSON.stringify(["-p", "--model", "fable", "--allowedTools", "Read,Grep,Glob,Bash", "--disallowedTools", "Edit,Write,NotebookEdit", "--setting-sources", "project,local", "--settings", calls[0].argv[calls[0].argv.indexOf('--settings') + 1], "--strict-mcp-config"]) &&
+		JSON.stringify(calls[0].argv) === JSON.stringify(["-p", "--model", "fable", "--allowedTools", "Read,Grep,Glob,Bash", "--disallowedTools", "Edit,Write,NotebookEdit", "--setting-sources", "project,local", "--settings", calls[0].argv[calls[0].argv.indexOf('--settings') + 1], "--strict-mcp-config", "--session-id", calls[0].argv.at(-1)]) &&
 		calls[0].role === "reviewer" && calls[0].handoff === "off" && fs.realpathSync(calls[0].cwd) === fs.realpathSync(repo) &&
 		fs.readFileSync(out, "utf8") === answer && state.rounds.length === 1 && state.rounds[0].model === "fable" && state.rounds[0].role === "final",
 		JSON.stringify({ result, calls, state }));
@@ -148,5 +149,33 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 		JSON.stringify({ piResult, badResult, piState, badState }));
 }
 
+
+{
+	const source = makeRepo('dirty-source');
+	const repo = path.join(temp, 'dirty-clone');
+	const cloned = git(temp, 'clone', '--local', source, repo);
+	if (cloned.status !== 0) throw new Error(cloned.stderr);
+	const brief = path.join(temp, 'dirty-brief.md');
+	fs.writeFileSync(brief, 'Review the committed revision.');
+	const fakeBin = path.join(temp, 'fake-dirty');
+	const record = writeFakeClaude(fakeBin, path.join(temp, 'dirty-record.jsonl'));
+	const home = makeHome('dirty');
+	const hook = path.join(repo, '.codex', 'hooks.json');
+	fs.mkdirSync(path.dirname(hook)); fs.writeFileSync(hook, '{}');
+	const item = 'dirty-launch';
+	const invoke = () => runLauncher({ cwd: temp, tree: repo, brief, out: path.join(temp, 'dirty-out.md'), item, env: baseEnv(home, fakeBin, record) });
+	const untracked = invoke();
+	fs.rmSync(hook); fs.writeFileSync(path.join(repo, 'seed.txt'), 'changed');
+	const tracked = invoke();
+	git(repo, 'add', 'seed.txt'); fs.writeFileSync(path.join(repo, 'seed.txt'), 'seed\n');
+	const indexOnly = invoke();
+	const state = ledgerState(home.home, item);
+	// req: R-3989
+	check('an untracked hooks file refuses Claude before any model call',
+		[untracked, tracked, indexOnly].every(r => r.status === 1 && r.stderr.includes('commit or remove them, then review')) &&
+		untracked.stderr.includes('.codex/hooks.json') && tracked.stderr.includes('seed.txt') && indexOnly.stderr.includes('seed.txt') &&
+		!fs.existsSync(record) && state.rounds.length === 0 && state.reservations.length === 0,
+		JSON.stringify({ untracked, tracked, indexOnly, state }));
+}
 
 if (fails) process.exitCode = 1;

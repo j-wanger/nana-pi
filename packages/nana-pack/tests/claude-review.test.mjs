@@ -70,7 +70,7 @@ process.stdin.setEncoding("utf8");
 process.stdin.on("data", (chunk) => { stdin += chunk; });
 process.stdin.on("end", () => {
   if (process.env.CLAUDE_RECORD) fs.appendFileSync(process.env.CLAUDE_RECORD, JSON.stringify({ argv: process.argv.slice(2), cwd: process.cwd(), role: process.env.NANA_ROLE, handoff: process.env.NANA_HANDOFF, stdin }) + "\\n");
-  process.stdout.write(process.env.CLAUDE_ANSWER ?? "Review complete.\\nVERDICT: LAND\\n");
+  process.stdout.write((process.argv.includes('--resume') ? process.env.CLAUDE_CONFIRMATION : undefined) ?? process.env.CLAUDE_ANSWER ?? "Review complete.\\nVERDICT: LAND\\n");
   process.exit(Number(process.env.CLAUDE_EXIT ?? "0"));
 });
 `);
@@ -113,6 +113,7 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 	fs.mkdirSync(path.dirname(brief), { recursive: true });
 	const briefText = "Brief first.\r\nKeep trailing space. \n";
 	fs.writeFileSync(brief, briefText);
+	git(repo, 'add', '.'); git(repo, 'commit', '-qm', 'brief');
 	const home = makeHome("prompt");
 	const fakeBin = path.join(temp, "fake-prompt");
 	const record = writeFakeClaude(fakeBin, path.join(temp, "prompt-record.jsonl"));
@@ -139,6 +140,7 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 		const repo = makeRepo("windows-tree");
 		const briefText = "Quoted \"text\" with 100% and bang!\r\nUnicode · —\r\ntrailing tab\t";
 		fs.writeFileSync(path.join(repo, "brief.md"), briefText);
+		git(repo, 'add', '.'); git(repo, 'commit', '-qm', 'brief');
 		const home = makeHome("windows");
 		const fakeBin = path.join(temp, "fake-windows");
 		const record = writeFakeClaude(fakeBin, path.join(temp, "windows-record.jsonl"));
@@ -153,6 +155,7 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 {
 	const repo = makeRepo("outcome-tree");
 	fs.writeFileSync(path.join(repo, "brief.md"), "Review outcome.\n");
+	git(repo, 'add', '.'); git(repo, 'commit', '-qm', 'brief');
 	const fakeBin = path.join(temp, "fake-outcome");
 	const record = writeFakeClaude(fakeBin, path.join(temp, "outcome-record.jsonl"));
 	const noClaudeHome = makeHome("no-claude");
@@ -174,6 +177,14 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 	const plainAnswer = "Review body.\nVERDICT: LAND\n";
 	const plain = runLauncher({ cwd: temp, tree: repo, out: plainOut, item: "outcome-plain", env: baseEnv(plainHome, fakeBin, record, { CLAUDE_ANSWER: plainAnswer }) });
 
+	const recoveredHome = makeHome('confirmed');
+	const recoveredOut = path.join(temp, 'confirmed-out.md');
+	const recovered = runLauncher({ cwd: temp, tree: repo, out: recoveredOut, item: 'outcome-confirmed', env: baseEnv(recoveredHome, fakeBin, record, { CLAUDE_ANSWER: formattedAnswer, CLAUDE_CONFIRMATION: 'VERDICT: LAND\r\n' }) });
+	const confirmedCalls = rows(record).slice(-2);
+	const session = confirmedCalls[0]?.argv.at(-1);
+	const confirmation = confirmedCalls[1];
+	const confirmedRows = ledgerState(recoveredHome.home, 'outcome-confirmed').rounds;
+
 	const refusedHome = makeHome("large-refusal");
 	const trackedOut = path.join(repo, "tracked-out.md");
 	fs.writeFileSync(trackedOut, "original\n");
@@ -183,10 +194,13 @@ const noStack = (text) => !/\n\s+at .+:\d+:\d+/.test(text ?? "");
 	const large = runLauncher({ cwd: temp, tree: repo, brief: "large.md", out: trackedOut, item: "outcome-large", env: baseEnv(refusedHome, fakeBin, record) });
 
 	const missingText = fs.existsSync(missingOut) ? fs.readFileSync(missingOut, "utf8") : "";
-	// req: R-2565
+	// req: R-2565 R-3990
 	check("R-2565: claude-review passes the reviewer's outcome through",
 		missing.status === 1 && /claude-review: cannot start claude:/.test(missing.stderr) && missingText.startsWith("cannot start claude:") && ledgerState(noClaudeHome.home, "outcome-missing").rounds.length === 0 &&
-		formatted.status === 1 && /verdict unread/i.test(formatted.stderr) && fs.readFileSync(formattedOut, "utf8") === formattedAnswer &&
+		formatted.status === 1 && /verdict unread/i.test(formatted.stderr) && fs.readFileSync(formattedOut, "utf8") === formattedAnswer && ledgerState(formattedHome.home, 'outcome-formatted').rounds.length === 0 &&
+		recovered.status === 0 && fs.readFileSync(recoveredOut, 'utf8') === formattedAnswer && confirmedRows.length === 1 && confirmedRows[0].verdict === 'LAND' && confirmedRows[0].attempts === 2 &&
+		confirmation?.argv[confirmation.argv.indexOf('--resume') + 1] === session && confirmation.stdin.includes('Do not review again') && confirmation.argv.includes('--tools') &&
+		fs.readFileSync(path.join(recoveredHome.agent, 'review-ledger.texts', `${confirmedRows[0].text.sha256}.md`), 'utf8') === 'VERDICT: LAND\r\n' &&
 		plain.status === 0 && fs.readFileSync(plainOut, "utf8") === plainAnswer &&
 		large.status === 1 && fs.readFileSync(trackedOut, "utf8") === "original\n" && !/EPIPE|write after end/i.test(large.stderr) && noStack(large.stderr),
 		JSON.stringify({ missing, missingText, formatted, plain, large }));

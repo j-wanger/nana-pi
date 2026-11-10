@@ -91,6 +91,21 @@ import { tmp, outs, PI_REVIEW, LEDGER_CLI, mod, home, agent, tallyFile, auditFil
 }
 
 {
+	const opener = '**Verdict: both commits fix their CI failures honestly. Neither changes how a check works; each adds a declared entry that the check\'s own contract allows. I found no MUST.**';
+	const results = [];
+	for (const ending of ['\n', '\r\n']) for (const suffix of ['', ending, ` \t${ending}`]) {
+		results.push(mod.readVerdict(`${opener}${ending}Review body.${ending}VERDICT: LAND${suffix}`).verdict === 'LAND');
+		for (const label of ['SEND-BACK', 'send-back', 'ＳＥＮＤ-ＢＡＣＫ', 'SΕND-BACK']) {
+			const conflict = mod.readVerdict(`**Verdict: ${label}**${ending}Review body.${ending}VERDICT: LAND${suffix}`);
+			results.push(conflict.verdict === null && conflict.condition === UNREAD_VERDICT_CONDITIONS.FIRST_LINE_CONFLICT);
+		}
+		results.push(mod.readVerdict(`Verdict: LAND${ending}Review body.${ending}VERDICT: SEND-BACK${suffix}`).verdict === null);
+	}
+	// req: R-1010
+	check('a recorded prose Verdict opener reads the final label but folded conflicting labels still refuse', results.every(Boolean));
+}
+
+{
 	freshHome("unread-ledger"); A.at(0);
 	const unreadText = "**VERDICT: LAND**\r\n\r\nbody\r\nVERDICT: LAND\r\n";
 	const unread = ledgerRun(["--item", "unread-ledger"], { cmd: [process.execPath, "-e", `process.stdout.write(${JSON.stringify(unreadText)})`] });

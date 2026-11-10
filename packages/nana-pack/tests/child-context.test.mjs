@@ -67,6 +67,11 @@ console.log('VERDICT: LAND\\nReview complete.');})();`;
   return { dir,lane,home,agent,bin,brief,env,capture,log,roster,pkg };
 }
 function launch(f, kind, claude = false) {
+  if (kind === 'claude-review') {
+    const added = spawnSync('git', ['add', '-A'], {cwd:f.lane,encoding:'utf8',timeout:10_000}); assert.equal(added.status,0,added.stderr);
+    const r = spawnSync('git', ['-c','user.name=Fixture','-c','user.email=fixture@example.invalid','-c','commit.gpgsign=false','commit','--allow-empty','-qm','review fixture inputs'], { cwd:f.lane,encoding:'utf8',timeout:10_000 });
+    assert.equal(r.status,0,r.stderr);
+  }
   const out = path.join(f.dir, `out-${++serial}`);
   const args = kind === 'pi-worker' ? ['--lane','example','--lane-size',claude?'larger':'small','--brief',f.brief,'--out',out,'--poll','0.05']
     : kind === 'slot' ? ['--slot','adversary','--brief',f.brief,'--out',out,'--poll','0.05']

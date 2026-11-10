@@ -59,6 +59,10 @@ function args(f, launcher, extra = []) {
   return ['--item', `item-${path.basename(f.dir)}`, '--out', out, '--poll', '0.05', '--retries', '0', '--', '--provider', 'fake', '--model', 'small', '--append-system-prompt', f.brief, '-p', 'review', ...extra];
 }
 function launch(f, launcher, extra = [], env = f.env) {
+  if (launcher === 'claude-review') {
+    git(f.lane, 'add', '-A');
+    git(f.lane, 'commit', '--allow-empty', '-qm', 'review fixture inputs');
+  }
   const r = spawnSync(process.execPath, [path.join(pack, 'bin', `${launcher}.mjs`), ...args(f, launcher, extra)], { cwd: f.lane, env, encoding: 'utf8', timeout: 20_000 });
   return { ...r, call: rows(f.record).at(-1) };
 }
@@ -77,7 +81,7 @@ test('R-3210: reviewer isolation and configured effort preserve exact argv order
   for (const [settings, effort] of [[{ effortLevel: 'xhigh' }, 'xhigh'], [{ effortLevel: 'xhigh', modelSettings: { fable: { effortLevel: 'medium' } } }, 'medium'], [{}, null]]) {
     const f = fixture(); write(path.join(f.home, '.claude/settings.json'), JSON.stringify(settings));
     const r = launch(f, 'claude-review'); good(r);
-    const expected = ['-p', '--model', 'fable', '--allowedTools', 'Read,Grep,Glob,Bash', '--disallowedTools', 'Edit,Write,NotebookEdit', '--setting-sources', 'project,local', '--settings', r.call.settings, '--strict-mcp-config', ...(effort ? ['--effort', effort] : [])];
+    const expected = ['-p', '--model', 'fable', '--allowedTools', 'Read,Grep,Glob,Bash', '--disallowedTools', 'Edit,Write,NotebookEdit', '--setting-sources', 'project,local', '--settings', r.call.settings, '--strict-mcp-config', ...(effort ? ['--effort', effort] : []), '--session-id', r.call.argv.at(-1)];
     assert.deepEqual(r.call.argv, expected); assert.ok(path.relative(f.lane, r.call.settings).startsWith('..'));
   }
 });
@@ -120,6 +124,7 @@ test('R-3211: reviewer carries only allowed settings and cleans normal failure a
     assert.match(r.stderr, /^claude-review: claude settings carry:/m); assert.ok(!fs.existsSync(r.call.settings));
   }
   const f = fixture();
+  git(f.lane, 'add', '-A'); git(f.lane, 'commit', '-qm', 'review fixture inputs');
   const child = spawn(process.execPath, [path.join(pack, 'bin/claude-review.mjs'), ...args(f, 'claude-review')], { cwd: f.lane, env: { ...f.env, HOLD: '1' }, stdio: 'ignore' });
   const closed = new Promise(resolve => child.once('close', resolve));
   const deadline = Date.now() + 15_000;
@@ -254,7 +259,7 @@ test('R-3216: failed unsafe and unavailable logging cannot alter launcher or hoo
   for (const launcher of ['pi-worker','claude-review','pi-review']) {
     const f=fixture(); const first=launch(f,launcher); good(first);
     fs.rmSync(f.log); fs.mkdirSync(f.log); const bad=launch(f,launcher); good(bad);
-    const normalize = c=>({argv:c.argv.map(v=>v.replace(/nana-(?:claude-review|movement|review|lane-preamble)-[^/\\]+/g,'TEMP').replace(/pi-(?:worker|review)-a\d+-\d+/g,'SESSION').replace(/\d{4}-\d{2}-\d{2}T[\d-]+Z_[a-f0-9-]+/g,'ATTEMPT')),stdin:c.stdin,prompt:c.prompt,prompts:c.prompts.map(p=>p.text.replace(/nana-review-[^/\\ ]+/g,'TEMP'))});
+    const normalize = c=>({argv:c.argv.map(v=>v.replace(/nana-(?:claude-review|movement|review|lane-preamble)-[^/\\]+/g,'TEMP').replace(/pi-(?:worker|review)-a\d+-\d+/g,'SESSION').replace(/\d{4}-\d{2}-\d{2}T[\d-]+Z_[a-f0-9-]+/g,'ATTEMPT').replace(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/,'SESSION')),stdin:c.stdin,prompt:c.prompt,prompts:c.prompts.map(p=>p.text.replace(/nana-review-[^/\\ ]+/g,'TEMP'))});
     assert.deepEqual(normalize(bad.call),normalize(first.call)); assert.equal(bad.stderr.split('\n').filter(l=>l.startsWith('nana context load skipped:')).length,1);
     write(path.join(f.lane,'.pi-agent/nana-pack.json'),fs.readFileSync(path.join(f.agent,'nana-pack.json')));
     const relative=launch(f,launcher,[],{...f.env,PI_CODING_AGENT_DIR:'.pi-agent'});

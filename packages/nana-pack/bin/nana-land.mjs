@@ -481,7 +481,7 @@ function runRecordedLand(options) {
 	return { ...result, text: withLandRecordLine(result.text, renderLandRecordLine(end, laneLine)) };
 }
 
-/** Land and record the result; memory making is manual while automatic triggers are paused. */
+/** Land and record the result. */
 export function runLand(options) {
  return runRecordedLand(options);
 }

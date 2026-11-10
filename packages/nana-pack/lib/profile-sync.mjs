@@ -97,14 +97,6 @@ export function pushProfile(pointer,branch,sha,runGit) {
  try {runGit(pointer.dir,['update-ref','-m','push',ref,sha,old]);}catch{/* Transport succeeded regardless of a local ref failure. */}
  return {ok:true};
 }
-/** Local count only: no fetch and no owner content. */
-export function unpushedProfile(dir,{runGit=profileGit()}={}) {
- try {
-  const branch=gitText(runGit,dir,['symbolic-ref','--short','HEAD']);
-  const count=Number(gitText(runGit,dir,['rev-list','--count',`refs/remotes/origin/${branch}..HEAD`]));
-  return Number.isSafeInteger(count)&&count>=0?count:null;
- } catch { return null; }
-}
 /** Caller owns the clone lock; retry only a rejected push, never expose stderr. */
 export function syncProfile(pointer,{runGit=profileGit(),log=()=>{}}={}) {
  const {dir}=pointer;

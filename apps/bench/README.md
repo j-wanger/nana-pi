@@ -8,7 +8,6 @@ The study runners retired on 2026-11-07; recorded results and frozen fixture tre
 Node ≥ 22.19 and git are required for builder extraction and reporting.
 The optional `label` command needs an authenticated Claude CLI on PATH and makes paid calls.
 There are no npm dependencies of its own and no Playwright requirement.
-The isolated runner resolves the globally installed pi package only for pi-backed memory shaping, not anatomy commands.
 
 ## Run and test
 
@@ -199,8 +198,7 @@ lib/anatomy-measures.mjs  counts, shared normalization, agreement, blind samplin
 lib/anatomy-labels.mjs  private capped model labelling, append, fingerprinted resume and shared read-only reader
 lib/anatomy-stats.mjs  shared Cohen's kappa and seeded sampling
 lib/jsonl.mjs       shared append-log reader with optional torn-tail repair
-lib/usage.mjs       pi JSON stream parsing retained for memory shaping
-lib/catch-judge.mjs  structured-output judge call retained for memory shaping and anatomy
+lib/catch-judge.mjs  structured-output judge call for anatomy labelling
  test/              synthetic tests with no model calls
 studies/            preserved records and frozen fixture trees; no active study runner
 ```

@@ -10,7 +10,7 @@ contract header at the top of each module; `npm run map:check` fails when this f
 and the code disagree (G-009, G-010). `npm run map:impact <file...>` prints a
 change's transitive callers and callees (G-011).
 
-Covers `scripts`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-setup/tests`, `apps/bench/test` — 488 modules, as declared in
+Covers `scripts`, `apps/bench`, `packages/nana-pack/lib`, `packages/nana-pack/bin`, `packages/nana-pack/extensions`, `packages/nana-knowledge/lib`, `packages/nana-knowledge/bin`, `packages/nana-knowledge/extensions`, `packages/nana-setup/lib`, `packages/nana-setup/bin`, `packages/nana-setup/claude/hooks`, `packages/nana-pack/tests`, `packages/nana-knowledge/tests`, `packages/nana-setup/tests`, `apps/bench/test` — 487 modules, as declared in
 `code-map.config.json`.
 
 **Layer direction** (G-007): a module may import from its own layer or the one
@@ -177,16 +177,6 @@ The bench and this repo's own scripts — the entry points. They may import the 
 - **errors** — Unreadable input returns no rows; repair write errors propagate.
 - **callers** — `apps/bench/lib/anatomy-labels.mjs`
 - **callees** — —
-
-### `apps/bench/lib/usage.mjs`
-
-- **purpose** — Parse pi JSON event streams for isolated memory-shaping runners.
-- **inputs** — the raw stream text of one run plus an optional pricer; pi-ai Usage objects carried on message_end and tool results
-- **outputs** — parseStream returns own and nested usage, completeness, final text, tool counts and stream diagnostics.
-- **effects** — none
-- **errors** — none thrown — an unterminated or malformed stream is reported through `settled: false` and an unpriceable nested call through nestedCostReason.
-- **callers** — `packages/nana-pack/tests/brief-check.test.mjs`
-- **callees** — `packages/nana-pack/lib/pi-usage.mjs`
 
 ### `apps/bench/test/anatomy-labels.test.mjs`
 
@@ -1644,7 +1634,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **outputs** — emptyUsage, addUsage, totalTokens, costTotal, and the numeric/cost helpers used by bench parsing.
 - **effects** — none
 - **errors** — none; absent and non-finite fields contribute zero.
-- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/lib/usage.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/lib/build-records.mjs`
+- **callers** — `apps/bench/lib/anatomy-sessions.mjs`, `apps/bench/test/anatomy.test.mjs`, `packages/nana-pack/lib/build-records.mjs`
 - **callees** — —
 
 ### `packages/nana-pack/lib/pipe-guard.mjs`
@@ -1707,7 +1697,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Throws sealed refusal lines for local failures; sync returns classified transport failure.
 - **callers** — `packages/nana-pack/bin/nana-profile.mjs`, `packages/nana-pack/lib/profile-guards.mjs`
 - **callees** — `packages/nana-pack/lib/lane-lock.mjs`, `packages/nana-pack/lib/memory-run-config.mjs`, `packages/nana-pack/lib/profile-config.mjs`
-- **repo-code launches** — line 20: spawnSync; binding line 101; binding line 109
+- **repo-code launches** — line 20: spawnSync; binding line 101
 
 ### `packages/nana-pack/lib/prompt-sections.mjs`
 
@@ -1788,7 +1778,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Returns nonzero for admission, launch, output, recording or unread-verdict failures; preserves nonzero child status.
 - **callers** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/tests/brief-check.test.mjs`
 - **callees** — `packages/nana-pack/bin/review-launch.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/bin/review-shape.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/claude-review-config.mjs`, `packages/nana-pack/lib/claude-settings-carry.mjs`, `packages/nana-pack/lib/credential-strip-config.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/json-text.mjs`, `packages/nana-pack/lib/lane-watcher.mjs`
-- **repo-code launches** — line 81: spawn
+- **repo-code launches** — line 81: spawn; binding line 93; binding line 101
 
 ### `packages/nana-pack/lib/review-standard.mjs`
 
@@ -1922,9 +1912,9 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 
 ### `packages/nana-pack/lib/verdict-config.mjs`
 
-- **purpose** — Defines verdict-label look-alike folds and the diagnostic conditions for unread verdicts.
+- **purpose** — Defines verdict-label vocabulary, look-alike folds and diagnostic conditions for unread verdicts.
 - **inputs** — none
-- **outputs** — VERDICT_LOOKALIKE_FOLD and UNREAD_VERDICT_CONDITIONS frozen tables
+- **outputs** — VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS and UNREAD_VERDICT_CONDITIONS frozen tables
 - **effects** — none
 - **errors** — none
 - **callers** — `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/tests/review-ledger-verdicts.test.mjs`
@@ -2110,7 +2100,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **effects** — disk (OS temp fixtures), process (git and bounded worker subprocesses)
 - **errors** — A failed comparison prints its cases and exits nonzero.
 - **callers** — —
-- **callees** — `apps/bench/lib/anatomy.mjs`, `apps/bench/lib/usage.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/review-run.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
+- **callees** — `apps/bench/lib/anatomy.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/review-round.mjs`, `packages/nana-pack/lib/brief-config.mjs`, `packages/nana-pack/lib/brief-precedent.mjs`, `packages/nana-pack/lib/ci-records.mjs`, `packages/nana-pack/lib/review-run.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/test-runner.test.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
 
 ### `packages/nana-pack/tests/build-records.test.mjs`
 
@@ -2143,7 +2133,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Failed assertions set exit 1.
 - **callers** — —
 - **callees** — `packages/nana-pack/extensions/nana-writing.ts`, `packages/nana-pack/lib/frontier-summary-config.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`
-- **unresolved launches** — line 75: spawnSync; binding line 105; binding line 114; binding line 133
+- **unresolved launches** — line 80: spawnSync; binding line 110; binding line 119; binding line 138
 
 ### `packages/nana-pack/tests/ci-records.test.mjs`
 
@@ -2323,7 +2313,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Failed assertions set a nonzero exit status.
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/claude-review.mjs`, `packages/nana-pack/bin/pi-worker.mjs`, `packages/nana-pack/bin/worker-config.mjs`, `packages/nana-pack/lib/context-load-log.mjs`, `packages/nana-pack/lib/credential-strip.mjs`, `packages/nana-pack/lib/known-bug-digest-config.mjs`, `packages/nana-pack/lib/known-bug-digest.mjs`, `packages/nana-pack/lib/real-path.mjs`, `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`, `packages/nana-setup/lib/shared-memory-config.mjs`
-- **unresolved launches** — line 62: spawnSync; binding line 79; binding line 95; binding line 117; binding line 133; binding line 156; binding line 173; binding line 200; binding line 211; binding line 214; binding line 224; binding line 233; binding line 248; binding line 255; binding line 256; binding line 260; binding line 292 · line 276: spawnSync; binding line 266; binding line 268; binding line 279
+- **unresolved launches** — line 66: spawnSync; binding line 83; binding line 99; binding line 121; binding line 138; binding line 161; binding line 178; binding line 205; binding line 216; binding line 219; binding line 229; binding line 238; binding line 253; binding line 260; binding line 261; binding line 265; binding line 297 · line 281: spawnSync; binding line 271; binding line 273; binding line 284
 
 ### `packages/nana-pack/tests/credential-gate.test.mjs`
 
@@ -3343,7 +3333,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
 - **callers** — —
 - **callees** — `packages/nana-pack/bin/pi-review.mjs`, `packages/nana-pack/lib/verdict-config.mjs`, `packages/nana-pack/tests/review-ledger-fixture.mjs`
-- **unresolved launches** — line 287: spawnSync
+- **unresolved launches** — line 302: spawnSync
 
 ### `packages/nana-pack/tests/review-ledger.test.mjs`
 
@@ -3365,7 +3355,7 @@ The pi extension pack, the knowledge pull and the setup bootstrap, plus scripts/
 - **errors** — Assertions or per-case deadlines fail the case.
 - **callers** — —
 - **callees** — `packages/nana-pack/tests/fake-pi.mjs`, `packages/nana-pack/tests/land-fixtures.mjs`, `packages/nana-pack/tests/tmp-dir.mjs`, `scripts/git-runner.mjs`
-- **unresolved launches** — line 57: spawnSync · line 153: spawn
+- **unresolved launches** — line 57: spawnSync · line 154: spawn
 
 ### `packages/nana-pack/tests/review-round.test.mjs`
 

@@ -10,7 +10,7 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
-import { admit, complete, release, startHeartbeat } from '../bin/review-round.mjs';
+import { admit, complete, release, startHeartbeat, readVerdict } from '../bin/review-round.mjs';
 import { reviewShaped } from '../bin/review-shape.mjs';
 import { reviewLaunch } from '../bin/review-launch.mjs';
 import { CLAUDE_BUILDER_CHILD_ENV, CLAUDE_SETTINGS_FLAG, REVIEWER_CHILD_ENV } from '../bin/worker-config.mjs';
@@ -22,7 +22,7 @@ import { parseJsonBytes } from './json-text.mjs';
 import { startLaneWatcher } from './lane-watcher.mjs';
 
 /** The former ledger run path; completion re-derives the revision under the store lock. */
-export async function runReview(args, command, { input, onSpawn, admission, launcher = 'claude-review' } = {}) {
+export async function runReview(args, command, { input, onSpawn, admission, unreadRetry, launcher = 'claude-review' } = {}) {
   const child = [...command];
   const option = name => {
     const eq = child.find(x => x.startsWith(`${name}=`));
@@ -73,26 +73,42 @@ export async function runReview(args, command, { input, onSpawn, admission, laun
       } catch (error) { return cannotStart(`cannot seal Claude settings (${error.code ?? 'invalid settings'})`); }
     }
     const env = { ...process.env, ...REVIEWER_CHILD_ENV, ...credentialStripEnv(process.env) };
-    const launch = reviewLaunch(child, { cwd: adm.res.cwd, env });
-    if (launch.refused) return cannotStart(launch.refused);
+    const run = async (argv, stdin, first = false) => {
+      const launch = reviewLaunch(argv, { cwd: adm.res.cwd, env });
+      if (launch.refused) return { error: new Error(launch.refused) };
+      const chunks = [];
+      let k;
+      try { k = spawn(launch.command, launch.args, { ...launch.options, cwd: adm.res.cwd, stdio: [stdin === undefined ? 'inherit' : 'pipe', 'pipe', 'inherit'], env }); }
+      catch (error) { return { error }; }
+      if (first && onSpawn) k.once('spawn', onSpawn);
+      if (stdin !== undefined) { k.stdin.on('error', () => {}); k.stdin.end(stdin); }
+      const result = await new Promise(done => {
+        k.stdout.on('data', chunk => chunks.push(chunk));
+        k.once('error', error => done({ error }));
+        k.once('close', (status, signal) => done({ status, signal }));
+      });
+      return { ...result, text: Buffer.concat(chunks).toString('utf8') };
+    };
     stopHeartbeat = startHeartbeat(adm.res);
-    const chunks = [];
-    let k;
-    try { k = spawn(launch.command, launch.args, { ...launch.options, cwd: adm.res.cwd, stdio: [input === undefined ? 'inherit' : 'pipe', 'pipe', 'inherit'], env }); }
-    catch (error) { return cannotStart(error.code ?? error.message); }
-    if (onSpawn) k.once('spawn', onSpawn);
-    if (input !== undefined) { k.stdin.on('error', () => {}); k.stdin.end(input); }
-    const result = await new Promise(done => {
-      k.stdout.on('data', chunk => chunks.push(chunk));
-      k.once('error', error => done({ error }));
-      k.once('close', (status, signal) => done({ status, signal }));
-    });
+    let result = await run(child, input, true);
     if (result.error) return cannotStart(result.error.code ?? result.error.message);
-    const text = Buffer.concat(chunks).toString('utf8');
+    let text = result.text;
     try { writeFileSync(out, text); }
     catch (error) { note(`cannot write ${out}: ${error.message} — reservation returned`); return 1; }
+    let attempts = 1;
+    if (unreadRetry && result.status === 0 && !readVerdict(text).verdict) {
+      note('verdict unread; asking the same reviewer for its verdict line only (no new review)');
+      result = await run(unreadRetry.command, unreadRetry.input);
+      attempts++;
+      text = result.text ?? '';
+      if (result.error || result.status !== 0 || !readVerdict(text).verdict || text.trim().split(/\r?\n/).length !== 1) {
+        note('verdict unread or failed on confirmation — reservation returned, no round consumed');
+        return result.status || 1;
+      }
+      note(`verdict confirmation kept in the review store; original review at ${out}`);
+    }
     if (result.status === 0 && text.trim() && reviewShaped(text)) {
-      const c = complete(adm.res, out, { attempts: 1, text });
+      const c = complete(adm.res, out, { attempts, text });
       if (!c.ok) { note(`review written to ${out}, but ${c.message}`); return 1; }
       if (c.unread) { note(c.unread); return 1; }
       note(`verdict recorded for item ${adm.res.item} (round ${c.round}; ${out})`);

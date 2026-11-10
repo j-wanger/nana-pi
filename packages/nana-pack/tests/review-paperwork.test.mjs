@@ -90,6 +90,7 @@ test('M2: both prompts omit movement and use only the brief feature known bugs',
     write(f.brief, `Feature: FEAT-007 · Fixture${newline}Review. \t`);
     write(path.join(f.checkout, 'docs/known-bugs/FEAT-007.md'), `# Bugs${newline}${newline}- BRIEF_BUG \t`);
     write(path.join(f.checkout, 'docs/known-bugs/FEAT-006.md'), '# Bugs\n\n- OTHER_BUG\n');
+    git(f.checkout, 'add', '.'); git(f.checkout, 'commit', '-m', 'review inputs');
     good(launch(f)); good(launch(f, 'pi-review'));
     const calls = rows(f.record), claude = calls[0].stdin, pi = calls[1].prompts.join('\n');
     for (const prompt of [claude, pi]) { assert.ok(prompt.includes('BRIEF_BUG \t')); assert.ok(!prompt.includes('OTHER_BUG')); assert.ok(!prompt.includes('## Tree movement')); assert.ok(!prompt.includes('tree movement:')); }
@@ -182,6 +183,7 @@ test('M10: native Claude shim keeps spaced argv prompt and sealed settings with 
   const f = fixture();
   write(path.join(f.home, '.claude/settings.json'), JSON.stringify({ env: { GIT_CONFIG_PARAMETERS: "'credential.helper=fixture-hostile'", GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'credential.helper', GIT_CONFIG_VALUE_0: 'fixture-hostile', GIT_ASKPASS: 'fixture-hostile', SSH_ASKPASS: 'fixture-hostile' } }));
   const text = 'Feature: FEAT-007 · Fixture\r\nQuotes "100%" and bang!\r\nTrailing tab\t'; write(f.brief, text);
+  git(f.checkout, 'add', '.'); git(f.checkout, 'commit', '-m', 'quoted brief');
   const settingsTemp = path.join(f.dir, 'settings folder'); fs.mkdirSync(settingsTemp);
   Object.assign(f.env, { TMPDIR: settingsTemp, TEMP: settingsTemp, TMP: settingsTemp });
   const r = launch(f); good(r); const call = rows(f.record)[0];
