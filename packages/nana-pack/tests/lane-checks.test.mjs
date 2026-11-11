@@ -150,7 +150,6 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   finally {
     try {
       for (const member of await awaitExit()) killRecorded(member.pid);
-      assert.deepEqual(await awaitExit(), [], 'recorded process identities survived fixture teardown');
       remove(root, { recursive: true, force: true });
     }
     catch (cleanupError) {

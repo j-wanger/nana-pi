@@ -8,9 +8,9 @@
  */
 // chosen 2026-11-07 (ci-packs plan M1): seat classification, corrected against collection.
 // Helpers are not runnable files. Browser e2e files remain manual, never collected.
-// contract (ci-packs A1/M7, R-3856): six explicit, non-overlapping pack names.
 // chosen 2026-11-11 (R-4070): frequent lane edits; check:lane already checks these hubs.
 export const NAME_MATCH_HUBS = Object.freeze(["README.md", "REQUIREMENTS.md", "AGENTS.md", "HANDOFF.md"]);
+// contract (ci-packs A1/M7, R-3856): six explicit, non-overlapping pack names.
 export const PACK_NAMES = Object.freeze(["land", "module", "main", "release", "manual", "retire"]);
 export const TEST_PACKS = Object.freeze({
   "apps/bench/test/anatomy-labels.test.mjs": "module",

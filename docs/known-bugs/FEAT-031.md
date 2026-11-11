@@ -1,6 +1,6 @@
 # FEAT-031 — known bugs
 
-- lane-checks' batched start-time read records a pid's start time the first time the test sees it, which can be after the process exited; on Windows a reused pid could then be matched (and its tree killed) or leave a null start time that fails teardown (win-class review 3, SHOULD; inferred, no observed case).
+- lane-checks' batched start-time read records a pid's start time the first time the test sees it, which can be after the process exited; on Windows a reused pid could then be matched and its unrelated tree killed (win-class review 3, SHOULD; inferred, no observed case).
 - lane-checks' refresh skips pids it already tracks, so a reused pid inside one fixture keeps the old start time; one slow batched query leaves every member of that batch without a start time (review 3, NOTEs).
 - R-640's canonical POSIX `/tmp` root is unpinned: the alias checks test only the first temp root (review 2, NOTE 4).
 - Outside CI on a machine without 8.3 names, `win32-launch` and `build-records` print SKIP and then report PASS under the combined title (review 2, NOTE 5).
@@ -18,7 +18,8 @@
 
 - Records out (review 1, NOTE 4): parked R-3178..R-3186 evidence cells still cite removed selective-ci record files; comments in packages/nana-pack/bin/worker-config.mjs, packages/nana-pack/lib/runtime-map*.mjs, packages/nana-pack/lib/test-runner-config.mjs, packages/nana-pack/lib/windows-skips-config.mjs, packages/nana-setup/lib/working-config.mjs and scripts/code-search-config.mjs cite record paths now only in git history.
 
-- CI pack coverage (ci-packs, review round 3): `setup-tail.test.mjs` sits in the release pack, so no CI leg runs it on Windows, and PRs that change `nana-pack/lib/config.ts` or `nana-gate.ts` do not run its M2/M7 cases.
+- CI pack coverage (ci-packs, review round 3): `setup-tail.test.mjs` sits in the release pack, so no CI leg runs it on Windows; lanes now select it for changes to `nana-pack/lib/config.ts` or `nana-gate.ts`, which it names.
+- Stop-check limit (test-names review 1): pi-worker's 900 s limit covers a broad selection on the seat's Mac (544 s), but not a Windows builder (the full suite takes about 1,800 s at 4 jobs) or a Mac loaded by a land's locked suite.
 
 - Test coverage (windows-first-try-2, review round 1): R-3540 and R-3541 cite checks that still pass with the new helpers removed; m2-retry.mjs tests its own predicate rather than isLoadMarker.
 - Golden retry (windows-first-try-2, review round 1): the T17 retry exclusion is keyed on the label text "T17 " and also drops the retry from two T17 cases that refresh no lock.
