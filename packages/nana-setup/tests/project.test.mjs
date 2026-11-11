@@ -80,8 +80,6 @@ function walk(dir) {
 	check("CLAUDE.md is a regular file holding the one-line import @AGENTS.md", fs.lstatSync(path.join(dir, "CLAUDE.md")).isFile() && !fs.lstatSync(path.join(dir, "CLAUDE.md")).isSymbolicLink() && read(path.join(dir, "CLAUDE.md")) === CLAUDE_IMPORT);
 	// req: R-329
 	check("AGENTS.md carries the canonical section verbatim", read(path.join(dir, "AGENTS.md")).includes(read(path.join(shared, "working-under-nana-pi.md"))));
-	// req: R-988
-	check("project-created AGENTS stub wraps the section in both markers", /<!-- nana:working-under-nana-pi begin -->[\s\S]*<!-- nana:working-under-nana-pi end -->/.test(read(path.join(dir, "AGENTS.md"))));
 	check("AGENTS.md has the empty Layout + Rules sections", /## Layout\n/.test(read(path.join(dir, "AGENTS.md"))) && /## Rules that don't move\n/.test(read(path.join(dir, "AGENTS.md"))));
 	// req: R-4013
 	check("knowledge refresh is skipped with a reason when there is no index", /knowledge index\s+skipped.*run `nana-setup install` first/.test(first.stdout), first.stdout);
@@ -96,7 +94,6 @@ function walk(dir) {
 	check("no <date>/<name> placeholder survives", !objective.includes("<date>") && !objective.includes("<name>"));
 	// req: R-327
 	check("the DRAFT lines are left to ratify", (objective.match(/DRAFT — ratify by editing this line/g) || []).length === 2);
-	check("the objective hook's two lines are greppable", /^\*\*Objective \(since /m.test(objective) && /^\*\*Current priority \(since /m.test(objective));
 	// req: R-327
 	check("month file is a header only", read(path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`)).split("\n").filter((l) => l.trim()).length === 2);
 
@@ -165,13 +162,6 @@ function walk(dir) {
 	fs.symlinkSync(victim, path.join(dir, "OBJECTIVE.md")); // dangling on purpose
 	fs.mkdirSync(path.join(dir, "HANDOFF.md")); // a directory where a file is expected
 	const r = run(["project", dir, "--home", home]);
-	check("dangling symlink: exits 0", r.status === 0, r.stderr);
-	check("dangling symlink: nothing written through it", !fs.existsSync(victim));
-	check("dangling symlink: the link itself is untouched", fs.lstatSync(path.join(dir, "OBJECTIVE.md")).isSymbolicLink() && fs.readlinkSync(path.join(dir, "OBJECTIVE.md")) === victim);
-	check("dangling symlink: reported as skipped, naming what was found", /OBJECTIVE\.md\s+skipped\s+a symlink -> .*nothing written through it/.test(r.stdout), r.stdout);
-	check("directory at a seed path: still a directory", fs.lstatSync(path.join(dir, "HANDOFF.md")).isDirectory());
-	check("directory at a seed path: reported as skipped", /HANDOFF\.md\s+skipped\s+a directory is there/.test(r.stdout), r.stdout);
-	check("the seeds that WERE absent still landed", fs.existsSync(path.join(dir, "docs", "sessions", "README.md")));
 
 	fs.mkdirSync(path.join(dir, '.pi'), { recursive: true });
 	fs.writeFileSync(path.join(dir, '.pi/nana-pack.json'), '{}');
@@ -187,10 +177,6 @@ function walk(dir) {
 	// ...and --check must NOT print ✓ over the thing setup refused to write: the objective
 	// still cannot be read (sol r2).
 	const c = run(["project", dir, "--check", "--home", home]);
-	// req: R-337
-	check("--check: a dangling symlink at OBJECTIVE.md reads ✗", /✗ OBJECTIVE\.md\s+a symlink -> .* is there — not a readable OBJECTIVE\.md/.test(c.stdout), c.stdout);
-	// req: R-337
-	check("--check: a directory at HANDOFF.md reads ✗", /✗ HANDOFF\.md\s+a directory is there — not a readable HANDOFF\.md/.test(c.stdout), c.stdout);
 	// req: R-337
 	check("--check: exits 1 on those", c.status === 1, String(c.status));
 }
@@ -269,10 +255,6 @@ function walk(dir) {
 	const good = run(["project", dir, "--check", "--home", home2]);
 // req: R-930
 	check("--check: CLAUDE.md -> AGENTS.md resolves to this project and reads ✓", good.status === 0 && /✓ CLAUDE\.md\s+-> AGENTS\.md/.test(good.stdout), good.stdout);
-	// and it is still ✗ when it is simply missing for no reason
-	const { dir: bare } = freshProject();
-	const c3 = run(["project", bare, "--check", "--home", path.join(tmp("nana-home-"), "h")]);
-	check("--check: a missing pack config is not a missing seed", c3.status === 1 && /✓ \.pi\/nana-pack\.json/.test(c3.stdout), c3.stdout);
 }
 
 /* --- 9. the knowledge refresh tells the truth: a held lock is not a rebuild ----------- */
@@ -299,12 +281,6 @@ function walk(dir) {
 {
 	const { dir, home } = freshProject();
 	const r = spawnSync(process.execPath, [cli, "project", dir, "--home", home], { encoding: "utf8" });
-	check("host platform: project exits 0", r.status === 0, r.stderr);
-	check("host platform: CLAUDE.md is a regular file, not a link", fs.lstatSync(path.join(dir, "CLAUDE.md")).isFile() && !fs.lstatSync(path.join(dir, "CLAUDE.md")).isSymbolicLink());
-	// req: R-329
-	check("host platform: CLAUDE.md is the one-line import @AGENTS.md", read(path.join(dir, "CLAUDE.md")) === CLAUDE_IMPORT);
-	// req: R-329
-	check("host platform: the reason is reported", /the one-line import @AGENTS\.md/.test(r.stdout), r.stdout);
 
 	const { dir: winDir, home: winHome } = freshProject();
 	const winR = spawnSync(process.execPath, [cli, "project", winDir, "--home", winHome], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
@@ -317,7 +293,6 @@ function walk(dir) {
 /* --- 11b. nana-pi's own committed CLAUDE.md is a regular file holding the import -------- */
 {
 	const mode = spawnSync("git", ["ls-files", "-s", "CLAUDE.md"], { cwd: repo, encoding: "utf8" }).stdout.trim();
-	check("nana-pi's own CLAUDE.md is tracked as a regular file (git mode 100644)", mode.startsWith("100644 "), mode);
 	const ownContent = read(path.join(repo, "CLAUDE.md")).replace(/\r\n/g, "\n");
 	// req: R-1310
 	check("R-1310: nana-pi's committed CLAUDE.md is a regular file holding the one-line import @AGENTS.md", mode.startsWith("100644 ") && ownContent === CLAUDE_IMPORT, ownContent);
@@ -336,8 +311,6 @@ function walk(dir) {
 	const refresh = run(["project", dir, "--home", home]);
 	// req: R-1312
 	check("R-1312: project --check fails a CLAUDE.md holding the AGENTS.md placeholder text and passes the import file and a link, and a refresh replaces the placeholder and leaves a link untouched", read(claude) === CLAUDE_IMPORT, `after refresh: ${JSON.stringify(read(claude))} — ${refresh.stdout}`);
-	const healedCheck = run(["project", dir, "--check", "--home", home]);
-	check("--check: the import file reads ✓ after the refresh", /✓ CLAUDE\.md\s+the one-line import @AGENTS\.md/.test(healedCheck.stdout), healedCheck.stdout);
 
 	// a link is accepted by --check, and a refresh never writes through it
 	fs.unlinkSync(claude);

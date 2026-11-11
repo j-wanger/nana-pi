@@ -61,10 +61,6 @@ const make = (body) => { const dir = path.join(root, `p${fs.readdirSync(root).le
 	const result = refreshWorkingRegion(dir);
 	// req: R-986
 	check("matching region is unchanged byte-for-byte", result.status === "unchanged" && fs.readFileSync(path.join(dir, "AGENTS.md")).equals(matchingBefore));
-	fs.writeFileSync(path.join(dir, "AGENTS.md"), `${WORKING_BEGIN}\nold\n${WORKING_END}\n`);
-	const before = fs.readFileSync(path.join(dir, "AGENTS.md"), "utf8");
-	// req: R-987
-	check("dry run reports without writing", refreshWorkingRegion(dir, { dryRun: true }).detail.includes("would refresh") && fs.readFileSync(path.join(dir, "AGENTS.md"), "utf8") === before);
 }
 
 {

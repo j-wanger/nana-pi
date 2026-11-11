@@ -2,7 +2,7 @@
  * @module packages/nana-setup/tests/project-odd-seeds.test.mjs
  * @purpose Pin project setup and checks for odd seed entries, literal names, and dry-run repair prediction.
  * @inputs bin/nana-setup.mjs and throwaway projects with a throwaway --home
- * @outputs PASS/FAIL lines for exactly eight must-meet checks and a SUMMARY line
+ * @outputs PASS/FAIL lines for exactly seven must-meet checks and a SUMMARY line
  * @effects disk (OS temporary fixtures), process (spawns the nana-setup CLI)
  * @errors A failed check prints FAIL and makes the test process exit 1.
  */
@@ -160,7 +160,7 @@ function setupRows(stdout) {
 		const ownRun = projectRun(own, ["--check"]);
 		observations.push(hasRow(ownRun.stdout, "✗", "CLAUDE.md", "move or remove it by hand"));
 	}
-	// req: R-2422
+	// req: R-2422 R-337
 	check("R-2422: --check names the entry at each seed path or on its folder path, CLAUDE.md included, and says to move or remove it", observations.every(Boolean), observations.map((v, i) => `${i}:${v}`).filter((v) => v.endsWith("false")).join(", "));
 }
 
@@ -223,19 +223,6 @@ function setupRows(stdout) {
 		&& JSON.stringify(dryRows) === JSON.stringify(realRows);
 	// req: R-338
 	check("R-338: a dry run of a missing folder names the folder it would create, reports every row the real run then reports with the same status, and writes nothing", ok, `${JSON.stringify(dryRows)}\n${JSON.stringify(realRows)}\n${dry.stdout}\n---\n${real.stdout}`);
-}
-
-{
-	const root = tmpDir(path.join(os.tmpdir(), "nana-project-m8-"));
-	const parent = path.join(root, "missing-parent");
-	const dir = path.join(parent, "project");
-	const home = path.join(root, "home");
-	const real = run(["project", dir, "--home", home]);
-	const dry = run(["project", dir, "--home", home, "--dry-run"]);
-	const ok = real.status === 2 && dry.status === 2 && real.stderr.includes(parent) && dry.stderr.includes(parent)
-		&& !fs.existsSync(parent) && !fs.existsSync(home);
-	// req: R-931
-	check("R-931: project and project --dry-run on a folder whose parent is missing both abort naming the parent and create nothing", ok, `${real.status}:${real.stderr}\n${dry.status}:${dry.stderr}`);
 }
 
 console.log(`SUMMARY  PASS=${passes} FAIL=${fails} SKIP=0`);

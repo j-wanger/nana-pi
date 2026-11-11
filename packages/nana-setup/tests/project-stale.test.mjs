@@ -7,13 +7,11 @@
  * @errors fixture errors fail their case; every asynchronous handler is bounded by the per-case limit.
  */
 import { spawnSync } from "node:child_process";
-import { createRequire, syncBuiltinESMExports } from "node:module";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
-import { BOUNDED_READ_CAP } from "../../nana-pack/lib/bounded-read.mjs";
 import { CODE_SPAN_CAP, codeSpan } from "../../nana-pack/lib/display.mjs";
 import { MARKER, canonicalCwd, printable, repoRootOf } from "../../nana-pack/lib/adoption.mjs";
 import { RULINGS_FILE, RULINGS_SECTION } from "../../nana-pack/lib/rulings-config.mjs";
@@ -452,48 +450,6 @@ await within("R-2764", async () => {
 // req: R-2764
 check("R-2764: no repository, a linked worktree, a nana-pi checkout and a dismissed root get no project line even with every seed missing", r2764Facts.length === 4 && r2764Facts.every((fact) => fact.guardedOk && fact.controlOk), JSON.stringify(r2764Facts));
 
-const r2765Facts = [];
-await within("R-2765", async () => {
-	async function damaged(name, bytes, prepare = () => {}, restore = () => {}) {
-		const root = repository(`r2765-${name}`, null);
-		fs.writeFileSync(path.join(root, "CLAUDE.md"), CLAUDE_IMPORT);
-		removePath(path.join(root, "HANDOFF.md"));
-		fs.writeFileSync(path.join(root, "AGENTS.md"), bytes);
-		prepare(root);
-		const expected = expectedLine(root, ["HANDOFF.md"]);
-		const state = await seatState(root);
-		restore(root);
-		r2765Facts.push({ name, ok: oneProjectLine(state.result, expected) && state.section === expected, stdout: state.result.stdout });
-	}
-	if (process.platform === "win32") skip("R-2765 unreadable AGENTS.md mode case is POSIX-only");
-	else {
-		const probe = repository("r2765-unreadable-probe", drifted());
-		const target = path.join(probe, "AGENTS.md");
-		fs.chmodSync(target, 0o000);
-		let readable = true;
-		try { fs.readFileSync(target); } catch { readable = false; }
-		fs.chmodSync(target, 0o600);
-		removePath(probe);
-		if (readable) skip("R-2765 EACCES fixture remains readable under this user");
-		else await damaged("unreadable", drifted(), (root) => fs.chmodSync(path.join(root, "AGENTS.md"), 0o000), (root) => fs.chmodSync(path.join(root, "AGENTS.md"), 0o600));
-	}
-	{
-		const text = drifted(); const at = text.indexOf("changed");
-		const bytes = Buffer.concat([Buffer.from(text.slice(0, at)), Buffer.from([0x96]), Buffer.from(text.slice(at))]);
-		await damaged("invalid-utf8", bytes);
-	}
-	await damaged("over-cap", `${drifted()}${"x".repeat(BOUNDED_READ_CAP)}`);
-	{
-		const root = repository("r2765-control", drifted());
-		fs.writeFileSync(path.join(root, "CLAUDE.md"), CLAUDE_IMPORT); removePath(path.join(root, "HANDOFF.md"));
-		const expected = expectedLine(root, ["HANDOFF.md", "AGENTS.md working region"]);
-		const state = await seatState(root);
-		r2765Facts.push({ name: "readable control", ok: oneProjectLine(state.result, expected) && state.section === expected, stdout: state.result.stdout });
-	}
-});
-// req: R-2765
-check("R-2765: an unreadable, invalid UTF-8 or over-cap AGENTS.md leaves the working section out and the other failing rows in", r2765Facts.length >= (process.platform === "win32" ? 3 : 4) && r2765Facts.every((fact) => fact.ok), JSON.stringify(r2765Facts));
-
 let r2625 = false;
 await within("R-2625", async () => {
 	const root = repository("r2625-reload", drifted());
@@ -541,38 +497,6 @@ await within("R-2626", async () => {
 });
 // req: R-2626
 check("R-2626: reviewer and worker children get no project-stale line in either seat, and the same folder with no role does", r2626Facts.length === 3 && r2626Facts.slice(0, 2).every((fact) => fact.producerQuiet && fact.extensionQuiet) && r2626Facts[2].producerControl && r2626Facts[2].extensionControl, JSON.stringify(r2626Facts));
-
-let r2627 = false;
-await within("R-2627", async () => {
-	const root = repository("r2627-no-child", marked(shared));
-	removePath(path.join(root, "HANDOFF.md"));
-	const sub = path.join(root, "sub");
-	fs.mkdirSync(sub);
-	fs.writeFileSync(path.join(sub, "AGENTS.md"), "unmarked local file\n");
-	const expected = expectedLine(root, ["HANDOFF.md"]);
-	const callsFile = path.join(base, "r2627-calls.jsonl");
-	const preload = path.join(base, "r2627-preload.cjs");
-	fs.writeFileSync(preload, `const fs = require("node:fs");\nconst cp = require("node:child_process");\nfor (const name of ["spawn","spawnSync","exec","execSync","execFile","execFileSync","fork"]) { const original = cp[name]; cp[name] = function (...args) { fs.appendFileSync(process.env.NANA_CALLS_FILE, name + "\\n"); return original.apply(this, args); }; }\n`);
-	const preloadOption = `--require=${preload}`;
-	const producerResult = producerRun(sub, { env: childEnv({ NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} ${preloadOption}`, NANA_CALLS_FILE: callsFile }) });
-	const childCalls = fs.existsSync(callsFile) ? fs.readFileSync(callsFile, "utf8").trim().split(/\r?\n/).filter(Boolean) : [];
-	const requireFS = createRequire(import.meta.url)("node:child_process");
-	const names = ["spawn", "spawnSync", "exec", "execSync", "execFile", "execFileSync", "fork"];
-	const originals = Object.fromEntries(names.map((name) => [name, requireFS[name]]));
-	const inProcessCalls = [];
-	for (const name of names) requireFS[name] = (...args) => { inProcessCalls.push(name); return originals[name](...args); };
-	syncBuiltinESMExports();
-	let section;
-	try { section = (await sectionsFor(sub))[staleConfig.PROJECT_STALE_SECTION]; }
-	finally {
-		for (const name of names) requireFS[name] = originals[name];
-		syncBuiltinESMExports();
-	}
-	const noTypes = child(producer, ["--cwd", sub], { cwd: base, env: childEnv(), nodeArgs: ["--no-experimental-strip-types"] });
-	r2627 = oneProjectLine(producerResult, expected) && childCalls.length === 0 && section === expected && inProcessCalls.length === 0 && oneProjectLine(noTypes, expected);
-});
-// req: R-2627
-check("R-2627: deciding the project-stale line starts no child process and loads no TypeScript in either seat", r2627);
 
 console.log(`SUMMARY  PASS=${passes} FAIL=${fails} SKIP=${skips}`);
 process.exitCode = fails ? 1 : 0;

@@ -145,6 +145,7 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
+		['packages/nana-setup/tests/project-stale.test.mjs -> packages/nana-pack/lib/bounded-read.mjs', 'FEAT-013 setup diet removes the preventive damaged-input matrix; R-2765 is untested.'],
 		['packages/nana-setup/tests/doctor-memory-links.test.mjs -> packages/nana-setup/lib/doctor.mjs', 'FEAT-031 diet2 retains the dangling-link CLI regression, dropping the preventive in-process lint matrices.'],
 		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-pack/lib/adoption.mjs', 'FEAT-031 diet2 removes preventive malformed-mark variants; ordinary encoding and privacy regressions remain.'],
 		['packages/nana-setup/tests/doctor-runtime.test.mjs -> packages/nana-setup/tests/stub-pi.mjs', 'FEAT-031 diet2 removes the stub self-check, retaining real PATH probes.'],
