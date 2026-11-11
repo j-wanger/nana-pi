@@ -340,8 +340,10 @@ file on the declared Windows skip list
 starting it.
 
 `npm test -- --pack=land` runs the land pack. `--pack=land,module --changed-from=main`
-adds affected module tests and every changed collected nonmanual test, printing their selection reasons.
-Suite records list changed tests separately; CI readers refuse proof missing any selected test. `scripts/test-packs.mjs`
+adds affected module tests, every changed collected nonmanual test, and tests in any nonmanual pack
+whose text names a changed path's basename, printing `names <path>` reasons.
+Hub basenames README.md, REQUIREMENTS.md, AGENTS.md and HANDOFF.md are excluded from name matching.
+Suite records list changed tests and name matches separately; CI readers refuse proof missing any selected test. `scripts/test-packs.mjs`
 uses import and launch reach, blind reach and text-input watches; uncertainty runs every module test.
 `packages/nana-pack/lib/test-packs-config.mjs` declares membership and sealed selection policy.
 Every collected file needs a pack. Browser tests stay manual. A complete-pack

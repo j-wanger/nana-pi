@@ -274,6 +274,9 @@ Feature branches (`feat/**`) run CI on their pushed tip, even when conflicts pre
 Same-repository feature PR jobs skip; non-feature and fork PRs retain their own head-tip CI.
 Both paths run macOS and advisory Linux lane packs plus macOS ceiling/floor install checks.
 The lane also runs its selected test files on Windows, using the same land/module packs and `--changed-from=origin/main` as macOS.
+Selection includes changed tests and any collected nonmanual test whose text names a changed path's basename, including added, renamed and deleted paths.
+The declared hub basenames README.md, REQUIREMENTS.md, AGENTS.md and HANDOFF.md do not trigger name matching.
+Suite records preserve `names <path>` reasons separately from fail-safe module reasons; CI refuses records missing those selected tests.
 An empty selection allocates no Windows job. Full Windows shards and Windows install checks remain main-only; feature pushes cannot release.
 The workflow marks skipped feature PR duplicates with a fixed run title; the waiter, land judge and artifact reader exclude only that title with matching event, workflow, feature branch and repository identity.
 The waiter refuses every CONFLICTING PR with exit 1 and the merge-main remedy, before waiting for runs; it neither fetches nor inspects a merge tree.

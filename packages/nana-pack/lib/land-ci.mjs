@@ -81,8 +81,9 @@ export function suiteScopeProblem(record) {
 	if (pack?.complete !== true || !Array.isArray(pack.packs) || !pack.packs.includes("land") || !pack.packs.includes("module")) return "CI pack record omits complete land and module packs";
 	const selection = pack.selection;
 	if (!selection || !Array.isArray(selection.changedPaths) || !Array.isArray(selection.module) || !Array.isArray(selection.changedTests)
+		|| (selection.nameMatches !== undefined && !Array.isArray(selection.nameMatches))
 		|| !(selection.changedFrom === null || typeof selection.changedFrom === "string")
-		|| [...selection.module, ...selection.changedTests].some(item => typeof item?.path !== "string" || !Array.isArray(item.reasons) || !item.reasons.length)) return "CI pack record omits module selection";
+		|| [...selection.module, ...selection.changedTests, ...(selection.nameMatches ?? [])].some(item => typeof item?.path !== "string" || !Array.isArray(item.reasons) || !item.reasons.length)) return "CI pack record omits module selection";
 	return null;
 }
 
@@ -153,7 +154,7 @@ export function ciSuiteLegs(result) {
 		if (problem) problems.push(`${leg}: ${problem}`);
 		else {
 			const paths = new Set(finalFiles(record).map(file => file.path));
-			if ([...record.packRun.selection.module, ...record.packRun.selection.changedTests].some(item => !paths.has(item.path))) problems.push(`${leg}: selected test file missing from pack record`);
+			if ([...record.packRun.selection.module, ...record.packRun.selection.changedTests, ...(record.packRun.selection.nameMatches ?? [])].some(item => !paths.has(item.path))) problems.push(`${leg}: selected test file missing from pack record`);
 		}
 	}
 	return { ok: problems.length === 0, reason: problems.join("; "), records };

@@ -7,15 +7,17 @@
  * @errors Invalid packs or incomplete membership throw; uncertain impact selects all modules.
  */
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { CI_READ_TIMEOUT_MS, CHILD_OUTPUT_MAX_BYTES } from "../packages/nana-pack/lib/land-config.mjs";
 import { globMatch } from "./glob-match.mjs";
-import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
+import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, NAME_MATCH_HUBS, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
 
 /** Read committed paths since the actual merge base; NULs preserve whitespace in paths. */
 export function changedPaths(root, ref) {
   const git = args => {
     const r = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: CI_READ_TIMEOUT_MS, maxBuffer: CHILD_OUTPUT_MAX_BYTES });
-    if (r.error || r.status !== 0) throw new Error("diff could not be read");
+    if (r.error || r.status !== 0) throw new Error(`diff could not be read: ${r.stderr?.trim() || r.error?.message || `git ${args.join(" ")} exited ${r.status}`}`);
     return r.stdout;
   };
   const base = git(["merge-base", ref, "HEAD"]).trim();
@@ -31,22 +33,37 @@ async function makeRepoGraph(root) {
 }
 
 /** Watch inputs read as text conservatively select every module test, not a guessed reader. */
-export async function selectPackFiles({ root, files, packs, changedFrom = null, membership = TEST_PACKS, readDiff = changedPaths, makeGraph = makeRepoGraph }) {
-  if (!Array.isArray(packs) || !packs.length || packs.some(pack => !PACK_NAMES.includes(pack))) throw new Error(`bad --pack: ${packs?.join(",")}`);
+export async function selectPackFiles({ root, files, packs, changedFrom = null, membership = TEST_PACKS, readDiff = changedPaths, makeGraph = makeRepoGraph, changedTestsOnly = false }) {
+  if (!Array.isArray(packs) || (!packs.length && !changedTestsOnly) || packs.some(pack => !PACK_NAMES.includes(pack))) throw new Error(`bad --pack: ${packs?.join(",")}`);
   const problems = packProblems(files, membership);
   if (problems.length) throw new Error(problems.join("\n"));
   packs = [...new Set(packs)];
-  const selection = { changedFrom, changedPaths: [], changedTests: [], module: [], failSafe: null };
+  const selection = { changedFrom, changedPaths: [], changedTests: [], nameMatches: [], module: [], failSafe: null };
   const moduleFiles = files.filter(file => membership[file] === "module");
   const reasons = new Map();
   const add = (file, reason) => { if (!reasons.has(file)) reasons.set(file, new Set()); reasons.get(file).add(reason); };
   const all = reason => { for (const file of moduleFiles) add(file, reason); };
   if (changedFrom) {
     try { selection.changedPaths = readDiff(root, changedFrom); }
-    catch { selection.failSafe = "diff could not be read"; }
+    catch (error) {
+      if (changedTestsOnly) throw error;
+      selection.failSafe = error.message;
+    }
   }
   const changedTests = new Set(selection.changedPaths.filter(file => files.includes(file) && membership[file] !== "manual"));
   selection.changedTests = [...changedTests].sort().map(path => ({ path, reasons: ["changed test"] }));
+  // Read each eligible test once, independent of the module map that fail-safe clears.
+  const namedPaths = selection.changedPaths.filter(file => !NAME_MATCH_HUBS.includes(path.posix.basename(file)));
+  if (namedPaths.length) {
+    for (const file of files) {
+      if (membership[file] === "manual") continue;
+      const text = readFileSync(path.join(root, file), "utf8");
+      const matches = namedPaths.filter(changed => text.includes(path.posix.basename(changed)));
+      if (matches.length) selection.nameMatches.push({ path: file, reasons: matches.map(changed => `names ${changed}`) });
+    }
+  }
+  const nameMatches = new Set(selection.nameMatches.map(item => item.path));
+  if (changedTestsOnly) return { packs: [], selection, files: files.filter(file => changedTests.has(file) || nameMatches.has(file)) };
   // Release paths and graph callers supplement a lane run, never a single-pack or main run.
   const lane = changedFrom && packs.includes("land") && packs.includes("module") && !packs.includes("main");
   const release = () => { if (lane && !packs.includes("release")) packs.push("release"); };
@@ -77,5 +94,5 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
   }
   if (selection.failSafe) release();
   selection.module = [...reasons].sort(([a], [b]) => a.localeCompare(b)).map(([path, reasons]) => ({ path, reasons: [...reasons] }));
-  return { packs, selection, files: files.filter(file => changedTests.has(file) || (packs.includes(membership[file]) && (membership[file] !== "module" || reasons.has(file)))) };
+  return { packs, selection, files: files.filter(file => changedTests.has(file) || nameMatches.has(file) || (packs.includes(membership[file]) && (membership[file] !== "module" || reasons.has(file)))) };
 }

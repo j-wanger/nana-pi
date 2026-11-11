@@ -383,6 +383,7 @@ if (packArgs.length) {
 		const selected = await selectPackFiles({ root, files: collected.map(rel), packs: packArgs[0].slice(PACK_FLAG.length).split(","), changedFrom: changedArgs[0]?.slice(CHANGED_FROM_FLAG.length) ?? null });
 		packRun = { packs: selected.packs, selection: selected.selection, complete: !filters.length && !selfTest };
 		if (selected.selection.failSafe) console.log(`[packs] fail-safe: ${selected.selection.failSafe}`);
+		for (const item of selected.selection.nameMatches) console.log(`[packs] names ${item.path}: ${item.reasons.join("; ")}`);
 		for (const item of selected.selection.changedTests) console.log(`[packs] test ${item.path}: ${item.reasons.join("; ")}`);
 		for (const item of selected.selection.module) console.log(`[packs] module ${item.path}: ${item.reasons.join("; ")}`);
 		console.log(`[packs] ${selected.packs.join(",")}: ${selected.files.length} selected files`);
