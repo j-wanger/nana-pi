@@ -400,6 +400,7 @@ Reads: A-062 · packages/nana-setup/claude/hooks/nana-shared-memory.mjs
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-4052 | The soul's retrieval line shall name nana-knowledge query as the command to use before guessing from training data. | untested | Manual line inspection; no new test requested. |
 | R-4047 | WHILE sources.json exists but does not parse, a build over a healthy index shall preserve its rows and refresh its build time. | implemented | `packages/nana-knowledge/tests/recover.test.mjs::R-4047: an unparseable sources.json over a healthy index keeps every row and refreshes its age` |
 | R-4048 | WHEN recovery encounters a late writer, it shall refuse immediately to delete the index and preserve its bytes. | implemented | `packages/nana-knowledge/tests/build-busy.test.mjs::M3: recovery refuses a late writer without a build busy wait and keeps the index` |
 | R-4049 | The default SQLite connection timeouts shall be QUERY_BUSY_TIMEOUT_MS for reads and BUILD_BUSY_TIMEOUT_MS for creation. | implemented | `packages/nana-knowledge/tests/build-busy.test.mjs::M3: connection defaults read back` |

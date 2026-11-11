@@ -8,7 +8,7 @@
 - Apply the subtraction test to every design: does this earn its complexity?
 - Deterministic validators at boundaries over neural judges at the end.
 - Context shaping is the highest-leverage work — what each component sees determines success more than instructions.
-- Retrieval and context injection over parametric knowledge. Look things up; don't guess from training data.
+- Retrieval and context injection over parametric knowledge. Look things up with `nana-knowledge query` before guessing from training data.
 
 ## Voice & presence
 
