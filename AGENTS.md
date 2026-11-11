@@ -26,7 +26,7 @@ Invariant: launcher-role children get no objective block; otherwise only user-sc
   on PATH. The canonical copies of those hooks and rules live HERE
   (`claude/`), symlinked into `~/.claude` — edit them in the repo, never in `~/.claude`.
   `nana-setup doctor` is the ✓/✗ instrument for a machine.
-- `apps/bench/` — builder and seat context anatomy; `studies/` holds preserved verdicts and frozen fixtures from retired study runners.
+- `apps/bench/` — builder and seat context anatomy. Retired studies and frozen fixtures live in the private records folder and git history; see `docs/reviews/README.md`.
 - `templates/` — copier templates behind `scaffold-py`/`scaffold-ts` and `adopt-py`/`adopt-ts`.
   The copier src is the REPO ROOT (root `copier.yml`, `language` question); tags ship only through
   `npm run release`, which runs acceptance first; CI releases after green suite and install-check jobs on main. `templates/_shared/` is the SINGLE source of everything more than
@@ -35,8 +35,7 @@ Invariant: launcher-role children get no objective block; otherwise only user-sc
   templates pull in with a Jinja `include` (the loader root is the repo root), the skill
   `adopt-structure` copies, and `nana-setup project` fills. Edit them there, never in a copy.
 - `docs/` — design docs and the review-history pointer. Lane records live outside the repository in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`); `<project>` is the main checkout's folder name, the folder that holds the shared git directory, not the lane worktree's name.
-- `research/` — grounded landscape knowledge. `research/raw/` holds the deep-research
-  artifacts the distilled files were written from.
+- `research/` — grounded landscape knowledge. Raw deep-research sources live in the private records folder and git history; the distilled files retain their source paths. See `docs/reviews/README.md`.
 
 ## Rules
 

@@ -39,7 +39,7 @@ export function checkReviewArchive(root=REPO_ROOT) {
  if(!commands.length)return ['review archive command or commit is missing'];
  const problems=[];
  for(const command of commands) {
-  const match=/^git show ([a-f0-9]{40}):(docs\/(?:reviews\/[^\s/]+|plan|evidence|sessions)) \1:(\2\/[^\s]+)$/u.exec(command);
+  const match=/^git show ([a-f0-9]{40}):(docs\/(?:reviews\/[^\s/]+|plan|evidence|sessions)|apps\/bench\/studies\/[^\s/]+|research\/raw(?:\/[^\s/]+)?) \1:(\2\/[^\s]+)$/u.exec(command);
   if(!match||!text.includes(`\`${match[1]}\``)){problems.push('review archive command or commit is missing');continue;}
   const result=defaultGit(root,['show',`${match[1]}:${match[2]}`,`${match[1]}:${match[3]}`]);
   if(result.status!==0||!result.stdout.includes(`tree ${match[1]}:${match[2]}`)||!result.stdout.trim().length)

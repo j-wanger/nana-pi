@@ -8,39 +8,6 @@
   ],
   "allowlist": [
     {
-      "path": "apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/public/stage/stage.css",
-      "counts": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "reason": "byte-pinned",
-      "pin": "study.json fixture.sha256 bb0d0345658f82fab2665277d4a9049b3c84127cda2c440c02e8e6ee8d89db0f"
-    },
-    {
-      "path": "apps/bench/studies/tool-profiles-2026-09-08/fixture/apps/desk/public/stage/stage.js",
-      "counts": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "reason": "byte-pinned",
-      "pin": "study.json fixture.sha256 bb0d0345658f82fab2665277d4a9049b3c84127cda2c440c02e8e6ee8d89db0f"
-    },
-    {
-      "path": "apps/bench/studies/tool-profiles-2026-09-08/fixture/packages/nana-pack/tests/notify-fallback.test.mjs",
-      "counts": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "reason": "byte-pinned",
-      "pin": "study.json fixture.sha256 bb0d0345658f82fab2665277d4a9049b3c84127cda2c440c02e8e6ee8d89db0f"
-    },
-    {
       "path": "packages/nana-setup/lib/retired-fingerprints.json",
       "counts": [
         0,

@@ -140,11 +140,6 @@ function gitTree(label, entries) {
 
 {
 	const config = JSON.parse(fs.readFileSync(path.join(REPO, "identity-scan.config.json"), "utf8"));
-	const toolStudy = "apps/bench/studies/tool-profiles-2026-09-08";
-	const toolFixture = `${toolStudy}/fixture/`;
-	const fixtureManifestBytes = fs.readFileSync(path.join(REPO, toolStudy, "FIXTURE.sha256"));
-	const fixtureManifest = new Map(fixtureManifestBytes.toString("utf8").trim().split("\n").map((line) => [line.slice(66), line.slice(0, 64)]));
-	const studyFixturePin = JSON.parse(fs.readFileSync(path.join(REPO, toolStudy, "study.json"), "utf8")).fixture.sha256;
 	const retiredPath = "packages/nana-setup/lib/retired-fingerprints.json";
 	const retiredValues = new Set(Object.values(JSON.parse(fs.readFileSync(path.join(REPO, retiredPath), "utf8"))));
 	const skillKeys = new Set(Object.keys(JSON.parse(fs.readFileSync(path.join(REPO, "packages/nana-setup/lib/skill-copy-history.json"), "utf8"))));
@@ -152,13 +147,7 @@ function gitTree(label, entries) {
 	const fileDigest = (relative) => bytesDigest(fs.readFileSync(path.join(REPO, ...relative.split("/"))));
 	const validAllowlist = (candidate) => candidate.allowlist.every((entry) => {
 		if (entry.reason !== "byte-pinned" || typeof entry.pin !== "string") return false;
-		let match = entry.pin.match(/^study\.json fixture\.sha256 ([a-f0-9]{64})$/);
-		if (match) {
-			const relative = entry.path.startsWith(toolFixture) ? entry.path.slice(toolFixture.length) : "";
-			return relative.length > 0 && match[1] === studyFixturePin && match[1] === bytesDigest(fixtureManifestBytes) &&
-				fixtureManifest.get(relative) === fileDigest(entry.path);
-		}
-		match = entry.pin.match(/^retired-fingerprints sha256 ([a-f0-9]{64})$/);
+		let match = entry.pin.match(/^retired-fingerprints sha256 ([a-f0-9]{64})$/);
 		if (match) {
 			const source = "packages/nana-setup/tests/fixtures/retired/hook-backup";
 			return retiredValues.has(match[1]) && fileDigest(source) === match[1] &&
@@ -171,7 +160,7 @@ function gitTree(label, entries) {
 	const mutations = [
 		(candidate) => candidate.allowlist.push({ path: "extra.txt", counts: [0, 0, 0, 0], reason: "record" }),
 		(candidate) => { candidate.allowlist[0].pin = "free text"; },
-		(candidate) => { candidate.allowlist[0].pin = "study.json fixture.sha256 ".concat("0".repeat(64)); },
+		(candidate) => { candidate.allowlist[0].pin = "retired-fingerprints sha256 ".concat("0".repeat(64)); },
 		(candidate) => candidate.allowlist.push({ path: "identity-scan.config.json", counts: [0, 0, 0, 0], reason: "byte-pinned", pin: `retired-fingerprints sha256 ${fileDigest("identity-scan.config.json")}` }),
 	];
 	const rejected = mutations.map((mutate) => { const candidate = copy(); mutate(candidate); return !validAllowlist(candidate); });

@@ -178,42 +178,6 @@
       "reason": "a file in a knowledge store or knowledge home on the machine (`NANA_KNOWLEDGE_HOME`, else `~/.pi/agent/nana-knowledge/`), or a directory name INSIDE a wiki root"
     },
     {
-      "path": "study.json",
-      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
-    },
-    {
-      "path": "schedule.json",
-      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
-    },
-    {
-      "path": "summary.json",
-      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
-    },
-    {
-      "path": "summary.md",
-      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
-    },
-    {
-      "path": "fingerprint.txt",
-      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
-    },
-    {
-      "path": "argv.txt",
-      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
-    },
-    {
-      "path": "stderr.txt",
-      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
-    },
-    {
-      "path": "assets",
-      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
-    },
-    {
-      "path": "fixture",
-      "reason": "a file inside one bench study or run directory, named relative to the study the reader passes (`apps/bench/studies/<id>/study.json`)"
-    },
-    {
       "path": "review-ledger.lock",
       "reason": "written beside a review ledger at run time, never committed"
     },

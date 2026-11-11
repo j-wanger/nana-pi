@@ -6,8 +6,8 @@ Support: macOS tested; lanes land without waiting for Windows; Windows runs on m
 Sibling repo to `~/nana-agent-loop`.
 
 - `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
-  (adoption verdict + full capability map, adversarially verified). `research/raw/` holds the
-  deep-research artifacts it was distilled from.
+  (adoption verdict + full capability map, adversarially verified). Raw deep-research sources
+  live in the private records folder and git history; see `docs/reviews/README.md`.
 - `packages/` — our pi packages, chiefly the nana extension pack: eight extensions (gate,
   lifecycle, adoption, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
   dev-workflow skills. Installable via
@@ -38,8 +38,8 @@ Windows too. Configure real inputs before treating a green data test as validati
   user-scope pi config and `pi-review` on PATH. `nana-setup doctor` is the
   ✓/✗ instrument for a fresh machine. See `packages/nana-setup/README.md`.
 - `scripts/glob-match.mjs` — the shared minimal glob matcher for artifact paths in report consumers.
-- `apps/bench/` — builder and seat context anatomy, plus preserved study records in
-  `apps/bench/studies/`. Study execution is retired; see `apps/bench/README.md`.
+- `apps/bench/` — builder and seat context anatomy. Retired study records and frozen fixtures
+  live in the private records folder and git history; see `docs/reviews/README.md` and `apps/bench/README.md`.
 - `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
   shippability plan.
 
@@ -97,7 +97,7 @@ The ten fixed-base needs are a hypothesis, not a general quality guarantee.
 Lane records (briefs, plans, build and review texts, CI excerpts and evidence) live outside
 this checkout in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`);
 `<project>` is the main checkout's folder name, the folder that holds the shared git directory, not the lane worktree's name. Old records stay in git history;
-`docs/reviews/README.md` gives checked commands for both archive snapshots.
+`docs/reviews/README.md` gives checked commands for the archive snapshots.
 
 `npm run check:lane` runs the project-owned builder-stop rail in `scripts/check-lane.mjs`:
 requirements trace, requirements-tree check, map check, README check, then test-packs,

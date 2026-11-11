@@ -1,7 +1,10 @@
-# apps/bench — role context anatomy and recorded studies
+# apps/bench — role context anatomy
 
 Splits recorded builder and seat contexts by function and reports descriptive counts.
-The study runners retired on 2026-11-07; recorded results and frozen fixture trees remain in `studies/`.
+The study runners retired on 2026-11-07. Recorded results and frozen fixtures live in the private records folder
+(`~/nana-records/<project>/<lane>/`, Windows `%USERPROFILE%\nana-records\<project>\<lane>\`) and git history.
+`<project>` is the main checkout's folder name, not the lane worktree's name; see `docs/reviews/README.md` for history commands.
+Raw research sources share that private store and history; distilled research stays in the repository.
 
 ## Dependencies and install
 
@@ -200,5 +203,4 @@ lib/anatomy-stats.mjs  shared Cohen's kappa and seeded sampling
 lib/jsonl.mjs       shared append-log reader with optional torn-tail repair
 lib/catch-judge.mjs  structured-output judge call for anatomy labelling
  test/              synthetic tests with no model calls
-studies/            preserved records and frozen fixture trees; no active study runner
 ```

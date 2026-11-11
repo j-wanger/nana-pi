@@ -5,7 +5,7 @@
  *  fresh temp HOME and report one line each.
  * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, --pack=list, --changed-from=ref, --changed-tests-from=ref, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
  *  NANA_COVERAGE_DIR (runtime-map's coverage knob), NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
- *  dir and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
+ *  dir and apps/bench/test (e2e and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
  *  file in non-verbose mode (last stderr lines when no failure line exists), one counted FAIL line when a finished file's temporary folder remains busy,
@@ -31,7 +31,7 @@
 // <file>` from its package dir, each with a FRESH temp HOME and USERPROFILE so no file can read
 // (or write) the real machine's dotfiles, and with every ambient NANA_* (but the NANA_TEST_* runner
 // knobs) plus PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR scrubbed from the child env, so the caller's context cannot
-// change what the suite tests. Nothing under apps/bench/studies/** or any fixture(s)/ directory is
+// change what the suite tests. Nothing under any fixture(s)/ directory is
 // ever collected.
 //
 // While NANA_COVERAGE_DIR (the runtime-map knob, imported by name from runtime-map-config.mjs)
@@ -220,7 +220,7 @@ function testsIn(dir) {
 const excluded = (p) => {
 	const r = rel(p);
 	const segs = r.split("/");
-	return r.endsWith(".e2e.mjs") || r.startsWith("apps/bench/studies/") || segs.includes("fixture") || segs.includes("fixtures");
+	return r.endsWith(".e2e.mjs") || segs.includes("fixture") || segs.includes("fixtures");
 };
 
 function collect() {

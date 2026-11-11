@@ -3170,7 +3170,8 @@ Reads: A-009 · packages/nana-pack/lib/suite-records.mjs
 |---|---|---|---|
 | R-600 | The runner shall collect every packages/*/tests/*.test.mjs and apps/bench/test/*.test.mjs as direct children only, with no recursion and no shell globs. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::collects every test file directly under a package tests dir`, `packages/nana-pack/tests/test-runner.test.mjs::collection does not recurse and takes only .test.mjs files` |
 | R-602 | Any path segment named fixture or fixtures shall never be collected by the test runner. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::a path segment named fixtures is never collected` |
-| R-619 | Files ending .e2e.mjs and anything under apps/bench/studies/ shall never be collected by the test runner. | untested | holds by collection shape (only *.test.mjs under the six declared dirs is ever walked); the excluded() branches for .e2e.mjs and studies/ are unreachable dead code and nothing pins them; split from R-602 2026-10-02 |
+| R-619 | retired | retired | Full row: `aac5c1041603681ce3a3d0eb597f6dc18ee0c124:REQUIREMENTS.md`; studies moved to private records and git history; remaining collection contract: R-4100. |
+| R-4100 | Files ending .e2e.mjs shall never be collected by the test runner. | untested | Holds by collection shape: only *.test.mjs under the declared test directories is walked; retained from R-619. |
 | R-603 | Each file shall run as node --experimental-strip-types <file> from its package directory. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::each file runs with --experimental-strip-types from its package dir` |
 | R-604 | Each file shall run with a fresh temporary HOME and USERPROFILE so no test can read or write the real machine's dotfiles. | implemented | `packages/nana-pack/tests/test-runner.test.mjs::each file gets a fresh temp HOME and USERPROFILE, not the real one`, `packages/nana-pack/tests/test-runner.test.mjs::the temp HOME is per file, not shared between files` |
 | R-605 | A file shall FAIL if it exits non-zero, dies on a signal, or times out. | untested | downgraded 2026-10-04 (EARS form batch A3, astra r2 gap audit §2): no record pins "exits non-zero; times out — this row's only record changes signal handling." No new mutation was recorded this round (bc-method-ruling.md §4: gaps are listed, not gated — downgrade now, worklist for 6b). |
@@ -3613,10 +3614,8 @@ Read by: R-3390 · code: apps/bench/lib/anatomy-labels.mjs
 ## FEAT-034 · Define reproducible comparisons
 Purpose: Specify profiles, inputs, schedules, pins and evidence so an experiment can be resumed without changing its meaning.
 Status: active
-Artifact: A-039 · study schedule · tracked: apps/bench/studies/tool-profiles-2026-09-08/schedule.json · manual: recorded by the closed study; its runner retired 2026-11-07
-Read by: A-039 · person: an auditor reads the closed study's schedule
-Artifact: A-074 · fixture manifest · tracked: apps/bench/studies/tool-profiles-2026-09-08/FIXTURE.sha256 · manual: recorded by the closed study; its fixture builder retired 2026-11-07
-Read by: A-074 · person: an auditor checks the frozen fixture manifest
+Artifact: A-039 · study schedule · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
+Artifact: A-074 · fixture manifest · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -3653,8 +3652,7 @@ Read by: A-074 · person: an auditor checks the frozen fixture manifest
 ## FEAT-035 · Account for cost and uncertainty
 Purpose: Measure direct and nested work with consistent usage semantics and report unknown or partially priced spend explicitly.
 Status: frozen (study accounting retired 2026-11-07; recorded summary preserved)
-Artifact: A-040 · study summary · tracked: apps/bench/studies/tool-profiles-2026-09-08/summary.md · manual: recorded by the closed study; its aggregator retired 2026-11-07
-Read by: A-040 · person: the owner reads the preserved summary
+Artifact: A-040 · study summary · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -3673,8 +3671,7 @@ Read by: A-040 · person: the owner reads the preserved summary
 ## FEAT-036 · Bound study execution and paid work
 Purpose: Preflight paid work, apply budgets and stop conditions and preserve exactly-once records during interruption.
 Status: frozen (study execution retired 2026-11-07; probe ledger preserved)
-Artifact: A-041 · probe ledger · tracked: apps/bench/studies/tool-profiles-2026-09-08/ledger.jsonl · manual: recorded by the closed study; its runner retired 2026-11-07
-Read by: A-041 · person: an auditor reads the preserved probe ledger
+Artifact: A-041 · probe ledger · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -3703,10 +3700,8 @@ Read by: A-041 · person: an auditor reads the preserved probe ledger
 ## FEAT-037 · Grade behavior with trustworthy checks
 Purpose: Separate behavioral grading from the code under evaluation and report failures and grader errors honestly.
 Status: frozen (study grading retired 2026-11-07; results and oracle keys preserved)
-Artifact: A-042 · study results · tracked: apps/bench/studies/tool-profiles-2026-09-08/results.jsonl · manual: recorded by the closed study; its runner retired 2026-11-07
-Read by: A-042 · person: an auditor reads the preserved results
-Artifact: A-075 · oracle keys · tracked: apps/bench/studies/tool-profiles-2026-09-08/keys.jsonl · manual: recorded by the closed study; its runner retired 2026-11-07
-Read by: A-075 · person: an auditor reads the preserved oracle keys
+Artifact: A-042 · study results · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
+Artifact: A-075 · oracle keys · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
@@ -3738,15 +3733,11 @@ Read by: A-075 · person: an auditor reads the preserved oracle keys
 ## FEAT-038 · Interpret workflow experiments and their limits
 Purpose: Analyze review and writing evidence, require stated controls and avoid changing practice beyond what the evidence supports.
 Status: active
-Artifact: A-043 · catch-ledger rows · tracked: apps/bench/studies/catch-ledger-2026-09-28/rows.jsonl · manual: recorded by the closed study; its extractor retired 2026-11-07
-Read by: A-043 · person: an auditor reads the preserved rows
+Artifact: A-043 · catch-ledger rows · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
 Artifact: A-044 · writing-trial extract · retired: completed trial; preserved result remains in review history
-Artifact: A-076 · catch-ledger judge labels · tracked: apps/bench/studies/catch-ledger-2026-09-28/labels-*.jsonl · manual: recorded by the closed study; its label command retired 2026-11-07
-Read by: A-076 · person: an auditor reads the preserved labels
-Artifact: A-077 · catch-ledger judge matches · tracked: apps/bench/studies/catch-ledger-2026-09-28/matches-*.jsonl · manual: recorded by the closed study; its match command retired 2026-11-07
-Read by: A-077 · person: an auditor reads the preserved matches
-Artifact: A-078 · catch-ledger results · tracked: apps/bench/studies/catch-ledger-2026-09-28/results.json · manual: recorded by the closed study; its build command retired 2026-11-07
-Read by: A-078 · person: the owner reads the preserved RESULTS.md
+Artifact: A-076 · catch-ledger judge labels · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
+Artifact: A-077 · catch-ledger judge matches · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
+Artifact: A-078 · catch-ledger results · retired: closed study; preserved in private records and git history (docs/reviews/README.md)
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
