@@ -93,7 +93,6 @@ Temporary-copy anchors stay unresolved. Other graph readers and the impact artif
 import-only links; the artifact block explains its `(no import path)` marks.
 The search lives in `scripts/code-search.mjs`, with sealed trial settings in `scripts/code-search-config.mjs`;
 `scripts/code-map-launch.mjs` adds the links using sealed vocabulary in `scripts/code-map-launch-config.mjs`.
-The ten fixed-base needs are a hypothesis, not a general quality guarantee.
 Lane records (briefs, plans, build and review texts, CI excerpts and evidence) live outside
 this checkout in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`);
 `<project>` is the main checkout's folder name, the folder that holds the shared git directory, not the lane worktree's name. Old records stay in git history;

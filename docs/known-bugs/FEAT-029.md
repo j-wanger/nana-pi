@@ -49,9 +49,6 @@
 - Lane class (lane-class review r2): R-2966's pi-worker run check cannot tell the build-exit path from a forced exit 1, because its stub pi exits 7, which pi-worker maps to 1. A stub whose build exits 0 would pin it.
 - Code search (code-search, plan): the headers of the modules where the trial search failed, the install doctor and the session-start summary, stay vague; sharpening them puts a lane on the install or hook ladder.
 - Code search (code-search, seat check): the tokenizer splits "github" into "git" and "hub", so a need naming GitHub also ranks git-only modules.
-- Code search (code-search, build 2): the search finds 0.78 of the trial's reused code on its ten needs, under the trial's 0.80; the sealed floor is 0.75, chosen as a margin.
-- Code search (code-search, plan attack): a pinned prompt sentence proves planners are told to run the search, not that they do; the seat reads the next three plans' Precedent sections against its output.
-- Code search (code-search, final review): R-3000's row still says the map describes doctor work in planner vocabulary, but builds 3 and 4 restored the doctor header to main's bytes.
 - Code search (code-search, final review): the planner prompt is shared with every scaffolded project, but only nana-pi has `map:search`; a planner elsewhere gets a missing-script error and carries on.
 - Launch edges (map-spawn-edges, build 2): the built runtime gap is 18 test files against the prototype's 12, because hooks that call `runHookProducer` pass their target in an object the reader does not follow; they are declared blind (always run), not linked.
 - Launch edges (map-spawn-edges, seat check): 165 of 240 tests are on the always-run list, so a selector built on today's map still runs about two thirds of the suite; the shared hubs need hand resolutions before selection saves much.

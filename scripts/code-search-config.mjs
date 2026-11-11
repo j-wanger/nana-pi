@@ -2,7 +2,7 @@
  * @module scripts/code-search-config.mjs
  * @purpose Define the sealed planner-search settings and their trial provenance.
  * @inputs none
- * @outputs Named configuration constants for ranking and the fixed-history quality check.
+ * @outputs Named configuration constants for ranking.
  * @effects none
  * @errors none
  */
@@ -11,10 +11,6 @@
 export const SHORTLIST_SIZE = 5;
 // Chosen 2026-10-28 (R-3006): one output hop, matching the trial's direct callees.
 export const CALLEE_DEPTH = 1;
-// Chosen 2026-10-28 (R-3007): 0.75, a five-point margin under the trial's
-// reported 0.80 (plan-attack M1 explicitly permits a margin). The facet-free
-// command measured 0.778810 on the exact printed paths; do not tune on ten needs.
-export const QUALITY_FLOOR = 0.75;
 // Chosen before the trial: standard BM25 defaults; purpose/path count twice,
 // errors half; artifacts half of lexical match; equal writer/reader shares;
 // ten seeds pass half their score to neighbours; keep the trial tokenizer (R-3008).

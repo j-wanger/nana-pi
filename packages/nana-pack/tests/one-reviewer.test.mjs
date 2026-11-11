@@ -14,11 +14,16 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { validateRosterShape, formatRosterLines } from '../bin/nana-roster.mjs';
 import { rosterNotice } from '../lib/roster-notice.mjs';
-import { gitShow } from './git-fixtures.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const pack = path.join(root, 'packages/nana-pack');
+const GIT_LIMIT_MS = 45_000; // chosen: bound each read-only historical fixture child.
+function gitShow(base, path) {
+  const r = spawnSync('git', ['show', `${base}:${path}`], { cwd: root, encoding: 'utf8', timeout: GIT_LIMIT_MS, maxBuffer: 8 * 1024 * 1024 });
+  assert.equal(r.status, 0, `missing history ${base}:${path}: ${r.stderr || r.error || 'git failed'}; fetch full history`);
+  return r.stdout;
+}
 const entry = (model, thinking = 'high') => ({ provider: 'openai', model, thinking });
 const roster = { scout: null, builder: entry('builder'), reviewer: entry('reviewer', null) };
 async function test(title, body) {
