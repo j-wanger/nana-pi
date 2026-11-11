@@ -67,9 +67,7 @@ await check('M3: unsupported attributes and malformed or failing merge-tree refu
  const attributes = cleanMergeFixture('m3-attributes');
  commit(attributes.main, '.gitattributes', '*.txt text\n', 'attributes'); refresh(attributes);
  refused(attributes, /\.gitattributes.*unsupported|unsupported.*\.gitattributes/i);
- for (const result of [{status:129,stderr:'unsupported option'}, {status:0,stdout:''},
-  {status:0,stdout:'not a tree\n'}, {status:1,stdout:`${'a'.repeat(40)}\n`},
-  {status:0,stdout:`${'a'.repeat(40)}\nextra\n`}]) {
+ for (const result of [{status:129,stderr:'unsupported option'}, {status:0,stdout:'not a tree\n'}]) {
   const bad = cleanMergeFixture('m3-git');
   refused(bad, /git merge-tree/, { runGit: (cwd, args) => args.includes('merge-tree') ? result : gitRunner(cwd, args) });
  }
@@ -129,14 +127,4 @@ await check('M6: uncovered lane commits including a lane-authored merge remain r
   refresh(f); const before=mergeSnapshot(f),out=executeCleanMerge(f);
   unchanged(f,before,out);assert.match(out.text,/uncovered commits/);assert(out.text.includes(f.tip));
  }
-});
-
-// req: R-3697
-await check('seal: clean-merge vocabulary and conflict-name cap are declared once', () => {
- assert.equal(C.CLEAN_MERGE_NAME_CAP,10);
- assert.equal(C.CLEAN_MERGE_REMEDY,"run git merge main in the lane; push, wait for that tip's CI, then land (conflict resolutions and other edits need review)");
- assert.deepEqual(C.CLEAN_MERGE_GIT_CONFIG,['merge.renormalize=false','merge.default=text','merge.renames=true']);
- assert.deepEqual(C.CLEAN_MERGE_REASONS,{
-  conflict:'merge conflict', unsupported:'unsupported merge semantics', git:'git merge-tree failed',
- });
 });

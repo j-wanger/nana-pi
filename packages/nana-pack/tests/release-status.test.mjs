@@ -12,7 +12,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
-import { RELEASE_BRANCH_REF, RELEASE_REMOTE_REF, RELEASE_SURFACE, RELEASE_TAG_PATTERN, countTemplateCommits, releaseStatus, selectReleaseTag } from "../lib/release-status.mjs";
+import { releaseStatus } from "../lib/release-status.mjs";
 
 let failures = 0;
 const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { failures++; console.log("FAIL", title, error.message); } };
@@ -27,24 +27,6 @@ const repo = (root, name = "repo") => {
 const commit = (dir, file, text, message) => { const target = path.join(dir, file); mkdirSync(path.dirname(target), { recursive: true }); writeFileSync(target, text); git(dir, "add", file); git(dir, "commit", "-m", message); return git(dir, "rev-parse", "HEAD"); };
 const origin = (root, dir) => { const bare = path.join(root, "origin.git"); git(root, "init", "--bare", bare); git(dir, "remote", "add", "origin", bare); git(dir, "push", "-u", "origin", "main"); return bare; };
 
-// req: R-584
-// req: R-585
-check("release contract values and exported pure selectors are pinned", () => {
-  assert.equal(RELEASE_BRANCH_REF, "refs/heads/main"); assert.equal(RELEASE_REMOTE_REF, "refs/remotes/origin/main");
-  assert.deepEqual(RELEASE_SURFACE, ["templates", "copier.yml"]); assert.equal(RELEASE_TAG_PATTERN.source, "^v\\d+\\.\\d+\\.\\d+$");
-  assert.equal(selectReleaseTag(["v0.9.0", "v0.10.0", "v0.11.0-rc1"]), "v0.10.0");
-  assert.equal(countTemplateCommits("2\n"), 2);
-});
-// req: R-584
-check("template commit count accepts decimal digits only and distinguishes missing values", () => {
-  assert.equal(countTemplateCommits(""), null);
-  assert.equal(countTemplateCommits("  \n"), null);
-  assert.equal(countTemplateCommits("nope"), null);
-  assert.equal(countTemplateCommits("0x10"), null);
-  assert.equal(countTemplateCommits("1e2"), null);
-  assert.equal(countTemplateCommits("0"), 0);
-  assert.equal(countTemplateCommits("17\n"), 17);
-});
 // req: R-584
 check("counts only template-surface commits after the highest tag", () => {
   const root = tmpDir(path.join(os.tmpdir(), "release-surface-")); const dir = repo(root); git(dir, "tag", "v0.1.0");

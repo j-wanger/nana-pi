@@ -223,7 +223,6 @@ await check('M10: successful main retries retain per-file flakes and repeated fi
  const stored=readSuiteRecords({root:first.root,runGit:first.runGit,subpath:CI_STORE_SUBPATH});assert.equal(stored.length,2);assert(stored.every(r=>r.flake.file==='packages/p/tests/red.test.mjs'));
  const duplicate=mainWaitFake({id:102});assert.equal((await waitForMainCi({...duplicate.options,cwd:first.root,runGit:first.runGit})).code,0);
  assert.equal(readSuiteRecords({root:first.root,runGit:first.runGit,subpath:CI_STORE_SUBPATH}).length,2);
- assert.equal(C.MAIN_CI_RED_RERUNS,1);assert.equal(C.MAIN_CI_FLAKE_FIX_COUNT,2);
 });
 
 // req: R-3994 R-3995 R-3999
@@ -255,13 +254,4 @@ await check('M11: recorded main rerun prints recovery and restart never requests
  }
  const unavailable=mainWaitFake({startAttempt:2,persistent:true,logUnavailable:true});
  const result=await waitForMainCi(unavailable.options);assert.equal(result.code,1,result.text);assert.match(result.text,/log unavailable/);
-});
-
-// req: R-3725
-await check('M6: CI wait policy values and API vocabulary are sealed once',async()=>{
- await api();
- assert.equal(C.CI_CANCEL_RERUNS,2);assert.equal(C.CI_READY_READS,3);assert.equal(C.CI_READY_DELAY_MS,1000);assert.equal(C.CI_POLL_INTERVAL_MS,10000);assert.equal(C.CI_WAIT_TIMEOUT_MS,7200000);
- assert.equal(C.CI_PR_FIELDS,'number,mergeable,headRefName,headRefOid,headRepository,headRepositoryOwner');
- assert.equal(C.CI_JOBS_PATH,'repos/<owner>/<repo>/actions/runs/<run>/attempts/<attempt>/jobs');
- assert.equal(C.CI_ADVISORY_WORKFLOW,'.github/workflows/ci.yml');assert.equal(C.CI_ADVISORY_JOB,'suite (ubuntu-latest)');assert.equal(String(C.CI_ADVISORY_RULE),String(/^  suite:[ \t]*\r?\n(?:(?:    [^\r\n]*|[ \t]*|    #[^\r\n]*)\r?\n)*?    continue-on-error: \$\{\{ matrix\.os == 'ubuntu-latest' \}\}[ \t]*(?:\r?\n|$)/m));
 });

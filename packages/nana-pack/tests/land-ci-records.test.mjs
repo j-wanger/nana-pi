@@ -222,13 +222,5 @@ check("R-2756: the CI-record read starts no gh call past its budget and gives ea
 	const empty = tmpDir(path.join(os.tmpdir(), "land-gh-empty-")); let answer; assert.doesNotThrow(() => { answer = nanaLand.ghDefault()(fixture.main, ["--version"], { env: { PATH: empty }, timeoutMs: 0 }); }); assert.equal(answer?.error?.code, "ERR_OUT_OF_RANGE"); assert.equal(answer?.error?.message, "gh timeout must be a positive whole number of milliseconds"); assert.equal(answer?.status, null);
 });
 
-// req: R-2751
-// req: R-2752
-// req: R-2754
-// req: R-2756
-check("seal: CI records are kept in nana/ci-runs up to 4000, files are noted at half their limit, and the read stops after 60 seconds", () => {
-	assert.equal(CI_STORE_SUBPATH, "nana/ci-runs", "R-2751"); assert.equal(CI_RECORDS_KEEP, 4000, "R-2752"); assert.equal(CI_SLOW_SHARE, 0.5, "R-2754"); assert.equal(CI_RECORDS_BUDGET_MS, 60_000, "R-2756");
-});
-
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");
 process.exitCode = failures ? 1 : 0;

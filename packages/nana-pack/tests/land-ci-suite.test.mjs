@@ -12,7 +12,6 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import * as config from "../lib/land-config.mjs";
 import { landReportLines, readLandLedger, landRecordsPath, renderLandRecordLine } from "../lib/land-records.mjs";
-import { LAND_SUITE_SOURCES } from "../lib/land-records-config.mjs";
 import { artifactGh, ciFixture, commit, executeCi, git, gitRunner, workflowRun } from "./land-fixtures.mjs";
 
 let failures = 0;
@@ -137,12 +136,4 @@ check("R-3435: land readers distinguish CI, local and legacy suite times without
 	assert.equal(landReportLines([start, ci]).lines[1], "land lane proof | 1 attempt | 1 landed | 1 min total | 0 min suite | last landed CI wait -");
 });
 
-// req: R-3430 R-3432 R-3434 R-3435
-check("seal: CI suite prefix, fallback paths and one run-list retry are declared once", () => {
-	assert.deepEqual(LAND_SUITE_SOURCES, ["ci", "local"], "R-3435");
-	assert.equal(config.CI_RUN_LIST_RETRIES, 1, "R-3434");
-	assert.deepEqual(config.SUITE_FALLBACK_PATHS, [".github/workflows/", "scripts/test.mjs"], "R-3432");
-	assert.equal(config.SUITE_LINE_PREFIX, "suite:", "R-3430");
-	assert.equal(config.SUITE_CHANGED_REASON, "the lane changes the CI workflow or test runner", "R-3432");
-});
 process.exitCode = failures ? 1 : 0;

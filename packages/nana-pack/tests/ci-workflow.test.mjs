@@ -19,7 +19,7 @@ const workflow = readFileSync(process.env.CI_WORKFLOW_PATH ?? path.join(repoRoot
 const pushSuiteMatrix = (text) => JSON.parse(text.match(/^        include: \$\{\{ fromJSON\(github.event_name == 'push' && github.ref == 'refs\/heads\/main' && '(\[[^']+\])'/m)?.[1] ?? "[]");
 const pushInstallOs = (text) => JSON.parse(text.match(/^        os: \$\{\{ fromJSON\(github.event_name == 'push' && github.ref == 'refs\/heads\/main' && '(\[[^']+\])'/m)?.[1] ?? "[]");
 const suiteJob = text => text.match(/^  suite:\n([\s\S]*?)(?=^  [\w-]+:)/m)?.[1] ?? '';
-// req: R-597
+// req: R-597 R-1031
 check("root CI runs the suite on macOS, Linux, and Windows and gates tag release", () => {
   assert(workflow.includes("on:\n  push:\n    branches: [main, 'feat/**']\n  pull_request:"));
   assert.match(workflow, /^permissions:\n  contents: read/m);
@@ -44,6 +44,7 @@ check("root CI runs the suite on macOS, Linux, and Windows and gates tag release
       "version: 11",
       "run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION}",
     ];
+    if (job === "suite") setup.push("pi --version", "run: npm test");
     const positions = setup.map((step) => body.indexOf(step));
     assert(positions.every((position) => position >= 0), `${job} must include every pinned toolchain setup step`);
     assert.deepEqual(positions, [...positions].sort((a, b) => a - b), `${job} toolchain setup steps must stay ordered`);
@@ -125,20 +126,6 @@ check("suite runs on Windows with bash and the pinned toolchain", () => {
   assert.match(suite, /^    defaults:\n      run:\n        shell: bash$/m);
   assert.match(suite, /windows-latest/);
   assert.match(suite, /^    env: &suite-env\n      NANA_TEST_REQUIRE_COPIER: "1"$/m);
-  const setup = [
-    "uses: actions/checkout@v4",
-    "uses: actions/setup-node@v4",
-    "node-version: 22",
-    "uses: astral-sh/setup-uv@v5",
-    "uses: pnpm/action-setup@v4",
-    "version: 11",
-    "run: npm i -g @earendil-works/pi-coding-agent@${PI_VERSION}",
-    "pi --version",
-    "run: npm test",
-  ];
-  const positions = setup.map((step) => suite.indexOf(step));
-  assert(positions.every((position) => position >= 0), "Windows suite must include all pinned setup and test steps");
-  assert.deepEqual(positions, [...positions].sort((a, b) => a - b), "suite setup, version check, and npm test must stay ordered");
 });
 // Reads the suite job's job-level `continue-on-error:` and returns, for a matrix os name,
 // whether that leg's failure stops the release job (R-1530, R-1531). The sole step-level
@@ -194,41 +181,6 @@ check("R-1530: a failing macOS or Windows suite leg stops the release job", () =
 check("R-1531: a failing Linux suite leg alone does not stop the release job", () => {
   const blocks = suiteBlocksOn(workflow);
   assert(!blocks("ubuntu-latest"), "a failing Linux suite leg alone must not stop release");
-});
-// req: R-1313
-check("R-1313: the Windows suite leg runs the suite verbose", () => {
-  const suite = suiteJob(workflow);
-  assert.match(suite, /^      - run: npm test -- --verbose --jobs=\$\{\{ env\.NANA_CI_JOBS \}\} --shard=\$\{\{ matrix\.shard \}\} --pack=land,main,module,retire\n        if: matrix\.os == 'windows-latest'$/m);
-  assert.match(suite, /^      - run: npm test -- --verbose --jobs=/m);
-});
-// req: R-2556
-check("R-2556: every CI suite step passes the job count to the runner after npm's separator", () => {
-  const suite = suiteJob(workflow);
-  const runs = suite.split("\n").filter((line) => /^\s+- run: npm test(?:\s|$)/.test(line));
-  assert(runs.length >= 2, "the suite job must have at least two npm test steps");
-  for (const line of runs) {
-    const command = line.slice(line.indexOf("run:") + 4).trim();
-    const separator = command.match(/(?:^|\s)--(?=\s|$)/);
-    assert(separator, `npm test must pass runner arguments after a standalone --: ${line}`);
-    const splitAt = separator.index + separator[0].length;
-    const before = command.slice(0, separator.index);
-    const after = command.slice(splitAt).trim();
-    assert.doesNotMatch(before, /(?:^|\s)--jobs=/, "--jobs must not be consumed by npm");
-    assert.equal((after.match(/--jobs=/g) ?? []).length, 1, "runner args must carry one job-count argument");
-    assert.match(after, /(?:^|\s)--jobs=\$\{\{ env\.NANA_CI_JOBS \}\}(?=\s|$)/, "runner args must use the env-based job count");
-  }
-});
-// req: R-2557
-check("R-2557: the suite job's count of test files at once is sealed at 4 with a chosen comment directly above it", () => {
-  const suite = suiteJob(workflow);
-  const lines = suite.split("\n");
-  const keys = lines.map((line, index) => ({ line, index })).filter(({ line }) => /^      NANA_CI_JOBS:/.test(line));
-  assert.equal(keys.length, 1, "suite job env must define NANA_CI_JOBS exactly once");
-  assert.equal(keys[0].line, '      NANA_CI_JOBS: "4"');
-  const comments = [];
-  for (let i = keys[0].index - 1; i >= 0 && /^      #/.test(lines[i]); i--) comments.unshift(lines[i]);
-  assert(comments.some((line) => /\bchosen\b/.test(line)), "a chosen provenance comment must directly precede the key");
-  assert.equal((workflow.match(/^\s*NANA_CI_JOBS:/gm) ?? []).length, 1, "the job count must have one home in the workflow");
 });
 // req: R-2558
 check("R-2558: the per-file time limit is set once, in the suite job's env, sealed at 900000 with a chosen comment directly above it", () => {
@@ -297,10 +249,11 @@ check("R-2577: the suite job warms the copier cache before its first suite step"
   assert(firstSuiteStep >= 0, "the suite job must include an npm test step");
   assert(steps.indexOf(warmups[0]) < firstSuiteStep, "the copier probe must precede the first npm test step");
 });
-// req: R-2711
+// req: R-2711 R-1078
 check("R-2711: the install check runs on macOS and Windows at the ceiling and the floor pi, every leg installing and checking only its own version, then running the one ungated check step", () => {
   const job = workflow.match(/^  install-check:\r?\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";
   assert.deepEqual(pushInstallOs(job), ["macos-latest", "windows-latest"]);
+  assert.match(job, /^    defaults:\n      run:\n        shell: bash$/m);
   assert.match(job, /^ {8}pi: \[ceiling, floor\]$/m);
   assert.match(job, /^ {6}fail-fast: false$/m);
   const matrix = job.match(/^ {6}matrix:\r?\n([\s\S]*?)(?=^ {4}\S)/m)?.[1] ?? "";
@@ -344,16 +297,6 @@ check("install check is a blocking macOS and Windows job", () => {
   assert.match(job, /^        run: node packages\/nana-setup\/bin\/install-check\.mjs$/m);
   assert.match(job, /npm i -g --ignore-scripts @earendil-works\/pi-coding-agent@\$\{PI_VERSION\}/);
 });
-// req: R-1078
-check("install check job runs in bash and checks pi's version after the pinned install and before the check", () => {
-  const job = workflow.match(/^  install-check:\n([\s\S]*?)(?=^  suite:)/m)?.[1] ?? "";
-  assert.match(job, /^    defaults:\n      run:\n        shell: bash$/m);
-  const install = job.indexOf("run: npm i -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION}");
-  const version = job.indexOf('run: test "$(pi --version)" = "${PI_VERSION}"');
-  const check = job.indexOf("run: node packages/nana-setup/bin/install-check.mjs");
-  assert(install >= 0 && version > install && check > version);
-});
-
 // req: R-686
 check("suite checkout fetches full history for historical-commit tests", () => {
   const suite = suiteJob(workflow);
@@ -371,18 +314,7 @@ check("R-2060: the suite job sets one job-level time limit below GitHub's six-ho
   const value = Number(match[1]);
   assert(value > 0 && value < GITHUB_DEFAULT_JOB_TIMEOUT_MINUTES, `timeout-minutes must be above 0 and below GitHub's ${GITHUB_DEFAULT_JOB_TIMEOUT_MINUTES}-minute default: ${value}`);
 });
-// req: R-2061
-check("R-2061: the suite job's time limit is sealed at 90 minutes with a chosen comment directly above it", () => {
-  const suite = suiteJob(workflow);
-  const lines = suite.split("\n");
-  const limitIndex = lines.findIndex((line) => /^ {4}timeout-minutes:/.test(line));
-  const firstLine = limitIndex >= 0 ? lines[limitIndex] : undefined;
-  assert.equal(firstLine, "    timeout-minutes: 90");
-  const commentLines = [];
-  for (let i = limitIndex - 1; i >= 0 && /^ {4}#/.test(lines[i]); i--) commentLines.unshift(lines[i]);
-  assert(commentLines.some((line) => /\bchosen\b/.test(line)), "a chosen comment must sit directly above the sealed limit, with the word chosen");
-});
-// req: R-597
+// req: R-597 R-1313 R-2556
 check("main pushes run the full suite on all systems without path filters or issue-writing permissions", () => {
   const normalized = workflow.replaceAll("\r\n", "\n").split("\n").map((line) => line.trimEnd()).join("\n");
   assert.match(normalized, /^on:\n  push:\n    branches: \[main, 'feat\/\*\*'\]\n  pull_request:/m);

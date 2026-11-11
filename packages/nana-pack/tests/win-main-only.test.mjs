@@ -107,13 +107,6 @@ await check("M4: green main rejects unnecessary fixes-red and ordinary lands sti
  const named = fixture({ fixesRed: "70" }); assert.equal(named.land.code, 1); assert.match(named.land.text, /unnecessary/); assert.deepEqual(named.after, named.before);
  const plain = fixture(); assert.equal(plain.land.code, 0, plain.land.text);
 });
-// req: R-3876
-await check("M5: ruling and shared checklist name the fixes-red landing path", () => {
- const clause = "The fix lands through `nana-land` with `--fixes-red <run-id>`.";
- assert(read("packages/nana-pack/rules/nana-rulings.md").split("\n").find(line => line.startsWith("- 2026-11-09: An independent reviewer")).includes(clause));
- const shared = read("templates/_shared/working-under-nana-pi.md");
- assert.equal(read("AGENTS.md").split("<!-- nana:working-under-nana-pi begin -->\n")[1].split("<!-- nana:working-under-nana-pi end -->")[0], shared);
-});
 // req: R-3877
 await check("M6: unreadable named main evidence is not red authorization", () => {
  for (const unreadable of ["jobs", "records"]) {

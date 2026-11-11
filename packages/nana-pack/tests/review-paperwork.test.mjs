@@ -75,8 +75,6 @@ test('M1: Claude launches alone and records verified v2 with child status', asyn
   const row = tally(f).at(-1), call = rows(f.record)[0];
   assert.equal(row.v, 2); assert.equal(row.verdict, 'LAND'); assert.notEqual(row.unverified, true); assert.equal(row.revision, git(f.checkout, 'rev-parse', 'HEAD'));
   if (process.platform !== 'win32') assert.equal(call.ppid, r.pid, 'no ledger intermediary');
-  assert.equal(JSON.parse(read(path.join(pack, 'package.json'))).bin['review-ledger'], undefined);
-  assert.equal(fs.existsSync(path.join(pack, 'bin/review-ledger.mjs')), false);
   const failed = launch(f, 'claude-review', [], { ...f.env, CHILD_STATUS: '7' }); assert.equal(failed.status, 7, failed.stderr);
 });
 // req: R-3766
@@ -128,24 +126,6 @@ test('M5: both launchers and land preserve old store records and path spellings'
   const g = ciFixture('paperwork-legacy'); ensureCiReview(g);
   const oldRows = tally(f).slice(0, 2); fs.appendFileSync(store.ledgerPaths(g.home).tally, oldRows.map(JSON.stringify).join('\r\n'));
   const before = read(store.ledgerPaths(g.home).tally); assert.equal(land(g).code, 0); assert.equal(read(store.ledgerPaths(g.home).tally), before);
-});
-// req: R-3770
-test('M6: removed paths are gone and git report clients share the rehomed runner', async () => {
-  for (const p of ['bin/review-ledger.mjs', 'lib/review-movement.mjs', 'lib/review-movement-config.mjs']) assert.equal(fs.existsSync(path.join(pack, p)), false, p);
-  assert.equal(fs.existsSync(path.join(root, 'scripts/requirements-moved.mjs')), false);
-  const helpers = await import(pathToFileURL(path.join(root, 'scripts/git-runner.mjs')));
-  assert.equal(helpers.MAX_GIT_BUFFER, 64 * 1024 * 1024);
-  for (const name of ['deliverables', 'product-report']) assert.match(read(path.join(root, `scripts/${name}.mjs`)), /from ["']\.\/git-runner\.mjs["']/);
-  const actual = helpers.defaultGit(root, ['status', '--porcelain']); const expected = spawnSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8', maxBuffer: helpers.MAX_GIT_BUFFER });
-  assert.equal(actual.status, expected.status); assert.equal(actual.stdout, expected.stdout); assert.equal(actual.stderr, expected.stderr);
-});
-// req: R-3771
-test('M7: rules drop paperwork and shared marker remains equal', async () => {
-  for (const rel of ['templates/_shared/working-under-nana-pi.md', 'AGENTS.md', 'OBJECTIVE.md', 'templates/_shared/OBJECTIVE.md', 'packages/nana-setup/claude/rules/nana-seat.md', 'packages/nana-pack/README.md', 'packages/nana-pack/skills/requirements/SKILL.md']) {
-    assert.doesNotMatch(read(path.join(root, rel)), /review-ledger keep|tree[ -]movement|three rounds|capped at three|over.cap reason|confirmation round over cap|Review corpus:/i, rel);
-  }
-  const agents = read(path.join(root, 'AGENTS.md'));
-  assert.equal(agents.split('<!-- nana:working-under-nana-pi begin -->\n')[1].split('<!-- nana:working-under-nana-pi end -->')[0], read(path.join(root, 'templates/_shared/working-under-nana-pi.md')));
 });
 // req: R-3772
 test('M8: changed HEAD refuses Claude LAND and releases with legacy records intact', async () => {

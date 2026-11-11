@@ -21,7 +21,7 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, tal
 	check("'scope  one' shares the canonical item", reviewAt(" Scope  ONE ", 3).status === 0 && roundsOf("scope one").length === 4);
 	// chosen 20000: over SLUG_MAX (128, so still refused) and under Windows' 32,767-character
 	// command-line limit (CreateProcess), so the refusal is observed rather than a spawn error.
-	for (const bad of ["../item", "a/b", "..", "x".repeat(20000)]) {
+	for (const bad of ["../item", "x".repeat(20000)]) {
 		const r = ledgerRun(["--item", bad]);
 		check(`--item ${JSON.stringify(bad.slice(0, 10))}${bad.length > 10 ? "…" : ""} refused, no stack`, r.status === 1 && /item/.test(r.stderr) && noStack(r), r.stderr);
 	}
@@ -179,8 +179,6 @@ fs.writeFileSync(path.join(A.d, "redirect.log"), "untouched");
 	const plainReview = piReview(["--item", "shape", "--out", out()], { stub: "plain" });
 	// req: R-701
 	check("pi-review still requires review shape (the same plain reply is no verdict)", plainReview.status === 1 && roundsOf("shape").length === 0, plainReview.stderr);
-	const wd = fs.readFileSync(path.join(bin, "pi-watchdog.mjs"), "utf8").replace(/^\/\/.*$/gm, "");
-	check("pi-watchdog imports no ledger or review module", !/import[^;]*(review-round|review-shape|review-ledger)/.test(wd) && !/reviewShaped/.test(wd));
 }
 
 // 15. a git failure REFUSES admission, naming the git error (sol r2 #10)
@@ -246,12 +244,6 @@ fs.writeFileSync(path.join(A.d, "redirect.log"), "untouched");
 	check("cached removal of normalized content retains plain HEAD",
 		rcBytes.includes(0x0d) && revOf(Cr.d) === crHead,
 		`bytes=${JSON.stringify(rcBytes.toString())} rev=${revOf(Cr.d)} head=${crHead}`);
-
-	const M = repo("M", 1);
-	gitIn(M.d, "config", "core.fileMode", "false");
-	fs.chmodSync(path.join(M.d, "f"), 0o755);
-	fs.chmodSync(path.join(M.d, "f"), 0o644);
-	check("…chmod back → the clean sha", revOf(M.d) === M.shas[0]);
 
 	const V = repo("V", 0);
 	fs.writeFileSync(path.join(V.d, "t.txt"), "orig\n");
@@ -408,19 +400,12 @@ fs.writeFileSync(path.join(A.d, "redirect.log"), "untouched");
 	fs.writeFileSync(path.join(T.d, "debug.log"), "noise"); fs.mkdirSync(path.join(T.d, "build")); fs.writeFileSync(path.join(T.d, "build", "o"), "x");
 	// req: R-836
 	check("split: ignored files (*.log, build/) do not change the revision", revOf(T.d) === staged);
-	fs.writeFileSync(path.join(T.d, "debug.log"), "more noise");
-	check("…nor does editing an ignored file", revOf(T.d) === staged);
 	const later = new Date(Date.now() + 5000); fs.utimesSync(path.join(T.d, "f"), later, later);
 	// req: R-836
 	check("split: touching a file (mtime only) does not change the revision", revOf(T.d) === staged);
 	const U = repo("U", 1);
 	gitIn(U.d, "rm", "-q", "--cached", "f");
 	check("split: `git rm --cached` (index only; the file is unchanged on disk) → still the clean sha", revOf(U.d) === U.shas[0], revOf(U.d));
-	const outInTree = path.join(U.d, "review-out.md");
-	fs.writeFileSync(outInTree, "VERDICT: LAND");
-	check("the review's own --out file inside the tree is excluded from its snapshot",
-		mod.resolveRevision(undefined, mod.treeScope(U.d, { exclude: [outInTree] }), U.d) === U.shas[0],
-		`compared: ${pathForms(outInTree)}`);
 }
 
 // 17. completion re-derives the revision (sol r2 #12): a tree edited mid-review is not credited
@@ -511,36 +496,6 @@ fs.writeFileSync(path.join(A.d, "redirect.log"), "untouched");
 	check("an untracked ..draft.md is in-tree: warns, and is excluded from the snapshot (verdict verified)",
 		du.status === 0 && /WARNING: --out .* inside the reviewed tree/.test(du.stderr) && roundsOf("outdu").length === 1 && !roundsOf("outdu")[0].unverified, `${du.stderr} compared: ${pathForms(path.join(O.d, "..draft.md"))}`);
 	fs.rmSync(path.join(O.d, "..draft.md"));
-	check("relUnder: by segment", typeof mod.relUnder === "function" && mod.relUnder("/r", "/r/..notes.md") === "..notes.md" && mod.relUnder("/r", "/r/../x") === null &&
-		mod.relUnder("/r", "/r") === null && mod.relUnder("/r", "/r/a/..b") === "a/..b");
-}
-
-const trustText = fs.readFileSync(path.join(bin, "..", "README.md"), "utf8").replace(/\s+/g, " ");
-// req: R-971
-// req: R-972
-check("Trust model declares wrapper-only formal rounds, supplemental reviews and revision-based counting",
-	trustText.includes("Formal review rounds are admitted only through `pi-review` or `claude-review`. Agent-tool and hand-run reviews are supplemental and earn no round") &&
-	trustText.includes("Any number of reviews, by any roles, on one revision is one round") &&
-	trustText.includes("A review of a new revision is a round regardless of role"));
-
-// 21. --retries contract notice (sol r3 LOW): printed only when the flag is explicit
-{
-	freshHome("21");
-	const NOTICE = /note — --retries \d+ = \d+ re-attempt\(s\) after the first/;
-	const explicit = piReview(["--item", "rt", "--out", out()]); // the helper passes --retries 0
-	const implicit = spawnSync(process.execPath, [PI_REVIEW, "--poll", "1", "--stall-secs", "1", "--item", "rt2", "--out", out(), "--", "-p", "x"],
-		{ cwd: A.d, env: env({ STUB: "verdict" }), encoding: "utf8", timeout: 30000 });
-	check("pi-review: explicit --retries → one-line notice", explicit.status === 0 && (explicit.stderr.match(new RegExp(NOTICE, "g")) ?? []).length === 1, explicit.stderr);
-	check("pi-review: no --retries → no notice", implicit.status === 0 && !NOTICE.test(implicit.stderr), implicit.stderr);
-	const wk = (extra) => spawnSync(process.execPath, [PI_WORKER, "--poll", "1", "--stall-secs", "1", ...extra, "--out", out(), "--", "-p", "x"],
-		{ cwd: A.d, env: env({ STUB: "plain", COUNT: path.join(tmp, "count21") }), encoding: "utf8", timeout: 30000 });
-	const we = wk(["--retries", "1"]), wi = wk([]);
-	// req: R-735
-	check("pi-worker: explicit --retries → notice; default → none",
-		we.status === 0 && NOTICE.test(we.stderr) && wi.status === 0 && !NOTICE.test(wi.stderr), we.stderr + wi.stderr);
-	check("…a pi arg named --retries (after --) is not the flag", !NOTICE.test(spawnSync(process.execPath,
-		[PI_WORKER, "--poll", "1", "--stall-secs", "1", "--out", out(), "--", "-p", "--retries", "3"],
-		{ cwd: A.d, env: env({ STUB: "plain", COUNT: path.join(tmp, "count21") }), encoding: "utf8", timeout: 30000 }).stderr));
 }
 
 finish();

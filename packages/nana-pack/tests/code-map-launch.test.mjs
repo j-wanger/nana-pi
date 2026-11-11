@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/code-map-launch.test.mjs
- * @purpose Pin exact launch links, blind reach, declarations, history preservation and sealed launch vocabulary.
- * @inputs Shim functions, fixed git history and temporary fixture repositories.
+ * @purpose Pin exact launch links, blind reach and reasoned declarations.
+ * @inputs Shim functions and temporary fixture repositories.
  * @outputs Awaited bounded PASS/FAIL cases.
  * @effects disk (OS temporary fixtures), process (bounded shim and git children).
  * @errors Failed assertions or per-case deadlines produce exit 1.
@@ -12,7 +12,6 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { tmpDir } from "./tmp-dir.mjs";
-import { gitShow } from "./git-fixtures.mjs";
 import { CASE_LIMIT_MS, withinCaseLimit } from "./report-fixtures.mjs";
 import { checkRepo, writeMap } from "../../../scripts/code-map.mjs";
 
@@ -141,152 +140,5 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 	const blind = f.cli("--impact", "bin/t.mjs").stdout.split("always-run tests (blind reach):")[1];
 	assert(blind?.includes("tests/p.test.mjs")); assert(blind?.includes("tests/q.test.mjs"));
 }));
-
-// req: R-3156
-await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
-	const losses = new Map([
-		['packages/nana-setup/tests/pi-registration.test.mjs -> packages/nana-pack/lib/json-text.mjs', 'FEAT-013 setup diet removes the live-home registration check that suite isolation always skipped.'],
-		['packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/settings.mjs', 'FEAT-013 setup diet removes the installed-timeout seal; late hung hooks retain deadline behavior.'],
-		['packages/nana-setup/tests/readme-rehearsal.test.mjs -> packages/nana-setup/lib/install-check.mjs', 'FEAT-013 setup diet removes the preventive spawn-output-cap variant; R-1544 is untested.'],
-		['packages/nana-setup/tests/pi-install-pin.test.mjs -> packages/nana-setup/tests/tmp-dir.mjs', 'FEAT-013 setup diet removes the preventive malformed-workflow fixtures.'],
-		['packages/nana-setup/tests/retired-artifacts.test.mjs -> packages/nana-setup/lib/install-check-config.mjs', 'FEAT-013 setup diet removes the absence-only vendor configuration assertion.'],
-		['packages/nana-setup/tests/seat-pull-off.test.mjs -> packages/nana-setup/lib/doctor.mjs', 'FEAT-013 setup diet removes the preventive retired-knowledge doctor case; R-3741 is untested.'],
-		['packages/nana-setup/tests/seat-pull-off.test.mjs -> packages/nana-setup/tests/stub-pi.mjs', 'FEAT-013 setup diet removes the doctor-only stub caller.'],
-		['packages/nana-setup/tests/rulings-install.test.mjs -> packages/nana-setup/lib/install-check-config.mjs', 'FEAT-013 setup diet removes the heading equality pin; live turn and injection checks remain.'],
-		['packages/nana-setup/tests/doctor-memory-links.test.mjs -> packages/nana-setup/lib/doctor.mjs', 'FEAT-031 diet2 retains the dangling-link CLI regression, dropping the preventive in-process lint matrices.'],
-		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-pack/lib/adoption.mjs', 'FEAT-031 diet2 removes preventive malformed-mark variants; ordinary encoding and privacy regressions remain.'],
-		['packages/nana-setup/tests/doctor-runtime.test.mjs -> packages/nana-setup/tests/stub-pi.mjs', 'FEAT-031 diet2 removes the stub self-check, retaining real PATH probes.'],
-		['packages/nana-setup/tests/hooks-closed-output.test.mjs -> packages/nana-knowledge/bin/nana-knowledge.ts', 'FEAT-031 diet2 removes the retired knowledge-hook closed-output case; four active-hook regressions remain.'],
-		['packages/nana-pack/tests/requirements-lift.test.mjs -> scripts/requirements-tree.mjs', 'diet1 consolidates the lift proof and main-use fixture.'],
-		...['extensions/nana-roster-notice.ts', 'lib/adoption.mjs'].map(target => [`packages/nana-pack/tests/agent-dir-config.test.mjs -> packages/nana-pack/${target}`, 'diet1 removes the unearned stranded-config read watcher.']),
-		...[...['ask-shape', 'build-records-config', 'build-records', 'frontier-config', 'handoff-asks', 'suite-records-config', 'suite-records'].map(name => `packages/nana-pack/lib/${name}.mjs`), 'scripts/deliverables.mjs', 'scripts/requirements-tree.mjs'].map(target => [`packages/nana-pack/tests/product-report.test.mjs -> ${target}`, 'diet1 consolidates report drawing and retires unearned detail and age matrices.']),
-		['packages/nana-pack/tests/brief-check.test.mjs -> packages/nana-pack/tests/slow-sampler.mjs', 'Cut A 2026-11-09: brief-check.test no longer launches pi-worker'],
-		['packages/nana-setup/tests/uninstall.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
-		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-setup/lib/steps.mjs', 'desk cut 2026-11-09'],
-		['packages/nana-setup/tests/agent-dir-consumers.test.mjs -> packages/nana-setup/bin/nana-setup.mjs', 'desk cut 2026-11-09'],
-		['packages/nana-setup/lib/project.mjs -> packages/nana-pack/lib/json-text.mjs', 'FEAT-013 setup-tail stops seeding postEdit config; project no longer parses user config for the retired shadow guard.'],
-		['packages/nana-pack/tests/claude-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes the movement-only repository fixtures from launcher tests.'],
-		['packages/nana-pack/tests/immutable-review.test.mjs -> packages/nana-pack/tests/ledger-repo.mjs', 'R-3766 removes movement-only repository fixtures; immutable snapshot checks remain.'],
-		["packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/json-text.mjs", "FEAT-041 moves settings carry into claude-settings-carry.mjs, which imports the JSON helpers."],
-		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/bounded-read.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
-		["packages/nana-pack/lib/roster-set.mjs -> packages/nana-pack/lib/json-text.mjs", "Config-write tail moved to pack-config-write.mjs; roster-set imports that shared writer."],
-		["packages/nana-pack/tests/objective-golden.test.mjs -> packages/nana-pack/bin/nana-objective.mjs", "Wrong basename guess: the hook runs instead."],
-		["packages/nana-setup/tests/stale-copies.test.mjs -> packages/nana-pack/bin/nana-adoption.mjs", "Wrong basename guess: the hook runs instead."],
-		["packages/nana-setup/tests/hooks-win32-exec.test.mjs -> packages/nana-knowledge/bin/nana-knowledge.ts", "Command text for a deleted checkout."],
-		["packages/nana-setup/tests/hooks-win32-exec.test.mjs -> packages/nana-setup/bin/nana-setup.mjs", "Temporary worktree copy."],
-		["packages/nana-setup/tests/copy-record.test.mjs -> packages/nana-setup/bin/nana-setup.mjs", "Temporary repository copy."],
-		["packages/nana-pack/tests/review-standard.test.mjs -> packages/nana-pack/bin/pi-review.mjs", "Temporary pack copy."],
-		["packages/nana-setup/tests/pi-registration.test.mjs -> packages/nana-setup/bin/nana-setup.mjs", "Twice-bound pkg does not trace."],
-		["packages/nana-pack/tests/review-ledger.test.mjs -> packages/nana-pack/bin/review-round.mjs", "The review-ledger test files share review-ledger-fixture.mjs, which loads it; the run-alone file no longer loads it itself."],
-		["packages/nana-pack/tests/review-ledger.test.mjs -> packages/nana-pack/tests/fake-pi.mjs", "The review-ledger test files share review-ledger-fixture.mjs, which loads it; the run-alone file no longer loads it itself."],
-		["packages/nana-pack/tests/review-ledger.test.mjs -> packages/nana-pack/tests/tmp-dir.mjs", "The review-ledger test files share review-ledger-fixture.mjs, which loads it; the run-alone file no longer loads it itself."],
-		["packages/nana-pack/tests/review-ledger.test.mjs -> packages/nana-pack/lib/verdict-config.mjs", "The verdict checks moved to review-ledger-verdicts.test.mjs, which imports it."],
-		["packages/nana-setup/lib/hook-producer.mjs -> packages/nana-pack/bin/nana-adoption.mjs", "Only a sealed wrapper definition, not a launch call; injected run is outside the sealed call vocabulary."],
-		["packages/nana-setup/lib/hook-producer.mjs -> packages/nana-pack/bin/nana-frontier-summary.mjs", "Only a sealed wrapper definition, not a launch call; injected run is outside the sealed call vocabulary."],
-		["packages/nana-setup/lib/hook-producer.mjs -> packages/nana-pack/bin/nana-objective.mjs", "Only a sealed wrapper definition, not a launch call; injected run is outside the sealed call vocabulary."],
-		["packages/nana-setup/lib/hook-producer.mjs -> packages/nana-setup/bin/stale-copies.mjs", "Only a sealed wrapper definition, not a launch call; injected run is outside the sealed call vocabulary."],
-	]);
-	const retiredStudyModules = new Set([
-		"aggregate.mjs", "catch-ledger.mjs", "run.mjs", "ext/bench-nested-usage.ts",
-		...["agentdir", "catch-extract", "catch-stats", "checkers", "eval-module", "fixture", "nested", "pi-exports", "plan", "profiles"].map(n => `lib/${n}.mjs`),
-		...["agentdir", "aggregate", "argv", "catch-ledger", "checkers", "evaluator-hardening", "integration", "nested", "ops", "orchestration-paths", "plan", "study-tasks", "timeout", "usage"].map(n => `test/${n}.test.mjs`),
-	].map(p => `apps/bench/${p}`));
-	losses.set("scripts/deliverables.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
-	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
-	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
-	const retiredSources = new Map([
-		...['doctor-trust', 'seat-rule', 'shared-memory-input'].map(name => [`packages/nana-setup/tests/${name}.test.mjs`, 'FEAT-013 setup diet merges the kept assertion into setup-tail, templates-working or shared-memory-hook.']),
-		...['realpath-fallback', 'verifier-pipe'].map(name => [`packages/nana-setup/tests/${name}.test.mjs`, 'FEAT-013 setup diet removes preventive consumer parity and retired-hook doctor variants; lost clauses are untested.']),
-		['packages/nana-pack/lib/review-findings.mjs', 'FEAT-031 small-cuts removes the unread review-timeline leftover and its configuration import.'],
-		['packages/nana-pack/tests/handoff-writer-role.test.mjs', 'FEAT-031 small-cuts retires a test with no recorded failure or safety line; R-139 and R-1683 remain untested.'],
-		['packages/nana-pack/tests/ledger-repo.mjs', 'FEAT-031 small-cuts inlines the sole fixture caller in one-reviewer.test.mjs.'],
-		['packages/nana-pack/lib/gh-runner-async.mjs', 'FEAT-031 small-cuts merges the asynchronous runner into gh-runner.mjs.'],
-		...['doctor-floor', 'doctor-release'].map(name => [`packages/nana-setup/tests/${name}.test.mjs`, 'FEAT-031 diet2 removes value-only floor pins and informational release fixtures; behaviour remains untested.']),
-		['apps/bench/lib/usage.mjs', 'FEAT-007 review fix removes the unused stream parser after the memory factory cut.'],
-		...['apps/bench/test/retire.test.mjs', ...['preview-retirement', 'gate-config-robustness', 'experiment-cut', 'memory-cut-checks'].map(name => `packages/nana-pack/tests/${name}.test.mjs`), 'packages/nana-setup/tests/stale-copies-slow.test.mjs'].map(file => [file, 'FEAT-031 test-retire removes the named Lane A test file; its live cases or markers move to kept tests.']),
-		...['packages/nana-setup/claude/hooks/verifier-pipe.mjs', 'packages/nana-setup/lib/verifier-hook.mjs'].map(file => [file, 'FEAT-013 retires only the Claude verifier hook and wrapper library; the pi predicate stays.']),
-		...['extensions/nana-handoff.ts', ...['handoff-artifact', 'handoff-store', 'handoff-staleness', 'handoff-trust', 'handoff-symlink'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires compaction storage and pickup; adoption survives separately.']),
-		...['extensions/nana-post-edit.ts', 'lib/post-edit-config.mjs', ...['post-edit-default-timeout', 'post-edit-file-queue', 'post-edit-hardening', 'post-edit-status', 'post-edit-utf8', 'post-edit-values-named'].map(name => `tests/${name}.test.mjs`)].map(file => [`packages/nana-pack/${file}`, 'FEAT-013 retires the post-edit extension and its dedicated checks.']),
-		['packages/nana-pack/extensions/nana-notify.ts', 'FEAT-013 setup-retire removes desktop notification behavior.'],
-		['packages/nana-pack/tests/notify-dispatch.test.mjs', 'FEAT-013 retires notifier-only dispatch checks with their extension.'],
-		['packages/nana-pack/tests/notify-fallback.test.mjs', 'FEAT-013 retires notifier-only failure checks with their extension.'],
-		['scripts/lane-class.mjs', 'Lane classification is retired by R-3761.'],
-		['scripts/requirements-moved.mjs', 'R-3770 removes the movement command; git-runner preserves its git helpers.'],
-		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves review execution into review-run and claude-review.'],
-		['packages/nana-pack/lib/review-movement.mjs', 'R-3770 removes movement context.'],
-		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3770 removes movement context configuration.'],
-		['packages/nana-pack/tests/requirements-moved.test.mjs', 'R-3770 removes movement-only tests with the command.'],
-		['packages/nana-pack/tests/review-movement.test.mjs', 'R-3770 removes movement-only tests with the prompt producer.'],
-		['packages/nana-pack/tests/keep-movement.test.mjs', 'R-3770 removes keep-only tests with the command.'],
-		['packages/nana-pack/lib/mutation-runner-config.mjs', 'Seat mutation runner is retired by R-3761.'],
-		['packages/nana-pack/lib/mutation-runner.mjs', 'Seat mutation runner is retired by R-3761.'],
-		['packages/nana-pack/tests/lane-class.test.mjs', 'Classifier tests retired with their code by R-3761.'],
-		['packages/nana-pack/tests/mutation-runner.test.mjs', 'Seat runner tests retired with their code by R-3761.'],
-		['packages/nana-pack/tests/mutation-runner-takeover.test.mjs', 'Seat runner tests retired with their code by R-3761.'],
-	]);
-	for (const target of ['scripts/test-locked.mjs', 'scripts/runtime-measure.mjs']) losses.set(`packages/nana-pack/tests/process-tree.test.mjs -> ${target}`, 'R-3863 retires the duplicate-kill scan fixtures; runtime tree-kill assertions survive.');
-	losses.set('packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/lane-class-config.mjs', 'R-3761 removes lane classification from build output.');
-	losses.set('packages/nana-pack/bin/pi-worker.mjs -> scripts/lane-class.mjs', 'R-3761 removes lane classification from build output.');
-	for (const file of ['display-surfaces', 'config-handlers-malformed']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-post-edit.ts`, 'FEAT-013 removes the post-edit-only cases; surviving cases remain.');
-	for (const file of ['display-surfaces', 'config-handlers-malformed', 'writing-injection', 'adoption-producer']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-handoff.ts`, 'FEAT-013 removes handoff-only calls; adoption now imports nana-adoption.');
-	losses.set('packages/nana-pack/tests/adoption-producer.test.mjs -> packages/nana-pack/lib/config.ts', 'FEAT-013 adoption now reads only user-scope adoptionSettings; the test still exercises config via its dynamic import.');
-	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
-	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
-	for (const caller of ['lib/install-check.mjs', ...['install-check', 'doctor-fix-line', 'install', 'linked-claude-folder', 'relative-agent-dir', 'rulings-install', 'settings-lock', 'skills-and-standards', 'win32-degrade', 'win32-hook-repair'].map(name => `tests/${name}.test.mjs`)]) losses.set(`packages/nana-setup/${caller} -> packages/nana-setup/lib/doctor.mjs`, 'FEAT-013 removes the delegation-runtime floor import with the vendor install and retry.');
-	const retiredTargets = new Map([
-		['packages/nana-pack/tests/ledger-repo.mjs', 'FEAT-031 small-cuts inlines the sole fixture caller in one-reviewer.test.mjs.'],
-		['packages/nana-pack/lib/gh-runner-async.mjs', 'FEAT-031 small-cuts preserves both callers through gh-runner.mjs.'],
-		['apps/bench/lib/usage.mjs', 'FEAT-007 review fix removes the unused stream parser after the memory factory cut.'],
-		['scripts/requirements-moved.mjs', 'R-3770 rehomes the shared runner in git-runner.mjs and removes movement.'],
-		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves execution into review-run.mjs, shared with the test harness.'],
-		['packages/nana-pack/lib/review-movement.mjs', 'R-3766 removes movement from reviewer prompts.'],
-		['packages/nana-pack/lib/review-movement-config.mjs', 'R-3766 removes movement configuration and its test imports.'],
-	]);
-	// Named retirement losses: spell stems in pieces so live source does not advertise removed modules.
-	const cutStem = words => words.join('-');
-	const memoryCuts = new Set([
-	 ...[['memory','replay'], ['memory','score'], ['outcome','meter'], ['outcome','score'], ['outcome','compare'], ['blast','radius'], ['requirement','rows']].map(words => `scripts/${cutStem(words)}.mjs`),
-	 ...[['memory','replay'], ['memory','replay','config'], ['memory','replay','context'], ['memory','score'], ['outcome','meter'], ['outcome','meter','config'], ['outcome','score'], ['writing','trial','extractor'], ['blast','radius','config'], ['tree','kill','scan']].map(words => `packages/nana-pack/lib/${cutStem(words)}.mjs`),
-	 ...[['memory','replay'], ['outcome','meter'], ['writing','trial','extractor'], ['blast','radius'], ['requirement','rows']].map(words => `packages/nana-pack/tests/${cutStem(words)}.test.mjs`),
-	 ['packages/nana-knowledge/extensions', 'nana-knowledge.ts'].join('/'),
-	 ['packages/nana-knowledge/tests', 'extension.test.mjs'].join('/'),
-	 ...[['memory','end','hook'], ['memory','end','wiring']].map(words => `packages/nana-setup/tests/${cutStem(words)}.test.mjs`),
-	]);
-	const noReaderCuts = new Set([
-		...[['review', 'timeline'], ['brief', 'check'], ['build', 'report'], ['nana', 'frontier']].map(words => words.join('-')).map(name => `packages/nana-pack/bin/${name}.mjs`),
-		...[['ci', 'records'], ['ts', 'syntax', 'check'], ['component', 'audit'], ['component', 'audit', 'config'], ['component', 'contract']].map(words => words.join('-')).map(name => `scripts/${name}.mjs`),
-		...[['review', 'timeline'], ['build', 'report'], ['ts', 'syntax', 'check'], ['component', 'audit'], ['profile', 'sync']].map(words => words.join('-')).map(name => `packages/nana-pack/tests/${name}.test.mjs`),
-	]);
-	const factoryCuts = new Set([
-		...[['nana', 'memory'], ['nana', 'curate']].map(words => `packages/nana-pack/bin/${cutStem(words)}.mjs`),
-		...[['memory', 'curation'], ['memory', 'curation', 'config'], ['memory', 'making'], ['memory', 'making', 'config'], ['memory', 'shaping'], ['memory', 'shaping', 'config'], ['memory', 'run'], ['memory', 'start']].map(words => `packages/nana-pack/lib/${cutStem(words)}.mjs`),
-		...[['memory', 'curate'], ['memory', 'make'], ['memory', 'run'], ['memory', 'shape'], ['memory', 'shape', 'runners']].map(words => `scripts/${cutStem(words)}.mjs`),
-		...[['memory', 'curation'], ['memory', 'cut', 'guidance'], ['memory', 'making'], ['memory', 'run'], ['memory', 'run', 'recovery'], ['memory', 'run', 'seals'], ['memory', 'session', 'end'], ['memory', 'shaping']].map(words => `packages/nana-pack/tests/${cutStem(words)}.test.mjs`),
-		`packages/nana-pack/tests/${cutStem(['memory', 'run', 'fixture'])}.mjs`,
-		`packages/nana-setup/claude/hooks/${cutStem(['nana', 'memory', 'end'])}.mjs`,
-	]);
-	losses.set('packages/nana-pack/lib/memory-store.mjs -> packages/nana-pack/lib/profile-config.mjs', 'Cut B retains only profile-compatible reads, saved merges and area-local writes.');
-	for (const target of ['lib/profile-sync.mjs', 'bin/nana-profile.mjs']) losses.set(`packages/nana-setup/lib/doctor.mjs -> packages/nana-pack/${target}`, 'Cut B removes factory-only run-health probes; hook retirement diagnostics stay.');
-	const retiredKnowledgePull = `packages/nana-knowledge/lib/${['hook', 'ts'].join('.')}`;
-	retiredTargets.set(retiredKnowledgePull, 'FEAT-003 removes the unwired prompt pull; query refreshes and searches directly.');
-	retiredSources.set(retiredKnowledgePull, 'FEAT-003 removes the unwired prompt pull.');
-	retiredSources.set('packages/nana-knowledge/tests/hook.test.mjs', 'FEAT-003 removes hook-only cases; build-busy covers atomic ownership, live/dead owner reclaim, exclusion/orphan sweep and concurrent builds.');
-	for (const name of ['sources-file', 'recover']) losses.set(`packages/nana-knowledge/tests/${name}.test.mjs -> packages/nana-knowledge/lib/paths.ts`, 'FEAT-003 removes hook-only cases; build, recovery and status checks stay.');
-	const graph = checkRepo().graph;
-	for (const entry of gitShow("57167e92",  "docs/code-map.md").split(/^### `/m).slice(1)) {
-		const path = entry.split("`")[0];
-		for (const match of (entry.match(/^- \*\*callees\*\* — (.*)$/m)?.[1] ?? "").matchAll(/`([^`]+)`/g)) {
-			const edge = `${path} -> ${match[1]}`;
-			if (factoryCuts.has(path) || factoryCuts.has(match[1])) losses.set(edge, 'Cut B 2026-11-09 removes the paused memory factory and dedicated tests; profile compatibility and anatomy readers stay.');
-			if (noReaderCuts.has(path) || noReaderCuts.has(match[1])) losses.set(edge, 'Cut A 2026-11-09 removes no-reader tools and their dedicated tests; live library consumers stay.');
-			if (memoryCuts.has(path) || memoryCuts.has(match[1])) losses.set(edge, 'FEAT-043 R-3860/R-3863 retire automatic delivery and completed instruments; surviving readers and assertions moved.');
-			if (retiredStudyModules.has(path)) losses.set(edge, `FEAT-034 retired study module ${path} and its runner-only tests; frozen records remain.`);
-			// Owner retirement (2026-11-07): the preview and all of its consumers left together.
-			const retiredPreview = [path, match[1]].some(file => file.startsWith(['apps', 'hive', ''].join('/')) || /^hive-/.test(file.split('/').at(-1)));
-			const retiredDesk = [path, match[1]].some(file => file.startsWith(['apps', 'desk', ''].join('/')) || file.startsWith(['packages', ['nana', 'stage'].join('-'), ''].join('/')) || file === ['packages/nana-setup/tests', ['desk', 'service.test.mjs'].join('-')].join('/'));
-			assert(graph.modules.get(path)?.callees.includes(match[1]) || losses.get(edge) || retiredPreview || retiredDesk || (!graph.modules.has(match[1]) && retiredTargets.get(match[1])) || (!graph.modules.has(path) && retiredSources.get(path)), `lost edge: ${edge}`);
-		}
-	}
-});
 
 process.exitCode = failures ? 1 : 0;

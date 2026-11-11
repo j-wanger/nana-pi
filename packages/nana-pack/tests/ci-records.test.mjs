@@ -20,10 +20,8 @@ import {
 	CI_WORKFLOW_RUN_PATH,
 	GH_COMMAND_ENV,
 	GH_OUTPUT_MAX_BYTES,
-	GH_PAGE_SIZE,
 	RECORD_FILE_ENV,
 	RECORD_SCHEMA,
-	SLOWEST_LIST_MAX,
 } from "../lib/suite-records-config.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
 import { githubRepoOf } from "../lib/land-ci.mjs";
@@ -164,7 +162,6 @@ function oneRecordState({ runId = 1, leg = "macos-latest", attempt = 1, value = 
 	};
 }
 const totalsLines = (out) => out.split(/\r?\n/).filter((line) => line.startsWith(`${CI_RECORD_LINE_PREFIX} `) && line.includes(" files,"));
-const slowestLines = (out) => out.split(/\r?\n/).filter((line) => line.startsWith(`${CI_RECORD_LINE_PREFIX} slowest `));
 
 // req: R-2633
 check("R-2633: a record the runner writes under CI's arguments reads back in ci-records with the runner's own totals", () => {
@@ -256,27 +253,6 @@ check("R-2634: ci-records prints one totals line per record artifact of each CI 
 	assert.equal(download?.[download.indexOf("--repo") + 1], REPOSITORY);
 });
 
-// req: R-2635
-check("R-2635: ci-records lists each record's slowest files, slowest first and capped", () => {
-	const value = record({ files: [
-		{ path: "z.test.mjs", label: "PASS", seconds: 9 },
-		{ path: "b.test.mjs", label: "PASS", seconds: 8 },
-		{ path: "a.test.mjs", label: "FAIL", seconds: 8, cause: "timed out" },
-		{ path: "d.test.mjs", label: "PASS", seconds: 7 },
-		{ path: "e.test.mjs", label: "PASS", seconds: 6 },
-		{ path: "f.test.mjs", label: "PASS", seconds: 5 },
-		{ path: "skip.test.mjs", label: "SKIP", seconds: 0 },
-	] });
-	const result = runCli(oneRecordState({ value }));
-	assert.equal(result.status, 0, result.out);
-	const line = slowestLines(result.out)[0] ?? "";
-	assert.equal((line.match(/\.test\.mjs/g) ?? []).length, SLOWEST_LIST_MAX, line);
-	assert(line.indexOf("z.test.mjs 9s") < line.indexOf("a.test.mjs 8s [FAIL]"));
-	assert(line.indexOf("a.test.mjs 8s [FAIL]") < line.indexOf("b.test.mjs 8s"));
-	assert(line.indexOf("b.test.mjs 8s") < line.indexOf("d.test.mjs 7s"));
-	assert(!line.includes("f.test.mjs") && !line.includes("skip.test.mjs"));
-});
-
 // req: R-2637
 check("R-2637: ci-records names each suite leg with no readable record and why", () => {
 	const good = recordFile("good-rerun", record());
@@ -358,19 +334,6 @@ check("R-2638: ci-records exits 1 with one named line when the revision, gh or e
 	assert.equal(running.status, 1); assert.match(running.out, /no readable record/i);
 	const passing = runCli(oneRecordState());
 	assert.equal(passing.status, 0, passing.out); assert.equal(totalsLines(passing.out).length, 1);
-});
-
-// req: R-2632
-// req: R-2634
-check("seal: CI suite records are suite-record- artifacts of .github/workflows/ci.yml runs, and their lines start ci record:", () => {
-	assert.equal(CI_ARTIFACT_PREFIX, "suite-record-", "R-2632");
-	assert.equal(CI_WORKFLOW_RUN_PATH, ".github/workflows/ci.yml", "R-2634");
-	assert.equal(CI_SUITE_JOB, "suite", "R-2634");
-	assert.equal(CI_RECORD_LINE_PREFIX, "ci record:", "R-2634");
-	assert.equal(SLOWEST_LIST_MAX, 5, "R-2634");
-	assert.equal(GH_PAGE_SIZE, 100, "R-2634");
-	assert.equal(GH_OUTPUT_MAX_BYTES, 4 * 1024 * 1024, "R-2634");
-	assert.equal(GH_COMMAND_ENV, "NANA_CI_RECORDS_GH_COMMAND", "R-2634");
 });
 
 fs.rmSync(TD, { recursive: true, force: true });

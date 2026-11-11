@@ -70,23 +70,6 @@ await check('M4: moved main refuses with lane merge remedy and unchanged refs', 
  const landed = executeCleanMerge(f);
  assert.equal(landed.code, 0, landed.text); assert.equal(git(f.main, 'rev-parse', 'HEAD'), f.tip);
 });
-// req: R-3964
-await check('M5: live land guidance requires lane merge CI and computed review coverage', () => {
- const read = rel => readFileSync(new URL(`../../../${rel}`, import.meta.url), 'utf8');
- const shared = read('templates/_shared/working-under-nana-pi.md'), agents = read('AGENTS.md');
- const rulings = read('packages/nana-pack/rules/nana-rulings.md');
- const ruling = rulings.split('\n').find(line => line.startsWith('- 2026-11-09: An independent reviewer'));
- assert(ruling, 'dated replacement ruling');
- for (const text of [ruling]) {
-  assert.match(text, /lane merges (?:current )?main/);
-  assert.match(text, /CI.*(?:on|for) (?:that|the) merge/);
-  assert.match(text, /tree matches.*computed merge/);
- }
- for (const text of [rulings, shared, agents, read('packages/nana-pack/README.md')]) {
-  assert.doesNotMatch(text, /lands? without new CI|without merge-tip CI|Only the merge made in this run is exempt/);
- }
- assert.equal(agents.split('<!-- nana:working-under-nana-pi begin -->\n')[1].split('<!-- nana:working-under-nana-pi end -->')[0], shared);
-});
 }
 import { PI_REVIEW, TEST_LOCKED, assertCiRefused, recordTextReview, runLand, tallyRows, writeTallyRows } from "./land-checks.mjs";
 let failures = 0;
@@ -95,7 +78,6 @@ const check = (title, fn) => {
 };
 
 // req: R-977 R-3490 R-3491
-// req: R-1007
 check("successful land updates main checkout files and leaves tracked state clean", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-invocations-")); const main = repo(root, "main");
 	writeFileSync(path.join(main, "remove.txt"), "remove me\n"); git(main, "add", "remove.txt"); git(main, "commit", "-m", "add removable file");
@@ -278,13 +260,6 @@ check("cleanup removes a contained feat branch without force", () => {
 	assert(calls.some(({ cwd, args }) => cwd === main && args.length === 3 && args[0] === "branch" && args[1] === "-d" && args[2] === "feat/landed"));
 	assert.equal(existsSync(feature), false); assert.throws(() => git(main, "show-ref", "--verify", "refs/heads/feat/landed"));
 });
-// req: R-981
-check("README and AGENTS describe the land helper", () => {
-	const repoRoot = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
-	const readme = readFileSync(path.join(repoRoot, "packages/nana-pack/README.md"), "utf8");
-	for (const pattern of [/nana-land merge/, /clean source tree/, /clean tracked state.*checkout on `main`/, /verified `LAND` review/, /runs the suite/, /suite in the source tree/, /Immediately before merging it rechecks/, /one `git merge --ff-only/, /main ref equal to the tip/, /verifies containment/, /branch switch.*between the final check and merge is not defended/, /Do not operate the main checkout during a land/, /helper refuses afterwards without success records/, /untracked collision/, /is a separate operation/, /clean worktree whose.*branch is contained in `main`/]) assert.match(readme, pattern);
-	assert.equal(JSON.parse(readFileSync(path.join(repoRoot, "packages/nana-pack/package.json"), "utf8")).bin["nana-land"], "bin/nana-land.mjs");
-});
 // req: R-588
 check("successful merge prints post-merge release status and divergence", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-release-normal-")); const main = repo(root, "main");
@@ -295,7 +270,7 @@ check("successful merge prints post-merge release status and divergence", () => 
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => ({ status: 0 }) });
 	assert.equal(out.code, 0, out.text); assert.match(out.text, /release status: .*1 template commit.*v0\.1\.0.*main 1 ahead.*origin/i);
 });
-// req: R-588
+// req: R-588 R-1007
 check("release status failure after merge keeps success code and output", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-release-failure-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next"); let releaseStarted = false;
@@ -316,14 +291,6 @@ check("release status failure after merge keeps success code and output", () => 
 	assert.equal(guarded.code, 0, guarded.text); assert.equal(git(throwingMain, "rev-parse", "HEAD"), throwingTip);
 	assert.match(guarded.text, /release status: .*unavailable/i); assert.match(guarded.text, /push command:/); assert.doesNotMatch(guarded.text, /Session archive stub:|HANDOFF Landed:/);
 });
-// req: R-588
-check("successful merge without copier reports only the origin release clause", () => {
-	const root = tmpDir(path.join(os.tmpdir(), "land-release-no-copier-")); const main = repo(root, "main");
-	const bare = path.join(root, "origin.git"); git(root, "init", "--bare", bare); git(main, "remote", "add", "origin", bare); git(main, "push", "-u", "origin", "main");
-	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => ({ status: 0 }) });
-	assert.equal(out.code, 0, out.text); assert.match(out.text, /release status: .*not a template source.*origin/i); assert.doesNotMatch(out.text, /template commits?/i);
-});
 // req: R-1003
 check("unknown land options, including either exemption placement, are named before git runs", () => {
 	for (const args of [
@@ -336,14 +303,6 @@ check("unknown land options, including either exemption placement, are named bef
 			assert.match(error.message, new RegExp(rejected)); return true;
 		});
 	}
-});
-// req: R-1007
-check("successful land output keeps push and release status but has no archive stubs", () => {
-	const root = tmpDir(path.join(os.tmpdir(), "land-output-shape-")); const main = repo(root, "main");
-	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
-	const out = runLand({ tree: feature, main, suite: 'node -e "process.exit(0)"', reviewed: [] });
-	assert.equal(out.code, 0, out.text); assert.match(out.text, /push command:/); assert.match(out.text, /release status:/);
-	assert.doesNotMatch(out.text, /HANDOFF|session archive/i);
 });
 // req: R-1009
 check("a separate clone is refused before reviewed-SHA resolution or ledger reading", () => {

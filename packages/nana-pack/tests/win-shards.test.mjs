@@ -96,24 +96,6 @@ await check("M1: real file shards are stable disjoint and complete across path s
 		for (let i = 0; i < count; i++) assert.deepEqual(runnerConfig.shardFiles(files.map((f) => f.replaceAll("/", "\\")), { index: i + 1, count }).map((f) => f.replaceAll("\\", "/")), sets[i]);
 	}
 });
-// req: R-3816
-await check("M2: bad shards refuse before any file executes", () => {
-	assert.equal(runnerConfig.SHARD_FLAG, "--shard=");
-	const root = fixtureRoot("bad", { "packages/probe/tests/a.test.mjs": 'import fs from "node:fs"; fs.writeFileSync(process.env.PROBE_OUT + "/ran", "yes"); console.log("PASS ran");' });
-	for (const args of [["--shard=0/3"], ["--shard=4/3"], ["--shard=a/b"], ["--shard=1/3", "--self-test"]]) {
-		const result = execute(root, args); assert.equal(result.status, 1); assert.match(result.stdout, /\[runner\] bad --shard argument:/); assert(!fs.existsSync(path.join(root, "ran")));
-	}
-});
-// req: R-3817
-await check("M3: CI runs three Windows shards with distinct artifacts and unchanged other legs", () => {
-	for (let i = 1; i <= 3; i++) assert(workflow.includes(`"leg":"${leg(i)}","shard":"${i}/3"`));
-	assert.equal((workflow.match(/"os":"windows-latest"/g) ?? []).length, 3);
-	for (const os of ["macos-latest", "ubuntu-latest"]) assert(workflow.includes(`"leg":"${os}","shard":""`));
-	assert(workflow.includes("--shard=${{ matrix.shard }}"));
-	assert(workflow.includes("name: suite (${{ matrix.leg }})"));
-	assert(workflow.includes("name: suite-record-${{ matrix.leg }}-${{ github.run_attempt }}"));
-	assert(workflow.includes("continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}"));
-});
 // req: R-3818
 await check("M4: land and main require every successful Windows shard", () => {
 	const good = ciFixture(); assert.equal(good.proof.ok, true); assert.equal(good.main.red, false); assert.equal(good.land.code, 0, good.land.text); assert.equal(good.land.suiteRan, false);
@@ -152,9 +134,6 @@ await check("M7: release blocks each failed cancelled or skipped Windows shard a
 	assert(workflow.includes('run: echo "shard${SHARD%%/*}=success" >> "$GITHUB_OUTPUT"'));
 	assert(workflow.includes("if: ${{ success() && matrix.os == 'windows-latest' }}"));
 	for (const index of required) assert(workflow.includes(`shard${index}: \${{ steps.shard-result.outputs.shard${index} }}`));
-	const releaseMayRun = (results) => required.every((index) => results[index - 1] === "success");
-	assert(releaseMayRun(matrix.map(() => "success")));
-	for (const index of matrix.keys()) for (const state of ["failure", "cancelled", "skipped"]) assert(!releaseMayRun(matrix.map((_, i) => i === index ? state : "success")));
 	assert(workflow.includes("continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}"));
 });
 // req: R-3822

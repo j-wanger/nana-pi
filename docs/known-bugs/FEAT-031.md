@@ -159,3 +159,4 @@
 - Carry (selective-ci): `lib/main-ci.mjs` constructs commands by replacing ` --root `, corrupting commands when that text occurs earlier inside the project path.
 - Carry (win-shards): `lib/main-ci.mjs` skips required-job checks outside folders containing the toolkit package manifest.
 - Carry (signal-test-race): `worker-claude.test.mjs` retains unused Windows WC_HOLD_FILE handling because R-2693 skips Windows.
+- Records out (records-out-2): readers commit 6ded7fdb fails the identity scan because three allowlist entries were removed while their files still existed; the tip is clean, but a check run at that commit is red.

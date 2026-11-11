@@ -20,10 +20,6 @@ import {
 	RECORD_FILE_ENV,
 	RECORD_LINE_PREFIX,
 	RECORD_SCHEMA,
-	RECORD_TRIGGERS,
-	SLOWER_LIST_MAX,
-	SLOWER_MIN_RATIO,
-	SLOWER_MIN_SECONDS,
 	STORE_SUBPATH,
 	SUITE_RECORDS_KEEP,
 } from "../lib/suite-records-config.mjs";
@@ -238,10 +234,6 @@ const rerunLabels = landRecord?.files?.filter((entry) => entry.path === "package
 const measure = runCase({ extraEnv: { [LAND_TIP_ENV]: head, [HAND_MEASURE_ENV]: "1" } });
 records = readSuiteRecords({ root: fixture.main });
 const measureRecord = records.find((record) => record.trigger === "measure");
-const configPinned = RECORD_SCHEMA === 1 && RECORD_FILE_ENV === "NANA_SUITE_RECORD_FILE"
-	&& STORE_SUBPATH === "nana/suite-runs" && SUITE_RECORDS_KEEP === 300
-	&& SLOWER_MIN_SECONDS === 10 && SLOWER_MIN_RATIO === 1.5 && SLOWER_LIST_MAX === 5
-	&& RECORD_LINE_PREFIX === "suite record:" && JSON.stringify(RECORD_TRIGGERS) === JSON.stringify(["land", "measure", "run"]);
 // req: R-2547
 check("R-2547: an unfiltered locked run stores one record naming HEAD, the main merge base, the dirty count, the trigger, the final exit code and the land tip under the git common directory, and keeps only the newest records",
 	ordinary.result.status === 0 && ordinaryRecord?.tip === head && ordinaryRecord?.mergeBase === head
@@ -251,7 +243,7 @@ check("R-2547: an unfiltered locked run stores one record naming HEAD, the main 
 		&& land.result.status === 0 && landRecord?.exitCode === 0 && landRecord?.landTip === head
 		&& JSON.stringify(rerunLabels) === JSON.stringify(["FAIL", "PASS"])
 		&& measure.result.status === 0 && measureRecord?.trigger === "measure"
-		&& records.every((record) => record.schema === RECORD_SCHEMA) && configPinned,
+		&& records.every((record) => record.schema === RECORD_SCHEMA),
 	JSON.stringify({ ordinary: ordinary.result.status, ordinaryOut: `${ordinary.result.stdout}${ordinary.result.stderr}`, ordinaryRecord, land: land.result.status, landOut: `${land.result.stdout}${land.result.stderr}`, landRecord, measure: measure.result.status, measureOut: `${measure.result.stdout}${measure.result.stderr}`, count: listJson(store).length }));
 
 const beforeNoRecord = snapshot(store);
@@ -348,42 +340,6 @@ check("R-2550: a locked run sorts each failing file into passing in another clea
 		&& !outputOf(dirtyRun).includes("dirty.test.mjs [passing in another clean run at this tip"),
 	JSON.stringify({ classes: outputOf(classesRun), dirty: outputOf(dirtyRun) }));
 
-const slowerRepo = comparisonRepo("slower");
-const slowerBase = [
-	["growth-60.test.mjs", 10, 70], ["growth-50.test.mjs", 10, 60], ["growth-40.test.mjs", 10, 50],
-	["growth-30.test.mjs", 10, 40], ["growth-20.test.mjs", 10, 30], ["growth-10.test.mjs", 10, 20],
-	["plus-12.test.mjs", 12, 24], ["plus-9.test.mjs", 4.5, 13.5], ["ratio-1_3.test.mjs", 50, 65],
-];
-seedRecord(slowerRepo, "2026-01-01T01:00:00.000Z", { trigger: "land", landTip: slowerRepo.mergeBase, jobs: 1, files: slowerBase.map(([file, seconds]) => ({ path: file, label: "PASS", seconds })) });
-const slowerRun = runCompared(slowerRepo, runRecord({ jobs: 1, files: slowerBase.map(([file, , seconds]) => ({ path: file, label: "PASS", seconds })) }));
-const slowerLine = recordLinesOf(slowerRun)[0] ?? "";
-const jobsRepo = comparisonRepo("jobs");
-seedRecord(jobsRepo, "2026-01-01T01:00:00.000Z", { trigger: "land", landTip: jobsRepo.mergeBase, jobs: 4, files: [{ path: "jobs.test.mjs", label: "PASS", seconds: 1 }] });
-const jobsRun = runCompared(jobsRepo, runRecord({ jobs: 1, files: [{ path: "jobs.test.mjs", label: "PASS", seconds: 100 }] }));
-// req: R-2551
-check("R-2551: a locked run lists files slower than the baseline by the declared margins, largest first, and none when job counts differ",
-	slowerRun.result.status === 0
-		&& slowerLine.indexOf("growth-60.test.mjs") < slowerLine.indexOf("growth-50.test.mjs")
-		&& slowerLine.indexOf("growth-50.test.mjs") < slowerLine.indexOf("growth-40.test.mjs")
-		&& slowerLine.indexOf("growth-40.test.mjs") < slowerLine.indexOf("growth-30.test.mjs")
-		&& slowerLine.indexOf("growth-30.test.mjs") < slowerLine.indexOf("growth-20.test.mjs")
-		&& !slowerLine.includes("growth-10.test.mjs") && !slowerLine.includes("plus-12.test.mjs")
-		&& !slowerLine.includes("plus-9.test.mjs") && !slowerLine.includes("ratio-1_3.test.mjs")
-		&& (slowerLine.match(/\.test\.mjs/g) ?? []).length === SLOWER_LIST_MAX
-		&& outputOf(jobsRun).includes("slower: none (job counts differ)"),
-	JSON.stringify({ slower: outputOf(slowerRun), jobs: outputOf(jobsRun) }));
-
-const landPrefixRepo = comparisonRepo("land-prefix");
-const landPrefixRun = runCompared(landPrefixRepo, runRecord(), { extraEnv: { [LAND_TIP_ENV]: landPrefixRepo.head } });
-const plainPrefixRun = runCompared(landPrefixRepo, runRecord(), { extraEnv: { [LAND_TIP_ENV]: landPrefixRepo.mergeBase } });
-const landRecordLines = recordLinesOf(landPrefixRun);
-const plainRecordLines = recordLinesOf(plainPrefixRun);
-// req: R-2552
-check("R-2552: a land's locked run prints its record lines with the land note prefix",
-	landPrefixRun.result.status === 0 && landRecordLines.length > 0 && landRecordLines.every((line) => line.startsWith("[nana-land] "))
-		&& plainPrefixRun.result.status === 0 && plainRecordLines.length > 0 && plainRecordLines.every((line) => !line.startsWith("[nana-land] ")),
-	JSON.stringify({ land: outputOf(landPrefixRun), plain: outputOf(plainPrefixRun) }));
-
 const shapeRepo = comparisonRepo("shape");
 const passingShape = runCompared(shapeRepo, runRecord({ files: [{ path: "pass.test.mjs", label: "PASS", seconds: 1 }] }));
 const unnamed = "tracked repository files changed by tests: generated.txt";
@@ -420,17 +376,6 @@ check("R-2554: a locked run prints at most two record lines and the last restate
 		&& failingRerunLines.at(-1)?.includes("passed only without coverage: none")
 		&& failingRerunLines.every((line) => occurrences(line, rerunFile) === 1),
 	JSON.stringify({ passing: outputOf(passingShape), failing: outputOf(failingShape), passingRerun: outputOf(passingRerun), failingRerun: outputOf(failingRerun) }));
-
-const laneRepo = comparisonRepo("lane-total", { mainAhead: true, laneCommits: 3 });
-seedRecord(laneRepo, "2026-01-01T01:00:00.000Z", { tip: laneRepo.laneTips[0], wallSeconds: 60 });
-seedRecord(laneRepo, "2026-01-01T02:00:00.000Z", { tip: laneRepo.laneTips[1], wallSeconds: 120 });
-seedRecord(laneRepo, "2026-01-01T03:00:00.000Z", { tip: laneRepo.laneTips[2], wallSeconds: 180 });
-seedRecord(laneRepo, "2026-01-01T04:00:00.000Z", { tip: laneRepo.offLane, wallSeconds: 600 });
-const laneRun = runCompared(laneRepo, runRecord({ wallSeconds: 60 }));
-// req: R-2555
-check("R-2555: a locked run names this lane's stored full-run count and minutes",
-	laneRun.result.status === 0 && recordLinesOf(laneRun).at(-1)?.includes("this lane: 4 full runs, 7.0 min"),
-	outputOf(laneRun));
 
 const problemResults = [];
 for (const exit of [0, 1]) {

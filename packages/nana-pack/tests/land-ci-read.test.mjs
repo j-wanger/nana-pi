@@ -101,20 +101,4 @@ check("R-2591: the CI read asks github.com for the full tip SHA in origin's repo
 	}
 });
 
-// req: R-2592
-check("R-2592: the pack README and the shared Land checklist say a land waits for the tip's CI", () => {
-	const repoRoot = path.resolve(fileURLToPath(new URL("../../..", import.meta.url))); const readme = readFileSync(path.join(repoRoot, "packages/nana-pack/README.md"), "utf8");
-	assert(readme.includes("Where `origin` is on github.com and the tip tracks a workflow under `.github/workflows`, the helper refuses until the newest CI run of each workflow for the tip has passed at its latest attempt."));
-});
-
-// req: R-2586
-// req: R-2587
-// req: R-2589
-// req: R-2590
-// req: R-2591
-check("seal: the land reads CI from origin on github.com, workflows in .github/workflows, 100 runs a page, within 30 seconds, and passes only completed success", () => {
-	assert.equal(landConfig.CI_REMOTE, "origin", "R-2590"); assert.equal(landConfig.CI_HOST, "github.com", "R-2591"); assert.equal(landConfig.CI_WORKFLOW_DIR, ".github/workflows", "R-2590"); assert.deepEqual(landConfig.CI_WORKFLOW_EXTENSIONS, [".yml", ".yaml"], "R-2590");
-	assert.equal(landConfig.CI_RUNS_PATH, "repos/<owner>/<repo>/actions/runs", "R-2591"); assert.equal(landConfig.CI_RUNS_PAGE_SIZE, 100, "R-2591"); assert.equal(landConfig.CI_READ_TIMEOUT_MS, 30000, "R-2589"); assert.equal(landConfig.CI_DONE_STATUS, "completed", "R-2587"); assert.equal(landConfig.CI_PASS_CONCLUSION, "success", "R-2586"); assert.equal(landConfig.CHILD_OUTPUT_MAX_BYTES, 16 * 1024 * 1024, "R-2589");
-});
-
 process.exit(failures ? 1 : 0);

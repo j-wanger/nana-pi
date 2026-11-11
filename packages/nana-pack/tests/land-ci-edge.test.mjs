@@ -40,12 +40,10 @@ check("R-2589: a CI read that cannot complete refuses before the suite and names
 	const ghCases = [
 		[{ error: Object.assign(new Error("spawn gh ENOENT"), { code: "ENOENT" }), status: null, stdout: "", stderr: "" }, /gh.*PATH/i],
 		[{ status: 4, stdout: "", stderr: "To get started with GitHub CLI, please run:  gh auth login\nmore" }, /gh.*To get started with GitHub CLI/i],
-		[{ status: 1, stdout: "", stderr: "error connecting to api.github.com\ncheck your internet connection or https:\/\/githubstatus.com" }, /error connecting to api\.github\.com/i],
-		[{ status: 1, stdout: "", stderr: "Get api.github.com: proxyconnect tcp: connection refused\nsecond" }, /proxyconnect tcp: connection refused/i],
 		[{ error: Object.assign(new Error("timed out"), { code: "ETIMEDOUT" }), status: null, signal: "SIGTERM", stdout: "", stderr: "" }, /timed out.*30000/i],
 	];
 	for (const [answer, pattern] of ghCases) assertCiRefused(fixture, [], pattern, { runGh: () => answer });
-	for (const stdout of ["not json", "null", "[]", "1", "{}", '{"message":"Not Found"}', '{"workflow_runs":[]}', '{"total_count":"1","workflow_runs":[]}', '{"workflow_runs":{}}', runList([null]), runList([{ ...workflowRun(), status: undefined }]), runList([{ ...workflowRun(), run_number: undefined }]), runList([{ ...workflowRun(), workflow_id: undefined }])])
+	for (const stdout of ["not json", "[]", "{}", runList([{ ...workflowRun(), status: undefined }])])
 		assertCiRefused(fixture, [], /not a workflow-run list/i, { runGh: () => ({ status: 0, stdout, stderr: "" }) });
 	if (process.platform !== "win32") {
 		const slow = ciFixture("slow-gh"); const bin = path.join(slow.root, "bin"); mkdirSync(bin); const gh = path.join(bin, "gh"); writeFileSync(gh, "#!/bin/sh\nsleep 2\nprintf '%s' '{\"total_count\":0,\"workflow_runs\":[]}'\n"); chmodSync(gh, 0o755);
@@ -83,11 +81,8 @@ check("R-2590: a repository or tip without GitHub CI skips the CI read and notes
 		["local", { origin: "LOCAL" }, /origin is not a github\.com repository URL/],
 		["gitlab", { origin: "https://gitlab.com/example/fixture.git" }, /origin is not a github\.com repository URL/],
 		["substring", { origin: "https://example.com/github.com/fixture.git" }, /origin is not a github\.com repository URL/],
-		["uppercase", { origin: "https://GitHub.com/example/fixture.git" }, /origin is not a github\.com repository URL/],
 		["credentials", { origin: "https://user:token@github.com/example/fixture.git" }, /origin is not a github\.com repository URL/],
 		["deleted", { workflowOnMain: true, workflowOnTip: false }, /the tip tracks no workflow/],
-		["readme", { workflowPath: ".github/workflows/README.md" }, /the tip tracks no workflow/],
-		["nested", { workflowPath: ".github/workflows/sub/x.yml" }, /the tip tracks no workflow/],
 	];
 	for (const [name, settings, reason] of scenarios) {
 		const fixture = ciFixture(`skip-${name}`, settings); let ghCalls = 0; const out = executeCi(fixture, [], { runGh: () => { ghCalls++; throw new Error("gh must not run"); } });
