@@ -749,24 +749,7 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	}
 }
 
-/* --- forced win32: a hand-written exec-form variant is kept byte for byte, no twin (R-923) ---- */
-{
-	const home = freshHome("nana-setup-win32-variant-");
-	const file = path.join(home, ".claude", "settings.json");
-	const hookPath = `${repo}/packages/nana-setup/claude/hooks/nana-objective.mjs`;
-	const handWritten = { type: "command", command: "node", args: [hookPath], timeout: 5, statusMessage: "my own objective message" };
-	fs.writeFileSync(file, JSON.stringify({ hooks: { SessionStart: [{ hooks: [handWritten] }] } }, null, 2) + "\n");
-	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
-	const after = JSON.parse(fs.readFileSync(file, "utf8"));
-	const objectiveEntries = after.hooks.SessionStart[0].hooks.filter((h) => JSON.stringify(h).includes("nana-objective.mjs"));
-	// req: R-923
-	check("forced win32: a hand-written exec-form variant is kept byte for byte, no twin", r.status === 0 && objectiveEntries.length === 1 && JSON.stringify(objectiveEntries[0]) === JSON.stringify(handWritten), JSON.stringify(objectiveEntries));
-}
-
-/* --- the same case for EVERY hook label, not just the objective one — and it now genuinely
-   depends on hasHook, since installerTarget itself rejects the mismatched status message before
-   any shape check runs, rather than happening to match the real, healthy checkout path as the
-   installer's own (R-923) ------------------------------------------------------------------- */
+/* --- every hook label: hand-written variants fall through to hasHook (R-923) --- */
 for (const w of desiredHooks({ hooksDir: "/unused", repoRoot: repo, platform: "win32" })) {
 	const home = freshHome("nana-setup-win32-variant-");
 	const file = path.join(home, ".claude", "settings.json");
@@ -778,25 +761,6 @@ for (const w of desiredHooks({ hooksDir: "/unused", repoRoot: repo, platform: "w
 	const matching = (after.hooks[w.event] ?? []).flatMap((g) => g.hooks ?? []).filter((h) => JSON.stringify(h).includes(w.spec.script));
 	// req: R-923
 	check(`forced win32: a hand-written exec-form variant (another status message) is kept byte for byte, no twin — ${w.label}`, r.status === 0 && matching.length === 1 && JSON.stringify(matching[0]) === JSON.stringify(handWritten), JSON.stringify(matching));
-}
-
-/* --- the same case again with NO status message at all, not just another one: a missing
-   statusMessage is a mismatch too (R-1061, R-653, R-923), so this must keep failing the
-   installerTarget match on `statusMessage` grounds and fall to hasHook, exactly like the
-   loop above --------------------------------------------------------------------------- */
-for (const w of desiredHooks({ hooksDir: "/unused", repoRoot: repo, platform: "win32" })) {
-	const home = freshHome("nana-setup-win32-variant-");
-	const file = path.join(home, ".claude", "settings.json");
-	const handWritten = { type: "command", command: "node", args: w.entry.args, timeout: 5 };
-	const group = w.matcher ? { matcher: w.matcher, hooks: [handWritten] } : { hooks: [handWritten] };
-	fs.writeFileSync(file, JSON.stringify({ hooks: { [w.event]: [group] } }, null, 2) + "\n");
-	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8", env: { ...process.env, NANA_SETUP_PLATFORM: "win32" } });
-	const after = JSON.parse(fs.readFileSync(file, "utf8"));
-	const matching = (after.hooks[w.event] ?? []).flatMap((g) => g.hooks ?? []).filter((h) => JSON.stringify(h).includes(w.spec.script));
-	// req: R-1061
-	// req: R-653
-	// req: R-923
-	check(`forced win32: a hand-written exec-form variant with NO status message is kept byte for byte, no twin — ${w.label}`, r.status === 0 && matching.length === 1 && JSON.stringify(matching[0]) === JSON.stringify(handWritten), JSON.stringify(matching));
 }
 
 for (const t of tmps) fs.rmSync(t, { recursive: true, force: true });

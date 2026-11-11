@@ -6,19 +6,8 @@
  * @effects disk (a throwaway home, real project memory dirs and real symlinks, removed on exit); process-global (lstatSync is monkeypatched and restored within a single synchronous call, via node:module's syncBuiltinESMExports)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
-// Gate: project-key.mjs's own header says "@errors none — a missing or unreadable link reads
-// as 'absent'" (line 11). lstat failures were caught; readlinkSync failures were not (claim,
-// pi-1.0-2026-10-04 review) — a symlink that disappears between the two calls, or one that
-// cannot be read for any other reason, threw past that contract and crashed doctor.
-//
-// Correction (astra r1 SHOULD, 2026-10-04): an earlier version of this file claimed Node's ESM
-// `import * as fs from "node:fs"` binding is frozen and cannot be reached from outside the
-// module. That is false — mutating the CommonJS `require("fs")` exports object and then calling
-// `syncBuiltinESMExports()` (node:module) re-syncs the ESM binding every consumer, including
-// project-key.mjs, reads through. The section below uses exactly that to reproduce the ORIGINAL
-// bug for real: the real native readlinkSync throwing after a real lstatSync, with no seam and
-// no injected argument — the genuine base-vs-branch difference, not a stand-in for it.
-//
+// Reproduce the link disappearing between real lstat and readlink calls.
+// Sync the CommonJS fs patch into ESM and restore it after the production call.
 import { tmpDir } from "./tmp-dir.mjs";
 import { createRequire } from "node:module";
 import { syncBuiltinESMExports } from "node:module";
@@ -43,12 +32,6 @@ const fsCjs = require("fs");
  * ENOENT, the same as if another process had removed the link between the two syscalls. No
  * seam, no injected argument: this patches the actual fs.lstatSync every module (including
  * project-key.mjs) calls. Restored immediately after, success or throw.
- *
- * Patch installation AND the first syncBuiltinESMExports() call live INSIDE the protected try
- * (astra r2 MUST 1): if that sync call itself throws — e.g. because something else on the
- * process installed a throwing getter on an unrelated fs export — `finally` still runs and
- * still restores the CJS binding, rather than leaking the spy because the throw happened
- * before a try block existed to catch it.
  */
 function withLinkDeletedRightAfterLstat(targetPath, fn) {
 	let origLstat;
@@ -102,9 +85,7 @@ fs.mkdirSync(sharedMemoryDir, { recursive: true });
 		threw = true;
 	}
 	// req: R-377
-	check("TRUE reproduction (no seam, real fs): the link vanishing between lstat and readlink does not throw", !threw);
-	// req: R-377
-	check("... and the real production call (no injected argument) returns 'absent'", value === "absent");
+	check("TRUE reproduction (no seam, real fs): the link vanishing between lstat and readlink does not throw", !threw && value === "absent");
 }
 
 fs.rmSync(home, { recursive: true, force: true });

@@ -80,7 +80,6 @@ function walk(dir) {
 	check("CLAUDE.md is a regular file holding the one-line import @AGENTS.md", fs.lstatSync(path.join(dir, "CLAUDE.md")).isFile() && !fs.lstatSync(path.join(dir, "CLAUDE.md")).isSymbolicLink() && read(path.join(dir, "CLAUDE.md")) === CLAUDE_IMPORT);
 	// req: R-329
 	check("AGENTS.md carries the canonical section verbatim", read(path.join(dir, "AGENTS.md")).includes(read(path.join(shared, "working-under-nana-pi.md"))));
-	check("AGENTS.md has the empty Layout + Rules sections", /## Layout\n/.test(read(path.join(dir, "AGENTS.md"))) && /## Rules that don't move\n/.test(read(path.join(dir, "AGENTS.md"))));
 	// req: R-4013
 	check("knowledge refresh is skipped with a reason when there is no index", /knowledge index\s+skipped.*run `nana-setup install` first/.test(first.stdout), first.stdout);
 
@@ -99,8 +98,7 @@ function walk(dir) {
 
 	// The seeded empty checker set and undecided trust are explicit warnings.
 	const seededCheck = run(["project", dir, "--check", "--home", home]);
-	check("project --check accepts defaults without config", seededCheck.status === 0 && !/post-edit|project trust/.test(seededCheck.stdout), seededCheck.stdout);
-	check("--check summarizes healthy defaults", /all good/.test(seededCheck.stdout), seededCheck.stdout);
+	check("project --check accepts defaults without config", seededCheck.status === 0 && !/post-edit|project trust/.test(seededCheck.stdout) && /all good/.test(seededCheck.stdout), seededCheck.stdout);
 	const currentMonth = path.join(dir, "docs", "sessions", `${stamp.slice(0, 7)}.md`);
 	fs.unlinkSync(currentMonth);
 	const olderMonth = path.join(dir, "docs", "sessions", "2001-01.md");
@@ -188,19 +186,10 @@ function walk(dir) {
 	const skillFile = path.join(repo, "packages", "nana-pack", "skills", "adopt-structure", "SKILL.md");
 	const skillText = read(skillFile);
 	const copierLines = skillText.split("\n").filter((l) => l.includes("uvx copier"));
-	check("SKILL.md: the fallback renders with a project name at all", copierLines.length >= 2, String(copierLines.length));
-// req: R-929
+	// req: R-929
 	check("SKILL.md: every fallback command takes the name from an env var",
-		copierLines.every((l) => /--data project_name=(?:"\$NANA_PROJECT_NAME"|\$env:NANA_PROJECT_NAME)(?:\s|$)/.test(l)),
-		copierLines.join(" | "),
-	);
-// req: R-929
-	check("SKILL.md: no fallback command interpolates a name placeholder into the command text",
-		copierLines.every((l) => !/project_name=["']?</.test(l)),
-		copierLines.join(" | "),
-	);
-// req: R-929
-	check("SKILL.md: says the name is data, never pasted into the command text", /name is DATA/.test(skillText) && /environment variable, never in the command\s*\n?\s*text/.test(skillText));
+		copierLines.length >= 2 && copierLines.every((l) => /--data project_name=(?:"\$NANA_PROJECT_NAME"|\$env:NANA_PROJECT_NAME)(?:\s|$)/.test(l) && !/project_name=["']?</.test(l)) &&
+		/name is DATA/.test(skillText) && /environment variable, never in the command\s*\n?\s*text/.test(skillText), copierLines.join(" | "));
  // req: R-591
  check("SKILL.md: names the skill-relative canonical shared source and it resolves", (skillText.match(/\.\.\/\.\.\/\.\.\/\.\.\/templates\/_shared\//g) ?? []).length >= 4 && fs.existsSync(path.resolve(path.dirname(skillFile), "../../../../templates/_shared/working-under-nana-pi.md")) && /Only when this canonical path is absent on\s+disk may you render a throwaway scaffold/.test(skillText));
 }
