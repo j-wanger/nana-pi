@@ -4,10 +4,9 @@
  *  a file it writes.
  * @inputs any value (string or not), an optional length cap, and an optional set of extra characters to
  *  treat as unsafe
- * @outputs one bounded rendering per surface — promptPath/uiPath (one line, JSON-escaped when unsafe, ≤
- *  PATH_CAP, middle-elided), promptText/uiText/fileField (controls, breaks and bidi marks replaced by a
- *  space), codeSpan (or null when it would close the span), locator ({text, escaped}, exact and never
- *  elided)
+ * @outputs bounded path and text renderings — displayPath/promptPath (one line, JSON-escaped when
+ *  unsafe, ≤ PATH_CAP, middle-elided), displayText/promptText (controls, breaks and bidi marks
+ *  replaced by a space), codeSpan (or null when it would close the span)
  * @effects none
  * @errors none — every renderer is total: an unprintable value renders as `[unprintable]`, and an unsafe
  *  code span is refused with null rather than escaped
@@ -19,10 +18,9 @@
  *
  *   surface                        path                text
  *   prompt / model-visible text    promptPath          promptText
- *   UI notification / status       uiPath              uiText
+ *   UI notification / status       displayPath         displayText
  *   Markdown read by the seat      codeSpan (refuses)  —
- *   a field of a file we write     —                   fileField
- *   exact locator in the prompt    locator             —
+ *   a field of a file we write     —                   displayText
  *
  * displayPath / displayText are T2c's audited renderers, moved here from lib/objective.ts byte for
  * byte (objective re-exports them; its goldens depend on their output). The one addition is
@@ -116,20 +114,6 @@ export function displayText(s, cap = 400) {
 export const promptPath = displayPath;
 /** Prompt / model-visible text: any text is ONE line, no control/bidi/separator, ≤ cap. */
 export const promptText = displayText;
-/**
- * UI notification and status: the SAME rule as the prompt. The control class already covers
- * U+001B (the ANSI escape introducer) and C1 (incl. U+009B CSI), so no terminal escape sequence
- * and no line break reaches the TUI through these. Do not re-derive a UI-specific rule.
- */
-export const uiPath = displayPath;
-/** UI notification and status text: see uiPath. */
-export const uiText = displayText;
-/**
- * A field of a file we write (`Key: value`): one line, bounded, no control character — the text
- * rule, so a value can never start a second field. A value that renders differently from its
- * input no longer equals it; a reader comparing the two must treat that as a mismatch.
- */
-export const fileField = displayText;
 
 /**
  * Markdown read by the seat (lane L5's rule): a string prints inside a code span ONLY when it
@@ -148,21 +132,3 @@ export function codeSpanSafe(s, cap = CODE_SPAN_CAP) {
  * tighter bound passes it as `cap`.
  */
 export const codeSpan = (s, cap = CODE_SPAN_CAP) => (codeSpanSafe(s, cap) ? `\`${s}\`` : null);
-
-/** Lone surrogates: escaped (never replaced) so a locator decodes to the exact path. */
-const LONE = /^[\ud800-\udfff]$/;
-/**
- * An EXACT locator in the prompt — a path the model must be able to reproduce byte for byte, so
- * it is never elided or capped (a long true path beats a short false one). Clean → as-is,
- * `escaped: false`. When it holds a PATH_UNSAFE char, a lone surrogate, or a char of `extra` (a
- * caller's class of chars its consumer would rewrite), the whole path is a JSON string literal:
- * `\` and `"` escaped, every such char as `\uXXXX` — JSON.parse returns the exact path.
- */
-export function locator(p, extra = null) {
-	const raw = str(p);
-	const bad = (c) => PATH_UNSAFE.test(c) || LONE.test(c) || (extra != null && extra.test(c));
-	const chars = Array.from(raw);
-	if (!chars.some(bad)) return { text: raw, escaped: false };
-	const esc = chars.map((c) => (bad(c) ? `\\u${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}` : c === "\\" || c === '"' ? `\\${c}` : c));
-	return { text: `"${esc.join("")}"`, escaped: true };
-}

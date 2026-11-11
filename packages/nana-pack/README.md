@@ -878,11 +878,10 @@ project config never contributes to either one, trusted or not.
   prompt / model-visible text: `promptPath` (one line; a path holding a control, line-separator
   or bidi character is a quoted JSON-escaped string; ≤320 chars, middle-elided) and `promptText`
   (one line, every control/separator/bidi char → space, capped); UI notification and status:
-  `uiPath` / `uiText`, the SAME rule (U+001B and C1 are in its class, so no ANSI sequence reaches
-  the TUI); Markdown read by the seat: `codeSpan`, which REFUSES (never escapes) a string holding
-  a backtick or any of those characters; a field of a file we write: `fileField` (one line,
-  bounded); an exact prompt locator: `locator` (never elided, JSON-escaped when unsafe, decodes
-  to the exact path). No other module carries its own escaping rule. The two pre-import
+  `displayPath` / `displayText`, the SAME rule (U+001B and C1 are in its class, so no ANSI sequence
+  reaches the TUI); Markdown read by the seat: `codeSpan`, which REFUSES (never escapes) a string
+  holding a backtick or any of those characters; a field of a file we write: `displayText` (one
+  line, bounded). No other module carries its own escaping rule. The two pre-import
   allow-lists in `bin/nana-adoption.mjs` / `bin/nana-objective.mjs` are deliberate exceptions:
   they run where that import may have failed.
 - **One process-tree kill and one rename retry** (`lib/process-tree.mjs`, `lib/rename-retry.mjs`).
