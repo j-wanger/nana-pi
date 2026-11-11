@@ -3,7 +3,7 @@
  * @module scripts/test.mjs
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
- * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, --pack=list, --changed-from=ref, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
+ * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, --pack=list, --changed-from=ref, --changed-tests-from=ref, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
  *  NANA_COVERAGE_DIR (runtime-map's coverage knob), NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
  *  dir and apps/bench/test (e2e, studies and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
@@ -81,6 +81,7 @@ import {
 	SHARD_FLAG,
 	PACK_FLAG,
 	CHANGED_FROM_FLAG,
+	CHANGED_TESTS_FROM_FLAG,
 	shardFiles,
 	RUN_ALONE,
 	TEMP_REMOVE_RETRIES,
@@ -148,6 +149,11 @@ const packArgs = argv.filter(arg => arg.startsWith(PACK_FLAG.slice(0, -1)));
 const changedArgs = argv.filter(arg => arg.startsWith(CHANGED_FROM_FLAG.slice(0, -1)));
 if (packArgs.length > 1 || changedArgs.length > 1 || packArgs.some(arg => !arg.startsWith(PACK_FLAG) || arg.length === PACK_FLAG.length) || changedArgs.some(arg => !arg.startsWith(CHANGED_FROM_FLAG) || arg.length === CHANGED_FROM_FLAG.length) || (changedArgs.length && !packArgs.length)) {
 	console.log("[runner] bad --pack/--changed-from argument");
+	process.exit(1);
+}
+const changedOnlyArgs = argv.filter(arg => arg.startsWith(CHANGED_TESTS_FROM_FLAG.slice(0, -1)));
+if (changedOnlyArgs.length > 1 || changedOnlyArgs.some(arg => !arg.startsWith(CHANGED_TESTS_FROM_FLAG) || arg.length === CHANGED_TESTS_FROM_FLAG.length) || (changedOnlyArgs.length && (packArgs.length || changedArgs.length || filters.length || selfTest || shard))) {
+	console.log("[runner] bad --changed-tests-from argument (cannot combine with packs, filters, self-test or shards)");
 	process.exit(1);
 }
 let packRun = null;
@@ -377,16 +383,20 @@ const BASE_ENV = (() => {
 
 // ── main ─────────────────────────────────────────────────────────────────────────────────────
 let collected = collect();
-if (packArgs.length) {
+if (packArgs.length || changedOnlyArgs.length) {
 	try {
 		const { selectPackFiles } = await import("./test-packs.mjs");
-		const selected = await selectPackFiles({ root, files: collected.map(rel), packs: packArgs[0].slice(PACK_FLAG.length).split(","), changedFrom: changedArgs[0]?.slice(CHANGED_FROM_FLAG.length) ?? null });
-		packRun = { packs: selected.packs, selection: selected.selection, complete: !filters.length && !selfTest };
+		const selected = await selectPackFiles({ root, files: collected.map(rel), packs: packArgs[0]?.slice(PACK_FLAG.length).split(",") ?? [], changedFrom: changedOnlyArgs[0]?.slice(CHANGED_TESTS_FROM_FLAG.length) ?? changedArgs[0]?.slice(CHANGED_FROM_FLAG.length) ?? null, changedTestsOnly: changedOnlyArgs.length > 0 });
+		if (!changedOnlyArgs.length) packRun = { packs: selected.packs, selection: selected.selection, complete: !filters.length && !selfTest };
 		if (selected.selection.failSafe) console.log(`[packs] fail-safe: ${selected.selection.failSafe}`);
 		for (const item of selected.selection.nameMatches) console.log(`[packs] names ${item.path}: ${item.reasons.join("; ")}`);
 		for (const item of selected.selection.changedTests) console.log(`[packs] test ${item.path}: ${item.reasons.join("; ")}`);
 		for (const item of selected.selection.module) console.log(`[packs] module ${item.path}: ${item.reasons.join("; ")}`);
-		console.log(`[packs] ${selected.packs.join(",")}: ${selected.files.length} selected files`);
+		console.log(`[packs] ${changedOnlyArgs.length ? "changed/name-matched tests" : selected.packs.join(",")}: ${selected.files.length} selected files`);
+		if (changedOnlyArgs.length && !selected.files.length) {
+			console.log("[runner] empty committed selection: pass (no tests to run)");
+			process.exit(0);
+		}
 		collected = selected.files.map(file => path.join(root, file));
 	} catch (error) {
 		console.log(`[packs] ${error.message}`);

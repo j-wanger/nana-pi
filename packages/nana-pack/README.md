@@ -366,7 +366,11 @@ After a successful lane attempt, if the worktree declares a `check:lane` package
 pi-worker runs `npm run check:lane` (silently, via npm's `-s`) before the end record.
 It uses the builder's credential-stripped environment, with a bounded deadline and output.
 The project owns the script; nana-pi's root `scripts/check-lane.mjs` owns the ordered
-lost-round rail and comments. It prints `check:lane: pass` on success;
+lost-round rail and comments. Its final step runs only changed tests and basename-naming tests
+against the committed tip's merge base with main, through the existing runner's `--changed-tests-from=main` flag.
+It reports selection count and wall time, passes a computed empty selection and fails missing merge bases with git's reason.
+Selection ignores uncommitted edits and requires no fetch; a stale main only widens the diff.
+It prints `check:lane: pass` on success;
 `check:lane: fail: <check>` ends at the first red check with exit 1, while a spawn
 error or signal prints `check:lane: error: <check>` with exit 2. This supplements CI.
 No script means unchanged output and record shape; plain/role workers and failed

@@ -102,7 +102,11 @@ this checkout in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana
 `npm run check:lane` runs the project-owned builder-stop rail in `scripts/check-lane.mjs`:
 requirements trace, requirements-tree check, map check, README check, then test-packs,
 code-map-launch, requirements-deliverables, requirements-cap-kinds, readme-check, known-bugs
-and test-runner through the canonical test runner. It stops at the first failure and names it;
+and test-runner through the canonical test runner. Finally it runs only changed and name-matched
+tests since the committed tip's merge base with main (`--changed-tests-from=main`), reporting the
+selection count and wall time. An empty selection passes; an unreadable diff fails with git's reason.
+Uncommitted edits do not widen selection; stale main only widens the committed diff, so no fetch is needed.
+It stops at the first failure and names it;
 the ordered list comments identify the recorded lost rounds. This is not a full suite.
 
 `npm run readme:check` holds every README in `readme-check.config.json` to its claims. All

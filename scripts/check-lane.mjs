@@ -8,6 +8,7 @@
  * @errors Exit 1 on a red check and 2 on a crashed check runner.
  */
 import { spawnSync } from 'node:child_process';
+import { CHANGED_TESTS_FROM_FLAG, JOBS_FLAG, SUITE_JOBS } from '../packages/nana-pack/lib/test-runner-config.mjs';
 
 // Keep this list here: each reason identifies the recorded round this check answers.
 const checks = [
@@ -22,10 +23,13 @@ const checks = [
   ['readme-check', ['scripts/test.mjs', 'readme-check.test.mjs']], // helper-start 4f103106, AGENTS wording pin
   ['known-bugs', ['scripts/test.mjs', 'known-bugs.test.mjs']], // feature-file contract, shared stop rail
   ['test-runner', ['scripts/test.mjs', 'test-runner.test.mjs']], // seat-waits 9b04f14a
+  ['changed/name-matched tests', ['scripts/test.mjs', `${CHANGED_TESTS_FROM_FLAG}main`, `${JOBS_FLAG}${SUITE_JOBS}`]], // knowledge-query, records-out, win-class, diet1 missed text readers
 ];
 for (const [name, args] of checks) {
   console.log(`check:lane: running: ${name}`);
+  const started = Date.now();
   const result = spawnSync(process.execPath, args, { cwd: process.cwd(), stdio: 'inherit' });
+  console.log(`check:lane: wall: ${name}: ${((Date.now() - started) / 1000).toFixed(1)}s`);
   if (result.error || result.signal || result.status === null) {
     console.error(`check:lane: error: ${name}`);
     process.exit(2);
