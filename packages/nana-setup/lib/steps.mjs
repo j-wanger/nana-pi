@@ -56,7 +56,7 @@ import { retireSeed } from './uninstall.mjs';
 export class SetupError extends Error {}
 
 export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"];
-const RETIRED_HOOKS = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs", ...RETIRED_HOOK_FILES];
+const RETIRED_HOOKS = ["context-size-check.sh", "nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs", ...RETIRED_HOOK_FILES];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md and RULINGS_FILE, sourced from the pack (see ruleSource below;
  *  Amendment 1, §A1; rulings-file lane, 2026-10-19). */
@@ -401,25 +401,6 @@ export function stepRetiredArtifacts(layout, o) {
 			if (!o.dryRun) fs.unlinkSync(link);
 			out.push({ label: `retired ${old} link`, status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
 		} else out.push({ label: `retired ${old} link`, status: PROBLEM, detail: `${old} is not a repository-managed symlink — left untouched` });
-	}
-	const legacyHook = path.join(layout.hooksDir, "context-size-check.sh");
-	// lstat first — a regular file counts too, not only a link: the guard below must run (and the
-	// ✗ row print) whenever anything at all sits there, so it never misses a non-link occupant
-	// through an unsafe ancestor (plan-attack.md amendment 5).
-	const hookStat = lstatSafe(legacyHook);
-	if (hookStat) {
-		const hookAncestorsSafe = directoryAncestorsAreSafe(layout.claudeHome, path.dirname(legacyHook), true);
-		if (!hookAncestorsSafe) {
-			out.push({ label: "retired context-size-check.sh link", status: PROBLEM, detail: `unsafe source ancestor under ${layout.claudeHome}; link left untouched` });
-		} else if (hookStat.isSymbolicLink()) {
-			let target = null;
-			try { target = realPath(legacyHook, { mustExist: true }); } catch { /* dangling */ }
-			const root = realPath(repoRoot, { mustExist: true });
-			if (target && (target === root || target.startsWith(root + path.sep))) {
-				if (!o.dryRun) fs.unlinkSync(legacyHook);
-				out.push({ label: "retired context-size-check.sh link", status: UPDATED, detail: `${o.dryRun ? "would unlink" : "unlinked"} repository-managed link` });
-			}
-		}
 	}
 	out.push({ label: "repository context-warning markers", status: UNCHANGED, detail: "if present, delete .claude/.context-warned files manually; repositories were not scanned" });
 	return out;
