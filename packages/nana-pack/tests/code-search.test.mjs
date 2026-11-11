@@ -109,7 +109,9 @@ await check("R-3002: ten fixed-base needs meet the printed-output reuse floor wi
 		const output = formatSearch(searchCode(need, ...cache.get(base)));
 		const answer = answers.find((a) => a.lane === lane);
 		assert.equal(answer.base, base);
-		const expected = [...new Set([...answer.reused_code, ...answer.extended])];
+		// Retired modules still count at the frozen base; retirement must not improve the score.
+		const retired = (answer.retired_extended ?? []).map(({ directory, stem, extension }) => `${directory}/${stem}.${extension}`);
+		const expected = [...new Set([...answer.reused_code, ...answer.extended, ...retired])];
 		const printed = new Set([...output.matchAll(/^(?:  )?([\w./-]+\.(?:mjs|ts|js))(?: — |$)/gm)].map((m) => m[1]));
 		const found = expected.filter((p) => printed.has(p)).length;
 		share += found / expected.length;

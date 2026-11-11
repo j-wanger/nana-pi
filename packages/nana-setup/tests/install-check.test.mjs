@@ -14,7 +14,7 @@ import os from "node:os";
 import { EventEmitter } from "node:events";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PULL_LOG_PATH, README_REHEARSAL } from "../lib/install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, README_REHEARSAL } from "../lib/install-check-config.mjs";
 import * as installConfig from "../lib/install-check-config.mjs";
 import { buildEnvironment, classifyResult, createSpawnAdapter, formatResultLine, hookFailureReason, mapHookEntries, parsePiList, hookInvocation, findGitBash, journalHasUnadopted, runInstallCheck, rosterNoticeOutputOk } from "../lib/install-check.mjs";
 import * as installCheck from "../lib/install-check.mjs";
@@ -846,41 +846,37 @@ check("doctor: a known-red note row is an XFAIL", () => {
   const result = classifyResult("doctor", "note-row", false, known, new Date("2098-12-31T00:00:00Z"));
   assert.equal(formatResultLine("doctor", result, "note", known[0]), "XFAIL doctor — note-row: note (known red, R-1055, until 2099-01-01)");
 });
-// req: R-1096
-check("diagnostics: a run with a FAIL line prints the settings hooks block and the last pull.log record after the result lines", async () => {
+// req: R-4050
+check("diagnostics: a run with a FAIL line prints the settings hooks block after the result lines", async () => {
   const fixture = recordingRun({ spawnOverride: async ({ args, options, spawn, command }) => {
     if (args.includes("doctor")) {
-      fs.mkdirSync(path.join(fixture.home, ".pi/agent/nana-knowledge"), { recursive: true });
-      fs.writeFileSync(path.join(fixture.home, ...PULL_LOG_PATH), "first record\nsecond record\n");
       return { status: 0, stdout: "· unexpected" };
     }
     return spawn(command, args, options);
   } });
-  try { const result = await fixture.run; const end = result.lines.slice(-2); assert.deepEqual(end, [`settings hooks: ${JSON.stringify(JSON.parse(fs.readFileSync(path.join(fixture.home, ".claude/settings.json"), "utf8")).hooks)}`, "last pull.log record: second record"]); assert.ok(result.lines.indexOf(end[0]) > result.lines.findIndex((line) => line.startsWith("FAIL doctor"))); }
+  try { const result = await fixture.run; const end = result.lines.slice(-1); assert.deepEqual(end, [`settings hooks: ${JSON.stringify(JSON.parse(fs.readFileSync(path.join(fixture.home, ".claude/settings.json"), "utf8")).hooks)}`]); assert.ok(result.lines.indexOf(end[0]) > result.lines.findIndex((line) => line.startsWith("FAIL doctor"))); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
-// req: R-1096
-check("diagnostics: missing settings and pull.log files print could-not-be-read lines with their error codes", async () => {
+// req: R-4050
+check("diagnostics: missing settings print a could-not-be-read line with the error code", async () => {
   const fixture = recordingRun({ failInstall: true });
-  try { const result = await fixture.run; assert.deepEqual(result.lines.slice(-2), ["settings hooks: could not be read (ENOENT)", "last pull.log record: could not be read (ENOENT)"]); }
+  try { const result = await fixture.run; assert.deepEqual(result.lines.slice(-1), ["settings hooks: could not be read (ENOENT)"]); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 
-// req: R-1096
-check("diagnostics: malformed settings print the error name and an empty pull.log prints none", async () => {
+// req: R-4050
+check("diagnostics: malformed settings print the error name", async () => {
   let home;
   const fixture = recordingRun({ spawnOverride: async ({ args, options, spawn, command }) => {
     if (args.includes("doctor")) {
       fs.writeFileSync(path.join(home, ".claude/settings.json"), "{");
-      fs.mkdirSync(path.join(home, ".pi/agent/nana-knowledge"), { recursive: true });
-      fs.writeFileSync(path.join(home, ...PULL_LOG_PATH), "\n  \n");
       return { status: 0, stdout: "· unexpected" };
     }
     return spawn(command, args, options);
   } });
   home = fixture.home;
-  try { const result = await fixture.run; assert.deepEqual(result.lines.slice(-2), ["settings hooks: could not be read (SyntaxError)", "last pull.log record: none"]); }
+  try { const result = await fixture.run; assert.deepEqual(result.lines.slice(-1), ["settings hooks: could not be read (SyntaxError)"]); }
   finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
 });
 

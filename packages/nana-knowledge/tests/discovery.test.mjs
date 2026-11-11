@@ -228,14 +228,11 @@ const archiveHome = homeFor("archives");
 writeSources(archiveHome, { roots: [{ path: archiveRoot, kind: "articles" }] });
 await build();
 const archiveDb = await openDb(path.join(archiveHome, "index.db"), {});
-const { runHook } = await import(new URL("../lib/hook.ts", import.meta.url).href);
 const queryCli = cp.spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url)), "query", "quantum archive signal"], {
 	encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: archiveHome },
 });
 // req: R-4042
 check("query CLI filters archives before top-three ranking", queryCli.status === 0 && queryCli.stdout.includes("Live Article") && !slash(queryCli.stdout).includes("/sessions/2026-"));
-const automatic = await runHook(JSON.stringify({ prompt: "quantum archive signal", session_id: "archive-session", cwd: td }), { spawnFn: () => {} });
-check("hook filters archives before top-three ranking and prints only the non-archive article", automatic.reason === "ok" && automatic.hits.length === 1 && slash(automatic.hits[0].path).endsWith("/article.md") && automatic.hits.every((h) => !/[/\\\\]sessions[/\\\\][0-9]{4}-[0-9]{2}\.md$/.test(h.path)));
 const nonArchiveMatches = search(archiveDb, "boundary token", 20, { excludeMonthlySessionArchives: true });
 // req: R-4042
 check("README, date outside sessions, and non-monthly session notes are retained", ["README.md", "2026-09.md", "2026-09-notes.md"].every((name) => nonArchiveMatches.some((h) => h.path.endsWith(name))));
@@ -260,6 +257,17 @@ md(path.join(refreshRoot, "new.md"), "# Freshorchid beacon\nfreshorchid beacon n
 const refreshedQuery = queryFresh();
 // req: R-4040
 check("query refreshes a new note into its top three without build", refreshedQuery.status === 0 && JSON.parse(refreshedQuery.stdout).slice(0, 3).some((h) => h.path.endsWith("new.md")));
+const refreshDb = await openDb(path.join(refreshHome, "index.db"), {});
+let throwingQuery;
+try {
+	refreshDb.exec("BEGIN IMMEDIATE");
+	throwingQuery = queryFresh();
+} finally {
+	refreshDb.exec("ROLLBACK");
+	refreshDb.close();
+}
+// req: R-4041
+check("a thrown refresh failure warns once and returns existing hits with exit zero", throwingQuery.status === 0 && JSON.parse(throwingQuery.stdout).length > 0 && throwingQuery.stderr.trim().split("\n").length === 1 && throwingQuery.stderr.includes("index refresh failed — results may be stale"));
 fs.writeFileSync(path.join(refreshHome, "build.lock"), JSON.stringify({ pid: process.pid, at: Date.now() }));
 const lockedQuery = queryFresh();
 // req: R-4041

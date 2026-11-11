@@ -3,7 +3,7 @@
  * @purpose Prove damaged knowledge indexes are rebuilt safely, reported without stacks, or preserved when sources cannot be parsed.
  * @inputs Temporary profiles, article roots and indexes damaged as bytes, pages or incomplete SQLite schemas.
  * @outputs Eleven PASS/FAIL/SKIP lines for R-2400 through R-2409, with exit 1 when any check fails.
- * @effects disk (temporary sources and indexes), database (SQLite fixtures), process (spawns the CLI and a detached hook rebuild).
+ * @effects disk (temporary sources and indexes), database (SQLite fixtures), process (spawns the CLI).
  * @errors A failed or timed-out case prints FAIL; fixture and child-process errors are contained by that case.
  */
 import { tmpDir } from "./tmp-dir.mjs";
@@ -15,8 +15,6 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import * as buildLib from "../lib/build.ts";
 import { loadSqlite, openDb, setMeta } from "../lib/db.ts";
-import { runHook, STALE_MS } from "../lib/hook.ts";
-import { paths } from "../lib/paths.ts";
 import { search } from "../lib/query.ts";
 
 const suiteRoot = tmpDir(path.join(os.tmpdir(), "nk-recover-"));
@@ -31,8 +29,7 @@ const cli = fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url));
 const PHRASE = "recovery orchid lighthouse";
 const FILLER_ARTICLES = 40;
 const PAGE_FILL = 0xa5;
-const REBUILD_DEADLINE_MS = 20_000; // chosen: cold Windows CI slack, as hook.test.mjs
-const CASE_DEADLINE_MS = 30_000; // chosen: bounds every case while allowing its detached rebuild deadline
+const CASE_DEADLINE_MS = 30_000; // chosen: bounds every case with cold Windows CI slack
 
 let fixtureNumber = 0;
 function fixture(label) {
@@ -183,29 +180,6 @@ async function recoveryCase(kinds, label) {
 const r2400 = await caseWithin(() => recoveryCase(["random", "half", "docs-page", "files-page"], "recover"));
 const r2401 = await caseWithin(() => recoveryCase(["docs-shape", "files-shape"], "shape"));
 
-const r2402 = await caseWithin(async () => {
-	const f = await goodFixture("hook-page");
-	await applyDamage(f, "docs-page");
-	const staleMtime = Date.now() - 2 * STALE_MS;
-	fs.utimesSync(f.db, staleMtime / 1000, staleMtime / 1000);
-	activate(f);
-	const first = await runHook(JSON.stringify({ prompt: PHRASE, session_id: "before-heal", cwd: f.base }));
-	// Budget-bounded retries may see the detached repair finish during this pull.
-	if (first.reason !== "query-failed" && !(first.reason === "ok" && first.hits.length > 0 && first.output?.includes("orchid"))) return false;
-	const deadline = Date.now() + REBUILD_DEADLINE_MS;
-	let healed = false;
-	while (Date.now() < deadline) {
-		try {
-			healed = fs.statSync(f.db).mtimeMs > staleMtime + 60_000 && !fs.existsSync(paths.buildLock);
-		} catch { healed = false; }
-		if (healed) break;
-		await new Promise((resolve) => setTimeout(resolve, 50));
-	}
-	if (!healed) return false;
-	const later = await runHook(JSON.stringify({ prompt: PHRASE, session_id: "after-heal", cwd: f.base }));
-	return later.reason === "ok" && later.hits.length > 0 && later.output?.includes("orchid");
-});
-
 const r2403 = await caseWithin(async () => {
 	for (const damage of [false, true]) {
 		const f = await goodFixture(damage ? "damaged-write-lock" : "write-lock");
@@ -338,25 +312,20 @@ const r2408 = await caseWithin(async () => {
 	const f = await goodFixture("healthy-sources-problem");
 	const rowsBefore = await rowCount(f);
 	fs.writeFileSync(f.sources, '{\n  "roots": [],\n}\n');
-	fs.mkdirSync(path.join(f.home, "shown"), { recursive: true });
-	const oldShown = path.join(f.home, "shown", "old.json");
-	fs.writeFileSync(oldShown, "{}");
-	const oldTime = Date.now() - 2 * buildLib.SHOWN_TTL_MS;
-	fs.utimesSync(oldShown, oldTime / 1000, oldTime / 1000);
 	let db;
 	try {
 		db = await openDb(f.db, {});
-		setMeta(db, "built_at", String(Date.now() - 2 * STALE_MS));
+		setMeta(db, "built_at", "1");
 	} finally {
 		try { db?.close(); } catch {}
 	}
-	const staleTime = Date.now() - 2 * STALE_MS;
+	const staleTime = 1;
 	fs.utimesSync(f.db, staleTime / 1000, staleTime / 1000);
 	const built = runCli(f, "build");
 	const status = runCli(f, "status");
 	const ageHours = Number(/built ([0-9.]+)h ago/.exec(status.stdout)?.[1]);
 	return cleanCli(built) && cleanCli(status) && await rowCount(f) === rowsBefore &&
-		ageHours * 60 * 60 * 1000 < STALE_MS && !fs.existsSync(oldShown);
+		ageHours === 0;
 });
 
 const r2409 = await caseWithin(async () => {
@@ -381,8 +350,6 @@ function check(name, ok, skipReason = null) {
 check("R-2400: a build over a random-bytes, a half-truncated or a page-overwritten index.db resolves and a query then hits", r2400);
 // req: R-2401
 check("R-2401: a build over a SQLite file whose docs or files table lacks a used column resolves and a query then hits", r2401);
-// req: R-2402
-check("R-2402: a pull over a page-overwritten index older than one hour starts a build that heals it, and a later pull hits", r2402);
 // req: R-2403
 check("R-2403: builds over healthy or page-damaged write-locked indexes fail, keep index.db's inode and bytes, and a fresh handle reads the committed sentinel", r2403);
 // req: R-2403
@@ -396,8 +363,8 @@ check("R-2405: status on a random-bytes, half-truncated or page-overwritten inde
 check("R-2406: build on a random-bytes, half-truncated or page-overwritten index exits 0 with one line naming the damage, no stack", r2406);
 // req: R-2407
 check("R-2407: build and build --rebuild with an unparseable sources.json over a random-bytes, half-truncated or page-overwritten index exit 0, keep index.db byte for byte and print one line naming the damage as not rebuilt", r2407);
-// req: R-2408
-check("R-2408: an unparseable sources.json over a stale healthy index keeps every row, refreshes its age and prunes an old shown file", r2408);
+// req: R-4047
+check("R-4047: an unparseable sources.json over a healthy index keeps every row and refreshes its age", r2408);
 // req: R-2409
 check("R-2409: an unparseable sources.json with no index exits 0, prints UNPARSEABLE and creates an empty index", r2409);
 

@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-knowledge/tests/build-busy.test.mjs
- * @purpose Prove transient SQLite contention preserves builds and bounded prompt pulls.
- * @inputs Real CLI, temporary knowledge homes, and independent SQLite lock and reader processes.
+ * @purpose Prove transient SQLite contention preserves builds and recovery refuses late writers.
+ * @inputs Real CLI, temporary knowledge homes, and independent SQLite lock processes.
  * @outputs Tagged PASS/FAIL lines and a nonzero exit on failure.
  * @effects disk (OS temporary fixtures), database (fixture indexes), process (bounded children).
  * @errors Each awaited case reports errors within its deadline and ends its children in finally.
@@ -14,8 +14,6 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import * as dbLib from "../lib/db.ts";
-import { BUDGET_MS } from "../lib/hook.ts";
-import * as hook from "../lib/hook.ts";
 
 const cli = fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -60,19 +58,18 @@ async function seed(s) {
  const r = await command(s, "build");
  assert.equal(r.code, 0, r.err);
 }
-async function held(s, releaseMode) {
+async function held(s) {
  const r = child(s, ["-e", `
  const fs = require('node:fs');
  const { DatabaseSync } = require('node:sqlite');
  const d = new DatabaseSync(process.env.NK_DB);
  d.exec('BEGIN EXCLUSIVE');
  process.stdout.write('ready');
- ${releaseMode === "barrier" ? `
  const poll = setInterval(() => {
   if (!fs.existsSync(process.env.NK_LOCK)) return;
   clearInterval(poll); process.stdout.write('overlap');
   setTimeout(() => { d.exec('COMMIT'); d.close(); process.exit(0); }, 500);
- }, 1);` : `setTimeout(() => { d.exec('ROLLBACK'); d.close(); process.exit(0); }, 3000);`}
+ }, 1);
  `]);
  await waitFor(() => r.out.includes("ready"));
  return r;
@@ -96,9 +93,6 @@ async function check(title, run) {
   clearTimeout(timer);
   for (const r of s.children) { clearTimeout(r.timer); if (r.code === undefined) r.c.kill("SIGKILL"); }
   await Promise.all(s.children.map((r) => r.done));
-  // The real hook owns a detached builder. Its lock identifies it even after hook exit.
-  try { const { pid } = JSON.parse(fs.readFileSync(s.env.NK_LOCK, "utf8")); process.kill(pid, "SIGKILL"); } catch {}
-  await sleep(100);
   fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
  }
 }
@@ -110,7 +104,7 @@ await check("M1: transient write locks allow existing and first builds to advanc
   if (existing) await seed(s);
   else for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(s.db + suffix, { force: true });
   const before = existing ? await builtAt(s) : 0;
-  const holder = await held(s, "barrier");
+  const holder = await held(s);
   const build = child(s, [cli, "build"], "");
   await waitFor(() => holder.out.includes("overlap"));
   await build.done; await holder.done;
@@ -130,12 +124,11 @@ await check("M1: sources-problem probe waits out a transient lock and keeps the 
  let rows;
  try {
   rows = d.prepare("SELECT count(*) AS n FROM docs").get().n;
-  // An exclusive rollback-journal writer blocks the read-only problem probe too.
   d.exec("PRAGMA journal_mode=DELETE");
  } finally { d.close(); }
  const inode = fs.statSync(s.db).ino;
  fs.writeFileSync(path.join(s.home, "sources.json"), '{"roots":[],}');
- const holder = await held(s, "barrier");
+ const holder = await held(s);
  const build = child(s, [cli, "build"], "");
  await waitFor(() => holder.out.includes("overlap"));
  await build.done; await holder.done;
@@ -148,25 +141,17 @@ await check("M1: sources-problem probe waits out a transient lock and keeps the 
  finally { kept.close(); }
 });
 
-// req: R-3592
-await check("M3: locked hook stays bounded and connection defaults read back", async (s) => {
+// req: R-4049
+await check("M3: connection defaults read back", async (s) => {
  await seed(s);
  for (const [opts, expected] of [[{}, dbLib.QUERY_BUSY_TIMEOUT_MS], [{ create: true }, dbLib.BUILD_BUSY_TIMEOUT_MS]]) {
   const d = await dbLib.openDb(s.db, opts);
   try { assert.equal(d.prepare("PRAGMA busy_timeout").get().timeout, expected); } finally { d.close(); }
  }
- // Rollback journal makes BEGIN EXCLUSIVE exclude readers, unlike a WAL writer.
- const d = await dbLib.openDb(s.db);
- d.exec("PRAGMA journal_mode=DELETE"); d.close();
- const holder = await held(s, "timed");
- const h = await command(s, "hook", JSON.stringify({ prompt: "quasar nebula telescope horizon findings", session_id: "locked" }));
- assert.equal(h.code, 0); assert.equal(h.out, ""); assert.ok(h.ms < BUDGET_MS + 1000, `hook ms=${h.ms}`);
- await holder.done;
 });
 
-// req: R-3592
+// req: R-4048
 await check("M3: recovery refuses a late writer without a build busy wait and keeps the index", async (s) => {
- // The incomplete docs schema is the docs-shape damage used by recover.test.mjs.
  const { DatabaseSync } = await dbLib.loadSqlite();
  const damaged = new DatabaseSync(s.db);
  try { damaged.exec("CREATE TABLE docs(id, txt)"); } finally { damaged.close(); }
@@ -188,7 +173,6 @@ await check("M3: recovery refuses a late writer without a build busy wait and ke
  }
  `]);
  await waitFor(() => build.out.includes("damage-found"));
- // The initial open may establish WAL; snapshot only after it has found the damage.
  const before = fs.readFileSync(s.db);
  const writer = child(s, ["-e", `
  const { DatabaseSync } = require('node:sqlite');
@@ -201,7 +185,6 @@ await check("M3: recovery refuses a late writer without a build busy wait and ke
  await waitFor(() => writer.out.includes("ready"));
  build.c.stdin.end("locked");
  await build.done;
- // Keep the writer through the entire attempt, even if wrong code waits all 5000 ms.
  assert.equal(writer.code, undefined, writer.err);
  assert.equal(build.code, 0, build.err);
  const result = JSON.parse(build.out.split("RESULT ")[1]);
@@ -214,6 +197,28 @@ await check("M3: recovery refuses a late writer without a build busy wait and ke
  await writer.done;
 });
 
+// req: R-4051
+await check("build lock is atomic, records its pid and releases only its owner", async (s) => {
+ const r = child(s, ["--input-type=module", "-e", `
+ import assert from 'node:assert/strict';
+ import fs from 'node:fs';
+ import { acquireBuildLock, releaseBuildLock, build, BuildLockedError } from ${JSON.stringify(new URL("../lib/build.ts", import.meta.url).href)};
+ const lockFile = process.env.NK_LOCK;
+ const won = [acquireBuildLock(), acquireBuildLock(), acquireBuildLock()];
+ assert.equal(won.filter(Boolean).length, 1);
+ assert.equal(JSON.parse(fs.readFileSync(lockFile, 'utf8')).pid, process.pid);
+ await assert.rejects(build(), BuildLockedError);
+ fs.writeFileSync(lockFile, JSON.stringify({ pid: process.pid + 99999, at: Date.now() }));
+ releaseBuildLock();
+ assert.equal(fs.existsSync(lockFile), true);
+ fs.writeFileSync(lockFile, JSON.stringify({ pid: process.pid, at: Date.now() }));
+ releaseBuildLock();
+ assert.equal(fs.existsSync(lockFile), false);
+ `], "");
+ await r.done;
+ assert.equal(r.code, 0, r.err);
+});
+
 // req: R-3593
 await check("M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms", async () => {
  assert.equal(dbLib.BUILD_BUSY_TIMEOUT_MS, 5000);
@@ -221,198 +226,5 @@ await check("M4: seal: BUILD_BUSY_TIMEOUT_MS is 5000 ms", async () => {
 // req: R-3594
 await check("M4: seal: QUERY_BUSY_TIMEOUT_MS is 100 ms", async () => {
  assert.equal(dbLib.QUERY_BUSY_TIMEOUT_MS, 100);
-});
-async function retryCase(s, stage, twice = false, spent = false) {
- await seed(s);
- const h = child(s, ["--input-type=module", "-e", `
- import assert from 'node:assert/strict';
- import fs from 'node:fs';
- import path from 'node:path';
- import * as hook from ${JSON.stringify(new URL("../lib/hook.ts", import.meta.url).href)};
- import { openDb } from ${JSON.stringify(new URL("../lib/db.ts", import.meta.url).href)};
- import { search } from ${JSON.stringify(new URL("../lib/query.ts", import.meta.url).href)};
- let opens = 0, queries = 0, closes = 0, time = 0;
- const stage = ${JSON.stringify(stage)}, twice = ${twice}, spent = ${spent};
- const opts = {
-  spawnFn: () => { throw new Error('unexpected rebuild'); },
-  clock: spent ? () => time : Date.now,
-  openDbFn: async (...args) => {
-   opens++;
-   if (stage === 'open' && (twice || opens === 1)) {
-    if (spent) time = hook.BUDGET_MS + 1;
-    throw Object.assign(new Error('private prompt /private/index.db'), { code: opens === 1 ? 'SQLITE_BUSY' : 'SQLITE_LOCKED', errcode: opens === 1 ? 5 : 6 });
-   }
-   const db = await openDb(...args);
-   const close = db.close.bind(db);
-   db.close = () => { closes++; close(); };
-   return db;
-  },
-  searchFn: (...args) => {
-   queries++;
-   if (stage === 'query' && (twice || queries === 1)) {
-    if (spent) time = hook.BUDGET_MS + 1;
-    throw Object.assign(new Error('private prompt /private/index.db'), { code: queries === 1 ? 'SQLITE_BUSY' : 'SQLITE_LOCKED', errcode: queries === 1 ? 5 : 6 });
-   }
-   return search(...args);
-  },
- };
- const started = Date.now();
- const result = await hook.runHook(JSON.stringify({ prompt: 'quasar nebula telescope horizon findings', session_id: 'retry' }), opts);
- const elapsed = Date.now() - started;
- const row = JSON.parse(fs.readFileSync(path.join(process.env.NANA_KNOWLEDGE_HOME, 'pull.log'), 'utf8').trim());
- const reason = stage === 'open' ? 'db-open-failed' : 'query-failed';
- assert.equal(opens, spent ? 1 : (twice ? hook.HOOK_QUERY_MAX_ATTEMPTS : 2));
- assert.equal(closes, stage === 'query' ? opens : (twice || spent ? 0 : 1));
- assert.equal(row.retried, reason + ': SQLITE_BUSY (5)');
- assert.ok(elapsed < hook.BUDGET_MS, 'elapsed=' + elapsed);
- assert.doesNotMatch(JSON.stringify({ retried: row.retried, failure: row.failure }), /private/);
- if (twice || spent) {
-  assert.equal(result.output, null);
-  assert.equal(result.reason, reason);
-  if (!spent) assert.equal(row.failure, reason + ': SQLITE_LOCKED (6)');
- } else {
-  assert.ok(result.output?.startsWith('[nana:knowledge]'));
-  assert.ok(result.output.includes('Quasar telemetry'));
-  assert.equal(row.reason, 'ok');
-  assert.ok(elapsed >= hook.HOOK_QUERY_RETRY_DELAY_MS);
- }
- `], "");
- await h.done;
- assert.equal(h.code, 0, h.err);
-}
-
-// req: R-3595
-await check("M6: first open failure retries and logs its cause", async (s) => {
- await retryCase(s, "open");
-});
-// req: R-3595
-await check("M6: first query failure retries and logs its cause", async (s) => {
- await retryCase(s, "query");
-});
-// req: R-3595
-await check("M6: persistent failures fail open within budget and log both causes", async (s) => {
- for (const stage of ["open", "query"]) {
-  await retryCase(s, stage, true);
-  fs.rmSync(path.join(s.home, "pull.log"));
-  await retryCase(s, stage, true, true);
-  fs.rmSync(path.join(s.home, "pull.log"));
- }
-});
-// req: R-3596
-await check("M6: seal: hook query retry delay is 50 ms and attempt ceiling is 10", async () => {
- assert.equal(hook.HOOK_QUERY_RETRY_DELAY_MS, 50);
- assert.equal(hook.HOOK_QUERY_MAX_ATTEMPTS, 10);
-});
-
-async function budgetRetryCase(s, persistent) {
- await seed(s);
- const h = child(s, ["--input-type=module", "-e", `
- import assert from 'node:assert/strict';
- import fs from 'node:fs';
- import path from 'node:path';
- import * as hook from ${JSON.stringify(new URL("../lib/hook.ts", import.meta.url).href)};
- import { QUERY_BUSY_TIMEOUT_MS } from ${JSON.stringify(new URL("../lib/db.ts", import.meta.url).href)};
- const persistent = ${persistent};
- const busy = () => Object.assign(new Error('private lock detail'), { code: 'ERR_SQLITE_ERROR', errcode: 5 });
- const N = 4;
- for (const stage of persistent ? ['query'] : ['open', 'query']) {
-  let opens = 0, queries = 0, closes = 0;
-  const started = Date.now();
-  const result = await hook.runHook(JSON.stringify({ prompt: 'quasar nebula telescope horizon findings', session_id: stage }), {
-   spawnFn: () => {},
-   openDbFn: async () => {
-    opens++;
-    if (stage === 'open' && opens <= N) throw busy();
-    return { close: () => { closes++; } };
-   },
-   searchFn: () => {
-    queries++;
-    // Model the synchronous SQLite busy wait, not an async timer that the CLI can interrupt.
-    if (persistent) {
-     assert.ok(Date.now() - started + QUERY_BUSY_TIMEOUT_MS + hook.HOOK_QUERY_RESERVE_MS < hook.BUDGET_MS);
-     const until = Date.now() + QUERY_BUSY_TIMEOUT_MS;
-     while (Date.now() < until) {}
-     throw busy();
-    }
-    if (stage === 'query' && queries <= N) throw busy();
-    return [{ key: stage, display: 'quasar.md', title: 'Quasar telemetry', snippet: 'nebula telescope' }];
-   },
-  });
-  const elapsed = Date.now() - started;
-  const rows = fs.readFileSync(path.join(process.env.NANA_KNOWLEDGE_HOME, 'pull.log'), 'utf8').trim().split('\\n').map(line => JSON.parse(line));
-  const row = rows.at(-1);
-  assert.ok(elapsed < hook.BUDGET_MS, 'elapsed=' + elapsed);
-  assert.equal(result.reason, persistent ? 'query-failed' : 'ok');
-  assert.equal(row.attempts, opens);
-  assert.equal(typeof row.attempts, 'number');
-  assert.equal(closes, stage === 'open' ? 1 : opens);
-  assert.equal(row.retried, (stage === 'open' ? 'db-open-failed' : 'query-failed') + ': ERR_SQLITE_ERROR (5)');
-  if (persistent) {
-   assert.equal(result.reason, 'query-failed');
-   assert.equal(result.output, null);
-   assert.ok(opens > 2);
-   assert.ok(opens <= hook.HOOK_QUERY_MAX_ATTEMPTS);
-   assert.equal(row.failure, 'query-failed: ERR_SQLITE_ERROR (5)');
-   assert.ok(elapsed + hook.HOOK_QUERY_RETRY_DELAY_MS + QUERY_BUSY_TIMEOUT_MS + hook.HOOK_QUERY_RESERVE_MS >= hook.BUDGET_MS);
-  } else {
-   assert.equal(result.reason, 'ok');
-   assert.equal(result.hits.length, 1);
-   assert.match(result.output, /Quasar telemetry/);
-   assert.equal(opens, N + 1);
-   assert.ok(elapsed >= N * hook.HOOK_QUERY_RETRY_DELAY_MS);
-  }
- }
- `], "");
- await h.done;
- assert.equal(h.code, 0, h.err);
-}
-// req: R-3595
-await check("M7: repeated BUSY failures return hits while budget allows", async (s) => {
- await budgetRetryCase(s, false);
-});
-// req: R-3595
-await check("M7: persistent BUSY queries stop before budget with a query reserve", async (s) => {
- await budgetRetryCase(s, true);
-});
-// req: R-3596
-await check("M7: seal: hook query reserve is 150 ms", async () => {
- assert.equal(hook.HOOK_QUERY_RESERVE_MS, 150);
-});
-// req: R-3595
-await check("M8: non-busy open and query failures return after one attempt", async (s) => {
- await seed(s);
- const h = child(s, ["--input-type=module", "-e", `
- import assert from 'node:assert/strict';
- import fs from 'node:fs';
- import path from 'node:path';
- import * as hook from ${JSON.stringify(new URL("../lib/hook.ts", import.meta.url).href)};
- for (const stage of ['open', 'query']) {
-  for (const errcode of [11, undefined]) {
-   let opens = 0, closes = 0;
-   // A busy-looking message or code is not a structured busy errcode.
-   const error = Object.assign(new Error('database locked /private/index.db'), { code: 'SQLITE_BUSY', errcode });
-   const result = await hook.runHook(JSON.stringify({ prompt: 'quasar nebula telescope horizon findings', session_id: stage }), {
-    spawnFn: () => {},
-    openDbFn: async () => {
-     opens++;
-     if (stage === 'open') throw error;
-     return { close: () => { closes++; } };
-    },
-    searchFn: () => { throw error; },
-   });
-   assert.equal(opens, 1, stage + ': non-busy failure must not retry');
-   assert.equal(closes, stage === 'query' ? 1 : 0);
-   assert.equal(result.reason, stage === 'open' ? 'db-open-failed' : 'query-failed');
-   assert.equal(result.output, null);
-   const row = JSON.parse(fs.readFileSync(path.join(process.env.NANA_KNOWLEDGE_HOME, 'pull.log'), 'utf8').trim().split('\\n').at(-1));
-   assert.equal(row.attempts, 1);
-   assert.equal(row.retried, result.reason + ': SQLITE_BUSY' + (errcode === undefined ? '' : ' (11)'));
-   assert.equal(row.failure, undefined);
-   assert.doesNotMatch(JSON.stringify(row), /private/);
-  }
- }
- `], "");
- await h.done;
- assert.equal(h.code, 0, h.err);
 });
 process.exitCode = fails ? 1 : 0;

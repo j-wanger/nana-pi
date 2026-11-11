@@ -9,7 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_BUILD, PI_REVIEW, PI_SESSION, PI_TURN, PI_TURN_POWERSHELL, PULL_LOG_PATH, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
+import { ALLOWED_HOOK_KEYS, DOCTOR_NOTES, HOOKS, KNOWN_RED, OVERRIDE_ENV, PI_BUILD, PI_REVIEW, PI_SESSION, PI_TURN, PI_TURN_POWERSHELL, README_REHEARSAL, ROSTER_NOTICE_PREFIX, ROSTER_NOTICE_UNAVAILABLE_PREFIX, SAMPLE_INPUTS, SPAWN_TIMEOUT_MS } from "./install-check-config.mjs";
 import { findPi, winCommand } from "../../nana-pack/lib/win-command.mjs";
 import { projectKey } from "./project-key.mjs";
 import { runReadmeRehearsal } from "./readme-rehearsal.mjs";
@@ -561,13 +561,6 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
       emitLine(`settings hooks: ${JSON.stringify(parsedSettings.hooks ?? null)}`);
     } catch (error) {
       emitLine(`settings hooks: could not be read (${error?.code ?? error?.name ?? "Error"})`);
-    }
-    const pullLogPath = path.join(home, ...PULL_LOG_PATH);
-    try {
-      const records = fs.readFileSync(pullLogPath, "utf8").split(/\r?\n/).filter((line) => line.trim());
-      emitLine(`last pull.log record: ${records.at(-1) ?? "none"}`);
-    } catch (error) {
-      emitLine(`last pull.log record: could not be read (${error?.code ?? error?.name ?? "Error"})`);
     }
   }
   return { lines, exitCode: failed ? 1 : 0 };

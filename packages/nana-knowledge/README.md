@@ -11,7 +11,8 @@ Pi is not required.
 
 ## Install
 
-Run directly from a clone. `nana-setup install` seeds sources and builds the first index.
+`nana-setup install` seeds sources, builds the first index and links `nana-knowledge`
+on PATH (Windows gets sh and `.cmd` shims). Or run directly from the clone.
 All owned files live under `~/.pi/agent/nana-knowledge/`; source stores remain read-only.
 
 ## Usage
@@ -48,7 +49,7 @@ The Claude Code prompt hook is retired (2026-11-06, #342).
 Only 17 of 871 suggested files were later opened: approximately 2%.
 Run `nana-setup install` to remove old managed wiring.
 Search explicitly with `nana-knowledge query "your terms"`.
-The legacy `hook` CLI remains unwired for compatibility; it is not a runtime producer.
+The legacy prompt-hook implementation and CLI command are removed.
 
 ## The pi extension
 

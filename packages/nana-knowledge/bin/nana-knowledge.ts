@@ -1,30 +1,26 @@
 #!/usr/bin/env node
 /**
  * @module packages/nana-knowledge/bin/nana-knowledge.ts
- * @purpose The knowledge CLI — build, query, hook, status and prune over the local index.
- * @inputs argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `hook`, `status`, `prune`), hook
- *  JSON on stdin (up to STDIN_MAX_BYTES), and sources.json bytes plus the index
- * @outputs build counts, source/root and index-damage markers, query hits or JSON, index/root status, and the hook frozen-index notice and pointer block on stdout; usage and query failures on stderr
- * @effects disk (builds and reads the index, writes the shown files and pull.log), database, process (sets
- *  the exit code; `hook` arms a BUDGET_MS unref'd self-exit timer before touching stdin)
- * @errors exit 2 on a bad or unknown invocation, 1 when `query` finds no index or cannot open/query it, and 0 otherwise — including reported index damage, source-file problems, every `hook` failure, and a build that lost the lock
+ * @purpose The knowledge CLI — build, refresh then query, and status over the local index.
+ * @inputs argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `status`), sources.json and the index
+ * @outputs build counts, source/root and index-damage markers, query pointers or JSON and index/root status on stdout; usage, stale-results warnings and query failures on stderr
+ * @effects disk (builds and reads the index), database, process (sets the exit code)
+ * @errors exit 2 on bad invocation, 1 when query cannot use the index, and 0 otherwise, including a build that lost the lock
  */
-// nana-knowledge — build / query / hook.
+// nana-knowledge — build / query / status.
 // Run directly: `node bin/nana-knowledge.ts <cmd>` (Node >= 22.18 strips the types).
 import * as fs from "node:fs";
-import { build, pruneShown, BuildLockedError } from "../lib/build.ts";
+import { build, BuildLockedError } from "../lib/build.ts";
 import { checkIndex, getMeta, indexDamage, openDb } from "../lib/db.ts";
 import { paths } from "../lib/paths.ts";
 import { search } from "../lib/query.ts";
 import { loadSources } from "../lib/sources.ts";
 import { formatSourcesProblem } from "../lib/sources-file.mjs";
-import { runHook, BUDGET_MS, STDIN_MAX_BYTES } from "../lib/hook.ts";
 
 const USAGE = `nana-knowledge — local BM25 index over the knowledge stores
 
   nana-knowledge build [--rebuild]        (re)build ~/.pi/agent/nana-knowledge/index.db
   nana-knowledge query "<text>" [--limit N] [--json]
-  nana-knowledge hook                     read Claude Code hook JSON on stdin
   nana-knowledge status                   index age, row counts, configured roots
 `;
 
@@ -89,34 +85,6 @@ async function cmdQuery(argv: string[]): Promise<number> {
 	return 0;
 }
 
-// The hook's own budget — NOT a hard wall-clock bound, and the README says so too.
-// This timer runs on the event loop, so it bounds ASYNCHRONOUS stalls only: a stdin that
-// is never closed, a slow spawn, a blocked pipe. A SYNCHRONOUS stall — a wedged
-// filesystem inside a single SQLite call, existsSync, or the log append — blocks the loop,
-// the timer never fires, and the harness hook timeout is then the only bound.
-// In practice the query work is measured at ~8 ms, so a real pull finishes well under it.
-// .unref() so it never holds a healthy fast path open.
-function armDeadline(ms: number): void {
-	setTimeout(() => process.exit(0), ms).unref();
-}
-
-async function cmdHook(): Promise<number> {
-	armDeadline(BUDGET_MS); // BEFORE stdin is touched — a hung read must still exit 0
-	try {
-		const chunks: Buffer[] = [];
-		let bytes = 0;
-		for await (const c of process.stdin) {
-			const buf = c as Buffer;
-			bytes += buf.length;
-			if (bytes > STDIN_MAX_BYTES) break; // stop reading; truncated JSON fails open below
-			chunks.push(buf);
-		}
-		const res = await runHook(Buffer.concat(chunks).toString("utf8"));
-		if (res.output) process.stdout.write(res.output + "\n");
-	} catch { /* fail open, always */ }
-	return 0;
-}
-
 function rootStatus(p: string): "MISS" | "UNREADABLE" | "ok  " {
 	let st: fs.Stats;
 	try { st = fs.statSync(p); } catch { return "MISS"; }
@@ -151,7 +119,6 @@ async function cmdStatus(): Promise<number> {
 	}
 	const ageH = built ? ((Date.now() - built) / 3600000).toFixed(1) : "?";
 	console.log(`\nindex ${paths.db} · ${mb(fs.statSync(paths.db).size)} · ${files} files · ${docs} rows · built ${ageH}h ago`);
-	console.log(`shown sessions ${(() => { try { return fs.readdirSync(paths.shownDir).length; } catch { return 0; } })()} · log ${fs.existsSync(paths.log) ? mb(fs.statSync(paths.log).size) : "none"}`);
 	return 0;
 }
 
@@ -160,9 +127,7 @@ let code = 0;
 switch (cmd) {
 	case "build": code = await cmdBuild(argv); break;
 	case "query": code = await cmdQuery(argv); break;
-	case "hook": code = await cmdHook(); break;
 	case "status": code = await cmdStatus(); break;
-	case "prune": pruneShown(); break;
 	default: console.error(USAGE); code = cmd ? 2 : 0;
 }
 process.exit(code);

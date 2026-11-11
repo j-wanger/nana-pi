@@ -2,7 +2,7 @@
  * @module packages/nana-knowledge/lib/paths.ts
  * @purpose The user-scope locations of the knowledge index, all under one deletable directory.
  * @inputs env NANA_KNOWLEDGE_HOME (tests only) and os.homedir()
- * @outputs the home dir plus the sources.json, index.db, shown/, pull.log and build.lock paths, and
+ * @outputs the home dir plus the sources.json, index.db and build.lock paths, and
  *  tildeify's `~`-collapsed display form
  * @effects none
  * @errors none
@@ -21,12 +21,10 @@ export const paths = {
 	get home() { return home(); },
 	get sources() { return path.join(home(), "sources.json"); },
 	get db() { return path.join(home(), "index.db"); },
-	get shownDir() { return path.join(home(), "shown"); },
-	get log() { return path.join(home(), "pull.log"); },
 	get buildLock() { return path.join(home(), "build.lock"); },
 };
 
-/** Display form: collapse $HOME to `~` so pointers stay short in the hook block. */
+/** Display form: collapse $HOME to `~` so query pointers stay short. */
 export function tildeify(p: string): string {
 	const h = os.homedir();
 	return p === h || p.startsWith(h + path.sep) ? "~" + p.slice(h.length) : p;

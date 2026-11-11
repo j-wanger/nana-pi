@@ -34,10 +34,10 @@ export const SNIPPET_MAX = 160;
 export const TITLE_MAX = 90;
 /** A rendered path plus its `:loc` suffix (":" and at most 16 digits of a safe integer). */
 export const DISPLAY_MAX = PATH_CAP + 17;
-/** The pointer line's field delimiter. It appears ONLY where hook.ts renderBlock puts it. */
+/** The CLI pointer line's field delimiter; rendered fields never contain it. */
 export const FIELD_SEP = " — ";
 
-/** D6 monthly-archive path pattern (2026-10-06, L7-01; R-239). */
+/** Monthly-archive path pattern (2026-10-06, L7-01; R-4042). */
 export const MONTHLY_SESSION_ARCHIVE_GLOB = "*/sessions/[0-9][0-9][0-9][0-9]-[0-9][0-9].md";
 
 const SQL =
@@ -104,13 +104,12 @@ export function pointerPath(p: unknown): string {
 }
 
 /**
- * THE field renderer for a pointer line — search() and renderBlock() both call it, so a raw hit
- * and a searched hit get the same bounded fields. The invariant is ONE sentence: the exact
+ * THE field renderer for a pointer line — search() calls it for every indexed row. The invariant is ONE sentence: the exact
  * FIELD_SEP never appears inside a rendered field. Every field is one line (promptText) and capped;
  * the display field is exact or reversibly escaped (pointerPath); in the prose fields (title,
  * snippet) an exact FIELD_SEP becomes " - ", which is readability, not the guarantee. Look-alike
  * dashes (en dash, minus, horizontal bar …) are NOT touched: they can visually mislead a reader,
- * and the block header already frames every field as data. Idempotent on its own output.
+ * so consumers must treat search fields as data. Idempotent on its own output.
  */
 export function renderFields(h: { title?: unknown; display?: unknown; snippet?: unknown }): { title: string; display: string; snippet: string } {
 	// Already a rendered path: no whitespace collapse, no word cut, no substitution — only one line, capped.

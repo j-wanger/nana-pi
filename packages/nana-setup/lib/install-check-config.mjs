@@ -32,8 +32,6 @@ export const KEPT_CALLER_ENV = Object.freeze([
   'GIT_CONFIG_PARAMETERS', 'GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_\\d+', 'GIT_CONFIG_VALUE_\\d+',
   'GIT_ASKPASS', 'SSH_ASKPASS', 'GIT_TERMINAL_PROMPT', 'GCM_INTERACTIVE',
 ]);
-// Contract path: nana-knowledge/lib/paths.ts, read 2026-10-13.
-export const PULL_LOG_PATH = [".pi", "agent", "nana-knowledge", "pull.log"];
 // Provenance: Windows install-check run 38393751564 after main merge; every hook passed, 2026-10-13.
 export const KNOWN_RED = {
   darwin: [],

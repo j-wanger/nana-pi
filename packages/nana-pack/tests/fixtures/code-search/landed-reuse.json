@@ -364,6 +364,16 @@
  },
  {
   "lane": "knowledge-freeze-notice-2026-10-25",
+  "retired_extended": [
+   {
+    "directory": "packages/nana-knowledge/lib",
+    "stem": "hook",
+    "extension": "ts",
+    "delta": "+12/-7",
+    "evidence": ["new import <- packages/nana-knowledge/tests/sources-file.test.mjs"],
+    "path_reader_of": ["packages/nana-knowledge/lib/paths.ts"]
+   }
+  ],
   "base": "d3cf9a0d",
   "tip": "cd49d13a",
   "reused_code": [
@@ -374,7 +384,6 @@
   "reused_tests": [],
   "extended": [
    "packages/nana-knowledge/bin/nana-knowledge.ts",
-   "packages/nana-knowledge/lib/hook.ts",
    "packages/nana-knowledge/lib/sources.ts",
    "packages/nana-setup/lib/doctor.mjs"
   ],
@@ -389,7 +398,6 @@
   },
   "extended_detail": [
    "packages/nana-knowledge/bin/nana-knowledge.ts (+3/-2)",
-   "packages/nana-knowledge/lib/hook.ts (+12/-7)",
    "packages/nana-knowledge/lib/sources.ts (+6/-34)",
    "packages/nana-setup/lib/doctor.mjs (+23/-5)"
   ],
@@ -416,11 +424,7 @@
   },
   "merge_only_paths": [],
   "evidence": {
-   "packages/nana-knowledge/lib/hook.ts": [
-    "new import <- packages/nana-knowledge/tests/sources-file.test.mjs"
-   ],
    "packages/nana-knowledge/lib/paths.ts": [
-    "more uses of paths <- packages/nana-knowledge/lib/hook.ts",
     "new import <- packages/nana-knowledge/tests/sources-file.test.mjs"
    ],
    "packages/nana-pack/lib/json-text.mjs": [

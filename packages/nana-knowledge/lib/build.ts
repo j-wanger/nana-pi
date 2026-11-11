@@ -3,9 +3,9 @@
  * @purpose Build or recover the knowledge index under an atomic build lock, re-indexing only files whose bytes changed.
  * @inputs roots or a read/parse problem from sources.json, the `.md` files under readable roots
  *  (≤ MAX_FILE_BYTES, symlinks and SKIP_DIRS skipped), the existing `files` table, `rebuild`, and an optional recovery-lock test hook
- * @outputs BuildStats (per-root counts, totals, preserved and removed rows, source and damage outcomes, timing and db size), the index's meta rows, the index age, and a doc count
+ * @outputs BuildStats (per-root counts, totals, preserved and removed rows, source and damage outcomes, timing and db size), the index's meta rows and a doc count
  * @effects disk (creates and releases build.lock and its reclaim lock, writes index.db and its WAL, deletes
- *  the db files on rebuild, prunes shown/ past its TTL), database (docs/files writes in 500-row
+ *  the db files on rebuild), database (docs/files writes in 500-row
  *  transactions, a WAL truncate checkpoint)
  * @errors BuildLockedError when another live builder holds the lock; unrecoverable node:sqlite errors; a sources problem or unreadable root/folder keeps its indexed rows
  */
@@ -20,7 +20,6 @@ import { paths } from "./paths.ts";
 import { contains, loadSources, skipNames, type Root, type SourcesProblem } from "./sources.ts";
 
 export const MAX_FILE_BYTES = 1024 * 1024;
-export const SHOWN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** A lock older than this is a crashed builder, not a running one. */
 export const LOCK_TTL_MS = 10 * 60 * 1000;
 
@@ -200,20 +199,6 @@ function hash(content: string): string {
 
 function rowsFor(c: Candidate, content: string): Row[] {
 	return c.kind === "ledger" ? parseLedger(c.path, content) : parseArticle(c.path, content);
-}
-
-/** Drop per-session dedup files nobody will see again. */
-export function pruneShown(now = Date.now()): number {
-	let n = 0;
-	let entries: string[];
-	try { entries = fs.readdirSync(paths.shownDir); } catch { return 0; }
-	for (const f of entries) {
-		const p = path.join(paths.shownDir, f);
-		try {
-			if (now - fs.statSync(p).mtimeMs > SHOWN_TTL_MS) { fs.rmSync(p, { force: true }); n++; }
-		} catch { /* raced with another prune */ }
-	}
-	return n;
 }
 
 /**
@@ -426,15 +411,9 @@ function buildOpen(db: Db, sources: LoadedSources, t0: number): BuildStats {
 	setMeta(db, "file_count", String(stats.files));
 	try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch { /* best effort */ }
 
-	pruneShown();
 	stats.ms = Date.now() - t0;
 	try { stats.dbBytes = fs.statSync(paths.db).size; } catch { /* ignore */ }
 	return stats;
-}
-
-/** Age of the index in ms, or null when there is no index. */
-export function indexAgeMs(now = Date.now()): number | null {
-	try { return now - fs.statSync(paths.db).mtimeMs; } catch { return null; }
 }
 
 export async function docCount(db: Db): Promise<number> {

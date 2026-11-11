@@ -79,7 +79,6 @@ export const TEMP_REMOVE_RETRY_DELAY_MS = 100;
 // Isolate suite load rather than increase the probe or case deadline.
 export const RUN_ALONE = Object.freeze({
 	"packages/nana-pack/tests/credential-strip.test.mjs": "load-sensitive fixture credential probes bounded by 3000 ms",
-	"packages/nana-knowledge/tests/hook.test.mjs": "load-sensitive timing bounds (1500/1800 ms)",
 	"packages/nana-pack/tests/bounded-read.test.mjs": "load-sensitive timing bound (1000 ms)",
 	"packages/nana-pack/tests/test-locked.test.mjs": "load-sensitive timing bound (1200 ms) and 70-250 ms launch waits",
 	"packages/nana-pack/tests/review-ledger.test.mjs": "load-sensitive 1000 ms reservation stale window with a 200 ms heartbeat",

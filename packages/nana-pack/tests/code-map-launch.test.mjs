@@ -251,6 +251,11 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	]);
 	losses.set('packages/nana-pack/lib/memory-store.mjs -> packages/nana-pack/lib/profile-config.mjs', 'Cut B retains only profile-compatible reads, saved merges and area-local writes.');
 	for (const target of ['lib/profile-sync.mjs', 'bin/nana-profile.mjs']) losses.set(`packages/nana-setup/lib/doctor.mjs -> packages/nana-pack/${target}`, 'Cut B removes factory-only run-health probes; hook retirement diagnostics stay.');
+	const retiredKnowledgePull = `packages/nana-knowledge/lib/${['hook', 'ts'].join('.')}`;
+	retiredTargets.set(retiredKnowledgePull, 'FEAT-003 removes the unwired prompt pull; query refreshes and searches directly.');
+	retiredSources.set(retiredKnowledgePull, 'FEAT-003 removes the unwired prompt pull.');
+	retiredSources.set('packages/nana-knowledge/tests/hook.test.mjs', 'FEAT-003 removes hook-only cases; build-lock safety moves to build-busy.');
+	for (const name of ['sources-file', 'recover']) losses.set(`packages/nana-knowledge/tests/${name}.test.mjs -> packages/nana-knowledge/lib/paths.ts`, 'FEAT-003 removes hook-only cases; build, recovery and status checks stay.');
 	const graph = checkRepo().graph;
 	for (const entry of gitShow("57167e92",  "docs/code-map.md").split(/^### `/m).slice(1)) {
 		const path = entry.split("`")[0];

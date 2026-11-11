@@ -854,8 +854,7 @@ project config never contributes to either one, trusted or not.
   is payload, injected raw behind its `Source:` / provenance / authority framing, capped at 8000
   UTF-16 code units; structured serialization (journal JSON) is escaped by `JSON.stringify`, not
   by these renderers. **Out of scope:** `apps/**` (the bench emits structured JSON rather than pack-rendered model text);
-  `packages/nana-knowledge` (its own `clean()` in `packages/nana-knowledge/lib/query.ts`, direct interpolation in
-  `packages/nana-knowledge/lib/hook.ts:93` — a separate follow-up); the failure marker in the shell fallback of
+  the failure marker in the shell fallback of
   `packages/nana-setup/claude/hooks/nana-objective.mjs`; and any external consumer that copied a renderer,
   builds its strings itself, or runs an older installed checkout (importers of `lib/objective.ts`
   get the shared renderers through its re-export; nothing else is certified). Every field is

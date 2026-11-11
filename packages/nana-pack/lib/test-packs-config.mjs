@@ -16,7 +16,6 @@ export const TEST_PACKS = Object.freeze({
   "apps/bench/test/anatomy.test.mjs": "module",
   "packages/nana-knowledge/tests/build-busy.test.mjs": "module",
   "packages/nana-knowledge/tests/discovery.test.mjs": "module",
-  "packages/nana-knowledge/tests/hook.test.mjs": "module",
   "packages/nana-knowledge/tests/incremental-build.test.mjs": "module",
   "packages/nana-knowledge/tests/ledger-parse.test.mjs": "module",
   "packages/nana-knowledge/tests/pull-cut.test.mjs": "module",

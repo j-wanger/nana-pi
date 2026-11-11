@@ -6,8 +6,8 @@
  * @effects disk (temp source tree), database (the temp sqlite index it builds), process (sets NANA_KNOWLEDGE_HOME)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
-// Gate: the build is incremental on CONTENT HASH, not on mtime. Rebuilding 19k files
-// every prompt-triggered background build would be the thing that makes this unusable.
+// Gate: the build is incremental on CONTENT HASH, not on mtime. Queries refresh
+// every time, so unchanged files must remain cheap.
 import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -98,20 +98,6 @@ const s6 = await build({ rebuild: true });
 // req: R-208
 check("--rebuild re-indexes everything", s6.reindexed === 2 && s6.unchanged === 0 && s6.rows === 3);
 check("build reports a db size", s6.dbBytes > 0);
-
-// shown/ pruning happens on build
-fs.mkdirSync(path.join(home, "shown"), { recursive: true });
-const oldShown = path.join(home, "shown", "old.json");
-const newShown = path.join(home, "shown", "new.json");
-fs.writeFileSync(oldShown, "{}");
-fs.writeFileSync(newShown, "{}");
-const eightDaysAgo = Date.now() / 1000 - 8 * 86400;
-fs.utimesSync(oldShown, eightDaysAgo, eightDaysAgo);
-await build();
-// req: R-210
-check("shown files older than 7 days pruned", !fs.existsSync(oldShown));
-// req: R-210
-check("recent shown files kept", fs.existsSync(newShown));
 
 // --- a configured root that is temporarily MISSING keeps its rows ---
 // A renamed repo or an unmounted volume is not evidence that the knowledge is gone; the
