@@ -22,5 +22,4 @@
 - Setup (making-session-end, plan residual): recognition and removal of an installed memory-end hook still gates on `timeout === 5`, which a future hook with another timeout would meet.
 - Setup (making-session-end, independent check): win32 uninstall of an installed memory-end hook matches only the current checkout's entry, so a moved checkout leaves the old SessionEnd entry failing at every exit.
 - Setup (making-session-end, independent check): the settings doc comment still says "timeout: 5"; the code uses each row's own timeout.
-- Bench (claude-cmd-launch, plan residual): `apps/bench/lib/catch-judge.mjs`'s own default spawn, used when no spawn is injected, still calls bare `claude`; the bench runs on the seat Mac.
 - Carry (memory-end-ebusy): `tests/profile-fixture.mjs` assumes its roughly one-second folder-removal retry window covers Windows holds on remote.git; the hold duration remains unmeasured.

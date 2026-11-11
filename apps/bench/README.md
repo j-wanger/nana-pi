@@ -195,6 +195,6 @@ lib/anatomy-measures.mjs  counts, shared normalization, agreement, blind samplin
 lib/anatomy-labels.mjs  private capped model labelling, append, fingerprinted resume and shared read-only reader
 lib/anatomy-stats.mjs  shared Cohen's kappa and seeded sampling
 lib/jsonl.mjs       shared append-log reader with optional torn-tail repair
-lib/catch-judge.mjs  structured-output judge call for anatomy labelling
+lib/anatomy-runners.mjs  isolated structured-output judge for anatomy labelling
  test/              synthetic tests with no model calls
 ```

@@ -36,7 +36,6 @@
     "**/*.e2e.mjs"
   ],
   "launchAlwaysRun": [
-    { "path": "apps/bench/lib/catch-judge.mjs", "reason": "Injected pi executable; judge may run repository code." },
     { "path": "packages/nana-pack/bin/nana-land.mjs", "reason": "Injected git command runner has caller-bound programs." },
     { "path": "packages/nana-pack/bin/pi-watchdog.mjs", "reason": "Shell command text and chosen pi executable do not trace." },
     { "path": "packages/nana-pack/lib/review-run.mjs", "reason": "Review command program comes from command arguments." },
