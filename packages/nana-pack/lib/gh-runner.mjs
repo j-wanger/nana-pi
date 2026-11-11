@@ -1,12 +1,12 @@
 /**
  * @module packages/nana-pack/lib/gh-runner.mjs
  * @purpose Run gh through one cross-platform command seam and classify its process results.
- * @inputs Explicit optional timeout and output cap, cwd, argv, environment and command override.
- * @outputs Synchronous process runners and success or named failure results.
+ * @inputs Timeout and output cap, cwd, argv, environment, command override, injected spawn and clock, abort signal.
+ * @outputs Synchronous or asynchronous process runners and success or named failure results.
  * @effects process (spawns gh or the injected command), network (through gh).
  * @errors Missing commands, timeouts, spawn errors and nonzero exits become classified results.
  */
-import { spawnSync } from "node:child_process";
+import { spawn as nodeSpawn, spawnSync } from "node:child_process";
 import { CHILD_OUTPUT_MAX_BYTES } from "./land-config.mjs";
 import { GH_COMMAND_ENV } from "./suite-records-config.mjs";
 
@@ -38,6 +38,43 @@ export function ghFromEnvironment(env, { factory = ghDefault, ...options } = {})
 	if (!Array.isArray(command) || command.length === 0 || command.some((part) => typeof part !== "string")) return () => ({ error: new Error(`${GH_COMMAND_ENV} must be a JSON array of strings`), status: null });
 	const run = factory({ ...options, command });
 	return (cwd, args, { env: childEnv = env, ...callOptions } = {}) => run(cwd, args, { ...callOptions, env: childEnv });
+}
+
+export function ghAsync({ command = ["gh"], maxBuffer = CHILD_OUTPUT_MAX_BYTES, spawn = nodeSpawn, clock = globalThis } = {}) {
+	return (cwd, args, { env = process.env, timeoutMs, signal } = {}) => new Promise((resolve) => {
+		let child, timer, finished = false, bytes = 0;
+		const stdout = [], stderr = [];
+		const finish = (result, kill = false) => {
+			if (finished) return;
+			finished = true;
+			if (timer !== undefined) clock.clearTimeout(timer);
+			signal?.removeEventListener("abort", abort);
+			if (kill) { try { child?.kill("SIGKILL"); } catch {} }
+			child?.stdout?.destroy?.(); child?.stderr?.destroy?.();
+			resolve({ status: null, stdout: Buffer.concat(stdout).toString("utf8"), stderr: Buffer.concat(stderr).toString("utf8"), nanaTimeoutMs: timeoutMs, ...result });
+		};
+		const abort = () => finish({ error: Object.assign(new Error("gh cancelled"), { code: "ABORT_ERR" }) }, true);
+		if (signal?.aborted) { abort(); return; }
+		if (!Number.isInteger(timeoutMs) || timeoutMs < 1) { finish({ error: new RangeError("gh timeout must be a positive whole number of milliseconds") }); return; }
+		try {
+			child = spawn(command[0], [...command.slice(1), ...args], { cwd, env: ghEnvironment(env), stdio: ["ignore", "pipe", "pipe"] });
+			child.on("error", (error) => finish({ error }));
+			child.on("close", (status, signal) => finish({ status, signal }));
+			const collect = (target) => (data) => {
+				const chunk = Buffer.from(data); bytes += chunk.length;
+				if (bytes > maxBuffer) finish({ error: Object.assign(new Error("gh output exceeded cap"), { code: "ENOBUFS" }) }, true);
+				else target.push(chunk);
+			};
+			child.stdout.on("data", collect(stdout)); child.stderr.on("data", collect(stderr));
+			signal?.addEventListener("abort", abort, { once: true });
+			timer = clock.setTimeout(() => finish({ error: Object.assign(new Error("gh timed out"), { code: "ETIMEDOUT" }) }, true), timeoutMs);
+		} catch (error) { finish({ error }, true); }
+	});
+}
+
+/** Share command parsing and environment policy with the synchronous runner. */
+export function ghAsyncFromEnvironment(env, options = {}) {
+	return ghFromEnvironment(env, { ...options, factory: ghAsync });
 }
 
 export const firstLine = (value) => String(value ?? "").split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? "";

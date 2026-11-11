@@ -14,7 +14,7 @@ import { EventEmitter } from "node:events";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { watchIssues, watchCommand } from "../lib/issue-watch.mjs";
-import { ghAsyncFromEnvironment } from "../lib/gh-runner-async.mjs";
+import { ghAsyncFromEnvironment } from "../lib/gh-runner.mjs";
 import { frontierSummary } from "../lib/frontier-summary.mjs";
 import extension from "../extensions/nana-frontier-summary.ts";
 import * as config from "../lib/frontier-summary-config.mjs";

@@ -187,6 +187,10 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
 	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
 	const retiredSources = new Map([
+		['packages/nana-pack/lib/review-findings.mjs', 'FEAT-031 small-cuts removes the unread review-timeline leftover and its configuration import.'],
+		['packages/nana-pack/tests/handoff-writer-role.test.mjs', 'FEAT-031 small-cuts retires a test with no recorded failure or safety line; R-139 and R-1683 remain untested.'],
+		['packages/nana-pack/tests/ledger-repo.mjs', 'FEAT-031 small-cuts inlines the sole fixture caller in one-reviewer.test.mjs.'],
+		['packages/nana-pack/lib/gh-runner-async.mjs', 'FEAT-031 small-cuts merges the asynchronous runner into gh-runner.mjs.'],
 		...['doctor-floor', 'doctor-release'].map(name => [`packages/nana-setup/tests/${name}.test.mjs`, 'FEAT-031 diet2 removes value-only floor pins and informational release fixtures; behaviour remains untested.']),
 		['apps/bench/lib/usage.mjs', 'FEAT-007 review fix removes the unused stream parser after the memory factory cut.'],
 		...['apps/bench/test/retire.test.mjs', ...['preview-retirement', 'gate-config-robustness', 'experiment-cut', 'memory-cut-checks'].map(name => `packages/nana-pack/tests/${name}.test.mjs`), 'packages/nana-setup/tests/stale-copies-slow.test.mjs'].map(file => [file, 'FEAT-031 test-retire removes the named Lane A test file; its live cases or markers move to kept tests.']),
@@ -214,12 +218,14 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	losses.set('packages/nana-pack/bin/pi-worker.mjs -> packages/nana-pack/lib/lane-class-config.mjs', 'R-3761 removes lane classification from build output.');
 	losses.set('packages/nana-pack/bin/pi-worker.mjs -> scripts/lane-class.mjs', 'R-3761 removes lane classification from build output.');
 	for (const file of ['display-surfaces', 'config-handlers-malformed']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-post-edit.ts`, 'FEAT-013 removes the post-edit-only cases; surviving cases remain.');
-	for (const file of ['display-surfaces', 'config-handlers-malformed', 'writing-injection', 'handoff-writer-role', 'adoption-producer']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-handoff.ts`, 'FEAT-013 removes handoff-only calls; adoption now imports nana-adoption.');
+	for (const file of ['display-surfaces', 'config-handlers-malformed', 'writing-injection', 'adoption-producer']) losses.set(`packages/nana-pack/tests/${file}.test.mjs -> packages/nana-pack/extensions/nana-handoff.ts`, 'FEAT-013 removes handoff-only calls; adoption now imports nana-adoption.');
 	losses.set('packages/nana-pack/tests/adoption-producer.test.mjs -> packages/nana-pack/lib/config.ts', 'FEAT-013 adoption now reads only user-scope adoptionSettings; the test still exercises config via its dynamic import.');
 	for (const target of ['packages/nana-setup/lib/settings.mjs', 'packages/nana-setup/lib/verifier-hook.mjs', 'packages/nana-pack/lib/pipe-guard.mjs', 'packages/nana-setup/bin/nana-setup.mjs']) losses.set(`packages/nana-setup/tests/verifier-pipe.test.mjs -> ${target}`, 'FEAT-013 retires the Claude wrapper cases, retaining the doctor and pi predicate documentation cases.');
 	losses.set('packages/nana-setup/tests/hook-producers.test.mjs -> packages/nana-setup/lib/verifier-hook.mjs', 'FEAT-013 retires the wrapper import-safety case with the library.');
 	for (const caller of ['lib/install-check.mjs', ...['install-check', 'doctor-fix-line', 'install', 'linked-claude-folder', 'relative-agent-dir', 'rulings-install', 'settings-lock', 'skills-and-standards', 'win32-degrade', 'win32-hook-repair'].map(name => `tests/${name}.test.mjs`)]) losses.set(`packages/nana-setup/${caller} -> packages/nana-setup/lib/doctor.mjs`, 'FEAT-013 removes the delegation-runtime floor import with the vendor install and retry.');
 	const retiredTargets = new Map([
+		['packages/nana-pack/tests/ledger-repo.mjs', 'FEAT-031 small-cuts inlines the sole fixture caller in one-reviewer.test.mjs.'],
+		['packages/nana-pack/lib/gh-runner-async.mjs', 'FEAT-031 small-cuts preserves both callers through gh-runner.mjs.'],
 		['apps/bench/lib/usage.mjs', 'FEAT-007 review fix removes the unused stream parser after the memory factory cut.'],
 		['scripts/requirements-moved.mjs', 'R-3770 rehomes the shared runner in git-runner.mjs and removes movement.'],
 		['packages/nana-pack/bin/review-ledger.mjs', 'R-3765 moves execution into review-run.mjs, shared with the test harness.'],

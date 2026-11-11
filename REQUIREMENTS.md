@@ -1096,8 +1096,8 @@ Purpose: Keep reviewer roles separate, suppress unrelated context mutation, appl
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-139 | pi-review shall set NANA_HANDOFF=off in every child env. | implemented | `packages/nana-pack/tests/handoff-writer-role.test.mjs::pi-review: child spawn env contains NANA_HANDOFF=off` |
-| R-1683 | WHERE the platform is win32 and pi is an npm global install, pi-review shall start its pi child with NANA_HANDOFF=off in that child's environment. | implemented | `packages/nana-pack/tests/handoff-writer-role.test.mjs::pi-review: child spawn env contains NANA_HANDOFF=off` |
+| R-139 | pi-review shall set NANA_HANDOFF=off in every child env. | untested | Dedicated role test retired by small-cuts: no recorded failure or safety line. |
+| R-1683 | WHERE the platform is win32 and pi is an npm global install, pi-review shall start its pi child with NANA_HANDOFF=off in that child's environment. | untested | Dedicated role test retired by small-cuts: no recorded failure or safety line. |
 | R-700 | pi-review shall run the review call under a liveness watchdog that kills the whole process group when CPU time stays flat for --stall-secs and retries with a fresh session. | implemented | `packages/nana-pack/tests/review-ledger-launch.test.mjs::stalled attempt → exit 1 (watchdog killed it)`, `packages/nana-pack/tests/review-ledger.test.mjs::after SIGKILL + a dead-pid lock, the next review is admitted` |
 | R-246 | WHEN the watchdog kills a stalled review call, pi-review shall retry it with a fresh session. | untested | split from R-700 2026-10-02 (clause audit): no test pins this clause |
 | R-919 | After reading captured child output, pi-watchdog shall remove its per-attempt capture directory on success, failure and stall. | implemented | `packages/nana-pack/tests/review-ledger-launch.test.mjs::pi-watchdog removes capture directories after success, child failure and stall` |

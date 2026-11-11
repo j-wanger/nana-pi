@@ -80,6 +80,7 @@ await check("M8: main keeps all collected nonrelease files and an injected retir
   const diet2Retirements = new Set([
     ...["doctor-floor", "doctor-release"].map(name => `packages/nana-setup/tests/${name}.test.mjs`),
     "packages/nana-knowledge/tests/hook.test.mjs",
+    "packages/nana-pack/tests/handoff-writer-role.test.mjs",
   ]);
   for (const file of diet2Retirements) assert(!fs.existsSync(path.join(REPO, file)) && TEST_PACKS[file] === undefined, `diet2 retirement restored: ${file}`);
   let base;

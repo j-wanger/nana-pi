@@ -73,7 +73,6 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/gate-survives-mutation.test.mjs": "main",
   "packages/nana-pack/tests/handoff-asks.test.mjs": "module",
   "packages/nana-pack/tests/handoff-issues.test.mjs": "land",
-  "packages/nana-pack/tests/handoff-writer-role.test.mjs": "module",
   "packages/nana-pack/tests/identity-scan.test.mjs": "main",
   "packages/nana-pack/tests/immutable-review.test.mjs": "main",
   "packages/nana-pack/tests/issue-watch.test.mjs": "land",

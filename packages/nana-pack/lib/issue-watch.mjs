@@ -10,7 +10,7 @@ import path from "node:path";
 import { canonicalCwd, repoRootOf } from "./adoption.mjs";
 import { BOUNDED_READ_CAP, readBounded } from "./bounded-read.mjs";
 import { issuesPointer } from "./handoff-issues.mjs";
-import { ghAsyncFromEnvironment } from "./gh-runner-async.mjs";
+import { ghAsyncFromEnvironment } from "./gh-runner.mjs";
 import { ghResult } from "./gh-runner.mjs";
 import { promptText } from "./display.mjs";
 import { HANDOFF_FILE, ISSUES_FETCH_CAP, ISSUES_READ_LIMIT_MS, WATCH_COMMAND_PREFIX, WATCH_EXCERPT_CAP, WATCH_INTERVAL_MS, WATCH_OVERLAP_MS, WATCH_QUOTE_LABEL, WATCH_RUN_MS, WATCH_SEAT_MARKER } from "./frontier-summary-config.mjs";
