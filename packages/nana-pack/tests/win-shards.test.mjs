@@ -62,7 +62,7 @@ function execute(root, args, record = path.join(td, "record.json")) {
 }
 const run = { id: 71, workflow_id: 1, run_number: 1, run_attempt: 2, name: "ci", head_sha: sha, head_branch: "main", path: ".github/workflows/ci.yml", event: "push", status: "completed", conclusion: "success" };
 const leg = (index) => `windows-latest-shard-${index}-of-3`;
-const value = (index, failed = false) => ({ schema: 1, platform: "win32", filters: [], shard: { index, count: 3 }, files: [{ path: `file-${index}.test.mjs`, label: failed ? "FAIL" : "PASS", seconds: index }], unnamedFailures: [], exitCode: failed ? 1 : 0, jobs: 4, wallSeconds: index * 10, fileTimeoutMs: 900000 });
+const value = (index, failed = false) => ({ schema: 1, platform: "win32", filters: [], shard: { index, count: 3 }, files: [{ path: `file-${index}.test.mjs`, label: failed ? "FAIL" : "PASS", seconds: index }], unnamedFailures: [], exitCode: failed ? 1 : 0, jobs: 4, wallSeconds: index * 10 });
 function ciFixture({ old = false, outcome = "success", absent, rerun, missingLatest = false, reversed = false, noStart = false } = {}) {
 	const items = old ? [{ leg: "windows-latest", attempt: 1, record: { ...value(1), shard: undefined } }] : [1, 2, 3].filter((i) => i !== absent).map((i) => ({ leg: leg(i), attempt: 1, record: value(i, rerun === i ? !reversed : outcome === "failure" && i === 2) }));
 	if (rerun && !missingLatest) items.push({ leg: leg(rerun), attempt: 2, record: value(rerun, reversed) });
@@ -82,7 +82,7 @@ function ciFixture({ old = false, outcome = "success", absent, rerun, missingLat
 	const records = readCiRecords([sha], { cwd: td, runGit, runGh, tempRoot: td, writeLine: () => {} });
 	const main = mainCi({ cwd: td, env: {}, runGit, runGh, tempRoot: td, writeLine: () => {} });
 	const fixture = landFixture("shards", { workflowOnMain: true });
-	const land = executeCi(fixture, [run], { runGh, platform: "win32", keepLandCiRecords: () => ({ lines: [], notes: [] }) });
+	const land = executeCi(fixture, [run], { runGh, platform: "win32" });
 	const unchanged = git(fixture.main, "rev-parse", "HEAD") !== fixture.tip;
 	return { proof: proveCiSuite(records, [run], "win32"), main, land, unchanged };
 }

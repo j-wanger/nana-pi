@@ -3,8 +3,8 @@
  * @module packages/nana-pack/bin/nana-land.mjs
  * @purpose Fast-forward reviewed tips and covered lane merges containing main, and safely remove contained lane worktrees.
  * @inputs Merge or cleanup arguments, review storage, and injectable git, command, gh, clock, lock, release-status, and CI-record readers.
- * @outputs Named helpers and command results naming reviews, CI runs, retained records, slow files, release status, and the land-record attempt.
- * @effects process (runs git, gh, and a suite command), network (through gh), disk (git merge, land/CI record storage, and worktree cleanup).
+ * @outputs Named helpers and command results naming reviews, CI runs, release status, and the land-record attempt.
+ * @effects process (runs git, gh, and a suite command), network (through gh), disk (git merge, land-record storage, and worktree cleanup).
  * @errors Invalid arguments, missing review evidence, failed preconditions, unreadable or red CI, suite failures, and git failures return a named refusal.
  */
 import { spawnSync } from "node:child_process";
@@ -18,12 +18,11 @@ import { releaseStatus } from "../lib/release-status.mjs";
 import { realPath } from "../lib/real-path.mjs";
 import { changedSuitePaths, ciScope, ciSuiteLegs, githubRepoOf, judgeRuns, proveCiSuite, requiredCiJobs, toolkitCi } from "../lib/land-ci.mjs";
 import { ciReadiness, ciTarget, ciRunJobs, classifyRun } from "../lib/ci-wait.mjs";
-import { budgetedGh, keepLandCiRecords } from "../lib/land-ci-records.mjs";
 import { readCiRecords } from "../lib/ci-records.mjs";
 import { mainCi } from "../lib/main-ci.mjs";
 import { CI_LANE_PLATFORM, CHILD_OUTPUT_MAX_BYTES, CI_HOST, CI_READ_TIMEOUT_MS, CI_RECORDS_BUDGET_MS, CI_RUN_LIST_RETRIES, SUITE_LINE_PREFIX, CI_REMOTE, CI_RUNS_PAGE_SIZE, CI_RUNS_PATH, CI_WORKFLOW_DIR, CI_ADVISORY_WORKFLOW, CI_DONE_STATUS, CI_PASS_CONCLUSION, TIP_DIGITS, LAND_NOTE_PREFIX, LAND_TIP_ENV } from "../lib/land-config.mjs";
 import { CLEAN_MERGE_NAME_CAP, CLEAN_MERGE_GIT_CONFIG, CLEAN_MERGE_REMEDY, CLEAN_MERGE_REASONS } from "../lib/land-config.mjs";
-import { CI_RECORDS_KEEP, CI_SLOW_SHARE } from "../lib/suite-records-config.mjs";
+import { numberText } from "../lib/suite-records.mjs";
 import { appendLandRecord, landCiWaitMs, landRecordsPath, readLandLedger, renderLandLaneLine, renderLandRecordLine } from "../lib/land-records.mjs";
 import { LAND_LEDGER_READ_MAX_BYTES, LAND_REASON_MAX_CHARS, LAND_RECORD_LINE_PREFIX, LAND_RECORD_SCHEMA } from "../lib/land-records-config.mjs";
 import { errorText } from "../lib/record-ledger.mjs";
@@ -31,6 +30,32 @@ import { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
 export { ghDefault, ghEnvironment } from "../lib/gh-runner.mjs";
 
 import { LANE_NAME_PATTERN } from '../lib/land-config.mjs';
+const timeoutResult = (budgetMs) => ({
+	status: null,
+	signal: "SIGTERM",
+	stdout: "",
+	stderr: `CI-record read stopped at the ${numberText(budgetMs / 1000)} s budget`,
+	error: Object.assign(new Error(`CI-record read stopped at the ${numberText(budgetMs / 1000)} s budget`), { code: "ETIMEDOUT" }),
+	nanaTimeoutMs: budgetMs,
+});
+
+/** Share the CI read's total budget, including a last call that returns after it expires. */
+export function budgetedGh({ runGh, now = () => performance.now(), budgetMs = CI_RECORDS_BUDGET_MS }) {
+	let startedAt = null;
+	let stopped = false;
+	return {
+		runGh: (cwd, args, options = {}) => {
+			const moment = Number(now());
+			if (startedAt === null) startedAt = moment;
+			const remaining = budgetMs - (moment - startedAt);
+			if (!(remaining >= 1)) { stopped = true; return timeoutResult(budgetMs); }
+			const timeoutMs = Math.min(CI_READ_TIMEOUT_MS, Math.floor(remaining));
+			return runGh(cwd, args, { ...options, timeoutMs });
+		},
+		get budgetStopped() { return stopped || (startedAt !== null && !(Number(now()) - startedAt < budgetMs)); },
+	};
+}
+
 const gitDefault = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const commandDefault = (command, cwd, { env = process.env } = {}) => spawnSync(command, { cwd, env, shell: true, encoding: "utf8", maxBuffer: CHILD_OUTPUT_MAX_BYTES });
 const resultText = (r) => `${r.stdout ?? ""}${r.stderr ?? ""}`;
@@ -121,7 +146,7 @@ function reviewedPairs(pairs) {
 }
 
 /** Run a fail-closed merge; process and state readers are injectable for controlled callers and tests. */
-function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, keepLandCiRecords: keepCiRecords = keepLandCiRecords, platform = process.platform, recordsNow = () => performance.now(), now = () => new Date(), lifecycle }) {
+function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], home = os.homedir(), runGit = gitDefault, runCommand = commandDefault, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), withReviewLedgerLock: lockReviews = withReviewLedgerLock, readReleaseStatus = releaseStatus, platform = process.platform, recordsNow = () => performance.now(), now = () => new Date(), lifecycle }) {
 	try {
 		tree = path.resolve(tree); main = path.resolve(main);
 		const repo = repoKeyOf(tree);
@@ -234,7 +259,6 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 		};
 		let ciLines = [];
 		let ciNote = null;
-		let ciReadPassed = false;
 		let suiteProof = { ok: false, reason: scope.note };
 		if (!scope.applies) {
 			if (fixesRed !== undefined) throw new Error("--fixes-red requires toolkit main CI evidence");
@@ -252,7 +276,6 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 				if (fixesRed !== undefined) fixedMainRun = { id: String(current.id), attempt: current.run_attempt, sha: current.head_sha };
 			} else if (fixesRed !== undefined) throw new Error("--fixes-red requires toolkit main CI evidence");
 			ciLines = verdict.lines;
-			ciReadPassed = true;
 			lifecycle.ci = "passed";
 			lifecycle.ciWaitMs = landCiWaitMs(verdict.runs);
 			suiteProof = changedSuitePaths(git(runGit, tree, "diff", "--no-renames", "--name-only", capturedMain, tip));
@@ -314,23 +337,8 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 		let releaseLine;
 		try { releaseLine = readReleaseStatus({ repo: main, runGit }).line; }
 		catch (error) { releaseLine = `release status unavailable (${error?.message ?? "unknown error"})`; }
-		let recordLines = [], recordNotes = [];
-		if (ciReadPassed) {
-			try {
-				const result = keepCiRecords({
-					main,
-					tip,
-					runGh: (cwd, args, options = {}) => runGh(cwd, args, { ...options, env: ghEnvironment(process.env) }),
-					budgetMs: CI_RECORDS_BUDGET_MS,
-					keep: CI_RECORDS_KEEP,
-					share: CI_SLOW_SHARE,
-				});
-				if (!result || !Array.isArray(result.lines) || !Array.isArray(result.notes)) throw new Error("CI-record keeper returned a malformed result");
-				recordLines = result.lines.map(String); recordNotes = result.notes.map(String);
-			} catch (error) { recordNotes = [`${LAND_NOTE_PREFIX} note: CI records failed: ${error?.message ?? "unknown error"}`]; }
-		}
-		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult), ...recordNotes];
-		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${recordLines.length ? `${recordLines.join("\n")}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
+		const notes = [...(ciNote ? [ciNote] : []), ...landNotes(suiteResult)];
+		return { code: 0, text: `${notes.length ? `${notes.join("\n")}\n` : ""}${ciLines.length ? `${ciLines.join("\n")}\n` : ""}${suiteLine}\npush command: git push\nrelease status: ${releaseLine}\n` };
 	} catch (error) { return { code: 1, text: `refused: ${error.message}\n` }; }
 }
 

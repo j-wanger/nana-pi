@@ -67,7 +67,7 @@ function seedLegacy(f) {
 }
 function appendLegacySeparator(f) { fs.appendFileSync(store.ledgerPaths(f.home).tally, '\r\n'); }
 function land(f, reviewed = [`${git(f.feature, 'rev-parse', 'HEAD')}=item`], options = {}) {
-  return runLand({ tree: f.feature, main: f.main, home: f.home, suite: 'fixture', reviewed, runCommand: () => ({ status: 0 }), runGh: () => ({ status: 0, stdout: runList([workflowRun({ path: '.github/workflows/ci.yml' })]) }), keepLandCiRecords: () => ({ lines: [], notes: [] }), ...options });
+  return runLand({ tree: f.feature, main: f.main, home: f.home, suite: 'fixture', reviewed, runCommand: () => ({ status: 0 }), runGh: () => ({ status: 0, stdout: runList([workflowRun({ path: '.github/workflows/ci.yml' })]) }), ...options });
 }
 // req: R-3765
 test('M1: Claude launches alone and records verified v2 with child status', async () => {

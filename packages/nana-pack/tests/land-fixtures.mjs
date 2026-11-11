@@ -117,7 +117,7 @@ export function executeCleanMerge(f, { records = true, runs = [workflowRun({ pat
 		exitCode: 0, jobs: 1, wallSeconds: 1,
 	} }] : [];
 	const gh = runGh ?? artifactGh(runs, entries);
-	const out = executeCi(f, runs, { platform: "darwin", keepLandCiRecords: () => ({ lines: [], notes: [] }),
+	const out = executeCi(f, runs, { platform: "darwin",
 		runCommand: () => { suites++; return { status: 0 }; }, ...options,
 		runGh: (cwd, args, opts) => { calls.push(args); const result = gh(cwd, args, opts); return afterGh(args, calls, result) ?? result; } });
 	const common = path.resolve(f.main, git(f.main, "rev-parse", "--git-common-dir"));

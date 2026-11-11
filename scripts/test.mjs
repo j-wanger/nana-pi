@@ -683,7 +683,6 @@ if (suiteRecordFile) {
 			unnamedFailures,
 			exitCode: finalExitCode,
 			wallSeconds: Number(((Date.now() - started) / 1000).toFixed(1)),
-			fileTimeoutMs: TIMEOUT_MS,
 			jobs,
 			platform: process.platform,
 			coverage: coverageDir !== null,

@@ -195,16 +195,6 @@ export function finalFiles(record) {
 	return [...byPath.values()].map((entries) => entries.filter((entry) => entry.coverage === false).at(-1) ?? entries.at(-1));
 }
 
-/** Return the capped slowest final non-SKIP files at or above a record-relative share. */
-export function slowFiles(record, share) {
-	const limitSeconds = Number(record?.fileTimeoutMs) / 1000;
-	if (!(limitSeconds > 0) || !(share > 0)) return [];
-	return finalFiles(record)
-		.filter((file) => file.label !== "SKIP" && Number(file.seconds) >= share * limitSeconds)
-		.sort((left, right) => Number(right.seconds) - Number(left.seconds) || String(left.path).localeCompare(String(right.path)))
-		.slice(0, SLOWEST_LIST_MAX);
-}
-
 /** Count final PASS, FAIL and SKIP labels, including failures without a file. */
 export function recordCounts(record) {
 	const final = finalFiles(record);

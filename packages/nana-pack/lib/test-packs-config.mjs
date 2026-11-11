@@ -78,7 +78,6 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/known-bugs.test.mjs": "land",
   "packages/nana-pack/tests/land-ci-edge.test.mjs": "main",
   "packages/nana-pack/tests/land-ci-read.test.mjs": "main",
-  "packages/nana-pack/tests/land-ci-records.test.mjs": "module",
   "packages/nana-pack/tests/land-ci-suite.test.mjs": "main",
   "packages/nana-pack/tests/land-clean-merge.test.mjs": "main",
   "packages/nana-pack/tests/land-merge.test.mjs": "main",

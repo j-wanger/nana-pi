@@ -62,7 +62,6 @@ const land = (fixture, options = {}) => runLand({
 	runGit: gitRunner,
 	runCommand: () => ({ status: 0, stdout: "", stderr: "" }),
 	readReleaseStatus: () => ({ line: "ready" }),
-	keepLandCiRecords: () => ({ lines: [], notes: [], records: 0 }),
 	now: clock(),
 	...options,
 });

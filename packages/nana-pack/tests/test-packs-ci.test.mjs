@@ -127,7 +127,7 @@ await check("M10: real pack shards pass every reader and newest missing or faile
     assert.equal(proveCiSuite(records, [main], "win32").ok, mode === "green", mode);
     const report = mainCi({ cwd: f.main, env: {}, runGh, runGit: gitRunner, tempRoot: TEMP, writeLine: () => {} });
     assert.equal(report.red, mode !== "green", mode);
-    const land = executeCi(f, [lane], { runGh, platform: "win32", keepLandCiRecords: () => ({ lines: [], notes: [] }) });
+    const land = executeCi(f, [lane], { runGh, platform: "win32" });
     assert.equal(land.code, mode === "green" ? 0 : 1, land.text); assert.equal(land.suiteRan, false, land.text);
     assert.equal(landGit(f.main, "rev-parse", "HEAD"), mode === "green" ? f.tip : mainSha);
   }

@@ -617,9 +617,6 @@ check("R-2546: with the record knob set, the runner writes one run record with e
 		&& mutationRecord.exitCode === 1
 		&& mutationRecord.unnamedFailures?.some((failure) => failure.includes("tracked repository files changed by tests: tracked.txt"))
 		&& noSuiteRunRecordUnder(rootKnob) && noSuiteRunRecordUnder(recordedUnset.tmp) && !recordedUnset.out.includes("suite record:"));
-// req: R-2753
-check("R-2753: the run record names the default per-file time limit the runner applied",
-	recordedSerial.record?.fileTimeoutMs === RECORD_LIMIT_MS && recordedParallel.record?.fileTimeoutMs === RECORD_LIMIT_MS);
 
 const filterRecordFile = path.join(TD, "filtered-record.json");
 const filterArgs = ["a-pass", "c-silent"];

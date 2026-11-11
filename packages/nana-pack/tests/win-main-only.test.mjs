@@ -78,8 +78,7 @@ function fixture({ laneBad, mainBad, state = "failure", missing = false, noMain 
   fs.writeFileSync(path.join(dir, "record.json"), JSON.stringify(record)); return { status: 0 };
  };
  const land = executeCi(f, [lane], { runGh, platform, "fixes-red": fixesRed,
-  ...(refusal === "suite" ? { runCommand: () => ({ status: 1 }) } : {}),
-  keepLandCiRecords: () => ({ lines: [], notes: [] }) });
+  ...(refusal === "suite" ? { runCommand: () => ({ status: 1 }) } : {}) });
  const end = readLandLedger(landRecordsPath(path.resolve(f.main, git(f.main, "rev-parse", "--git-common-dir")))) .records.at(-1);
  const mainResult = mainCi({ cwd: f.main, env: {}, runGh, runGit: gitRunner, tempRoot: f.root, writeLine: line => output.push(line) });
  return { land, end, before, after: mergeSnapshot(f), main: mainResult, output: output.join("\n"), unchanged: git(f.main, "rev-parse", "HEAD") === mainSha };

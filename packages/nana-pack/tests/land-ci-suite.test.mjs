@@ -11,6 +11,7 @@ import * as fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import * as config from "../lib/land-config.mjs";
+import { budgetedGh } from "../bin/nana-land.mjs";
 import { landReportLines, readLandLedger, landRecordsPath, renderLandRecordLine } from "../lib/land-records.mjs";
 import { artifactGh, ciFixture, commit, executeCi, git, gitRunner, workflowRun } from "./land-fixtures.mjs";
 
@@ -50,7 +51,7 @@ check("R-3430: passing same-platform full-suite CI replaces the local suite and 
 	assert.match(injected.text, /^suite: ci run 101 attempt 1 platform linux$/m);
 });
 
-// req: R-3431
+// req: R-3431, R-2756
 check("R-3431: unproven full-suite CI falls back once, while a carried rerun leg qualifies", () => {
 	const old = item(); delete old.record.filters;
 	const cases = [
@@ -73,6 +74,19 @@ check("R-3431: unproven full-suite CI falls back once, while a carried rerun leg
 	const budget = exercise([item()], { recordsNow: () => time, runGh: artifactGh([run()], [item()], { afterCall: (args) => { if (args[0] === "run") time += config.CI_RECORDS_BUDGET_MS + 1; } }) });
 	assert.equal(budget.code, 0, budget.text); assert.equal(budget.calls, 1); assert.match(budget.text, /^suite: local .*budget/m);
 	const carried = exercise([item()], { runs }); assert.equal(carried.code, 0, carried.text); assert.equal(carried.calls, 0);
+});
+
+// req: R-2756
+check("R-2756: the pre-merge CI reader clamps each gh call to whole milliseconds within its remaining budget", () => {
+	const exercise = (step) => {
+		let time = 0; const limits = [];
+		const budget = budgetedGh({ budgetMs: config.CI_READ_TIMEOUT_MS * 2, now: () => time,
+			runGh: (_cwd, _args, options) => { limits.push(options.timeoutMs); time += step; } });
+		for (let i = 0; i < 4; i++) budget.runGh("fixture", []);
+		return limits;
+	};
+	assert.deepEqual(exercise(25_000), [config.CI_READ_TIMEOUT_MS, config.CI_READ_TIMEOUT_MS, config.CI_READ_TIMEOUT_MS * 2 - 50_000]);
+	assert.deepEqual(exercise(config.CI_READ_TIMEOUT_MS * 2 - 1.5), [config.CI_READ_TIMEOUT_MS, 1]);
 });
 
 // req: R-3432

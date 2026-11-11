@@ -28,9 +28,6 @@ export const SUITE_RECORDS_KEEP = 300;
 // chosen (R-2752, measurements 2026-10-23): about 100 days at 40 records a day, past GitHub's 90-day retention.
 export const CI_RECORDS_KEEP = 4_000;
 
-// chosen (R-2754, measurements 2026-10-23): a file at half its limit survives the measured 1.73-times worst spike below the limit.
-export const CI_SLOW_SHARE = 0.5;
-
 // chosen (R-2551, runtime-map-live measurements 2026-10-22): above the measured 4.1-second largest per-file swing.
 export const SLOWER_MIN_SECONDS = 10;
 
