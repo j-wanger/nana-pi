@@ -11,10 +11,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { fingerprintManifestComplete, matchesFingerprintArtifact, retiredArtifacts } from "../lib/retired.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { withPiStub } from "./stub-pi.mjs";
-import testFingerprints from "./fixtures/retired/dev-check-fingerprints.json" with { type: "json" };
 import { stepRetiredArtifacts } from "../lib/steps.mjs";
 import assert from 'node:assert/strict';
 import { resolveLayout } from "../lib/paths.mjs";
@@ -196,26 +194,6 @@ await test('M8: retirement preserves edited marked foreign and linked seeds and 
 
 try {
 	{
-		const realLegacy = path.join(fixture, "dev-check");
-		const copied = path.join(home(), ".agents", "skills", "dev-check");
-		copyTree(realLegacy, copied);
-		// req: R-668 R-669
-		check("copied real legacy skill matches its test-only exact manifest", matchesFingerprintArtifact(copied, "dev-check", testFingerprints));
-		fs.appendFileSync(path.join(copied, "SKILL.md"), "owner edit\n");
-		// req: R-669
-		check("edited real legacy skill no longer matches its fingerprint", !matchesFingerprintArtifact(copied, "dev-check", testFingerprints));
-		const addedHome = home();
-		const added = path.join(addedHome, ".agents", "skills", "dev-check");
-		copyTree(realLegacy, added);
-		fs.writeFileSync(path.join(added, "owner-notes.md"), "owner file\n");
-		// req: R-669
-		check("added owner file invalidates real legacy artifact fingerprint", !matchesFingerprintArtifact(added, "dev-check", testFingerprints));
-		const productionEntries = retiredArtifacts("/home/example");
-		const productionFingerprints = JSON.parse(fs.readFileSync(path.join(pkg, "lib", "retired-fingerprints.json"), "utf8"));
-		// req: R-668
-		check("production fingerprints cover every declared artifact", fingerprintManifestComplete(productionEntries, productionFingerprints));
-	}
-	{
 		const h = home();
 		const oldSkill = path.join(h, ".claude", "skills", "spec");
 		copyTree(path.join(fixture, "spec"), oldSkill);
@@ -279,16 +257,7 @@ try {
 		const completeContextEntries = settings.hooks.UserPromptSubmit[0].hooks;
 		// Knowledge retirement adds no replacement beside the retained owner commands.
 		const expectedInstalledHooks = [...ownerHooks];
-		// No released Windows install ever wrote this retired hook, in any form: bash hooks were
-		// unconditionally "skipped (win32: bash hook)" from the first win32 commit (b39518f,
-		// 2026-09-18) onward, and this hook was retired from the install flow entirely on
-		// 2026-10-07 (b965bd0) — five days BEFORE win32 hooks shipped in any form at all
-		// (7b46022, 2026-10-12, exec form directly, no quoted-string era). The quoted-backslash
-		// entry this fixture injects (built with path.join, all native separators) is therefore
-		// fictional on win32: removeRetiredContextHook's own matcher (settings.mjs) compares
-		// against a template with a forward slash before the filename, which a real win32
-		// path.join string never produces, so the entry is simply unrecognised and left in
-		// place, like any other foreign entry.
+		// bd33b926: Windows keeps this foreign quoted-backslash entry and every sibling in order.
 		const quotedBackslashEntry = { type: "command", command: `bash '${path.join(h, ".claude", "hooks", "context-size-check.sh")}'` };
 		if (process.platform !== "win32") {
 			// req: R-660

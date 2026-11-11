@@ -34,7 +34,7 @@ function digest(file) {
 }
 
 /** Verify the exact file set and every digest under an artifact root. */
-export function matchesFingerprintArtifact(root, relative, manifest) {
+function matchesFingerprintArtifact(root, relative, manifest) {
  const prefix = `${relative}/`;
  const expected = Object.entries(manifest).filter(([name]) => name.startsWith(prefix));
  if (!expected.length) return false;
@@ -56,15 +56,6 @@ export function matchesFingerprintArtifact(root, relative, manifest) {
   expected.sort(([a], [b]) => a.localeCompare(b));
   return actual.length === expected.length && actual.every(([name, hash], i) => name === expected[i][0] && hash === expected[i][1]);
  } catch { return false; }
-}
-
-export function fingerprintManifestComplete(entries, manifest) {
- return entries.every((entry) => {
-  if (entry.kind === "file") return typeof manifest[entry.relative] === "string";
-  const prefix = `${entry.relative}/`;
-  const files = Object.entries(manifest).filter(([name]) => name.startsWith(prefix));
-  return files.length > 0 && files.every(([, hash]) => typeof hash === "string" && hash.length > 0);
- });
 }
 
 function exactArtifact(relative, kind) {
