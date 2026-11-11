@@ -364,11 +364,14 @@ Lane mode holds an exclusive-create pid lock file for the worker lifetime. Any e
 
 After a successful lane attempt, if the worktree declares a `check:lane` package script,
 pi-worker runs `npm run check:lane` (silently, via npm's `-s`) before the end record.
-It uses the builder's credential-stripped environment, with a bounded deadline and output.
+It uses the builder's credential-stripped environment, with a fifteen-minute deadline per
+script invocation (`LANE_CHECK_TIMEOUT_MS`, including the base rail) and bounded output.
 The project owns the script; nana-pi's root `scripts/check-lane.mjs` owns the ordered
 lost-round rail and comments. Its final step runs only changed tests and basename-naming tests
 against the committed tip's merge base with main, through the existing runner's `--changed-tests-from=main` flag.
-It reports selection count and wall time, passes a computed empty selection and fails missing merge bases with git's reason.
+It reports the selection count before running and each step's wall time, passes a computed empty selection and fails missing merge bases with git's reason.
+A lane changing the runner or a shared test helper selects nearly every test; the recorded
+233-file broad run took 543.5 seconds on the seat's Mac (2026-11-11).
 Selection ignores uncommitted edits and requires no fetch; a stale main only widens the diff.
 It prints `check:lane: pass` on success;
 `check:lane: fail: <check>` ends at the first red check with exit 1, while a spawn
