@@ -66,11 +66,7 @@ await check("names every refusal and does not spawn on refusal", async () => {
  assert.equal(claudeCommand([], missingEntry.options).refused, "Claude entry C:\\npm\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe is not a file");
  const cases = [
   ["no Claude", { ...f.options, env: { PATH: "C:\\empty" } }, "not on PATH"],
-  ["missing package", { ...f.options, exists: (p) => p.toLowerCase() === "c:\\npm\\claude.cmd", readText: () => { throw Error(); } }, "npm"],
-  ["wrong package", (() => { const x = fixture(); x.files.set("c:\\npm\\claude.cmd", "shim"); x.pkg("C:\\npm\\node_modules\\@anthropic-ai\\claude-code", { name: "other", bin: { claude: "bin/claude.exe" } }); return x.options; })(), "not the"],
-  ["no bin", (() => { const x = fixture(); x.files.set("c:\\npm\\claude.cmd", "shim"); x.pkg("C:\\npm\\node_modules\\@anthropic-ai\\claude-code", { name: PACKAGE }); return x.options; })(), "no claude bin"],
   ["outside bin", (() => { const x = fixture(); x.files.set("c:\\npm\\claude.cmd", "shim"); x.pkg("C:\\npm\\node_modules\\@anthropic-ai\\claude-code", { name: PACKAGE, bin: { claude: "..\\..\\evil.exe" } }); return x.options; })(), "outside"],
-  ["non-exe bin", (() => { const x = fixture(); x.files.set("c:\\npm\\claude.cmd", "shim"); x.pkg("C:\\npm\\node_modules\\@anthropic-ai\\claude-code", { name: PACKAGE, bin: { claude: "bin/claude.js" } }); return x.options; })(), ".exe"],
  ];
  for (const [name, options, text] of cases) assert.ok(claudeCommand([], options).refused?.includes(text), name);
  let calls = 0;

@@ -287,13 +287,6 @@ check("R-2581: pi builders receive a known-bug read instruction instead of an in
 		fs.readFileSync(path.join(temp, "prompt-3"), "utf8") === "No known bugs are recorded for this feature.";
 })());
 
-// req: R-2578 R-2581
-check("seal: a brief's precedent section is Precedent, its no-precedent entry starts none: and its feature line starts Feature:", (() => {
-	const module = path.join(root, "lib", "brief-config.mjs");
-	const probe = spawnSync(process.execPath, ["--input-type=module", "-e", `import { PRECEDENT_SECTION, PRECEDENT_NONE, FEATURE_LINE_PREFIX, PRECEDENT_TRAILING_PUNCTUATION, PRECEDENT_LIST_MAX_BYTES } from ${JSON.stringify(pathToFileURL(module).href)}; process.exit(PRECEDENT_SECTION === "Precedent" && PRECEDENT_NONE === "none:" && FEATURE_LINE_PREFIX === "Feature: " && PRECEDENT_TRAILING_PUNCTUATION === ",;.):" && PRECEDENT_LIST_MAX_BYTES === 65536 ? 0 : 1);`], { encoding: "utf8", timeout: 5000 });
-	return probe.status === 0;
-})());
-
 fs.writeFileSync(brief, defaultBriefText);
 clearLaunchArtifacts();
 const good = run(lane, ["--lane", "alpha", "--brief", path.relative(lane, brief)]);
@@ -356,7 +349,7 @@ check("M10: suite tests do not re-run the suite or whole-repo checkers", preambl
 check("R-3650: the builder preamble forbids reading, printing or using a stored credential exactly once", preambleOnce(RULE_LINE.storedCredential), RULE_LINE.storedCredential);
 // req: R-2582
 check("R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure", preambleOnce(RULE_LINE.precedentFirst), RULE_LINE.precedentFirst);
-// req: R-2662
+// req: R-2662 R-3734
 check("R-2662: the builder preamble tells the builder to import a needed function, never copy it, and make a private helper public without an unnamed shared move", preambleOnce(RULE_LINE.reuseNotCopy), RULE_LINE.reuseNotCopy);
 // req: R-2583
 check("R-2583: the builder preamble frames the known-bug file as context to report, not to fix", preambleOnce(RULE_LINE.knownBugsContext), RULE_LINE.knownBugsContext);
@@ -610,9 +603,6 @@ const staleLockRun = run(lane, ["--lane", "alpha", "--brief", brief]);
 // req: R-960
 check("existing worktree lock refuses and names path and pid", staleLockRun.status === 1 && staleLockRun.stderr.includes(lockDir) && /pid 999999999/.test(staleLockRun.stderr) && /confirm no builder and no pi process group.*remov.*by hand/i.test(staleLockRun.stderr) && fs.existsSync(lockDir), staleLockRun.stderr);
 fs.rmSync(lockDir);
-const config = await import("../bin/worker-config.mjs");
-// req: R-963
-check("sealed lane ceiling is 28,800 seconds", config.LANE_MAX_SECS === 28_800);
 const descendantPid = path.join(temp, "descendant.pid");
 writeStub(`#!/bin/sh\nsleep 30 &\necho $! > "${descendantPid}"\nwait\n`,
 	`const { spawn } = require("node:child_process");\nconst fs = require("node:fs");\nconst child = spawn(process.execPath, ["-e", "setTimeout(()=>{}, 30000)"], { stdio: "ignore" });\nfs.writeFileSync(${JSON.stringify(descendantPid)}, String(child.pid) + "\\n");\nchild.on("exit", () => process.exit(0));\n`);

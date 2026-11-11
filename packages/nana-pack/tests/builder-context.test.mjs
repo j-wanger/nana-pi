@@ -77,12 +77,6 @@ await check('R-3733: frozen lessons end the preamble and reach both builder runt
  assert.equal(createHash('sha256').update(footer).digest('hex').slice(0,16), '6b521260dae24d4c');
  const f=fixture(); try { for(const size of ['small','larger']) { const r=f.run('Precedent:\n- seed\n',size); assert.equal(r.status,0,r.stderr); assert.ok(fs.readFileSync(f.capture,'utf8').includes(footer)); } } finally { f.close(); }
 });
-// req: R-3734
-await check('R-3734: private helpers become public without unnamed shared moves', options, () => {
- const text=preamble();
- for(const part of ['drop the leading underscore','update its existing callers','import the public name','never import a private name from another module','A move to a shared module needs the brief to name it']) assert.ok(text.includes(part),part);
- assert.ok(!text.includes('report the departure and stop'));
-});
 // req: R-3735
 await check('R-3735: fix cards without precedent launch at every lane size with one exception line', options, () => {
  assert.equal(FIX_CARD_LINE, 'Card: fix');

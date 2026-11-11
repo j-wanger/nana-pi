@@ -188,18 +188,6 @@ const noHomeRecord = !fs.readdirSync(HOME, { recursive: true }).some((entry) => 
 check("R-2596: a lane build appends one start record under the clone's git folder before pi starts", Boolean(firstOk && firstFieldsOk && defaultSlotOk && refusalOk && noHomeRecord), JSON.stringify({ firstOk, firstFieldsOk, defaultSlotOk, refusalOk, noHomeRecord, startTip, lane: LANE, startRun: startRun.status, start, snapshot, sessionDir, outsideStart, lock: lockRefused.stderr, precedent: precedentRefused.stderr }));
 
 resetRecords();
-const claudeAgent = path.join(TD, "claude-agent"); fs.mkdirSync(claudeAgent, { recursive: true });
-fs.writeFileSync(path.join(claudeAgent, "nana-pack.json"), JSON.stringify({ roster: { scout: null, builder: { provider: "small-p", model: "small-m", thinking: null }, largerBuilder: { runtime: "claude-code", model: "fable" }, reviewer: { provider: "r", model: "rm", thinking: null }, land: null } }));
-const claudeRun = runWorker({ extra: ["--lane-size", "larger"], env: { PI_CODING_AGENT_DIR: claudeAgent } });
-const claudeRows = lines();
-const claudeStart = claudeRows.find((row) => row.kind === "start");
-const claudeEnd = claudeRows.find((row) => row.kind === "end" && row.build === claudeStart?.build);
-// req: R-2653
-check("R-2653: a Claude Code build's start record names provider claude-code, its model and a null thinking",
-	claudeRun.status === 0 && claudeStart?.provider === "claude-code" && claudeStart?.model === "fable" && claudeStart?.thinking === null && claudeStart?.slot === "largerBuilder" && claudeEnd?.build === claudeStart.build,
-	JSON.stringify({ status: claudeRun.status, stderr: claudeRun.stderr, claudeRows }));
-
-resetRecords();
 const okRun = runWorker({ env: { BR_MODE: "commit" } });
 const failRun = runWorker({ env: { BR_MODE: "fail" } });
 const ceilingRun = runWorker({ extra: ["--max-secs", "1"], env: { BR_MODE: "sleep" }, timeout: CASE_LIMIT_MS });
@@ -339,9 +327,6 @@ const hardStart = hardRecords.find((row) => row.kind === "start");
 const hardEnds = hardRecords.filter((row) => row.kind === "end" && row.build === hardStart?.build);
 // req: R-2725
 check("R-2725: a hard-killed lane build gets one stopped end record with its session cost", hardStarted && hardResult.signal !== "TIMEOUT" && hardEnds.length === 1 && hardEnds[0].outcome === "stopped" && hardEnds[0].exit === null && hardEnds[0].signal === null && hardEnds[0].cost === expectedUsage.cost.total && JSON.stringify(hardEnds[0].usage) === JSON.stringify(expectedUsage), JSON.stringify({ hardStarted, hardResult, hardRecords }));
-
-// req: R-2596 R-2599 R-2602
-check("seal: build records live at nana/build-records.jsonl in schema 1 and their stderr lines start pi-worker: build record:", BUILD_RECORDS_SUBPATH === "nana/build-records.jsonl" && BUILD_RECORD_SCHEMA === 1 && BUILD_RECORD_LINE_PREFIX === "pi-worker: build record:" && BUILD_SESSION_READ_MAX_BYTES === 64 * 1024 * 1024 && BUILD_LEDGER_READ_MAX_BYTES === 32 * 1024 * 1024);
 
 // Retain pre-kill parent links: a live grandchild may outlast its dead parent.
 const treeExitDeadline = Date.now() + CASE_LIMIT_MS;

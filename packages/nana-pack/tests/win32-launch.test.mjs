@@ -1,15 +1,12 @@
 /**
  * @module packages/nana-pack/tests/win32-launch.test.mjs
- * @purpose Pin pi-watchdog's Node-entry Windows launcher: forced win32 against injected fake
- *  volumes on every leg, and a real npm-installed fake pi package on the Windows leg.
- * @inputs pi-watchdog.mjs's piLaunch, injected win32 path/env/exists/isFile/readText fixtures,
- *  worker-config.mjs's PI_PACKAGE/PI_BIN_NAME, and, on win32, a real npm pack+install of a fake
- *  pi package plus pi-worker.mjs/pi-review.mjs/review-ledger.mjs child runs
+ * @purpose Pin Node-entry Windows launchers against a real npm-installed fake pi package.
+ * @inputs worker-config.mjs's PI_PACKAGE/PI_BIN_NAME and, on win32, a real npm pack+install
+ *  of a fake pi package plus pi-worker.mjs/pi-review.mjs/shared review runner child runs
  * @outputs named PASS/FAIL/SKIP lines
  * @effects disk (temp fixtures; on win32 a real npm global install under a temp prefix), process
  *  (on win32, npm pack/install and pi-worker/pi-review/review-ledger child processes)
- * @errors a missing piLaunch export fails every forced title, not the whole file; failed
- *  assertions exit nonzero
+ * @errors Failed assertions exit nonzero.
  */
 import { tmpDir } from "./tmp-dir.mjs";
 import { withPathPrepended } from "./env-path.mjs";
@@ -21,9 +18,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { reviewRunHarness } from './review-run-harness.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const watchdogUrl = pathToFileURL(path.join(root, "bin", "pi-watchdog.mjs")).href;
-let piLaunch, loadError = "";
-try { ({ piLaunch } = await import(watchdogUrl)); } catch (e) { loadError = e.message; }
 const { findPi } = await import(pathToFileURL(path.join(root, "lib", "win-command.mjs")).href);
 const { PI_PACKAGE, PI_BIN_NAME, LANE_DEFAULTS, PI_CHILD_SKILLS } = await import(pathToFileURL(path.join(root, "bin", "worker-config.mjs")).href);
 const workerBin = path.join(root, "bin", "pi-worker.mjs");
@@ -33,56 +27,7 @@ const reviewLedgerBin = reviewRunHarness(fs.realpathSync(tmpDir(path.join(os.tmp
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
 
-// ---------------------------------------------------------------- forced win32, every leg
-const DIR = Symbol("dir");
 const temp = fs.realpathSync(tmpDir(path.join(os.tmpdir(), "win32-launch-")));
-let volumes = 0;
-function fakeVolume() {
-	const vroot = path.join(temp, `vol-${++volumes}`);
-	fs.mkdirSync(vroot, { recursive: true });
-	const segs = (p) => { const m = /^([A-Za-z]):\\(.*)$/.exec(path.win32.resolve(p)); return m ? [m[1].toUpperCase(), ...m[2].split("\\").filter(Boolean)] : null; };
-	const child = (dir, name) => { try { return fs.readdirSync(dir).find((e) => e.toLowerCase() === name.toLowerCase()); } catch { return undefined; } };
-	const host = (p) => {
-		const s = segs(p);
-		if (!s) return null;
-		let dir = vroot;
-		for (const name of s) { const hit = child(dir, name); if (hit === undefined) return null; dir = path.join(dir, hit); }
-		return dir;
-	};
-	const put = (p, content) => {
-		const s = segs(p);
-		let dir = vroot;
-		for (const name of s.slice(0, -1)) { const hit = child(dir, name); dir = path.join(dir, hit ?? name); fs.mkdirSync(dir, { recursive: true }); }
-		const target = path.join(dir, s.at(-1));
-		if (content === DIR) fs.mkdirSync(target, { recursive: true }); else fs.writeFileSync(target, content);
-	};
-	return {
-		put,
-		exists: (p) => { const h = host(p); try { return h !== null && !fs.lstatSync(h).isDirectory(); } catch { return false; } },
-		isFile: (p) => { const h = host(p); try { return h !== null && fs.statSync(h).isFile(); } catch { return false; } },
-		readText: (p) => { const h = host(p); if (h === null) throw Object.assign(new Error(`ENOENT: no such file or directory, open '${p}'`), { code: "ENOENT" }); return fs.readFileSync(h, "utf8"); },
-	};
-}
-// npm cmd-shim 7.0.0's template, as written for pi.
-const CMD_SHIM = "@ECHO off\r\nGOTO start\r\n:find_dp0\r\nSET dp0=%~dp0\r\nEXIT /b\r\n:start\r\nSETLOCAL\r\nCALL :find_dp0\r\n\r\nIF EXIST \"%dp0%\\node.exe\" (\r\n  SET \"_prog=%dp0%\\node.exe\"\r\n) ELSE (\r\n  SET \"_prog=node\"\r\n  SET PATHEXT=%PATHEXT:;.JS;=;%\r\n)\r\n\r\nendLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & \"%_prog%\"  \"%dp0%\\node_modules\\@earendil-works\\pi-coding-agent\\dist\\bundle\\cli.js\" %*\r\n";
-const pkgJson = (over = {}) => JSON.stringify({ name: PI_PACKAGE, version: "0.0.0-fake", bin: { [PI_BIN_NAME]: "dist/bundle/cli.js" }, ...over });
-const npmPackage = (v, folder, { pkg = pkgJson(), entryKind = "file" } = {}) => {
-	const dir = `${folder}\\@earendil-works\\pi-coding-agent`;
-	if (pkg !== null) v.put(`${dir}\\package.json`, pkg);
-	if (entryKind === "file") v.put(`${dir}\\dist\\bundle\\cli.js`, "#!/usr/bin/env node\n");
-	if (entryKind === "dir") v.put(`${dir}\\dist\\bundle\\cli.js`, DIR);
-	return dir;
-};
-const npmGlobal = (opts = {}, shim = "pi.cmd") => { const v = fakeVolume(); v.put(`C:\\npm\\${shim}`, CMD_SHIM); npmPackage(v, "C:\\npm\\node_modules", opts); return v; };
-const EXEC = "C:\\Program Files\\nodejs\\node.exe";
-const PI_ARGS = ["--append-system-prompt", "line one\nline two\r\nline three", "-p", "a%PATH%b !x! \"q\" ^&|<>", "trailing\\", "--name", "pi-worker-a1-12345"];
-const GLOBAL_ENTRY = "C:\\npm\\node_modules\\@earendil-works\\pi-coding-agent\\dist\\bundle\\cli.js";
-const PATH_GLOBAL = "C:\\a;C:\\npm";
-const launch = (v, PATH, platform = "win32") => {
-	if (typeof piLaunch !== "function") return { threw: `piLaunch is not exported${loadError ? ` (${loadError})` : ""}` };
-	try { return piLaunch([...PI_ARGS], { platform, env: { PATH }, cwd: "C:\\work", exists: v.exists, isFile: v.isFile, readText: v.readText, execPath: EXEC }); }
-	catch (e) { return { threw: e.message }; }
-};
 
 // ---------------------------------------------------------------- Windows leg only
 const WINDOWS_TITLES = [

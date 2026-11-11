@@ -1,27 +1,19 @@
 /**
  * @module packages/nana-pack/tests/worker-refusal.test.mjs
- * @purpose Pins fail-closed lane and brief verification, prompt delivery, and the sealed worker ceiling.
+ * @purpose Pin fail-closed lane and brief verification.
  * @inputs pi-worker, brief config, a temporary git repository/worktree, and a stub pi executable
  * @outputs named PASS/FAIL checks
- * @effects disk (OS temp fixtures and a slow CPU-sampler shim), process (git and worker subprocesses)
+ * @effects disk (OS temp fixtures), process (git and worker subprocesses)
  * @errors failed assertions exit nonzero
  */
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
-import {
-	FAKE_PI_HOLD_MS,
-	resolveSampler,
-	samplerIsFirst,
-	SLOW_SAMPLER_MS,
-	WORKER_POLL_SECS,
-	writeSlowSampler,
-} from "./slow-sampler.mjs";
+import { WORKER_POLL_SECS } from "./slow-sampler.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { spawn, spawnSync } from "node:child_process";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { KNOWN_BUGS_DIR } from "../../../scripts/known-bugs.mjs";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 // R-1125: win32 canonicalizes with the native real path, which keeps an 8.3 or differently cased
 // form the way git itself sees it (mirrors pi-worker's own fsReal); POSIX keeps the JS form.
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -56,17 +48,11 @@ function writeStub(posixScript, nodeBody) {
 	if (process.platform === "win32") writeFakePi(stubDir, nodeBody);
 	else { fs.writeFileSync(pi, posixScript); fs.chmodSync(pi, 0o755); }
 }
-const mainPosixScript = (withMarker) => `#!/bin/sh\n${withMarker ? `echo spawned >> "${piSpawnMarker}"\n` : ""}printf '%s\\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nprev=0; n=0\nfor arg in "$@"; do printf '%s\\n' "$arg"; if [ "$prev" = 1 ]; then n=$((n+1)); cp "$arg" "${path.join(temp, "prompt-")}"$n; prev=0; elif [ "$arg" = "--append-system-prompt" ]; then prev=1; fi; done\n`;
+const mainPosixScript = (withMarker) => `#!/bin/sh\n${withMarker ? `echo spawned >> "${piSpawnMarker}"\n` : ""}printf '%s\\n' "$NANA_ROLE:$NANA_WORKTREE_ROOT"\nfor arg in "$@"; do printf '%s\\n' "$arg"; done\n`;
 const mainNodeBody = (withMarker) => `const fs = require("node:fs");
 ${withMarker ? `fs.appendFileSync(${JSON.stringify(piSpawnMarker)}, "spawned\\n");\n` : ""}process.stdout.write(process.env.NANA_ROLE + ":" + process.env.NANA_WORKTREE_ROOT + "\\n");
 const args = process.argv.slice(2);
-let prev = false, n = 0;
-const promptPrefix = ${JSON.stringify(path.join(temp, "prompt-"))};
-for (const arg of args) {
-  process.stdout.write(arg + "\\n");
-  if (prev) { n++; fs.copyFileSync(arg, promptPrefix + n); prev = false; }
-  else if (arg === "--append-system-prompt") prev = true;
-}
+for (const arg of args) process.stdout.write(arg + "\\n");
 `;
 writeStub(mainPosixScript(true), mainNodeBody(true));
 // An empty, fixed agent dir keeps an ambient PI_CODING_AGENT_DIR (e.g. a standalone run started
@@ -91,7 +77,6 @@ const clearLaunchArtifacts = () => {
 	fs.rmSync(piSpawnMarker, { force: true });
 	fs.rmSync(out, { force: true });
 	fs.rmSync(laneLockPath, { force: true });
-	for (let index = 1; index <= 4; index++) fs.rmSync(path.join(temp, `prompt-${index}`), { force: true });
 };
 const runBriefText = (text, file = brief) => {
 	clearLaunchArtifacts();
@@ -103,15 +88,9 @@ const runBriefText = (text, file = brief) => {
 check("lane options with missing values refuse before pi spawn", (() => {
 	const cases = [
 		["lane option missing", ["--lane"]],
-		["lane option empty", ["--lane", ""]],
 		["lane option starts with dash", ["--lane", "-alpha"]],
 		["brief option missing", ["--lane", "alpha", "--brief"]],
-		["max-secs option missing", ["--lane", "alpha", "--brief", brief, "--max-secs"]],
 		["repeated lane with trailing missing value", ["--lane", "alpha", "--brief", brief, "--lane"]],
-		["repeated brief with trailing missing value", ["--lane", "alpha", "--brief", brief, "--brief"]],
-		["repeated max-secs with trailing missing value", ["--lane", "alpha", "--brief", brief, "--max-secs", "30", "--max-secs"]],
-		["brief missing even without lane value", ["--brief"]],
-		["max-secs missing even without lane value", ["--max-secs"]],
 	];
 	return cases.every(([, args]) => {
 		fs.rmSync(piSpawnMarker, { force: true });

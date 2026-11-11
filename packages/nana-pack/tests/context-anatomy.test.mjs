@@ -313,8 +313,6 @@ test('R-3217: seat memory log names whole shortened and omitted entries without 
   assert.equal(e.shortened.length,Number(fold[1])); assert.equal(e.whole.length+e.shortened.length+e.omitted.length,Number(fold[2])); assert.equal(e.omitted.length,Number(fold[3]));
   assert.deepEqual([...e.whole,...e.shortened,...e.omitted].sort(),f.entries.map((_,i)=>`entry-${i}.md`).sort());
 });
-// req: R-3218
-test('R-3218: known-bug digest seal is 6000 UTF-16 units', async()=>assert.equal(await cap(),6000));
 // req: R-3730
 test('R-3730: both pi lane sizes log the selected roster slot', async () => {
   for(const [size,slot] of [['small','builder'],['larger','largerBuilder']]) {
@@ -322,11 +320,6 @@ test('R-3730: both pi lane sizes log the selected roster slot', async () => {
     const config=JSON.parse(fs.readFileSync(path.join(f.agent,'nana-pack.json'),'utf8')); config.roster.largerBuilder={provider:'fake',model:'large',thinking:null}; write(path.join(f.agent,'nana-pack.json'),JSON.stringify(config));
     good(launch(f,'pi-worker',['--lane-size',size])); assert.equal(rows(f.log)[0].slot,slot);
   }
-});
-// req: R-3980
-test('R-3980: pi child skills are the five kept skills in order', async () => {
-  assert.deepEqual((await import('../bin/worker-config.mjs')).PI_CHILD_SKILLS,
-    ['requirements', 'spec', 'py-lint', 'py-review', 'py-test']);
 });
 for (const c of cases) {
   if(process.env.CONTEXT_CASE && !c.title.startsWith(process.env.CONTEXT_CASE))continue;

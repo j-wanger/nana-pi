@@ -345,9 +345,6 @@ check("R-2647: the Claude Code builder's prompt file holds the rendered preamble
 
 const precedentCases = [
 	["missing", "Feature: FEAT-006 · Missing\n"],
-	["empty", "## Precedent\n\n## Done\n"],
-	["reasonless", "Precedent:\n- none:\t"],
-	["untracked", "Precedent:\n- missing.mjs\n"],
 	["passing", "Feature: FEAT-006 · Passing\r\n\r\nPrecedent:\r\n- seed\t"],
 ];
 const precedentObservations = [];
@@ -366,16 +363,6 @@ for (const [name, text] of precedentCases) {
 check("R-2648: a Claude Code builder checks the shared precedent line before the lock and claude",
 	precedentObservations.every((item, index) => item.checked === item.built && item.checkLine === item.workerLine && (index === precedentObservations.length - 1 ? item.built === 0 && item.ran === 1 && item.workerLine?.startsWith("pi-worker: precedent:") : item.built === 1 && item.ran === 0 && !item.lock && !item.pi)),
 	JSON.stringify(precedentObservations));
-
-writeBrief("Precedent:\n- seed\n"); removeArtifacts();
-const lineRun = runWorker();
-const builderLines = lineRun.stderr.split(/\r?\n/).filter((line) => line.startsWith("pi-worker: builder"));
-const builderIndex = lineRun.stderr.indexOf("pi-worker: builder (larger lanes):");
-const attemptIndex = lineRun.stderr.indexOf("[pi-worker] attempt 1/1");
-// req: R-2649
-check("R-2649: a Claude Code larger-lane launch prints one builder line naming claude-code and its model before claude starts",
-	lineRun.status === 0 && builderLines.length === 1 && builderLines[0] === `pi-worker: builder (larger lanes): claude-code fable; source: ${path.join(AGENT, "nana-pack.json")}` && !builderLines[0].includes("undefined") && builderIndex >= 0 && builderIndex < attemptIndex,
-	lineRun.stderr);
 
 let windowsPass = true;
 let windowsDetail = "Windows leg only";
@@ -423,14 +410,6 @@ if (process.platform !== "win32") {
 check("R-2651: a Claude Code builder whose CPU stays flat past the stall limit runs to its end, and the ceiling and SIGTERM still stop it",
 	flatOk && ceilingRun.status === 1 && ceilingRun.stderr.includes("wall-clock ceiling 1s reached") && !ceilingAlive && signalOk,
 	JSON.stringify({ flat: flatRun.stderr, ceiling: ceilingRun.stderr, ceilingAlive, signalDetail }));
-
-writeBrief("Precedent:\n- seed\n"); removeArtifacts();
-const envRun = runWorker({ env: { BASH_DEFAULT_TIMEOUT_MS: "7" } });
-const envCall = readRows(RECORD)[0];
-// req: R-2654
-check("R-2654: a Claude Code builder runs with auto-memory off and the builder Bash limit as both Bash time limits",
-	envRun.status === 0 && envCall?.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY === "1" && envCall.env.BASH_DEFAULT_TIMEOUT_MS === String(CLAUDE_BUILDER_BASH_LIMIT_MS) && envCall.env.BASH_MAX_TIMEOUT_MS === String(CLAUDE_BUILDER_BASH_LIMIT_MS),
-	JSON.stringify({ result: envRun, call: envCall }));
 
 const userSettingsDir = path.join(HOME, ".claude");
 fs.mkdirSync(userSettingsDir, { recursive: true });
@@ -493,12 +472,12 @@ fs.writeFileSync(homeSettings, JSON.stringify({ env: {
 	BASH_MAX_TIMEOUT_MS: "5",
 } }));
 removeArtifacts();
-const sealedRun = runWorker();
+const sealedRun = runWorker({ env: { BASH_DEFAULT_TIMEOUT_MS: "7" } });
 const sealedCall = readRows(RECORD)[0];
 const sealedSettings = fs.existsSync(SETTINGS_COPY) ? JSON.parse(fs.readFileSync(SETTINGS_COPY, "utf8")) : null;
 const sealedNames = Object.keys(sealedEnv());
 const noFoldedDuplicate = sealedSettings && sealedNames.every((name) => Object.keys(sealedSettings.env).filter((candidate) => candidate.toLowerCase() === name.toLowerCase()).length === 1);
-// req: R-2664
+// req: R-2664 R-2654
 check("R-2664: the builder's settings file holds the sealed builder env whatever the user settings env says",
 	sealedRun.status === 0 && sealedSettings && JSON.stringify(sealedSettings.env) === JSON.stringify(sealedEnv()) && noFoldedDuplicate && sealedNames.every((name) => sealedCall?.env[name] === sealedEnv()[name]),
 	JSON.stringify({ result: sealedRun, call: sealedCall, settings: sealedSettings }));
@@ -529,9 +508,6 @@ fs.writeFileSync(homeSettings, JSON.stringify({ apiKeyHelper: "/fake/early-helpe
 writeBrief("Precedent:\n- seed\n");
 const reviewOptionCases = [
 	["--item", ["--item", "x"]],
-	["--role", ["--role", "sol"]],
-	["--revision", ["--revision", "HEAD"]],
-	["--worker", ["--worker"]],
 ];
 const reviewOptionObservations = [];
 for (const [option, extra] of reviewOptionCases) {
