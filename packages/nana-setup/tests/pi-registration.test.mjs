@@ -26,7 +26,7 @@ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const repoManifestBytes = [path.join(repo, "package.json"), path.join(repo, "packages", "nana-knowledge", "package.json")].map((file) => fs.readFileSync(file));
-const { entryMatches, registrationState, remoteMatches, packageCoverage, stepPiRegister, installExitCode, PI_INSTALL_HINT } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { entryMatches, remoteMatches, packageCoverage, stepPiRegister, installExitCode, PI_INSTALL_HINT } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
 let fails = 0;
@@ -89,7 +89,7 @@ check("someone else's fork is not us", !entryMatches("git:github.com/someone/nan
 // req: R-326
 check("a non-string entry is not us", !entryMatches(42, piHome, root));
 
-/* --- registrationState against a settings file ------------------------------------------ */
+/* --- packageCoverage against a settings file ------------------------------------------ */
 const tmps = [];
 function piHomeWith(packages) {
 	const td = tmpDir(path.join(os.tmpdir(), "nana-setup-reg-"));
@@ -106,7 +106,7 @@ function piHomeWith(packages) {
 	const agent = path.join(home, ".pi", "agent");
 	const rel = path.relative(agent, repo);
 	fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: ["npm:pi-subagents", rel] }, null, 2));
-	const state = registrationState(resolveLayout({ home }));
+	const state = packageCoverage(resolveLayout({ home }));
 	// req: R-323 R-392
 	check("registered by relative path is detected as present", state.present, JSON.stringify(state));
 	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8" });
@@ -125,14 +125,14 @@ function piHomeWith(packages) {
 }
 {
 	const home = piHomeWith(["npm:pi-mcp-adapter"]);
-	const state = registrationState(resolveLayout({ home }));
+	const state = packageCoverage(resolveLayout({ home }));
 	// req: R-326
 	check("an unrelated package list is not a match", !state.present);
 }
 {
 	const home = piHomeWith(null);
 	// req: R-326
-	check("a missing pi settings.json is not a match", !registrationState(resolveLayout({ home })).present);
+	check("a missing pi settings.json is not a match", !packageCoverage(resolveLayout({ home })).present);
 }
 {
 	// Under the runner's temp root (R-917), sharing the checkout's git identity through a one-line
@@ -267,7 +267,7 @@ function piHomeWith(packages) {
 				spawnSync("git", ["-C", other, "init", "-q"], { encoding: "utf8" });
 				fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [other] }, null, 2));
 				// req: R-326
-				check("a different git repo is NOT a match", !wtSteps.registrationState(wtPaths.resolveLayout({ home })).present);
+				check("a different git repo is NOT a match", !wtSteps.packageCoverage(wtPaths.resolveLayout({ home })).present);
 			} finally {
 				spawnSync("git", ["-C", repo, "worktree", "remove", "--force", wt], { encoding: "utf8" });
 				fs.rmSync(wt, { recursive: true, force: true });

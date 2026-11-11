@@ -4,7 +4,7 @@
  * @inputs a parsed settings object (the caller reads and writes the file); { hooksDir, repoRoot, platform };
  *  the command strings and args already in settings.hooks
  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; entryInvokes() boolean;
- *  desiredHooks(); hookTargets(); knowledgeHookHealthy(); mergeRepoHooks(); validateShape(); hasHook();
+ *  desiredHooks(); hookTargets(); mergeRepoHooks(); validateShape(); hasHook();
  *  mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook();
  *  retiredHookCommands(); removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); isRetiredVerifierHook(); removeRetiredVerifierHook(); retiredMemoryHook(); isRetiredMemoryHook(); removeRetiredMemoryHook(); removeRetiredHook(); serialize() JSON text; CLAUDE_CODE_EXEC_FLOOR
  * @effects disk (reads only)
@@ -234,8 +234,8 @@ export function hasHook(settings, event, spec, matcher, platform) {
 
 /**
  * Every absolute script path an entry under `event` invokes, in ANY group (matcher ignored —
- * this is a health signal across the whole event, the way knowledgeHookHealthy has always read
- * it). Exec form is read only on win32, exactly like entryInvokes; everywhere else, and for a
+ * this is a health signal across the whole event). Exec form is read only on win32, exactly
+ * like entryInvokes; everywhere else, and for a
  * win32 entry carrying no `args`, the shell-form `command` is tokenized exactly as commandInvokes
  * reads it.
  */
@@ -501,8 +501,7 @@ export function installerTarget(hook, wanted, platform) {
 
 /**
  * Replace every stale or (on win32) wrongly-shaped repo-anchored entry in place, returning
- * { [label]: { found, replaced } } for each one R-1056 names: the knowledge pull on every
- * platform, and all active entries on win32.
+ * { [label]: { found, replaced } } for all active entries on win32 (R-1056).
  *
  * It scans entries under that entry's event; where the entry has a matcher, it scans only groups
  * with that matcher, otherwise every group (as the knowledge scan always has). The timeout gate
@@ -516,7 +515,7 @@ export function installerTarget(hook, wanted, platform) {
  */
 export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 	const win32 = platform === "win32";
-	const repoAnchored = wanted.filter((w) => win32 || w.marker === "nana-knowledge.ts hook");
+	const repoAnchored = win32 ? wanted : [];
 	const result = {};
 	for (const w of repoAnchored) {
 		const groups = settings?.hooks?.[w.event];
@@ -564,21 +563,6 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 		result[w.label] = { found: found.length > 0, replaced };
 	}
 	return result;
-}
-
-export function knowledgeHookHealthy(settings, repoRoot, platform) {
-	const targets = hookTargets(settings, "UserPromptSubmit", { interpreters: ["node"], script: "nana-knowledge.ts", args: ["hook"] }, platform);
-	if (!targets.length) return false;
-	const isAbsolute = platform === "win32" ? path.win32.isAbsolute : path.isAbsolute;
-	return targets.every((target) => {
-		try {
-			const real = realPath(target, { mustExist: true });
-			const root = realPath(repoRoot, { mustExist: true });
-			return isAbsolute(target) && (real === root || real.startsWith(root + path.sep));
-		} catch {
-			return false;
-		}
-	});
 }
 
 const LEGACY_HOOKS = [

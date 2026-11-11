@@ -137,7 +137,7 @@ This inventory does not configure a backup destination. Several repositories hav
 
 Setup no longer seeds `extensions/subagent/config.json` or `agents/reviewer.md`. Install and direct uninstall remove only regular files byte-identical to the historical seeds retained under `pi/retired/`. Edited files, including marked ones, foreign files and symlinks remain untouched. Dry runs make no changes. Doctor has no delegation-runtime rows, and the install check neither installs that runtime nor retries its installation.
 
-- Registration: `registrationState` recognises string `packages` entries only. An object-form entry (pi's resource filter) reads as unregistered, doctor reads ✗, and install would run `pi install` again.
+- Registration: `packageCoverage` recognises string `packages` entries only. An object-form entry (pi's resource filter) reads as unregistered, doctor reads ✗, and install would run `pi install` again.
 
 ## Pi dependencies and mcp.json — read-only checks
 

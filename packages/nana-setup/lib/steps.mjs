@@ -637,13 +637,6 @@ export function stepSharedMemory(layout, o) {
 	return [
 		{ label: "shared memory dir", ...dir },
 		{ label: "shared memory MEMORY.md", ...idx },
-		{
-			label: "per-project `shared` link",
-			status: UNCHANGED,
-			// No installer step by design: the SessionStart hook creates it for whatever
-			// project the session is in, so a brand-new repo heals itself.
-			detail: "maintained by the nana-shared-memory.mjs hook, per project",
-		},
 	];
 }
 
@@ -867,8 +860,7 @@ function manifestExtensions(manifestRoot) {
 
 function exactLocalEntry(entry, layout, target, manifestRoot = repoRoot) {
 	if (typeof entry !== "string" || entry.startsWith("npm:") || remoteMatches(entry)) return false;
-	const expanded = entry === "~" ? os.homedir() : entry.startsWith("~/") ? path.join(os.homedir(), entry.slice(2)) : entry;
-	const resolved = realpathSafe(path.resolve(layout.piHome, expanded));
+	const resolved = resolvePackageEntryPath(entry, layout.piHome);
 	const expected = realpathSafe(target);
 	if (resolved === expected) return true;
 	const common = gitCommonDir(expected);
@@ -906,10 +898,6 @@ export function packageCoverage(layout, manifestRoot = repoRoot) {
 	}
 	const missing = extensionDirs.filter((dir) => !loaded.has(dir));
 	return { present: missing.length === 0, entries, match, missing, packageRoots };
-}
-
-export function registrationState(layout) {
-	return packageCoverage(layout);
 }
 
 // chosen 2026-10-20: measured pi 1.0.2 launches took 0.15 s; 30 s covers cold starts and 120 s covers startup tidy and settings-lock retries while keeping two installs under the install check's 300 s bound.
