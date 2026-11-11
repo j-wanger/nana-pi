@@ -7,8 +7,6 @@
  * @errors a FAIL line naming the broken contract; a non-zero exit code
  */
 import {
-	RENAME_RETRY_ATTEMPTS,
-	RENAME_RETRY_CODES,
 	RENAME_RETRY_DELAY_MS,
 	renameWithRetry,
 } from "../lib/rename-retry.mjs";
@@ -57,10 +55,5 @@ for (const code of ["ENOENT", "EXDEV"]) {
 // req: R-2659
 check("R-2659: the shared rename retry waits, rechecks and retries only EPERM, EBUSY and EACCES, on every platform, up to the configured attempts, then throws the last error",
 	oneFailureOk && defaultDelayOk && exhaustionOk && permanentOk);
-
-// req: R-2659
-check("seal: three attempts 20 ms apart on EPERM, EBUSY and EACCES",
-	RENAME_RETRY_ATTEMPTS === 3 && RENAME_RETRY_DELAY_MS === 20 && Object.isFrozen(RENAME_RETRY_CODES)
-	&& JSON.stringify(RENAME_RETRY_CODES) === JSON.stringify(["EPERM", "EBUSY", "EACCES"]));
 
 process.exit(fails);

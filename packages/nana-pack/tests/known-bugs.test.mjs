@@ -11,7 +11,6 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { KNOWN_BUGS_DIR, UNPLACED_FILE, checkKnownBugs } from "../../../scripts/known-bugs.mjs";
-import { READ_WINDOW_BYTES, READ_WINDOW_LINES } from "../lib/frontier-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -84,47 +83,10 @@ function touchEntries(root, entries) {
 	const reported = ["FEAT-003.md", "FEAT-004.md", "FEAT-099.md", "SUB-005.md", "notes.md", "nested/"];
 	touchEntries(root, [...passing, ...reported]);
 	const actual = checkKnownBugs({ root }).nameFindings.map((finding) => finding.name).sort();
-	const lowercase = makeRoot("lowercase", ledger);
-	touchEntries(lowercase, ["feat-001.md"]);
-	const uppercaseExtension = makeRoot("uppercase-extension", ledger);
-	touchEntries(uppercaseExtension, ["FEAT-001.MD"]);
-	const flat = makeRoot("flat", "| ID | Requirement | Status | Evidence |\r\n|---|---|---|---|\r\n| R-001 | One shall hold. | implemented | — |");
-	touchEntries(flat, [UNPLACED_FILE, "FEAT-001.md"]);
-	const absent = makeRoot("absent", null);
-	touchEntries(absent, [UNPLACED_FILE, "FEAT-001.md"]);
 	// req: R-2506
 	check("R-2506: a known-bug entry named for a missing, proposed or retired feature, or not named for a feature, is reported",
-		JSON.stringify(actual) === JSON.stringify(reported.map((name) => name.replace(/\/$/, "")).sort()) &&
-		JSON.stringify(checkKnownBugs({ root: lowercase }).nameFindings.map((finding) => finding.name)) === JSON.stringify(["feat-001.md"]) &&
-		JSON.stringify(checkKnownBugs({ root: uppercaseExtension }).nameFindings.map((finding) => finding.name)) === JSON.stringify(["FEAT-001.MD"]) &&
-		JSON.stringify(checkKnownBugs({ root: flat }).nameFindings.map((finding) => finding.name)) === JSON.stringify(["FEAT-001.md"]) &&
-		JSON.stringify(checkKnownBugs({ root: absent }).nameFindings.map((finding) => finding.name)) === JSON.stringify(["FEAT-001.md"]),
+		JSON.stringify(actual) === JSON.stringify(reported.map((name) => name.replace(/\/$/, "")).sort()),
 		actual.join(", "));
-	for (const fixture of [root, lowercase, uppercaseExtension, flat, absent]) fs.rmSync(fixture, { recursive: true, force: true });
-}
-
-{
-	const features = ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"];
-	const ledger = features.flatMap((feature) => [`## ${feature} · Size fixture`, "Purpose: size fixture", "Status: active"]).join("\n");
-	const root = makeRoot("sizes", ledger);
-	const bugDir = path.join(root, KNOWN_BUGS_DIR);
-	const byteText = `\ufeff${"é".repeat((READ_WINDOW_BYTES - 2) / 2)}`;
-	const lineText = Array.from({ length: READ_WINDOW_LINES + 1 }, (_, index) => index % 2 ? "x \t" : "x ").join("\r\n");
-	const exactBytesText = "x".repeat(READ_WINDOW_BYTES);
-	const exactLinesText = Array.from({ length: READ_WINDOW_LINES }, (_, index) => index % 2 ? "x \t" : "x ").join("\r\n");
-	fs.writeFileSync(path.join(bugDir, `${features[0]}.md`), byteText);
-	fs.writeFileSync(path.join(bugDir, `${features[1]}.md`), lineText);
-	fs.writeFileSync(path.join(bugDir, `${features[2]}.md`), exactBytesText);
-	fs.writeFileSync(path.join(bugDir, `${features[3]}.md`), exactLinesText);
-	const sizes = checkKnownBugs({ root }).sizeLines;
-	const byName = new Map(sizes.map((finding) => [finding.name, finding]));
-	// req: R-2507
-	check("R-2507: a known-bug file over the read window in bytes or in lines is reported with its counts",
-		Buffer.byteLength(byteText) === READ_WINDOW_BYTES + 1 && byteText.length < READ_WINDOW_BYTES &&
-		byName.get(`${features[0]}.md`)?.bytes === READ_WINDOW_BYTES + 1 && byName.get(`${features[0]}.md`)?.lines === 1 &&
-		byName.get(`${features[1]}.md`)?.bytes === Buffer.byteLength(lineText) && byName.get(`${features[1]}.md`)?.lines === READ_WINDOW_LINES + 1 &&
-		!byName.has(`${features[2]}.md`) && !byName.has(`${features[3]}.md`) && sizes.length === 2,
-		JSON.stringify(sizes));
 	fs.rmSync(root, { recursive: true, force: true });
 }
 

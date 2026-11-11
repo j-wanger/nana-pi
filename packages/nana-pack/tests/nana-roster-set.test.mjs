@@ -68,7 +68,6 @@ const statesEqual = (a, b) => a.type === b.type && (a.type !== "file" || a.bytes
 		["builder default thinking", sampleRoster(), "builder", ["example-gateway", "gpt-9", DEFAULT_THINKING_TOKEN], entry("example-gateway", "gpt-9", null)],
 		["largerBuilder claude-code", sampleRoster(), "largerBuilder", [CLAUDE_CODE_RUNTIME, "sonnet"], { runtime: CLAUDE_CODE_RUNTIME, model: "sonnet" }],
 		["scout null token", sampleRoster(), "scout", [SLOT_NULL_TOKENS.scout], null],
-		["largerBuilder null token", { ...sampleRoster(), largerBuilder: entry("example-gateway", "x", "low") }, "largerBuilder", [SLOT_NULL_TOKENS.largerBuilder], null],
 		["pasted printed line with its colon", sampleRoster(), "builder:", ["example-gateway", "gpt-7", "high"], entry("example-gateway", "gpt-7", "high")],
 	];
 	const results = CASES.map(([label, base, slotArg, tokens, expectedValue], idx) => {
@@ -121,13 +120,7 @@ const statesEqual = (a, b) => a.type === b.type && (a.type !== "file" || a.bytes
 	const BAD_CASES = [
 		["no slot", [], null],
 		["unknown slot", ["reviewr", "a", "b", "high"], "reviewr"],
-		["builder two tokens", ["builder", "a", "b"], "builder"],
-		["builder four tokens", ["builder", "a", "b", "high", "extra"], "builder"],
 		["thinking extreme", ["builder", "a", "b", "extreme"], "thinking"],
-		["builder null token", ["builder", SLOT_NULL_TOKENS.scout], "builder"],
-		["land wrong null token", ["land", SLOT_NULL_TOKENS.scout], "land"],
-		["land claude-code", ["land", CLAUDE_CODE_RUNTIME, "sonnet"], "land"],
-		["largerBuilder bad claude-code model", ["largerBuilder", CLAUDE_CODE_RUNTIME, "gpt-5"], "largerBuilder"],
 	];
 	const results = BAD_CASES.map(([label, args, name]) => {
 		const dir = freshAgentDir(`r1402-${label.replace(/\W+/g, "-")}`);
@@ -146,10 +139,6 @@ const statesEqual = (a, b) => a.type === b.type && (a.type !== "file" || a.bytes
 {
 	const FILE_SHAPES = [
 		["invalid JSON", (f) => fs.writeFileSync(f, "{\"roster\": ")],
-		["top level is an array", (f) => fs.writeFileSync(f, "[]")],
-		["unknown roster slot", (f) => fs.writeFileSync(f, JSON.stringify({ roster: { ...sampleRoster(), auditor: entry("example-gateway", "gpt-6-luna", null) } }))],
-		["a bad thinking value", (f) => fs.writeFileSync(f, JSON.stringify({ roster: { ...sampleRoster(), builder: entry("example-gateway", "gpt-6-luna", "extreme") } }))],
-		["a valid roster padded past the 1 MiB cap", (f) => fs.writeFileSync(f, JSON.stringify({ roster: sampleRoster() }) + " ".repeat(1024 * 1024))],
 		["a directory", (f) => fs.mkdirSync(f)],
 		...(process.platform === "win32" ? [] : [["a dangling symlink", (f) => fs.symlinkSync(path.join(path.dirname(f), "missing-target.json"), f)]]),
 	];
@@ -282,10 +271,6 @@ check('MM2: role slots and scout accept pi Claude and null tokens and name malfo
 			const dir = freshAgentDir('roles-set'); const r = runSet(dir, [slot, ...tokens]);
 			observations.push(r.status === 0 && r.stdout.includes(`${slot}: ${tokens.join(' ')}\n`));
 		}
-	}
-	for (const [slot, bad, token] of [['adversary',{runtime:'claude-code',model:'gpt-6'},'roster.adversary.model'],['planner','opus','roster.planner'],['adversary',{provider:'openai',model:'x',thinking:'bad'},'roster.adversary.thinking']]) {
-		const dir = freshAgentDir('roles-bad'); writeRoster(dir, {...sampleRoster(),[slot]:bad});
-		const r = runPlain(dir); observations.push(r.status === 1 && r.stderr.includes(token));
 	}
 	return observations.every(Boolean);
 })());

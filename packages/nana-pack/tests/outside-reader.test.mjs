@@ -47,6 +47,7 @@ async function fixture(fn) {
 
 // req: R-3060
 await test("R-3060: prompt orders bounded purpose, bugs, diff and both-width page views", async () => {
+  assert.ok(C.READER_VIEWS.slice(1).every((v) => PRODUCT_VIEWS.includes(v)));
   await fixture(async ({ root, out, from, seams, args, urls, widths }) => {
     assert.equal(await runOutsideReader(args, seams), 0);
     const prompt = await fs.readFile(path.join(out, "prompt.md"), "utf8");
@@ -78,6 +79,7 @@ await test("R-3060: prompt orders bounded purpose, bugs, diff and both-width pag
 
 // req: R-3061
 await test("R-3061: pi runs once cold through the sealed watchdog in an empty external cwd", async () => {
+  assert.equal(C.POLL_SECS, 15);
   await fixture(async ({ out, root, seams, args, launches }) => {
     assert.equal(await runOutsideReader(args, seams), 0); assert.equal(launches.length, 1);
     const launch = launches[0];
@@ -162,15 +164,4 @@ await test("M6: outside reader chooses exact scout or builder and never legacy l
   });
 });
 
-// req: R-3066
-await test("R-3066: outside-reader values retain their sealed provenance", async () => {
-  assert.equal(C.MAX_FINDINGS, 3); assert.deepEqual(C.READER_VIEWS, ["", "overview", "product", "decisions", "issues"]);
-  assert.ok(C.READER_VIEWS.slice(1).every((v) => PRODUCT_VIEWS.includes(v)));
-  assert.equal(C.VIEW_TEXT_CAP, 4000); assert.equal(C.PHONE_LANDING_TEXT_CAP, 6000);
-  assert.equal(C.DIFF_CAP, 4000); assert.equal(C.KNOWN_BUG_CAP, 6000);
-  assert.equal(C.PROMPT_PATH, "packages/nana-pack/prompts/outside-reader.md"); assert.equal(C.KNOWN_BUG_FEATURE, "FEAT-039");
-  assert.deepEqual(C.ROSTER_SLOT_ORDER, ["scout", "builder"]);
-  assert.equal(C.STALL_SECS, Infinity); assert.equal(C.RETRIES, 0); assert.equal(C.MAX_SECS, 600); assert.equal(C.VIEWPORT_HEIGHT, 1000); assert.equal(C.POLL_SECS, 15);
-  assert.equal(C.VIEWPORT_WIDTHS, VIEWPORT_WIDTHS);
-});
 if (!process.exitCode) console.log(`${passed} outside-reader checks passed`);

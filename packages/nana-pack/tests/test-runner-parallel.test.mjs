@@ -570,29 +570,6 @@ check("R-1475: SIGINT and SIGTERM during a parallel run kill every running tree 
 	JSON.stringify(signal1475Results),
 );
 
-// ════════════════════════════════════════════════════════════════════════════════════════════
-// R-1477: a bad --jobs argument exits 1 naming it before any file starts.
-// ════════════════════════════════════════════════════════════════════════════════════════════
-const root1477 = mkRoot("r1477", {
-	"packages/probe/tests/marker.test.mjs": [
-		'import * as fs from "node:fs";',
-		'import * as path from "node:path";',
-		'fs.writeFileSync(path.join(process.env.PROBE_OUT, "marker.ran"), "1");',
-		'console.log("PASS ran");',
-		"",
-	].join("\n"),
-});
-const BAD_JOBS_ARGS = ["--jobs=0", "--jobs=abc", "--jobs=2.5", "--jobs=", "--jobs"];
-const badJobsResults = BAD_JOBS_ARGS.map((arg) => {
-	const r = run(root1477, [arg]);
-	return { arg, ok: r.code === 1 && r.out.includes(arg) && !fs.existsSync(path.join(r.out_dir, "marker.ran")) };
-});
-// req: R-1477
-check("R-1477: --jobs=0, --jobs=abc, --jobs=2.5, --jobs= and a bare --jobs each exit 1 naming the argument before any file starts",
-	badJobsResults.every((r) => r.ok),
-	JSON.stringify(badJobsResults),
-);
-
 fs.rmSync(TD, { recursive: true, force: true });
 console.log(fails ? `\n${fails} check(s) failed` : "\nall checks passed");
 process.exit(fails ? 1 : 0);

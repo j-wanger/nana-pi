@@ -89,10 +89,8 @@ for (const [label, value, accepted] of [
 			(accepted || /lane refused: Serves:/.test(launched.stderr)), stderr: launched.stderr });
 	}
 }
-// req: R-3948
+// req: R-3948 R-3949
 check("R-3948: Serves refuses missing empty and malformed values and launches complete roadmap or owner forms", servesResults.every((r) => r.ok), JSON.stringify(servesResults.filter((r) => !r.ok)));
-// req: R-3949
-check("R-3949: the alignment label is sealed as Serves:", briefConfig.SERVES_LINE_PREFIX === "Serves:");
 
 // The adopted context-trim plan still demanded preventive tests; launch must name validation.
 const validationResults = [];

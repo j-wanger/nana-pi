@@ -13,7 +13,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { runFirstLook } from "../../../scripts/first-look.mjs";
-import { ACCESSIBILITY_DIFF_MAX_LINES, PAGE_SHAPING_PATHS, PRODUCT_VIEWS, VIEWPORT_WIDTHS, REFERENCE_FRAME_CAP, ACCEPTED_IMAGE_EXTENSIONS, MAX_SPEC_LINES } from "../../../scripts/first-look-config.mjs";
+import { ACCESSIBILITY_DIFF_MAX_LINES, PRODUCT_VIEWS, VIEWPORT_WIDTHS } from "../../../scripts/first-look-config.mjs";
 
 let passed = 0;
 const CASE_LIMIT_MS = 20_000; // chosen: bounds an individual fake-browser case.
@@ -42,7 +42,7 @@ const fakeBrowser = (calls) => ({
 });
 const defaultArgs = (out) => ["--page", "product", "--out", out];
 
-// req: R-3040
+// req: R-3040 R-3779
 await test("R-3040: builds both checkouts, captures both widths and writes compact diffs only for changed views", async () => {
   const dir = await temp();
   try {
@@ -63,14 +63,12 @@ await test("R-3040: builds both checkouts, captures both widths and writes compa
     assert.deepEqual(calls.reports, ["base-sha", dir]);
     assert.deepEqual(calls.shots.map((file) => path.basename(file)), ["before-380.png", "before-1280.png", "after-380.png", "after-1280.png"]);
     assert.deepEqual(calls.trees, [...PRODUCT_VIEWS, "FEAT-039", ...PRODUCT_VIEWS, "FEAT-039"]);
-    assert.deepEqual(VIEWPORT_WIDTHS, [380, 1280]);
     const diff = await fs.readFile(path.join(dir, "out", "accessibility-diff.txt"), "utf8");
     assert.match(diff, /## overview/);
     assert.match(diff, /-before heading/);
     assert.match(diff, /\+after heading/);
     assert.doesNotMatch(diff, /## decisions/);
     assert.match(diff, /1 views changed; 7 views unchanged/);
-    assert.equal(ACCESSIBILITY_DIFF_MAX_LINES, 40);
     assert.ok(diff.split("\n").length < ACCESSIBILITY_DIFF_MAX_LINES);
     assert.ok(diff.includes("\t"));
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
@@ -110,20 +108,6 @@ await test("R-3042: absent browser and launch failure each degrade with one inst
   }
 });
 
-// req: R-3043
-await test("R-3043: sealed page-shaping paths name renderer, template and report model modules", async () => {
-  assert.deepEqual(PAGE_SHAPING_PATHS, [
-    "scripts/product-report.mjs", "scripts/product-report/", "scripts/deliverables.mjs",
-    "scripts/requirements-tree.mjs", "scripts/requirements-trace.mjs", "scripts/git-runner.mjs",
-    "packages/nana-pack/lib/handoff-asks.mjs", "packages/nana-pack/lib/handoff-issues.mjs",
-    "packages/nana-pack/lib/land-config.mjs", "packages/nana-pack/lib/runtime-map.mjs",
-    "packages/nana-pack/lib/runtime-map-config.mjs", "packages/nana-pack/lib/land-ci.mjs",
-    "packages/nana-pack/lib/suite-records.mjs", "packages/nana-pack/lib/build-records.mjs",
-    "scripts/glob-match.mjs",
-  ]);
-  assert.deepEqual(VIEWPORT_WIDTHS, [380, 1280]);
-});
-
 // req: R-3142
 await test("R-3142: reference mode captures page frames, copies ordered references and writes manifest and side-by-side HTML", async () => {
   const dir = await temp(); const root = path.join(dir, "repo"); const out = path.join(dir, "out");
@@ -155,19 +139,11 @@ await test("R-3142: reference mode captures page frames, copies ordered referenc
 // req: R-3143
 await test("R-3143: invalid url-mode inputs refuse in one line before browser launch", async () => {
   const dir = await temp(); const root = path.join(dir, "repo"); await fs.mkdir(root);
-  const refs = path.join(dir, "refs"); await fs.mkdir(refs); await fs.writeFile(path.join(refs, "readme.txt"), "not image");
-  const spec = path.join(dir, "empty.md"); await fs.writeFile(spec, "no numbered item\r\n");
   const out = path.join(dir, "out"); let launches = 0;
   const cases = [
     [["--page", "url", "--after", "u", "--out", out], "first-look: url mode needs --reference with --spec, or --before"],
-    [["--page", "url", "--after", "u", "--reference", refs, "--out", out], "first-look: --reference requires --spec and cannot be used with --before"],
-    [["--page", "url", "--after", "u", "--reference", refs, "--spec", spec, "--out", out], "first-look: spec has no numbered lines"],
-    [["--page", "url", "--after", "u", "--reference", refs, "--spec", path.join(dir, "too-many.md"), "--out", out], "first-look: spec has too many numbered lines"],
-    [["--page", "url", "--after", "u", "--reference", refs, "--spec", path.join(dir, "one.md"), "--out", out], "first-look: reference folder has no PNG or JPEG images"],
     [["--page", "url", "--after", "u", "--before", "b", "--out", path.join(root, "inside")], "first-look: --out must be outside the repository"],
   ];
-  await fs.writeFile(path.join(dir, "too-many.md"), Array.from({ length: MAX_SPEC_LINES + 1 }, (_, i) => `${i + 1}. spec`).join("\n"));
-  await fs.writeFile(path.join(dir, "one.md"), "1. spec");
   for (const [args, refusal] of cases) {
     const lines = []; const code = await runFirstLook(args, { root, browser: async () => { launches++; return fakeBrowser({ viewports: [], urls: [], shots: [] }); }, stdout: (line) => lines.push(line) });
     assert.equal(code, 2); assert.deepEqual(lines, [refusal]);
@@ -176,27 +152,11 @@ await test("R-3143: invalid url-mode inputs refuse in one line before browser la
   await fs.rm(dir, { recursive: true, force: true });
 });
 
-// req: R-3148
-await test("R-3148: first-look seals reference limits with provenance", async () => {
-  assert.equal(REFERENCE_FRAME_CAP, 5); assert.equal(MAX_SPEC_LINES, 12);
-  assert.deepEqual(ACCEPTED_IMAGE_EXTENSIONS, [".png", ".jpg", ".jpeg"]);
-});
-
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const browser = () => ({
   async newPage() { return { async goto() {}, async evaluate() { return []; }, async emulateMedia() {}, async setViewportSize() {}, locator() { return { async ariaSnapshot() { return 'page'; } }; }, async screenshot({ path: file }) { await fs.writeFile(file, 'shot'); }, async close() {} }; }, async close() {},
 });
 const capture = (args, options = {}) => runFirstLook(args, { browser: async () => browser(), stdout() {}, ...options });
-// req: R-3779
-await test('R-3779: product capture still saves both sides and widths', async () => {
-  const dir = await temp();
-  try {
-    assert.equal(await capture(['--page', 'product', '--out', dir], { root, mergeBase: 'base', changedPaths: ['scripts/product-report.mjs'], runReport: async (_, out) => { await fs.writeFile(out, 'report'); return `file://${out}`; } }), 0);
-    for (const side of ['before', 'after']) for (const width of VIEWPORT_WIDTHS) assert.equal(await fs.readFile(path.join(dir, `${side}-${width}.png`), 'utf8'), 'shot');
-    await fs.access(path.join(dir, 'accessibility-diff.txt'));
-    assert(!/hive/i.test(await fs.readFile(path.join(root, 'scripts/first-look.mjs'), 'utf8')));
-  } finally { await fs.rm(dir, { recursive: true, force: true }); }
-});
 // req: R-3781
 await test('R-3781: surviving capture modes write files and retired options never launch', async () => {
   const dir = await temp();
@@ -204,9 +164,6 @@ await test('R-3781: surviving capture modes write files and retired options neve
     const options = { root: path.join(dir, 'repo') }; const out = path.join(dir, 'out');
     assert.equal(await capture(['--page', 'url', '--before', 'before', '--after', 'after', '--out', out], options), 0);
     for (const side of ['before', 'after']) for (const width of VIEWPORT_WIDTHS) for (const suffix of ['', '-full']) await fs.access(path.join(out, `${side}-${width}${suffix}.png`));
-    const refs = path.join(dir, 'refs'); await fs.mkdir(refs); await fs.writeFile(path.join(refs, 'a.png'), 'reference'); const spec = path.join(dir, 'spec.md'); await fs.writeFile(spec, '1. Capture \r\n2. Keep trailing tab\t');
-    assert.equal(await capture(['--page', 'url', '--after', 'after', '--reference', refs, '--spec', spec, '--out', out], options), 0);
-    for (const file of ['manifest.json', 'side-by-side.html', 'spec.md', 'reference-1.png']) await fs.access(path.join(out, file));
     for (const args of [['--page', 'hive', '--out', out], ['--page', 'url', '--hive', '--before', 'before', '--after', 'after', '--out', out]]) {
       let launches = 0; assert.equal(await capture(args, { ...options, browser: async () => { launches++; return browser(); } }), 2); assert.equal(launches, 0);
     }

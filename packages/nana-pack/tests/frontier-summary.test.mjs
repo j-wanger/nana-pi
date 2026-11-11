@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/tests/frontier-summary.test.mjs
- * @purpose Pin the frontier block's parsing, bounds, role silence, read failures and sealed values.
+ * @purpose Pin the frontier block's parsing, bounds, role silence and read failures.
  * @inputs Disposable HANDOFF repositories, the frontier summary library and CLI, checker fixtures and configuration constants.
- * @outputs PASS/FAIL checks for R-2607 through R-2611 and the frontier seal.
+ * @outputs PASS/FAIL checks for the frontier summary contract.
  * @effects disk (temporary fixtures), process (runs the frontier producer CLI).
  * @errors Failed checks set a nonzero exit code; every subprocess has a per-case timeout.
  */
@@ -15,7 +15,7 @@ import { BOUNDED_READ_CAP } from "../lib/bounded-read.mjs";
 import { promptPath } from "../lib/display.mjs";
 import { frontierSummary } from "../lib/frontier-summary.mjs";
 import { checkFrontier, frontierSummaryLine } from "../lib/frontier-check.mjs";
-import { FRONTIER_HEADING, FRONTIER_OUTPUT_CAP, FRONTIER_SECTION, FRONTIER_TAG, FRONTIER_TITLE_CAP, FRONTIER_UNAVAILABLE } from "../lib/frontier-summary-config.mjs";
+import { FRONTIER_HEADING, FRONTIER_OUTPUT_CAP, FRONTIER_TAG, FRONTIER_TITLE_CAP, FRONTIER_UNAVAILABLE } from "../lib/frontier-summary-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import * as frontierValues from "../lib/frontier-summary-config.mjs";
 
@@ -160,9 +160,6 @@ const lines = (text) => text?.split("\n") ?? [];
 	check("R-2611: an unreadable HANDOFF.md gives one FRONTIER UNAVAILABLE line naming its cause and path", results.every((entry) => entry.ok), JSON.stringify(results.map(({ cause, result }) => ({ cause, status: result.status, out: result.stdout, signal: result.signal }))));
 }
 
-// req: R-2606 R-2609 R-2612
-check("seal: the frontier block's tag is [nana:frontier], its pi section is nana-frontier and its caps are 4,000 and 160 characters", FRONTIER_TAG === "[nana:frontier]" && FRONTIER_SECTION === "nana-frontier" && FRONTIER_OUTPUT_CAP === 4000 && FRONTIER_TITLE_CAP === 160);
-
 {
 	const pointer = "## Next\nThe live next items are the open issues labelled `next` at https://github.com/example/project/issues.\n## Open for the owner\nThe owner's open questions are the open issues labelled `ask` at https://github.com/example/project/issues.\n";
 	const root = repo("frontier-main-ci", pointer);
@@ -180,7 +177,5 @@ check("seal: the frontier block's tag is [nana:frontier], its pi section is nana
 	// req: R-3184
 	check("R-3184: the bounded and omitted seat blocks name main CI beside issue watch only with its workflow and the rule requires both runs", ok, JSON.stringify({ before, blocks, omitted }));
 }
-// req: R-3184
-check("seal R-3184: the runnable main CI command prefix", frontierValues.MAIN_CI_COMMAND_PREFIX === 'node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs"');
 
 if (failures) process.exitCode = 1;

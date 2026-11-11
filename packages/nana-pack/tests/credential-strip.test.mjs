@@ -172,12 +172,6 @@ await check('M5: shipped builder guidance assigns pushes to the seat', () => {
     assert.doesNotMatch(fs.readFileSync(path.join(root, file), 'utf8'), /Builders (?:run touched tests, )?push|push your last commit|the pushed branch|Push with plain git push/i);
   }
 });
-// req: R-3665
-await check('M6: dated CI ruling and shared working pattern agree', () => {
-  const shared = fs.readFileSync(path.join(root, 'templates/_shared/working-under-nana-pi.md'), 'utf8');
-  const agents = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
-  assert.equal(agents.split('<!-- nana:working-under-nana-pi begin -->\n')[1].split('<!-- nana:working-under-nana-pi end -->')[0], shared);
-});
 // req: R-3666
 await check('M7: credential strip configuration seal', async () => {
   const c = await import('../lib/credential-strip-config.mjs');

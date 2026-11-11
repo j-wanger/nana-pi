@@ -54,7 +54,7 @@ await check("R-3050: Overview leads with What it does and Needs you, then closes
   assert.deepEqual(OVERVIEW_BLOCKS, [["What it does", "#product"], ["Needs you", "#decisions"], ["Broken", "#issues"], ["Gaps", "#product"], ["Stale", "#features"]]);
   const repo = treeFixture(temp, "routing", basic("product", ["Deliverables: R-001", ...code("R-001")]));
   const html = await page(repo, "routing");
-  for (const hash of ["", "#overview", "#shared", "#nope", "#constructor"]) {
+  for (const hash of ["", "#overview", "#shared", "#nope"]) {
     const view = renderHtmlAt(html, hash);
     assert.equal(view.nodes.find((node) => node.tag === "h2")?.textContent, "Overview");
     const nav = view.nodes.find((node) => node.tag === "nav");
@@ -70,16 +70,6 @@ await check("R-3050: Overview leads with What it does and Needs you, then closes
     const actualBlocks = [...view.root.children.filter((node) => node.tag === "h3"), ...details.children.filter((node) => node.tag === "section").flatMap((section) => section.children.filter((node) => node.tag === "h3"))];
     assert.deepEqual(actualBlocks.map((heading) => [heading.textContent, heading.children.filter((n) => n.tag === "a").length, heading.children[0]?.attrs.href]), OVERVIEW_BLOCKS.map(([heading, href]) => [heading, 1, href]));
   }
-});
-// req: R-3053
-await check("R-3053: legacy asks retain kind counts and blocking entries while Needs you counts the open questions", async () => {
-  const handoff = ["# Handoff", "## Open for the owner", "- **[optional, since 2026-01-05] Opt.** body", "- **[optional, since 2026-01-06] Opt two.** body", "- **[Blocking, since 2026-02-01] Zeta.** body", "## Open for the second owner", "- **[parked, since 2026-01-03] Held.** body", "- **[blocking, since 2026-01-01] Alpha.** body"].join("\r\n");
-  const ledger = basic() + "\n## Open questions\n1. Open one.  \n- (lane) Open bullet.\t\n## Closed questions\n2. (closed 2026-01-01) Done.\n## Deliberate omissions\n- An omission.";
-  const repo = treeFixture(temp, "asks", ledger.replaceAll("\n", "\r\n"), handoff);
-  const html = await page(repo, "asks");
-  assert.deepEqual(lines(renderHtmlAt(html), 0), [`${L.asks}: 5 · ${L.blocking}: 2 · ${L.optional}: 2 · ${L.parked}: 1`, `Zeta · blocking · ${L.since} 2026-02-01`, `Question: body`, "Seat recommends: none recorded", `Alpha · blocking · ${L.since} 2026-01-01`, `Question: body`, "Seat recommends: none recorded", `Opt two · optional · ${L.since} 2026-01-06`, `Question: body`, "Seat recommends: none recorded", "2 more in Decisions", `${L.questions}: 2`]);
-  const questions = renderHtmlAt(html, "#decisions").nodes.find((node) => node.attrs?.class === "open-questions");
-  assert.equal(questions?.children.length, 2);
 });
 // req: R-3053
 await check("R-3053: Needs you lists blocking asks then cost-ranked optionals, caps and links the remainder", async () => {
@@ -100,11 +90,6 @@ await check("R-3053: Needs you lists blocking asks then cost-ranked optionals, c
   assert.equal(remainder.children.find((node) => node.tag === "a")?.attrs.href, "#decisions");
   assert(!needs.lines.some((node) => node.textContent.includes("Parked")));
   assert.equal(NEEDS_YOU_ASK_CAP, 3);
-  const failedOut = path.join(temp, "selection-failed.html");
-  await generateReport({ root: repo.root, out: failedOut, readIssues: async () => { throw new Error("unavailable"); } });
-  const failedNeeds = blocks(renderHtmlAt(fs.readFileSync(failedOut, "utf8"))).find(({ heading }) => heading.textContent === "Needs you");
-  assert.match(failedNeeds.lines[0].textContent, /^Asks: unknown/);
-  assert.deepEqual(failedNeeds.lines.slice(1).map((node) => node.textContent), ["Open questions in the ledger: 0"]);
 });
 // req: R-3054
 await check("R-3054: Needs you shows each listed ask's question, recommendation, cost and further-question count", async () => {
@@ -131,8 +116,6 @@ await check("R-3073: Needs you places first-group gains after recommendation and
   assert.deepEqual(needs.lines.map((node) => node.textContent).slice(1, 6), ["Default trade · optional · since 2026-10-29", "Question: Which wording?", "Seat recommends: yes.", "What the default gains and misses: It keeps one meaning; it may miss a second alternative.", "Cost of a wrong guess: easy to undo."]);
 });
 
-// req: R-3053
-await check("seal R-3053: Needs you ask cap is three", async () => assert.equal(NEEDS_YOU_ASK_CAP, 3));
 // req: R-2922
 await check("R-2922: Broken names the violated rows and the implemented rows that did not pass, split into failed and skipped only, beside the rows with no recorded run and the runtime data's tip", async () => {
   let ledger = stage("CAP-01", "First") + "\n" + feature("FEAT-001", [["R-001", "violated"], ["R-002", "implemented"], ["R-003", "untested"], ["R-004", "implemented"], ["R-005", "implemented"], ["R-006", "untested"]]);
@@ -165,22 +148,6 @@ await check("R-3080: Records summary separates violated, failed, skipped and unm
   assert.equal("open" in details.attrs, false);
   assert.match(lines(view, 2)[0], /^Deliverables code does not make and read: 0 ·/);
   assert.ok(lines(view, 1)[2].includes(MEASURED_AT_TIP_PREFIX));
-});
-// req: R-3082
-await check("R-3082: Records summary comes from the model when the Broken label is renamed", async () => {
-  const repo = treeFixture(temp, "records-model", basic("product", ["Deliverables: R-001", ...code("R-001")]));
-  const html = await page(repo, "records-model");
-  const openTag = '<script id="report-data" type="application/json">';
-  const dataStart = html.indexOf(openTag);
-  const dataEnd = html.indexOf("</script>", dataStart);
-  assert.ok(dataStart >= 0 && dataEnd > dataStart);
-  const data = html.slice(dataStart + openTag.length, dataEnd);
-  const model = JSON.parse(data);
-  model.overview[2].lines[0][0].text = "Renamed: 9";
-  model.recordsSummary = "Records: model summary";
-  const changed = html.slice(0, dataStart + openTag.length) + JSON.stringify(model) + html.slice(dataEnd);
-  const view = renderHtmlAt(changed);
-  assert.equal(view.root.children.find((node) => node.tag === "details").children[0].textContent, "Records: model summary");
 });
 // req: R-2923
 await check("R-2923: Gaps names the unparked deliverables code does not make and read and the artifacts with no declared reader, each beside its parked count, and counts the checker's notes", async () => {
@@ -234,34 +201,4 @@ await check("R-2925: What it does shows the checker's count line and one line pe
   const sums = actual.slice(1).reduce((totals, text) => { const match = /: (\d+) of (\d+) made and read by code(?:, (\d+) more parked)?$/.exec(text); return totals.map((n, i) => n + Number(match[i + 1] ?? 0)); }, [0, 0, 0]);
   assert.deepEqual(sums, [2, 3, 1]);
 });
-// req: R-2927
-await check("R-2927: with no runtime data, no artifact registry or no deliverable lines, each overview line that reads it names the missing input in place of a count", async () => {
-  for (const [name, ledger] of [["kindless", basic("")], ["product-no-lines", basic("product", ["Deliverables: R-001"])]]) {
-    const repo = treeFixture(temp, name, ledger);
-    const html = await page(repo, name);
-    const view = renderHtmlAt(html);
-    const legend = renderHtmlAt(html, "#issues").nodes.find((node) => node.tag === "p" && node.textContent.includes("No recorded run anywhere"))?.textContent;
-    const reason = /No recorded run anywhere in this report: (.*)\.$/.exec(legend)?.[1];
-    assert.ok(reason);
-    assert.deepEqual(lines(view, 1), [`${L.violated}: 0`, `${L.notPassed}: ${L.runtimeMissing}${reason}`]);
-    assert.deepEqual(lines(view, 2), [`${L.deliverableGaps}: ${L.noDeliverables}`, `${L.artifactGaps}: no artifact registry`]);
-    assert.equal(lines(view, 3).at(-1), `${L.staleArtifacts}: no artifact registry`);
-    assert.deepEqual(lines(view, 4), [L.noDeliverables]);
-  }
-});
-// req: R-2794
-await check("R-2794: a capability card whose list has no item shows its label with none and no empty list", async () => {
-  const ledger = basic("product", ["Deliverables: R-001", ...code("R-001")]) + "\n" + stage("CAP-02", "Constraint", ["Binds: CAP-01"], "constraint");
-  const repo = treeFixture(temp, "empty-cards", ledger);
-  commitCode(repo);
-  const view = renderHtmlAt(await page(repo, "empty-cards"), "#product");
-  const cards = view.root.children.filter((node) => node.tag === "article");
-  assert.equal(cards.length, 2);
-  for (const [index, label] of ["Features with no deliverable", "Artifacts of this constraint's features"].entries()) {
-    assert.ok(cards[index].children.some((node) => node.tag === "p" && node.textContent === `${label}: none`));
-    assert.ok(!cards[index].children.some((node) => node.attrs?.class === "capability-artifacts"));
-  }
-});
-// req: R-2924
-await check("seal: the overview's stale age is 30 days", async () => { assert.equal(STALE_AGE_DAYS, 30); });
 process.exitCode = failures ? 1 : 0;

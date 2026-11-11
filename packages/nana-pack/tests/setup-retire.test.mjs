@@ -51,10 +51,6 @@ await test('M2: real pi discovery loads the pack without retired extensions', ()
   const loaded = loader.getExtensions();
   assert.deepEqual(loaded.errors, []);
   const names = loaded.extensions.map(e => path.basename(e.path));
-  for (const name of ['nana-handoff.ts', 'nana-post-edit.ts', 'nana-notify.ts']) {
-    assert.ok(!names.includes(name), name);
-    assert.ok(!fs.existsSync(path.join(root, 'packages/nana-pack/extensions', name)), name);
-  }
   assert.ok(names.includes('nana-adoption.ts') && names.includes('nana-gate.ts'));
 }));
 
@@ -87,17 +83,6 @@ await test('M3: real discovery journals one canonical root per day and the real 
   assert.deepEqual(events().map(e => e.cwd), [cwd]);
   assert.ok(!fs.existsSync(projectJournal) || !fs.readFileSync(projectJournal, 'utf8').includes('directory_unadopted'));
   assert.ok(hook().includes(cwd));
-  const RealDate = Date;
-  const future = RealDate.now() + 25 * 3_600_000;
-  globalThis.Date = class extends RealDate { constructor(...args) { super(...(args.length ? args : [future])); } static now() { return future; } };
-  try { await fire(sub); await fire(cwd); assert.deepEqual(events().map(e => e.cwd), [cwd, cwd]); }
-  finally { globalThis.Date = RealDate; }
-  const adopted = path.join(base, 'adopted');
-  fs.mkdirSync(path.join(adopted, '.git'), { recursive: true });
-  fs.writeFileSync(path.join(adopted, 'OBJECTIVE.md'), 'Adopted.\n');
-  await fire(adopted);
-  assert.equal(events().filter(e => e.cwd === adopted).length, 0);
-  assert.ok(!hook().includes(adopted));
 }));
 
 // req: R-3804

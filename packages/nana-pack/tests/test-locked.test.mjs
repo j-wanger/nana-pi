@@ -73,11 +73,7 @@ const waitForFile = async (file, child, limit = SIGNAL_HANDLER_READY_LIMIT_MS) =
     else if (event === "end") active--;
   }
   // req: R-626
-  check("two full suite commands do not overlap", results.every((r) => r.code === 0) && !overlap && log.filter((e) => e === "start" || e === "end").length === 4);
-  // req: R-626
-  check("full runs hold the lock throughout each command", log.filter((e) => e === "lock-start" || e === "lock-end").length === 4);
-  // req: R-626
-  check("normal full run releases its lock", !exists());
+  check("two full suite commands do not overlap", results.every((r) => r.code === 0) && !overlap && log.filter((e) => e === "start" || e === "end").length === 4 && log.filter((e) => e === "lock-start" || e === "lock-end").length === 4 && !exists());
 }
 
 {
@@ -182,6 +178,7 @@ const waitForFile = async (file, child, limit = SIGNAL_HANDLER_READY_LIMIT_MS) =
 }
 
 if (process.platform !== "win32") {
+  const retained = [];
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
     fs.rmSync(LOCK, { recursive: true, force: true });
     const child = launch();
@@ -189,21 +186,12 @@ if (process.platform !== "win32") {
     await wait(120);
     child.kill(signal);
     await done;
-    if (signal === "SIGINT") {
-      // req: R-626
-      check("SIGINT releases the full-run lock", !exists());
-    } else if (signal === "SIGTERM") {
-      // req: R-626
-      check("SIGTERM releases the full-run lock", !exists());
-    } else {
-      // req: R-626
-      check("SIGHUP releases the full-run lock", !exists());
-    }
+    if (exists()) retained.push(signal);
   }
+  // req: R-626
+  check("handled signals release the full-run lock", retained.length === 0, retained.join(", "));
 } else {
-  console.log("SKIP SIGINT releases the full-run lock — Windows kills a child outright, so its signal handler never runs");
-  console.log("SKIP SIGTERM releases the full-run lock — Windows kills a child outright, so its signal handler never runs");
-  console.log("SKIP SIGHUP releases the full-run lock — Windows kills a child outright, so its signal handler never runs");
+  console.log("SKIP handled signals release the full-run lock — Windows kills a child outright, so its signal handler never runs");
 }
 
 if (process.platform !== "win32") {

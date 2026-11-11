@@ -21,15 +21,12 @@ import {
 	STOP_WAIT_MS,
 } from "../lib/runtime-map-config.mjs";
 import {
-	COVERAGE_FAILURE_POLICY,
 	COVERAGE_OWNER_FILE,
 	DIRTY_COUNT_ENV,
 	HAND_MEASURE_ENV,
 	LAND_NOTE_PREFIX,
 	LAND_TIP_ENV,
-	MAIN_REF,
 	TIP_DIGITS,
-	UNMEASURED_PLATFORMS,
 } from "../lib/land-config.mjs";
 import { handMeasure } from "../../../scripts/runtime-measure.mjs";
 import * as productReportModule from "../../../scripts/product-report.mjs";
@@ -238,18 +235,6 @@ function productReportNotes(result) {
 	return String(result.stdout ?? "").split(/\r?\n/).filter((line) => line.startsWith(`${LAND_NOTE_PREFIX} product report`));
 }
 
-await check("land runtime tunables retain their reviewed values", () => {
-	assert.equal(LAND_TIP_ENV, "NANA_LAND_TIP");
-	assert.equal(LAND_NOTE_PREFIX, "[nana-land]");
-	assert.deepEqual(UNMEASURED_PLATFORMS, ["win32"]);
-	assert.equal(MAIN_REF, "refs/heads/main");
-	assert.equal(COVERAGE_FAILURE_POLICY, "rerun-failed");
-	assert.equal(TIP_DIGITS, 8);
-	assert.equal(DIRTY_COUNT_ENV, "NANA_RUNTIME_DIRTY");
-	assert.equal(COVERAGE_OWNER_FILE, "owner.pid");
-	assert.equal(HAND_MEASURE_ENV, "NANA_RUNTIME_HAND_MEASURE");
-});
-
 // req: R-2740
 await check("R-2740: a passing land writes the product report for HEAD under the git common directory after its suite record and runtime data, and names it in one land note", () => {
 	assert.equal(productReportModule.LAND_REPORT_SUBPATH, "nana/product-report.html");
@@ -286,7 +271,7 @@ await check("R-2740: a passing land writes the product report for HEAD under the
 	assert.equal(reportPath(linkedCase).startsWith(privateGitDir), false);
 });
 
-// req: R-2741
+// req: R-2741 R-2532
 await check("R-2741: filtered, tipless, wrong-tip, hand-measure and failing runs leave the earlier product report byte for byte and print no product report note", () => {
 	const seeded = Buffer.from("earlier product report\r\nwith trailing space \t");
 	const cases = [];
@@ -299,7 +284,7 @@ await check("R-2741: filtered, tipless, wrong-tip, hand-measure and failing runs
 	};
 	runSeeded("report-filtered", { args: ["--jobs=2"] });
 	runSeeded("report-filtered-windows", { args: ["--jobs=2"], options: { platform: "win32" } });
-	runSeeded("report-tipless", { tip: null });
+	runSeeded("report-tipless", { tip: null, mode: "no-tip-fail" });
 	runSeeded("report-wrong-tip", { tip: "0".repeat(40) });
 	runSeeded("report-wrong-tip-windows", { tip: "0".repeat(40), options: { platform: "win32" } });
 	runSeeded("report-always-fail", { mode: "always-fail" });
@@ -317,6 +302,11 @@ await check("R-2741: filtered, tipless, wrong-tip, hand-measure and failing runs
 	for (const [name, c, page] of cases) {
 		assert.deepEqual(fs.readFileSync(page), seeded, name);
 		assert.equal(productReportNotes(c.result).length, 0, `${name}: ${c.result.stdout}`);
+		if (["report-filtered", "report-tipless", "report-wrong-tip"].includes(name)) {
+			assert.equal(c.result.status, name === "report-tipless" ? 7 : 0, name);
+			assert.equal(c.starts.length, 1, name); assert.equal(c.starts[0].coverage, null, name);
+			assert.equal(fs.readFileSync(c.dataFile, "utf8"), c.initial, name);
+		}
 	}
 	const controlRoot = installReportFixture(fixture("report-positive-control"));
 	const controlCommon = path.resolve(controlRoot, git(controlRoot, "rev-parse", "--git-common-dir"));
@@ -451,19 +441,6 @@ await check("off Windows, a land suite stopped during its coverage run removes t
 	}
 });
 }
-
-// req: R-2532
-await check("filtered, wrong-tip and unset-tip runs neither measure nor rerun", () => {
-	const cases = [
-		runCase("filtered", { args: ["--jobs=2"] }),
-		runCase("wrong-tip", { tip: "0".repeat(40) }),
-		runCase("unset-tip-fail", { tip: null, mode: "no-tip-fail" }),
-	];
-	assert.deepEqual(cases.map((c) => c.result.status), [0, 0, 7]);
-	for (const c of cases) {
-		assert.equal(c.starts.length, 1); assert.equal(c.starts[0].coverage, null); assert.equal(fs.readFileSync(c.dataFile, "utf8"), c.initial);
-	}
-});
 
 // req: R-2533
 await check("a hand measure writes its tip, time and dirty-file count inside the lock", async () => {

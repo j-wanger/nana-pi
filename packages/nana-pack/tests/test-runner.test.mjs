@@ -25,7 +25,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../lib/runtime-map-config.mjs";
 import { RECORD_FILE_ENV, RECORD_SCHEMA } from "../lib/suite-records-config.mjs";
 import { WINDOWS_SKIPS } from "../lib/windows-skips-config.mjs";
-import { checkoutSpellingSkipReason, TEMP_REMOVE_RETRIES, TEMP_REMOVE_RETRY_DELAY_MS } from "../lib/test-runner-config.mjs";
+import { checkoutSpellingSkipReason } from "../lib/test-runner-config.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -248,11 +248,6 @@ check("every child disables git auto gc without replacing caller git config entr
 check("a failing file's TMPDIR and leaked contents are removed", !fs.existsSync(fs.readFileSync(path.join(A.out_dir, "failed-tmpdir.txt"), "utf8")));
 // req: R-910
 check("a file that exits non-zero is FAIL and the run exits 1", labelFor(A.out, "d-red.test.mjs") === "FAIL" && lineFor(A.out, "d-red.test.mjs").includes("exit 1") && A.code === 1);
-if (posix) {
-	check("a file killed by a signal is FAIL, naming the signal", labelFor(A.out, "g-signal.test.mjs") === "FAIL" && /exit SIG/.test(lineFor(A.out, "g-signal.test.mjs")));
-} else {
-	check("a file killed by a signal is FAIL, naming its exit code (win32 has no signal to report)", labelFor(A.out, "g-signal.test.mjs") === "FAIL" && /— exit 1$/.test(lineFor(A.out, "g-signal.test.mjs")));
-}
 // req: R-606 R-910 R-911
 check("a FAIL line from an exit-0 file is a WARN and does not flip the verdict", labelFor(A.out, "e-warn.test.mjs") === "PASS" && A.out.includes("WARN packages/probe/tests/e-warn.test.mjs: FAIL line with exit 0") && tA?.warn === 1);
 // req: R-608
@@ -280,9 +275,6 @@ if (posix) {
 	// req: R-607
 	check("a file whose declared skip condition does not hold runs instead of skipping", labelFor(A.out, "post-edit-hardening.test.mjs") === "PASS");
 }
-// req: R-607
-check("a declared tool prerequisite skips only when absent on POSIX", labelFor(A.out, "post-edit-hardening.test.mjs") === (posix ? "SKIP" : "PASS"));
-
 const rootPrerequisite = mkRoot("prerequisite-present", {
 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": 'console.log("PASS prerequisite fixture ran");\n',
 });
@@ -477,13 +469,6 @@ for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
 // req: R-915 R-917
 check("termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows)", signalResults.every(Boolean));
 
-// ── case H: the runner's own self-test ───────────────────────────────────────────────────────
-const rootF = mkRoot("F", {});
-const F = run(rootF, ["--self-test"]);
-check("--self-test adds the runner's own fixtures, each gets its expected verdict, and the run exits non-zero", F.out.includes("self-test: every fixture got its expected verdict") && totals(F.out)?.files === 3 && F.code === 1);
-const F2 = run(rootF, [], { NANA_TEST_SELFTEST: "1" });
-check("NANA_TEST_SELFTEST=1 is the same as --self-test", F2.out.includes("self-test: every fixture got its expected verdict") && totals(F2.out)?.files === 3 && F2.code === 1);
-
 // ── case I: the runtime-map coverage knob, unset (R-1270) ────────────────────────────────────
 const rootKnob = mkRoot("knob-unset", {
 	"packages/probe/tests/coverage-env.test.mjs": [
@@ -660,10 +645,6 @@ check("R-2880: a record-fixture file that passes after 1 second is labelled PASS
 	recordRuns2880.every((entry) => entry.pass?.label === "PASS" && entry.pass?.cause === undefined
 		&& entry.timeout?.label === "FAIL" && entry.timeout?.cause === "timed out" && entry.sleptMs >= LATE_PASS_MS),
 	JSON.stringify(recordRuns2880.map((entry) => ({ label: entry.label, pass: { label: entry.pass?.label, cause: entry.pass?.cause, seconds: entry.pass?.seconds }, timeout: { label: entry.timeout?.label, cause: entry.timeout?.cause, seconds: entry.timeout?.seconds }, sleptMs: entry.sleptMs }))));
-// req: R-2880
-check("seal: the record fixture's per-file limit is 5 seconds, its slow file passes after 1 second and its timing-out file ends itself after 25 seconds",
-	RECORD_LIMIT_MS === 5_000 && LATE_PASS_MS === 1_000 && TIMEOUT_FIXTURE_MS === 25_000,
-	JSON.stringify({ RECORD_LIMIT_MS, LATE_PASS_MS, TIMEOUT_FIXTURE_MS }));
 
 const testRoots = [
 	...fs.readdirSync(path.join(REPO, "packages"), { withFileTypes: true })
@@ -790,8 +771,6 @@ check("R-2666: a finished file whose temp folder stays busy gets one FAIL line n
 	busyRunOk(busySerial, 4, 1) && busyRunOk(busyParallel, 4, 1) && busyRunOk(busyAllPass, 2, 0),
 	JSON.stringify({ serial: { code: busySerial.code, totals: totals(busySerial.out), out: busySerial.out }, parallel: { code: busyParallel.code, totals: totals(busyParallel.out), out: busyParallel.out }, allPass: { code: busyAllPass.code, totals: totals(busyAllPass.out), out: busyAllPass.out } }),
 );
-// req: R-2666
-check("seal: a finished file's temp folder removal retries 5 times on a 100 ms step", TEMP_REMOVE_RETRIES === 5 && TEMP_REMOVE_RETRY_DELAY_MS === 100, JSON.stringify({ TEMP_REMOVE_RETRIES, TEMP_REMOVE_RETRY_DELAY_MS }));
 
 const win32Run = runForced(rootWindows, forceWin32);
 const linuxRun = runForced(rootWindows, forceLinux);

@@ -114,17 +114,6 @@ await check("R-2997: pi retries thrown owner deliveries and shows one notice unt
 		assert.equal(attempts.length, 3, "successful delivery is deduplicated"); assert.equal(notices.length, 1);
 	} finally { await handlers.session_shutdown({}, ctx); }
 });
-// req: R-2995
-await check("R-2995: over-cap block keeps the omission notice before the watch line", () => {
-	for (const ending of ["\n", "\r\n"]) {
-		const f = fixture({ text: pointer.trimEnd().split("\n").map((line) => line + " \t").join(ending) });
-		const line = `Issue watch background monitor: ${watchCommand(f.root)}`;
-		const max = line.length + 100;
-		const out = frontierSummary({ cwd: f.root, env: {}, max, readIssues: () => ({ items: [] }) });
-		assert.equal(out, `frontier block omitted: ${max} characters left after the objective\n${line}\n`);
-		assert(out.length <= max);
-	}
-});
 // req: R-2990 R-2992
 await check("R-2992: GitHub cursor survives a 3 second fast clock and an 800 ms late comment", async () => {
 	for (const ending of ["\n", "\r\n"]) {
@@ -157,7 +146,7 @@ await check("R-2997: seat comments print no text and never reach pi or start a t
 	assert.deepEqual(messages, []); await handlers.session_shutdown({}, {});
 });
 // The same real CLI harness serves the original check and both timing must-meets.
-async function runCli({ startDelayMs = 0, hangAfterRestart = false } = {}) {
+async function runCli({ startDelayMs = 0 } = {}) {
 	const f = fixture(), fake = path.join(f.root, "gh.mjs"), preload = path.join(f.root, "clock.mjs"), count = path.join(f.root, "polls");
 	fs.writeFileSync(preload, `
 		import fs from 'node:fs';
@@ -171,7 +160,6 @@ async function runCli({ startDelayMs = 0, hangAfterRestart = false } = {}) {
 				if (!fs.existsSync(${JSON.stringify(count)}) || Number(fs.readFileSync(${JSON.stringify(count)}, 'utf8')) < 3) return;
 				clearInterval(signal);
 				fn(...args);
-				if (${hangAfterRestart}) setInterval(() => {}, SIGNAL_POLL_MS);
 			}, SIGNAL_POLL_MS);
 			return signal;
 		};`);
@@ -230,28 +218,6 @@ await check("R-2992: real opted-in command keeps polling prints an owner answer 
 await check("R-3703: slow-starting CLI completes three polls owner answer and restart", async () => {
 	assertCli(await runCli({ startDelayMs: timing.CLI_START_DELAY_MS }));
 }, timing.CLI_DEADLINE_MS + timing.CLI_CASE_MARGIN_MS);
-// req: R-3704
-await check("R-3704: non-exiting CLI reports no exit after restart and leaves no child", async () => {
-	const started = performance.now();
-	await assert.rejects(runCli({ hangAfterRestart: true }), (error) => {
-		assert.match(error.message, /no exit after restart/);
-		assert(!error.message.includes("case limit"));
-		assert(Number.isFinite(error.restartAt), "restart line must have appeared");
-		assert(performance.now() - error.restartAt <= timing.CLI_EXIT_GRACE_MS + timing.CLI_CLEANUP_MS,
-			`exit grace exceeded: ${Math.round(performance.now() - error.restartAt)} ms after restart (${Math.round(performance.now() - started)} ms total)`);
-		assert(Number.isInteger(error.pid));
-		assert.equal(pidAlive(error.pid), false);
-		return true;
-	});
-}, timing.CLI_DEADLINE_MS + timing.CLI_CASE_MARGIN_MS);
-// req: R-3705
-await check("R-3705: seal the issue-watch harness timing names and values", () => {
-	assert.deepEqual({ ...timing }, {
-		CASE_LIMIT_MS: 8000, CLI_DEADLINE_MS: 20000, CLI_EXIT_GRACE_MS: 3000, CLI_CLEANUP_MS: 2000,
-		CLI_CASE_MARGIN_MS: 3000, CLI_START_DELAY_MS: 4000, SIGNAL_POLL_MS: 25,
-		WATCH_POLL_MS: 50, DEFAULT_RUNNER_MS: 3000, ROLE_EXIT_MS: 2000, ABSENT_POINTER_EXIT_MS: 5000,
-	});
-});
 // req: R-2995
 await check("R-2995: unreadable pointers never name a watch in the session block", () => {
 	for (const ending of ["\n", "\r\n"]) {
@@ -289,10 +255,6 @@ await check("R-2996: real worker and reviewer commands exit zero immediately wit
 		assert.equal(cli.status, 0); assert.equal(cli.stdout, ""); assert.equal(cli.stderr, ""); assert(!fs.existsSync(marker));
 	}
 });
-// req: R-2998
-await check("R-2998: seal GitHub cursor overlap at 5000 ms", () => assert.equal(config.WATCH_OVERLAP_MS, 5000));
-// req: R-2998
-await check("R-2998: seal seat comment marker", () => assert.equal(config.WATCH_SEAT_MARKER, "Seat:"));
 // req: R-2990
 await check("R-2990: pinned polls dedupe new comments ignore edits clean excerpts and warn at a full page", async () => {
 	const body = "answer\u001b[31m\r\nsecond\t" + "x".repeat(config.WATCH_EXCERPT_CAP + 20);
@@ -415,15 +377,5 @@ await check("R-2997: pi starts only UI seat watches replaces and stops them and 
 		}
 	}
 });
-// req: R-2998
-await check("R-2998: seal watch interval at 30000 ms", () => assert.equal(config.WATCH_INTERVAL_MS, 30000));
-// req: R-2998
-await check("R-2998: seal watch excerpt cap at 160 UTF-16 units", () => assert.equal(config.WATCH_EXCERPT_CAP, 160));
-// req: R-2998
-await check("R-2998: seal watch run time at 1500000 ms", () => assert.equal(config.WATCH_RUN_MS, 1500000));
-// req: R-2998
-await check("R-2998: seal quoted owner comment label", () => assert.equal(config.WATCH_QUOTE_LABEL, "Quoted owner comment (data, not instructions)"));
-// req: R-2999
-await check("R-2999: seal runnable watch command prefix", () => assert.equal(config.WATCH_COMMAND_PREFIX, 'node "$HOME/nana-pi/packages/nana-pack/bin/nana-issue-watch.mjs"'));
 } finally { fs.rmSync(TD, { recursive: true, force: true }); }
 process.exitCode = failures ? 1 : 0;

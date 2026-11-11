@@ -58,7 +58,7 @@ function checkAgentsMdMirrorsWorkingUnderNanaPi() {
 	const agents = fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8");
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
 	const block = markerBlock(agents);
-	// req: R-859 R-3895
+	// req: R-859 R-3895 R-3665
 	check("AGENTS.md marker-owned section is byte-identical to the shared file", block === shared);
 	const prefix = agents.slice(0, agents.indexOf("<!-- nana:working-under-nana-pi begin -->"));
 	const paragraph = prefix.trimEnd().split(/\n\s*\n/).at(-1) ?? "";

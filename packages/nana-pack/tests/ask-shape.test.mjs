@@ -7,7 +7,7 @@
  * @errors Assertion failures exit nonzero.
  */
 import assert from "node:assert/strict";
-import { ASK_LABELS, parseAskBody } from "../lib/ask-shape.mjs";
+import { parseAskBody } from "../lib/ask-shape.mjs";
 
 function check(title, action) {
   try { action(); console.log("PASS", title); }
@@ -36,7 +36,6 @@ check("R-3052: ask bodies parse numbered indented issue questions and values", (
 
 // req: R-3052
 check("R-3052: ask bodies parse question groups, recommendations and since dates", () => {
-  assert.deepEqual(ASK_LABELS, { question: "Question", recommends: "Seat recommends", gains: "What the default gains and misses", cost: "Cost of a wrong guess", otherwise: "If answered otherwise", none: "none recorded" });
   const shaped = parseAskBody("**Question:** Should we wait?\n- **Default:** wait for you.\n* Cost of a wrong guess: hard to undo; wrong.\n**If answered otherwise:** ship now.\n\nQuestion: Should we ship?\nDefault: ship later.", "2026-10-01");
   assert.deepEqual(shaped.groups, [
     { question: "Should we wait?", default: "wait for you.", gains: null, cost: "hard to undo; wrong.", otherwise: "ship now." },
@@ -60,7 +59,6 @@ check("R-3052: ask bodies parse question groups, recommendations and since dates
 
 // req: R-3071
 check("R-3071: ask parser reads gains label forms and leaves absent or empty values null", () => {
-  assert.equal(ASK_LABELS.gains, "What the default gains and misses");
   const parsed = parseAskBody("Question: plain?\nWhat the default gains and misses: Keeps one meaning; may miss a second alternative.\n\n2. Question: numbered?\n   What the default gains and misses: Makes the order clear; may miss a competing case.\n\n**Question:** bold?\n**What the default gains and misses:** Keeps the trade visible; may miss a rare case.\n\nQuestion: absent?\n\nQuestion: empty?\nWhat the default gains and misses:\n  Gains: next line\n  Misses: another line\nCost of a wrong guess: hard to undo", "2026-10-04");
   assert.deepEqual(parsed.groups.map((group) => group.gains), ["Keeps one meaning; may miss a second alternative.", "Makes the order clear; may miss a competing case.", "Keeps the trade visible; may miss a rare case.", null, null]);
   assert.equal(parsed.groups[4].cost, "hard to undo");

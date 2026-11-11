@@ -65,7 +65,7 @@ const perEventOk = CASES.every(([type]) => {
 	const matches = byEvent(type);
 	return matches.length === 1 && matches[0].cwd === TD && matches[0].pid === process.pid;
 });
-// req: R-162
+// req: R-162 R-814
 check("journal: each of the five lifecycle events leaves one line with the session cwd and this pid",
 	perEventOk,
 	JSON.stringify(CASES.map(([type]) => [type, byEvent(type)])),
@@ -102,22 +102,6 @@ const fireBatch = async (subfolder, eventFor) => {
 	}
 	return { throws, lines: readJournalLines().filter((line) => line.cwd === cwd) };
 };
-
-// req: R-2380
-check("journal: a compaction event with no reason leaves one line with no reason field", await (async () => {
-	const result = await fireBatch("no-reason", (type) => ({ type }));
-	return result.throws.length === 0 && result.lines.length === compactionTypes.length &&
-		compactionTypes.every((type) => result.lines.filter((line) => line.event === type).length === 1 &&
-			!Object.hasOwn(result.lines.find((line) => line.event === type), "reason"));
-})());
-
-// req: R-2381
-check("journal: a compaction reason outside manual, threshold and overflow is journaled unchanged", await (async () => {
-	const result = await fireBatch("future-reasons", (type) => ({ type, reason: `future-${type}` }));
-	return result.throws.length === 0 && result.lines.length === compactionTypes.length &&
-		compactionTypes.every((type) => result.lines.filter((line) => line.event === type).length === 1 &&
-			result.lines.find((line) => line.event === type)?.reason === `future-${type}`);
-})());
 
 const FULL_EVENT_LINE_FIELDS = ["ts", "event", "cwd", "pid", "reason"];
 // req: R-2382

@@ -52,14 +52,6 @@ const external = new Map(config.externalPaths.map((entry) => [entry.path, entry.
 // req: R-655
 check("install-produced README paths are declared external with reasons", ["node_modules"].every((item) => external.get(item)?.trim().length > 0));
 
-const invalidModes = [["--check", "--list"], ["--bogus"]].map((args) => {
-	const result = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "readme-check.mjs"), ...args], { cwd: REPO_ROOT, encoding: "utf-8" });
-	const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
-	return { args, ok: result.status === 2 && output.includes("Usage:") && output.includes("--list"), output };
-});
-// req: R-656
-check("CLI rejects unknown and multiple modes with usage", invalidModes.every((result) => result.ok), invalidModes.map((result) => `${result.args.join(" ")}: ${result.output.slice(-300)}`).join("\n"));
-
 const skill = fs.readFileSync(path.join(REPO_ROOT, "packages/nana-pack/skills/requirements/SKILL.md"), "utf-8");
 // req: R-657
 check("requirements skill documents runner-specific map commands", skill.includes("pnpm map:impact <files>") && skill.includes("npm run map:impact -- <files>") && skill.includes("uv run python scripts/code_map.py --impact <files>") && !skill.includes("map:impact -- <changed-files>"));

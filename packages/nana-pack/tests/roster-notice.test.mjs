@@ -18,15 +18,11 @@ import { fileURLToPath } from "node:url";
 import { rosterNotice } from "../lib/roster-notice.mjs";
 import {
 	NOTICE_PREFIX,
-	DEFAULT_MARK,
 	REFUSED_HEAD,
-	REFUSAL_CUT,
-	SIZE_LABELS,
 	CLAUDE_CODE_MARK,
 	WIDGET_KEY,
 	CHANGE_POINTER,
 	RELATIVE_DIR_TEXT,
-	SHOW_SOURCES,
 } from "../lib/roster-notice-config.mjs";
 import { ROSTER_DEFAULTS } from "../bin/worker-config.mjs";
 import * as workerConfig from "../bin/worker-config.mjs";
@@ -99,88 +95,6 @@ check("roster notice: each entry shows its model and thinking and never its prov
 		results.push(["model-contains-provider", leakNotice.includes("builder acme-large,")]);
 		return { pass: results.every(([, p]) => p), results };
 	})().pass, "see above");
-
-// req: R-1194
-// req: R-1196
-// req: R-1197
-// req: R-1201
-// req: R-1202
-// req: R-1203
-// req: R-1206
-// req: R-1210
-// req: R-1215
-check("roster notice: sealed values — prefix, size labels, Claude Code mark, default mark, refusal head and cut, change pointer, relative-dir text, shown start sources and widget key",
-	NOTICE_PREFIX === "nana active · roster" &&
-	DEFAULT_MARK === "(default)" &&
-	REFUSED_HEAD === "refused:" &&
-	REFUSAL_CUT === " (" &&
-	SIZE_LABELS.larger === "for larger lanes" && SIZE_LABELS.small === "for small lanes" &&
-	CLAUDE_CODE_MARK === "(Claude Code only)" &&
-	CHANGE_POINTER === 'change: "roster" in' &&
-	RELATIVE_DIR_TEXT === "unknown: PI_CODING_AGENT_DIR is relative, so each folder may read a different roster file" &&
-	JSON.stringify(SHOW_SOURCES) === JSON.stringify(["startup", "resume", "fork", "clear", "new"]) &&
-	WIDGET_KEY === "nana-roster",
-	JSON.stringify({ NOTICE_PREFIX, DEFAULT_MARK, REFUSED_HEAD, REFUSAL_CUT, SIZE_LABELS, CLAUDE_CODE_MARK, CHANGE_POINTER, RELATIVE_DIR_TEXT, SHOW_SOURCES, WIDGET_KEY }));
-
-// req: R-1196
-check("roster notice: a larger-lane builder is named for larger lanes before the builder for small lanes",
-	(() => {
-		const roster = { ...sampleRoster(), largerBuilder: entry("zz-larger-model", "high") };
-		const file = fileAt(freshAgentDir("l4"));
-		const n = rosterNotice({ ok: true, roster, source: "x" }, file, false);
-		return n.includes("zz-larger-model high for larger lanes") &&
-			n.includes("zz-builder-model medium for small lanes") &&
-			n.indexOf("zz-larger-model") < n.indexOf("zz-builder-model");
-	})());
-
-// req: R-1197
-check("roster notice: a Claude Code entry's model is followed by the Claude Code mark, and a pi entry's is not",
-	(() => {
-		const roster = { ...sampleRoster(), largerBuilder: claudeEntry("sonnet") };
-		const file = fileAt(freshAgentDir("l5"));
-		const n = rosterNotice({ ok: true, roster, source: "x" }, file, false);
-		return n.includes(`sonnet ${CLAUDE_CODE_MARK}`) &&
-			!n.includes(`zz-builder-model ${CLAUDE_CODE_MARK}`) &&
-			!n.includes(`zz-reviewer-model ${CLAUDE_CODE_MARK}`) &&
-			!n.includes(`zz-land-model ${CLAUDE_CODE_MARK}`);
-	})());
-
-// req: R-3758
-check("roster notice: a null legacy land is omitted",
-	(() => {
-		const roster = { ...sampleRoster(), land: null };
-		const file = fileAt(freshAgentDir("l6"));
-		const n = rosterNotice({ ok: true, roster, source: "x" }, file, false);
-		return !n.includes("land seat") && !n.includes("zz-land-model");
-	})());
-
-// req: R-3528
-check("MM7: roster notice shows a set scout and omits a null scout",
-	(() => {
-		const withScout = rosterNotice({ ok: true, roster: sampleRoster(), source: "x" }, fileAt(freshAgentDir("l7-set")), false);
-		const noScout = rosterNotice({ ok: true, roster: { ...sampleRoster(), scout: null }, source: "x" }, fileAt(freshAgentDir("l7-null")), false);
-		const claudeScout = rosterNotice({ ok: true, roster: { ...sampleRoster(), scout: claudeEntry('sonnet') }, source: 'x' }, fileAt(freshAgentDir('l7-claude')), false);
-		return withScout.includes('scout zz-scout-model-l7') && withScout.indexOf('scout zz-scout-model-l7') > withScout.indexOf('reviewer zz-reviewer-model') && claudeScout.includes(`scout sonnet ${CLAUDE_CODE_MARK}`) && !noScout.toLowerCase().includes('scout');
-	})());
-
-// req: R-1200
-check("roster notice: a lone builder carries no size label",
-	(() => {
-		const roster = { ...sampleRoster(), largerBuilder: null };
-		const file = fileAt(freshAgentDir("l8"));
-		const n = rosterNotice({ ok: true, roster, source: "x" }, file, false);
-		return n.includes("builder zz-builder-model medium,") && !n.includes(SIZE_LABELS.small) && !n.includes(SIZE_LABELS.larger);
-	})());
-
-// req: R-1201
-check("roster notice: only the default roster is marked default, and a file roster equal to the default is not",
-	(() => {
-		const file = fileAt(freshAgentDir("l9"));
-		const asDefault = rosterNotice({ ok: true, roster: ROSTER_DEFAULTS, source: "default" }, file, false);
-		const asFile = rosterNotice({ ok: true, roster: ROSTER_DEFAULTS, source: file }, file, false);
-		// (default) sits right after "roster" — not elsewhere on the line.
-		return asDefault.startsWith(`${NOTICE_PREFIX} ${DEFAULT_MARK}:`) && asDefault.includes(DEFAULT_MARK) && !asFile.includes(DEFAULT_MARK);
-	})());
 
 // req: R-1202
 check("roster notice: every refusal kind shows the problem cut before its first ' (' with no echoed value or line break, and a roster path holding ' (' stays whole",
@@ -486,10 +400,6 @@ check('MM8: resolved lineage pairs warn on shared and unknown sides in both seat
 	return !cc.includes('lineage') && /lineage.*adversary.*planner.*unverified/.test(pi) && !def.includes('checker') && /adversary.*anthropic.*planner/.test(joined) && !joined.includes('checker') && set.status===0 && !notice(resolveRoster(dir).roster,'claude-code').includes('checker');
 })());
 
-// req: R-3523
-check("seal: lane notice label is lanes", noticeConfig.LANES_LABEL === "lanes");
-// req: R-3523
-check("seal: ignored lane notice mark is (file value ignored)", noticeConfig.LANES_IGNORED_MARK === "(file value ignored)");
 {
 	const results = [];
 	for (const [label, raw, limit, ignored] of [

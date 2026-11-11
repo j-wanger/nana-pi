@@ -14,8 +14,6 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-	DEFAULT_KILL_SIGNAL,
-	TASKKILL_COMMAND,
 	killProcessTree,
 	killProcessTreeNoWait,
 } from "../lib/process-tree.mjs";
@@ -98,10 +96,6 @@ for (const pid of badPids) {
 }
 // req: R-2658
 check("R-2658: a pid of 0, 1, -1, 1.5, NaN, null or undefined signals nothing, starts no taskkill and calls no fallback", badEffects === 0);
-
-// req: R-2656 R-2657
-check("seal: taskkill and SIGKILL by default",
- TASKKILL_COMMAND === "taskkill" && DEFAULT_KILL_SIGNAL === "SIGKILL");
 
 if (process.platform === "win32") {
 	const realDir = tmpDir(path.join(os.tmpdir(), "tree-kill-real-"));

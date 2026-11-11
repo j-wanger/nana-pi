@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ARCHIVE_SECTION_NAMES, HANDOFF_WORD_BUDGET, LIVE_SECTION_NAMES, READ_WINDOW_BYTES, READ_WINDOW_LINES } from "../lib/frontier-config.mjs";
+import { ARCHIVE_SECTION_NAMES, LIVE_SECTION_NAMES, READ_WINDOW_BYTES, READ_WINDOW_LINES } from "../lib/frontier-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -28,13 +28,6 @@ const run = (file, today = "2026-10-06") => {
 	const result = checkFrontier(fs.readFileSync(file, "utf8"), today);
 	return { status: 0, stdout: [...result.findings.map(({ line, kind, detail }) => `${file}:${line}: ${kind}: ${detail}`), frontierSummaryLine(result)].join("\n") };
 };
-
-// req: R-873
-check("seal: HANDOFF word budget is 1,200", HANDOFF_WORD_BUDGET === 1200);
-// req: R-2471 R-2472
-check("seal: HANDOFF read window is 51,200 bytes", READ_WINDOW_BYTES === 51200);
-// req: R-2471 R-2472
-check("seal: HANDOFF read window is 2,000 lines", READ_WINDOW_LINES === 2000);
 
 {
 	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-open-prefix-"));

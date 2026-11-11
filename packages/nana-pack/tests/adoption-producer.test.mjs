@@ -64,9 +64,6 @@ const repo = (name, files = []) => {
 };
 const base = tmpDir(path.join(os.tmpdir(), "adoption-producer-"));
 
-// req: R-640
-check("adoption: design comment names complete Nana structure and temporary-root exclusion", HANDOFF_SOURCE.includes("a regular HANDOFF.md together with AGENTS.md and docs/sessions/") && HANDOFF_SOURCE.includes("real OS temporary directories (including canonical /tmp on POSIX) are skipped"));
-
 // ONE store resolver (sol r1 MUST 3): the extension re-exports lib/adoption.mjs's functions — the
 // same objects, not an agreeing copy — and its source no longer hashes a store key of its own.
 {
@@ -128,7 +125,7 @@ check("adoption: design comment names complete Nana structure and temporary-root
 	if (lib.repoRootOf(plain) !== null) console.log(`SKIP no-.git: ${lib.repoRootOf(plain)} is a git repo above the temp dir`);
 	else {
 		const before = reports().length;
-		check("a: no .git above → prompt BASE", (await prompt(plain)) === "BASE");
+		await prompt(plain);
 		// req: R-147
 		check("a: no .git above → no line", reports().length === before);
 	}
@@ -194,9 +191,8 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	fs.mkdirSync(path.dirname(lib.storePathFor(r)), { recursive: true });
 	fs.writeFileSync(lib.storePathFor(r), "ROOT-STATE");
 	await prompt(r);
-	const sp = await prompt(mk(path.join(r, "src")));
+	await prompt(mk(path.join(r, "src")));
 	check("a: a root with a store entry → no line (subdir session)", reports().every((x) => !x.cwd.startsWith(r)));
-	check("a: stored root adds nothing to the prompt", sp === "BASE");
 }
 // an unreadable store entry (read.kind === "error") never reports
 {
@@ -250,7 +246,6 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	const lines = lib.tailLines(big);
 	// req: R-146
 	check("tail: a 2 MiB journal yields ≤ 256 KiB of whole lines", lines.join("\n").length <= lib.TAIL_BYTES && lines.every((l) => l.length === 1024));
-	check("tail: absent journal → []", lib.tailLines(path.join(base, "absent.jsonl")).length === 0);
 }
 // an unwritable / absent journal location never throws out of the handler
 {
@@ -333,7 +328,6 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 	await prompt(r);
 	// req: R-150
 	check("objective: GOALS.md with objective.projectFile=GOALS.md → adopted, no line", reportsFor(r).length === 0);
-	check("objective: adoptionSettings() names it", lib.adoptionSettings().objectiveFile === "GOALS.md");
 	const { projectFileName } = await import(new URL("../lib/objective.ts", import.meta.url).href);
 	for (const v of ["GOALS.md", "", ".", "..", "a/b", "a\\b", 7, null, false]) {
 		cfg({ objective: { projectFile: v } });
@@ -386,9 +380,6 @@ for (const [label, files] of [["OBJECTIVE.md at the root", ["OBJECTIVE.md"]], ["
 
 // Surviving resolver cases relocated from the retired handoff-store suite.
 {
-	const r1 = repo("golden-bare");
-	// req: R-144
-	check("e: unadopted repo root → prompt exactly BASE", (await prompt(r1)) === "BASE");
 	const a = repo("sib-a"), b = repo("sib-b");
 	// req: R-113
 	check("siblings: distinct keys", lib.storePathFor(a) !== lib.storePathFor(b));

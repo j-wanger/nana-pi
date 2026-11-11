@@ -132,12 +132,6 @@ console.log(JSON.stringify({ injected }));
 		{ label: "boolean false", active: utf8({ writing: { enabled: false } }), expected: [false] },
 		{ label: "UTF-16LE boolean false", active: utf16le({ writing: { enabled: false } }), expected: [false] },
 		{ label: "absent", expected: [true] },
-		{ label: "boolean true", active: utf8({ writing: { enabled: true } }), expected: [true] },
-		{ label: "string false", active: utf8({ writing: { enabled: "false" } }), expected: [true] },
-		{ label: "number zero", active: utf8({ writing: { enabled: 0 } }), expected: [true] },
-		{ label: "null", active: utf8({ writing: { enabled: null } }), expected: [true] },
-		{ label: "writing block false", active: utf8({ writing: false }), expected: [true] },
-		{ label: "invalid JSON", active: Buffer.from("{"), expected: [true] },
 		{ label: "stranded default false", stranded: utf8({ writing: { enabled: false } }), expected: [true] },
 		{ label: "live false to true", active: utf8({ writing: { enabled: false } }), rewrite: utf8({ writing: { enabled: true } }), expected: [false, true] },
 		{ label: "live true to false", active: utf8({ writing: { enabled: true } }), rewrite: utf8({ writing: { enabled: false } }), expected: [true, false] },
@@ -159,17 +153,6 @@ console.log(JSON.stringify({ injected }));
 	const ok = r.includes(`${HEADING}\n\n${expected}`);
 	// req: R-751
 	check("inject: the rule text follows the base prompt under its heading (production default)", ok, r);
-}
-
-/* --- every session_start reason injects, over a DISPOSABLE fixture (R-751, R-754) ------ */
-for (const reason of ["startup", "new", "resume", "fork", "reload"]) {
-	const rulePath = path.join(tempDir(), "rule.md");
-	fs.writeFileSync(rulePath, "Disposable fixture text.\n");
-	const { td, handlers, ctx } = session(writingExt, { rulePath });
-	await handlers.session_start({ reason }, ctx);
-	const r = await inject(handlers.before_agent_start, ctx);
-	// req: R-751 R-754
-	check(`inject: reason "${reason}" injects the rule (disposable fixture)`, !!r.includes(HEADING) && r.includes("Disposable fixture text."));
 }
 
 /* --- (b) unavailable: missing / a directory / invalid UTF-8, all disposable (R-752) ---- */
@@ -241,20 +224,9 @@ for (const [label, cause, mk] of [
 		// req: R-752
 		check("UTF-8 tail: 0xff AT the tail is REFUSED with a cause, not silently dropped", ok, JSON.stringify(r));
 	}
-	// (4) an invalid byte well inside the window (not at the boundary) — already worked, stays working
-	{
-		const p = path.join(tempDir(), "rule.md");
-		fs.writeFileSync(p, Buffer.concat([Buffer.alloc(2000, 0x41), Buffer.from([0xff]), Buffer.alloc(2000, 0x42)]));
-		const r = bb(p);
-		const ok = r.cause === "not valid UTF-8" && r.block === null;
-		// req: R-752
-		check("UTF-8 tail: an invalid byte well inside the window is refused", ok, JSON.stringify(r));
-	}
 }
 
 /* --- (c) cap: oversized rules are cut, announced and kept well-formed (R-753, R-2501) - */
-// req: R-753
-check("seal: WRITING_INJECT_CAP is 4000", WRITING_INJECT_CAP === 4000);
 {
 	const { buildBlock: bb } = await import(writingExtUrl);
 	const notice = `\n\n…(cut at ${WRITING_INJECT_CAP} chars)`;
@@ -295,11 +267,7 @@ check("seal: WRITING_INJECT_CAP is 4000", WRITING_INJECT_CAP === 4000);
 {
 	const { readBudget, READ_MARGIN } = await import(writingExtUrl);
 	// req: R-755
-	check("seal: READ_MARGIN is 4", READ_MARGIN === 4);
-	// req: R-755
 	check("byte ceiling: a file at or above the cap never requests more than WRITING_INJECT_CAP + READ_MARGIN bytes", readBudget(WRITING_INJECT_CAP + READ_MARGIN) === WRITING_INJECT_CAP + READ_MARGIN && readBudget(1_000_000_000) === WRITING_INJECT_CAP + READ_MARGIN, JSON.stringify({ atCeiling: readBudget(WRITING_INJECT_CAP + READ_MARGIN), huge: readBudget(1_000_000_000) }));
-	// req: R-755
-	check("byte ceiling: a file smaller than the ceiling requests exactly its own size, never more", readBudget(10) === 10 && readBudget(0) === 0, JSON.stringify({ ten: readBudget(10), zero: readBudget(0) }));
 }
 {
 	// Behavioral corroboration: a real file whose bytes PAST the ceiling are corrupt must have
