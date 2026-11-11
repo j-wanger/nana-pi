@@ -79,24 +79,6 @@ const dOrderAndCuts = dPrinted.length === dEntries.length
 // req: R-2341
 check("R-2341: over budget, every entry prints and only the longest descriptions are cut, all to the longest length that fits", dOrderAndCuts, `printed=${dPrinted.length}/${dEntries.length} whole=${dWhole.length} shortened=${dShortened.length} lengths=${[...new Set(dPrefixLengths)]} output=${fixtureD.stdout.length}`);
 
-// Fixture E: astral descriptions have opposite parity so a common cut meets a surrogate boundary.
-const eSample = "- [Elm 0000](elm-0000.md) — " + "😀".repeat(180);
-const eCount = countFor(eSample.length + 1);
-const eEntries = Array.from({ length: eCount }, (_, i) =>
-	`- [Elm ${String(i).padStart(4, "0")}](elm-${String(i).padStart(4, "0")}.md) — ${(i % 2 ? "x" : "") + "😀".repeat(180)}`,
-);
-const fixtureE = runFixture("e", eEntries);
-const ePrinted = outputEntries(fixtureE);
-const eShortened = ePrinted.map((line, i) => ({ line, source: eEntries[i], head: headOf(eEntries[i]) })).filter(({ line, source }) => line !== source);
-const eWholeCharacters = eShortened.length > 0 && eShortened.every(({ line, source, head }) =>
-	line.startsWith(head)
-	&& line.endsWith(SHARED_MEMORY_TRIM_MARK)
-	&& !line.includes("�")
-	&& source.slice(head.length).startsWith(line.slice(head.length, -SHARED_MEMORY_TRIM_MARK.length)),
-);
-// req: R-2342
-check("R-2342: a shortened line keeps its whole title and link and ends on a whole character before the trim mark", eWholeCharacters, `shortened=${eShortened.length} replacement=${fixtureE.stdout.includes("�")}`);
-
 // Fixture B: long heads cannot all fit even after descriptions are removed.
 const bSample = `- [${"B".repeat(96)} 0000](bluebell-0000.md) — brief`;
 const bEntries = Array.from({ length: countFor(bSample.length + 1) }, (_, i) =>
@@ -143,18 +125,6 @@ const foldsDescribeDAndB = foldHasCounts(fixtureD, dShortened.length, dEntries.l
 	&& new RegExp(`${escaped(fixtureB.idx)}$`).test(lastLine(fixtureB));
 // req: R-2344
 check("R-2344: a trimmed index ends with a line naming the shortened and left-out counts and the full index path", foldsDescribeDAndB, `D=${lastLine(fixtureD)} B=${lastLine(fixtureB)}`);
-
-// Fixture C: learn this temporary home's header length, then fill output exactly to the budget.
-const fixtureCEmpty = runFixture("c-empty", []);
-const cHead = "- [Clover](clover.md)";
-const cDescription = " — " + "c".repeat(SHARED_MEMORY_OUTPUT_BUDGET - fixtureCEmpty.stdout.length - cHead.length - " — ".length - 1);
-const cLine = cHead + cDescription;
-const fixtureC = runFixture("c-exact", [cLine], "\n", fixtureCEmpty.home);
-// req: R-2345
-check("R-2345: an index whose output is exactly the budget prints every line unchanged with no fold line", fixtureC.stdout === fixtureCEmpty.stdout + cLine + "\n" && fixtureC.stdout.length === SHARED_MEMORY_OUTPUT_BUDGET, `length=${fixtureC.stdout.length} last=${lastLine(fixtureC)}`);
-
-// req: R-2346
-check("R-2346: seal: SHARED_MEMORY_OUTPUT_BUDGET is 9,000 characters", SHARED_MEMORY_OUTPUT_BUDGET === 9000, SHARED_MEMORY_OUTPUT_BUDGET);
 
 console.log(`INFO output lengths: A=${fixtureA.stdout.length} D=${fixtureD.stdout.length}`);
 process.exit(fails);

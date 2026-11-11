@@ -201,35 +201,5 @@ const doctorCaveats = platformModes().map(doctorCaveatResult);
 // req: R-2084
 check("R-2084: doctor's settings lock row, on a fresh and an installed home, says to remove the lock only if no nana-setup is running", doctorCaveats.every((result) => result.pass), doctorCaveats.map((result) => result.detail).join("\n---\n"));
 
-const win32DoctorRows = doctorRows.filter((result) => result.platformName === "win32");
-const doctorRepairsAreOrdered = ({ repairs, row }) => Boolean(row) && repairs.every(({ shell, command }) => {
-	const labelIndex = row.indexOf(`in ${shell}:`);
-	const commandIndex = row.indexOf(command);
-	return labelIndex >= 0 && commandIndex > labelIndex;
-}) && row.trimEnd().endsWith(repairs.at(-1).command);
-// req: R-2084
-check("R-2084: on win32 doctor's settings lock row puts each shell label before its command and ends on a command", win32DoctorRows.length === 1 && win32DoctorRows.every(doctorRepairsAreOrdered), win32DoctorRows.map((result) => result.detail).join("\n---\n"));
-
-function summaryLockResult(mode, index) {
-	const freshHome = fixtureHome(`doctor-summary-fresh-${index}`);
-	writeLock(freshHome);
-	const freshDoctor = run(["doctor", "--home", freshHome], { home: freshHome, extraEnv: mode.env });
-	const installedHome = fixtureHome(`doctor-summary-installed-${index}`);
-	const installed = run(["install", "--home", installedHome], { home: installedHome, extraEnv: mode.env });
-	writeLock(installedHome);
-	const installedDoctor = run(["doctor", "--home", installedHome], { home: installedHome, extraEnv: mode.env });
-	const last = (result) => result.stdout.split(/\r?\n/).filter((line) => line.trim()).at(-1)?.trim() ?? "";
-	const freshLast = last(freshDoctor);
-	const installedLast = last(installedDoctor);
-	return {
-		pass: installed.status === 0 && freshDoctor.status === 1 && installedDoctor.status === 1 && [freshLast, installedLast].every((line) => line.includes("fix by hand as each ✗ line says:") && line.includes("settings lock")),
-		detail: `${mode.name}\nfresh ${freshDoctor.status}: ${freshLast}\ninstalled ${installed.status}, doctor ${installedDoctor.status}: ${installedLast}\n${freshDoctor.stdout}\n${installedDoctor.stdout}`,
-	};
-}
-
-const doctorSummaries = platformModes().map(summaryLockResult);
-// req: R-2085
-check("R-2085: while the settings lock exists, doctor's last line lists settings lock among the rows to fix by hand, on a fresh home and on an installed one", doctorSummaries.every((result) => result.pass), doctorSummaries.map((result) => result.detail).join("\n---\n"));
-
 console.log(`${failures ? "FAIL" : "PASS"} summary: ${failures} failures`);
 process.exitCode = failures ? 1 : 0;

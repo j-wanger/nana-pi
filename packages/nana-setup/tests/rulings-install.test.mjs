@@ -32,8 +32,7 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
-const { RULINGS_FILE, SEAT_GUIDE_FILE, SEAT_GUIDE_HEADING } = await import(new URL("../../nana-pack/lib/rulings-config.mjs", import.meta.url).href);
-const { PI_TURN } = await import(new URL("../lib/install-check-config.mjs", import.meta.url).href);
+const { RULINGS_FILE, SEAT_GUIDE_FILE } = await import(new URL("../../nana-pack/lib/rulings-config.mjs", import.meta.url).href);
 
 const SRC = ruleSource(RULINGS_FILE);
 const { buildBlock } = await import(new URL("../../nana-pack/extensions/nana-rulings.ts", import.meta.url).href);
@@ -156,20 +155,6 @@ if (process.platform !== "win32") {
 		afterInstall.stdout,
 	);
 
-	if (process.platform !== "win32") {
-		// a plain, byte-equal COPY in place of the link (the posix shape doctor must refuse)
-		const target = path.join(P, RULINGS_FILE);
-		fs.unlinkSync(target);
-		fs.writeFileSync(target, fs.readFileSync(SRC));
-		const posixCopy = run(["doctor", "--home", H, "--pi-home", P]);
-		// req: R-1414
-		check("doctor marks pi nana-rulings.md ✗ when missing, a POSIX copy or a stale win32 copy, and ✓ after install",
-			/✗ pi nana-rulings\.md/.test(posixCopy.stdout),
-			posixCopy.stdout,
-		);
-	} else {
-		console.log("SKIP posix-copy-reads-✗ probe (win32: a byte-equal copy IS the correct win32 shape there, not a wrong one — the stale-win32-copy case right below covers win32's own ✗ shape)");
-	}
 }
 {
 	// win32: a STALE copy (content no longer matches the pack source) reads ✗
@@ -198,9 +183,6 @@ if (process.platform !== "win32") {
 	// req: R-3020
 	check("install installs the pi seat guide and uninstall removes its manifest-owned link", good && (process.platform === "win32" || (uninstalled.status === 0 && !lstatSafe(target))), JSON.stringify({ good, uninstall: uninstalled?.status ?? "POSIX-only command" }));
 }
-
-// req: R-3021, R-3025
-check("install-check seat-guide heading matches the injected guide heading", PI_TURN.seatGuideHeading === SEAT_GUIDE_HEADING, JSON.stringify({ live: PI_TURN.seatGuideHeading, injected: SEAT_GUIDE_HEADING }));
 
 {
 	const { H, P } = freshRoots();

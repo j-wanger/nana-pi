@@ -12,6 +12,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
+import { BOUNDED_READ_CAP } from "../../nana-pack/lib/bounded-read.mjs";
 import { CODE_SPAN_CAP, codeSpan } from "../../nana-pack/lib/display.mjs";
 import { MARKER, canonicalCwd, printable, repoRootOf } from "../../nana-pack/lib/adoption.mjs";
 import { RULINGS_FILE, RULINGS_SECTION } from "../../nana-pack/lib/rulings-config.mjs";

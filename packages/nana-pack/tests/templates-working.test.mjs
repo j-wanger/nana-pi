@@ -38,8 +38,9 @@ if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(file
 	check("seal: WORKING_SECTION_CHAR_CAP is 4500", WORKING_SECTION_CHAR_CAP === 4500);
 	const agentDir = tmpDir(path.join(os.tmpdir(), "agents-trim-guide-"));
 	try {
-		const guide = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-seat.md"), "utf8");
-		fs.writeFileSync(path.join(agentDir, SEAT_GUIDE_FILE), guide);
+		const source = path.join(REPO, "packages/nana-setup/claude/rules/nana-seat.md");
+		fs.copyFileSync(source, path.join(agentDir, SEAT_GUIDE_FILE));
+		const guide = fs.readFileSync(source, "utf8");
 		// req: R-3966
 		check("M2: shipped seat guide loads in full for a pi seat", buildSeatGuideBlock(agentDir) === `${SEAT_GUIDE_HEADING}\n\n${guide}`);
 	} finally {

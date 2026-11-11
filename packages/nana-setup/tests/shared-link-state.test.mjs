@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/shared-link-state.test.mjs
- * @purpose Pins sharedLinkState's no-error contract: a readlink failure on a confirmed symlink reads as "absent", never throws — proven both as a deterministic unit check and as a true base reproduction of the original race
- * @inputs lib/project-key.mjs sharedLinkState, a throwaway home, an injected readlinkSync failure (the seam sharedLinkState's 4th arg adds), and — for the true reproduction — a global spy on fs.lstatSync installed via require('fs') + syncBuiltinESMExports()
+ * @purpose Pins sharedLinkState's no-error contract: a readlink failure on a confirmed symlink reads as "absent", never throws — proven as a true base reproduction of the original race
+ * @inputs lib/project-key.mjs sharedLinkState, a throwaway home and a global spy on fs.lstatSync installed via require('fs') + syncBuiltinESMExports()
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (a throwaway home, real project memory dirs and real symlinks, removed on exit); process-global (lstatSync is monkeypatched and restored within a single synchronous call, via node:module's syncBuiltinESMExports)
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
@@ -19,13 +19,6 @@
 // bug for real: the real native readlinkSync throwing after a real lstatSync, with no seam and
 // no injected argument — the genuine base-vs-branch difference, not a stand-in for it.
 //
-// The OTHER section (the injected 4th-argument test) is kept as a narrower, fully deterministic
-// unit check of the catch branch itself — astra r1 ruled the seam reasonable to keep, consistent
-// with install.test.mjs's `afterTempWrite` precedent for this package. It is not, on its own, a
-// reproduction against the true base commit (ae15067): that commit's 3-argument function simply
-// ignores a 4th call argument and reads the real, healthy link, so running this test's injected
-// scenario against ae15067 returns "linked", not a throw. The TRUE reproduction below is the one
-// that actually discriminates base from branch.
 import { tmpDir } from "./tmp-dir.mjs";
 import { createRequire } from "node:module";
 import { syncBuiltinESMExports } from "node:module";
@@ -91,30 +84,6 @@ fs.mkdirSync(sharedMemoryDir, { recursive: true });
 	const link = path.join(memDir, "shared");
 	fs.symlinkSync(sharedMemoryDir, link);
 	check("baseline: a real, readable, correctly-targeted symlink reads 'linked'", sharedLinkState(projectsDir, projectPath, sharedMemoryDir) === "linked");
-}
-
-/* --- deterministic unit check of the catch branch, via the injected seam --------------------- */
-{
-	const projectPath = path.join(home, "seam-project");
-	const memDir = projectMemoryDir(projectsDir, projectPath);
-	fs.mkdirSync(memDir, { recursive: true });
-	fs.symlinkSync(sharedMemoryDir, path.join(memDir, "shared"));
-
-	function readlinkFailureIsAbsent() {
-		try {
-			return (
-				sharedLinkState(projectsDir, projectPath, sharedMemoryDir, {
-					readlinkSync: () => {
-						throw Object.assign(new Error("ENOENT: injected — simulates the link vanishing between lstat and readlink"), { code: "ENOENT" });
-					},
-				}) === "absent"
-			);
-		} catch {
-			return false; // the current (pre-fix) code throws past this point — that is the bug
-		}
-	}
-	// req: R-377
-	check("deterministic unit check (injected seam): a readlink failure on a confirmed symlink reads 'absent', not a throw", readlinkFailureIsAbsent());
 }
 
 /* --- TRUE base reproduction: the real production call, no seam, the link genuinely vanishes -- */

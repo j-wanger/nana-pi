@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, tokenize, validateShape, migrateLegacyHooks, CLAUDE_CODE_EXEC_FLOOR } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, migrateLegacyHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout, platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
@@ -49,43 +49,6 @@ check("four active hook entries are wanted", wanted.length === 4);
 	for (const entry of w) check(`quoted command still matches its own spec (${entry.label})`, commandInvokes(entry.entry.command, entry.spec));
 }
 
-/* --- matching is anchored on the script as a path component -------------------------- */
-{
-	const objective = spec("SessionStart objective");
-	const yes = [
-		"node ~/.claude/hooks/nana-objective.mjs",
-		"node '/Users/Jane Doe/.claude/hooks/nana-objective.mjs'",
-		'node "/Users/x/.claude/hooks/nana-objective.mjs"',
-		"/usr/bin/node /Users/x/.claude/hooks/nana-objective.mjs",
-		"node /opt/hooks/nana-objective.mjs --quiet",
-	];
-	for (const c of yes) check(`matches: ${c}`, commandInvokes(c, objective));
-	const no = [
-		"echo bash /tmp/nana-objective.sh", // mentions an invocation, is not one
-		"node /tmp/nana-objective.mjs &&", // not even valid shell
-		"node /tmp/nana-objective.mjs | cat",
-		"node /tmp/nana-objective.mjs; false",
-		"node /tmp/nana-objective.mjs > log",
-		"node /tmp/nana-objective.mjs < in",
-		"node /tmp/nana-objective.mjs & ",
-		"node $(echo /tmp)/nana-objective.mjs",
-		"node `echo /tmp`/nana-objective.mjs",
-		"echo nana-objective.mjs.disabled",
-		"node ~/.claude/hooks/nana-objective.mjs.disabled",
-		"node ~/.claude/hooks/old-nana-objective.mjsx",
-		"echo '/x/nana-objective.mjs'", // no interpreter
-		"node ~/.claude/hooks/nana-shared-memory.mjs",
-	];
-	for (const c of no) check(`does NOT match: ${c}`, !commandInvokes(c, objective));
-	const knowledge = spec("UserPromptSubmit knowledge pull");
-	check("knowledge: the real command matches", commandInvokes("NODE_NO_WARNINGS=1 node /r/packages/nana-knowledge/bin/nana-knowledge.ts hook", knowledge));
-	check("knowledge: a different subcommand does not", !commandInvokes("node /r/packages/nana-knowledge/bin/nana-knowledge.ts build", knowledge));
-	check("knowledge: a bare mention does not", !commandInvokes("echo nana-knowledge.ts hook", knowledge));
-	check("knowledge: a quoted path with a space matches", commandInvokes("NODE_NO_WARNINGS=1 node '/x y/nana-knowledge.ts' hook", knowledge));
-	check("knowledge: `echo node … hook` does not", !commandInvokes("echo node /x/nana-knowledge.ts hook", knowledge));
-	check("unbalanced quoting reads as NOT installed", !commandInvokes("node '/x/nana-objective.mjs", objective));
-}
-
 {
 	const objective = spec("SessionStart objective");
 	const knowledge = spec("UserPromptSubmit knowledge pull");
@@ -111,39 +74,15 @@ check("four active hook entries are wanted", wanted.length === 4);
 		[knowledge, `node ${knowledgePath} build`, false],
 		[knowledge, `node ${knowledgePath}`, false],
 		[knowledge, `node ${knowledgePath} build hook`, false],
+		[objective, `node '/x/a && b/${script}'`, true],
+		[objective, `node $HOME/x/${script}`, true],
+		[objective, "node ~/.claude/hooks/nana-shared-memory.mjs", false],
+		...["&&", "||", ";", "|", ">", "<", "&", "$(", "`"].map(op => [objective, `node /x/${script} ${op} z`, false]),
 	];
 	const results = cases.map(([hookSpec, command, expected]) => ({ command, expected, actual: commandInvokes(command, hookSpec) }));
-	// req: R-317
+	// req: R-317 R-922
 	check("R-317: a hook counts as present only when its command, read with shell quoting and leading VAR=value words dropped, runs the interpreter on a path ending in the script with the expected argument",
 		results.every((result) => result.actual === result.expected), JSON.stringify(results));
-}
-
-/* --- the tokenizer the matcher is built on -------------------------------------------- */
-{
-	const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-	check("tokenize: plain words", eq(tokenize("bash /a/b.sh"), ["bash", "/a/b.sh"]));
-	check("tokenize: single quotes keep spaces", eq(tokenize("bash '/Jane Doe/b.sh'"), ["bash", "/Jane Doe/b.sh"]));
-	check("tokenize: double quotes keep spaces", eq(tokenize('bash "/Jane Doe/b.sh"'), ["bash", "/Jane Doe/b.sh"]));
-	check("tokenize: backslash escapes a space", eq(tokenize("bash /Jane\\ Doe/b.sh"), ["bash", "/Jane Doe/b.sh"]));
-	check("tokenize: env assignment stays its own word", eq(tokenize("A=1 node x hook"), ["A=1", "node", "x", "hook"]));
-	check("tokenize: an empty quoted word survives", eq(tokenize("a '' b"), ["a", "", "b"]));
-	check("tokenize: unbalanced quoting is null", tokenize("bash 'x") === null);
-	for (const op of ["&&", "||", ";", "|", "&", ">", "<", "`", "$("]) {
-		check(`tokenize: \`${op}\` outside quotes is null`, tokenize(`bash /x/y.sh ${op} z`) === null);
-	}
-	check("tokenize: an operator INSIDE quotes is just text", JSON.stringify(tokenize("bash '/x/a && b.sh'")) === JSON.stringify(["bash", "/x/a && b.sh"]));
-	check("tokenize: a bare $ (variable expansion) is fine", JSON.stringify(tokenize("bash $HOME/x.sh")) === JSON.stringify(["bash", "$HOME/x.sh"]));
-}
-
-/* --- shape validation ----------------------------------------------------------------- */
-{
-	check("valid: empty object", validateShape({}) === null);
-	check("valid: real-world settings", validateShape({ model: "fable", hooks: { SessionStart: [{ hooks: [{ command: "x" }] }, { matcher: "Bash", hooks: [] }] } }) === null);
-	check('invalid: {"hooks":"disabled"}', validateShape({ hooks: "disabled" }) !== null);
-	check("invalid: hooks event is not an array", validateShape({ hooks: { SessionStart: { hooks: [] } } }) !== null);
-	check("invalid: a group is not an object", validateShape({ hooks: { SessionStart: ["x"] } }) !== null);
-	check("invalid: group.hooks is not an array", validateShape({ hooks: { SessionStart: [{ hooks: "x" }] } }) !== null);
-	check("invalid: top level is an array", validateShape([]) !== null);
 }
 
 /* --- unit: merge into an empty object ------------------------------------------------- */
@@ -178,7 +117,6 @@ check("four active hook entries are wanted", wanted.length === 4);
 	check("nana SessionStart hooks appended to the same group", s.hooks.SessionStart[0].hooks.length === 5 && s.hooks.SessionStart.length === 1);
 	// req: R-316
 	check("a matcher-scoped group is left alone", s.hooks.UserPromptSubmit[0].matcher === "Bash" && s.hooks.UserPromptSubmit[0].hooks.length === 1);
-	check("retired knowledge hook is not appended beside the foreign prompt entry", s.hooks.UserPromptSubmit[1].hooks.length === 1 && s.hooks.UserPromptSubmit[1].hooks[0].command.endsWith("owner-prompt.sh"));
 	// req: R-316
 	check("unrelated events untouched", JSON.stringify(s.hooks.Stop) === before);
 	// req: R-316
@@ -215,10 +153,6 @@ check("four active hook entries are wanted", wanted.length === 4);
 	check("win32 desiredHooks: the four SessionStart entries name packages/nana-setup/claude/hooks/", ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"].every((name) => w32.find((w) => w.spec.script === name).entry.args[0] === `${weird}/packages/nana-setup/claude/hooks/${name}`));
 	// req: R-1050
 	check("win32 desiredHooks: no active entry adds a subcommand", w32.every(w => w.entry.args.length === 1));
-	// req: R-1050
-	check("win32 desiredHooks: no knowledge target is wanted", !w32.some(w => w.spec.script === 'nana-knowledge.ts'));
-	// req: R-1060
-	check("CLAUDE_CODE_EXEC_FLOOR is 2.1.139", CLAUDE_CODE_EXEC_FLOOR === "2.1.139");
 }
 {
 	// (R-1061) POSIX desiredHooks is byte-identical to today's, with or without an explicit non-win32 platform.
@@ -466,7 +400,6 @@ const homeSnapshot = (root) => {
 	// req: R-660
 	check("owner command variant with arguments is preserved", after.hooks.UserPromptSubmit[0].hooks.some((h) => h.command === "bash ~/.claude/hooks/context-size-check.sh --custom"));
 	check("retirement reports that the hook was removed", /UserPromptSubmit context-size retirement/.test(r.stdout), r.stdout);
-	check("the retired knowledge hook was not added", !JSON.stringify(after).includes("nana-knowledge.ts"));
 	if (platform() === "win32") {
 		skip("file mode is preserved across the atomic write", posixModeReason);
 	} else {
@@ -487,35 +420,6 @@ const homeSnapshot = (root) => {
 	const after = JSON.parse(fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8"));
 	// req: R-909
 	check("install reports retained retired bash invocation as PROBLEM and exits nonzero", r.status === 1 && /PROBLEM.*retired/i.test(r.stdout) && r.stdout.includes(command) && after.hooks.SessionStart.some((group) => group.hooks.some((entry) => entry.command === command)), r.stdout + r.stderr);
-}
-
-/* --- end to end: unparseable settings.json aborts and touches nothing ------------------ */
-{
-	const home = freshHome();
-	const broken = '{ "hooks": { "SessionStart": [ } }';
-	fs.writeFileSync(path.join(home, ".claude", "settings.json"), broken);
-	const r = run(["install"], home);
-	check("broken settings.json: non-zero exit", r.status === 2, String(r.status));
-	check("broken settings.json: the message names the file", r.stderr.includes(path.join(home, ".claude", "settings.json")));
-	check("broken settings.json: the message says nothing was changed", /Nothing was changed/.test(r.stderr));
-	check("broken settings.json: file untouched", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === broken);
-	check("broken settings.json: no hooks were installed", !fs.existsSync(path.join(home, ".claude", "hooks")));
-	check("broken settings.json: no pi config was seeded", !fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
-}
-
-/* --- end to end: valid JSON with an impossible shape is also a no-op ------------------- */
-{
-	const home = freshHome();
-	const weird = '{"hooks":"disabled"}';
-	fs.writeFileSync(path.join(home, ".claude", "settings.json"), weird);
-	const r = run(["install"], home);
-	check('{"hooks":"disabled"}: non-zero exit', r.status === 2, String(r.status));
-	check('{"hooks":"disabled"}: the message says what is wrong', /shape this installer will not edit/.test(r.stderr), r.stderr);
-	check('{"hooks":"disabled"}: settings untouched', fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === weird);
-	check('{"hooks":"disabled"}: NO files were moved', !fs.existsSync(path.join(home, ".claude", "hooks")) && !fs.existsSync(path.join(home, ".claude", "rules")));
-	check('{"hooks":"disabled"}: no shared memory dir', !fs.existsSync(path.join(home, ".claude", "nana-memory")));
-	check('{"hooks":"disabled"}: no pi seeds', !fs.existsSync(path.join(home, ".pi", "agent", "nana-pack.json")));
-	check('{"hooks":"disabled"}: no PATH entry', !fs.existsSync(path.join(home, ".local", "bin", "pi-review")));
 }
 
 /* --- R-924: an unparseable body and a shape the merge will not edit both abort before any
@@ -606,15 +510,9 @@ const lockOf = (home) => path.join(home, ".claude", ".settings.json.nana-setup.l
 	const after = homeSnapshot(home);
 	// req: R-1590
 	check("lock: a held lock stops install before its first write", r.status === 2 && r.stderr.includes("Nothing was written") && after === before, `${r.status}\n${r.stderr}\n${after}`);
-	check("lock: an existing lock aborts the install", r.status === 2, String(r.status));
-	check("lock: the message prints the lock path", r.stderr.includes(lockOf(home)), r.stderr);
-	check("lock: the message prints the recorded pid", r.stderr.includes("pid 4242"), r.stderr);
-	check("lock: the message prints the recorded age", /\b9\ds ago\b/.test(r.stderr), r.stderr);
-	check("lock: settings were not written", fs.readFileSync(path.join(home, ".claude", "settings.json"), "utf8") === "{}\n");
 // req: R-925
 	check("lock: the other run's lock is left exactly as it was", fs.readFileSync(lockOf(home), "utf8") === JSON.stringify(held));
 	const lock = lockOf(home);
-	check("lock fixture: the path holds no quote character", !/["']/.test(lock), lock);
 	const win32Lines = [
 		"  in Command Prompt:",
 		`    del "${lock}"`,

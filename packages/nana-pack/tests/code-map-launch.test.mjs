@@ -145,7 +145,9 @@ await check("R-3155: repo-code programs require reasoned declarations and remain
 // req: R-3156
 await check("R-3156: every fixed-base callee survives or has a named loss reason", () => {
 	const losses = new Map([
-		['packages/nana-setup/tests/project-stale.test.mjs -> packages/nana-pack/lib/bounded-read.mjs', 'FEAT-013 setup diet removes the preventive damaged-input matrix; R-2765 is untested.'],
+		['packages/nana-setup/tests/seat-pull-off.test.mjs -> packages/nana-setup/lib/doctor.mjs', 'FEAT-013 setup diet removes the preventive retired-knowledge doctor case; R-3741 is untested.'],
+		['packages/nana-setup/tests/seat-pull-off.test.mjs -> packages/nana-setup/tests/stub-pi.mjs', 'FEAT-013 setup diet removes the doctor-only stub caller.'],
+		['packages/nana-setup/tests/rulings-install.test.mjs -> packages/nana-setup/lib/install-check-config.mjs', 'FEAT-013 setup diet removes the heading equality pin; live turn and injection checks remain.'],
 		['packages/nana-setup/tests/doctor-memory-links.test.mjs -> packages/nana-setup/lib/doctor.mjs', 'FEAT-031 diet2 retains the dangling-link CLI regression, dropping the preventive in-process lint matrices.'],
 		['packages/nana-setup/tests/doctor-detail.test.mjs -> packages/nana-pack/lib/adoption.mjs', 'FEAT-031 diet2 removes preventive malformed-mark variants; ordinary encoding and privacy regressions remain.'],
 		['packages/nana-setup/tests/doctor-runtime.test.mjs -> packages/nana-setup/tests/stub-pi.mjs', 'FEAT-031 diet2 removes the stub self-check, retaining real PATH probes.'],
@@ -188,7 +190,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
 	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
 	const retiredSources = new Map([
-		['packages/nana-setup/tests/doctor-trust.test.mjs', 'FEAT-013 setup diet moves the trust repair assertion into setup-tail M7.'],
+		...['doctor-trust', 'seat-rule', 'shared-memory-input'].map(name => [`packages/nana-setup/tests/${name}.test.mjs`, 'FEAT-013 setup diet merges the kept assertion into setup-tail, templates-working or shared-memory-hook.']),
 		['packages/nana-pack/lib/review-findings.mjs', 'FEAT-031 small-cuts removes the unread review-timeline leftover and its configuration import.'],
 		['packages/nana-pack/tests/handoff-writer-role.test.mjs', 'FEAT-031 small-cuts retires a test with no recorded failure or safety line; R-139 and R-1683 remain untested.'],
 		['packages/nana-pack/tests/ledger-repo.mjs', 'FEAT-031 small-cuts inlines the sole fixture caller in one-reviewer.test.mjs.'],

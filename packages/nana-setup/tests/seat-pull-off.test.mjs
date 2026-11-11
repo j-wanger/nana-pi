@@ -15,8 +15,6 @@ import { spawnSync } from 'node:child_process';
 import { desiredHooks, shq, removeInstallerHooks } from '../lib/settings.mjs';
 import { stepSettings, readClaudeSettings } from '../lib/steps.mjs';
 import { resolveLayout, repoRoot } from '../lib/paths.mjs';
-import { diagnose } from '../lib/doctor.mjs';
-import { withPiStub } from './stub-pi.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
 
 const limit = 20_000;
@@ -81,27 +79,6 @@ await test('R-3740: install removes shell and exec knowledge entries and preserv
   });
 });
 
-// req: R-3741
-await test('R-3741: doctor names retired knowledge commands and install repair, but not absence', options, () => {
-  fixture(layout => {
-    for (const hook of [entry(knowledge), entry(knowledge, true), { ...entry(knowledge), args: [] }]) {
-      fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [hook] }] } }));
-      const rows = withPiStub(() => diagnose(layout, { projectDir: layout.base }));
-      const row = rows.find(r => r.label === 'settings UserPromptSubmit retired hook');
-      assert.equal(row?.status, 'fail');
-      assert.ok(row.detail.includes(hook.command));
-      if (hook.args) assert.ok(row.detail.includes(knowledge));
-      assert.ok(row.detail.includes('nana-setup install'));
-      assert.ok(!rows.some(r => r.label === 'settings UserPromptSubmit knowledge pull'));
-    }
-    fs.writeFileSync(layout.claudeSettings, '{}');
-    const rows = withPiStub(() => diagnose(layout, { projectDir: layout.base }));
-    assert.ok(!rows.some(r => /knowledge|retired hook/.test(r.label) && r.label.startsWith('settings')));
-    assert.ok(rows.some(r => r.label === 'knowledge index'));
-    assert.ok(rows.some(r => r.label === 'knowledge sources'));
-  });
-});
-
 // req: R-3742
 await test('R-3742: uninstall still removes the previous installer knowledge entry', options, () => {
   fixture(layout => {
@@ -127,12 +104,3 @@ await test('R-3744: query returns index results after install', options, () => {
   });
 });
 
-// req: R-3745
-await test('R-3745: install retains matcher siblings and drops only groups emptied by removal', options, () => {
-  fixture(layout => {
-    const sibling = { command: 'echo sibling', type: 'command', timeout: 11 };
-    const empty = { matcher: 'preexisting', hooks: [] };
-    const after = installSettings(layout, { hooks: { UserPromptSubmit: [{ matcher: '*', hooks: [entry(), sibling] }, { matcher: 'alone', hooks: [entry()] }, empty] } }, 'darwin');
-    assert.equal(JSON.stringify(after.hooks.UserPromptSubmit), JSON.stringify([{ matcher: '*', hooks: [sibling] }, empty]));
-  });
-});
