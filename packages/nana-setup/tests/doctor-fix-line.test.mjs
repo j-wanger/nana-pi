@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-setup/tests/doctor-fix-line.test.mjs
- * @purpose Pin doctor's final repair line, and the `PATH resolves pi-review` row's own advice, to the changes install's dry run can actually make.
+ * @purpose Pin doctor's private JSON diagnostics and final repair advice to safe output and changes install's dry run can actually make.
  * @inputs The nana-setup CLI, scratch homes and working folders, a pi stub, and a historical pi-subagents fixture.
- * @outputs PASS/FAIL lines for R-1990 through R-1997 and R-2320 through R-2325, and a final failure-count summary.
+ * @outputs PASS/FAIL lines for R-1990 through R-1997, R-2320 through R-2325 and R-4180, and a final failure-count summary.
  * @effects disk (temporary fixtures), process (runs install and doctor with sanitized environments).
  * @errors Failed assertions print their observed output and make the test process exit nonzero.
  */
@@ -156,6 +156,26 @@ if (process.platform === "win32") {
 	const otherFile = path.join(otherDir, "pi-review");
 	fs.writeFileSync(otherFile, "#!/bin/sh\nexit 0\n");
 	fs.chmodSync(otherFile, 0o755);
+}
+
+{
+	const home = fixtureHome("private-json-home");
+	const cwd = freshCwd("private-json-cwd");
+	const settingsFile = path.join(home, ".claude", "settings.json");
+	const mcpFile = path.join(home, ".pi", "agent", "mcp.json");
+	fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+	fs.writeFileSync(settingsFile, 'SECRETTOKEN123 {"env":{}}');
+	fs.writeFileSync(mcpFile, "SECRETTOKEN456");
+	const result = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], {
+		cwd, env: cleanEnv(home), encoding: "utf8", timeout: 30_000,
+	}));
+	const output = `${result.stdout}\n${result.stderr}`;
+	// req: R-4180
+	check("doctor fails private invalid settings and MCP JSON without echoing tokens",
+		result.status === 1 && !output.includes("SECRET") &&
+		output.split(/\r?\n/).some((line) => line.includes("✗") && line.includes("settings.json")) &&
+		output.split(/\r?\n/).some((line) => line.includes("✗") && line.includes("mcp.json")),
+		`status ${result.status}; private JSON diagnostic failed`);
 }
 
 const emptyHome = fixtureHome("empty-home");

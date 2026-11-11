@@ -1,8 +1,6 @@
 /**
  * @module packages/nana-setup/tests/doctor-detail.test.mjs
- * @purpose Pins that `doctor`'s detail text for each per-piece check agrees with the tick, cross or
- *  warning it prints — the private rule file, objective.projectFile, the Node floor, and the pi 1.0
- *  subagent/MCP checks (subagent config, reviewer agent marker, pi-subagents version, mcp.json)
+ * @purpose Pin doctor's private-rule details, objective.projectFile rule and safe nana-pack JSON diagnostics.
  * @inputs lib/doctor.mjs, lib/paths.mjs, lib/steps.mjs, valid and malformed nana-pack JSON fixtures, and throwaway home layouts
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (throwaway home layouts, regular files, symlinks and directories)

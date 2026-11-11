@@ -21,7 +21,7 @@
 // is judged by: if every line is ✓, the Claude Code half, the user-scope pi config, the PATH
 // entry are actually in place.
 import * as fs from "node:fs";
-import { configFailureDetail, jsonParseFailure, parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { configFailureDetail, jsonErrorPlace, jsonParseFailure, MANUAL_JSON_ADVICE, parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import { frozenNotice, readSourcesFile } from "../../nana-knowledge/lib/sources-file.mjs";
 import { codeSpan } from "../../nana-pack/lib/display.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
@@ -80,7 +80,7 @@ export function knowledgeIndexState(dbPath, DatabaseSync = require("node:sqlite"
 		} catch { /* older or docs-only index has no meta table */ }
 		return { ok: Number.isInteger(row?.n), detail: `read-only docs count: ${row?.n}; ${age}` };
 	} catch (error) {
-		return { ok: false, detail: `cannot open/query expected docs schema (${error.message})` };
+		return { ok: false, detail: `cannot open/query expected docs schema (${error.code ?? "UNKNOWN"})` };
 	} finally { try { db?.close(); } catch { /* already closed */ } }
 }
 
@@ -283,6 +283,12 @@ export function winShimState(name, source, binDir) {
 		: { ok: true, detail: `sh and .cmd match this checkout in ${binDir}` };
 }
 
+function privateJsonFailure(file, error) {
+	const place = jsonErrorPlace(error);
+	const where = place ? ` at line ${place.line}, column ${place.column}` : "";
+	return `${file} unparseable${where}. ${MANUAL_JSON_ADVICE}`;
+}
+
 function piPackConfigState(file) {
 	let bytes;
 	try {
@@ -400,11 +406,18 @@ export function diagnose(layout, opts = {}) {
 
 	let settings = null;
 	let parseError = null;
+	let settingsText;
 	try {
-		const raw = fs.readFileSync(layout.claudeSettings, "utf8");
-		settings = raw.trim() === "" ? {} : JSON.parse(raw);
-	} catch (err) {
-		parseError = err.code === "ENOENT" ? "missing" : `unreadable (${err.message})`;
+		settingsText = fs.readFileSync(layout.claudeSettings, "utf8");
+	} catch (error) {
+		parseError = error.code === "ENOENT" ? "missing" : `unreadable (${error.code ?? "UNKNOWN"})`;
+	}
+	if (settingsText !== undefined) {
+		try {
+			settings = settingsText.trim() === "" ? {} : JSON.parse(settingsText);
+		} catch (error) {
+			parseError = privateJsonFailure(layout.claudeSettings, error);
+		}
 	}
 	// Active settings rows check presence and, on win32, checkout targets.
 	// Retired knowledge wiring is reported separately below, never as a missing active hook.
@@ -479,8 +492,15 @@ export function diagnose(layout, opts = {}) {
 	}
 
 	// Read-only: MCP config is secret; never echo a parser's file-byte excerpt.
+	let mcpText;
 	try {
-		const mcpCfg = parseJsonText(fs.readFileSync(layout.mcpConfig, "utf8"));
+		mcpText = fs.readFileSync(layout.mcpConfig, "utf8");
+	} catch (error) {
+		add(error.code === "ENOENT" ? NOTE : FAIL, "pi mcp.json", error.code === "ENOENT"
+			? `not present: ${layout.mcpConfig}` : `${layout.mcpConfig} unreadable (${error.code ?? "UNKNOWN"})`);
+	}
+	if (mcpText !== undefined) try {
+		const mcpCfg = parseJsonText(mcpText);
 		const servers = mcpCfg?.mcpServers;
 		if (!mcpCfg || typeof mcpCfg !== "object" || Array.isArray(mcpCfg) ||
 			(servers !== undefined && (!servers || typeof servers !== "object" || Array.isArray(servers)))) {
@@ -493,8 +513,7 @@ export function diagnose(layout, opts = {}) {
 					: layout.mcpConfig);
 		}
 	} catch (error) {
-		add(error.code === "ENOENT" ? NOTE : FAIL, "pi mcp.json", error.code === "ENOENT"
-			? `not present: ${layout.mcpConfig}` : configFailureDetail(layout.mcpConfig, jsonParseFailure(error)));
+		add(FAIL, "pi mcp.json", privateJsonFailure(layout.mcpConfig, error));
 	}
 
 	// --- knowledge pull ---

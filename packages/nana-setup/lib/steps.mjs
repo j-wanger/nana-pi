@@ -32,7 +32,7 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
-import { parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
+import { jsonErrorPlace, parseJsonBytes, parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import { resolveObjectivePath } from "../../nana-pack/lib/objective-path.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as os from "node:os";
@@ -451,7 +451,7 @@ export function readClaudeSettings(layout) {
 		mode = fs.statSync(layout.claudeSettings).mode & 0o777;
 	} catch (err) {
 		if (err.code !== "ENOENT") {
-			throw new SetupError(`${layout.claudeSettings} cannot be read (${err.message}).\nNothing was changed.`);
+			throw new SetupError(`${layout.claudeSettings} cannot be read (${err.code ?? "UNKNOWN"}).\nNothing was changed.`);
 		}
 		return { settings: {}, snapshot: { raw: null, mode } };
 	}
@@ -465,7 +465,8 @@ export function readClaudeSettings(layout) {
 	try {
 		parsed = JSON.parse(raw);
 	} catch (err) {
-		throw abort(`is not valid JSON (${err.message})`);
+		const place = jsonErrorPlace(err);
+		throw abort(`is not valid JSON${place ? ` at line ${place.line}, column ${place.column}` : ""}`);
 	}
 	const bad = validateShape(parsed);
 	if (bad) throw abort(`has a shape this installer will not edit (${bad})`);

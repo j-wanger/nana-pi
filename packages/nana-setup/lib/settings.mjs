@@ -500,18 +500,15 @@ export function installerTarget(hook, wanted, platform) {
 }
 
 /**
- * Replace every stale or (on win32) wrongly-shaped repo-anchored entry in place, returning
- * { [label]: { found, replaced } } for all active entries on win32 (R-1056).
+ * On win32, replace stale or wrongly-shaped repo-anchored entries in place, returning
+ * { [label]: { found, replaced } } for all active entries (R-1056); POSIX returns an empty result.
  *
  * It scans entries under that entry's event; where the entry has a matcher, it scans only groups
- * with that matcher, otherwise every group (as the knowledge scan always has). The timeout gate
+ * with that matcher, otherwise every group. The timeout gate
  * stays (an entry must carry `timeout: 5` to be read as ours at all) — a hand-written entry that
  * happens to share a script name but carries its own timeout is never touched. A match is
- * replaced when its target is missing or outside the checkout (R-1056); on win32 it is ALSO
- * replaced when it resolves fine but its form is not exec form (R-1059), because a form upgrade
- * is still owed even to an entry that already works. A POSIX replacement changes `command` only,
- * so the replaced object stays byte-identical in shape to today's; a win32 replacement sets
- * `command: "node"` and `args`. Every other key the entry carried is kept, exactly as today.
+ * replaced when its target is missing or outside the checkout (R-1056), or when its form is
+ * not exec form (R-1059). A replacement sets `command: "node"` and `args`, keeping every other key.
  */
 export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 	const win32 = platform === "win32";
@@ -542,9 +539,9 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 					try {
 						// The JS lookup keeps a typed letter case, drive letter and 8.3 name, so a win32
 						// exec entry written through another spelling reads unhealthy and gets its one-time
-						// rewrite. On POSIX, strict lookup recognizes the checkout's on-disk spelling.
-						const real = win32 ? fs.realpathSync(match.target) : realPath(match.target, { mustExist: true });
-						const root = win32 ? fs.realpathSync(repoRoot) : realPath(repoRoot, { mustExist: true });
+						// rewrite.
+						const real = fs.realpathSync(match.target);
+						const root = fs.realpathSync(repoRoot);
 						healthy = real === root || real.startsWith(root + path.sep);
 					} catch { /* missing target */ }
 					found.push({ group, index: i, healthy, form: match.form });
@@ -553,11 +550,9 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 		}
 		let replaced = false;
 		for (const item of found) {
-			if (item.healthy && (!win32 || item.form === "win32-exec")) continue;
+			if (item.healthy && item.form === "win32-exec") continue;
 			const current = item.group.hooks[item.index];
-			item.group.hooks[item.index] = win32
-				? { ...current, command: w.entry.command, args: w.entry.args }
-				: { ...current, command: w.entry.command };
+			item.group.hooks[item.index] = { ...current, command: w.entry.command, args: w.entry.args };
 			replaced = true;
 		}
 		result[w.label] = { found: found.length > 0, replaced };

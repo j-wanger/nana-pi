@@ -1669,6 +1669,7 @@ Reads: A-080 · packages/nana-setup/lib/steps.mjs, packages/nana-setup/lib/fsops
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-4180 | WHEN Claude settings.json and pi mcp.json contain invalid JSON beginning with secret-looking tokens, doctor shall mark both files FAIL without echoing either token in its output. | implemented | `packages/nana-setup/tests/doctor-fix-line.test.mjs::doctor fails private invalid settings and MCP JSON without echoing tokens` |
 | R-3915 | WHEN NANA_ROLE is a launcher role, the pi rulings extension shall omit its rulings section while leaving no-role delivery unchanged. | implemented | `packages/nana-pack/tests/child-context.test.mjs::M1: launcher roles omit rulings and no-role sessions retain exact text` |
 | R-3916 | WHEN NANA_ROLE is a launcher role, the pi writing extension shall omit its writing section while preserving no-role delivery and writing.enabled false. | implemented | `packages/nana-pack/tests/child-context.test.mjs::M2: launcher roles omit writing while seats retain the rule and live disable` |
 | R-3917 | The composed lane builder prompt shall state that committed files carry no owner name and nothing about the owner's work. | implemented | `packages/nana-pack/tests/child-context.test.mjs::M3: real lane argv delivers the committed-file privacy rule` |
