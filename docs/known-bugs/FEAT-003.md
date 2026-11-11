@@ -2,6 +2,7 @@
 
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
+- A pid-less `build.lock` past the lock's time limit is no longer checked as reclaimed; R-4053..R-4058 omit it.
 - Unlistable folders (knowledge-unreadable-root): on Windows CI the five denial checks skip, because the hosted runner's account lists a folder behind the deny rule. Run as root on macOS or Linux, they skip too. So only macOS and Linux runs prove the fix. The owner's Windows machine has not run it. Those requirements still read implemented, because the rail cannot see a skip inside a test file.
 - Unlistable folders (knowledge-unreadable-root): a folder with read but no search permission still loses its entries. The build can list it but cannot reach the files inside. The independent check confirmed it.
 - Unlistable folders (knowledge-unreadable-root): a discover parent the build cannot list still drops its discovered roots, so their entries go, as on main. The independent check confirmed it. A missing parent takes the same path; the plan read that in the code but did not run it.

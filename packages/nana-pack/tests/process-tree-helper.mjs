@@ -1,10 +1,10 @@
 /**
  * @module packages/nana-pack/tests/process-tree-helper.mjs
  * @purpose Report what a killed worker left and end spawned test worker process trees without letting cleanup failures escape the test.
- * @inputs a case temp folder, child process, and optional platform and synchronous runner
- * @outputs sorted names left in a hard-kill case temp folder; kill helpers return none
- * @effects disk (reads the case temp folder), process (signals the child or starts taskkill)
- * @errors suppresses absent-process and launcher errors
+ * @inputs a case temp folder, child process, and optional platform, synchronous runner and query timeout
+ * @outputs sorted temp entry names, Windows process snapshots or lane watcher rows; kill helpers return none
+ * @effects disk (reads the case temp folder), process (signals children or starts taskkill and PowerShell)
+ * @errors Windows snapshots throw on query or JSON failure; watcher and kill helpers suppress launcher errors
  */
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -22,16 +22,21 @@ export function watcherWorkerPid(line) {
 	return match ? Number(match[1]) : null;
 }
 
+/** Snapshot live Windows processes; a failed query must not look like an empty tree. */
+export function windowsProcesses({ runner = spawnSync, timeout = 10_000 } = {}) {
+	const command = `$queryPid = $PID; @(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $queryPid } | Select-Object ProcessId,ParentProcessId,Name,CommandLine) | ConvertTo-Json -Compress`;
+	const result = runner("powershell", ["-NoProfile", "-Command", command], { cwd: path.parse(process.execPath).root, encoding: "utf8", windowsHide: true, timeout });
+	if (result.status !== 0) throw new Error(`Windows process query failed: ${result.error?.message ?? result.stderr}`);
+	const rows = JSON.parse(result.stdout);
+	return (Array.isArray(rows) ? rows : [rows]).map((row) => ({ pid: row.ProcessId, ppid: row.ParentProcessId, name: row.Name, line: row.CommandLine ?? "" }));
+}
+
 /** Find this lane's real watcher processes on Windows, excluding the PowerShell query process. */
-export function windowsLaneWatchers(root, { runner = spawnSync, timeout = 10_000 } = {}) {
-	const token = path.basename(root).replaceAll("'", "''");
-	const command = `$queryPid = $PID; Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $queryPid -and $_.Name -ieq 'node.exe' -and $_.CommandLine -like '*lane-watcher-child.mjs*' -and $_.CommandLine -like '*${token}*' } | ForEach-Object { "$($_.ProcessId)|$($_.ParentProcessId)|$($_.CommandLine)" }`;
-	const result = runner("powershell", ["-NoProfile", "-Command", command], { encoding: "utf8", windowsHide: true, timeout });
-	if (result.status !== 0) return [];
-	return result.stdout.split(/\r?\n/).filter(Boolean).map((line) => {
-		const [pid, ppid, ...commandLine] = line.split("|");
-		return { pid: Number(pid), ppid: Number(ppid), line: commandLine.join("|") };
-	});
+export function windowsLaneWatchers(root, options = {}) {
+	try {
+		const token = path.basename(root).toLowerCase();
+		return windowsProcesses(options).filter((row) => row.name.toLowerCase() === "node.exe" && row.line.toLowerCase().includes("lane-watcher-child.mjs") && row.line.toLowerCase().includes(token));
+	} catch { return []; }
 }
 
 /** Best-effort hard stop for a test worker and its Windows descendants. */

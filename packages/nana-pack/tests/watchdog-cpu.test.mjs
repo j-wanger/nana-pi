@@ -130,7 +130,17 @@ switch (action) {
   default: process.exit(2);
 }
 `);
+// Windows CPU-reader fixtures are cmd shims, not executables. Adapt only the
+// fixture boundary now that the product correctly starts PowerShell without cmd.
+const readerPreload = path.join(root, "reader-preload.cjs");
 if (process.platform === "win32") {
+  fs.writeFileSync(readerPreload, `const cp = require("node:child_process");
+const original = cp.execFileSync;
+cp.execFileSync = (command, args, options) => command === "powershell"
+  ? cp.execSync('powershell -NoProfile -Command "' + args[2] + '"', options)
+  : original(command, args, options);
+require("node:module").syncBuiltinESMExports();
+`);
   fs.writeFileSync(path.join(fixtureB, "powershell.cmd"), `@echo off\r\n"${process.execPath}" "${readerBody}" %*\r\nexit /b %errorlevel%\r\n`);
 } else {
   fs.writeFileSync(path.join(fixtureB, "ps"), `#!/bin/sh\nexec "${process.execPath}" "${readerBody}" "$@"\n`);
@@ -149,6 +159,7 @@ function fixtureEnv(extra = {}) {
     READER_EXIT_POLL_MS: String(READER_EXIT_POLL_MS),
     READER_EXIT_WAIT_MS: String(READER_EXIT_WAIT_MS),
     M1_PI_SPIN_CAP_MS: String(M1_PI_SPIN_CAP_MS),
+    ...(process.platform === "win32" ? { NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --require ${JSON.stringify(readerPreload)}` } : {}),
     ...extra,
   };
 }

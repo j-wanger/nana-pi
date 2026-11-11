@@ -23,7 +23,7 @@ import { collectBuildUsage, readBuildLedger, renderLaneLine } from "../lib/build
 import { findPiRoot } from "./pi-install.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
-import { killWorkerTree } from "./process-tree-helper.mjs";
+import { killWorkerTree, windowsProcesses } from "./process-tree-helper.mjs";
 import { pidAlive } from "../lib/process-tree.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -131,9 +131,9 @@ const baseEnv = () => {
 	return env;
 };
 let outNumber = 0;
-function workerArgs(brief = INSIDE_BRIEF, extra = [], outPath = null) {
+function workerArgs(brief = INSIDE_BRIEF, extra = [], outPath = null, poll = "0.1") {
 	const output = outPath ?? path.join(TD, `out-${++outNumber}.md`);
-	return [WORKER, "--poll", "0.1", "--stall-secs", "20", "--out", output, "--lane", "alpha", "--brief", brief, ...extra];
+	return [WORKER, "--poll", poll, "--stall-secs", "20", "--out", output, "--lane", "alpha", "--brief", brief, ...extra];
 }
 function runWorker({ brief = INSIDE_BRIEF, extra = [], env = {}, timeout = CASE_LIMIT_MS, outPath = null, cwd = LANE } = {}) {
 	return spawnSync(process.execPath, workerArgs(brief, extra, outPath), { cwd, env: { ...baseEnv(), ...env }, encoding: "utf8", timeout });
@@ -314,12 +314,18 @@ const literal = renderLaneLine(readBuildLedger(LEDGER).records, "alpha");
 check("R-2602: the build-record stderr line names this build's outcome, minutes and cost and its lane's builds so far; no lane class prints", lineRun.status === 0 && !lineRun.stderr.includes("lane class") && lastLine?.startsWith(`${BUILD_RECORD_LINE_PREFIX} ok, exit 0, 0 min, $${expectedUsage.cost.total.toFixed(2)}; `) && lastLine.endsWith(literal) && /3 builds/.test(literal) && /2 ok/.test(literal) && /1 no end/.test(literal) && workerEnd?.outcome === "ok", JSON.stringify({ stderr: lineRun.stderr, literal }));
 
 resetRecords();
-const hardChild = spawn(process.execPath, workerArgs(), { cwd: LANE, env: { ...baseEnv(), BR_MODE: "hard-sleep" }, stdio: "ignore" });
+const hardChild = spawn(process.execPath, workerArgs(INSIDE_BRIEF, [], null, "60"), { cwd: LANE, env: { ...baseEnv(), BR_MODE: "hard-sleep" }, stdio: "ignore" });
 const hardClose = waitChild(hardChild);
 const hardStarted = await waitFor(CHILD_PID, hardChild);
 const hardBuilderPid = hardStarted ? Number(fs.readFileSync(CHILD_PID, "utf8")) : null;
 // Let the detached watcher leave its launch hop before killing the worker tree.
 await new Promise((resolve) => setTimeout(resolve, 1000));
+const hardParents = new Map();
+const rememberProcesses = (rows) => {
+	for (const row of rows) hardParents.set(row.pid, row.ppid);
+	return rows;
+};
+if (process.platform === "win32") rememberProcesses(windowsProcesses({ timeout: CASE_LIMIT_MS }));
 killWorkerTree(hardChild);
 const hardResult = await hardClose;
 const hardDeadline = Date.now() + CASE_LIMIT_MS;
@@ -337,11 +343,23 @@ check("R-2725: a hard-killed lane build gets one stopped end record with its ses
 // req: R-2596 R-2599 R-2602
 check("seal: build records live at nana/build-records.jsonl in schema 1 and their stderr lines start pi-worker: build record:", BUILD_RECORDS_SUBPATH === "nana/build-records.jsonl" && BUILD_RECORD_SCHEMA === 1 && BUILD_RECORD_LINE_PREFIX === "pi-worker: build record:" && BUILD_SESSION_READ_MAX_BYTES === 64 * 1024 * 1024 && BUILD_LEDGER_READ_MAX_BYTES === 32 * 1024 * 1024);
 
-// taskkill returning and the watcher's end record do not imply the builder has
-// exited: Windows cleanup may still be releasing its lane working directory.
-const builderExitDeadline = Date.now() + CASE_LIMIT_MS;
-while (hardBuilderPid && pidAlive(hardBuilderPid)) {
-	if (Date.now() >= builderExitDeadline) throw new Error(`hard-kill builder ${hardBuilderPid} survived fixture teardown`);
+// Retain pre-kill parent links: a live grandchild may outlast its dead parent.
+const treeExitDeadline = Date.now() + CASE_LIMIT_MS;
+while (true) {
+	const survivors = process.platform === "win32"
+		? rememberProcesses(windowsProcesses({ timeout: Math.max(1, treeExitDeadline - Date.now()) })).filter((row) => {
+			const seen = new Set();
+			let pid = row.pid;
+			while (pid && !seen.has(pid)) {
+				if (pid === hardChild.pid) return true;
+				seen.add(pid);
+				pid = hardParents.get(pid);
+			}
+			return false;
+		})
+		: hardBuilderPid && pidAlive(hardBuilderPid) ? [{ pid: hardBuilderPid, name: "node", line: body }] : [];
+	if (!survivors.length) break;
+	if (Date.now() >= treeExitDeadline) throw new Error(`hard-kill worker descendants survived fixture teardown: ${JSON.stringify(survivors)}`);
 	await new Promise((resolve) => setTimeout(resolve, 25));
 }
 fs.rmSync(TD, { recursive: true, force: true });

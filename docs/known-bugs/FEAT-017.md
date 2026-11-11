@@ -1,6 +1,7 @@
 # FEAT-017 — known bugs
 
 *One line per known bug in this feature. A review finding that does not block a land goes here as one line.*
+- `packages/nana-setup/tests/restore.test.mjs` fails at import on a machine whose `~/.npmrc` sets the npm prefix: it asks `npm root -g` for pi's install under a temporary home, so npm falls back to node's own prefix, where pi is not installed (inferred; CI green).
 - State manifest (artifact audit, 2026-10-24): the list labels the handoff store as pi-owned and disposable.
 - Kept review texts (review-texts-durable, plan): a backup taken while a review completes can make tar fail on a vanished temporary text. Re-run it (inferred, not run).
 - Kept review texts (review-texts-durable, plan): tar reads the tally before the texts. A review that ends between the listing and that read leaves one LAND row with no text (inferred).

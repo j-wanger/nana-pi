@@ -7,7 +7,7 @@
  *  RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
  * @effects process (spawns pi detached, or an injected launch with its requested detached option,
  *  per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal,
- *  shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
+ *  starts PowerShell directly outside the lane on Windows, or shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
  *  stderr under the optional capture root; explicit persistent pi attempt session files and post-attempt load logs when contextLoad is supplied; on win32 a PATH lookup, a `package.json` read and the entry's stat)
  * @errors never throws — a bad invocation returns {error:'usage'} or a named message for a non-positive
  *  --stall-secs/--poll or a non-whole --retries, a spawn failure or stall returns ok:false with the
@@ -29,7 +29,7 @@
 // --retries N = re-attempts AFTER the first (N+1 attempts total); the default is the caller's
 // (pi-review 2 → 3 attempts, unchanged; pi-worker 0 — a retried worker repeats its mutations).
 
-import { spawn, execSync } from 'node:child_process';
+import { spawn, execSync, execFileSync } from 'node:child_process';
 import { readFileSync, existsSync, mkdirSync, mkdtempSync, openSync, closeSync, rmSync, statSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
@@ -131,7 +131,7 @@ export function parseCpuSample(raw, platform = process.platform) {
 function cpuSeconds(pid) {
   try {
     const raw = process.platform === 'win32'
-      ? execSync(`powershell -NoProfile -Command \"(Get-Process -Id ${pid}).TotalProcessorTime.Ticks\"`, { encoding: 'utf8' })
+      ? execFileSync('powershell', ['-NoProfile', '-Command', `(Get-Process -Id ${pid}).TotalProcessorTime.Ticks`], { cwd: path.parse(process.execPath).root, windowsHide: true, encoding: 'utf8' })
       : execSync(`ps -o time= -p ${pid}`, { encoding: 'utf8' });
     return parseCpuSample(raw);
   } catch {

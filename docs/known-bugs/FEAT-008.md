@@ -2,6 +2,7 @@
 
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
+- `nana-ci-wait --branch <b>` exits 0 at once saying "CI runs only on pull requests" when the branch has no PR, even while a push run for that head is in progress (seen 2026-11-11 on a probe branch).
 - Carry (tool-fix-2, NOTE 1): a short-name home followed by `,`, `)`, `;` or a backtick is not redacted.
 - Carry (tool-fix-2, NOTE 2): signed-URL parameters `X-Goog-Signature`, `X-Goog-Credential` and `Signature` are not removed.
 - Carry (tool-fix-2, NOTE 3): the stray-effort warning goes to stderr, which a Claude Code seat never shows.
