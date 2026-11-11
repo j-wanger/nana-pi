@@ -548,28 +548,37 @@ function stringsOf(value, acc = []) {
 }
 
 /** Reads and validates a supplied mapping file's bytes/JSON/pin before structural validation. */
-function readMapping(path, rootDir, text) {
-  const problems = [];
+function readMapping(path, text) {
   let buf;
   try { buf = readFileSync(path); } catch (e) { return { problems: [`${path}: ${e.message}`] }; }
+  return mappingFromBytes(buf, path, text);
+}
+
+function mappingFromBytes(buf, path, text, verify = false) {
   if (buf.includes(0)) return { problems: [`${path}: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8`] };
   const encLine = firstEncodingMismatchLine(buf);
   if (encLine !== null) return { problems: [`${path}:${encLine}: bytes are not valid UTF-8 (an ANSI or other single-byte encoding)`] };
   let raw = buf.toString("utf8");
   if (raw.startsWith(BOM)) raw = raw.slice(1);
   let parsed;
-  try { parsed = JSON.parse(raw); } catch (e) { return { problems: [`${path}: not valid JSON (${e.message})`] }; }
+  try { parsed = JSON.parse(raw); } catch (e) { return { problems: [`${path}${verify ? " " : ": "}not valid JSON (${e.message})`] }; }
   if (!isPlainObject(parsed)) return { problems: [`${path}: the top level must be an object`] };
   if (parsed.lift !== MAPPING_FORMAT) return { problems: [`${path}: mapping is lift version ${JSON.stringify(parsed.lift)}, not ${MAPPING_FORMAT}`] };
   for (const s of stringsOf(parsed)) {
     if (/�/.test(s)) return { problems: [`${path}: a string holds U+FFFD (invalid text)`] };
     if (/[\r\n]/.test(s)) return { problems: [`${path}: a string holds a line break`] };
   }
-  const wantPin = pinOf(text);
-  if (parsed.pin?.sha256 !== wantPin.sha256) return { problems: [`${path}: pin does not match this ledger (re-emit or re-propose the mapping)`] };
+  if (text !== undefined && parsed.pin?.sha256 !== pinOf(text).sha256) return { problems: [`${path}: pin does not match this ledger (re-emit or re-propose the mapping)`] };
   const shape = shapeProblems(parsed);
-  if (shape.length) return { problems: shape.map((p) => `${path}: ${p}`) };
+  if (shape.length) return verify ? { problems: shape, problemPrefix: `${path}: ` } : { problems: shape.map((p) => `${path}: ${p}`) };
   return { mapping: parsed, problems: [] };
+}
+
+function selectMapping(text, seed, notFlat) {
+  const ct = checkTree(text);
+  if (ct.problems.length === 0) return { mapping: buildIdentityMapping(text), fromDefault: false, problems: [] };
+  if (isFlatLedger(text)) return { ...buildDefaultMapping(text, seed), fromDefault: true };
+  return { problems: [notFlat(ct)] };
 }
 
 /** Full structural validation of a mapping against the parsed input ledger; names every problem, capped. */
@@ -1052,7 +1061,7 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
     const realMap = canonical(mappingPath);
     if (!realMap.startsWith(realRoot + sep) && realMap !== realRoot) { console.error(`${mappingPath}: lies outside --root`); return 1; }
     mappingPath = realMap;
-    const read = readMapping(mappingPath, rootDir, text);
+    const read = readMapping(mappingPath, text);
     if (read.problems.length) { for (const p of capProblems(read.problems)) console.error(p); return 1; }
     mapping = read.mapping;
   } else {
@@ -1061,23 +1070,16 @@ export function main(argv = process.argv.slice(2), fns = { readFileSync, writeFi
     // instead of stopping at whichever is found first (a stray base problem no longer hides the
     // tree-heading-count refusal below, and vice versa).
     const stageProblems = [...base];
-    const ct = checkTree(text);
-    if (ct.problems.length === 0) {
-      mapping = buildIdentityMapping(text);
-    } else if (isFlatLedger(text)) {
-      const built = buildDefaultMapping(text, seed);
-      if (built.problems.length) stageProblems.push(...built.problems);
-      else { mapping = built.mapping; fromDefault = true; }
-    } else {
-      // R-1167, T23: name the tree (or near-tree) heading(s) found, not just the tree
-      // checker's generic first problem — a hand-built partial tree (real CAP/FEAT/SUB
-      // headings) and a near-miss heading both need --mapping, for different reasons.
+    const selected = selectMapping(text, seed, (ct) => {
       const treeHeadingCount = ct.parsed.headings.length;
       const detail = treeHeadingCount > 0
         ? `this ledger already holds ${treeHeadingCount} capability, feature or subgroup heading(s) and is not a passing tree (${ct.problems[0] ?? "see the tree checker"})`
         : (ct.problems[0] ?? "see the tree checker");
-      stageProblems.push(`${ledgerPath}: this ledger is neither flat nor a passing tree; supply --mapping (${detail})`);
-    }
+      return `${ledgerPath}: this ledger is neither flat nor a passing tree; supply --mapping (${detail})`;
+    });
+    stageProblems.push(...selected.problems);
+    mapping = selected.mapping;
+    fromDefault = selected.fromDefault;
     if (stageProblems.length) { for (const p of capProblems(stageProblems)) console.error(p); return 1; }
   }
   // Build brief 4 §A, MUST 1(a)/(c): validateMapping runs on a mapping this process built
@@ -1165,25 +1167,9 @@ function runVerify(rootDir, args, seed) {
     if (!mapClean.ok) { console.error(`--verify refused: ${relMap} ${mapClean.reason}`); return 1; }
     const blob = gitBuf(repoRoot, ["show", `HEAD:./${relMap}`]);
     if (blob.status !== 0) { console.error(`--verify refused: could not read HEAD:./${relMap}`); return 1; }
-    const buf = blob.stdout;
-    // Every refusal readMapping() runs on a mapping file read from disk, run here on the SAME
-    // bytes read from the blob instead (build brief 4 §B): a NUL byte, an encoding mismatch,
-    // another lift version, and a U+FFFD or line break inside any string -- --write and
-    // --verify must not disagree on the same input.
-    if (buf.includes(0)) { console.error(`--verify refused: HEAD:./${relMap}: NUL byte; likely UTF-16 from Windows PowerShell 5.1; save it as UTF-8`); return 1; }
-    const mapEncLine = firstEncodingMismatchLine(buf);
-    if (mapEncLine !== null) { console.error(`--verify refused: HEAD:./${relMap}:${mapEncLine}: bytes are not valid UTF-8 (an ANSI or other single-byte encoding)`); return 1; }
-    let raw = buf.toString("utf8");
-    if (raw.startsWith(BOM)) raw = raw.slice(1);
-    try { mapping = JSON.parse(raw); } catch (e) { console.error(`--verify refused: HEAD:./${relMap} is not valid JSON (${e.message})`); return 1; }
-    if (!isPlainObject(mapping)) { console.error(`--verify refused: HEAD:./${relMap}: the top level must be an object`); return 1; }
-    if (mapping.lift !== MAPPING_FORMAT) { console.error(`--verify refused: HEAD:./${relMap}: mapping is lift version ${JSON.stringify(mapping.lift)}, not ${MAPPING_FORMAT}`); return 1; }
-    for (const s of stringsOf(mapping)) {
-      if (/�/.test(s)) { console.error(`--verify refused: HEAD:./${relMap}: a string holds U+FFFD (invalid text)`); return 1; }
-      if (/[\r\n]/.test(s)) { console.error(`--verify refused: HEAD:./${relMap}: a string holds a line break`); return 1; }
-    }
-    const shape = shapeProblems(mapping);
-    if (shape.length) { for (const p of capProblems(shape)) console.error(`--verify refused: HEAD:./${relMap}: ${p}`); return 1; }
+    const read = mappingFromBytes(blob.stdout, `HEAD:./${relMap}`, undefined, true);
+    if (read.problems.length) { for (const p of capProblems(read.problems)) console.error(`--verify refused: ${read.problemPrefix ?? ""}${p}`); return 1; }
+    mapping = read.mapping;
   }
   const inputBlob = gitBuf(repoRoot, ["show", `${args.verify}:./${relLedger}`]);
   if (inputBlob.status !== 0) { console.error(`--verify refused: could not read ${args.verify}:./${relLedger}`); return 1; }
@@ -1222,17 +1208,10 @@ function runVerify(rootDir, args, seed) {
     const wantPin = pinOf(inputText);
     if (mapping.pin?.sha256 !== wantPin.sha256) { console.error(`--verify refused: HEAD:./${relMap} pin does not match ${args.verify}:./${relLedger} (re-emit or re-propose the mapping)`); return 1; }
   } else {
-    const ct = checkTree(inputText);
-    if (ct.problems.length === 0) {
-      mapping = buildIdentityMapping(inputText);
-    } else if (isFlatLedger(inputText)) {
-      const built = buildDefaultMapping(inputText, seed);
-      if (built.problems.length) { for (const p of capProblems(built.problems)) console.error(`--verify refused: ${p}`); return 1; }
-      mapping = built.mapping; fromDefault = true;
-    } else {
-      console.error(`--verify refused: ${args.verify}:./${relLedger} is neither flat nor a passing tree; supply --mapping`);
-      return 1;
-    }
+    const selected = selectMapping(inputText, seed, () => `${args.verify}:./${relLedger} is neither flat nor a passing tree; supply --mapping`);
+    if (selected.problems.length) { for (const p of capProblems(selected.problems)) console.error(`--verify refused: ${p}`); return 1; }
+    mapping = selected.mapping;
+    fromDefault = selected.fromDefault;
   }
 
   const vprobs = validateMapping(mapping, inputText, seed);
