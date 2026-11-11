@@ -3326,7 +3326,7 @@ Also applies: G-012, G-021, G-022
 Artifact: A-036 · requirements skill · tracked: packages/nana-pack/skills/requirements/SKILL.md · manual: edited by hand in reviewed lanes
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| R-870 | The root package map shall not describe nana-pack as producing receipts. | implemented | `packages/nana-pack/tests/code-map.test.mjs::AGENTS package map omits receipt production` |
+| R-870 | The root package map shall not describe nana-pack as producing receipts. | untested | Prose pin removed; behavior stays. |
 | R-655 | The README checker configuration shall declare each install-produced path it checks as external with its reason. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::install-produced README paths are declared external with reasons` |
 | R-656 | The README checker CLI shall reject unknown or multiple mode arguments with usage and exit status 2. | untested | Coverage removed; behavior stays. |
 | R-658 | The front-door descriptions shall identify explicit knowledge search in both runtimes and the surviving extension functions. | implemented | `packages/nana-pack/tests/readme-check.test.mjs::front-door descriptions name both runtimes and the surviving extension functions` |

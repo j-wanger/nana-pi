@@ -38,9 +38,6 @@ console.log(line);
 // req: G-004 G-009 G-010
 check("the current source graph builds with valid module headers and layer directions", problems.length === 0, problems.join("\n  "));
 
-// req: R-870
-check("AGENTS package map omits receipt production", !fs.readFileSync(path.join(REPO_ROOT, "AGENTS.md"), "utf8").includes("post-edit checks + receipts"));
-
 const config = loadConfig(REPO_ROOT);
 const exempt = graph.order.filter((p) => graph.modules.get(p).exemptReason);
 // req: G-004

@@ -57,14 +57,6 @@ import { piAgentDir } from "./gate-paths.ts";
 import { CONFIG_FAILURE_PREFIX, configFailureDetail, jsonParseFailure, parseJsonBytes } from "./json-text.mjs";
 import { displayPath, displayText, isBareFileName } from "./objective.ts";
 
-export interface PostEditCommand {
-	/** Regex (string) tested against the edited file's path */
-	match: string;
-	/** Shell command; every `{file}` is replaced with the quoted file path */
-	run: string;
-	timeoutMs?: number;
-}
-
 export interface GateConfig {
 	/** Extra dangerous-command regexes (strings) added to the built-in list */
 	extraPatterns: string[];
@@ -193,37 +185,6 @@ const regexList =
 		});
 		return { ok: true, value: out };
 	};
-
-const commandList: Leaf = (v, where, problems) => {
-	if (!Array.isArray(v)) {
-		problems.push(`${where}: expected an array of {match, run} commands, got ${kind(v)} — using the default`);
-		return { ok: false };
-	}
-	const out: PostEditCommand[] = [];
-	v.forEach((c, i) => {
-		const bad = (why: string) => problems.push(`${where}[${i}]: ${why} — dropped`);
-		if (!isObj(c)) return void bad(`expected an object, got ${kind(c)}`);
-		if (typeof c.run !== "string") return void bad("`run` must be a string");
-		if (typeof c.match !== "string") return void bad("`match` must be a regex string");
-		try {
-			new RegExp(c.match);
-		} catch {
-			return void bad("`match` is an invalid regex");
-		}
-		if (c.timeoutMs !== undefined && !(typeof c.timeoutMs === "number" && Number.isInteger(c.timeoutMs) && c.timeoutMs >= 0))
-			return void bad("`timeoutMs` must be a non-negative integer");
-		const cmd: PostEditCommand = { match: c.match, run: c.run };
-		if (c.timeoutMs !== undefined) cmd.timeoutMs = c.timeoutMs as number;
-		out.push(cmd);
-	});
-	return { ok: true, value: out };
-};
-
-/** Normalize one post-edit list exactly as the config loader does; malformed entries are dropped. */
-export function normalizePostEditCommands(value: unknown): PostEditCommand[] {
-	// Project diagnostics still inspect historical starter configuration.
-	return (commandList(value, "postEdit.commands", []).value as PostEditCommand[] | undefined) ?? [];
-}
 
 /** The config-file schema: block → leaf → validator. `gate.stopReason` is deliberately absent. */
 const SCHEMA: Record<string, Record<string, Leaf>> = {
