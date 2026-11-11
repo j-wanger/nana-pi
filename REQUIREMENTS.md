@@ -2,7 +2,7 @@
 
 The standing, numbered requirement set for the toolkit itself: the pi extension pack, the knowledge pull, the installer, the bench harness and the repo test runner. nana-pi ships the requirements-first pattern to every project it scaffolds or adopts; this file is the toolkit living under its own rules.
 
-Rows are EARS form (one `shall` sentence per row from the Ubiquitous, WHEN, WHILE, IF-THEN and WHERE templates) and spec the contract, not the design; a row that is not `retired` carries exactly one `shall` outside a code span (G-013). IDs are stable and never renumbered or reused; a removed requirement keeps its ID as `retired`; a split keeps the original ID for the first clause. Cells contain no `|`.
+Rows are EARS form (one `shall` sentence per row from the Ubiquitous, WHEN, WHILE, IF-THEN and WHERE templates) and spec the contract, not the design; a row that is not `retired` carries exactly one `shall` outside a code span (G-013). IDs are stable and never renumbered or reused; nana-pi collapses a removed R-row in place as `retired`, keeping its ID and a snapshot pointer to the full row; a split keeps the original ID for the first clause. Cells contain no `|`.
 
 Statuses: `implemented` (a test in this repo asserts it; cited as `<package or app>/tests/<file>::<test title>`, backticked), `untested` (the code does it, nothing pins it), `planned`, `violated` (the code contradicts a documented rule; the cell says where), `retired`. Evidence in a sibling repo carries that repo as a prefix and is exempt from the local rail.
 
@@ -57,9 +57,9 @@ tagged tests, then code. A new row names its shares in that diff. Before changin
 it, and the review reads them all. A share is re-read in the same change when its row changes,
 when its row moves home, and when either feature changes purpose or status, splits, merges or
 retires; otherwise it stands until the next placement review. A frozen status is resolved in the
-change that follows the ruling it names. Retiring a row removes it from every `Also applies:` line in the
-same change. A split keeps the original ID for the first clause; a merge retires the merged rows
-with "superseded by <survivor>" in their Evidence.
+change that follows the ruling it names. Retiring an R-row removes it from every `Also applies:` line and collapses it in place as `| R-nnn | — | retired | <reason> (was <sha8>) |` in the
+same change. Keep the existing retirement reason in at most 120 characters, or use `retired` when none exists; retain any "superseded by R-nnn" text. The pointer names a committed snapshot that contains the full row, recoverable with `git show <sha8>:REQUIREMENTS.md`.
+A split keeps the original ID for the first clause; a merge retires the merged rows with "superseded by <survivor>" in their Evidence. IDs are never renumbered or reused; retired A-entries keep their existing form.
 
 What checks it. The suite checks the shape: R-287 to R-294 (homes, purposes, IDs, nesting, the
 outline, shares, statuses, empty proposed and retired features), R-2440 to R-2447 (capability
