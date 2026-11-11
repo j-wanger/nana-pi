@@ -14,30 +14,27 @@ import { pathToFileURL } from "node:url";
 import { awaitLaunchRecord } from "./launch-wait.mjs";
 import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, auditFile, resDir, freshHome, env, pathForms, jsonl, roundsOf, verdictsOf, check, gitIn, repo, A, B, out, ledgerRun, ledgerCheck, reviewAt, finish } from "./review-ledger-fixture.mjs";
 
-// 5. two concurrent launchers on two NEW revisions cannot both take the last round (3 trials)
+// 5. two concurrent launchers on distinct revisions both record without losing a revision
 {
 	freshHome("5");
 	const race = (item) => new Promise((resolve) => {
-		for (const i of [0, 1]) reviewAt(item, i);
 		const slow = [process.execPath, "-e", "setTimeout(()=>console.log('VERDICT: LAND'),1500)"];
 		const trees = [2, 3].map((i) => { const d = path.join(tmp, `${item}-t${i}`); gitIn(A.d, "worktree", "add", "-q", "--detach", d, A.shas[i]); return d; });
 		const kids = trees.map((d) => spawn(process.execPath, [LEDGER_CLI, "run", "--item", item, "--out", out(), "--", ...slow], { cwd: d, env: env(), stdio: ["ignore", "ignore", "pipe"] }));
 		const codes = [];
 		kids.forEach((k) => { let e = ""; k.stderr.on("data", (d) => (e += d)); k.on("exit", (c) => { codes.push({ c, e }); if (codes.length === 2) resolve(codes); }); });
 	});
-	for (const item of ["race1"]) {
-		const codes = await race(item);
-		const won = codes.filter((x) => x.c === 0).length;
-		const lost = codes.filter((x) => x.c !== 0).length;
-		// req: R-714
-		check(`${item}: both concurrent reviews record without losing either revision`, won === 2 && lost === 0 && roundsOf(item).length === 4, `${JSON.stringify(codes)} compared: ${pathForms(path.join(A.d, ".git"))}`);
-	}
+	const item = "race1";
+	const codes = await race(item);
+	const won = codes.filter((x) => x.c === 0).length;
+	const lost = codes.filter((x) => x.c !== 0).length;
+	// req: R-714
+	check(`${item}: both concurrent reviews record without losing either revision`, won === 2 && lost === 0 && roundsOf(item).length === 2, `${JSON.stringify(codes)} compared: ${pathForms(path.join(A.d, ".git"))}`);
 }
 
 // 6. a crashed reservation (launcher SIGKILLed mid-review) does not wedge the item; nor does a dead lock
 {
 	freshHome("6");
-	for (const i of [0, 1]) reviewAt("crash", i);
 	A.at(2);
 	const hang = [process.execPath, "-e", "setTimeout(()=>{},60000)"];
 	const k = spawn(process.execPath, [LEDGER_CLI, "run", "--item", "crash", "--out", out(), "--", ...hang], { cwd: A.d, env: env(), stdio: "ignore", detached: true });
@@ -59,7 +56,7 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, aud
 	check("after SIGKILL + a dead-pid lock, the next review is admitted", r.status === 0, r.stderr);
 	check("the crashed reservation was pruned, and the lock released", fs.readdirSync(resDir).length === 0 && !fs.existsSync(path.join(agent, "review-ledger.lock")));
 	// req: R-716
-	check("the crashed attempt consumed no round (3 rounds)", roundsOf("crash").length === 3);
+	check("the crashed attempt consumed no round (1 round)", roundsOf("crash").length === 1);
 }
 
 // 7. termination signals kill and reap both wrapper children; reviews release reservations

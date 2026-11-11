@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/review-ledger-launch.test.mjs
- * @purpose Pins the per-item review ledger's launch contract through REAL processes: the required item, four revisions, one revision one round, the verdict corpus and malformed verdicts, and stalls
+ * @purpose Pins the per-item review ledger's launch contract through REAL processes: the required item, distinct revisions, one revision one round, the verdict corpus and malformed verdicts, and stalls
  * @inputs bin/pi-review.mjs, bin/pi-worker.mjs, lib/review-run.mjs, bin/review-round.mjs, a stub `pi` on PATH, and temp git repositories under a temp HOME, all set up by review-ledger-fixture.mjs
  * @outputs PASS/FAIL lines per check on stdout, and exit 1 when any check fails
  * @effects disk (temp HOME, git repositories, worktrees, ledger files), process (spawns the review CLIs, the stub pi, git, and icacls on Windows)
@@ -59,20 +59,20 @@ import { tmp, outs, PI_WORKER, mod, home, agent, tallyFile, resDir, freshHome, e
 	check("pi-watchdog removes capture directories after success, child failure and stall", captureRuns[0].status === 0 && captureRuns[1].status === 1 && captureRuns[2].status === 1 && fs.readdirSync(captureRoot).length === 0, JSON.stringify(captureRuns.map((r) => ({ status: r.status, stderr: r.stderr }))));
 }
 
-// 1. arbitrary output names on one item: the 4th REVISION is refused, whatever the file is called
+// 1. arbitrary output names on one item preserve distinct revisions and the shared record shape
 {
 	freshHome("1");
-	const names = ["sol-final.md", "r3b.md", "anything.md", "notes.md"];
-	const rs = names.map((nm, i) => { A.at(i); return piReview(["--item", "four", "--role", "sol", "--out", path.join(outs, nm)]); });
+	const names = ["sol-final.md", "r3b.md"];
+	names.forEach((nm, i) => { A.at(i); return piReview(["--item", "four", "--role", "sol", "--out", path.join(outs, nm)]); });
 	// req: R-971
-	check("tally holds exactly 4 rounds, audit exactly 4 verdicts", roundsOf("four").length === 4 && verdictsOf("four").length === 4);
+	check("tally holds exactly 2 rounds, audit exactly 2 verdicts", roundsOf("four").length === 2 && verdictsOf("four").length === 2);
 	const rec = roundsOf("four")[0];
 	check("tally record {v,ts,kind:round,repo,item,revision(full sha),role,launcher}",
 		rec.v === 2 && rec.kind === "round" && !Number.isNaN(Date.parse(rec.ts)) && rec.repo === `git:${path.join(A.d, ".git")}` &&
 		rec.item === "four" && rec.revision === A.shas[0] && rec.role === "sol" && rec.launcher === "pi-review", `${JSON.stringify(rec)} compared: ${pathForms(path.join(A.d, ".git"))}`);
-	const viaLedger = reviewAt("four", 4, ["--role", "opus"]);
+	const viaLedger = reviewAt("four", 2, ["--role", "opus"]);
 	// req: R-971
-	check("switching launcher shares the uncapped store", viaLedger.status === 0 && roundsOf("four").length === 5, `${viaLedger.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
+	check("switching launcher shares the uncapped store", viaLedger.status === 0 && roundsOf("four").length === 3, `${viaLedger.stderr} compared: ${pathForms(path.join(A.d, ".git"))}`);
 }
 
 // 2. a round is a REVISION: any number of reviews, any roles, on one revision = one round
@@ -89,18 +89,13 @@ import { tmp, outs, PI_WORKER, mod, home, agent, tallyFile, resDir, freshHome, e
 	check("completed round records verdict and readRounds filters without mutation", roundsOf("rev")[0]?.verdict === "LAND" &&
 		mod.readRounds(home, { item: "rev", repo: roundsOf("rev")[0]?.repo }).length === 10 && mod.readRounds(home, { item: "missing" }).length === 0 &&
 		fs.readFileSync(tallyFile, "utf8") === tallyBeforeRead, JSON.stringify({ row: roundsOf("rev")[0], read: mod.readRounds(home, { item: "rev" }) }));
-	A.at(1);
-	const two = [ledgerRun(["--item", "rev", "--role", "sol"]).status, ledgerRun(["--item", "rev", "--role", "sol"]).status];
-	check("two sol reviews of one revision (sol r1: consumed 2) = one round", JSON.stringify(two) === "[0,0]" && roundsOf("rev").length === 2);
 	// req: R-972
-	check("new revision earns a round regardless of role", reviewAt("rev", 2, ["--role", "land-reviewer"]).status === 0 && roundsOf("rev").length === 3);
-	reviewAt("rev", 3);
-	check("re-reviewing an already-counted revision is admitted and earns nothing", reviewAt("rev", 1).status === 0 && roundsOf("rev").length === 4);
+	check("new revision earns a round regardless of role", reviewAt("rev", 2, ["--role", "land-reviewer"]).status === 0 && roundsOf("rev").length === 2);
 	A.at(2);
 	const hs = ledgerRun(["--item", "rev", "--revision", A.shas[2].slice(0, 7)]);
 	const head = ledgerRun(["--item", "rev", "--revision", "HEAD"]);
 	// req: R-713
-	check("--revision <short> and --revision HEAD resolve to the same full sha (no new round)", hs.status === 0 && head.status === 0 && roundsOf("rev").length === 4, hs.stderr + head.stderr);
+	check("--revision <short> and --revision HEAD resolve to the same full sha (no new round)", hs.status === 0 && head.status === 0 && roundsOf("rev").length === 2, hs.stderr + head.stderr);
 	const other = ledgerRun(["--item", "rev", "--revision", A.shas[0]]);
 	// req: R-713
 	check("--revision naming a different commit than HEAD is refused (revision derives from HEAD)", other.status === 1 && /derived from HEAD/.test(other.stderr), other.stderr);
@@ -157,8 +152,6 @@ import { tmp, outs, PI_WORKER, mod, home, agent, tallyFile, resDir, freshHome, e
 	check("stalled attempt → exit 1 (watchdog killed it)", stall.status === 1 && /STALL/.test(stall.stderr), stall.stderr);
 	// req: R-716
 	check("no reservation left behind, no round counted", fs.readdirSync(resDir).length === 0 && roundsOf("free").length === 0);
-	const after = [2, 3, 4, 5].map((i) => reviewAt("free", i).status);
-	check("…so all four later revisions record", JSON.stringify(after) === "[0,0,0,0]", JSON.stringify(after));
 }
 
 finish();

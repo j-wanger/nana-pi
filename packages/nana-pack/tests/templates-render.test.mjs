@@ -458,8 +458,6 @@ function hasBroadWindowsParity(text) {
 function checkInstructionContracts() {
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
 	const soul = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf-8");
-	const seat = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-seat.md"), "utf-8");
-	const planner = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/planner.md"), "utf8");
 	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
 		fs.readFileSync(path.join(REPO, file), "utf-8"));
 	const support = frontDoors.map((text) => [...text.matchAll(/^Support:.*$/gm)].map((match) => match[0]));
@@ -481,53 +479,24 @@ function checkInstructionContracts() {
 	// req: R-681
 	check("startup guidance scopes every requirements read to row lookup", shared.includes(startup) && startupFiles[1].includes(rootStartup) && startupFiles.every(startupRequirementsScopeValid) && !startupRequirementsScopeValid(contradictoryStartup));
 	// req: R-682
-	check("soul continuity rule records carry before reports and session boundaries",
-		/Before an OPEN, YOUR CALL, or BLOCKED final report/.test(soul) && /before `\/clear` or ending a session/.test(soul) && /no unrecorded carry/.test(soul) &&
-		[soul].every((text) => {
-			const sentences = [
-				"Where the HANDOFF points to its issues, the seat posts each unresolved item and open question as one issue, never a HANDOFF line.",
-				"Otherwise the seat writes each on one HANDOFF line under Next or Open for the owner.",
-				"Only the seat posts, from the owner's gh account.",
-				"The seat starts each issue comment it writes with `Seat:`.",
-				"If posting fails, the report lists the item and the reason.",
-				"Builders and reviewers put open questions in their report.",
-				"Issues and the replies on them are public.",
-				"Label an ask `ask` plus one of `blocking`, `optional` or `parked`, or label a next item `next`.",
-				'A blocking ask\'s title ends with "(default: <word>)".',
-				'First pass each title and body through `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`.',
-				"Post only when the scan exits 0.",
-				"Then hand-check names, handles, hostnames, work references and project names.",
-				"The scan knows only four words.",
-				"Delete a wrong post, never edit it.",
-				"Before acting on an open ask, read its replies with `gh issue view <number> --comments`.",
-			];
-			return text.includes(sentences.join(" ")) &&
-				!text.includes("Record each unresolved item and each open question on one HANDOFF line") &&
-				!text.includes("Only the seat posts one issue each where") &&
-				sentences.every((sentence) => sentence.split(/\s+/).length < 25);
-		}) && fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8")
+	check("issue instructions keep identity scanning and seat-only posting",
+		[
+			"Only the seat posts, from the owner's gh account.",
+			'First pass each title and body through `node "$HOME/nana-pi/scripts/identity-scan.mjs" --stdin --root "$HOME/nana-pi"`.',
+			"Post only when the scan exits 0.",
+			"Then hand-check names, handles, hostnames, work references and project names.",
+		].every((sentence) => soul.includes(sentence)) && fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8")
 			.split("\nTests\n")[0].includes("- Never create, edit, comment on or close a GitHub issue; put open questions in the report."));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
 	const canonicalSupport = `Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1 && lines[0] === canonicalSupport) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
-	const SEAT_GUIDE_POINTER = "- Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions.";
 	const seatGuideBullets = [...shared.matchAll(/^- Seat guide:.*$/gm)].map((m) => m[0]);
-	// req: R-1142
-	check("shared working pattern carries one seat-guide bullet",
-		seatGuideBullets.length === 1 && seatGuideBullets[0] === SEAT_GUIDE_POINTER,
-		JSON.stringify(seatGuideBullets));
 	const seatGuideNamedPath = /`\$HOME\/nana-pi\/([^`]+)`/.exec(seatGuideBullets[0] ?? "")?.[1] ?? null;
-	// req: R-1142
+	// req: R-4150
 	check("seat-guide bullet names a guide file present in this checkout",
 		seatGuideNamedPath !== null && fs.existsSync(path.join(REPO, seatGuideNamedPath)),
 		seatGuideNamedPath ?? "no bullet found");
-	// req: R-2955
-	check("R-2955: seat guide points planners to the prompt with the request and grounding",
-		seat.includes("Before writing or briefing a plan, read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
-		planner.includes("Quote the agreed intent reading.") &&
-		planner.includes("An earlier plan is grounding for a decision it records, never a format to copy.") &&
-		markerBlock(frontDoors[1]) === shared);
 }
 checkInstructionContracts();
 

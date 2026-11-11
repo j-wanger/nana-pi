@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/linked-launch.test.mjs
- * @purpose Pin that five command entry points exit and print the same whether started by their
+ * @purpose Pin that three command entry points exit and print the same whether started by their
  *  real checkout path or through a symlinked or junctioned link to that checkout, so a detached
  *  checkout reached through the OS temp folder's own link (macOS /var, a reviewer's worktree)
  *  cannot read a silent exit 0 as a real pass.

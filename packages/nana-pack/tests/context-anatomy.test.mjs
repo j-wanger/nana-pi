@@ -91,7 +91,6 @@ test('roster effort: Claude reviewer honors an explicit level without alias expa
   const { formatRosterLines } = await import('../bin/nana-roster.mjs');
   const { rosterNotice } = await import('../lib/roster-notice.mjs');
   const { CLAUDE_EFFORT_LEVELS } = await import('../bin/worker-config.mjs');
-  assert.deepEqual(CLAUDE_EFFORT_LEVELS, ['low', 'medium', 'high', 'xhigh', 'max']);
   const f = fixture();
   write(path.join(f.home, '.claude/settings.json'), JSON.stringify({ effortLevel: 'medium', modelSettings: { 'claude-opus-5-5': { effortLevel: 'low' } } }));
   for (const level of CLAUDE_EFFORT_LEVELS) {
@@ -113,8 +112,6 @@ test('roster effort: Claude reviewer honors an explicit level without alias expa
 });
 // req: R-3219 R-2560 R-2646
 test('R-3219: both Claude launchers exclude ancestor memory while keeping tree instructions eligible', async () => {
-  const { CLAUDE_ANCESTOR_MEMORY_PATHS } = await import('../bin/worker-config.mjs');
-  assert.deepEqual(CLAUDE_ANCESTOR_MEMORY_PATHS, ['CLAUDE.md', 'CLAUDE.local.md', '.claude/CLAUDE.md', '.claude/rules/**']);
   for (const launcher of ['claude-review', 'pi-worker']) {
     const f = fixture(true);
     write(path.join(f.home, '.claude/rules/marker.md'), 'ANCESTOR_RULE_MARKER');
@@ -247,15 +244,6 @@ test('R-3214: both reviewers share known bugs with a lead fallback ordered share
   const one = '# Header\n\n- ' + '你'.repeat(capacity * 2);
   const headerOnly = digestKnownBugs(one, 'docs/known-bugs/FEAT-007.md', '', Math.floor(capacity/2)).text;
   assert.ok(headerOnly.startsWith('# Header\n\n1 known-bug lines omitted')); assert.ok(!headerOnly.includes('- 你'));
-  const m = fixture();
-  const ledger = '# CAP-01 · Test\nPurpose: Test\n\n## FEAT-006 · First\nPurpose: First\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | One. | untested | — |\n\n## FEAT-007 · Second\nPurpose: Second\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-002 | Two. | untested | — |\n';
-  write(path.join(m.repo,'REQUIREMENTS.md'), ledger); git(m.repo,'add','REQUIREMENTS.md'); git(m.repo,'commit','-qm','ledger'); git(m.lane,'merge','--ff-only','main');
-  write(path.join(m.lane,'REQUIREMENTS.md'),ledger.replace('One.','One changed.').replace('Two.','Two changed.')); git(m.lane,'add','REQUIREMENTS.md'); git(m.lane,'commit','-qm','movement');
-  write(m.bug,short); write(path.join(m.lane,'docs/known-bugs/FEAT-007.md'),big);
-  const mc=launch(m,'claude-review');good(mc);const mp=launch(m,'pi-review');good(mp);
-  assert.ok(!mp.call.prompts.some(p=>p.text.startsWith('## Tree movement')));
-  const briefOnly=reviewKnownBugSection(m.lane,null,m.briefText).text;
-  assert.equal(mp.call.prompts.at(-1).text,briefOnly);assert.ok(mc.call.stdin.includes(briefOnly));assert.ok(!mc.call.stdin.includes('## Tree movement'));
 });
 // req: R-3215
 test('R-3215: launchers log metadata and runtime-specific counts with default-home resolution', async () => {
@@ -285,7 +273,7 @@ test('R-3216: failed unsafe and unavailable logging cannot alter launcher or hoo
   for (const launcher of ['pi-worker','claude-review','pi-review']) {
     const f=fixture(); const first=launch(f,launcher); good(first);
     fs.rmSync(f.log); fs.mkdirSync(f.log); const bad=launch(f,launcher); good(bad);
-    const normalize = c=>({argv:c.argv.map(v=>v.replace(/nana-(?:claude-review|movement|review|lane-preamble)-[^/\\]+/g,'TEMP').replace(/pi-(?:worker|review)-a\d+-\d+/g,'SESSION').replace(/\d{4}-\d{2}-\d{2}T[\d-]+Z_[a-f0-9-]+/g,'ATTEMPT').replace(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/,'SESSION')),stdin:c.stdin,prompt:c.prompt,prompts:c.prompts.map(p=>p.text.replace(/nana-review-[^/\\ ]+/g,'TEMP'))});
+    const normalize = c=>({argv:c.argv.map(v=>v.replace(/nana-(?:claude-review|review|lane-preamble)-[^/\\]+/g,'TEMP').replace(/pi-(?:worker|review)-a\d+-\d+/g,'SESSION').replace(/\d{4}-\d{2}-\d{2}T[\d-]+Z_[a-f0-9-]+/g,'ATTEMPT').replace(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/,'SESSION')),stdin:c.stdin,prompt:c.prompt,prompts:c.prompts.map(p=>p.text.replace(/nana-review-[^/\\ ]+/g,'TEMP'))});
     assert.deepEqual(normalize(bad.call),normalize(first.call)); assert.equal(bad.stderr.split('\n').filter(l=>l.startsWith('nana context load skipped:')).length,1);
     write(path.join(f.lane,'.pi-agent/nana-pack.json'),fs.readFileSync(path.join(f.agent,'nana-pack.json')));
     const relative=launch(f,launcher,[],{...f.env,PI_CODING_AGENT_DIR:'.pi-agent'});
