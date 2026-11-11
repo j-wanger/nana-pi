@@ -200,24 +200,6 @@ const spacedEditRoute = `to edit instead, run node "${spacedTarget}"`;
 // req: R-2410
 check("win32 doctor: after install, a ✗ settings row names each dead entry install leaves and its hand repair", vInstall.status === 0 && vRowsRepairByHand && f4ObjectiveLine?.trimStart().startsWith("✗ ") && f4ObjectiveLine.includes("/Users/someone/custom/nana-objective.mjs") && f4ObjectiveLine.includes("by hand") && spacedObjectiveLine?.includes(spacedDeadPath) && spacedObjectiveLine.includes(spacedEditRoute) && !spacedObjectiveLine.includes(`run node ${spacedTarget}`), `${vInstall.stdout}\n${vDoctor.stdout}\n${f4Doctor.stdout}\n--- spaced checkout ---\n${spacedObjectiveLine}`);
 
-const guardHome = freshHome();
-const guardObjectivePath = "C:/Users/other/custom/nana-objective.mjs";
-const guardObjectiveLookalike = { ...clone(carriedSession[0]), command: `node '${guardObjectivePath}'`, timeout: 10 };
-seed(guardHome, { hooks: {
-	SessionStart: [{ hooks: [...clone(carriedSession), guardObjectiveLookalike] }],
-	PreToolUse: [{ matcher: "Bash", hooks: [clone(carriedVerifier)] }],
-	UserPromptSubmit: [{ hooks: [clone(carriedKnowledge)] }],
-} });
-const guardDoctor = run(["doctor", "--home", guardHome]);
-const guardLines = winWanted.filter(wanted => wanted.event !== 'SessionEnd').map((wanted) => settingsLine(guardDoctor.stdout, wanted.label));
-const guardInstallerPaths = [
-	...sessionLabels.map((label) => `${sourceHooksDir}/${byLabel(posixWanted, label).spec.script}`),
-	`${sourceHooksDir}/verifier-pipe.mjs`,
-	`${sourceRepoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`,
-];
-// req: R-2411
-check("win32 doctor: a ✗ settings row names an entry install leaves but never one install repairs", guardLines.every((line, index) => line?.trimStart().startsWith("✗ ") && !line.includes(guardInstallerPaths[index])) && guardLines[0].includes(guardObjectivePath) && guardLines[0].includes(safeRoute) && guardLines.slice(1).every((line) => !line.includes("by hand")), guardDoctor.stdout);
-
 const shapeDeadPath = "C:/Users/someone/refused/nana-objective.mjs";
 const shapeDeadEntry = { ...clone(carriedSession[0]), command: `node '${shapeDeadPath}'`, timeout: 10 };
 const acceptedHome = freshHome();

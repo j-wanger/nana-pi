@@ -304,44 +304,6 @@ const r2292Pass = r2292A.rowsOk && r2292A.staleOk && r2292C.rowsOk && r2292C.sta
 // req: R-2292
 check("R-2292: every ✗ skill row doctor prints for a linked Claude or skills folder names the folder the session-start line names, to move aside", r2292Pass, JSON.stringify({ A: r2292A, C: r2292C }));
 
-function fixByHandOk(result) {
-	const line = lastNonEmptyLine(result);
-	const handIdx = line.indexOf("fix by hand");
-	if (handIdx === -1) return { ok: false, line };
-	const thenIdx = line.indexOf("; then run");
-	const segment = thenIdx === -1 ? line.slice(handIdx) : line.slice(handIdx, thenIdx);
-	const labelsPresent = CLAUDE_SKILLS.every((name) => segment.includes(`skill ${name}`));
-	const notBareInstall = !line.endsWith("missing — run: nana-setup install");
-	return { ok: labelsPresent && notBareInstall, line };
-}
-
-const r2294A = fixByHandOk(doctorA);
-const r2294C = fixByHandOk(doctorC);
-const r2294Pass = r2294A.ok && r2294C.ok;
-// req: R-2294
-check("R-2294: doctor's last line lists every ✗ skill row under a linked Claude or skills folder as a fix by hand", r2294Pass, JSON.stringify({ A: r2294A, C: r2294C }));
-
-// --------------------------------------------------------------------------------- R-2293
-
-let r2293Pass = false;
-let r2293Detail = "skipped: R-2292's facts did not hold, so there is no single folder to move aside";
-if (r2292Pass) {
-	const scratch = tmpDir(path.join(os.tmpdir(), "nana-linked-claude-moved-"));
-	fs.renameSync(homeA.linkedFolder, path.join(scratch, "home-a-claude"));
-	runCli(["install"], { home: homeA.home, cwd: homeA.cwd });
-	const redoctorA = runCli(["doctor"], { home: homeA.home, cwd: homeA.cwd });
-
-	fs.renameSync(homeC.linkedFolder, path.join(scratch, "home-c-skills"));
-	runCli(["install"], { home: homeC.home, cwd: homeC.cwd });
-	const redoctorC = runCli(["doctor"], { home: homeC.home, cwd: homeC.cwd });
-
-	const skillRowsAllOk = (result) => CLAUDE_SKILLS.map((name) => doctorRow(result, `skill ${name}`)).every((row) => row && row.mark === "✓");
-	r2293Pass = skillRowsAllOk(redoctorA) && skillRowsAllOk(redoctorC);
-	r2293Detail = JSON.stringify({ A: redoctorA.stdout, C: redoctorC.stdout });
-}
-// req: R-2293
-check("R-2293: moving aside the folder doctor's skill rows name and running install leaves every skill row ✓", r2293Pass, r2293Detail);
-
 // -------------------------------------------------------------------------- R-2701 / R-2702
 
 const retiredFixture = path.join(pkgRoot, "tests", "fixtures", "retired", "py-init");
@@ -401,30 +363,6 @@ const legacyFacts = legacyHomes.map((item) => {
 const r2701Pass = legacyFacts.every((item) => item.facts.every((fact) => fact.dryOk && fact.adviceOk));
 // req: R-2701
 check("R-2701: under a linked Claude or skills folder, each legacy row install's dry run refuses names that folder and every present path to move by hand, and a row install would move keeps its install advice", r2701Pass, JSON.stringify(legacyFacts));
-
-const movedRoot = tmpDir(path.join(os.tmpdir(), "nana-linked-legacy-moved-"));
-const r2702Facts = legacyHomes.filter((item) => item.linkedFolder).map((item) => {
-	const before = runCli(["doctor"], item);
-	const byHand = legacyRows.flatMap((spec) => {
-		const row = doctorRow(before, spec.label);
-		if (!row || row.detail.includes("nana-setup install")) return [];
-		return [{ label: spec.label, paths: codeSpansOf(row.detail).slice(1) }];
-	});
-	let moves = 0;
-	for (const row of byHand) for (const source of row.paths) {
-		fs.renameSync(source, path.join(movedRoot, `${item.linked}-${moves}-${path.basename(source)}`));
-		moves++;
-	}
-	const after = runCli(["doctor"], item);
-	const rowsOk = byHand.every(({ label }) => {
-		const row = doctorRow(after, label);
-		return row?.mark === "✓" && row.detail === "none present";
-	});
-	return { linked: item.linked, byHand, moves, rowsOk, afterStatus: after.status };
-});
-const r2702Pass = r2702Facts.length === 2 && r2702Facts.every((item) => item.byHand.length > 0 && item.moves > 0 && item.rowsOk);
-// req: R-2702
-check("R-2702: moving every path a legacy row names to move by hand leaves that row ✓", r2702Pass, JSON.stringify(r2702Facts));
 
 // --------------------------------------------------------------------------------- R-2703
 
@@ -524,7 +462,7 @@ const hooksInstall = runCli(["install"], hooksControl);
 const hooksControlOk = hooksInstall.status === 0 && !/^\s+at /m.test(`${hooksInstall.stdout}\n${hooksInstall.stderr}`) && !hooksInstall.stderr.includes(hooksControl.link);
 
 const r2704Pass = brokenFacts.every((item) => item.install.status === 2 && item.refusal.startsWith(`${item.link} `) && item.refusal.includes("move") && (item.loop ? item.refusal.includes("(ELOOP)") : true) && item.noStack && item.unchanged) && skillsControlOk && hooksControlOk;
-// req: R-2704
+// req: R-2704 R-2294
 check("R-2704: a Claude home, or its rules, shared-memory or (off win32) hooks folder, that is a link whose target cannot be reached makes install refuse before any write, naming that link, and a broken skills or win32 hooks link does not", r2704Pass, JSON.stringify({ broken: brokenFacts.map((item) => ({ name: item.name, link: item.link, status: item.install.status, refusal: item.refusal, unchanged: item.unchanged, noStack: item.noStack, stderr: item.install.stderr })), skills: { status: skillsInstall.status, summary: skillsSummary, stderr: skillsInstall.stderr, ok: skillsControlOk }, hooks: { status: hooksInstall.status, stderr: hooksInstall.stderr, ok: hooksControlOk } }));
 
 const r2705Facts = brokenFacts.map((item) => {

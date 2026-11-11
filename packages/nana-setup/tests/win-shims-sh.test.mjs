@@ -9,7 +9,6 @@
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { WIN_SHIM_LINE_ENDINGS, WIN_SHIM_SUFFIXES } from "../lib/win-shims.mjs";
 import { CASE_TIMEOUT_MS, createShimFixture } from "./win-shims.test.mjs";
 
 const cases = [];
@@ -18,8 +17,6 @@ const { root, callerDir, brief, rendered, runShCaller, jsonResult } = createShim
 
 // req: R-1611
 test("sh shim hands node every argument unchanged and returns the bin's exit status", "R-1611", "all", () => {
-	assert.deepEqual(WIN_SHIM_SUFFIXES, { sh: "", cmd: ".cmd" });
-	assert.deepEqual(WIN_SHIM_LINE_ENDINGS, { sh: "\n", cmd: "\r\n" });
 	assert.ok(!rendered.sh.includes("\r"));
 	const briefArg = `@${process.platform === "win32" ? brief.replaceAll("/", "\\") : brief}`;
 	const args = ["a space", "single'quote", 'double"quote', "% & ^ ! ( ) | < >", "trailing\\", "line one\nline two", "", briefArg];

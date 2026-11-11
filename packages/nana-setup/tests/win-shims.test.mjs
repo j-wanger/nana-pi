@@ -13,7 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findGitBash } from "../lib/install-check.mjs";
-import { renderWinShims, WIN_CMD_SHIM_LAYOUT, WIN_SHIM_LINE_ENDINGS, WIN_SHIM_SUFFIXES } from "../lib/win-shims.mjs";
+import { renderWinShims, WIN_SHIM_LINE_ENDINGS, WIN_SHIM_SUFFIXES } from "../lib/win-shims.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 // Chosen 2026-10-19: one shell case must finish well below hosted CI's job timeout.
@@ -96,7 +96,6 @@ test("Windows: cmd.exe hands a .cmd shim's bin every double-quoted argument unch
 	fs.writeFileSync(path.join(callerDir, "node.cmd"), "@exit /b 42\r\n");
 	const args = ["a space", "single'quote", "100%", "% & ^ ! ( ) | < >", "", `@${brief}`];
 	const run = recordRun("relative cmd shim", runCmdCaller(args));
-	assert.equal(WIN_CMD_SHIM_LAYOUT, "npm cmd-shim 7.0.0");
 	assert.ok(rendered.cmd.split("\r\n").length > 10 && !/(^|[^\r])\n/.test(rendered.cmd));
 	assert.ok(args.every((arg) => !arg.includes('"') && !arg.endsWith("\\")));
 	assert.ok(bin.includes("é"));

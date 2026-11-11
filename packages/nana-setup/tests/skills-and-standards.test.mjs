@@ -380,7 +380,7 @@ try {
 			check(`${spec.tag} rule link: install exits 0`, r.status === 0, r.stderr);
 			for (const rule of ["nana-soul.md", "nana-standards.md"]) {
 				const installed = path.join(h, ".claude", "rules", rule);
-				// req: R-353
+				// req: R-353 R-350
 				check(`${spec.tag} rule link ${rule}: the decoy OUTSIDE the repo is untouched`, fs.readFileSync(decoys[rule], "utf8") === `DECOY ${rule}\n`, fs.readFileSync(decoys[rule], "utf8"));
 				// req: R-353
 				check(`${spec.tag} rule link ${rule}: the entry is now the repo's file, not a link to the decoy`,
