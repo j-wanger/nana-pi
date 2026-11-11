@@ -695,7 +695,7 @@ named by, `rules/nana-writing.md`, reaches pi through the `nana-writing` extensi
 append, not a context-file link — Amendment 1 §A1, after astra r1 found a link could both hide
 a user's own `AGENTS.md`/`CLAUDE.md` and be hidden by one). After `nana-setup install`, the
 checker is on PATH as `nana-writing`. The rule requires this pre-send run for every report,
-but reports stay report-only. The suite fails on an over-cap sentence or banned word in
+and the CLI stays report-only. The suite fails on an over-cap sentence or banned word in
 nana-pi's own `HANDOFF.md` live sections.
 
 ```bash
@@ -703,8 +703,18 @@ nana-writing file.md
 nana-writing --report < draft.txt
 ```
 
-Known limits: the pre-send report run remains an instruction; nothing verifies that a seat ran
-it. The user-scope `writing.enabled` key reaches pi only; Claude Code keeps its linked rule.
+Claude Code's project Stop hook also checks `last_assistant_message` directly, never the
+transcript. A verdict-first message or at least two counted sentences makes a report:
+all report-mode findings count. Shorter messages without a verdict count only length,
+passive and banned findings. The hook lists up to 12 findings within 1,500 detail characters,
+then asks for a correction or a brief reason to keep each finding. An unquoted claim that
+nothing waits on the owner also reads blocking ask issues through the bounded HANDOFF
+issue reader; failures drop only that check. Wake reminders come first in the same block.
+A set `NANA_ROLE` or active Stop retry skips all readers and checks.
+
+Known limits: only the final text block after the last tool call is checked; pi has no
+Stop hook. A manually started child without `NANA_ROLE` looks like a seat.
+The user-scope `writing.enabled` key reaches pi only; Claude Code keeps its linked rule.
 Windows PowerShell 5.1 pipes non-ASCII input as `?`, so pass a file there.
 
 With no path it reads stdin (named `-` in the output). Four checks run always — sentence

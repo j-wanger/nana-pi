@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/waking-config.mjs
  * @purpose Define the chosen waking policy for project-scope Claude seat hooks.
  * @inputs none
- * @outputs Lane age, wake interval, owner window, launch vocabulary and git budget.
+ * @outputs Lane age, wake interval, owner window, launch vocabulary, git budget and writing bounds.
  * @effects none
  * @errors none
  */
@@ -23,3 +23,9 @@ export const LANE_TOOL_LAUNCHES = [
 ];
 /** chosen: local read-only git queries should finish well inside a hook invocation. */
 export const WAKING_GIT_TIMEOUT_MS = 2000;
+/** chosen: two counted sentences includes the approved two-sentence status-report failure. */
+export const REPORT_SENTENCE_MIN = 2;
+/** chosen: a dozen findings keeps the correction actionable without flooding Stop output. */
+export const WRITING_FINDING_CAP = 12;
+/** chosen: bound finding details and issue titles while leaving room for the correction instruction. */
+export const WRITING_REASON_CAP = 1500;

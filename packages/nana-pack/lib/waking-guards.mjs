@@ -1,14 +1,41 @@
 /**
  * @module packages/nana-pack/lib/waking-guards.mjs
  * @purpose Decide advisory Stop, away-owner question and lane-launch refusals.
- * @inputs Hook payload, clock, lane reader and transcript reader.
+ * @inputs Hook payload, clock, lane, issue and transcript readers.
  * @outputs Claude Code block/deny objects or null for abstention.
  * @effects none (boundary readers injected)
- * @errors Reader errors propagate to the hook's fail-open boundary.
+ * @errors Issue errors drop only the ask check; other reader errors reach the hook's fail-open boundary.
  */
 import { LAUNCHER_ROLES } from "./frontier-summary-config.mjs";
 import { commandIndex, splitCommand, tokens } from "./gate-shell.ts";
-import { LANE_TOOL_LAUNCHES, OWNER_WINDOW_MS, WAKE_INTERVAL_MINUTES } from "./waking-config.mjs";
+import { LANE_TOOL_LAUNCHES, OWNER_WINDOW_MS, WAKE_INTERVAL_MINUTES, REPORT_SENTENCE_MIN, WRITING_FINDING_CAP, WRITING_REASON_CAP } from "./waking-config.mjs";
+import { checkText, extractBlocks } from "./writing-check.mjs";
+
+function nothingWaits(text) {
+ const prose = extractBlocks(text).bannedLines.map(line => line.text).join("\n")
+  .replace(/(`+)[\s\S]*?\1/g, " ")
+  .replace(/"[^"]*"|“[^”]*”|‘[^’]*’|(?<!\w)'[^'\r\n]*'(?!\w)/g, " ");
+ return /\b(?:nothing\s+(?:is\s+waiting|waits)\s+on\s+(?:you|the\s+owner)|no\s+open\s+asks\s+for\s+(?:you|the\s+owner))\b/i.test(prose);
+}
+
+function writingReason(text, readIssues) {
+ if (typeof text !== "string" || !text.trim()) return null;
+ const result = checkText("final message", text, { report: true });
+ const report = result.stats.verdict || result.stats.sentences >= REPORT_SENTENCE_MIN;
+ const findings = result.findings.filter(finding => report || ["length", "passive", "banned"].includes(finding.check))
+  .map(finding => `${finding.check} (line ${finding.line}): ${finding.detail}`);
+ if (nothingWaits(text)) {
+  try {
+   const issues = readIssues?.();
+   const asks = issues?.failure ? [] : (issues?.items ?? []).filter(issue => issue.kind === "blocking");
+   if (asks.length) findings.unshift(`open asks: ${asks.length} blocking ask(s): ${asks.slice(0, WRITING_FINDING_CAP).map(ask => ask.title).join("; ")}`);
+  } catch { /* An issue read failure must not drop writing or wake findings. */ }
+ }
+ if (!findings.length) return null;
+ const listed = findings.slice(0, WRITING_FINDING_CAP).join("\n");
+ const bounded = listed.length > WRITING_REASON_CAP ? `${listed.slice(0, WRITING_REASON_CAP - 1)}…` : listed;
+ return `Writing findings:\n${bounded}${findings.length > WRITING_FINDING_CAP ? "\nMore findings omitted." : ""}\nFix each finding in a corrected message, or say briefly why it stays, then end the turn.`;
+}
 
 function armed(job) {
  if (job?.recurring !== true || typeof job.schedule !== "string") return false;
@@ -62,13 +89,18 @@ function detaches(command) {
 }
 
 /** No hook asks for permission: each either denies/blocks or abstains. */
-export function wakingDecision(payload, { role, now = Date.now(), lanes, readTranscript } = {}) {
+export function wakingDecision(payload, { role, now = Date.now(), lanes, readTranscript, readIssues } = {}) {
  if (LAUNCHER_ROLES.includes(role) || role !== undefined) return null;
  if (payload?.hook_event_name === "Stop") {
-  if (payload.stop_hook_active === true || !Object.hasOwn(payload, "session_crons")) return null;
-  const open = lanes();
-  if (!open.length || payload.session_crons?.some(armed)) return null;
-  return { decision: "block", reason: `Open lanes: ${open.join(", ")}. Arm a recurring wake with CronCreate, firing at least every ${WAKE_INTERVAL_MINUTES} minutes, whose prompt checks each lane and advances anything ready or stalled; if this session is not the seat, end the turn again.` };
+  if (payload.stop_hook_active === true) return null;
+  const reasons = [];
+  if (Object.hasOwn(payload, "session_crons")) {
+   const open = lanes();
+   if (open.length && !payload.session_crons?.some(armed)) reasons.push(`Open lanes: ${open.join(", ")}. Arm a recurring wake with CronCreate, firing at least every ${WAKE_INTERVAL_MINUTES} minutes, whose prompt checks each lane and advances anything ready or stalled; if this session is not the seat, end the turn again.`);
+  }
+  const writing = writingReason(payload.last_assistant_message, readIssues);
+  if (writing) reasons.push(writing);
+  return reasons.length ? { decision: "block", reason: reasons.join("\n\n") } : null;
  }
  if (payload?.hook_event_name !== "PreToolUse") return null;
  if (payload.tool_name === "Bash") {

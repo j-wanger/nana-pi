@@ -2,7 +2,9 @@
 
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
-- Writing rule (writing-adoption, plan): the pre-send run stays an instruction. Nothing checks that a seat ran it before sending a report.
+- Writing Stop hook: checks only the final text block after the last tool call, not earlier text in the turn.
+- Writing Stop hook: pi seats have no such hook; their pre-send run remains an instruction.
+- Writing Stop hook: a manually started builder or reviewer without `NANA_ROLE` looks like a seat and is checked.
 - Writing rule (writing-adoption, plan and adversary): the `writing.enabled` key reaches pi only. With it false, Claude Code still loads its linked rule. Reaching Claude Code is its own lane: the stale-copies line, Windows copy ownership, doctor and two install rows.
 - Writing rule (writing-adoption, plan): the HANDOFF check reads nana-pi's live sections only, so the archive sections keep their long sentences. A lane in flight whose live lines run long goes red once it merges main.
 - Writing rule (writing-adoption, plan): Windows PowerShell 5.1 pipes non-ASCII text as `?`, which can end a sentence early (inferred). Passing a file avoids it.
