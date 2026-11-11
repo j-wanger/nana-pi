@@ -5,13 +5,13 @@
  *  and PATH; `pi --version`; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md and nana-rulings.md), skills, settings.json,
  *  the settings lock, nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and
  *  nana-pack.json and the objective file it names, <piHome>/nana-rulings.md, cwd/.pi/nana-pack.json and pi's trust store,
- *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db and <knowledgeHome>/sources.json, and the PATH_COMMANDS entries under <binDir>, including nana-writing; the LaunchAgents plist;
+ *  pi's npm package.json, <piHome>/mcp.json, <knowledgeHome>/index.db and <knowledgeHome>/sources.json, and the PATH_COMMANDS entries under <binDir>, including nana-writing;
  *  `node -p process.versions.node`
  * @outputs an array of { status, label, detail, installLabel? } rows, including pi's `pi dependencies` row, linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
  *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
  *  knowledgeIndexState(), knowledgeSourcesState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
- *  ("22.18"); PI_NODE_FLOOR ("22.19"); nodeMeetsFloor(); versionAtLeast(); skillLinkState()
+ *  ("22.18"); PI_NODE_FLOOR ("22.19"); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
  * @effects disk (reads only), process (spawns node and a bounded pi --version process tree to probe)
  * @errors none thrown — a missing, unparseable or wrong-kind piece becomes a fail row, a
@@ -29,7 +29,7 @@ import * as path from "node:path";
 import { createRequire } from "node:module";
 import { pkgRoot, platform, repoRoot } from "./paths.mjs";
 import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
-import { commandInvokes, entryInvokes, retiredKnowledgeHook, retiredMemoryHook, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
+import { retiredHookCommands, commandInvokes, entryInvokes, retiredKnowledgeHook, retiredMemoryHook, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, registrationState, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
@@ -50,16 +50,14 @@ const NOTE = "note";
 const WARN = "warn";
 const require = createRequire(import.meta.url);
 
-function retiredSettingsCommands(settings) {
-	const scripts = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
+function retiredRuntimeCommands(settings) {
 	const findings = [];
 	for (const [event, groups] of Object.entries(settings?.hooks ?? {})) {
 		if (!Array.isArray(groups)) continue;
 		for (const group of groups) {
 			if (!Array.isArray(group?.hooks)) continue;
 			for (const hook of group.hooks) {
-				if (scripts.some((script) => commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) ||
-					(event === "UserPromptSubmit" && (entryInvokes(hook, retiredKnowledgeHook().spec, "win32") || commandInvokes(hook?.command, retiredKnowledgeHook().spec))) ||
+				if ((event === "UserPromptSubmit" && (entryInvokes(hook, retiredKnowledgeHook().spec, "win32") || commandInvokes(hook?.command, retiredKnowledgeHook().spec))) ||
 					(event === 'SessionEnd' && (entryInvokes(hook, retiredMemoryHook().spec, 'win32') || commandInvokes(hook?.command, retiredMemoryHook().spec))) ||
 					(event === "PreToolUse" && (entryInvokes(hook, { interpreters: ["node"], script: "verifier-pipe.mjs" }, "win32") || commandInvokes(hook?.command, { interpreters: ["node"], script: "verifier-pipe.mjs" }))))
 					findings.push({ event, command: [hook.command, ...(Array.isArray(hook.args) ? hook.args : [])].join(" ") });
@@ -154,12 +152,6 @@ export const NODE_FLOOR = "22.18";
 /** measured: installed pi 1.4.0 package.json engines.node >=22.19.0, read 2026-11-09; R-650. */
 export const PI_NODE_FLOOR = "22.19";
 
-export function nodeMeetsFloor(version, floor = NODE_FLOOR) {
-	const [a, b] = String(version).replace(/^v/, "").split(".").map(Number);
-	const [fa, fb] = floor.split(".").map(Number);
-	return a > fa || (a === fa && b >= fb);
-}
-
 /** chosen: cap diagnostic output while still naming common broken links, 2026-10-07. */
 export const MEMORY_LINK_ISSUE_LIMIT = 30;
 
@@ -215,19 +207,6 @@ export function memoryLinkState(sharedRoot, projectRoot) {
 		}
 	}
 	return { ok: issues.length === 0, issues, danglingCount };
-}
-
-/** True for a parsed JSON value usable as a config object — never null, an array, or a scalar.
- *  JSON.parse succeeds for all of those; reading a key off one must never throw (astra r1 MUST 2). */
-export function isPlainObject(v) {
-	return v !== null && typeof v === "object" && !Array.isArray(v);
-}
-
-/** Describes a non-object JSON value for an error message. */
-export function kindOf(v) {
-	if (v === null) return "null";
-	if (Array.isArray(v)) return "an array";
-	return typeof v;
 }
 
 /** Three-segment numeric version compare (no pre-release handling — the versions this floor
@@ -330,10 +309,10 @@ export function diagnose(layout, opts = {}) {
 		const r = spawnSync("node", ["-p", "process.versions.node"], { encoding: "utf8" });
 		const v = r.status === 0 ? r.stdout.trim() : null;
 		add(
-			v && nodeMeetsFloor(v) ? OK : FAIL,
+			v && versionAtLeast(v, NODE_FLOOR) ? OK : FAIL,
 			"node for the objective hook",
 			v
-				? `${v}${nodeMeetsFloor(v) ? "" : ` is older than ${NODE_FLOOR} — the objective hook prints OBJECTIVE UNAVAILABLE until Node is upgraded`} (needs ≥ ${NODE_FLOOR})`
+				? `${v}${versionAtLeast(v, NODE_FLOOR) ? "" : ` is older than ${NODE_FLOOR} — the objective hook prints OBJECTIVE UNAVAILABLE until Node is upgraded`} (needs ≥ ${NODE_FLOOR})`
 				: `node not found on PATH (needs ≥ ${NODE_FLOOR})`,
 		);
 	}
@@ -443,7 +422,7 @@ export function diagnose(layout, opts = {}) {
 			: `in ${commands[0].shell}: ${commands[0].command} — or in ${commands[1].shell}: ${commands[1].command}`;
 		add(FAIL, "settings lock", `${settingsLock} is left over (${lockHolder(settingsLock)}) — install will not run until it is removed; if no nana-setup is running, remove it: ${fix}`);
 	}
-	for (const { event, command } of retiredSettingsCommands(settings))
+	for (const { event, command } of [...retiredHookCommands(settings), ...retiredRuntimeCommands(settings)])
 		add(FAIL, `settings ${event} retired hook`, /nana-knowledge\.ts|verifier-pipe\.mjs/.test(command) || event === 'SessionEnd'
 			? `retired hook still wired: ${command} — run \`nana-setup install\``
 			: `retired bash hook still wired: ${command}`);
@@ -499,63 +478,23 @@ export function diagnose(layout, opts = {}) {
 		add(vouched ? OK : WARN, "project trust", vouched ? `affirmative trust for ${projectDir}` : `project config has no affirmative trust — run nana-setup trust ${projectDir}`);
 	}
 
-	// Read-only: nana-setup never writes mcp.json (the seat edits it by hand, architecture
-	// ruling §3). WHERE it exists, a server with no `exposure` key defaults to pi's own
-	// `codemode` exposure the moment it connects, unless `autoEnableCodemode` is `false`. The
-	// same shape defence as the subagent config above (astra r1 MUST 2): a parsed value that is
-	// not a usable object — top-level, or `mcpServers` itself — is a failure row, never a crash.
-	let mcpCfgRaw;
-	let mcpCfgReadErr;
+	// Read-only: MCP config is secret; never echo a parser's file-byte excerpt.
 	try {
-		mcpCfgRaw = fs.readFileSync(layout.mcpConfig, "utf8");
-	} catch (err) {
-		mcpCfgReadErr = err;
-	}
-	if (mcpCfgReadErr?.code === "ENOENT") {
-		add(NOTE, "pi mcp.json", `not present: ${layout.mcpConfig}`);
-	} else if (mcpCfgReadErr) {
-		add(FAIL, "pi mcp.json", `${layout.mcpConfig} exists but could not be read (${mcpCfgReadErr.message})`);
-	} else {
-		let mcpCfg;
-		let parseErr;
-		try {
-			mcpCfg = JSON.parse(mcpCfgRaw);
-		} catch (err) {
-			parseErr = err;
-		}
-		if (parseErr) {
-			add(FAIL, "pi mcp.json", `${layout.mcpConfig} is not valid JSON (${parseErr.message})`);
-		} else if (!isPlainObject(mcpCfg)) {
-			add(FAIL, "pi mcp.json", `${layout.mcpConfig} must hold a JSON object, not ${kindOf(mcpCfg)}`);
-		} else if (mcpCfg.mcpServers !== undefined && !isPlainObject(mcpCfg.mcpServers)) {
-			add(FAIL, "pi mcp.json", `${layout.mcpConfig}'s mcpServers must be an object, not ${kindOf(mcpCfg.mcpServers)}`);
+		const mcpCfg = parseJsonText(fs.readFileSync(layout.mcpConfig, "utf8"));
+		const servers = mcpCfg?.mcpServers;
+		if (!mcpCfg || typeof mcpCfg !== "object" || Array.isArray(mcpCfg) ||
+			(servers !== undefined && (!servers || typeof servers !== "object" || Array.isArray(servers)))) {
+			add(FAIL, "pi mcp.json", `${layout.mcpConfig} must hold an object with mcpServers absent or an object`);
 		} else {
-			const servers = mcpCfg.mcpServers ?? {};
-			// Checked BEFORE exposure (astra r2 SHOULD 3): pi's own validateMcpServerConfig
-			// rejects a non-object server entry outright ("server \"<name>\" must be an
-			// object") — reporting it ✓ merely because it has no exposure problem would be
-			// misleading next to the shape diagnostics above.
-			const invalidServers = Object.keys(servers).filter((name) => !isPlainObject(servers[name]));
-			if (invalidServers.length) {
-				add(
-					FAIL,
-					"pi mcp.json",
-					`server${invalidServers.length === 1 ? "" : "s"} ${invalidServers.join(", ")} must be an object (pi itself rejects a non-object server config) in ${layout.mcpConfig}`,
-				);
-			} else {
-				const codemodeDefault = mcpCfg.autoEnableCodemode !== false;
-				const unexposed = Object.keys(servers).filter((name) => servers[name].exposure === undefined);
-				if (codemodeDefault && unexposed.length) {
-					add(
-						WARN,
-						"pi mcp.json",
-						`server${unexposed.length === 1 ? "" : "s"} ${unexposed.join(", ")} ${unexposed.length === 1 ? "has" : "have"} no \`exposure\` key while top-level \`autoEnableCodemode\` is not false — codemode will auto-enable on connect; set "exposure" on the server or "autoEnableCodemode": false beside mcpServers`,
-					);
-				} else {
-					add(OK, "pi mcp.json", layout.mcpConfig);
-				}
-			}
+			const unexposed = Object.keys(servers ?? {}).filter((name) => servers[name]?.exposure === undefined);
+			add(mcpCfg.autoEnableCodemode !== false && unexposed.length ? WARN : OK, "pi mcp.json",
+				mcpCfg.autoEnableCodemode !== false && unexposed.length
+					? `server${unexposed.length === 1 ? "" : "s"} ${unexposed.join(", ")} ${unexposed.length === 1 ? "has" : "have"} no \`exposure\` key while top-level \`autoEnableCodemode\` is not false — codemode will auto-enable on connect; set "exposure" on the server or "autoEnableCodemode": false beside mcpServers`
+					: layout.mcpConfig);
 		}
+	} catch (error) {
+		add(error.code === "ENOENT" ? NOTE : FAIL, "pi mcp.json", error.code === "ENOENT"
+			? `not present: ${layout.mcpConfig}` : configFailureDetail(layout.mcpConfig, jsonParseFailure(error)));
 	}
 
 	// --- knowledge pull ---

@@ -39,7 +39,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeBytesWithBackup, writeIfChanged } from "./fsops.mjs";
 import { pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { commandInvokes, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, removeRetiredMemoryHook, removeRetiredVerifierHook, serialize, validateShape } from "./settings.mjs";
+import { retiredHookCommands, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, removeRetiredMemoryHook, removeRetiredVerifierHook, serialize, validateShape } from "./settings.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { matchesRetiredArtifact, retiredArtifacts, RETIRED_HOOK_FILES, retiredHookLinkOwned } from "./retired.mjs";
 import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
@@ -567,26 +567,6 @@ export function writeSettingsAtomic(file, contents, snapshot, { afterTempWrite }
 		clean();
 		throw err;
 	}
-}
-
-function retiredHookCommands(settings) {
-	const names = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
-	const findings = [];
-	for (const [event, groups] of Object.entries(settings?.hooks ?? {})) {
-		if (!Array.isArray(groups)) continue;
-		for (const group of groups) {
-			if (!Array.isArray(group?.hooks)) continue;
-			for (const hook of group.hooks) {
-				for (const script of names) {
-					if (commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) {
-						findings.push({ event, command: hook.command });
-						break;
-					}
-				}
-			}
-		}
-	}
-	return findings;
 }
 
 export function stepSettings(layout, o, state, { lockHeld = false } = {}) {

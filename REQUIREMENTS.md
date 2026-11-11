@@ -2274,14 +2274,14 @@ Reads: A-079 · packages/nana-setup/lib/install-check.mjs
 | R-675 | Doctor shall report the knowledge index unhealthy when it cannot open the database read-only and complete a count query. | implemented | `packages/nana-setup/tests/doctor-knowledge.test.mjs::valid docs table is counted read-only`, `packages/nana-setup/tests/doctor-knowledge.test.mjs::doctor opens the knowledge database in read-only mode`, `packages/nana-setup/tests/doctor-knowledge.test.mjs::corrupt database is unhealthy` |
 | R-362 | — | retired | retired (was 371fee63) |
 | R-364 | — | retired | retired (was 371fee63) |
-| R-365 | WHERE mcp.json exists, parses to a JSON object and every mcpServers entry is a JSON object, doctor shall read ! when any server has no exposure key while autoEnableCodemode is not false, naming both keys. | untested | MCP diagnostics remain; preventive exposure fixtures removed. |
+| R-365 | WHERE mcp.json and its mcpServers value are usable objects, doctor shall read ! when any server has no exposure key while autoEnableCodemode is not false, naming both keys. | untested | MCP diagnostics remain; preventive exposure fixtures removed. |
 | R-366 | — | retired | retired (was 371fee63) |
 | R-367 | — | retired | retired (was 371fee63) |
 | R-368 | — | retired | retired (was 371fee63) |
 | R-369 | — | retired | retired (was 371fee63) |
 | R-370 | — | retired | retired (was 371fee63) |
 | R-371 | — | retired | retired (was 371fee63) |
-| R-372 | doctor shall read ✗ naming the server, before checking its exposure, WHERE an mcp.json server entry is present but not a JSON object. | untested | MCP shape diagnostics remain; preventive variants removed. |
+| R-372 | — | retired | Simplified MCP diagnostics retain container shape safety, not per-server validation. (was a34aaf32) |
 | R-377 | WHEN readlinkSync fails on a path lstat has already confirmed is a symlink, sharedLinkState shall return "absent" instead of throwing. | implemented | `packages/nana-setup/tests/shared-link-state.test.mjs::TRUE reproduction (no seam, real fs): the link vanishing between lstat and readlink does not throw`, `packages/nana-setup/tests/shared-link-state.test.mjs::... and the real production call (no injected argument) returns 'absent'` |
 | R-399 | — | retired | desk cut 2026-11-09 (was 371fee63) |
 | R-1580 | WHEN the user-scope nana-pack.json holds one leading byte-order mark followed by a JSON object, doctor shall print its pi nana-pack.json, pi objective.projectFile and pi objective file rows exactly as for the same file without the mark. | implemented | `packages/nana-setup/tests/doctor-detail.test.mjs::doctor reads a nana-pack.json saved with a byte-order mark and CRLF as it reads the same file without one` |

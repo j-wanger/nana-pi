@@ -6,7 +6,7 @@
  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; entryInvokes() boolean;
  *  desiredHooks(); hookTargets(); knowledgeHookHealthy(); mergeRepoHooks(); validateShape(); hasHook();
  *  mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook();
- *  removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); isRetiredVerifierHook(); removeRetiredVerifierHook(); retiredMemoryHook(); isRetiredMemoryHook(); removeRetiredMemoryHook(); removeRetiredHook(); serialize() JSON text; CLAUDE_CODE_EXEC_FLOOR
+ *  retiredHookCommands(); removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); isRetiredVerifierHook(); removeRetiredVerifierHook(); retiredMemoryHook(); isRetiredMemoryHook(); removeRetiredMemoryHook(); removeRetiredHook(); serialize() JSON text; CLAUDE_CODE_EXEC_FLOOR
  * @effects disk (reads only)
  * @errors none thrown — validateShape returns the reason the shape cannot be extended, and any
  *  command that is unparseable or carries a shell operator reads as NOT installed
@@ -625,6 +625,27 @@ export function mergeHooks(settings, wanted, platform) {
 		added.push(w.label);
 	}
 	return { settings, added, changed: added.length > 0 };
+}
+
+/** Find retired bash invocations for install and doctor without changing settings. */
+export function retiredHookCommands(settings) {
+	const names = ["nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh"];
+	const findings = [];
+	for (const [event, groups] of Object.entries(settings?.hooks ?? {})) {
+		if (!Array.isArray(groups)) continue;
+		for (const group of groups) {
+			if (!Array.isArray(group?.hooks)) continue;
+			for (const hook of group.hooks) {
+				for (const script of names) {
+					if (commandInvokes(hook?.command, { interpreters: ["bash", "sh", "zsh"], script })) {
+						findings.push({ event, command: hook.command });
+						break;
+					}
+				}
+			}
+		}
+	}
+	return findings;
 }
 
 export function serialize(settings) {
