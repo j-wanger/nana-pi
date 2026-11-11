@@ -12,16 +12,6 @@
  *  non-regular or blank review standard), when every attempt stalled or failed, when the round could not
  *  be recorded, or when its recorded verdict is empty; exit 0 otherwise
  */
-// pi-review.mjs — run a `pi` (Codex) REVIEW under the liveness watchdog (pi-watchdog.mjs), with
-// the shared review store (review-round.mjs). Every launch here is a review: there is
-// no opt-out flag (--worker was removed — a worker launch uses pi-worker, which records nothing).
-//
-// Usage:
-//   node pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role sol] [--revision <id>]
-//                      [--stall-secs 75] [--retries 2] [--poll 15] -- <pi args...>
-// Exit: 0 = a review was produced (written to --out) and its non-empty verdict recorded; 1 = refused,
-// all retries stalled, bad args, an empty recorded verdict, or the verdict could not be recorded.
-
 import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, statSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
@@ -30,7 +20,7 @@ import { spawnSync } from 'node:child_process';
 import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, inTreeRedirect, outInTree, realOut } from './review-round.mjs';
 import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 import { reviewShaped } from './review-shape.mjs';
-import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
+import { parseWatchdogArgv, runWatchdog } from './pi-watchdog.mjs';
 import { REVIEWER_CHILD_ENV, piChildSkillArgs } from './worker-config.mjs';
 import { credentialStripEnv } from '../lib/credential-strip.mjs';
 import { readReviewStandard } from '../lib/review-standard.mjs';
@@ -48,18 +38,11 @@ function piOption(args, ...names) {
 }
 
 const USAGE = 'usage: pi-review.mjs --out <file> --item <slug> [--tree <path>] [--role R] [--revision R] [--stall-secs N] [--retries N] [--poll N] -- <pi args...>\n';
-const ownArgv = process.argv.slice(2, process.argv.indexOf('--') < 0 ? undefined : process.argv.indexOf('--'));
-if (ownArgv.some(arg => arg === '--over-cap' || arg.startsWith('--over-cap='))) {
-  process.stderr.write('pi-review: --over-cap is retired: round caps were removed.\n');
-  process.exit(1);
-}
 const w = parseWatchdogArgv(process.argv);
 if (w.error) {
   process.stderr.write(w.error === 'usage' ? USAGE : `pi-review: ${w.error}\n`);
   process.exit(1);
 }
-
-if (w.retriesExplicit) process.stderr.write(RETRIES_NOTICE('pi-review', w.retries));
 
 // R-1106 — read and validate the review standard before admission: no reservation, no checkout,
 // no pi child when it is missing, not a regular file, unreadable, or blank after trimming.

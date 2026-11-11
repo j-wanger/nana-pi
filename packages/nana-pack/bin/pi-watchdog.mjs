@@ -4,7 +4,7 @@
  * @inputs launcher argv and child args, child CPU samples, caller accept predicate, optional launch resolver, capture root, spawn callback, pi context-load metadata, continuation sessionFile and shared startedAt, and Windows PATH, PATHEXT and pi package metadata
  * @outputs {ok, text, attempt, sessionFile?} with captured output, signal-aborted status, parseCpuSample seconds/null,
  *  per-poll `cpu=…s` or `cpu=unreadable` flat=n/m, STALL and attempt lines on stderr, the
- *  RETRIES_NOTICE string, a parse {error}, and piLaunch's own `{command, args}` or `{refused}`
+ *  parse {error}, and piLaunch's own `{command, args}` or `{refused}`
  * @effects process (spawns pi detached, or an injected launch with its requested detached option,
  *  per attempt with NANA_HANDOFF=off — kills its process tree on a stall or signal,
  *  starts PowerShell directly outside the lane on Windows, or shells out to ps via execSync), disk (a mkdtemp dir per attempt holding the child's stdout and
@@ -99,12 +99,6 @@ export function parseWatchdogArgv(argv, { defaultRetries = 2 } = {}) {
   if (!Number.isInteger(retries) || retries < 0) return { error: '--retries must be a whole number >= 0 (re-attempts after the first)' };
   return { ownArgs, outPath, stallSecs, retries, retriesExplicit: ownArgs.includes('--retries'), pollSecs, piArgs: argv.slice(sep + 1) };
 }
-
-/** One-line notice printed when --retries is passed explicitly (sol r3 LOW): the contract changed
- *  in T2b from "N attempts" to "N re-attempts after the first", so an old explicit value now runs
- *  one more attempt. Printed only for an explicit flag — the defaults are unchanged. */
-export const RETRIES_NOTICE = (tag, n) =>
-  `${tag}: note — --retries ${n} = ${n} re-attempt(s) after the first (${n + 1} attempt(s) total); before T2b it meant ${n} attempt(s) total\n`;
 
 /** Parse one CPU reader result as seconds. Windows emits a whole .NET TimeSpan tick count;
  *  ps emits [dd-][hh:]mm:ss[.fraction]. Surrounding whitespace is ignored; all other text is

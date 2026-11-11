@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/restore.test.mjs
  * @purpose Exercises the documented state listing and complete restore using isolated temporary homes.
- * @inputs setup CLI, state manifest, pi trust API, setup README, and reviewTextPath/reviewTextEvidence.
+ * @inputs setup CLI, state manifest, pi trust API, setup README, and reviewTextPath.
  * @outputs PASS/FAIL checks and process exit status.
  * @effects disk (temporary fixture roots only), process (setup CLI and tar).
  * @errors Failed checks increment the exit status.
@@ -18,7 +18,7 @@ import { stateRows } from "../lib/state-manifest.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { spawnNpmRoot } from "../lib/npm-root.mjs";
 import { projectMemoryDir } from "../lib/project-key.mjs";
-import { REVIEW_TEXT_HASH, reviewTextEvidence, reviewTextPath } from "../../nana-pack/bin/review-round.mjs";
+import { REVIEW_TEXT_HASH, reviewTextPath } from "../../nana-pack/bin/review-round.mjs";
 
 let fails = 0;
 const check = (name, ok, detail = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : detail); if (!ok) fails++; };
@@ -91,7 +91,6 @@ const keptTextRef = { sha256: createHash(REVIEW_TEXT_HASH).update(keptTextBytes)
 const keptTextSource = reviewTextPath(home, keptTextRef);
 fs.mkdirSync(path.dirname(keptTextSource), { recursive: true });
 fs.writeFileSync(keptTextSource, keptTextBytes, { mode: 0o600 });
-const keptTextSourceEvidence = reviewTextEvidence(home, keptTextRef);
 fs.mkdirSync(path.join(sourceLayout.knowledgeHome), { recursive: true });
 fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "sources.json"), JSON.stringify({ roots: [knowledgeRoot] }));
 fs.writeFileSync(path.join(sourceLayout.knowledgeHome, "pull.log"), "pull bytes\n");
@@ -195,7 +194,7 @@ for (const [relative, bytes] of sourceBytes) {
 // req: R-958
 check("every independently expected durable fixture restores byte-equal", byteEqual, [...sourceBytes.keys()].filter((name) => !fs.existsSync(path.join(destination, name))).join(", "));
 // req: R-2872
-check("R-2872: a kept review text survives the documented backup and restore and reads as intact to nana-land's evidence check", listedNames.includes(path.relative(home, keptTextSource).split(path.sep).join("/")) && keptTextSourceEvidence.status === "intact" && fs.readFileSync(path.join(destination, path.relative(home, keptTextSource))).equals(keptTextBytes) && reviewTextEvidence(destination, keptTextRef).status === "intact");
+check("R-2872: a kept review text survives the documented backup and restore byte-equal", listedNames.includes(path.relative(home, keptTextSource).split(path.sep).join("/")) && fs.readFileSync(path.join(destination, path.relative(home, keptTextSource))).equals(keptTextBytes));
 const walk = (dir, found = []) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); found.push(file); if (entry.isDirectory()) walk(file, found); } return found; };
 const destinationPaths = walk(destination);
 const symlinkIntoSource = destinationPaths.filter((file) => { try { return fs.lstatSync(file).isSymbolicLink() && fs.realpathSync(file).startsWith(home + path.sep); } catch { return false; } });

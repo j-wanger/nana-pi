@@ -13,14 +13,14 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
-import { parseWatchdogArgv, runWatchdog, RETRIES_NOTICE } from './pi-watchdog.mjs';
+import { parseWatchdogArgv, runWatchdog } from './pi-watchdog.mjs';
 import {
 	CLAUDE_APPEND_PROMPT_FILE_FLAG, builderChildEnv as workerEnv,
 	CLAUDE_BUILDER_PERMISSION_MODE, CLAUDE_BUILDER_PROMPT_FILE, CLAUDE_BUILDER_SETTING_SOURCES,
 	CLAUDE_BUILDER_SETTINGS_FILE, CLAUDE_BUILDER_STALL_SECS, CLAUDE_BUILDER_TOOLS,
 	CLAUDE_CODE_RUNTIME, CLAUDE_PERMISSION_MODE_FLAG, CLAUDE_SCOUT_TOOLS, ROLE_FALLBACKS, PI_MODEL_SHELL_ENV,
 	CLAUDE_SETTINGS_FLAG, CLAUDE_SETTING_SOURCES_FLAG, CLAUDE_STRICT_MCP_FLAG, CLAUDE_TOOLS_FLAG,
-	LANE_BUILDER_PID_FILE, LANE_DEFAULTS, LANE_MAX_SECS, LANE_SIZE_SLOTS, LARGER_BUILDER_LABEL, piChildSkillArgs,
+	LANE_BUILDER_PID_FILE, LANE_DEFAULTS, LANE_MAX_SECS, LARGER_BUILDER_LABEL, piChildSkillArgs,
 } from './worker-config.mjs';
 import { resolveRoster } from './nana-roster.mjs';
 import { resolveRole, lineageWarnings } from '../lib/roster-roles.mjs';
@@ -138,8 +138,6 @@ let precedentLine = '';
 let contextLoad = null;
 let launchSpec = null;
 let validateLaneAttempt = () => null;
-// Duplicates are refused only in lane mode; non-lane parsing stays byte-identical to the
-// pre-lane launcher (first occurrence wins) — astra land r7 on t3-launcher.
 if (roleMode) {
 	const refuse = reason => { process.stderr.write(`pi-worker: slot refused: ${reason}\n`); process.exit(1); };
 	const role = value('--slot');
@@ -232,14 +230,9 @@ if (laneMode) {
 	// reaches only a project whose marker region is refreshed.
 	if (!laneSizePresent && roster.largerBuilder !== null) laneFailure('roster sets largerBuilder: pass --lane-size larger for a larger or riskier lane, or --lane-size small for a small one');
 	const laneSize = laneSizePresent ? laneSizeRaw : 'small';
-	let builder;
-	let builderLabel = 'builder';
-	if (laneSize === 'larger' && roster.largerBuilder !== null) {
-		builder = roster.largerBuilder;
-		builderLabel = LARGER_BUILDER_LABEL;
-	} else {
-		builder = roster[LANE_SIZE_SLOTS.small];
-	}
+	const larger = laneSize === 'larger' && roster.largerBuilder !== null;
+	const builder = larger ? roster.largerBuilder : roster.builder;
+	const builderLabel = larger ? LARGER_BUILDER_LABEL : 'builder';
 	const isClaudeBuilder = builder.runtime === CLAUDE_CODE_RUNTIME;
 	const runtimeTokens = isClaudeBuilder ? `${CLAUDE_CODE_RUNTIME} ${builder.model}` : `${builder.provider} ${builder.model} ${builder.thinking ?? 'default'}`;
 	process.stderr.write(`pi-worker: ${builderLabel}: ${runtimeTokens}; source: ${rosterResult.source}\n`);
@@ -389,8 +382,6 @@ function buildEndLine() {
 
 const w = parseWatchdogArgv(argv, { defaultRetries: 0 });
 if (w.error) { if (preambleFile) rmSync(path.dirname(preambleFile), { recursive: true, force: true }); if (laneLock) { releaseLaneLock(laneLock); laneLock = null; } process.stderr.write(w.error === 'usage' ? (laneMode || own.some((arg) => LANE_ONLY_FLAGS.includes(arg)) ? LANE_USAGE : USAGE) : `pi-worker: ${w.error}\n`); process.exit(1); }
-if (laneMode && w.retries > 0) laneFailure('--retries greater than zero is refused in lane mode');
-if (w.retriesExplicit && !laneMode) process.stderr.write(RETRIES_NOTICE('pi-worker', w.retries));
 if (w.retries > 0 && !laneMode) process.stderr.write(`pi-worker: --retries ${w.retries} — a re-attempt REPEATS any file mutations the failed attempt already made\n`);
 if (laneMode) keepBuildStart(w.outPath);
 let r;

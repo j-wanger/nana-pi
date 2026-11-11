@@ -59,11 +59,9 @@ import { randomBytes, createHash } from 'node:crypto';
 import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS, FIRST_LINE_LABEL_STEMS } from '../lib/verdict-config.mjs';
 import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 import { renameWithRetry, RENAME_RETRY_CODES } from '../lib/rename-retry.mjs';
-export { reviewShaped } from './review-shape.mjs';
 
 export const LEDGER_MAX_BYTES = 1024 * 1024; // audit log rotation threshold (the tally never rotates)
 export const SLUG_MAX = 128; // characters, after canonicalization
-const REVISION_MAX = 128;
 // chosen 2026-10-22: beside the tally, so the text and record share one lock and trust model (R-2568).
 export const REVIEW_TEXT_STORE_NAME = 'review-ledger.texts';
 // chosen 2026-10-22: reviews are Markdown and remain directly readable (R-2568).
@@ -187,7 +185,7 @@ export function treeScope(cwd = process.cwd(), { exclude = [], requireClean = fa
   const top = r.stdout.trim();
   const root = realPath(top, { mustExist: true });
   const { head, snapshot } = workingState(root, exclude, { requireClean });
-  return { repo: repoKeyOf(tree), inGit: true, root, head, snapshot };
+  return { repo: repoKeyOf(tree), root, head, snapshot };
 }
 
 function headOf(root) {
@@ -341,7 +339,7 @@ const withSnap = (sha, scope) => (scope.snapshot ? `${sha}+snap:${scope.snapshot
 
 /** The revision a review is counted against. Throws with the reason when it cannot be derived. */
 export function resolveRevision(explicit, scope, cwd = process.cwd()) {
-  if (scope.inGit && explicit) {
+  if (explicit) {
     const q = gitOut(cwd, ['rev-parse', '--verify', '--quiet', `${explicit}^{commit}`], { okStatus: [0, 1] });
     const sha = q.status === 0 ? q.stdout.trim() : null;
     if (!sha) throw new Error(`--revision ${JSON.stringify(explicit)} is not a commit in ${cwd}`);
@@ -352,10 +350,7 @@ export function resolveRevision(explicit, scope, cwd = process.cwd()) {
     return withSnap(sha, scope);
   }
   if (scope.head) return withSnap(scope.head, scope);
-  if (!explicit) throw new Error(`no git HEAD at ${cwd}; pass --revision <id>`);
-  const r = explicit.trim();
-  if (!r || r.length > REVISION_MAX || /[\s\p{Cc}]/u.test(r)) throw new Error(`--revision ${JSON.stringify(r.slice(0, 40))}: 1-${REVISION_MAX} characters, no whitespace`);
-  return /^[0-9a-f]{7,64}$/i.test(r) ? r.toLowerCase() : r;
+  throw new Error(`no git HEAD at ${cwd}; pass --revision <id>`);
 }
 
 // ---- safe file access: regular files only, never through a symlink ----
@@ -407,35 +402,6 @@ export function reviewTextPath(home = homedir(), ref) {
   const hash = ref?.sha256;
   return typeof hash === 'string' && new RegExp(`^[0-9a-f]{${REVIEW_TEXT_HASH_HEX_CHARS}}$`).test(hash)
     ? join(ledgerPaths(home).texts, `${hash}${REVIEW_TEXT_EXTENSION}`) : null;
-}
-
-/** Classify one kept-text reference and its bytes for review consumers. */
-export function reviewTextEvidence(home = homedir(), ref) {
-  const file = reviewTextPath(home, ref);
-  if (!ref || typeof ref !== 'object' || !file || !Number.isSafeInteger(ref.bytes) || ref.bytes < 0) {
-    return { status: 'malformed', file };
-  }
-  try {
-    const kept = readReviewText(home, ref);
-    if (!kept) return { status: existsSync(file) ? 'altered' : 'missing', file };
-    if (kept.bytes.length !== ref.bytes) return { status: 'altered', file };
-    return { status: 'intact', ...kept };
-  } catch {
-    return { status: 'missing', file };
-  }
-}
-
-/** Read and hash-check one kept review text without following a symlink. Null means absent or corrupt. */
-export function readReviewText(home = homedir(), ref) {
-  const p = ledgerPaths(home);
-  const store = lstatOrNull(p.texts);
-  if (!store) return null;
-  if (!store.isDirectory()) throw new Error(`${p.texts} is not a directory — refused`);
-  const file = reviewTextPath(home, ref);
-  if (!file) return null;
-  const bytes = readBufferChecked(file);
-  if (!bytes || createHash(REVIEW_TEXT_HASH).update(bytes).digest('hex') !== ref.sha256) return null;
-  return { file, bytes, text: bytes.toString('utf8') };
 }
 
 /** Write captured review bytes content-addressed in the store. Call under the ledger lock. */

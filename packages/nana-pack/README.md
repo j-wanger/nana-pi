@@ -551,8 +551,7 @@ after the first** (N+1 attempts total); before T2b it meant N attempts total. An
 `--retries 2` therefore runs **3** attempts where it used to run 2. Defaults are unchanged in
 effect (`pi-review` 3 attempts; `pi-worker` 1). No call site in this repository passes the flag;
 an external caller that does should subtract one — and a **worker** caller should drop the flag
-(see Migration above). `pi-review` and `pi-worker` print a one-line
-notice whenever `--retries` is passed explicitly.
+(see Migration above).
 
 **Keep review logs outside the reviewed tree.** At admission, `pi-review` and `claude-review`
 inspect stdout and stderr file identities. If either regular file is the same device and inode as

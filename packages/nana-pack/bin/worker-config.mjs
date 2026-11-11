@@ -87,8 +87,6 @@ export const LINEAGE_ALIASES = Object.freeze({ 'claude-code': 'anthropic', anthr
 export const DEFAULT_THINKING_TOKEN = 'default';
 // contract: pi 1.0.2 dist/cli/args.js:6 VALID_THINKING_LEVELS, read 2026-10-13.
 export const THINKING_LEVELS = Object.freeze(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
-// contract: R-1190 — pi-worker's --lane-size value to the roster slot it starts.
-export const LANE_SIZE_SLOTS = Object.freeze({ small: 'builder', larger: 'largerBuilder' });
 // contract: R-1124 — the builder line's label when a lane starts the larger-lane builder.
 export const LARGER_BUILDER_LABEL = 'builder (larger lanes)';
 
