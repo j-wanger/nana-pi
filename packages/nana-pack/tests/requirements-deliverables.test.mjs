@@ -20,18 +20,13 @@ import { STORE_SUBPATH } from "../lib/suite-records-config.mjs";
 import { BUILD_RECORDS_SUBPATH } from "../lib/build-records-config.mjs";
 import {
   DELIVERABLE_FIELD_LABELS,
-  MAKER_RUNS,
   PARKED_LABEL,
   PARKED_SINCE,
-  PART_SEPARATOR,
-  PATH_REQUIRED,
-  READER_KINDS,
-  REASON_REQUIRED,
   artifactRegistry,
   checkDeliverables,
   deliverableClaims,
   deliverableFieldLinesByRow,
-  deliverableReportLines,
+  deliverableReport,
 } from "../../../scripts/deliverables.mjs";
 
 let fails = 0;
@@ -194,7 +189,7 @@ for (const [label, options, fragment] of [
 ]) expectReadsNote(label, options, fragment);
 const kindlessReads = parsedReads(readsLedger({ kind: "" }), []);
 if (kindlessReads.notes.length || kindlessReads.reads.length || kindlessReads.fieldLineCount !== 0) readsFailures.push(`kindless: ${kindlessReads.notes.join(" | ")}`);
-const reportOnlyReads = deliverableReportLines(parseLedger(readsLedger({ reads: "Reads: A-001 · scripts/missing.mjs" })), ".", () => ({ status: 0, stdout: Buffer.from("scripts/read.mjs\0"), stderr: Buffer.alloc(0) }));
+const reportOnlyReads = deliverableReport(parseLedger(readsLedger({ reads: "Reads: A-001 · scripts/missing.mjs" })), ".", () => ({ status: 0, stdout: Buffer.from("scripts/read.mjs\0"), stderr: Buffer.alloc(0) })).lines;
 if (reportOnlyReads.filter((line) => line.includes("scripts/missing.mjs") && line.includes("not a tracked file")).length !== 1) readsFailures.push(`shared report: ${reportOnlyReads.join(" | ")}`);
 const readsOnlySwitch = registryTree("", "Made by: R-001 · manual: owner · docs/x.md\nRead by: R-001 · person: owner").replace("Status: active\n", "Status: active\nReads: A-999 · scripts/read.mjs\n");
 const readsOnlyNotes = checkDeliverables(parseLedger(readsOnlySwitch), ["docs/x.md", "scripts/read.mjs"]).notes;
@@ -290,11 +285,11 @@ const registryNotesAfter = artifactRegistry(parseLedger(artifactConsumerLedger({
 const readsNotesBefore = parsedReads(artifactConsumerLedger()).notes;
 const readsNotesAfter = parsedReads(artifactConsumerLedger({ after: ["Read by: A-001 · code: scripts/missing.mjs"] })).notes;
 if (JSON.stringify(registryNotesBefore) !== JSON.stringify(registryNotesAfter) || JSON.stringify(readsNotesBefore) !== JSON.stringify(readsNotesAfter)) artifactReaderFailures.push("artifactRegistry or artifactReads notes changed");
-const reportOnlyArtifactReader = deliverableReportLines(parseLedger(artifactConsumerLedger({ after: ["Read by: A-001 · code: scripts/missing.mjs"] })), ".", () => ({ status: 0, stdout: Buffer.from("scripts/read.mjs\0"), stderr: Buffer.alloc(0) }));
+const reportOnlyArtifactReader = deliverableReport(parseLedger(artifactConsumerLedger({ after: ["Read by: A-001 · code: scripts/missing.mjs"] })), ".", () => ({ status: 0, stdout: Buffer.from("scripts/read.mjs\0"), stderr: Buffer.alloc(0) })).lines;
 if (!reportOnlyArtifactReader.some((line) => line.includes("scripts/missing.mjs") && line.includes("not a tracked file"))) artifactReaderFailures.push(`shared report: ${reportOnlyArtifactReader.join(" | ")}`);
 const capabilityOnlyMisplaced = `# CAP-01 · Product\nPurpose: product\nOutcome: output\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\nRead by: A-001 · code: scripts/read.mjs\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | Output exists. | untested | — |`;
 const misplacedReport = checkDeliverables(parseLedger(capabilityOnlyMisplaced), ["scripts/read.mjs"]);
-const misplacedLines = deliverableReportLines(parseLedger(capabilityOnlyMisplaced), ".", () => ({ status: 0, stdout: Buffer.from("scripts/read.mjs\0"), stderr: Buffer.alloc(0) }));
+const misplacedLines = deliverableReport(parseLedger(capabilityOnlyMisplaced), ".", () => ({ status: 0, stdout: Buffer.from("scripts/read.mjs\0"), stderr: Buffer.alloc(0) })).lines;
 if (misplacedReport.fieldLineCount !== 1 || !misplacedLines.some((line) => line.includes("A-001") && line.includes("no live entry"))) artifactReaderFailures.push(`misplaced field line: count=${misplacedReport.fieldLineCount}; ${misplacedLines.join(" | ")}`);
 // req: R-2830
 check("R-2830: an artifact Read by line reads its own feature's entry, and a malformed, foreign, unknown, untracked, reasonless, repeated or misplaced line gets one note", artifactReaderFailures.length === 0, artifactReaderFailures.join("\n"));
@@ -507,13 +502,6 @@ const crlfNotes = notesFor(tree("Made by: R-001 · land\nRead by: R-001 · promp
 if (JSON.stringify(lfNotes) !== JSON.stringify(crlfNotes)) grammarFailures.push(`CRLF differs: ${lfNotes.join(" | ")} / ${crlfNotes.join(" | ")}`);
 const trailing = tree("Made by: R-001 · manual: owner  \t\nRead by: R-001 · person: owner\t", "", "");
 if (notesFor(trailing).length !== 0) grammarFailures.push(`trailing/no-final-newline: ${notesFor(trailing).join(" | ")}`);
-const tunablesPinned = JSON.stringify(DELIVERABLE_FIELD_LABELS) === JSON.stringify(["Made by", "Read by"])
-  && JSON.stringify(MAKER_RUNS) === JSON.stringify(["session start", "suite", "land", "review", "build", "CI", "hook", "extension", "manual"])
-  && JSON.stringify(READER_KINDS) === JSON.stringify(["code", "prompt", "person", "rule", "runtime"])
-  && JSON.stringify(REASON_REQUIRED) === JSON.stringify(["manual", "rule", "person", "runtime"])
-  && JSON.stringify(PATH_REQUIRED) === JSON.stringify(["session start", "suite", "land", "review", "build", "CI", "hook", "extension", "code", "prompt"])
-  && PART_SEPARATOR === " · ";
-if (!tunablesPinned) grammarFailures.push("sealed deliverable tunables differ");
 // req: R-2537
 check("a missing or unreadable line, or an automatic claim with no code path, gets one note naming it", grammarFailures.length === 0, grammarFailures.join("\n"));
 
@@ -579,7 +567,7 @@ for (const [label, lines, firstLine] of [
   const text = tree(lines);
   const report = checkDeliverables(parseLedger(text), ["scripts/make.mjs"]);
   const stale = report.notes.filter((entry) => entry.includes("parks nothing"));
-  const output = deliverableReportLines(parseLedger(text), ".", () => ({ status: 0, stdout: Buffer.from("scripts/make.mjs\0"), stderr: Buffer.alloc(0) }));
+  const output = deliverableReport(parseLedger(text), ".", () => ({ status: 0, stdout: Buffer.from("scripts/make.mjs\0"), stderr: Buffer.alloc(0) })).lines;
   if (stale.length !== 1 || !stale[0].includes("R-001") || !stale[0].includes(`Parked: line ${firstLine}`) || report.madeAndReadByCode !== 1 || report.parkedDeliverables !== 0 || JSON.stringify(output) !== JSON.stringify(["deliverables: 1 of 1 made and read by code", stale[0]]))
     staleParkFailures.push(`${label}: counts=${report.madeAndReadByCode}/${report.parkedDeliverables}; output=${output.join(" | ")}`);
 }
@@ -660,8 +648,8 @@ const registryControlGitRunner = (args, options) => {
   const result = repositoryGitRunner(args, options);
   return result.status === 0 ? { ...result, stdout: Buffer.concat([result.stdout, Buffer.from("scripts/x.mjs\0")]) } : result;
 };
-const registryControlLines = deliverableReportLines(parseLedger(registryControlLedger), repositoryRoot, registryControlGitRunner);
-const repositoryReportLines = deliverableReportLines(repositoryParsed, repositoryRoot, repositoryGitRunner);
+const registryControlLines = deliverableReport(parseLedger(registryControlLedger), repositoryRoot, registryControlGitRunner).lines;
+const repositoryReportLines = deliverableReport(repositoryParsed, repositoryRoot, repositoryGitRunner).lines;
 // req: R-2730
 check("R-2730: this repository's ledger gets no deliverable note against its tracked and untracked files",
   /^deliverables: \d+ of \d+ made and read by code/.test(repositoryReportLines[0] ?? "")

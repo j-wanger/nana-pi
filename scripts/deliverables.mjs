@@ -31,8 +31,6 @@ export const NO_DECLARED_READER_NOTE = "has no declared reader";
 export const READER_KINDS = Object.freeze(["code", "prompt", "person", "rule", "runtime"]);
 // Contract: manual, rule, person, and runtime claims explain why they exist; R-2535 and R-2831.
 export const REASON_REQUIRED = Object.freeze(["manual", "rule", "person", "runtime"]);
-// Contract: every automatic maker and every code or prompt reader names code; R-2537.
-export const PATH_REQUIRED = Object.freeze([...MAKER_RUNS.filter((run) => run !== "manual"), "code", "prompt"]);
 // Chosen: the requirements ledger's heading separator.
 export const PART_SEPARATOR = " · ";
 // Contract (report-names-artifacts must-meet, R-2793): the three clone stores whose records have deterministic readers, keyed from their owning modules' sealed subpaths.
@@ -53,18 +51,6 @@ export const DELIVERABLE_PATHS_NOT_CHECKED = "deliverable note: paths not checke
 export const ARTIFACT_CLASSES = Object.freeze(["tracked", "clone store", "user-home store", "other project", "git ref", "CI record", "GitHub issues"]);
 // Contract (artifact-registry must-meet, R-2780/R-2781): allocated artifact IDs are A-001 through A-999.
 export const ARTIFACT_ID_PATTERN = /^A-(?:00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$/;
-// Contract (artifact-registry must-meet, R-2781): the sealed location-shape expressions approved on 2026-10-24.
-export const ARTIFACT_LOCATION_SHAPES = Object.freeze({
-  tracked: "repo-relative tracked path, folder or single-segment-* glob",
-  "clone store": "<git common dir>/<path>",
-  "user-home store": "~/<path> or <pi agent dir>/<path>",
-  "other project": "<project>/<path>",
-  "git ref": "refs/heads/<name> or refs/tags/<prefix>",
-  "CI record": "ci: .github/workflows/<workflow>.yml#<name-without-slash>",
-  // Contract: owner approval 2026-10-28, issues-home must-meet 9; R-2978.
-  "GitHub issues": "github: <owner>/<repo> labelled <label>[, <label>]",
-});
-
 const MAKER_SET = new Set(MAKER_RUNS);
 const READER_SET = new Set(READER_KINDS);
 const REASON_SET = new Set(REASON_REQUIRED);
@@ -78,11 +64,17 @@ const ARTIFACT_CONSUMER_LABELS = new Set(["Read by", PARKED_LABEL]);
 const ROW_AT_START = /^(R-(?:[0-9]{3}|[1-9][0-9]{3}))\b/;
 const PARKED_DATE = new RegExp(`^${PARKED_SINCE}\\s+(\\d{4}-\\d{2}-\\d{2})$`);
 
+function splitKind(text, bareKind = true) {
+  const colon = text.indexOf(":");
+  return {
+    kind: (colon < 0 ? (bareKind ? text : "") : text.slice(0, colon)).trim(),
+    detail: colon < 0 ? "" : text.slice(colon + 1).trim(),
+  };
+}
+
 /** Parse one reader claim without deciding its placement or tracked paths. */
 export function readerClaim(text) {
-  const colon = text.indexOf(":");
-  const kind = (colon < 0 ? text : text.slice(0, colon)).trim();
-  const detail = colon < 0 ? "" : text.slice(colon + 1).trim();
+  const { kind, detail } = splitKind(text);
   return {
     kind,
     detail,
@@ -98,9 +90,7 @@ export function parkClaim(body) {
   const parts = body.split(/\s*·\s*/u);
   const id = parts[0]?.trim() ?? "";
   const claim = parts.length === 2 ? parts[1].trim() : "";
-  const colon = claim.indexOf(":");
-  const dateClaim = (colon < 0 ? claim : claim.slice(0, colon)).trim();
-  const reason = colon < 0 ? "" : claim.slice(colon + 1).trim();
+  const { kind: dateClaim, detail: reason } = splitKind(claim);
   return { parts, id, dateClaim, date: PARKED_DATE.exec(dateClaim)?.[1] ?? null, reason };
 }
 
@@ -185,18 +175,16 @@ export function artifactRegistry(parsed, trackedPaths = null) {
         notes.push(note(`line ${field.line}: malformed Artifact: line`));
         continue;
       }
-      const thirdColon = parts[2].indexOf(":");
-      const thirdKind = thirdColon < 0 ? "" : parts[2].slice(0, thirdColon).trim();
-      const thirdDetail = thirdColon < 0 ? "" : parts[2].slice(thirdColon + 1).trim();
+      const { kind: thirdKind, detail: thirdDetail } = splitKind(parts[2], false);
       const retired = thirdKind === "retired" && parts.length === 3 && thirdDetail.length > 0;
       let className = null, location = null, run = null, writers = [], reason = "";
       let malformed = false;
       if (!retired) {
         className = thirdKind;
         location = thirdDetail;
-        const fourthColon = parts[3]?.indexOf(":") ?? -1;
-        run = fourthColon < 0 ? "" : parts[3].slice(0, fourthColon).trim();
-        const makerDetail = fourthColon < 0 ? "" : parts[3].slice(fourthColon + 1).trim();
+        const maker = splitKind(parts[3] ?? "", false);
+        run = maker.kind;
+        const makerDetail = maker.detail;
         malformed = !ARTIFACT_CLASSES.includes(className) || !location || !MAKER_SET.has(run);
         if (run === "manual") reason = makerDetail;
         else writers = makerDetail.split(",").map((value) => value.trim()).filter(Boolean);
@@ -328,9 +316,7 @@ export function deliverableClaims(parsed, capability, registry = artifactRegistr
     const parts = field.body.split(PART_SEPARATOR);
     const claimText = field.body.slice(row.length).trim().replace(/^·\s*/, "");
     const claim = parts[1]?.trim() ?? "";
-    const colon = claim.indexOf(":");
-    const kind = (colon < 0 ? claim : claim.slice(0, colon)).trim();
-    const detail = colon < 0 ? "" : claim.slice(colon + 1).trim();
+    const { kind, detail } = splitKind(claim);
     if (field.label === PARKED_LABEL) {
       claims.get(row).push({ row, label: field.label, text: claimText, artifact: null, thirdPart: null, registryIds: [], madeByCode: false, readerKind: null, readByCode: false });
       continue;
@@ -467,9 +453,7 @@ export function artifactConsumers(parsed, trackedPaths = null, registry = artifa
       const row = parts[0]?.trim() ?? "";
       if (!listed.has(row)) continue;
       const makerText = parts[1].trim();
-      const colon = makerText.indexOf(":");
-      const run = (colon < 0 ? makerText : makerText.slice(0, colon)).trim();
-      const detail = colon < 0 ? "" : makerText.slice(colon + 1).trim();
+      const { kind: run, detail } = splitKind(makerText);
       if (!MAKER_SET.has(run) || !detail) continue;
       const makerPaths = run === "manual" ? [] : detail.split(",").map((value) => value.trim()).filter(Boolean);
       if (run !== "manual" && tracked && makerPaths.some((path) => !trackedAtHead(path, tracked))) continue;
@@ -609,9 +593,7 @@ export function checkDeliverables(parsed, trackedPaths = null) {
           continue;
         }
         const claim = parts[1].trim();
-        const colon = claim.indexOf(":");
-        const run = (colon < 0 ? claim : claim.slice(0, colon)).trim();
-        const detail = colon < 0 ? "" : claim.slice(colon + 1).trim();
+        const { kind: run, detail } = splitKind(claim);
         if (!MAKER_SET.has(run)) {
           notes.push(note(`${row} Made by: line ${field.line} has unknown maker run "${run || "(empty)"}"`));
           continue;
@@ -748,7 +730,3 @@ export function deliverableReport(parsed, ledgerFolder, gitRunner = (args, optio
   };
 }
 
-/** Return the exact deliverable lines the tree checker and Product view share. */
-export function deliverableReportLines(parsed, ledgerFolder, gitRunner = (args, options) => spawnSync("git", args, options)) {
-  return deliverableReport(parsed, ledgerFolder, gitRunner).lines;
-}

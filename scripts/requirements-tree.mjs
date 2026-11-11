@@ -10,7 +10,7 @@
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { artifactReads, artifactRegistry, checkDeliverables, deliverableReportLines } from "./deliverables.mjs";
+import { artifactReads, artifactRegistry, checkDeliverables, deliverableReport } from "./deliverables.mjs";
 import { ID, requirementRowId, WHITESPACE } from "./requirements-trace.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -519,7 +519,7 @@ function printDeliverableReport(parsed, ledgerFolder, { alwaysSummary = false } 
   if (alwaysSummary || shape.checkedDeliverables > 0 || shape.fieldLineCount > 0) {
     const features = parsed.headings.filter((h) => h.id.startsWith("FEAT-")).length;
     console.log(`requirements tree: 0 problems; rows ${readRequirementRows(parsed).length}; features ${features}`);
-    for (const line of deliverableReportLines(parsed, ledgerFolder)) console.log(line);
+    for (const line of deliverableReport(parsed, ledgerFolder).lines) console.log(line);
   }
 }
 export function main(argv = process.argv.slice(2)) {

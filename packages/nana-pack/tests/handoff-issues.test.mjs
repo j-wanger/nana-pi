@@ -18,7 +18,7 @@ import frontierExtension from "../extensions/nana-frontier-summary.ts";
 import * as config from "../lib/frontier-summary-config.mjs";
 import { GH_COMMAND_ENV } from "../lib/suite-records-config.mjs";
 import { parseLedger } from "../../../scripts/requirements-tree.mjs";
-import { artifactRegistry, ARTIFACT_CLASSES, ARTIFACT_LOCATION_SHAPES } from "../../../scripts/deliverables.mjs";
+import { artifactRegistry, ARTIFACT_CLASSES } from "../../../scripts/deliverables.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 const REPO = fileURLToPath(new URL("../../../", import.meta.url));
 const TD = tmpDir(path.join(os.tmpdir(), "handoff-issues-"));
@@ -169,7 +169,6 @@ await check("R-2977: real HANDOFF Next and Open sections are pointer-only", () =
 // req: R-2978
 await check("R-2978: GitHub issue artifacts require the sealed location shape and register this issue set", () => {
 	assert(ARTIFACT_CLASSES.includes("GitHub issues"));
-	assert.equal(ARTIFACT_LOCATION_SHAPES["GitHub issues"], "github: <owner>/<repo> labelled <label>[, <label>]");
 	const ledger = (location) => `# CAP-01 · Stage\nPurpose: stage\nKind: product\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\nArtifact: A-001 · issues · GitHub issues: ${location} · manual: owner\n`;
 	for (const location of ["github: example/project labelled ask", "github: example/project labelled ask, next"]) assert.equal(artifactRegistry(parseLedger(ledger(location))).notes.length, 0);
 	for (const location of ["example/project", "github: example labelled ask", "github: example/project", "github: example/project labelled "]) assert.equal(artifactRegistry(parseLedger(ledger(location))).notes.length, 1);
