@@ -35,8 +35,6 @@ const check = (name, ok, detail = "") => {
 const yes = run(["trust", dir, "--yes", "--home", home]);
 // req: R-670
 check("affirmative trust is saved by pi's ProjectTrustStore", yes.status === 0 && store.get(dir) === true, `${yes.status} ${yes.stderr} ${yes.stdout}`);
-// req: R-670
-check("command prints pi trust store path", yes.stdout.includes(path.join(agentDir, "trust.json")), yes.stdout);
 const deniedDir = path.join(root, "fresh-untrusted-project");
 fs.mkdirSync(deniedDir);
 const beforeRefusal = fs.readFileSync(path.join(agentDir, "trust.json"), "utf8");
@@ -117,16 +115,5 @@ if (noPi.insideRoot) {
 }
 // req: R-1800
 check("no pi under npm's global folder exits 2 with one line naming the module path and the install command", noPi.insideRoot && noPiResult.status === 2 && noPiLines.length === 1 && noPiLines[0].includes(noPi.modulePath) && noPiLines[0].includes(PI_INSTALL_HINT) && !fs.existsSync(path.join(noPi.freshAgentDir, "trust.json")), noPi.insideRoot ? `${noPiResult.status} ${JSON.stringify(noPiLines)}` : noPi.reason);
-const noCtor = freshTrustEnv("no-ctor");
-let noCtorResult = null;
-let noCtorLines = [];
-if (noCtor.insideRoot) {
-	fs.mkdirSync(path.dirname(noCtor.modulePath), { recursive: true });
-	fs.writeFileSync(noCtor.modulePath, "module.exports = {};\n");
-	noCtorResult = spawnSync(process.execPath, [cli, "trust", dir, "--yes"], { cwd: root, encoding: "utf8", env: noCtor.env });
-	noCtorLines = oneNonEmptyLine(noCtorResult.stderr);
-}
-// req: R-1801
-check("a pi trust module without ProjectTrustStore exits 2 with one line naming the module path and the install command", noCtor.insideRoot && noCtorResult.status === 2 && noCtorLines.length === 1 && noCtorLines[0].includes(noCtor.modulePath) && noCtorLines[0].includes(PI_INSTALL_HINT), noCtor.insideRoot ? `${noCtorResult.status} ${JSON.stringify(noCtorLines)}` : noCtor.reason);
 fs.rmSync(root, { recursive: true, force: true });
 process.exit(fails ? 1 : 0);

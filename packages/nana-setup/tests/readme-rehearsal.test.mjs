@@ -10,9 +10,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { EventEmitter } from "node:events";
 import { README_REHEARSAL } from "../lib/install-check-config.mjs";
-import { createSpawnAdapter } from "../lib/install-check.mjs";
 import { parseChecklist, rehearsalPlan, runReadmeRehearsal } from "../lib/readme-rehearsal.mjs";
 import { resolveLayout } from "../lib/paths.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
@@ -119,26 +117,6 @@ check("plan: nana-setup trust gets --yes and every other command, the global npm
   assert.equal(planned[1].expect, "all good");
   // rehearsalPlan applies the answer rule and nothing else: the input steps are left untouched.
   assert.deepEqual(steps[1].commands, ["cd ~/nana-pi", "nana-setup trust ~/nana-pi", "nana-setup doctor"]);
-});
-
-// req: R-1544
-check("output: a 20,000-character step output keeps its last line through the spawn adapter", async () => {
-  const marker = "STEP-OUTPUT-END";
-  const childSpawn = () => {
-    const child = new EventEmitter();
-    child.stdout = new EventEmitter(); child.stderr = new EventEmitter(); child.stdin = { end() {} };
-    queueMicrotask(() => {
-      child.stdout.emit("data", "x".repeat(20000 - marker.length));
-      child.stdout.emit("data", marker);
-      child.emit("close", 0, null);
-    });
-    child.kill = () => {};
-    return child;
-  };
-  const adapter = createSpawnAdapter(childSpawn);
-  const result = await adapter("fake", [], { maxOutput: README_REHEARSAL.maxOutput });
-  assert.equal(result.stdout.length, 20000);
-  assert.ok(result.stdout.endsWith(marker));
 });
 
 // req: R-1545

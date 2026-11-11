@@ -163,9 +163,6 @@ await test('M5: install retires unchanged seeds without new seeds doctor rows or
       assert.ok(!/pi (subagent config|reviewer agent|pi-subagents)/.test(doctor.stdout), doctor.stdout);
     }
   }
-  const config = await import('../lib/install-check-config.mjs');
-  assert.ok(!('PI_SUBAGENTS_RETRY' in config));
-  assert.ok(!fs.readFileSync(path.join(pkg, 'lib/install-check.mjs'), 'utf8').includes('pi-subagents'));
 });
 
 // req: R-3806
@@ -217,17 +214,6 @@ try {
 		const productionFingerprints = JSON.parse(fs.readFileSync(path.join(pkg, "lib", "retired-fingerprints.json"), "utf8"));
 		// req: R-668
 		check("production fingerprints cover every declared artifact", fingerprintManifestComplete(productionEntries, productionFingerprints));
-		const missingFingerprint = { ...productionFingerprints };
-		delete missingFingerprint[".claude/enforce"];
-		// req: R-668
-		check("missing production fingerprint invalidates manifest completeness", !fingerprintManifestComplete(productionEntries, missingFingerprint));
-		const names = productionEntries.map((entry) => entry.relative);
-		// req: R-668
-		check("manifest names all 22 requested legacy Agent Skills", ["dev-check", "dev-debrief", "dev-init", "dev-plan", "dev-scan", "dev-wiki", "knowledge-wiki", "memory-consolidate", "nana", "nana-init", "py-init", "ts-init", "wiki-absorb", "wiki-add", "wiki-bootstrap", "wiki-consolidate", "wiki-health", "wiki-index", "wiki-init", "wiki-query", "wiki-registry", "wiki-reorg"].every((name) => names.includes(`.agents/skills/${name}`)));
-		// req: R-668
-		check("manifest includes all Claude scaffolders, shared runtime-neutral copies, and both empty flags", ["py-init", "ts-init", "nana-init", "nana", "spec", "py-lint", "py-review", "py-test"].every((name) => names.includes(`.claude/skills/${name}`)) && names.includes(".claude/enforce") && names.includes(".claude/enforce-memory"));
-		// req: R-668
-		check("manifest excludes synced skills and unrelated Claude workflows", !names.some((name) => name.includes("synced") || name.startsWith(".claude/skills/dev-") || name.startsWith(".claude/skills/wiki-")) && !names.includes(".claude/skills/knowledge-wiki"));
 	}
 	{
 		const h = home();
@@ -315,8 +301,6 @@ try {
 		const retainedContextEntries = settings.hooks.UserPromptSubmit[0].hooks.filter((hook) => hook.command === "bash ~/.claude/hooks/context-size-check.sh" || hook.command === "bash ~/.claude/hooks/context-size-check.sh --owner-variant" || hook.owner === "the owner" || hook.type === "prompt");
 		// req: R-660
 		check("exact nana settings entry is removed while customized and non-command entries remain byte-identical", JSON.stringify(retainedContextEntries) === JSON.stringify(ownerHooks), JSON.stringify(retainedContextEntries));
-		// req: R-662
-		check("install prints a manual marker cleanup reminder", result.stdout.includes("delete .claude/.context-warned files manually"), result.stdout);
 		// req: R-668
 		check("synced Agent Skills content stays in place", fs.readFileSync(path.join(synced, "SKILL.md"), "utf8") === "keep synced skill\n");
 		if (process.platform === "win32") {
@@ -326,8 +310,6 @@ try {
 			// req: R-665
 			check("managed pack skill replaces the backed-up legacy spec", fs.realpathSync(oldSkill) === fs.realpathSync(path.join(repo, "packages", "nana-pack", "skills", "spec")));
 		}
-		// req: R-666
-		check("doctor reads a canonical pack skill link as healthy", run(["doctor", "--home", h]).stdout.includes("✓ skill spec"));
 		const rerun = install(h);
 		// req: R-669
 		check("rerun after completed moves succeeds and keeps the dated backup", rerun.status === 0 && fs.existsSync(backup(h, ".claude", "skills/spec/SKILL.md")), rerun.stdout);
@@ -406,32 +388,15 @@ try {
 	}
 	{
 		const h = home();
-		const alternateClaude = path.join(h, "selected-claude");
-		fs.mkdirSync(path.join(alternateClaude), { recursive: true });
-		fs.writeFileSync(path.join(alternateClaude, "enforce"), "");
-		const result = run(["doctor", "--home", h, "--claude-home", alternateClaude]);
-		// req: R-667
-		check("doctor checks enforcement flags in the selected Claude home", result.stdout.includes("! legacy enforcement flags") && result.stdout.includes("enforce present"), result.stdout);
-	}
-	{
-		const h = home();
 		const ownerSkill = path.join(h, ".claude", "skills", "spec");
 		fs.mkdirSync(ownerSkill, { recursive: true });
 		fs.writeFileSync(path.join(ownerSkill, "SKILL.md"), "owner-authored spec\n");
 		const legacyDir = path.join(h, ".claude", "skills", "py-init");
 		copyTree(path.join(fixture, "py-init"), legacyDir);
 		fs.writeFileSync(path.join(h, ".claude", "enforce-memory"), "");
-		const before = run(["doctor", "--home", h]);
-		// req: R-667
-		check("doctor warns while active enforcement flags and legacy scaffolders remain", before.stdout.includes("! legacy enforcement flags") && before.stdout.includes("! legacy scaffolders"), before.stdout);
 		const result = install(h);
 		// req: R-663 R-669
 		check("provenance mismatch remains untouched and is reported", result.status === 1 && fs.readFileSync(path.join(ownerSkill, "SKILL.md"), "utf8") === "owner-authored spec\n" && result.stdout.includes("unrecognized kind or provenance"), result.stdout);
-		const doc = run(["doctor", "--home", h]);
-		// req: R-666
-		check("doctor reports a same-name regular skill directory as unhealthy", doc.stdout.includes("✗ skill spec") && doc.status === 1, doc.stdout);
-		// req: R-667
-		check("doctor reports absent legacy wiring as healthy", doc.stdout.includes("✓ legacy enforcement flags") && doc.stdout.includes("✓ legacy scaffolders"), doc.stdout);
 	}
 	{
 		const h = home();

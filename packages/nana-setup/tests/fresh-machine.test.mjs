@@ -29,20 +29,9 @@ const entries = [...checklist.matchAll(/^\s*(\d+)\.\s+(.+)$/gm)].map((m) => `${m
 // req: R-950
 check("fresh-machine checklist has seven ordered actions", entries.length === 7 && ["Node ≥", "@earendil-works/pi-coding-agent@", "git clone", "nana-setup.mjs install", ".local/bin", "objective.path", "nana-setup doctor"].every((anchor, i) => entries[i].includes(anchor)), entries.join("\n"));
 const ciVersion = read(".github/workflows/ci.yml").match(/^\s*PI_VERSION:\s*(\S+)/m)?.[1];
-const flat = entries.join(" ");
-// req: R-951
-check("checklist versions match Node and pi CI sources", entries[0]?.includes(`Node ≥ ${PI_NODE_FLOOR}`) && entries[1]?.includes(`@earendil-works/pi-coding-agent@${ciVersion} `), flat);
-const layout = resolveLayout();
-// req: R-950
-check("checklist objective paths name the resolved pi seed files", entries[5]?.includes(path.basename(layout.piObjective)) && entries[5]?.includes(path.basename(layout.piPackConfig)), entries[5]);
-const step8 = entries[6] ?? "";
-const step8Commands = [...step8.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter((c) => /^nana-setup\s/.test(c));
-const step8Kinds = step8Commands.map((c) => c.split(/\s+/)[1]);
-// req: R-1111
-check("fresh-machine step 7 trusts the clone before doctor", step8Kinds.includes("trust") && step8Kinds.includes("doctor") && step8Kinds.indexOf("trust") < step8Kinds.indexOf("doctor"), step8);
 const rehearsalSteps = rehearsalPlan(parseChecklist(readme, "darwin"));
 const lastRehearsalStep = rehearsalSteps.at(-1);
-// req: R-1546
+// req: R-1546 R-1111
 check("last step runs cd ~/nana-pi, trust and doctor as commands and expects all good",
   lastRehearsalStep?.commands.length === 3 &&
   lastRehearsalStep.commands[0] === "cd ~/nana-pi" &&

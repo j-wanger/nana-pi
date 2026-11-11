@@ -168,44 +168,31 @@ uniqueSpellings.length ? check("R-1980: doctor through a second spelling of the 
 	});
 }) : skip("R-1980 — no second spelling is available on this volume");
 
-// req: R-1981
-uniqueSpellings.length ? check("R-1981: install through a second spelling of the checkout exits 0 and refuses none of its own links", () => {
-	eachSpelling((form, spelling) => {
-		const item = fixture(form, `1981-${form.name}-${spelling.kind}`);
-		installCanonical(item);
-		const result = run(spelling.path, ["install"], item);
-		assertFinished(result, "second-spelling install");
+if (uniqueSpellings.length) eachSpelling((form, spelling) => {
+	const item = fixture(form, `1982-${form.name}-${spelling.kind}`);
+	installCanonical(item);
+	const before = homeSnapshot(item.home);
+	const result = run(spelling.path, ["install"], item);
+	assertFinished(result, "second-spelling install");
+	const after = homeSnapshot(item.home);
+	// req: R-1981
+	check("R-1981: install through a second spelling of the checkout exits 0 and refuses none of its own links", () => {
 		assert(result.status === 0 && noProblemRow(result), `${form.name}/${spelling.kind}: exit=${result.status}\n${result.stdout}\n${result.stderr}`);
 	});
-}) : skip("R-1981 — no second spelling is available on this volume");
-
-// req: R-1982
-uniqueSpellings.length ? check("R-1982: install through a second spelling of the checkout leaves the home byte-identical", () => {
-	eachSpelling((form, spelling) => {
-		const item = fixture(form, `1982-${form.name}-${spelling.kind}`);
-		installCanonical(item);
-		const before = homeSnapshot(item.home);
-		const result = run(spelling.path, ["install"], item);
-		assertFinished(result, "second-spelling install");
-		const after = homeSnapshot(item.home);
+	// req: R-1982
+	check("R-1982: install through a second spelling of the checkout leaves the home byte-identical", () => {
 		assert(JSON.stringify(after) === JSON.stringify(before), `${form.name}/${spelling.kind}: home changed\nbefore=${JSON.stringify(before)}\nafter=${JSON.stringify(after)}`);
 	});
-}) : skip("R-1982 — no second spelling is available on this volume");
-
-// req: R-1983
-uniqueSpellings.length ? check("R-1983: after installs through both spellings the stale-copy producer prints nothing through either", () => {
-	eachSpelling((form, spelling) => {
-		const item = fixture(form, `1983-${form.name}-${spelling.kind}`);
-		installCanonical(item);
-		const second = run(spelling.path, ["install"], item);
-		assertFinished(second, "second-spelling install");
+	// req: R-1983
+	check("R-1983: after installs through both spellings the stale-copy producer prints nothing through either", () => {
 		for (const root of [canonical, spelling.path]) {
 			const stale = runStale(root, item);
 			assertFinished(stale, "stale-copy producer");
 			assert(stale.status === 0 && stale.stdout === "", `${form.name}/${spelling.kind}/${root === canonical ? "canonical" : "spelled"}: ${JSON.stringify(stale.stdout)} ${stale.stderr}`);
 		}
 	});
-}) : skip("R-1983 — no second spelling is available on this volume");
+});
+else for (const id of ["R-1981", "R-1982", "R-1983"]) skip(`${id} — no second spelling is available on this volume`);
 
 function rewritePathText(value, from, to) {
 	return value

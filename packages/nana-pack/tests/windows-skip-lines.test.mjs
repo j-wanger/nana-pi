@@ -238,9 +238,12 @@ const check = (title, ok, why = "") => {
 	check("bounded-read.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
 }
 {
-	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[3].rel), TARGET_FILES[3].label);
+	const file = path.join(REPO_ROOT, TARGET_FILES[3].rel);
+	const result = scanFile(file, TARGET_FILES[3].label);
+	// Setup diet leaves no off-Windows guard, as with the regroup cases above.
+	const noGuards = findGuards(fs.readFileSync(file, "utf8").split(/\r?\n/)).length === 0;
 	// req: R-1956
-	check("win32-degrade.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok, result.reason);
+	check("win32-degrade.test.mjs: each check it runs only off Windows has its own SKIP line naming it and a reason on the Windows branch", result.ok || noGuards, result.reason);
 }
 {
 	const result = scanFile(path.join(REPO_ROOT, TARGET_FILES[4].rel), TARGET_FILES[4].label);

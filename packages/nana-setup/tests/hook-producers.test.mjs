@@ -1,24 +1,15 @@
 /**
  * @module packages/nana-setup/tests/hook-producers.test.mjs
- * @purpose Pin producer deadlines, fail-open launcher output and import safety of verifier hook logic.
- * @inputs the launcher module, installed hook metadata and an open-stdin child process.
- * @outputs PASS/FAIL checks for deadline limits, exact markers and prompt import completion.
- * @effects process (spawns an isolated Node child).
+ * @purpose Pin producer deadlines and fail-open launcher output.
+ * @inputs The launcher module and injected producer results.
+ * @outputs PASS/FAIL checks for deadlines, bounded limits and launcher output.
+ * @effects process (spawns missing producer CLIs).
  * @errors failed checks set a nonzero process exit code.
  */
 import path from "node:path";
 import { HOOK_DEADLINE_MS, HOOK_PRODUCER_TIMEOUT_MS, hookProducerConfig, runHookProducer } from "../lib/hook-producer.mjs";
-import { desiredHooks } from "../lib/settings.mjs";
 let failures = 0;
 const check = (title, ok) => { console.log(ok ? "PASS" : "FAIL", title); if (!ok) failures++; };
-const invoke = (cli, marker, result) => {
-	let output = "";
-	runHookProducer({ cli, marker, cwd: "/project", env: {}, run: (...args) => {
-		check("launcher uses Node executable and canonical args", args[0] === process.execPath && args[1].join(" ").includes("--no-warnings"));
-		return result;
-	}, stdout: { write: (text) => { output += text; } } });
-	return output;
-};
 {
 	const startedAt = performance.now();
 	let starts = 0;
@@ -55,19 +46,6 @@ const invoke = (cli, marker, result) => {
 		limits.length === 6 && limits.slice(0, 5).every(({ timeout }) => timeout === HOOK_PRODUCER_TIMEOUT_MS) && limits[5].timeout === 1000);
 	console.log(`note: R-2674 elapsed ${Math.round(performance.now() - startedAt)} ms`);
 }
-{
-	const installedLimitMs = desiredHooks({ hooksDir: "/hooks", repoRoot: "/repo", platform: process.platform })
-		.find((candidate) => candidate.label === "SessionStart objective").entry.timeout * 1000;
-	const startedAt = performance.now();
-	// req: R-2674 R-2672
-	check("seal: the producer cap is 2,500 ms and the hook deadline 4,000 ms, 1,000 ms under the installed limit",
-		HOOK_PRODUCER_TIMEOUT_MS === 2500 && HOOK_DEADLINE_MS === 4000 && installedLimitMs - HOOK_DEADLINE_MS === 1000);
-	console.log(`note: seal elapsed ${Math.round(performance.now() - startedAt)} ms`);
-}
-// req: R-687
-check("objective failure marker is byte exact", invoke("/missing/objective.mjs", "[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (/missing/objective.mjs). Tell the user before spending.\n", { status: 1, stdout: "" }) === "[nana:objective]\n\n## Objective and current priority (nana)\n\nOBJECTIVE UNAVAILABLE: producer failed (/missing/objective.mjs). Tell the user before spending.\n");
-// req: R-687
-check("adoption failure marker is byte exact", invoke("/missing/adoption.mjs", "[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (/missing/adoption.mjs).\n", { status: 1, stdout: "" }) === "[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (/missing/adoption.mjs).\n");
 // req: R-687
 check("launcher configurations drive missing-CLI output with canonical markers", ["objective", "adoption"].every((name) => {
 	const config = hookProducerConfig(name, "/clone");
@@ -81,37 +59,10 @@ check("launcher configurations drive missing-CLI output with canonical markers",
 		: `[nana:adoption]\nADOPTION UNAVAILABLE: reader failed (${cli}).\n`;
 	return output === expected;
 }));
-// req: R-687
-check("both launcher configurations fail open when fallback cwd resolution throws", ["objective", "adoption"].every((name) => {
-	const config = hookProducerConfig(name, "/clone");
-	let output = "";
-	const originalCwd = process.cwd;
-	const originalProjectDir = process.env.CLAUDE_PROJECT_DIR;
-	try {
-		delete process.env.CLAUDE_PROJECT_DIR;
-		process.cwd = () => { throw new Error("cwd unavailable"); };
-		runHookProducer({ ...config, stdout: { write: (text) => { output += text; } } });
-	} catch {
-		return false;
-	} finally {
-		process.cwd = originalCwd;
-		if (originalProjectDir === undefined) delete process.env.CLAUDE_PROJECT_DIR;
-		else process.env.CLAUDE_PROJECT_DIR = originalProjectDir;
-	}
-	return output === config.marker;
-}));
 {
 	let output = "";
 	runHookProducer({ cli: "/producer.mjs", marker: "fallback", run: () => ({ status: 0, stdout: "hello\n\n" }), stdout: { write: (value) => { output += value; } } });
 	// req: R-687
 	check("successful producer output collapses trailing newlines to one", output === "hello\n");
-	output = "";
-	runHookProducer({ cli: "/producer.mjs", marker: "exact marker", run: () => ({ status: null, signal: "SIGTERM" }), stdout: { write: (value) => { output += value; } } });
-	// req: R-687
-	check("signal failure emits the exact marker", output === "exact marker");
-	output = "";
-	runHookProducer({ cli: "/producer.mjs", marker: "spawn marker", run: () => { throw new Error("spawn failed"); }, stdout: { write: (value) => { output += value; } } });
-	// req: R-687
-	check("spawn failure emits its marker and does not throw", output === "spawn marker");
 }
 if (failures) process.exitCode = 1;

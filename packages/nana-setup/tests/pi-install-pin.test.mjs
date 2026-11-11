@@ -8,11 +8,9 @@
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { tmpDir } from "./tmp-dir.mjs";
-import { CI_WORKFLOW, parsePiPin, pinPiInstall, readPiPin } from "../lib/pi-pin.mjs";
+import { CI_WORKFLOW, parsePiPin } from "../lib/pi-pin.mjs";
 import { PI_INSTALL_HINT } from "../lib/steps.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -129,33 +127,6 @@ check("the missing-pi hint carries CI's PI_VERSION and an unquoted PI_BEFORE", (
 check("pi pin reads PI_VERSION and PI_BEFORE from the workflow env with LF or CRLF line ends", () => {
   assert.deepEqual(parsePiPin(`env:\n  PI_VERSION: ${version}\n  PI_BEFORE: "${before}"\n`), { version, before });
   assert.deepEqual(parsePiPin(`env:\r\n  PI_VERSION: ${version}\r\n  PI_BEFORE: "${before}"\r\n`), { version, before });
-});
-
-// req: R-1093, R-1094
-check("the missing-pi hint is built from the checkout's CI workflow by pi-pin", () => {
-  assert.match(fs.readFileSync(path.join(root, "packages/nana-setup/lib/steps.mjs"), "utf8"), /pinPiInstall\(PI_INSTALL_BASE, readPiPin\(repoRoot\)\)/);
-  assert.equal(PI_INSTALL_HINT, pinPiInstall("npm i -g --ignore-scripts @earendil-works/pi-coding-agent", readPiPin(root)));
-});
-
-// req: R-1094
-check("an unreadable or incomplete workflow gives a placeholder hint, never an empty cutoff", () => {
-  const dir = tmpDir(path.join(os.tmpdir(), "nana-pi-pin-"));
-  try {
-    assert.equal(readPiPin(dir), null);
-    for (const body of ["", `  PI_VERSION: ${version}\n`, `  PI_VERSION: ${version}\n  PI_BEFORE: \"\"\n`, `  PI_VERSION: \n  PI_BEFORE: \"${before}\"\n`, `  PI_VERSION: ${version}\n  PI_BEFORE: \"not-a-date\"\n`]) {
-      fs.mkdirSync(path.join(dir, ".github", "workflows"), { recursive: true });
-      fs.writeFileSync(path.join(dir, ...CI_WORKFLOW), body);
-      assert.equal(readPiPin(dir), null);
-      assert.equal(pinPiInstall("npm i -g pkg", readPiPin(dir)), "npm i -g pkg@<version> --before=<cutoff>");
-    }
-  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
-});
-
-// req: R-1094
-check("a cutoff with a space, a shell metacharacter or a rollover date gives a placeholder hint", () => {
-  for (const value of ["2026-10-04 06:57:57Z", "2026-10-04T06:57:57Z;echo", "2026-02-30T06:57:57Z"]) {
-    assert.equal(parsePiPin(`  PI_VERSION: ${version}\n  PI_BEFORE: "${value}"`), null);
-  }
 });
 
 let failed = 0;

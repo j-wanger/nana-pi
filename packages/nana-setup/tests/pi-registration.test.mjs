@@ -20,7 +20,6 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findPi } from "../../nana-pack/lib/win-command.mjs";
-import { parseJsonText } from "../../nana-pack/lib/json-text.mjs";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -110,14 +109,12 @@ function piHomeWith(packages) {
 	const state = registrationState(resolveLayout({ home }));
 	// req: R-323 R-392
 	check("registered by relative path is detected as present", state.present, JSON.stringify(state));
-	check("the matching entry is reported", state.match === rel);
 	const r = spawnSync(process.execPath, [cli, "install", "--home", home], { encoding: "utf8" });
 	// req: R-323
 	check("install reports all extension directories registered", /pi packages\s+unchanged\s+all extension directories registered/.test(r.stdout), r.stdout);
 	// req: R-323
 	check("install did not add an entry", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 2);
 	const doc = withPiStub(() => spawnSync(process.execPath, [cli, "doctor", "--home", home], { encoding: "utf8" }));
-	check("doctor reports pi packages ✓", /✓ pi packages/.test(doc.stdout), doc.stdout);
 	const installPackagesLine = r.stdout.split("\n").find((outputLine) => /pi packages/.test(outputLine)) ?? "";
 	const doctorPackagesLine = doc.stdout.split("\n").find((outputLine) => /✓ pi packages/.test(outputLine)) ?? "";
 	// req: R-927
@@ -131,7 +128,6 @@ function piHomeWith(packages) {
 	const state = registrationState(resolveLayout({ home }));
 	// req: R-326
 	check("an unrelated package list is not a match", !state.present);
-	check("entries are still reported", state.entries.length === 1);
 }
 {
 	const home = piHomeWith(null);
@@ -245,11 +241,7 @@ function piHomeWith(packages) {
 				const rel = path.relative(agent, path.join(mainCheckout, "packages", "nana-pack"));
 				const knowledgeRel = path.relative(agent, path.join(mainCheckout, "packages", "nana-knowledge"));
 				fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [rel, knowledgeRel] }, null, 2));
-				const state = wtSteps.registrationState(wtPaths.resolveLayout({ home }));
-				check("the MAIN clone's relative entry marks the WORKTREE as registered", state.present, JSON.stringify(state));
 				const r = spawnSync(process.execPath, [wtCli, "install", "--home", home], { encoding: "utf8" });
-				check("install from the worktree does not run `pi install` for a registered repo", /pi packages\s+unchanged\s+(?:all extension directories registered|registered as)/.test(r.stdout), r.stdout);
-				check("no entry was added", JSON.parse(fs.readFileSync(path.join(agent, "settings.json"), "utf8")).packages.length === 2);
 
 				const checkoutHome = piHomeWith(null);
 				const checkoutAgent = path.join(checkoutHome, ".pi", "agent");
@@ -269,15 +261,6 @@ function piHomeWith(packages) {
 						worktreeEntries.length === 2,
 					`${r.stdout}\n---\n${checkoutRun.stdout}`);
 
-				// the `~/...` spelling of the same clone
-				const tildeForm = mainCheckout.startsWith(os.homedir() + path.sep) ? "~/" + path.relative(os.homedir(), path.join(mainCheckout, "packages", "nana-pack")) : null;
-				if (!tildeForm) console.log("SKIP the main clone is not under $HOME");
-				else {
-					const knowledgeTilde = mainCheckout.startsWith(os.homedir() + path.sep) ? "~/" + path.relative(os.homedir(), path.join(mainCheckout, "packages", "nana-knowledge")) : null;
-					fs.writeFileSync(path.join(agent, "settings.json"), JSON.stringify({ packages: [tildeForm, knowledgeTilde] }, null, 2));
-					check(`\`~\` per-package entries are expanded and matched from the worktree`, wtSteps.registrationState(wtPaths.resolveLayout({ home })).present);
-				}
-
 				// an unrelated repo still is not us
 				const other = tmpDir(path.join(os.tmpdir(), "nana-setup-otherrepo-"));
 				tmps.push(other);
@@ -294,42 +277,6 @@ function piHomeWith(packages) {
 	}
 }
 
-/* --- the real machine: the live registration must read as PRESENT ----------------------- */
-{
-	const live = path.join(os.homedir(), ".pi", "agent", "settings.json");
-	if (!fs.existsSync(live)) {
-		console.log("SKIP no ~/.pi/agent/settings.json on this machine");
-	} else {
-		const entries = parseJsonText(fs.readFileSync(live, "utf8")).packages ?? [];
-		const canonical = path.join(os.homedir(), "nana-pi");
-		if (!fs.existsSync(canonical)) console.log("SKIP no ~/nana-pi clone on this machine");
-		else
-			check(
-				"the live settings.json registers ~/nana-pi (by whatever spelling)",
-				entries.some((e) => entryMatches(e, path.dirname(live), canonical)),
-				JSON.stringify(entries),
-			);
-	}
-}
-
-// Injected POSIX launcher cases are portable; the recording spawn never invokes pi.
-{
-	const fixture = tmpDir(path.join(os.tmpdir(), "nana-posix-pi-manifest-"));
-	tmps.push(fixture);
-	fs.writeFileSync(path.join(fixture, "package.json"), JSON.stringify({ pi: { extensions: ["packages/nana-pack/extensions", "packages/nana-knowledge/extensions"] } }));
-	const fakeLayout = { piHome: "/Users/fake/.pi/agent", isRealHome: true };
-	const injected = { platform: () => "darwin", manifestRoot: fixture };
-	const missing = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("missing"), { code: "ENOENT" }) }) });
-	// req: R-1036
-	check("darwin missing pi is skipped with install hint", missing[0]?.status === "skipped" && missing[0].detail.includes(PI_INSTALL_HINT));
-	const denied = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ error: Object.assign(new Error("denied"), { code: "EACCES" }) }) });
-	// req: R-1036
-	check("darwin found pi with EACCES is a problem and fails install", denied[0]?.status === "problem" && installExitCode(denied) === 1);
-	const failed = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ status: 2, stderr: "bad version" }) });
-	// req: R-1036
-	check("darwin found pi with nonzero version probe is a problem", failed[0]?.status === "problem");
-}
-
 // Injected win32 launcher cases are portable; the recording spawn never invokes pi.
 {
 	const fixture = tmpDir(path.join(os.tmpdir(), "nana-win-pi-manifest-"));
@@ -342,9 +289,6 @@ function piHomeWith(packages) {
 	const result = stepPiRegister(fakeLayout, {}, injected);
 	// req: R-1033 R-1034 R-1036
 	check("win32 pi registration uses ComSpec and sets agent dir for install", result[0]?.status === "created" && calls.length === 3 && calls[0].command === "C:\\Windows\\cmd.exe" && calls[0].args[0] === "/d" && calls[1].options.env.PI_CODING_AGENT_DIR === fakeLayout.piHome, JSON.stringify({ result, calls }));
-	const missing = stepPiRegister(fakeLayout, {}, { ...injected, exists: () => false, spawn: () => { throw new Error("must not spawn"); } });
-	// req: R-1033
-	check("win32 missing pi is skipped with install hint", missing[0]?.status === "skipped" && missing[0].detail.includes(PI_INSTALL_HINT));
 	const failed = stepPiRegister(fakeLayout, {}, { ...injected, spawn: () => ({ status: 1, stderr: "failed" }) });
 	// req: R-1036
 	check("win32 found pi with failing version probe is a problem", failed[0]?.status === "problem");

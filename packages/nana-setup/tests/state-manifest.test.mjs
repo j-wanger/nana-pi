@@ -56,8 +56,6 @@ check("R-2871: the manifest holds exactly one row for each path the review ledge
 const secretNames = ["auth.json", "mcp-auth.json", "models.json", "models-store.json", "mcp.json", ".credentials.json", "settings.json", "sessions", "bench-agent"];
 // req: R-954
 check("secret-capable stores are classified as secret", secretNames.every((name) => rows.some((r) => path.basename(r.path) === name && r.class === "secret")) && ["Claude login", "Claude transcripts"].every((store) => rows.some((row) => row.store === store && row.class === "secret")), secretNames.filter((name) => !rows.some((r) => path.basename(r.path) === name && r.class === "secret")).join(", "));
-// req: R-954
-check("disposable cache and log tuples name their real owners and sources", JSON.stringify([tuple("MCP cache")]) === JSON.stringify([["disposable", "pi", "file", "pi / pi-subagents owner", "recreated as needed"]]));
 const installHome = tmpDir(path.join(os.tmpdir(), "state-owner-install-"));
 const ownerLayout = resolveLayout({ home: installHome });
 fs.mkdirSync(ownerLayout.knowledgeHome, { recursive: true });

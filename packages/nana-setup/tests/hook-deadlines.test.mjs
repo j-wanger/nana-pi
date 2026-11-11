@@ -137,7 +137,7 @@ const lateHungExpected = {
 	objective: hookProducerConfig("objective", root).marker + hookProducerConfig("frontier", root).marker,
 	adoption: hookProducerConfig("adoption", root).marker + hookProducerConfig("stale-copies", root).marker,
 };
-// req: R-2672
+// req: R-2672 R-2011 R-2012 R-2613
 check("R-2672: the objective and adoption hooks print both markers before their installed limit when they start 2.5 seconds late and both producers hang",
 	LATE_START_MS < HOOK_DEADLINE_MS && lateHungObjective.code === 0 && !lateHungObjective.timedOut && lateHungObjective.stdout === lateHungExpected.objective && lateHungObjective.elapsed < installedLimit("SessionStart objective") &&
 	lateHungAdoption.code === 0 && !lateHungAdoption.timedOut && lateHungAdoption.stdout === lateHungExpected.adoption && lateHungAdoption.elapsed < installedLimit("SessionStart adoption"),
@@ -151,35 +151,15 @@ let expected = hookProducerConfig("adoption", root).marker + liveLine;
 // req: R-2010
 check("adoption hook prints its marker and the stale-copy output when the adoption producer hangs", result.code === 0 && !result.timedOut && result.stdout === expected, `code=${String(result.code)} elapsed=${result.elapsed} stdout=${JSON.stringify(result.stdout)} stderr=${JSON.stringify(result.stderr)}`);
 
-writeStub("adoption", hungStub);
-writeStub("stale-copies", hungStub);
-result = await runHook("nana-adoption.mjs");
-expected = hookProducerConfig("adoption", root).marker + hookProducerConfig("stale-copies", root).marker;
-// req: R-2011
-check("adoption hook prints both markers before its installed limit when both producers hang", result.code === 0 && !result.timedOut && result.stdout === expected && result.elapsed < installedLimit("SessionStart adoption"), `code=${String(result.code)} elapsed=${result.elapsed} limit=${installedLimit("SessionStart adoption")} stdout=${JSON.stringify(result.stdout)} stderr=${JSON.stringify(result.stderr)}`);
-
-writeStub("objective", hungStub);
-writeStub("frontier", "");
-result = await runHook("nana-objective.mjs");
-expected = hookProducerConfig("objective", root).marker;
-// req: R-2012
-check("objective hook prints its marker before its installed limit when its producer hangs", result.code === 0 && !result.timedOut && result.stdout === expected && result.elapsed < installedLimit("SessionStart objective"), `code=${String(result.code)} elapsed=${result.elapsed} limit=${installedLimit("SessionStart objective")} stdout=${JSON.stringify(result.stdout)} stderr=${JSON.stringify(result.stderr)}`);
-
-writeStub("objective", hungStub);
-writeStub("frontier", hungStub);
-const bothHung = await runHook("nana-objective.mjs");
-const bothMarkers = hookProducerConfig("objective", root).marker + hookProducerConfig("frontier", root).marker;
-
 writeStub("objective", `process.stdout.write("x".repeat(8000));\n`);
 fs.writeFileSync(stubPaths.frontier, liveFrontierSource);
 fs.writeFileSync(path.join(root, "HANDOFF.md"), ["## Next", ...Array.from({ length: 100 }, (_, index) => `- Next ${index} ${"n".repeat(100)}`), "## Open for the owner", ...Array.from({ length: 20 }, (_, index) => `- **[blocking, since 2026-10-01] Ask ${index}.** body`)].join("\n"));
 const budgeted = await runHook("nana-objective.mjs");
 const objectiveWhole = `${"x".repeat(8000)}\n`;
 // req: R-2613
-check("R-2613: objective hook prints both markers before its installed limit when both producers hang, and keeps a long objective whole under the cap",
-	bothHung.code === 0 && !bothHung.timedOut && bothHung.stdout === bothMarkers && bothHung.elapsed < installedLimit("SessionStart objective") &&
+check("R-2613: objective hook keeps a long objective whole under the cap",
 	budgeted.code === 0 && !budgeted.timedOut && budgeted.stdout.startsWith(objectiveWhole) && budgeted.stdout.length <= SHARED_MEMORY_OUTPUT_BUDGET + 1000 && budgeted.stdout.includes("[nana:frontier]"),
-	`hung code=${String(bothHung.code)} elapsed=${bothHung.elapsed} limit=${installedLimit("SessionStart objective")} stdout=${JSON.stringify(bothHung.stdout)} stderr=${JSON.stringify(bothHung.stderr)}; budget code=${String(budgeted.code)} length=${budgeted.stdout.length} stdout-tail=${JSON.stringify(budgeted.stdout.slice(-300))}`,
+	`budget code=${String(budgeted.code)} length=${budgeted.stdout.length} stdout-tail=${JSON.stringify(budgeted.stdout.slice(-300))}`,
 );
 
 writeStub("objective", "");

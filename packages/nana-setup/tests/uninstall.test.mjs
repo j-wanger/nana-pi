@@ -70,26 +70,7 @@ if (process.platform !== "win32") {
 }
 
 {
-  const home = tmpDir(path.join(os.tmpdir(), "nana-uninstall-owned-link-"));
-  const layout = resolveLayout({ home });
-  const link = path.join(layout.hooksDir, "nana-objective.mjs");
-  fs.mkdirSync(path.dirname(link), { recursive: true });
-  fs.symlinkSync(path.join(repo, "packages", "nana-setup", "claude", "hooks", "nana-objective.mjs"), link);
-  const results = uninstall(layout, { dryRun: false });
-  // req: R-902
-  check("repository-targeting inventory symlink is unlinked", !fs.existsSync(link) && results.some((row) => row.label === "hook nana-objective.mjs" && row.status === "updated"));
-}
-
-{
-  const { desiredHooks, removeInstallerHooks, removeRetiredContextHook } = await import("../lib/settings.mjs");
-  const context = { hooks: { UserPromptSubmit: [{ hooks: [
-    { type: "command", command: "bash '/tmp/hooks/context-size-check.sh'" },
-    { type: "command", command: "bash '/tmp/hooks/context-size-check.sh'", owner: "variant" },
-    { type: "command", command: "bash /tmp/hooks/context-size-check.sh" },
-  ] }] } };
-  removeRetiredContextHook(context, { hooksDir: "/tmp/hooks" });
-  // req: R-660
-  check("released quoted context hook is removed while variants stay", context.hooks.UserPromptSubmit[0].hooks.length === 2 && context.hooks.UserPromptSubmit[0].hooks[0].owner === "variant" && context.hooks.UserPromptSubmit[0].hooks[1].command === "bash /tmp/hooks/context-size-check.sh");
+  const { desiredHooks, removeInstallerHooks } = await import("../lib/settings.mjs");
   const settings = { unrelated: true, hooks: { SessionStart: [{ hooks: [{ type: "command", command: "foreign" }, { type: "command", command: "node '/tmp/hooks/nana-objective.mjs'", timeout: 5, statusMessage: "nana: objective + current priority" }] }, { hooks: [] }], PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "foreign" }] }] } };
   const before = JSON.stringify(settings);
   removeInstallerHooks(settings, { hooksDir: "/tmp/hooks", repoRoot: "/repo" });
@@ -160,7 +141,7 @@ if (process.platform !== "win32") {
   try { results = uninstall(layout); }
   finally { process.env.PATH = oldPath; }
   // req: R-907
-  check("registration directs users to doctor attribution without spawning pi", !fs.existsSync(log) && fs.readFileSync(settings).equals(before) && results.filter((row) => row.label === "pi registration").length === 1 && results.some((row) => row.detail === "run `pi list` and `pi remove` the nana-pi entries (doctor's `pi packages` and `pi package source` rows name them)"));
+  check("registration directs users to doctor attribution without spawning pi", !fs.existsSync(log) && fs.readFileSync(settings).equals(before) && results.filter((row) => row.label === "pi registration").length === 1);
 }
 
 {

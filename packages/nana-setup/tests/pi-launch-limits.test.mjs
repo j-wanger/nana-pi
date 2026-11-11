@@ -3,7 +3,7 @@
  * @module packages/nana-setup/tests/pi-launch-limits.test.mjs
  * @purpose Prove install, its dry run and doctor bound pi launches and end every process those launches start.
  * @inputs steps.mjs, doctor.mjs, paths.mjs, and fake pi process trees under OS temporary directories
- * @outputs PASS/FAIL/SKIP lines for twenty-six requirement checks and exit 1 when any check fails
+ * @outputs PASS/FAIL/SKIP lines for twenty-one requirement checks and exit 1 when any check fails
  * @effects disk (temporary fixtures only), process (starts and signals fake pi process trees), network (private loopback identity endpoints), process environment (temporarily changes PATH and PI_CODING_AGENT_DIR)
  * @errors a failed or over-time check prints FAIL and makes the file exit nonzero
  */
@@ -525,12 +525,6 @@ check("R-2302: on win32, a pi.cmd with no npm package beside it, another package
 	};
 });
 
-// req: R-2027
-check("R-2027: the relay gives a signalled pi launch 1000 ms to clean up before ending its process tree", () => ({
-	ok: boundedSpawn.RELAY_SIGNAL_GRACE_MS === 1_000,
-	detail: `RELAY_SIGNAL_GRACE_MS=${boundedSpawn.RELAY_SIGNAL_GRACE_MS}`,
-}));
-
 // req: R-2025
 check("R-2025: pi install started under the limit receives the agent folder install chose as PI_CODING_AGENT_DIR", () => {
 	const saved = process.env.PI_CODING_AGENT_DIR;
@@ -546,45 +540,6 @@ check("R-2025: pi install started under the limit receives the agent folder inst
 	const records = fs.readFileSync(fixture.pids, "utf8").split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
 	const installs = records.filter(({ args }) => args[0] === "install");
 	return { ok: rows[0]?.status === "created" && installs.length > 0 && installs.every(({ agentDir }) => agentDir === fixture.layout.piHome), detail: JSON.stringify({ rows, records }) };
-});
-
-// req: R-2026
-check("R-2026: SIGINT, SIGTERM and SIGHUP each sent to install's process group end the pi launch it waits on", async () => {
-	if (process.platform === "win32") {
-		return { skip: "win32 has no process-group signal, and process.kill ends a process without running its handlers" };
-	}
-	const observations = [];
-	for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
-		const fixture = makeFixture("version");
-		const child = launchInstallWrapper(fixture);
-		const exit = new Promise((resolve) => child.once("exit", () => resolve(true)));
-		const started = await waitFor(() => readPids(fixture.pids).length >= 3);
-		if (started) process.kill(-child.pid, signal);
-		const exited = await Promise.race([exit, sleep(SIGNAL_CASE_BOUND_MS).then(() => false)]);
-		const pids = readPids(fixture.pids);
-		const dead = await waitFor(() => pids.length >= 3 && pids.every((pid) => !processAlive(pid)));
-
-		observations.push({ signal, started: Boolean(started), exited, pids, dead: Boolean(dead) });
-	}
-	return { ok: observations.every(({ started, exited, dead }) => started && exited && dead), detail: JSON.stringify(observations) };
-});
-
-// req: R-2027
-check("R-2027: SIGINT lets pi install remove its lock before install ends its launch processes", async () => {
-	if (process.platform === "win32") {
-		return { skip: "win32 delivers console Ctrl-C to the attached pi process and has no process-group SIGINT equivalent" };
-	}
-	const fixture = makeSignalCleanupFixture();
-	const child = launchInstallWrapper(fixture);
-	const exit = new Promise((resolve) => child.once("exit", () => resolve(true)));
-	const started = await waitFor(() => fs.existsSync(fixture.lock) && fs.existsSync(fixture.ready) && readPids(fixture.pids).length >= 3);
-	if (started) process.kill(-child.pid, "SIGINT");
-	const exited = await Promise.race([exit, sleep(SIGNAL_CASE_BOUND_MS).then(() => false)]);
-	const cleaned = await waitFor(() => !fs.existsSync(fixture.lock));
-	const pids = readPids(fixture.pids);
-	const dead = await waitFor(() => pids.length >= 3 && pids.every((pid) => !processAlive(pid)));
-
-	return { ok: Boolean(started && exited && cleaned && dead), detail: JSON.stringify({ started: Boolean(started), exited, cleaned: Boolean(cleaned), pids, dead: Boolean(dead) }) };
 });
 
 // req: R-2300
@@ -637,7 +592,7 @@ check("R-2132: a pi install that writes just under 1 MiB of control characters t
 	return { ok: success.rows[0]?.status === "created" && success.installExitCode === 0 && failure.rows[0]?.status === "problem" && failure.installExitCode === 1 && failure.rows[0]?.detail.endsWith("failed: boom: last line"), detail: JSON.stringify(runs) };
 });
 
-// req: R-2133
+// req: R-2133 R-2027
 check("R-2133: SIGINT to install's process group, alone or with the relay signalled too, still lets a pi install that cleans up over two parent checks remove its lock before its processes end", async () => {
 	if (process.platform === "win32") return { skip: "Windows has no process-group SIGINT" };
 	const delayBelowGrace = CLEANUP_DELAY_MS < RELAY_SIGNAL_GRACE_MS;

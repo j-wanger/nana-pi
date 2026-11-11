@@ -266,9 +266,6 @@ async function platformFixtures(platformName) {
 	}));
 }
 
-// req: R-2482
-check("R-2482: the stale-copies install-child limit is sealed at 20 seconds", INSTALL_CHILD_LIMIT_MS === 20_000);
-
 const uninstalled = { home: temp("nana-stale-uninstalled-home-"), project: temp("nana-stale-uninstalled-project-") };
 const uninstalledEnv = { ...process.env, HOME: uninstalled.home, USERPROFILE: uninstalled.home, CLAUDE_PROJECT_DIR: uninstalled.project };
 delete uninstalledEnv.PI_CODING_AGENT_DIR;

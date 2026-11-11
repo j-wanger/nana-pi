@@ -369,20 +369,7 @@ function canonical(value) {
 	return value;
 }
 
-function respelledKnowledgeEntry(entry, wanted) {
-	if (wanted.marker !== "nana-knowledge.ts hook" || !entry || typeof entry !== "object" || Object.hasOwn(entry, "args")) return false;
-	const target = installerKnowledgeTarget(entry.command);
-	const wantedTarget = installerKnowledgeTarget(wanted.entry.command);
-	if (!target || !wantedTarget || entry.command === wanted.entry.command) return false;
-	if (JSON.stringify(canonical({ ...entry, command: wanted.entry.command })) !== JSON.stringify(canonical(wanted.entry))) return false;
-	try {
-		return realPath(target, { mustExist: true }) === realPath(wantedTarget, { mustExist: true });
-	} catch {
-		return false;
-	}
-}
-
-/** Remove exact desired hook entries and same-file knowledge respellings, preserving all unrelated structure.
+/** Remove exact desired hook entries, preserving all unrelated structure.
  *  `platform` only forwards to desiredHooks: uninstall itself refuses on win32 before this ever
  *  runs there (uninstall.mjs), so this pure case exists for a function that is already tested. */
 export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } = {}) {
@@ -401,7 +388,7 @@ export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } 
 			if (!matching.length) continue;
 			const oldLength = group.hooks.length;
 			group.hooks = group.hooks.filter((entry) => {
-				const index = matching.findIndex((item) => JSON.stringify(canonical(item.entry)) === JSON.stringify(canonical(entry)) || respelledKnowledgeEntry(entry, item));
+				const index = matching.findIndex((item) => JSON.stringify(canonical(item.entry)) === JSON.stringify(canonical(entry)));
 				if (index < 0) return true;
 				removed.push(matching[index].label);
 				return false;
@@ -556,20 +543,18 @@ export function mergeRepoHooks(settings, { repoRoot, wanted, platform }) {
 					try {
 						// The JS lookup keeps a typed letter case, drive letter and 8.3 name, so a win32
 						// exec entry written through another spelling reads unhealthy and gets its one-time
-						// rewrite. On POSIX, strict lookup recognizes the checkout's on-disk spelling;
-						// respelledKnowledgeEntry alone decides whether that healthy entry is installer-owned.
+						// rewrite. On POSIX, strict lookup recognizes the checkout's on-disk spelling.
 						const real = win32 ? fs.realpathSync(match.target) : realPath(match.target, { mustExist: true });
 						const root = win32 ? fs.realpathSync(repoRoot) : realPath(repoRoot, { mustExist: true });
 						healthy = real === root || real.startsWith(root + path.sep);
 					} catch { /* missing target */ }
-					const sameFile = match.form === "posix" && respelledKnowledgeEntry(hook, w);
-					found.push({ group, index: i, healthy, form: match.form, sameFile });
+					found.push({ group, index: i, healthy, form: match.form });
 				}
 			}
 		}
 		let replaced = false;
 		for (const item of found) {
-			if (item.healthy && (!win32 || item.form === "win32-exec") && !item.sameFile) continue;
+			if (item.healthy && (!win32 || item.form === "win32-exec")) continue;
 			const current = item.group.hooks[item.index];
 			item.group.hooks[item.index] = win32
 				? { ...current, command: w.entry.command, args: w.entry.args }

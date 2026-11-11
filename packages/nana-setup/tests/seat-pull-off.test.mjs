@@ -103,4 +103,3 @@ await test('R-3744: query returns index results after install', options, () => {
     assert.ok(output.includes('evidence.md'), output);
   });
 });
-

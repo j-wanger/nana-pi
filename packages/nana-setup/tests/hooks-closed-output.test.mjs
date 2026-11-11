@@ -93,12 +93,6 @@ const cases = [
 		hook: "nana-shared-memory.mjs",
 		input: "{}",
 	},
-	{
-		row: "R-1943",
-		title: "roster-notice hook ignores a closed stdout and exits 0",
-		hook: "nana-roster-notice.mjs",
-		input: JSON.stringify({ source: "startup" }),
-	},
 ];
 
 for (const testCase of cases) {
@@ -118,10 +112,6 @@ for (const testCase of cases) {
 		case "R-1942":
 			// req: R-1942
 			check("shared-memory hook ignores a closed stdout and exits 0", ok, open, closed);
-			break;
-		case "R-1943":
-			// req: R-1943
-			check("roster-notice hook ignores a closed stdout and exits 0", ok, open, closed);
 			break;
 	}
 }

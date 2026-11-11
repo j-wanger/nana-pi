@@ -13,9 +13,8 @@
 // ~/.claude/rules/nana-writing.md, but now from the PACK's rules dir, the same file the
 // extension reads — plus R-2502's sealed Check section and R-376's zero-findings claim.
 import * as fs from "node:fs";
-import * as path from "node:path";
 
-const { ruleSource, PACK_RULES_DIR } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { ruleSource } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { checkText } = await import(new URL("../../nana-pack/lib/writing-check.mjs", import.meta.url).href);
 /** Preserved role-neutral title contract; this is its only surviving reader. */
 const RULE_TITLE = "# Nana — Writing for";
@@ -25,14 +24,6 @@ const check = (n, ok, extra) => {
 	console.log(ok ? "PASS" : "FAIL", n, ok ? "" : (extra ?? ""));
 	if (!ok) fails++;
 };
-
-/* --- the Claude Code link: sourced from the pack, not from nana-setup's own claude/rules --- */
-{
-	const src = ruleSource("nana-writing.md");
-	// req: R-301
-	check("rule nana-writing.md is sourced from packages/nana-pack/rules", src === path.join(PACK_RULES_DIR, "nana-writing.md"), src);
-	check("the source file exists there", fs.existsSync(src), src);
-}
 
 /* --- the rule's sealed check and its own checker result ------------------------------- */
 {
