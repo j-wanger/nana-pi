@@ -20,27 +20,12 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { withPiStub } from "./stub-pi.mjs";
-import { desiredHooks, retiredKnowledgeHook, entryInvokes } from "../lib/settings.mjs";
+import { desiredHooks, entryInvokes } from "../lib/settings.mjs";
 import { platform } from "../lib/paths.mjs";
 import { GH_COMMAND_ENV } from "../../nana-pack/lib/suite-records-config.mjs";
-import { describeKnowledgeHome } from "./knowledge-state.mjs";
 
 const repoRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)), "..", "..");
 let fails = 0;
-const REBUILD_DEADLINE_MS = 20000; // chosen: cold Windows CI slack
-const rebuildSleep = new Int32Array(new SharedArrayBuffer(4));
-const rebuilt = (knowledgeHome, staleMtimeMs) => {
-	try { return fs.statSync(path.join(knowledgeHome, "index.db")).mtimeMs > staleMtimeMs + 60000 && !fs.existsSync(path.join(knowledgeHome, "build.lock")); }
-	catch { return false; }
-};
-const waitForRebuilt = (knowledgeHome, staleMtimeMs) => {
-	const deadline = Date.now() + REBUILD_DEADLINE_MS;
-	while (Date.now() < deadline) {
-		if (rebuilt(knowledgeHome, staleMtimeMs)) return Date.now();
-		Atomics.wait(rebuildSleep, 0, 0, 50);
-	}
-	return null;
-};
 // final review r1 (sol MUST 3): the detail/extra argument is printed on every line, not only on
 // FAIL — R-1058 records each entry's spawn duration there, which only this Windows leg can read.
 const check = (n, ok, extra) => {
@@ -172,55 +157,6 @@ try {
 		// req: R-1063
 		check("roster notice: one JSON object whose user message starts with the roster notice prefix", typeof parsedNotice?.systemMessage === "string" && parsedNotice.systemMessage.startsWith("nana active · roster"), r.stdout + r.stderr);
 	}
-	// KH1 setup (R-1330): seed a real fixture store and build its index BEFORE any knowledge entry
-	// runs — runHook's ensureFreshIndex spawns its own detached background build the first time it
-	// sees a missing/stale index (the known build-lock race), and letting that fire first would
-	// leave this build racing it non-deterministically. Building here first means the index is
-	// already fresh when any hook call below reaches ensureFreshIndex, so no background build is
-	// ever spawned and the fixture's build is the only one. The fixture source sits OUTSIDE the
-	// weird-characters worktree/home path so its short path can never be elided out of the
-	// rendered display by DISPLAY_MAX.
-	const fixtureSrc = path.join(os.tmpdir(), `nana-kh1-src-${process.pid}`);
-	fs.mkdirSync(fixtureSrc, { recursive: true });
-	// title and body share no word with the "hello from the windows leg" prompt the plain exit-0
-	// check below sends: an accidental overlap would let THAT prompt match this fixture first and
-	// mark it shown this session, starving KH1's own matching prompt with reason "all-shown".
-	fs.writeFileSync(path.join(fixtureSrc, "windows-fixture.md"), "# Quasar telemetry notes\nnebula telescope horizon pathways region findings.\n");
-	const knowledgeHome = env.NANA_KNOWLEDGE_HOME;
-	fs.mkdirSync(knowledgeHome, { recursive: true });
-	fs.writeFileSync(path.join(knowledgeHome, "sources.json"), JSON.stringify({ roots: [{ path: fixtureSrc, kind: "articles" }] }));
-	// The shared CLI still serves pi; no Claude settings entry should be created to test it.
-	const knowledgeEntry = retiredKnowledgeHook({ repoRoot: worktree, platform: 'win32' }).entry;
-	const built = spawnSync(knowledgeEntry.command, [knowledgeEntry.args[0], "build"], { shell: false, env, encoding: "utf8" });
-	{
-		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt: "hello from the windows leg", cwd: project, session_id: "win32-exec" });
-		// req: R-1058
-		check("knowledge: exit 0 within its own timeout, no module-resolution error", moduleOk(r), detail(r));
-	}
-	{
-		// KH1 (R-1330): exit 0 with no module error (above) proves nothing about the pull itself —
-		// run the INSTALLED command exactly as settings.json holds it, with a prompt that matches
-		// the fixture built above, and read a real pull block naming it.
-		const prompt = "tell me about the quasar nebula telescope horizon findings";
-		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt, cwd: project, session_id: "win32-exec" });
-		// req: R-1330
-		check("R-1330: on Windows the shared knowledge CLI prints a pull block naming the fixture file for a matching prompt", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md"), `build status ${built.status} ${built.stdout}${built.stderr}\n${detail(r)}`);
-	}
-	{
-		const staleDb = path.join(knowledgeHome, "index.db");
-		const staleTime = Date.now() / 1000 - 2 * 3600;
-		fs.utimesSync(staleDb, staleTime, staleTime);
-		const staleMtimeMs = fs.statSync(staleDb).mtimeMs;
-		const beforeState = describeKnowledgeHome(knowledgeHome);
-		const r = spawnEntry(knowledgeEntry, { hook_event_name: "UserPromptSubmit", prompt: "quasar nebula telescope horizon findings once more", cwd: project, session_id: "win32-stale" });
-		const rebuiltOnReturn = rebuilt(knowledgeHome, staleMtimeMs);
-		const returnedAt = Date.now();
-		const rebuiltAt = waitForRebuilt(knowledgeHome, staleMtimeMs);
-		const afterState = describeKnowledgeHome(knowledgeHome);
-		// req: R-1713 R-3540
-		check("R-1713: on Windows the shared knowledge CLI on an index older than one hour prints the fixture's pull block and the index is rebuilt in the background", (r.stdout || "").startsWith("[nana:knowledge]") && r.stdout.includes("windows-fixture.md") && rebuiltAt !== null, `${detail(r)}; rebuilt when the command returned: ${rebuiltOnReturn}; rebuilt ${rebuiltAt === null ? "deadline" : rebuiltAt - returnedAt + " ms"} later; knowledge state before hook: ${JSON.stringify(beforeState)}; knowledge state when wait ended: ${JSON.stringify(afterState)}`);
-	}
-
 	// SS1 (R-1340): the earlier objective/adoption checks above (R-1058, R-1063) prove only exit 0
 	// and the absence of the UNAVAILABLE marker — neither proves the session-start blocks carry
 	// REAL content on Windows. Give the fixture project a concrete priority, seed one unadopted
@@ -229,7 +165,7 @@ try {
 	// installed commands exactly as settings.json holds them and read their real content.
 	const ss1Priority = "the aurora rollout";
 	fs.writeFileSync(path.join(project, "OBJECTIVE.md"), `# Objective and current priority — win32 fixture\n\n**Objective (since 2026-10-17):** prove Windows session start.\n\n**Current priority (since 2026-10-17):** ${ss1Priority}.\n\n## Rules\n\n- fixture rule\n`);
-	// Outside the weird-characters worktree/home path (as KH1's fixtureSrc is) — a backtick in
+	// Outside the weird-characters worktree/home path — a backtick in
 	// `weird` would make this claim fail adoption's printable() backtick refusal, which is a
 	// DIFFERENT thing from the Windows exec-form probe this file otherwise runs.
 	fs.mkdirSync(path.join(os.tmpdir(), `nana-ss1-unadopted-${process.pid}`, ".git"), { recursive: true });

@@ -5,7 +5,7 @@
  * @inputs argv (`build [--rebuild]`, `query <text> [--limit N] [--json]`, `status`), sources.json and the index
  * @outputs build counts, source/root and index-damage markers, query pointers or JSON and index/root status on stdout; usage, stale-results warnings and query failures on stderr
  * @effects disk (builds and reads the index), database, process (sets the exit code)
- * @errors exit 2 on bad invocation, 1 when query cannot use the index, and 0 otherwise, including a build that lost the lock
+ * @errors exit 1 on unknown commands or unusable query indexes, 2 on empty query text, and 0 otherwise, including help and a build that lost the lock
  */
 // nana-knowledge — build / query / status.
 // Run directly: `node bin/nana-knowledge.ts <cmd>` (Node >= 22.18 strips the types).
@@ -63,7 +63,10 @@ async function cmdQuery(argv: string[]): Promise<number> {
 	if (!text) { console.error(USAGE); return 2; }
 	try {
 		const stats = await build();
-		if (stats.problem || stats.keptDamage) console.error("index refresh incomplete — results may be stale");
+		if (stats.problem || stats.keptDamage) {
+			const detail = stats.problem ? `${paths.sources}  ${formatSourcesProblem(stats.problem)}` : stats.keptDamage;
+			console.error(`index refresh incomplete — ${detail} — results may be stale`);
+		}
 	} catch (err) {
 		console.error(`${err instanceof BuildLockedError ? "index refresh locked" : "index refresh failed"} — results may be stale`);
 	}
@@ -128,6 +131,7 @@ switch (cmd) {
 	case "build": code = await cmdBuild(argv); break;
 	case "query": code = await cmdQuery(argv); break;
 	case "status": code = await cmdStatus(); break;
-	default: console.error(USAGE); code = cmd ? 2 : 0;
+	case "--help": case "-h": case "help": console.log(USAGE); break;
+	default: console.error(USAGE); code = cmd ? 1 : 0;
 }
 process.exit(code);

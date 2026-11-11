@@ -20,7 +20,7 @@ import { paths } from "./paths.ts";
 import { contains, loadSources, skipNames, type Root, type SourcesProblem } from "./sources.ts";
 
 export const MAX_FILE_BYTES = 1024 * 1024;
-/** A lock older than this is a crashed builder, not a running one. */
+/** Age permits reclaim only when no owner pid can be read; a live owner is never reclaimed. */
 export const LOCK_TTL_MS = 10 * 60 * 1000;
 
 function tryCreateLock(now: number): boolean {
@@ -106,8 +106,8 @@ export function acquireBuildLock(now = Date.now()): boolean {
 
 	const reclaimLock = paths.buildLock + ".reclaim";
 	try { fs.closeSync(fs.openSync(reclaimLock, "wx")); } catch {
-		// Someone else is reclaiming right now: lose, and let the next prompt retry in
-		// ~60 ms. Sweep an orphan on the way out — this branch returns false regardless,
+		// Someone else is reclaiming right now: lose, and let the next build retry.
+		// Sweep an orphan on the way out — this branch returns false regardless,
 		// which is what makes the sweep safe to race.
 		try { if (Date.now() - fs.statSync(reclaimLock).mtimeMs > RECLAIM_ORPHAN_MS) fs.rmSync(reclaimLock, { force: true }); }
 		catch { /* ignore */ }

@@ -14,6 +14,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
 import * as dbLib from "../lib/db.ts";
+import { LOCK_TTL_MS, RECLAIM_ORPHAN_MS } from "../lib/build.ts";
 
 const cli = fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -217,6 +218,126 @@ await check("build lock is atomic, records its pid and releases only its owner",
  `], "");
  await r.done;
  assert.equal(r.code, 0, r.err);
+});
+
+async function deadOwner(s) {
+ const r = child(s, ["-e", "process.exit(0)"], "");
+ await r.done;
+ assert.equal(r.code, 0, r.err);
+ assert.throws(() => process.kill(r.c.pid, 0), { code: "ESRCH" });
+ return r.c.pid;
+}
+function lockFixture(s, pid, age = 0) {
+ const lock = s.env.NK_LOCK;
+ fs.writeFileSync(lock, JSON.stringify({ pid, at: Date.now() - age }));
+ const time = (Date.now() - age) / 1000;
+ fs.utimesSync(lock, time, time);
+ return lock;
+}
+function noLocks(s) {
+ assert.equal(fs.existsSync(s.env.NK_LOCK), false);
+ assert.equal(fs.existsSync(s.env.NK_LOCK + ".reclaim"), false);
+}
+
+// req: R-4053
+await check("build refuses an expired lock with a live owner without touching the index", async (s) => {
+ await seed(s);
+ const before = fs.readFileSync(s.db);
+ const lock = lockFixture(s, process.pid, LOCK_TTL_MS + 5000);
+ const stat = fs.statSync(lock);
+ const contents = fs.readFileSync(lock);
+ const r = child(s, [cli, "build", "--rebuild"], "");
+ await r.done;
+ assert.equal(r.code, 0, r.err);
+ assert.match(r.err, /another nana-knowledge build holds/);
+ assert.deepEqual(fs.readFileSync(s.db), before);
+ assert.deepEqual(fs.readFileSync(lock), contents);
+ assert.equal(fs.statSync(lock).mtimeMs, stat.mtimeMs);
+ assert.equal(fs.existsSync(lock + ".reclaim"), false);
+});
+
+// req: R-4054
+await check("build reclaims a fresh lock with a dead owner", async (s) => {
+ lockFixture(s, await deadOwner(s));
+ const r = await command(s, "build");
+ assert.equal(r.code, 0, r.err);
+ assert.equal(r.err, "");
+ assert.ok(await builtAt(s) > 0);
+ noLocks(s);
+});
+
+// req: R-4055
+await check("build reclaims an expired lock with a dead owner", async (s) => {
+ lockFixture(s, await deadOwner(s), LOCK_TTL_MS + 5000);
+ const r = await command(s, "build");
+ assert.equal(r.code, 0, r.err);
+ assert.equal(r.err, "");
+ assert.ok(await builtAt(s) > 0);
+ noLocks(s);
+});
+
+// req: R-4056
+await check("build refuses a second reclaimer and leaves the stale lock alone", async (s) => {
+ const lock = lockFixture(s, await deadOwner(s));
+ const before = fs.readFileSync(lock);
+ fs.writeFileSync(lock + ".reclaim", "");
+ const r = await command(s, "build");
+ assert.equal(r.code, 0, r.err);
+ assert.match(r.err, /another nana-knowledge build holds/);
+ assert.deepEqual(fs.readFileSync(lock), before);
+ assert.equal(fs.existsSync(lock + ".reclaim"), true);
+ assert.equal(fs.existsSync(s.db), false);
+});
+
+// req: R-4057
+await check("build sweeps an orphan reclaim lock without granting the build lock", async (s) => {
+ const lock = lockFixture(s, await deadOwner(s));
+ const before = fs.readFileSync(lock);
+ fs.writeFileSync(lock + ".reclaim", "");
+ const time = (Date.now() - RECLAIM_ORPHAN_MS - 5000) / 1000;
+ fs.utimesSync(lock + ".reclaim", time, time);
+ const r = await command(s, "build");
+ assert.equal(r.code, 0, r.err);
+ assert.match(r.err, /another nana-knowledge build holds/);
+ assert.deepEqual(fs.readFileSync(lock), before);
+ assert.equal(fs.existsSync(lock + ".reclaim"), false);
+ assert.equal(fs.existsSync(s.db), false);
+ await seed(s);
+ assert.ok(await builtAt(s) > 0);
+ noLocks(s);
+});
+
+// req: R-4058
+await check("16 concurrent builds reclaim one stale lock with exactly one protected worker", async (s) => {
+ const lock = lockFixture(s, await deadOwner(s), LOCK_TTL_MS + 5000);
+ fs.writeFileSync(s.db, "damaged index");
+ const racers = Array.from({ length: 16 }, () => child(s, ["--input-type=module", "-e", `
+ import { build, BuildLockedError } from ${JSON.stringify(new URL("../lib/build.ts", import.meta.url).href)};
+ process.stdout.write('READY\\n');
+ await new Promise(resolve => process.stdin.once('data', resolve));
+ try {
+  await build({ onRecoveryLocking: async () => {
+   process.stdout.write('WON\\n');
+   await new Promise(resolve => process.stdin.once('data', resolve));
+   process.stdin.pause();
+  } });
+ } catch (e) {
+  if (!(e instanceof BuildLockedError)) throw e;
+  process.stdout.write('LOST\\n');
+  process.stdin.pause();
+ }
+ `]));
+ await waitFor(() => racers.every(r => r.out.includes("READY")));
+ for (const r of racers) r.c.stdin.write("go");
+ await waitFor(() => racers.every(r => /WON|LOST/.test(r.out)));
+ const winners = racers.filter(r => r.out.includes("WON"));
+ assert.equal(winners.length, 1);
+ assert.equal(JSON.parse(fs.readFileSync(lock, "utf8")).pid, winners[0].c.pid);
+ for (const r of racers) r.c.stdin.end("release");
+ await Promise.all(racers.map(r => r.done));
+ for (const r of racers) assert.equal(r.code, 0, r.err);
+ assert.ok(await builtAt(s) > 0);
+ noLocks(s);
 });
 
 // req: R-3593

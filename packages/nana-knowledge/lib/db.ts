@@ -9,8 +9,8 @@
  * @errors openDb rejects after closing a created handle when setup fails; checkIndex throws IndexDamageError or node:sqlite damage; getMeta swallows and returns null
  */
 // node:sqlite (Node >= 22.5, bundled SQLite has FTS5). Imported dynamically so the
-// ExperimentalWarning can be muted first — the hook writes to stdout and its stderr is
-// shown to the user; a warning per prompt would be intolerable.
+// ExperimentalWarning can be muted first — the CLI reserves stdout for results and
+// stderr for actionable diagnostics, not a warning on every query.
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -38,7 +38,7 @@ export const SCHEMA_VERSION = "1";
 
 /** chosen: tolerate brief reader/checkpoint contention in detached builds, well below the build-lock TTL. */
 export const BUILD_BUSY_TIMEOUT_MS = 5000;
-/** chosen: wait out brief connection churn while leaving most of the hook budget available. */
+/** chosen: wait out brief connection churn without making query reads linger on contention. */
 export const QUERY_BUSY_TIMEOUT_MS = 100;
 
 /** SQLite primary result codes classified as index damage; contract: R-2400, R-2401. */

@@ -254,7 +254,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	const retiredKnowledgePull = `packages/nana-knowledge/lib/${['hook', 'ts'].join('.')}`;
 	retiredTargets.set(retiredKnowledgePull, 'FEAT-003 removes the unwired prompt pull; query refreshes and searches directly.');
 	retiredSources.set(retiredKnowledgePull, 'FEAT-003 removes the unwired prompt pull.');
-	retiredSources.set('packages/nana-knowledge/tests/hook.test.mjs', 'FEAT-003 removes hook-only cases; build-lock safety moves to build-busy.');
+	retiredSources.set('packages/nana-knowledge/tests/hook.test.mjs', 'FEAT-003 removes hook-only cases; build-busy covers atomic ownership, live/dead owner reclaim, exclusion/orphan sweep and concurrent builds.');
 	for (const name of ['sources-file', 'recover']) losses.set(`packages/nana-knowledge/tests/${name}.test.mjs -> packages/nana-knowledge/lib/paths.ts`, 'FEAT-003 removes hook-only cases; build, recovery and status checks stay.');
 	const graph = checkRepo().graph;
 	for (const entry of gitShow("57167e92",  "docs/code-map.md").split(/^### `/m).slice(1)) {
