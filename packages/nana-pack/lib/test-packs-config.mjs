@@ -191,7 +191,6 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-setup/tests/doctor-pi-dependencies.test.mjs": "module",
   "packages/nana-setup/tests/doctor-quiet.test.mjs": "module",
   "packages/nana-setup/tests/doctor-runtime.test.mjs": "land",
-  "packages/nana-setup/tests/doctor-trust.test.mjs": "module",
   "packages/nana-setup/tests/entry-guidance.test.mjs": "release",
   "packages/nana-setup/tests/fresh-machine.test.mjs": "release",
   "packages/nana-setup/tests/frontier-hook.test.mjs": "main",

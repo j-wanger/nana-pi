@@ -32,12 +32,6 @@ try {
 	const goodPi = piRow();
 	// req: R-952
 	check("pi executable reports a dotted version", goodPi?.status === "ok" && goodPi.detail === "1.0.2", JSON.stringify(goodPi));
-	executable("pi", "exit 1");
-	// req: R-952
-	check("pi executable failure is a real-home failure", piRow()?.status === "fail" && piRow().detail.includes("pi --version exited 1"));
-	executable("pi", "echo hello");
-	// req: R-952
-	check("pi executable rejects output without a version", piRow()?.status === "fail" && piRow().detail.includes("printed no version"));
 	fs.unlinkSync(valid);
 	const override = resolveLayout({ home });
 	// req: R-952

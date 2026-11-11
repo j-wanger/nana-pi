@@ -187,6 +187,7 @@ await check("R-3156: every fixed-base callee survives or has a named loss reason
 	losses.set("scripts/product-report.mjs -> apps/bench/lib/checkers.mjs", "Study checkers retired; globMatch moved to scripts/glob-match.mjs.");
 	// The one-reviewer cut retires these sources, including all of their former outgoing edges.
 	const retiredSources = new Map([
+		['packages/nana-setup/tests/doctor-trust.test.mjs', 'FEAT-013 setup diet moves the trust repair assertion into setup-tail M7.'],
 		['packages/nana-pack/lib/review-findings.mjs', 'FEAT-031 small-cuts removes the unread review-timeline leftover and its configuration import.'],
 		['packages/nana-pack/tests/handoff-writer-role.test.mjs', 'FEAT-031 small-cuts retires a test with no recorded failure or safety line; R-139 and R-1683 remain untested.'],
 		['packages/nana-pack/tests/ledger-repo.mjs', 'FEAT-031 small-cuts inlines the sole fixture caller in one-reviewer.test.mjs.'],

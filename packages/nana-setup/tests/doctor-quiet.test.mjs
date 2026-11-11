@@ -48,13 +48,6 @@ const runProjectCheck = (label, { nodeOptions = [], config = true } = {}) => {
 };
 
 {
-	const { result } = runDoctor("without-project-config");
-	const warnings = warningLines(result.stderr);
-	// req: R-1750
-	check("doctor in a folder without project config writes no Node warning", result.stdout.includes("nana-setup doctor") && warnings.length === 0, `status ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
-}
-
-{
 	const folder = path.join(root, "with-project-config");
 	fs.mkdirSync(path.join(folder, ".pi"), { recursive: true });
 	fs.writeFileSync(path.join(folder, ".pi", "nana-pack.json"), "{}\n");

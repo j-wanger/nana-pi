@@ -78,6 +78,7 @@ await check("M8: main keeps all collected nonrelease files and an injected retir
   const packs = suiteArgs("push").find(arg => arg.startsWith("--pack="))?.slice(7).split(","); assert(packs);
   // Honor committed retirements and the brief-named deletions before their area commit.
   const diet2Retirements = new Set([
+    "packages/nana-setup/tests/doctor-trust.test.mjs",
     ...["doctor-floor", "doctor-release"].map(name => `packages/nana-setup/tests/${name}.test.mjs`),
     "packages/nana-knowledge/tests/hook.test.mjs",
     "packages/nana-pack/tests/handoff-writer-role.test.mjs",

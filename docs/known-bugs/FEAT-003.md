@@ -65,4 +65,3 @@
 - Windows flakes (land-records CI, 2026-10-24): the sources-file checks R-2370 to R-2372 failed once on a slow Windows runner at d3cf9a0d, in a 1,211 s suite. Every leg passed the same code at 1661558e (a runner flake, inferred).
 - Doctor knowledge rows (knowledge-freeze-notice, plan and independent check): doctor shows the index age but calls no age too old. While the sources file stays broken, builds still refresh that age, so it looks fresh.
 - Doctor knowledge rows (knowledge-freeze-notice, plan and independent check): doctor's rescan command builds the default knowledge home, not the one named by --home or --pi-home. It needs Node 22.18 or later.
-- Frozen-index notice (knowledge-freeze-notice, final review): the doctor-knowledge test's first rescan-command check expects an unquoted CLI path, so it fails in a checkout whose path has a space.

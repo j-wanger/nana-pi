@@ -34,7 +34,7 @@ function fixture(fn) {
   return Promise.resolve().then(() => fn({ root, dir, home, run })).finally(() => fs.rmSync(root, { recursive: true, force: true }));
 }
 
-// req: R-3891
+// req: R-3891 R-674
 check('M7: gate plus legacy bytes and project doctor gate trust survive', () => fixture(async ({ dir, home, run }) => {
   const file = path.join(dir, '.pi/nana-pack.json');
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -47,7 +47,9 @@ check('M7: gate plus legacy bytes and project doctor gate trust survive', () => 
   assert.match(before.stdout, /! project trust.*nana-setup trust/);
   const layout = resolveLayout({ home });
   const doctor = () => withPiStub(() => diagnose(layout, { projectDir: dir })).find(r => r.label === 'project trust');
-  assert.equal(doctor()?.status, STATUS.WARN);
+  const untrusted = doctor();
+  assert.equal(untrusted?.status, STATUS.WARN);
+  assert.ok(untrusted.detail.includes(`nana-setup trust ${dir}`));
   const original = process.env.PI_CODING_AGENT_DIR;
   process.env.PI_CODING_AGENT_DIR = layout.piHome;
   try {

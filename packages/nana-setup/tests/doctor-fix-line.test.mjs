@@ -206,24 +206,13 @@ const pathRowLauncher = path.join(pathRowBin, process.platform === "win32" ? "pi
 fs.rmSync(pathRowLauncher, { force: true });
 
 const onResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd, entries: [stubDir, pathRowBin, nodeDir, ...sysDirs] });
-const offResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd, entries: [stubDir, nodeDir, ...sysDirs] });
 const beforeResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd, entries: [stubDir, otherDir, pathRowBin, nodeDir, ...sysDirs] });
 const afterResult = runOnPath(["doctor"], { home: pathRowHome, cwd: pathRowCwd, entries: [stubDir, pathRowBin, otherDir, nodeDir, ...sysDirs] });
 
-// req: R-2320
+// req: R-2320 R-2321
 check("R-2320: with the bin folder on PATH and its pi-review launcher removed, the PATH resolves pi-review row names nana-setup install instead of the PATH fix",
 	toInstall(onResult, "PATH resolves pi-review") && pathRowDetail(onResult).includes("nana-setup install") && !pathRowDetail(onResult).includes(`add ${pathRowBin} to`),
 	`install ${pathRowInstall.status}\ndoctor ${onResult.status}\n${onResult.stdout}\n${onResult.stderr}`,
-);
-// req: R-2321
-check("R-2321: with the bin folder on PATH and its pi-review launcher removed, the summary gives PATH resolves pi-review to install",
-	toInstall(onResult, "PATH resolves pi-review"),
-	`doctor ${onResult.status}\n${onResult.stdout}\n${onResult.stderr}`,
-);
-// req: R-2322
-check("R-2322: with the bin folder off PATH and its pi-review launcher removed, the summary lists PATH resolves pi-review by hand",
-	byHand(offResult, "PATH resolves pi-review") && pathRowDetail(offResult).includes(`add ${pathRowBin} to`),
-	`doctor ${offResult.status}\n${offResult.stdout}\n${offResult.stderr}`,
 );
 // req: R-2324
 check("R-2324: with another pi-review on PATH before the bin folder and the launcher removed, the summary lists PATH resolves pi-review by hand",

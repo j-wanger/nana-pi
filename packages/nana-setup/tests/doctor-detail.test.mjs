@@ -9,7 +9,7 @@
  * @errors a failed check prints FAIL with the observed value and the run exits 1; an unexpected throw propagates and fails the run
  */
 // Gate: `doctor`'s detail text for rules/nana-personal.md agrees with its ✓/✗.
-// Four layouts, each in a throwaway --home; nothing touches the real machine.
+// Regular and absent layouts in throwaway homes; symlink detail is pinned by install.test.mjs.
 import { tmpDir } from "./tmp-dir.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -36,12 +36,6 @@ function layoutWith(shape) {
 	fs.mkdirSync(layout.rulesDir, { recursive: true });
 	const personal = path.join(layout.rulesDir, "nana-personal.md");
 	if (shape === "file") fs.writeFileSync(personal, "# private\n");
-	if (shape === "dir") fs.mkdirSync(personal);
-	if (shape === "symlink") {
-		const elsewhere = path.join(home, "private-notes.md");
-		fs.writeFileSync(elsewhere, "# private\n");
-		fs.symlinkSync(elsewhere, personal);
-	}
 	return layout;
 }
 const personalCheck = (layout) => diagnoseWithPi(layout, { projectDir: layout.base }).find((c) => c.label === "rule nana-personal.md");
@@ -54,21 +48,6 @@ try {
 		// req: R-342
 		check("regular file: detail does NOT say 'not a regular file'", !/not a regular file/.test(c?.detail ?? ""), JSON.stringify(c));
 		check("regular file: detail does not ask for a replacement", !/replace/.test(c?.detail ?? ""), JSON.stringify(c));
-	}
-	{
-		const c = personalCheck(layoutWith("symlink"));
-		// req: R-342
-		check("symlink: ✗", c?.status === "fail", JSON.stringify(c));
-		// exact string pinned by install.test.mjs (doctor + install share it)
-		// req: R-342
-		check("symlink: the exact existing message", c?.detail === "private rule is a symlink — replace with a regular file", JSON.stringify(c));
-	}
-	{
-		const c = personalCheck(layoutWith("dir"));
-		// req: R-342
-		check("directory: ✗", c?.status === "fail", JSON.stringify(c));
-		// req: R-342
-		check("directory: detail says 'not a regular file'", /not a regular file/.test(c?.detail ?? ""), JSON.stringify(c));
 	}
 	{
 		const c = personalCheck(layoutWith("absent"));

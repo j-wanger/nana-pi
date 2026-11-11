@@ -555,7 +555,7 @@ check("dry run created nothing", fs.readdirSync(dry).length === 0, fs.readdirSyn
 	// req: R-307
 	check("private rule symlink: nothing is written through the link", fs.lstatSync(personal).isSymbolicLink());
 	const d = run(["doctor", "--home", home]);
-	// req: R-307
+	// req: R-307 R-342
 	check("private rule symlink: doctor reads ✗ with the same message", /✗ rule nana-personal\.md\s+private rule is a symlink — replace with a regular file/.test(d.stdout), d.stdout);
 	// req: R-307
 	check("private rule symlink: doctor exits 1", d.status === 1, String(d.status));
