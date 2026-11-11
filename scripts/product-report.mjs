@@ -2,15 +2,15 @@
 /**
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
- * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional GitHub issue reader and CI budget, an optional assessment store, the HTML template, repository root, output or packet directory, runtime data, suite records, and the build ledger.
- * @outputs A complete product ledger HTML file with Overview maker links, one-line Product deliverables, feature-detail deliverable blocks and artifact cards with class-bound ages, two Artifacts lists with maker links, feature artifact index lines, ordered stage and constraint metadata, deterministic assessment packets, and an exported report model and renderer.
- * @effects disk (reads sources and stores, atomically writes the report or writes packets), process (queries git and reports CLI errors).
+ * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional GitHub issue reader and CI budget, the HTML template, repository root and output path, runtime data, suite records, and the build ledger.
+ * @outputs A complete product ledger HTML file with Overview maker links, one-line Product deliverables, feature-detail deliverable blocks and artifact cards with class-bound ages, two Artifacts lists with maker links, feature artifact index lines, ordered stage and constraint metadata, and an exported report model and renderer.
+ * @effects disk (reads sources and stores, atomically writes the report), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
  */
 import { spawnSync } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { existsSync, realpathSync } from "node:fs";
-import { readFile, writeFile, mkdir, readdir, rename, rm } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ARTIFACT_AGE_TABLE, artifactAgeTableKey, artifactReads, artifactRegistry, deliverableClaims, deliverableCodeState, deliverableReport } from "./deliverables.mjs";
@@ -81,7 +81,6 @@ export const OVERVIEW_LABELS = Object.freeze({
   failed: "failed", skippedOnly: "skipped only", skipped: "skipped", unmeasured: "unmeasured", noRecordedRun: "no recorded run", noRun: "implemented rows with no recorded run (unmeasured)",
   runtimeMissing: "no recorded run: ", deliverableGaps: "Deliverables code does not make and read",
   notes: "deliverable notes", artifactGaps: "Artifacts with no declared reader",
-  assessments: "Feature assessments out of date", unassessed: "unassessed",
   staleArtifacts: `Artifacts older than ${STALE_AGE_DAYS} days before HEAD's commit`,
   notMeasured: "age not measured", unknown: "age unknown", noDeliverables: "no deliverable lines",
 });
@@ -91,7 +90,6 @@ export const DETAIL_HEADINGS = Object.freeze({ deliverables: "Deliverables", art
 export const ARTIFACT_WALK_FLAGS = Object.freeze(["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"]);
 // contract (R-1511): the prefix every cited-test file link is built from.
 const GITHUB_BLOB_PREFIX = "https://github.com/";
-const fingerprint = (row) => createHash("sha256").update(JSON.stringify([row.id, row.requirement, row.status])).digest("hex");
 
 // contract (R-1650, R-1651): the two recorded labels the not-passed rule reads. Module scope, and
 // only buildReport (never renderInto, which runs through String()) reads them.
@@ -372,18 +370,6 @@ function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, r
   return ages;
 }
 
-function featureStamp(parsed, feature, commit) {
-  const rows = readRequirementRows(parsed);
-  const ownHeadings = descendants(parsed, feature);
-  const ownRows = rows.filter((row) => ownHeadings.includes(row.heading));
-  const sharedRows = feature.alsoApplies.map((id) => rows.find((row) => row.id === id)).filter(Boolean);
-  return {
-    commit, purpose: feature.purpose, status: feature.status,
-    rows: [...ownRows.map((row) => ({ ...row, mark: "own" })), ...sharedRows.map((row) => ({ ...row, mark: "shared" }))]
-      .map((row) => ({ id: row.id, mark: row.mark, status: row.status, sha256: fingerprint(row) })),
-  };
-}
-
 export function renderInto(document, model, { hash = "" } = {}) {
   const root = document.getElementById("report");
   const views = { "": "overview", "#overview": "overview", "#decisions": "decisions", "#product": "product", "#artifacts": "artifacts", "#features": "features", "#issues": "issues", "#requirements": "requirements" };
@@ -397,7 +383,6 @@ export function renderInto(document, model, { hash = "" } = {}) {
   };
   const cls = (node, value) => node.setAttribute("class", value);
   const paragraph = (parent, label, value, className) => { const p = el("p", undefined, parent); if (className) cls(p, className); if (label) text(p, `${label}: `); text(p, value); return p; };
-  const textList = (parent, label, values) => { paragraph(parent, label, ""); const list = el("ul", undefined, parent); for (const value of values) { const item = el("li", undefined, list); text(item, value); } return list; };
   const featureLink = (parent, id, label = id) => { const a = el("a", label, parent); a.setAttribute("href", `#${id}`); return a; };
   const renderSegments = (parent, segments) => { for (const segment of segments ?? []) { if (segment.feature) featureLink(parent, segment.feature.id, segment.feature.label); else if (segment.link) { const link = el("a", segment.link.text, parent); link.setAttribute("href", segment.link.href); } else text(parent, segment.text); } return parent; };
   const countBar = (parent, item) => {
@@ -504,21 +489,10 @@ export function renderInto(document, model, { hash = "" } = {}) {
       }
     }
   }
-  if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); featureLink(heading, item.id, `${item.id} · ${item.label}`); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); countBar(card, item); paragraph(card, "Assessment", item.assessmentState); paragraph(card, "Shared in", item.shared.join(", ") || "None"); const shareLine = el("p", undefined, card); text(shareLine, "Shared by: "); if (item.sharedBy.length) item.sharedBy.forEach((id, index) => { if (index) text(shareLine, ", "); featureLink(shareLine, id); }); else text(shareLine, "None"); }
+  if (view === "features") for (const item of model.features) { const card = el("article", undefined, root); const heading = el("h3", undefined, card); featureLink(heading, item.id, `${item.id} · ${item.label}`); paragraph(card, "Purpose", item.purpose); paragraph(card, "Status", item.status); countBar(card, item); paragraph(card, "Shared in", item.shared.join(", ") || "None"); const shareLine = el("p", undefined, card); text(shareLine, "Shared by: "); if (item.sharedBy.length) item.sharedBy.forEach((id, index) => { if (index) text(shareLine, ", "); featureLink(shareLine, id); }); else text(shareLine, "None"); }
   if (view === "detail" && feature) {
     const status = el("span", feature.status, viewHeading); cls(status, "feature-status");
-    paragraph(root, "Purpose", feature.purpose); paragraph(root, "Capability", `${feature.capability.id} · ${feature.capability.label}${feature.capability.kind ? ` · ${feature.capability.kind}` : ""}`); for (const line of feature.artifactLines ?? []) { const p = el("p", undefined, root); cls(p, "feature-artifact-line"); renderSegments(p, line.segments); } const badge = el("p", feature.assessmentState === "current" ? "current — matches the stamped ledger, not rechecked against later decisions" : feature.assessmentState, root); cls(badge, `assessment-badge state-${feature.assessmentState.replaceAll(" ", "-")}`);
-    if (feature.assessment) {
-      const assessment = feature.assessment; paragraph(root, "What it does", assessment.what_it_does);
-      paragraph(root, "Maturity", `${assessment.maturity} — ${assessment.maturity_reason}`);
-      for (const [key, label] of [["gaps", "Gaps"], ["risks", "Risks"], ["decisions", "Decisions"]]) textList(root, label, assessment[key]);
-      paragraph(root, "Next step", assessment.next_step); paragraph(root, "Written by", `${assessment.written_by} · checked by ${assessment.checked_by} · ${assessment.date}`);
-    }
-    const differences = feature.differences ?? { added: [], removed: [], changed: [], purpose: null, status: null };
-    if (feature.assessmentState === "out of date") {
-      for (const key of ["added", "removed", "changed"]) if (differences[key]?.length) paragraph(root, `${key[0].toUpperCase()}${key.slice(1)} rows`, differences[key].join(", "));
-      for (const key of ["purpose", "status"]) if (differences[key]) paragraph(root, key === "purpose" ? "Purpose" : "Status", `was ${differences[key].was} → now ${differences[key].now}`);
-    }
+    paragraph(root, "Purpose", feature.purpose); paragraph(root, "Capability", `${feature.capability.id} · ${feature.capability.label}${feature.capability.kind ? ` · ${feature.capability.kind}` : ""}`); for (const line of feature.artifactLines ?? []) { const p = el("p", undefined, root); cls(p, "feature-artifact-line"); renderSegments(p, line.segments); }
     countBar(root, feature);
     const sharedBy = el("p", undefined, root); text(sharedBy, "Shared by: "); if (feature.sharedBy.length) feature.sharedBy.forEach((id, index) => { if (index) text(sharedBy, ", "); featureLink(sharedBy, id); }); else text(sharedBy, "None");
     paragraph(root, "Shared rows", feature.shared.join(", ") || "None");
@@ -644,15 +618,6 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       return { title, file };
     });
   }
-  const storePath = path.join(root, "docs/product-report/assessments.json");
-  let storedFeatures = [];
-  try {
-    const store = JSON.parse(await readFile(storePath, "utf8"));
-    if (Array.isArray(store?.features)) storedFeatures = store.features;
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw new Error(`${storePath}: ${error.message}`);
-  }
-  const assessments = new Map(storedFeatures.map((assessment) => [assessment.id, assessment]));
   const capabilityHeadings = parsed.headings.filter((heading) => heading.id.startsWith("CAP-"));
   const capabilityById = new Map(capabilityHeadings.map((capability) => [capability.id, capability]));
   const registry = artifactRegistry(parsed, null);
@@ -702,25 +667,9 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     const allRows = [...ownRows, ...sharedRows];
     const counts = Object.fromEntries(["implemented", "untested", "planned", "violated", "retired"].map((status) => [status, allRows.filter((row) => row.status === status).length]));
     const outgoing = parsed.headings.filter((candidate) => candidate.id.startsWith("FEAT-") && candidate.alsoApplies.some((id) => ownRows.some((row) => row.id === id))).map((candidate) => candidate.id);
-    const assessment = assessments.get(feature.id) ?? null;
-    const stamped = new Map((assessment?.stamp?.rows ?? []).map((row) => [row.id, row]));
-    const current = new Map(allRows.map((row) => [row.id, { row, mark: ownRows.includes(row) ? "own" : "shared" }]));
-    const added = [...current.keys()].filter((id) => !stamped.has(id));
-    const removed = [...stamped.keys()].filter((id) => !current.has(id));
-    const changed = [...current].filter(([id, value]) => {
-      const old = stamped.get(id);
-      return old && (old.mark !== value.mark || old.sha256 !== fingerprint(value.row));
-    }).map(([id]) => id);
-    const differences = {
-      added, removed, changed,
-      purpose: assessment?.stamp?.purpose !== undefined && assessment.stamp.purpose !== feature.purpose ? { was: assessment.stamp.purpose, now: feature.purpose } : null,
-      status: assessment?.stamp?.status !== undefined && assessment.stamp.status !== feature.status ? { was: assessment.stamp.status, now: feature.status } : null,
-    };
-    const stale = added.length || removed.length || changed.length || differences.purpose || differences.status;
-    const assessmentState = !assessment ? "unassessed" : stale ? "out of date" : "current";
     const capability = featureCapability(feature);
     const kind = fieldValues(capability, "Kind")[0] ?? null;
-    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, capability: { id: capability.id, label: capability.label, kind }, artifactLines: featureArtifactLines(feature), detailSections: [], assessmentState, assessment, differences, counts, ownRowIds: ownRows.map((row) => row.id), shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
+    return { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status, capability: { id: capability.id, label: capability.label, kind }, artifactLines: featureArtifactLines(feature), detailSections: [], counts, ownRowIds: ownRows.map((row) => row.id), shared: sharedRows.map((row) => row.id), sharedBy: outgoing, rows: allRows.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, mark: ownRows.includes(row) ? "own" : "shared", tests: testsOf(row.evidence) })) };
   });
   const capabilityLabel = (id) => ({ id, label: capabilityById.get(id)?.label ?? id });
   const featureLabel = (feature) => ({ id: feature.id, label: feature.label });
@@ -890,12 +839,6 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const consumers = [...check.artifactConsumers].sort(([left], [right]) => left.localeCompare(right));
   const artifactGaps = consumers.filter(([, consumer]) => consumer.kinds.size === 0 && !consumer.park).map(([id]) => ({ id }));
   const artifactParked = consumers.filter(([, consumer]) => consumer.park).length;
-  const liveFeatures = features.filter(liveFeature);
-  const outdated = liveFeatures.filter((feature) => feature.assessmentState === "out of date");
-  const unassessed = liveFeatures.filter((feature) => feature.assessmentState === "unassessed");
-  const assessmentItems = liveFeatures.filter((feature) => feature.assessmentState === "out of date" || feature.assessmentState === "unassessed");
-  const featureIds = [];
-  assessmentItems.forEach((feature, index) => { if (index) featureIds.push({ text: ", " }); featureIds.push(featureSegment(feature.id)); });
   const liveEntries = registry.entries.filter((entry) => entry.live).sort((left, right) => left.id.localeCompare(right.id));
   const staleEntries = liveEntries.filter((entry) => ageDays.get(`registry:${entry.id}`) > STALE_AGE_DAYS);
   const unmeasured = liveEntries.filter((entry) => !ageDays.has(`registry:${entry.id}`));
@@ -923,11 +866,10 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     [line(`${labels.deliverableGaps}: ${hasDeliverables ? `${deliverableGaps.length} · ${labels.parked}: ${parked} · ${labels.notes}: ${check.notes.length}` : labels.noDeliverables}`),
       ...(hasDeliverables && deliverableGaps.length ? [line(deliverableGaps.join(", "))] : []),
       line(`${labels.artifactGaps}: ${artifacts.hasRegistry ? `${artifactGaps.length} · ${labels.parked}: ${artifactParked}` : artifacts.emptyText}`), ...(artifactGaps.length ? [artifactGaps.flatMap(({ id }, index) => [...(index ? [{ text: ", " }] : []), { text: id }, ...makerSegments(registry.byId.get(id))])] : [])],
-    [line(`${labels.assessments}: ${outdated.length} · ${labels.unassessed}: ${unassessed.length}`), ...(featureIds.length ? [featureIds] : []),
-      line(`${labels.staleArtifacts}: ${artifacts.hasRegistry ? `${staleEntries.length} · ${labels.notMeasured}: ${notMeasured} · ${labels.unknown}: ${unmeasured.length - notMeasured}` : artifacts.emptyText}`),
+    [line(`${labels.staleArtifacts}: ${artifacts.hasRegistry ? `${staleEntries.length} · ${labels.notMeasured}: ${notMeasured} · ${labels.unknown}: ${unmeasured.length - notMeasured}` : artifacts.emptyText}`),
       ...staleEntries.map((entry) => [{ text: `${entry.id} · ${entry.name} · ${ageDays.get(`registry:${entry.id}`)} days` }, ...makerSegments(entry)])],
   ];
-  const recordsSummary = `Records: violated ${violated.length} · ${runtimeData ? `failed ${failed} · skipped ${notPassed.length - failed} · unmeasured ${noRun}` : labels.noRecordedRun} · Gaps ${deliverableGaps.length} · Stale ${outdated.length}`;
+  const recordsSummary = `Records: violated ${violated.length} · ${runtimeData ? `failed ${failed} · skipped ${notPassed.length - failed} · unmeasured ${noRun}` : labels.noRecordedRun} · Gaps ${deliverableGaps.length} · Stale ${staleEntries.length}`;
   const overview = OVERVIEW_BLOCKS.map(([heading, href], index) => ({ heading, href, lines: overviewLines[index] }));
   const issueItems = issueData?.items ?? [];
   const issueAsks = shapedAsks.map((ask) => ({ number: ask.number, kind: ask.tag.kind, since: ask.tag.since, title: ask.title.title, body: ask.title.body, url: ask.url ?? null, groups: ask.parsed.groups, recommendation: ask.parsed.recommendation }));
@@ -935,43 +877,6 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const issueNotice = issueData?.failure ?? (issueData?.truncated ? "Open issues may be longer than the fetched list." : null);
   const model = { commit, date, clean: !dirty, askLabels: ASK_LABELS, recordsSummary, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: issueData ? issueAsks : asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), ...(issueData ? { nextItems, issueNotice } : {}), questions, files: Object.fromEntries(files), runtime: { legend } };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
-}
-
-export async function generatePackets({ root = REPO_ROOT, dir, gitRunner = (args, options) => spawnSync("git", args, options) } = {}) {
-  if (!dir) throw new Error("packet directory is required");
-  const target = path.isAbsolute(dir) ? dir : path.resolve(root, dir);
-  const head = git(gitRunner, root, ["rev-parse", "HEAD"]);
-  const headLedgerText = `${git(gitRunner, root, ["show", `${head}:REQUIREMENTS.md`] )}\n`;
-  const workingLedgerText = await readFile(path.join(root, "REQUIREMENTS.md"), "utf8");
-  if (normalise(workingLedgerText) !== normalise(headLedgerText)) throw new Error("working-tree REQUIREMENTS.md differs from HEAD; commit REQUIREMENTS.md first");
-  await mkdir(target, { recursive: true });
-  const initialEntries = await readdir(target);
-  if (initialEntries.length) throw new Error(`packet directory is not empty: ${target}`);
-  const model = await buildReport({ root, gitRunner });
-  const commit = git(gitRunner, root, ["rev-parse", "HEAD"]);
-  const headLedger = git(gitRunner, root, ["show", `${commit}:REQUIREMENTS.md`]);
-  const { parsed, problems } = checkTree(normalise(headLedger));
-  if (problems.length) throw new Error(`requirements tree checker problems at HEAD:\n${problems.join("\n")}`);
-  const featuresById = new Map(parsed.headings.filter((heading) => heading.id.startsWith("FEAT-")).map((feature) => [feature.id, feature]));
-  const packets = model.features.filter((feature) => feature.assessmentState !== "current").map((feature) => {
-    const headFeature = featuresById.get(feature.id);
-    if (!headFeature) throw new Error(`${feature.id} is absent from REQUIREMENTS.md at HEAD`);
-    return {
-      filename: `${feature.id}.json`,
-      packet: {
-        version: 1,
-        feature: { id: feature.id, label: feature.label, purpose: feature.purpose, status: feature.status },
-        rows: feature.rows.map(({ id, mark, requirement, status, evidence }) => ({ id, mark, requirement, status, evidence })),
-        assessment: feature.assessment,
-        differences: feature.assessment ? feature.differences : { added: [], removed: [], changed: [], purpose: null, status: null },
-        stamp: featureStamp(parsed, headFeature, commit),
-      },
-    };
-  });
-  const entriesAfterBuild = await readdir(target);
-  if (entriesAfterBuild.length) throw new Error(`packet directory is not empty: ${target}`);
-  for (const { filename, packet } of packets) await writeFile(path.join(target, filename), `${JSON.stringify(packet, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
-  return packets.map(({ filename }) => path.join(target, filename));
 }
 
 export async function generateReport({ root = REPO_ROOT, out = DEFAULT_OUT, gitRunner, readIssues, env } = {}) {
@@ -992,15 +897,13 @@ export async function generateReport({ root = REPO_ROOT, out = DEFAULT_OUT, gitR
 }
 
 export function main(argv = process.argv.slice(2)) {
-  let root = REPO_ROOT; let out = DEFAULT_OUT; let packets;
+  let root = REPO_ROOT; let out = DEFAULT_OUT;
   for (let index = 0; index < argv.length; index++) {
     const flag = argv[index];
     if (flag === "--root" && argv[index + 1]) root = path.resolve(argv[++index]);
     else if (flag === "--out" && argv[index + 1]) out = argv[++index];
-    else if (flag === "--packets" && argv[index + 1]) packets = argv[++index];
-    else { console.error("Usage: product-report.mjs [--root <dir>] [--out <file>] [--packets <dir>]"); return 2; }
+    else { console.error("Usage: product-report.mjs [--root <dir>] [--out <file>]"); return 2; }
   }
-  if (packets) return generatePackets({ root, dir: packets }).then((files) => { console.log(`Wrote ${files.length} packet(s)`); return 0; }).catch((error) => { console.error(error.message); return 1; });
   return generateReport({ root, out }).then((file) => { console.log(`Wrote ${file}`); return 0; }).catch((error) => { console.error(error.message); return 1; });
 }
 if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) process.exitCode = await main();
