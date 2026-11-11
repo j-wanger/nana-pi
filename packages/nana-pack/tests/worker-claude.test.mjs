@@ -13,7 +13,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from "../lib/claude-review-config.mjs";
-import { killTree } from "../../../scripts/runtime-measure.mjs";
+import { killTree } from "../lib/process-tree.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import { hardKillTempNames, killWorkerTree, watcherWorkerPid, windowsLaneWatchers } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";

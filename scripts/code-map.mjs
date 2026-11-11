@@ -36,8 +36,9 @@ import { formatSearch, searchCode } from "./code-search.mjs";
 import {
 	ARTIFACT_CLOSING_NOTE, ARTIFACT_HEADING, ARTIFACT_NONE, ARTIFACT_NOTE_PREFIX,
 	ARTIFACT_NO_IMPORT_PATH, ARTIFACT_NO_LIVE_ENTRY, ARTIFACT_READ_BY, ARTIFACT_READS,
-	ARTIFACT_STAR, ARTIFACT_WRITES, NOTE_PREFIX,
-} from "../packages/nana-pack/lib/runtime-map-config.mjs";
+	ARTIFACT_STAR, ARTIFACT_WRITES,
+} from "./code-map-launch-config.mjs";
+import { NOTE_PREFIX } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 
 /** This repo's root, resolved through symlinks, whatever the cwd. */
 export const REPO_ROOT = resolve(

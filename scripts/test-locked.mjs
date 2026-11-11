@@ -26,7 +26,8 @@ import {
 	LAND_TIP_ENV,
 	UNMEASURED_PLATFORMS,
 } from "../packages/nana-pack/lib/land-config.mjs";
-import { buildRuntimeData, killTree, signalTreeTargets, writeRuntimeData } from "./runtime-measure.mjs";
+import { buildRuntimeData, writeRuntimeData } from "./runtime-measure.mjs";
+import { killTree, signalTreeTargets } from "../packages/nana-pack/lib/process-tree.mjs";
 
 // chosen: keep the machine-wide lock in the user's private home, independent of each worktree.
 const DEFAULT_LOCK_DIR = path.join(os.homedir(), ".nana", "suite.lock");

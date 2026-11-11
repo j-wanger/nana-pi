@@ -27,9 +27,9 @@ import {
 	RUNTIME_SCHEMA,
 	STOP_SIGNALS,
 	STOP_WAIT_MS,
-	TREE_LIST,
 } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { dataPath, hashFile } from "../packages/nana-pack/lib/runtime-map.mjs";
+import { killTree } from "../packages/nana-pack/lib/process-tree.mjs";
 import { DIRTY_COUNT_ENV, HAND_MEASURE_ENV, LAND_TIP_ENV } from "../packages/nana-pack/lib/land-config.mjs";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -96,75 +96,6 @@ export function readFolder(dir, root, tracked, { readdir = fs.readdirSync, readF
 		}
 	}
 	return { ran: [...ran].sort() };
-}
-
-/** pid -> {ppid, pgid} from a `ps -A -o pid=,ppid=,pgid=`-shaped listing. */
-function parseTree(output) {
-	const procs = new Map();
-	for (const line of output.split("\n")) {
-		const m = /^\s*(\d+)\s+(\d+)\s+(\d+)\s*$/.exec(line);
-		if (m) procs.set(Number(m[1]), { ppid: Number(m[2]), pgid: Number(m[3]) });
-	}
-	return procs;
-}
-
-/** `rootPid` and every process reachable by following parent links down from it. */
-function descendantsOf(rootPid, procs) {
-	const children = new Map();
-	for (const [pid, info] of procs) {
-		if (!children.has(info.ppid)) children.set(info.ppid, []);
-		children.get(info.ppid).push(pid);
-	}
-	const seen = new Set();
-	const queue = [rootPid];
-	while (queue.length) {
-		const pid = queue.shift();
-		if (seen.has(pid)) continue;
-		seen.add(pid);
-		for (const child of children.get(pid) ?? []) queue.push(child);
-	}
-	return seen;
-}
-
-/** Signal remembered process-group and single-pid targets; a gone or inaccessible target is harmless. */
-export function signalTreeTargets(targets, { kill = process.kill, signal = "SIGKILL" } = {}) {
-	for (const pgid of targets?.groups ?? []) {
-		try { kill(-pgid, signal); }
-		catch (error) { if (!["ESRCH", "EPERM"].includes(error?.code)) throw error; }
-	}
-	for (const pid of targets?.pids ?? []) {
-		try { kill(pid, signal); }
-		catch (error) { if (!["ESRCH", "EPERM"].includes(error?.code)) throw error; }
-	}
-}
-
-/**
- * Signal the suite's whole process tree rooted at `rootPid` (R-1277, seat amendment 1), using
- * SIGKILL by default: signal by process group every group whose members all lie in the tree, and
- * by pid any tree process whose group also holds a process outside the tree. A group shared with
- * this command's caller is therefore never signalled as a group. Return every target signalled so
- * an escalation can reach a descendant orphaned after this snapshot.
- */
-export function killTree(rootPid, { run = (args) => spawnSync(args[0], args.slice(1), { encoding: "utf8" }), kill = process.kill, signal = "SIGKILL" } = {}) {
-	const listing = run(TREE_LIST);
-	if (listing.status !== 0 || !listing.stdout) return { groups: [], pids: [] };
-	const procs = parseTree(listing.stdout);
-	const tree = descendantsOf(rootPid, procs);
-	const groupHasOutsider = new Set();
-	for (const [pid, info] of procs) if (!tree.has(pid)) groupHasOutsider.add(info.pgid);
-	const targets = { groups: [], pids: [] };
-	const targetGroups = new Set();
-	for (const pid of tree) {
-		const info = procs.get(pid);
-		if (!info) continue;
-		if (groupHasOutsider.has(info.pgid)) targets.pids.push(pid);
-		else if (!targetGroups.has(info.pgid)) {
-			targetGroups.add(info.pgid);
-			targets.groups.push(info.pgid);
-		}
-	}
-	signalTreeTargets(targets, { kill, signal });
-	return targets;
 }
 
 /** Build runtime data from one completed coverage folder without writing it. */
