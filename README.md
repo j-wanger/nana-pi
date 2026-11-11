@@ -46,7 +46,8 @@ Windows too. Configure real inputs before treating a green data test as validati
 ## Claude Code seat waking (nana-pi only)
 
 `packages/nana-setup/claude/hooks/nana-waking.mjs` is a project-scope Stop and
-PreToolUse hook entry, requiring Node ≥ 22.18 and git. The hooks are wired in
+PreToolUse hook entry, requiring Node ≥ 22.18 and git; optional authenticated `gh`
+reads open asks. The hooks are wired in
 `.claude/settings.json`; they are not installed by nana-setup and do not
 change other projects or user settings. Stop and PreToolUse
 (matcher `Bash|AskUserQuestion`) run
@@ -55,8 +56,9 @@ change other projects or user settings. Stop and PreToolUse
 The advisory hooks block an unarmed seat turn with open lanes, deny an away-owner
 blocking question, and deny lane launches without their own background call or
 with shell detachment. They never answer `ask`. Any `NANA_ROLE` makes them abstain;
-errors fail open with exit 0 and no stdout. Stop also abstains without the probed
-`session_crons` field or on a repeated stop. A recurring wake must fire at least
+errors fail open with exit 0 and no stdout. Stop abstains on a repeated stop.
+Its writing check runs without `session_crons`; only the wake reminder needs that
+probed field. A recurring wake must fire at least
 every 30 minutes; a question gets a safe default after 15 minutes of owner silence.
 A default does not authorize destructive or outside-folder actions.
 
@@ -65,7 +67,8 @@ extant unfinished lanes count even when contained in main; otherwise a lane need
 activity within 48 hours, a tip outside main and no landed record. Old lanes are
 parked. `packages/nana-pack/lib/waking-config.mjs` holds the chosen policy values;
 these are not sealed. Payloads missing other required data and unreadable
-transcripts fail open. No model, network access or credentials are needed.
+transcripts fail open. No model is needed. Open-ask checks may use network access
+and gh authentication; a failed issue read drops only that check.
 
 ## Requirements-first
 

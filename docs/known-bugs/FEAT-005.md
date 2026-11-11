@@ -2,6 +2,10 @@
 
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
+- Writing Stop hook (writing-stop, review 1): with `session_crons` present, a lane-reader failure still hides writing findings; isolate the wake read in a later hook lane.
+- Writing Stop hook (writing-stop, review 1): two-sentence conversational replies draw a verdict finding when each sentence has at least three words.
+- Writing Stop hook (writing-stop, review 1): R-4143's claim pattern still matches blockquotes, reported speech and qualified claims such as "except the CI run".
+- Writing Stop hook (writing-stop, review 1): issue titles count toward the reason cap before writing findings and can crowd them out.
 - Writing Stop hook: checks only the final text block after the last tool call, not earlier text in the turn.
 - Writing Stop hook: pi seats have no such hook; their pre-send run remains an instruction.
 - Writing Stop hook: a manually started builder or reviewer without `NANA_ROLE` looks like a seat and is checked.

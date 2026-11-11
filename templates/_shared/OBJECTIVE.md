@@ -5,12 +5,7 @@
 is what a session here is judged against. Every session must be able to say which of the two
 lines below its spend served.*
 
-*What a session actually sees: whenever no usable affirmative trust record can be confirmed for
-this folder, a two-line `UNTRUSTED DATA: …` label marking these lines as DATA (its second line
-names the next step it can see — it may need rights you do not have); then ONLY the two `**Objective` / `**Current priority` lines below
-(one physical line each — nothing else from this file, not the Rules). No program lines
-or precedence sentence follow; the umbrella is a fallback for folders without a project
-objective. Keep each line self-contained on one line.*
+*Session start delivers only the Objective and Current priority lines, labelled as untrusted data without affirmative trust; keep each self-contained on one physical line.*
 
 **Objective (since <date>):** <the one thing this project is for> (DRAFT — ratify by editing this line).
 
