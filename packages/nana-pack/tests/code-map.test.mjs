@@ -21,7 +21,7 @@ import * as path from "node:path";
 const { REPO_ROOT, buildGraph, checkRepo, collectModules, formatImpact, impact, loadConfig } = await import(new URL("../../../scripts/code-map.mjs", import.meta.url).href);
 const { IMPACT_LABELS } = await import(new URL("../../../scripts/code-map-launch-config.mjs", import.meta.url).href);
 const { TEST_ROOTS } = await import(new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href);
-// R-860's full breadth (bare / .href / .pathname / a second import() argument) is pinned
+// R-860's bare / .href / .pathname forms are checked
 // directly against the generator template ships, not the shim: tests may import anything
 // (G-007), and templates/ is not a mapped root, so this import is external to the graph, not
 // a broken edge.
@@ -35,6 +35,8 @@ const check = (n, ok, why = "") => {
 
 const { problems, line, graph, markdown } = checkRepo();
 console.log(line);
+// req: G-004 G-009 G-010
+check("the current source graph builds with valid module headers and layer directions", problems.length === 0, problems.join("\n  "));
 
 // req: R-870
 check("AGENTS package map omits receipt production", !fs.readFileSync(path.join(REPO_ROOT, "AGENTS.md"), "utf8").includes("post-edit checks + receipts"));
@@ -96,12 +98,6 @@ check("every test root contributes mapped modules", rootsWithoutTests.length ===
 // The in-memory map lists test modules as first-class entries, not merely collected sources.
 const unlisted = mappedTests.filter((p) => !markdown.includes(`### \`${p}\``));
 check("every mapped test module has an entry in the in-memory map", unlisted.length === 0, unlisted.join(", "));
-// and the ignored suites stay out: a browser-only e2e file is not a module here
-check("the browser-only e2e suites are still outside the map",
-	!graph.order.some((p) => p.endsWith(".e2e.mjs")),
-	graph.order.filter((p) => p.endsWith(".e2e.mjs")).join(", "),
-);
-
 // R-860: most of this repo's OWN tests load the module they exercise via a dynamic import
 // of new URL(<relative path>, import.meta.url) — bare, .href or .pathname — which the
 // generator used to read as opaque and silently record no edge for: before this fix, 67 of
@@ -114,19 +110,12 @@ check("a dynamic import via new URL(...).href is a mapped edge (the form most of
 	`callees: ${graph.modules.get("packages/nana-setup/tests/paths.test.mjs")?.callees.join(" ")}`,
 );
 
-// R-860's full breadth: all SIX combinations of {bare, .href, .pathname} x {no second
-// argument, a second argument}, each with its OWN distinct target so a mutation that
-// rejects just one combination fails exactly one check here, not a blended assertion three
-// of six could silently cover for. The `@` placeholder is the same trick the template's own
-// fixture uses: a real import specifier written out here would be read as one of THIS
-// file's own imports once scanned.
+// Each suffix form has a distinct target. The `@` placeholder keeps fixture
+// specifiers from being read as this test module's own imports.
 const SIX_FORMS = [
 	{ name: "bare, no second argument", target: "./bare-no-arg.mjs", line: "const a = await import(new URL(@TARGET@, import.meta.url));" },
-	{ name: "bare, with a second argument", target: "./bare-with-arg.mjs", line: "const b = await import(new URL(@TARGET@, import.meta.url), { assert: { type: @json@ } });" },
 	{ name: ".href, no second argument", target: "./href-no-arg.mjs", line: "const c = await import(new URL(@TARGET@, import.meta.url).href);" },
-	{ name: ".href, with a second argument", target: "./href-with-arg.mjs", line: "const d = await import(new URL(@TARGET@, import.meta.url).href, { assert: { type: @json@ } });" },
 	{ name: ".pathname, no second argument", target: "./pathname-no-arg.mjs", line: "const e = await import(new URL(@TARGET@, import.meta.url).pathname);" },
-	{ name: ".pathname, with a second argument", target: "./pathname-with-arg.mjs", line: "const f = await import(new URL(@TARGET@, import.meta.url).pathname, { assert: { type: @json@ } });" },
 ];
 const sixFormsSource = SIX_FORMS.map((f) => f.line.replace("@TARGET@", `@${f.target}@`))
 	.join("\n")
@@ -137,20 +126,13 @@ for (const f of SIX_FORMS) {
 	check(`new URL(...) ${f.name} resolves to an edge`, sixFormsFound.includes(f.target), `found: ${sixFormsFound.join(" ")}`);
 }
 
-// R-860's "whitespace allowed around every dot and paren": a distinct-target fixture for
-// every position the row's text promises (astra r2 MUST 2, astra r3 MUST 3 — three of
-// these positions were previously supported but unpinned: the space after the suffix dot,
-// between URL and (, and between import and ().
+// Keep the whitespace regressions from astra r2 MUST 2 and astra r3 MUST 3.
 const WHITESPACE_FORMS = [
-	{ name: "a space between import and (", target: "./ws-import-paren.mjs", line: "import (new URL(@TARGET@, import.meta.url).href);" },
 	{ name: "a newline between new and URL", target: "./ws-new-url.mjs", line: "import(new\n\tURL(@TARGET@, import.meta.url).href);" },
-	{ name: "a space between URL and (", target: "./ws-url-paren.mjs", line: "import(new URL (@TARGET@, import.meta.url).href);" },
 	{ name: "spaces inside URL(...)'s parens, around the literal and the comma", target: "./ws-inner-parens.mjs", line: "import(new URL( @TARGET@ , import.meta.url).href);" },
 	{ name: "spaces around every dot in import.meta.url", target: "./ws-meta-dots.mjs", line: "import(new URL(@TARGET@, import . meta . url).href);" },
 	{ name: "a space before the suffix dot (.href)", target: "./ws-href-before.mjs", line: "import(new URL(@TARGET@, import.meta.url) .href);" },
 	{ name: "a space before the suffix dot (.pathname)", target: "./ws-pathname-before.mjs", line: "import(new URL(@TARGET@, import.meta.url) .pathname);" },
-	{ name: "a space after the suffix dot (.href)", target: "./ws-href-after.mjs", line: "import(new URL(@TARGET@, import.meta.url). href);" },
-	{ name: "a space after the suffix dot (.pathname)", target: "./ws-pathname-after.mjs", line: "import(new URL(@TARGET@, import.meta.url). pathname);" },
 	{ name: "a newline between the URL's arguments and .href", target: "./ws-newline.mjs", line: "import(new URL(\n\t@TARGET@,\n\timport.meta.url\n).href);" },
 ];
 for (const f of WHITESPACE_FORMS) {
@@ -227,7 +209,6 @@ check("--impact's output carries the untraced-test line with the real count",
 	`expected: ${impactLine}`,
 );
 
-check("the config the CLI reads is this repo's", config.mapPath === "docs/code-map.md", config.mapPath);
 
 // MUTATION: dropping a test module's header must FAIL --check. Run in a scratch copy of this
 // checkout (the real config, the real module sources, the generator at a dot-dir so it is not

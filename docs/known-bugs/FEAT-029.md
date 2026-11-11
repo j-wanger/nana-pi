@@ -65,4 +65,4 @@
 - Launch edges (map-spawn-edges, final review): renamed or injected runners (`start` in `lane-watcher.mjs`, `run` in `review-movement.mjs`, `runner("powershell")` in `process-tree-helper.mjs`, `run = spawnSync` in `hook-producer.mjs`) are invisible and unreported; their tests are always-run today only through other routes.
 - Carry (map-spawn-edges): `config-display-text.test.mjs` and `config-handlers-malformed.test.mjs` use computed imports, leaving them neither linked nor always-run in the launch graph.
 - Runtime map (ci-suite, plan residual): a land that uses CI as the suite does not refresh the runtime map; fallback lands and hand runs do.
-- Carry (hive-retire): `code-map-launch.test.mjs` exempts lost hive edges by path pattern rather than a named list, allowing unrelated losses under that pattern.
+- Pack test diet: R-860 still promises every dynamic-import form and whitespace position; second-argument forms and four previously supported whitespace positions no longer have individual tests.

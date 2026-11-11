@@ -1,15 +1,15 @@
 /**
  * @module packages/nana-pack/lib/win-command.mjs
- * @purpose Resolve and safely launch supported Windows commands, and conservatively identify absent cmd.exe commands.
+ * @purpose Resolve and safely launch supported Windows commands.
  * @inputs command names, argument arrays, injected environment/cwd/existence and optional ComSpec.
- * @outputs absolute lookup paths, a default existence probe, spawnSync argument records/refusals, or a missing-command predicate.
+ * @outputs absolute lookup paths, a default existence probe and spawnSync argument records/refusals.
  * @effects disk
  * @errors refusals are returned as values; lookup errors mean absent.
  */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { DEFAULT_PATHEXT, INTERNAL_COMMANDS, PI_EXTENSIONS } from "./win-command-config.mjs";
+import { DEFAULT_PATHEXT, PI_EXTENSIONS } from "./win-command-config.mjs";
 
 function envValue(env, key) {
   const found = Object.keys(env ?? {}).find((item) => item.toLowerCase() === key.toLowerCase());
@@ -57,21 +57,4 @@ export function winCommand(file, args, { comspec } = {}) {
   for (const value of args) if (value.endsWith("\\")) return { refused: 'refused trailing backslash "\\\\"' };
   const line = [file, ...args].map((arg) => `"${arg}"`).join(" ");
   return { command: comspec ?? "cmd.exe", args: ["/d", "/v:off", "/s", "/c", `"${line}"`], options: { windowsVerbatimArguments: true } };
-}
-
-function internal(word) {
-  const folded = word.toLowerCase();
-  return INTERNAL_COMMANDS.some((name) => folded === name || ["/", "\\", ".", ":"].some((sep) => folded.startsWith(name + sep)));
-}
-export function cmdCouldNotRun(command, { env = process.env, cwd = process.cwd(), exists = defaultExists } = {}) {
-  const word = String(command).replace(/^[ \t]*/, "").split(/[ \t]/, 1)[0];
-  if (!word || !/^[A-Za-z0-9_.\\/:\-]+$/.test(word) || internal(word)) return false;
-  const hasSeparator = /[\\/:]/.test(word);
-  const candidates = [word, ...extensions(env).map((ext) => `${word}${ext}`)];
-  if (hasSeparator) {
-    return !candidates.some((candidate) => exists(winAbsolute(candidate, cwd)));
-  }
-  if (candidates.some((candidate) => exists(winAbsolute(candidate, cwd)))) return false;
-  const pathDirs = String(envValue(env, "PATH") ?? "").split(";").map((dir) => dir.trim().replace(/^"|"$/g, "")).filter(Boolean);
-  return !pathDirs.some((dir) => candidates.some((candidate) => exists(winAbsolute(path.win32.join(dir, candidate), cwd))));
 }

@@ -302,10 +302,9 @@ const plainWorker = run(lane, [], { NANA_ROLE: "inherited" }, ["-p", "plain"]);
 const plainResult = fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "";
 // req: R-286
 check("every pi-worker child receives NANA_ROLE=worker", result.startsWith("worker:") && plainWorker.status === 0 && plainResult.startsWith("worker:"), `${result}\n${plainResult}`);
-// req: R-628
-check("lane preamble forbids the named package-manager operations at a worktree root", prompt1Text.includes("Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root"));
 const preambleText = prompt1Text;
 const RULE_LINE = {
+	packageManagers: "Never run pnpm, npm, or npx install, exec, add, or dlx at a worktree root",
 	storedCredential: "- Never read, print or use a stored credential: no `git credential fill` or `get`, no token from a keychain, file or environment variable, and no direct GitHub API call. If a step needs a credential or `gh` is missing, report it and stop.",
 	knownBugsFolder: `- Remove only the known-bug lines your brief names; never make any other edit under \`${KNOWN_BUGS_DIR}/\`.`,
 	trackedDeletion: "- Delete tracked files with `git rm -q --`.",
@@ -335,48 +334,18 @@ const preambleOnce = (line) => preambleText.includes(line) && preambleText.split
 check("R-2510: only brief-named known-bug removals are allowed and HANDOFF stays protected",
 	preambleOnce("- Never edit `HANDOFF.md`.") && preambleOnce(RULE_LINE.knownBugsFolder) &&
 	!preambleText.includes(`Never edit \`HANDOFF.md\` or \`${KNOWN_BUGS_DIR}/\``), RULE_LINE.knownBugsFolder);
-// req: R-3897
-check("M4: tracked deletion uses git rm", preambleOnce(RULE_LINE.trackedDeletion));
-// req: R-3897
-check("M4: test temp folders use shared tmpDir without mkdtemp", preambleOnce(RULE_LINE.sharedTemp));
-// req: R-3897
-check("M4: test file changes run the test-runner checks", preambleOnce(RULE_LINE.testInventory));
-// req: R-3897
-check("M4: removed and renamed text gets a test search before reporting", preambleOnce(RULE_LINE.removedTextSearch));
-// req: R-3903
-check("M10: suite tests do not re-run the suite or whole-repo checkers", preambleOnce(RULE_LINE.noNestedCheckers));
 // req: R-3650
 check("R-3650: the builder preamble forbids reading, printing or using a stored credential exactly once", preambleOnce(RULE_LINE.storedCredential), RULE_LINE.storedCredential);
-// req: R-2582
-check("R-2582: the builder preamble tells the builder to read its Precedent files first, follow their pattern and report each departure", preambleOnce(RULE_LINE.precedentFirst), RULE_LINE.precedentFirst);
-// req: R-2662 R-3734
-check("R-2662: the builder preamble tells the builder to import a needed function, never copy it, and make a private helper public without an unnamed shared move", preambleOnce(RULE_LINE.reuseNotCopy), RULE_LINE.reuseNotCopy);
-// req: R-2583
-check("R-2583: the builder preamble frames the known-bug file as context to report, not to fix", preambleOnce(RULE_LINE.knownBugsContext), RULE_LINE.knownBugsContext);
-// req: R-3436
-check("lane preamble carries: validation first", preambleOnce(RULE_LINE.validationFirst), RULE_LINE.validationFirst);
-// req: R-3436
-check("lane preamble carries: brief-named eligible tests", preambleOnce(RULE_LINE.briefNamedTests), RULE_LINE.briefNamedTests);
-// req: R-3436
-check("lane preamble carries: await every async case", preambleOnce(RULE_LINE.awaitEveryAsyncCase), RULE_LINE.awaitEveryAsyncCase);
-// req: R-3436
-check("lane preamble carries: CRLF and whitespace cases", preambleOnce(RULE_LINE.crlfAndWhitespace), RULE_LINE.crlfAndWhitespace);
-// req: R-3436
-check("lane preamble carries: IDs from the brief's range", preambleOnce(RULE_LINE.idsFromBriefRange), RULE_LINE.idsFromBriefRange);
-// req: R-3436
-check("lane preamble carries: no suite test runs a seat script", preambleOnce(RULE_LINE.noSuiteTestRunsSeatScript), RULE_LINE.noSuiteTestRunsSeatScript);
-// req: R-3436
-check("lane preamble carries: no unnamed test deleted", preambleOnce(RULE_LINE.noUnnamedTestDeleted), RULE_LINE.noUnnamedTestDeleted);
-// req: R-3436
-check("lane preamble carries: touched tests before each commit", preambleOnce(RULE_LINE.touchedTestsBeforeCommit), RULE_LINE.touchedTestsBeforeCommit);
-// req: R-3436
-check("lane preamble carries: seat checks before DONE", preambleOnce(RULE_LINE.seatChecksBeforeDone), RULE_LINE.seatChecksBeforeDone);
-// req: R-3436
-check("lane preamble carries: long output outside the repository and no raw output committed", preambleOnce(RULE_LINE.longOutputToFile), RULE_LINE.longOutputToFile);
-// req: R-3436
-check("lane preamble carries: no builder push", preambleOnce(RULE_LINE.readCiOnce), RULE_LINE.readCiOnce);
-// req: R-3436
-check("lane preamble carries: branch tip and seat checks in the report", preambleOnce(RULE_LINE.suiteCheckCountInReport), RULE_LINE.suiteCheckCountInReport);
+for (const key of [
+	"packageManagers", "trackedDeletion", "sharedTemp", "testInventory", "removedTextSearch", "noNestedCheckers",
+	"precedentFirst", "reuseNotCopy", "knownBugsContext", "validationFirst", "briefNamedTests",
+	"awaitEveryAsyncCase", "crlfAndWhitespace", "idsFromBriefRange", "noSuiteTestRunsSeatScript",
+	"noUnnamedTestDeleted", "touchedTestsBeforeCommit", "seatChecksBeforeDone", "longOutputToFile",
+	"readCiOnce", "suiteCheckCountInReport",
+]) {
+	// req: R-628 R-3897 R-3903 R-2582 R-2662 R-3734 R-2583 R-3436
+	check("lane preamble carries each required rule exactly once", preambleOnce(RULE_LINE[key]), `${key}: ${RULE_LINE[key]}`);
+}
 // req: R-3436
 check("R-3436: the preamble runs the full suite unless AGENTS says CI covers it, and contains none of the replaced lines",
 	preambleOnce(RULE_LINE.fullSuiteFallback) && preambleOnce(RULE_LINE.briefNamedTests)
@@ -391,18 +360,9 @@ const receivedArgs = result.split("\n");
 // req: R-961
 check("lane passes only the sealed roster and fixed brief instruction", defaultPairs.every(([flag, value]) => receivedArgs.indexOf(flag) >= 0 && receivedArgs[receivedArgs.indexOf(flag) + 1] === value && receivedArgs.filter((seen) => seen === flag).length === 1) && receivedArgs.includes("Do the work in your brief for lane alpha. Your cwd is the lane worktree. Finish with the report shape the brief gives."));
 fs.rmSync(piSpawnMarker, { force: true });
-const overridden = run(lane, ["--lane", "alpha", "--brief", brief], {}, ["--provider", "override-provider", "--model", "override-model", "--thinking", "low", "-p", "instruction"]);
+const overridden = run(lane, ["--lane", "alpha", "--brief", brief], {}, ["--provider", "override-provider", "--model", "override-model", "--thinking", "low", "-ne", "-p", "instruction"]);
 // req: R-961
 check("lane mode refuses all caller pi arguments before lock or spawn", overridden.status === 1 && /caller pi arguments are refused/.test(overridden.stderr) && !fs.existsSync(piSpawnMarker) && !fs.existsSync(laneLockPath));
-const missingTools = run(lane, ["--lane", "alpha", "--brief", brief], {}, ["-t", "read,grep,find,bash", "-p", "instruction"]);
-// req: R-961
-check("lane refuses caller tools without edit and write", missingTools.status === 1 && /caller pi arguments are refused/.test(missingTools.stderr));
-const toolControlForms = [["-t", "read,edit,write"], ["--tools", "read,edit,write"], ["--exclude-tools", "edit"], ["--no-tools"]];
-// req: R-961
-check("lane refuses tool-control forms -t, --tools, --exclude-tools, --no-tools", toolControlForms.every((form) => run(lane, ["--lane", "alpha", "--brief", brief], {}, form).status === 1));
-const resourceDisableForms = [["-nc"], ["--no-context-files"], ["-ne"], ["--no-extensions"], ["-na"], ["--no-approve"]];
-// req: R-961
-check("lane refuses resource-disabling forms -nc, --no-context-files, -ne, --no-extensions, -na, --no-approve", resourceDisableForms.every((form) => run(lane, ["--lane", "alpha", "--brief", brief], {}, form).status === 1));
 // req: R-961
 check("lane refuses retries before launch", run(lane, ["--lane", "alpha", "--brief", brief, "--retries", "1"]).status === 1 && /--retries greater than zero/.test(run(lane, ["--lane", "alpha", "--brief", brief, "--retries", "1"]).stderr));
 

@@ -1,14 +1,12 @@
 /**
  * @module packages/nana-pack/tests/win-command.test.mjs
- * @purpose Pins Windows command discovery, quoting, refusal and missing-command rules on every platform.
+ * @purpose Pins Windows command discovery, quoting and launch refusals on every platform.
  * @inputs pure helper/config modules and injected Windows paths.
  * @outputs named PASS/FAIL checks and a nonzero exit on any mismatch.
- * @effects process (Windows-only cmd.exe and where probes).
+ * @effects none
  * @errors assertion mismatches set the process exit code.
  */
-import { findOnPath, findPi, winCommand, cmdCouldNotRun } from "../lib/win-command.mjs";
-import { INTERNAL_COMMANDS } from "../lib/win-command-config.mjs";
-import { spawnSync } from "node:child_process";
+import { findOnPath, findPi, winCommand } from "../lib/win-command.mjs";
 
 let fails = 0;
 let checks = 0;
@@ -54,39 +52,5 @@ for (const bad of ['"', "%", "!", "\r", "\n", "\0"]) {
 check("cmd trailing backslash refused", Boolean(winCommand("C:\\bin\\pi.cmd", ["ends\\"], {}).refused), true);
 // req: R-1039
 check("unsupported extension refused", Boolean(winCommand("pi.ps1", [], {}).refused), true);
-const cmdCases = [
-  ["missing-tool x", true], [".\\missing-tool", true], ["C:\\nowhere\\tool.exe", true],
-  ["tool x", false], ["check x", false], [".\\check", false], ["ruff check", false], ["ECHO", false], ["type missing.txt", false],
-  ["dir/Z", false], ["cd\\nowhere", false], ["cd..", false], ["echo.text", false], ["", false], ["   missing-tool", true],
-  ["%ComSpec% /c exit 1", false], ["@node -e x", false], ["^ruff check", false], ['"C:\\nowhere\\tool.exe"', false], ["ruff,check", false], ["missing-tool&&x", false],
-];
-for (const [cmd, expected] of cmdCases) {
-  // req: R-1038
-  check(`cmdCouldNotRun ${JSON.stringify(cmd)}`, cmdCouldNotRun(cmd, { env: { PATH: "C:\\bin", PATHEXT: ".PY;.CMD;.EXE" }, cwd: "C:\\cwd", exists: (p) => ["c:\\cwd\\check.cmd", "c:\\bin\\tool.cmd", "c:\\bin\\ruff.py"].includes(p.toLowerCase()) }), expected);
-}
-// req: R-1038
-check("word found as written on PATH is not classified as missing", cmdCouldNotRun("tool x", { env: { PATH: "C:\\bin", PATHEXT: ".CMD" }, cwd: "C:\\cwd", exists: (p) => p.toLowerCase() === "c:\\bin\\tool" }), false);
-// req: R-1038
-check("sealed cmd internal command vocabulary", INTERNAL_COMMANDS, "assoc break call cd chdir cls color copy date del dir dpath echo endlocal erase exit for ftype goto if keys md mkdir mklink move path pause popd prompt pushd rd rem ren rename rmdir set setlocal shift start time title type ver verify vol".split(" "));
-if (process.platform === "win32") {
-  const systemRoot = process.env.SystemRoot ?? process.env.SYSTEMROOT;
-  const systemPath = `${systemRoot}\\System32;${systemRoot}`;
-  const probeEnv = { ...process.env, PATH: systemPath };
-  const firstLine = (value) => String(value ?? "").split(/\r?\n/, 1)[0];
-  const diagnostic = (where, cmd) => `where status=${where.status} stdout=${JSON.stringify(firstLine(where.stdout))} stderr=${JSON.stringify(firstLine(where.stderr))}; cmd status=${cmd.status} stdout=${JSON.stringify(firstLine(cmd.stdout))} stderr=${JSON.stringify(firstLine(cmd.stderr))}`;
-  for (const name of INTERNAL_COMMANDS) {
-    const where = spawnSync(`${systemRoot}\\System32\\where.exe`, [name], { encoding: "utf8", windowsHide: true, env: probeEnv });
-    const cmd = spawnSync(`${systemRoot}\\System32\\cmd.exe`, ["/d", "/c", `${name} /?`], { encoding: "utf8", windowsHide: true, env: probeEnv });
-    const ok = where.status !== 0 && !where.stdout.trim() && cmd.stdout.trim().length > 0 && !cmd.stderr.trim();
-    // req: R-1038
-    check(`Windows internal command probe ${name}`, ok ? true : diagnostic(where, cmd), true);
-  }
-  const absent = "nana-no-such-command-xyz";
-  const where = spawnSync(`${systemRoot}\\System32\\where.exe`, [absent], { encoding: "utf8", windowsHide: true, env: probeEnv });
-  const cmd = spawnSync(`${systemRoot}\\System32\\cmd.exe`, ["/d", "/c", `${absent} /?`], { encoding: "utf8", windowsHide: true, env: probeEnv });
-  const controlOk = !cmd.stdout.trim() && cmd.stderr.trim().length > 0;
-  // req: R-1038
-  check("Windows internal-command probe control nana-no-such-command-xyz", controlOk ? true : diagnostic(where, cmd), true);
-} else console.log("SKIP Windows sealed-command integration: checks System32 where.exe and cmd.exe probes");
 console.log(`win-command: ${checks} checks, ${fails} failure(s)`);
 process.exitCode = fails ? 1 : 0;

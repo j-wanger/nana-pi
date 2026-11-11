@@ -522,7 +522,7 @@ const missingBrief = path.join(TEMP, "does-not-exist.md");
 const missingBriefResult = runWorker({ brief: missingBrief, extra: ["--item", "x"], env: tempEnv(missingBriefRoot) });
 reviewOptionObservations.push({ option: "--item missing brief", status: missingBriefResult.status, line: missingBriefResult.stderr.includes("pi-worker: --item is a review option"), noCarry: !missingBriefResult.stderr.includes("pi-worker: claude settings carry:"), empty: tempEmpty(missingBriefRoot), calls: readRows(RECORD).length, stderr: missingBriefResult.stderr });
 // req: R-2691
-check("R-2691: in lane mode each review option exits 1 with the review-option line before the brief or the user Claude settings are read or any temp file is written",
+check("R-2691: in lane mode --item exits 1 before brief or settings reads or temp writes",
 	reviewOptionObservations.every((item) => item.status === 1 && item.line && item.noCarry && item.empty && item.calls === 0), JSON.stringify(reviewOptionObservations));
 
 const cleanupObservations = [];

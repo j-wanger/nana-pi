@@ -58,7 +58,7 @@ await check("resolves npm global and local layouts and case-insensitive Path", (
  }
 });
 // req: R-3471
-await check("names every refusal and does not spawn on refusal", async () => {
+await check("names absent Claude, outside-bin and missing-entry refusals without spawning", async () => {
  const f = fixture();
  const missingEntry = fixture(); missingEntry.files.set("c:\\npm\\claude.cmd", "shim");
  missingEntry.pkg("C:\\npm\\node_modules\\@anthropic-ai\\claude-code");
