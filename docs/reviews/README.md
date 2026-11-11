@@ -29,5 +29,18 @@ git show 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/evidence 5667a2515bdc2152
 git show 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/sessions 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/sessions/2026-10.md
 ```
 
+## Bench studies and raw research
+
+Retired bench studies (including frozen fixtures) and raw deep-research sources live in
+that same private records folder, not the repository. Distilled research stays in `research/`
+and keeps its historical source paths.
+The last pre-removal commit for both record sets is `6ded7fdb0adf090de41dbf0bb6b89235a255f27f`.
+List a study or raw-source folder and read one removed file:
+
+```sh
+git show 6ded7fdb0adf090de41dbf0bb6b89235a255f27f:apps/bench/studies/tool-profiles-2026-09-08 6ded7fdb0adf090de41dbf0bb6b89235a255f27f:apps/bench/studies/tool-profiles-2026-09-08/study.json
+git show 6ded7fdb0adf090de41dbf0bb6b89235a255f27f:research/raw/2026-09-28-eval 6ded7fdb0adf090de41dbf0bb6b89235a255f27f:research/raw/2026-09-28-eval/eval-methods.md
+```
+
 Substitute another historical folder and file in the object names to read it.
 The README check executes each command without a shell.
