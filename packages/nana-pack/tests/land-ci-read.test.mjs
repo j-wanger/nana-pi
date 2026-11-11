@@ -21,8 +21,6 @@ import { admit, complete, ledgerPaths, reviewTextPath, withReviewLedgerLock } fr
 import { realPath } from "../lib/real-path.mjs";
 import * as landConfig from "../lib/land-config.mjs";
 const { LAND_NOTE_PREFIX, LAND_TIP_ENV } = landConfig;
-import { COMPLETION_FILE, COVERAGE_ENV } from "../lib/runtime-map-config.mjs";
-import { checkoutDrift, hashFile } from "../lib/runtime-map.mjs";
 
 import { PI_REVIEW, TEST_LOCKED, assertCiRefused, recordTextReview, runLand, tallyRows, writeTallyRows } from "./land-checks.mjs";
 let failures = 0;

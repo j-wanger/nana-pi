@@ -5,44 +5,32 @@
 - R-3101 accepts a retired row as evidence. Only a row anchor rejects `retired` (R-3108).
 - A folder part such as `packages/nana-setup/` makes `recentCommits` read busy whenever a file below it changes.
 
-- Product report: 37 of the 38 migrated assessments carry an inferred stamp commit, so several show out of date from day one; the installation feature's was refreshed through the guide. "Current" means "matches the stamped ledger", not "rechecked against later decisions". Packets refuse while REQUIREMENTS.md has uncommitted edits. The suite's historical stamp check needs full git history; a shallow clone fails it. No one has yet run the refresh loop with a second model as checker.
-- Test details in the report (report-test-details): a test skipped for its platform shows only as this clone's SKIP for its whole file. The page reads no skip reason, no CI Linux or Windows result and no SKIP line inside a file.
-- Test details in the report (report-test-details): the label belongs to the whole file, so a PASS file may have skipped the cited check. The page legend says so.
-- Test details in the report (report-test-details): the "changed since" mark misses code run from a temporary copy or by a killed child. The page legend says so.
 - Test details in the report (report-test-details): a test that carries a row's marker but is not cited in the row's evidence is not listed.
 - Test details in the report (report-test-details): no cited test shows its line number.
 - Test details in the report (report-test-details): links go to GitHub only. A link to a commit nobody has pushed opens a not-found page.
-- Test details in the report (report-test-details): a project with no runtime data, Python projects included, shows every test as having no recorded run.
 - Test details in the report (report-test-details): nobody has opened a test link inside the hosted page. The links open a new tab because of a guess that a plain link fails there.
-- Not-passed list (report-not-passed): a failing test file fixed after the run keeps its row listed, marked changed since, until someone measures again.
-- Not-passed list (report-not-passed): a row citing a skipped file beside a file with no recorded run is left out. The Records summary's failed, skipped and unmeasured counts also leave that row out. No such row exists today.
-- Not-passed list (report-not-passed): with no runtime data, the list's heading reads 0. The legend just above it says the report found no run.
-- Not-passed list (report-not-passed): a label marked changed since still decides the list, so a stale skip keeps its row listed. The plan's adversary called this the claim most likely wrong and left it to the owner. Reversing it changes one rule and flips one requirement.
-- Not-passed list (report-not-passed): no check pins that a row citing no test file is never listed. Every check stays green with the empty-run guard removed.
 - Open questions in the report (audit-open-questions): only a dash bullet or a numbered line starts a question. A star bullet joins the question above it.
 - Open questions in the report (audit-open-questions): a new project's placeholder question lists as question 1, with its underscores shown.
 - Open questions in the report (audit-open-questions): the 2026-10-09 verification found issues beyond the audit, in two rows, one pack README line and misfiled rows. No open question records them.
 - Product report stage view (ledger-stages, plan): cards keep document order within each kind. The report does not sort stages by what they need; the tree checker already requires each need to come earlier.
-- Product report stage view (ledger-stages, plan): coverage counts implemented rows shared by active or frozen features. A test that has not run since the last change still counts; the run labels under each row show that.
+- Product report stage view (ledger-stages, plan): coverage counts implemented rows shared by active or frozen features. A test that has not run since the last change still counts.
 - Product report stage view (ledger-stages, wrong-code pairs): no kinded test ledger checks that each feature line still sits right above its count bar. The existing check does that on this repo's ledger once its capabilities carry kinds.
 - Stale-copies check on Windows (ledger-stages CI; win-leg-flakes): its linked Claude folder case failed 3 checks once on CI's Windows leg, then passed on a re-run. The cause is still unknown; a 5-second hook kill is unlikely from the phase timings. Its R-1761 failure line now names the hook run's status, signal, time and unavailable lines, so the next failure shows the cause. Fixing it is a hook lane.
 - Product report stage view (ledger-stages, final review): a product capability with no deliverables line shows an empty deliverables list, not none or a gap.
 - Product report stage view (ledger-stages, final review): a deliverable's consumers include retired and proposed features that share it. Coverage counts only active and frozen ones, so an owner may read a retired consumer as live.
-- Product report stage view (ledger-stages, final review): the stage-order check renders a past ledger through git, so like the stamp check it needs full history.
+- Product report stage view (ledger-stages, final review): the stage-order check renders a past ledger through git, so it needs full history.
 - Product view (report-deliverables, plan; report-at-land): 32 of 41 deliverables show no age. They are parked rows, hand-made rows, lines made fresh at each run, terminal and CI outputs, and pi's own stores. A release tag carries a date too.
 - Product view (report-deliverables, plan): per-lane records name no artifact, because a review folder would read as fresh after every lane.
 - Product view (report-deliverables, plan): the last change can be a sweep, a merge, a rename or a revert. The subject shows which; the report does not guess the last real make.
 - Product view (report-deliverables, plan): a maker line names one study's files. A newer study in a new folder does not refresh it until someone edits the line.
-- Product view (report-deliverables, plan): the runtime map's age is this clone's data. Another worktree's land moves it, and a Windows land does not measure.
 - Product view (report-deliverables, plan): R-1012's condition does not name history depth, so `git fetch --unshallow` between two runs changes the page.
 - Product view (report-deliverables, plan): the report's existing date call takes a signature line under `log.showSignature`.
 - Product view (report-deliverables, plan): the artifact walk grows with history, about 160 to 220 ms at 2,514 commits on macOS. Every report build in the test file adds about three spawns.
 - Product view (report-deliverables, plan): subjects and claims with backticks or `**` render as code or bold.
 - Artifact age (report-deliverables, final review): the age takes the first commit in the date-ordered walk that lists the artifact. After a hand-resolved merge that keeps an older-dated side whole, it names main's commit while `git log -1 -- <path>` follows the side.
 - Artifact age (report-deliverables, final review): every report build walks the whole history once, even for one named artifact. Passing the path to git would shrink the walk but changes which merge side it follows.
-- Not-passed rule (audit re-check, 2026-10-22): the artifact audit asked that one failing run not mark a requirement failed until a second run confirms it; no lane built that.
 - Product view (park-deliverables, plan): a parked deliverable keeps both code marks; its Product line says parked, and its park line shows as a claim on its home feature's page.
-- Product report at land (report-at-land, plan): only the locked suite writes the land report. A land run with another suite command or a hand measure writes none.
+- Product report at land (report-at-land, plan): only the locked suite writes the land report. A land run with another suite command writes none.
 - Product report at land (report-at-land, plan): if the report module fails to load, the land prints a note, but no test pins that path.
 - Product report at land (report-at-land, attack): inner test runs stay off the real page only because the test runner clears every nana variable. A test file run alone with a land tip set would write it.
 - Product report at land (report-at-land, attack): the page adds about 1 to 2.6 seconds to each land on macOS. Nobody has measured it on Windows.
@@ -59,21 +47,18 @@
 - Report at land (artifact audit, 2026-10-24): the suite writes the report page when it passes, before nana-land's final review re-check. So a refused land can leave a page for a tip that never landed.
 - Artifact ages (report-names-artifacts, plan): home, other-project, git-ref and CI artifacts never show an age. When a writer stops, the page shows no change; nothing has written the handoff store since 2026-09-28.
 - Artifact ages (report-names-artifacts, plan): the land page entry shows "age not measured: clone store".
-- Artifact ages (report-names-artifacts, plan): the runtime map's age follows NANA_RUNTIME_MAP_FILE when it is set, not its registered location.
 - Artifact ages (report-names-artifacts, plan; feature-artifact-lines): the CI run records store, A-059, is a fourth clone store. It shows "age not measured: clone store".
 - Artifact block (report-names-artifacts, final review): IDs sort as text within a claim, so A-1000 would sort before A-999. Every ID has three digits today.
 - Artifacts view (artifact-flow, plan): the page cannot say an artifact is unread, because a feature's reads of its own artifacts are not written down.
 - Artifacts view (artifact-flow, plan): each tracked artifact's age adds one git count. The ages share one log walk, so the cost stays below 30 process starts.
 - Artifacts view (artifact-flow, final review): a Reads line the checker flags still keeps the entry off the first list. This ledger has none.
 - Artifacts (artifact-flow, final review): an entry with an empty run renders its card line as "Made by: : …"; the checker already flags it.
-- Overview (page-overview, plan): the Records section has no line cap. Many blocking asks, gap IDs or stale entries lengthen it; the assessments line names 35 features today.
+- Overview (page-overview, plan): the Records section has no line cap. Many blocking asks, gap IDs or stale entries lengthen it.
 - Overview (page-overview, plan): "Must decide" is the `blocking` tag. A decision that holds no work has no mark of its own.
 - Overview (page-overview, plan): a closed question leaves the page only when someone moves it under `## Closed questions`. One closed in place still lists.
 - Overview (page-overview, plan): stale counts registry entries only; a plain-path artifact on a `Made by:` line is not counted.
-- Overview (page-overview, plan): 7 of the 34 out-of-date assessments belong to frozen desk features.
 - Overview (page-overview, plan): ages count to HEAD's commit time, not today. A page built long after HEAD reads young; this keeps R-1012.
 - Overview (page-overview, plan): 47 of 80 entries carry no measured age, so the stale count speaks for 33 entries. The beside counts say so, not which.
-- Overview (page-overview, plan): the not-passed count is this clone's last measured run; on a Mac all six are Windows-only skips. Another clone's page differs.
 - Overview (page-overview, plan): Gaps names parked items by count only; each Product line marks a parked row, and its claims sit on its home feature's page.
 - Overview (page-overview, plan): the Product view's `· gap` mark (status not implemented) and the overview's gap (not made and read by code) answer different questions.
 - Overview (page-overview, plan): other projects get the overview at once through the shared script, without a template tag.
@@ -125,7 +110,6 @@
 - Needs you (ask-stakes, final review): the gains-line test checks only the present case; the absent case relies on the older exact-line test.
 - Ask parser (page-needs-you, final review): `inlineValue` names a variable `escaped` that does no escaping; harmless with fixed labels.
 - Ask parser (ask-stakes, plan O5): a gains value written on lines below its label is not read, so the page shows no gains line for that question.
-- Records summary (records-counts, final review): the summary writes `failed`, `skipped` and `unmeasured` inline while `OVERVIEW_LABELS` gains unused `skipped` and `unmeasured` labels, so renaming those labels changes nothing.
 - Visual check (visual-check, seat check): the `--control` run has no phone frame among the references, so the 380 px spec line is always unjudged there.
 - Visual check (visual-check, final review): R-3143's test does not check the usage line, nor `--reference` given with `--before`; the code handles both.
 - Visual check (visual-check, final review): the R-3145 demo fixture is a made-up two-line answer, not the adversary's recorded hive answer the plan named.

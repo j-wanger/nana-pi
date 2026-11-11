@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/tests/report-fixtures.mjs
  * @purpose Build caller-scoped product report fixtures and render their written pages in isolated browser contexts.
- * @inputs Caller-supplied temporary folders, ledger and runtime data, commit dates, HTML and hashes.
- * @outputs Repository helpers, ledger builders, a caller-scoped page writer, the artifact-flow ledger, runtime files, rendered nodes and bounded async results.
+ * @inputs Caller-supplied temporary folders, ledger data, commit dates, HTML and hashes.
+ * @outputs Repository helpers, ledger builders, a caller-scoped page writer, the artifact-flow ledger, rendered nodes and bounded async results.
  * @effects disk (temporary fixture files), process (git and isolated VM scripts).
  * @errors Fixture errors and per-case timeouts throw to the calling test.
  */
@@ -75,13 +75,6 @@ export function artifactFlowLedger() {
     "Reads: A-003 · REQUIREMENTS.md  ", "", table([["R-1200", "implemented"], ["R-1201", "implemented"], ["R-1202", "implemented"], ["R-1203", "implemented"], ["R-1204", "implemented"], ["R-1205", "implemented"], ["R-1206", "implemented"]]).trimEnd(), "",
     "## FEAT-121 · Internal maker", "Purpose: make an internally read artifact.", "Status: active", "Artifact: A-003 · internal output · tracked: HANDOFF.md · build: REQUIREMENTS.md", "", table([["R-1210", "implemented"]]).trimEnd(),
   ].join("\r\n");
-}
-export function writeRuntimeFile(root, data) {
-  const common = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd: root, encoding: "utf8" }).stdout.trim();
-  const file = path.join(path.resolve(root, common), "nana", "runtime-map.json");
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(data));
-  return file;
 }
 export function commitAt(temp, repo, message, date, files, { messageFile = false } = {}) {
   for (const [name, content] of Object.entries(files)) {

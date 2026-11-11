@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * @module scripts/code-map.mjs
- * @purpose Wrap the template generator with exact launch paths, blind reach and planner precedent search, retaining artifact readers and measured tests in --impact (G-004, G-007, G-009, G-010, G-011).
- * @inputs argv (--write | --render | --check | --search <need> | --impact <file...>), code-map.config.json, module sources, REQUIREMENTS.md, git and runtime data (NANA_RUNTIME_MAP_FILE override)
- * @outputs docs/code-map.md on --write, check findings, ranked precedent suggestions with callees, or marked impact callers, blind-reach tests, callees, artifact writers and readers, freshness and measured test files
- * @effects disk (reads config, module sources, REQUIREMENTS.md and runtime data, writes the map), process (exits non-zero when --check or --write finds a problem; reads git for --impact's staleness check)
+ * @purpose Wrap the template generator with exact launch paths, blind reach and planner precedent search, retaining artifact readers in --impact (G-004, G-007, G-009, G-010, G-011).
+ * @inputs argv (--write | --render | --check | --search <need> | --impact <file...>), code-map.config.json, module sources and REQUIREMENTS.md
+ * @outputs docs/code-map.md on --write, check findings, ranked precedent suggestions with callees, or marked impact callers, blind-reach tests, callees, artifact writers and readers
+ * @effects disk (reads config, module sources and REQUIREMENTS.md, writes the map), process (exits non-zero when --check or --write finds a problem)
  * @errors exit 1 with the problem list when a header is missing or malformed, an import breaks the layer direction, or a repo-code/untraced program lacks a reasoned launchAlwaysRun entry; an artifact note for an unusable ledger; a thrown Error for a bad config or unknown mode
  */
 // A shim, not a copy. The generator is ONE source — the template every project
@@ -12,7 +12,6 @@
 // runs that file, so the repo lives under the rule it ships. Not a symlink: a win32
 // checkout does not keep one.
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { dirname, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,8 +27,6 @@ import {
 	untracedTests,
 	writeMap as writeMapAt,
 } from "../templates/typescript/template/scripts/code-map.mjs";
-import { checkoutDrift, dataPath, formatFreshness, formatRuntime, hashFile, loadRuntime } from "../packages/nana-pack/lib/runtime-map.mjs";
-import { MAIN_REF } from "../packages/nana-pack/lib/land-config.mjs";
 import { addLaunchLinks } from "./code-map-launch.mjs";
 import { IMPACT_LABELS } from "./code-map-launch-config.mjs";
 import { formatSearch, searchCode } from "./code-search.mjs";
@@ -38,7 +35,6 @@ import {
 	ARTIFACT_NO_IMPORT_PATH, ARTIFACT_NO_LIVE_ENTRY, ARTIFACT_READ_BY, ARTIFACT_READS,
 	ARTIFACT_STAR, ARTIFACT_WRITES,
 } from "./code-map-launch-config.mjs";
-import { NOTE_PREFIX } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 
 /** This repo's root, resolved through symlinks, whatever the cwd. */
 export const REPO_ROOT = resolve(
@@ -131,46 +127,12 @@ export function repoGraph(root = REPO_ROOT) {
 	return buildGraph(collectModules(root, config), config);
 }
 
-/** The same repo-relative path each `--impact` argument resolves to inside the generator's own `main` (R-1272). */
+/** The same repo-relative path each `--impact` argument resolves to inside the generator's own `main`. */
 function resolveImpactPaths(args, root, graph = repoGraph(root)) {
 	return args.map((a) => {
 		const rel = relative(root, resolve(a)).split(sep).join("/");
 		return posix.normalize(existsSync(resolve(a)) || graph.modules.has(rel) ? rel : a);
 	});
-}
-
-/** Compare a measured tip with main without surfacing git's diagnostics for an absent tip (R-2529). */
-export function relationToMain(root, tip, { gitRunner = spawnSync } = {}) {
-	const run = (args) => gitRunner("git", args, { cwd: root, encoding: "utf8" });
-	const main = run(["rev-parse", "--verify", `${MAIN_REF}^{commit}`]);
-	if (main.status !== 0) return { kind: "not-on-main" };
-	if (main.stdout.trim() === tip) return { kind: "same" };
-	const ancestor = run(["merge-base", "--is-ancestor", tip, MAIN_REF]);
-	if (ancestor.status !== 0) return { kind: "not-on-main" };
-	const count = run(["rev-list", "--count", `${tip}..${MAIN_REF}`]);
-	if (count.status !== 0 || !/^\d+$/.test(count.stdout.trim())) return { kind: "not-on-main" };
-	return { kind: "past", commits: Number(count.stdout.trim()) };
-}
-
-/**
- * The `--impact` runtime block (R-1272, R-1273, R-2528, R-2529, R-2534): freshness and the
- * measured test files for each named path, or one measure note when no runtime data exists.
- */
-export function runtimeBlock(root, argv, { env = process.env, now = () => new Date(), gitRunner = spawnSync } = {}) {
-	const git = (args, options) => gitRunner("git", args, { encoding: "utf8", ...options });
-	const file = dataPath(root, { env, git });
-	const loaded = loadRuntime(file);
-	if (!loaded.ok) return `\n${NOTE_PREFIX} ${loaded.reason}; run npm run map:measure\n`;
-	const paths = resolveImpactPaths(argv.slice(1), root);
-	const tracked = gitRunner("git", ["ls-files"], { cwd: root, encoding: "utf8" });
-	const trackedFiles = tracked.status === 0 ? tracked.stdout.split("\n").filter(Boolean) : [];
-	const hashOf = (f) => hashFile(resolve(root, f));
-	const drift = checkoutDrift(loaded.data, { tracked: trackedFiles, hashOf });
-	const mainRelation = typeof loaded.data.tip === "string" && loaded.data.tip
-		? relationToMain(root, loaded.data.tip, { gitRunner })
-		: { kind: "same" };
-	const freshness = formatFreshness(loaded.data, { drift, mainRelation, now });
-	return `\n${freshness ? `${freshness}\n` : ""}${formatRuntime(loaded.data, paths, { hashOf })}\n`;
 }
 
 export async function artifactBlock(root, argv, { load = async () => {
@@ -249,10 +211,6 @@ export function repoMain(argv, root = REPO_ROOT) {
 	return main(argv, root);
 }
 
-function printRuntimeBlock(root, argv) {
-	process.stdout.write(runtimeBlock(root, argv));
-}
-
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
 	const argv = process.argv.slice(2);
 	const mode = argv[0] ?? "--write";
@@ -269,7 +227,6 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
 	} else code = repoMain(argv, REPO_ROOT);
 	if ((argv[0] ?? "--write") === "--impact") {
 		process.stdout.write(await artifactBlock(REPO_ROOT, argv));
-		printRuntimeBlock(REPO_ROOT, argv);
 	}
 	process.exit(code);
 }

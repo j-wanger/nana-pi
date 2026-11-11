@@ -17,8 +17,6 @@ export const PAGE_SHAPING_PATHS = Object.freeze([
   "packages/nana-pack/lib/handoff-asks.mjs",
   "packages/nana-pack/lib/handoff-issues.mjs",
   "packages/nana-pack/lib/land-config.mjs",
-  "packages/nana-pack/lib/runtime-map.mjs",
-  "packages/nana-pack/lib/runtime-map-config.mjs",
   "packages/nana-pack/lib/land-ci.mjs",
   "packages/nana-pack/lib/suite-records.mjs",
   "packages/nana-pack/lib/build-records.mjs",

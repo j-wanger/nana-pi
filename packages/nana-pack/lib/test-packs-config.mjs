@@ -137,7 +137,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/roster-notice.test.mjs": "land",
   "packages/nana-pack/tests/rulings.test.mjs": "land",
   "packages/nana-pack/tests/runtime-land.test.mjs": "module",
-  "packages/nana-pack/tests/runtime-map.test.mjs": "module",
+  "packages/nana-pack/tests/code-map-artifacts.test.mjs": "module",
   "packages/nana-pack/tests/skill-claims.test.mjs": "land",
   "packages/nana-pack/tests/setup-retire.test.mjs": "module",
   "packages/nana-pack/tests/suite-records.test.mjs": "module",

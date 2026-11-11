@@ -21,8 +21,6 @@ import { admit, complete, ledgerPaths, reviewTextPath, withReviewLedgerLock } fr
 import { realPath } from "../lib/real-path.mjs";
 import * as landConfig from "../lib/land-config.mjs";
 const { LAND_NOTE_PREFIX, LAND_TIP_ENV } = landConfig;
-import { COMPLETION_FILE, COVERAGE_ENV } from "../lib/runtime-map-config.mjs";
-import { checkoutDrift, hashFile } from "../lib/runtime-map.mjs";
 
 export const TEST_LOCKED = fileURLToPath(new URL("../../../scripts/test-locked.mjs", import.meta.url));
 export const PI_REVIEW = fileURLToPath(new URL("../bin/pi-review.mjs", import.meta.url));

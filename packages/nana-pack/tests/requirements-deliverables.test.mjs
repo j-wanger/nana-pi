@@ -15,7 +15,6 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { parseLedger } from "../../../scripts/requirements-tree.mjs";
 import * as deliverablesModule from "../../../scripts/deliverables.mjs";
 import * as productReportModule from "../../../scripts/product-report.mjs";
-import { DATA_SUBPATH } from "../lib/runtime-map-config.mjs";
 import { STORE_SUBPATH } from "../lib/suite-records-config.mjs";
 import { BUILD_RECORDS_SUBPATH } from "../lib/build-records-config.mjs";
 import {
@@ -424,7 +423,7 @@ mkdirSync(join(project, "readers", "nested"), { recursive: true });
 mkdirSync(join(project, "docs"), { recursive: true });
 mkdirSync(join(project, "src"), { recursive: true });
 writeFileSync(join(project, "scripts", "make.mjs"), "export const make = true;\n");
-writeFileSync(join(project, "scripts", "runtime-measure.mjs"), "export const measure = true;\n");
+writeFileSync(join(project, "scripts", "make-record.mjs"), "export const record = true;\n");
 writeFileSync(join(project, "readers", "nested", "read.mjs"), "export const read = true;\n");
 writeFileSync(join(project, "docs", "artifact.md"), "artifact\n");
 writeFileSync(join(project, "src", "é.mjs"), "export const unicode = true;\n");
@@ -434,7 +433,7 @@ const pathLedger = tree([
   "Made by: R-001 · build: readers",
   "Made by: R-001 · review: src/é.mjs",
   "Made by: R-001 · land: scripts/make.mjs · docs/artifact.md",
-  "Made by: R-001 · land: scripts/runtime-measure.mjs · runtime-map",
+  "Made by: R-001 · land: scripts/make-record.mjs · record-store",
   "Made by: R-001 · suite: missing.mjs",
   "Made by: R-001 · build: ignored.tmp",
   "Made by: R-001 · hook: staged.mjs",
@@ -458,7 +457,7 @@ const staged = git(repo, "add", "project/staged.mjs");
 if (staged.status !== 0) setupFailure += staged.stderr;
 const pathRun = run(scratch, process.execPath, [CLI, "--root", project]);
 const pathNotes = (pathRun.stdout ?? "").split(/\r?\n/).filter((line) => line.includes("is not tracked at HEAD"));
-const missingPaths = ["runtime-map", "missing.mjs", "ignored.tmp", "staged.mjs", "scripts\\make.mjs", "missing-two.mjs", "docs/missing-artifact.md", "missing-reader.mjs"];
+const missingPaths = ["record-store", "missing.mjs", "ignored.tmp", "staged.mjs", "scripts\\make.mjs", "missing-two.mjs", "docs/missing-artifact.md", "missing-reader.mjs"];
 const passingPaths = ["scripts/make.mjs", "readers", "src/é.mjs", "docs/artifact.md"];
 
 const noGit = join(scratch, "not-git");
@@ -581,7 +580,6 @@ const repositoryParsed = parseLedger(repositoryLedger);
 const repositoryFields = deliverableFieldLinesByRow(repositoryParsed);
 
 const expectedAgeTable = {
-  [`<git common dir>/${DATA_SUBPATH}`]: { run: "land", writer: "scripts/runtime-measure.mjs" },
   [`<git common dir>/${STORE_SUBPATH}`]: { run: "suite", writer: "packages/nana-pack/lib/suite-records.mjs" },
   [`<git common dir>/${BUILD_RECORDS_SUBPATH}`]: { run: "build", writer: "packages/nana-pack/lib/build-records.mjs" },
 };
@@ -597,7 +595,7 @@ const multipleWriterSuiteLedger = registryTree(
 const multipleWriterSuiteEntry = artifactRegistry(parseLedger(multipleWriterSuiteLedger), ["packages/nana-pack/lib/suite-records.mjs", "scripts/test-locked.mjs"]).byId.get("A-002");
 const multipleWriterSuiteNotes = checkDeliverables(parseLedger(multipleWriterSuiteLedger), ["packages/nana-pack/lib/suite-records.mjs", "scripts/test-locked.mjs"]).notes;
 const repositoryRegistry = artifactRegistry(repositoryParsed, git(repositoryRoot, "ls-files", "-z").stdout.split("\0").filter(Boolean));
-const repositoryBindings = ["A-006", "A-032", "A-033"].map((id) => {
+const repositoryBindings = ["A-006", "A-033"].map((id) => {
   const entry = repositoryRegistry.byId.get(id);
   return [id, entry, deliverablesModule.artifactAgeTableKey?.(entry)];
 });

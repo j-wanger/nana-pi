@@ -4,22 +4,20 @@
  * @purpose The canonical test runner — run every collected `*.test.mjs` file in its own process tree with a
  *  fresh temp HOME and report one line each.
  * @inputs argv (--verbose, --self-test, --jobs=N, --shard=i/N, --pack=list, --changed-from=ref, --changed-tests-from=ref, path substrings), env NANA_TEST_SELFTEST, NANA_TEST_TIMEOUT_MS,
- *  NANA_COVERAGE_DIR (runtime-map's coverage knob), NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
+ *  NANA_SUITE_RECORD_FILE (whole-run record knob), PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, the test files directly under each package's tests/
  *  dir and apps/bench/test (e2e and fixture dirs excluded), the declared run-alone
  *  list (test-runner-config.mjs), and on win32 the declared Windows skip list (windows-skips-config.mjs)
  * @outputs one PASS / FAIL / SKIP line per file with its check counts and timing, the first 20 failing lines of a red
  *  file in non-verbose mode (last stderr lines when no failure line exists), one counted FAIL line when a finished file's temporary folder remains busy,
  *  a totals line with warnings and the self-test verdict, and the exit code; with
  *  --jobs=N greater than 1 the same report apart from timings and file-block order, each file's shown output
- *  and result line written together as one block; while NANA_COVERAGE_DIR is set, also the knob line and,
- *  per file, a coverage folder with a path/label/seconds record, plus one completion record naming the
- *  collected file count; while NANA_SUITE_RECORD_FILE names a file, one schema-1 run record with the default per-file limit and, for pack runs, complete selection metadata
+ *  and result line written together as one block; while NANA_SUITE_RECORD_FILE names a file,
+ *  one schema-1 run record with the default per-file limit and, for pack runs, complete selection metadata
  * @effects process (spawns each file as `node --experimental-strip-types` in its own group with a child env
  *  scrubbed of every ambient NANA_* but the NANA_TEST_* knobs, and of PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR, kills that group or taskkills the tree on
  *  timeout, SIGINT or SIGTERM), disk (a mkdtemp scratch dir, a per-file temp HOME and the self-test
  *  fixtures, with each finished file's removals retried and all removed on every exit path when possible;
- *  while NANA_COVERAGE_DIR is set, a record and a completion
- *  file under that folder, never removed by this runner; while NANA_SUITE_RECORD_FILE is set, its run record)
+ *  while NANA_SUITE_RECORD_FILE is set, its run record)
  * @errors exit 1 when any file failed, timed out, died on a signal, matched nothing, left a temporary
  *  folder that survived its retries, or a self-test fixture missed its expected verdict; exit 130 on
  *  SIGINT and 143 on SIGTERM; exit 0 otherwise
@@ -33,15 +31,6 @@
 // knobs) plus PI_CODING_AGENT_DIR and CLAUDE_CONFIG_DIR scrubbed from the child env, so the caller's context cannot
 // change what the suite tests. Nothing under any fixture(s)/ directory is
 // ever collected.
-//
-// While NANA_COVERAGE_DIR (the runtime-map knob, imported by name from runtime-map-config.mjs)
-// names a folder, the runner prints it once before the first file's line, gives each collected
-// file its own run-position subfolder as that file's NODE_V8_COVERAGE (so Node's per-file V8
-// coverage lands there, its own and any child's that inherits the variable), writes a
-// {path, label, seconds} record there for every file including a SKIP, and writes one completion
-// record naming the collected file count once the loop ends. The knob sits outside NANA_TEST_ on
-// purpose: R-618's scrub above already keeps it out of every test file's own env with no new
-// code. Unset (the default), none of this runs and nothing changes.
 //
 // One line per file — PASS / FAIL / SKIP — then a total; exits 1 if any file failed.
 // The verdict is the exit code: a file FAILs if it exits non-zero, dies on a signal, times
@@ -71,7 +60,6 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { killProcessTree } from "../packages/nana-pack/lib/process-tree.mjs";
 import { RECORD_FILE_ENV, RECORD_LINE_PREFIX, RECORD_SCHEMA } from "../packages/nana-pack/lib/suite-records-config.mjs";
 import { WINDOWS_SKIPS } from "../packages/nana-pack/lib/windows-skips-config.mjs";
@@ -476,16 +464,8 @@ function removeFinishedTemp(name, folder) {
 const width = Math.max(...files.map((f) => display(f).length));
 const started = Date.now();
 
-// ── the runtime-map coverage knob (R-1270): inert unless NANA_COVERAGE_DIR is set ──────────────
-const coverageDir = process.env[COVERAGE_ENV] || null;
-if (coverageDir) console.log(`${KNOB_LINE} ${coverageDir}`);
-// Coverage position is the file's place in the collected order, fixed up front — so it stays the
-// collection index regardless of the order files actually run or finish in (R-1470..R-1475 design).
-const coveragePositionOf = new Map(files.map((f, i) => [f, i]));
-const writeRecord = (covFolder, record) => {
-	fs.mkdirSync(covFolder, { recursive: true });
-	fs.writeFileSync(path.join(covFolder, RECORD_FILE), JSON.stringify(record));
-};
+// Collection indices stay fixed regardless of the order files run or finish (R-1470..R-1475).
+const positionOf = new Map(files.map((f, i) => [f, i]));
 
 /** The declared skip reason for a file, or null: a SKIPS entry, else the win32 Windows-skip fallback. */
 function skipReasonFor(file) {
@@ -523,13 +503,11 @@ if (jobs === 1) {
 	try {
 		for (const file of files) {
 			const name = display(file);
-			const covFolder = coverageDir ? path.join(coverageDir, String(coveragePositionOf.get(file)).padStart(4, "0")) : null;
 			const skipReason = skipReasonFor(file);
 			if (skipReason) {
 				tally.SKIP++;
 				console.log(`SKIP  ${name.padEnd(width)}  ${skipReason}`);
-				suiteFiles[coveragePositionOf.get(file)] = { path: rel(file), label: "SKIP", seconds: 0 };
-				if (covFolder) writeRecord(covFolder, { path: rel(file), label: "SKIP", seconds: 0 });
+				suiteFiles[positionOf.get(file)] = { path: rel(file), label: "SKIP", seconds: 0 };
 				continue;
 			}
 			const fx = fixtureOf.get(file);
@@ -537,7 +515,6 @@ if (jobs === 1) {
 			activeFileTmp.add(fileTmp);
 			const home = fs.mkdtempSync(path.join(scratch, "home-"));
 			const env = { ...BASE_ENV, HOME: home, USERPROFILE: home, TMPDIR: fileTmp, TEMP: fileTmp, TMP: fileTmp };
-			if (covFolder) env.NODE_V8_COVERAGE = covFolder;
 			// run from the package dir (the dir holding tests/ or test/), the way every file was written
 			const cwd = fx ? scratch : path.dirname(path.dirname(file));
 			const timeoutMs = fx?.timeoutMs ?? TIMEOUT_MS;
@@ -550,8 +527,7 @@ if (jobs === 1) {
 			checks.skip += rep.s;
 			tally[rep.label]++;
 			console.log(rep.resultLine);
-			suiteFiles[coveragePositionOf.get(file)] = { path: rel(file), label: rep.label, seconds: Number(secs), ...(rep.cause ? { cause: rep.cause } : {}) };
-			if (covFolder) writeRecord(covFolder, { path: rel(file), label: rep.label, seconds: Number(secs) });
+			suiteFiles[positionOf.get(file)] = { path: rel(file), label: rep.label, seconds: Number(secs), ...(rep.cause ? { cause: rep.cause } : {}) };
 			if (rep.warn) warns.push(`WARN ${name}: FAIL line with exit 0`);
 			if (rep.mismatch) selfTestMismatch.push(name);
 			if (!rep.ok) {
@@ -579,15 +555,13 @@ if (jobs === 1) {
 	const perFile = new Array(files.length); // collection-order record of each real file's outcome
 
 	async function runOne(file) {
-		const index = coveragePositionOf.get(file);
+		const index = positionOf.get(file);
 		const name = display(file);
-		const covFolder = coverageDir ? path.join(coverageDir, String(index).padStart(4, "0")) : null;
 		const skipReason = skipReasonFor(file);
 		if (skipReason) {
 			tally.SKIP++;
 			process.stdout.write(`SKIP  ${name.padEnd(width)}  ${skipReason}\n`);
 			suiteFiles[index] = { path: rel(file), label: "SKIP", seconds: 0 };
-			if (covFolder) writeRecord(covFolder, { path: rel(file), label: "SKIP", seconds: 0 });
 			return;
 		}
 		const fx = fixtureOf.get(file);
@@ -595,7 +569,6 @@ if (jobs === 1) {
 		activeFileTmp.add(fileTmp);
 		const home = fs.mkdtempSync(path.join(scratch, "home-"));
 		const env = { ...BASE_ENV, HOME: home, USERPROFILE: home, TMPDIR: fileTmp, TEMP: fileTmp, TMP: fileTmp };
-		if (covFolder) env.NODE_V8_COVERAGE = covFolder;
 		const cwd = fx ? scratch : path.dirname(path.dirname(file));
 		const timeoutMs = fx?.timeoutMs ?? TIMEOUT_MS;
 		const t0 = Date.now();
@@ -611,7 +584,6 @@ if (jobs === 1) {
 		if (!verbose) for (const l of rep.excerpt) block += l + "\n";
 		process.stdout.write(block); // one write: the whole block stays together on a shared stdout
 		suiteFiles[index] = { path: rel(file), label: rep.label, seconds: Number(secs), ...(rep.cause ? { cause: rep.cause } : {}) };
-		if (covFolder) writeRecord(covFolder, { path: rel(file), label: rep.label, seconds: Number(secs) });
 		perFile[index] = { warn: rep.warn ? `WARN ${name}: FAIL line with exit 0` : null, failed: !rep.ok ? name : null, mismatch: rep.mismatch ? name : null };
 		if (fx?.holdsPipe) reapPipeHolder();
 		fs.rmSync(home, finishedRemoveOptions);
@@ -658,10 +630,6 @@ if (beforeSnapshot !== null && afterSnapshot !== null) {
 		tally.FAIL++;
 	}
 }
-if (coverageDir) {
-	fs.mkdirSync(coverageDir, { recursive: true });
-	fs.writeFileSync(path.join(coverageDir, COMPLETION_FILE), JSON.stringify({ files: files.length, failures: tally.FAIL + selfTestMismatch.length }));
-}
 console.log(
 	`\n${files.length} files: ${tally.PASS} PASS, ${tally.FAIL} FAIL, ${tally.SKIP} SKIP, ${warns.length} WARN · checks: ${checks.pass} pass, ${checks.fail} fail, ${checks.skip} skip · ${((Date.now() - started) / 1000).toFixed(1)}s`,
 );
@@ -685,7 +653,6 @@ if (suiteRecordFile) {
 			wallSeconds: Number(((Date.now() - started) / 1000).toFixed(1)),
 			jobs,
 			platform: process.platform,
-			coverage: coverageDir !== null,
 		}));
 	} catch (error) {
 		console.log(`${RECORD_LINE_PREFIX} write failed: ${error?.message ?? "unknown error"}`);

@@ -9,7 +9,6 @@
  */
 import { spawnSync } from "node:child_process";
 import { trackedAtHead } from "../packages/nana-pack/lib/brief-precedent.mjs";
-import { DATA_SUBPATH } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { STORE_SUBPATH } from "../packages/nana-pack/lib/suite-records-config.mjs";
 import { BUILD_RECORDS_SUBPATH } from "../packages/nana-pack/lib/build-records-config.mjs";
 import { globMatch } from "./glob-match.mjs";
@@ -33,9 +32,8 @@ export const READER_KINDS = Object.freeze(["code", "prompt", "person", "rule", "
 export const REASON_REQUIRED = Object.freeze(["manual", "rule", "person", "runtime"]);
 // Chosen: the requirements ledger's heading separator.
 export const PART_SEPARATOR = " · ";
-// Contract (report-names-artifacts must-meet, R-2793): the three clone stores whose records have deterministic readers, keyed from their owning modules' sealed subpaths.
+// Contract (report-names-artifacts must-meet, R-2793): the clone stores whose records have deterministic readers, keyed from their owning modules' sealed subpaths.
 export const ARTIFACT_AGE_TABLE = Object.freeze({
-  [`<git common dir>/${DATA_SUBPATH}`]: Object.freeze({ run: "land", writer: "scripts/runtime-measure.mjs" }),
   [`<git common dir>/${STORE_SUBPATH}`]: Object.freeze({ run: "suite", writer: "packages/nana-pack/lib/suite-records.mjs" }),
   [`<git common dir>/${BUILD_RECORDS_SUBPATH}`]: Object.freeze({ run: "build", writer: "packages/nana-pack/lib/build-records.mjs" }),
 });

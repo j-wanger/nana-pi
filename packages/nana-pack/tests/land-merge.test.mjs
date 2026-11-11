@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/land-merge.test.mjs
- * @purpose Pin land review text, merge, runtime-map and cleanup checks.
+ * @purpose Pin land review text, merge and cleanup checks.
  * @inputs Nana-land fixtures and OS-temp Git repositories.
  * @outputs PASS/FAIL lines and a nonzero exit when a check fails.
  * @effects disk (temporary test repositories and review ledgers).
@@ -21,8 +21,6 @@ import { admit, complete, ledgerPaths, reviewTextPath, withReviewLedgerLock } fr
 import { realPath } from "../lib/real-path.mjs";
 import * as landConfig from "../lib/land-config.mjs";
 const { LAND_NOTE_PREFIX, LAND_TIP_ENV } = landConfig;
-import { COMPLETION_FILE, COVERAGE_ENV } from "../lib/runtime-map-config.mjs";
-import { checkoutDrift, hashFile } from "../lib/runtime-map.mjs";
 import { check as boundedCheck } from './profile-fixture.mjs';
 import { cleanMergeFixture, executeCleanMerge, mergeSnapshot } from './land-fixtures.mjs';
 
@@ -157,32 +155,6 @@ check("a passing land shows its suite's land notes", () => {
 	assert.equal(out.code, 0, out.text); assert.ok(out.text.includes(`${note}\n`)); assert.ok(out.text.includes(`${trailing}\n`)); assert.ok(out.text.includes(`${noFinalNewline}\n`));
 	assert.doesNotMatch(out.text, /ordinary suite output/);
 });
-
-if (process.platform === "win32") console.log("SKIP after a land the runtime data names main's tip and is not stale — R-2526: Windows lands do not measure");
-else {
-// req: R-2531
-check("after a land the runtime data names main's tip and is not stale", () => {
-	const root = tmpDir(path.join(os.tmpdir(), "land-runtime-map-")); const main = repo(root, "main");
-	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\n", "next");
-	const dataFile = path.join(root, "runtime-map.json"); const lockDir = path.join(root, "suite.lock");
-	const fakeSuite = path.join(root, "fake-suite.mjs");
-	writeFileSync(fakeSuite, [
-		'import { mkdirSync, writeFileSync } from "node:fs";',
-		'import path from "node:path";',
-		`const coverage = process.env.${COVERAGE_ENV};`,
-		`if (coverage) { mkdirSync(coverage, { recursive: true }); writeFileSync(path.join(coverage, ${JSON.stringify(COMPLETION_FILE)}), JSON.stringify({ files: 0 })); }`,
-	].join("\n"));
-	const out = runLand({ tree: feature, main, suite: "locked fixture", reviewed: [], runCommand: (_command, cwd, options = {}) => spawnSync(process.execPath, [TEST_LOCKED], {
-		cwd, encoding: "utf8", timeout: 15000,
-		env: { ...options.env, NANA_SUITE_TEST_COMMAND: JSON.stringify([process.execPath, fakeSuite]), NANA_SUITE_LOCK_DIR: lockDir, NANA_RUNTIME_MAP_FILE: dataFile },
-	}) });
-	assert.equal(out.code, 0, out.text); const data = JSON.parse(readFileSync(dataFile, "utf8"));
-	assert.equal(data.tip, git(main, "rev-parse", "refs/heads/main")); assert.equal(data.tip, tip);
-	const tracked = git(main, "ls-files").split("\n").filter(Boolean);
-	const drift = checkoutDrift(data, { tracked, hashOf: (file) => hashFile(path.join(main, file)) });
-	assert.deepEqual(drift, { added: [], removed: [], changed: [], stale: false });
-});
-}
 
 // req: R-977
 check("suite command runs in the source tree", () => {

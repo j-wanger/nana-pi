@@ -22,7 +22,6 @@
 // other work on the machine.
 // Run: node --experimental-strip-types packages/nana-pack/tests/test-runner.test.mjs
 import { tmpDir } from "./tmp-dir.mjs";
-import { COMPLETION_FILE, COVERAGE_ENV, KNOB_LINE, RECORD_FILE } from "../lib/runtime-map-config.mjs";
 import { RECORD_FILE_ENV, RECORD_SCHEMA } from "../lib/suite-records-config.mjs";
 import { WINDOWS_SKIPS } from "../lib/windows-skips-config.mjs";
 import { checkoutSpellingSkipReason } from "../lib/test-runner-config.mjs";
@@ -35,7 +34,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const RUNNER = path.join(REPO, "scripts", "test.mjs");
 const PROCESS_TREE = path.join(REPO, "packages", "nana-pack", "lib", "process-tree.mjs");
-const RUNTIME_MAP_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "runtime-map-config.mjs");
 const SUITE_RECORDS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "suite-records-config.mjs");
 const WINDOWS_SKIPS_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "windows-skips-config.mjs");
 const TEST_RUNNER_CONFIG = path.join(REPO, "packages", "nana-pack", "lib", "test-runner-config.mjs");
@@ -65,7 +63,6 @@ function mkRoot(name, files) {
 	fs.copyFileSync(RUNNER, path.join(root, "scripts", "test.mjs"));
 	fs.mkdirSync(path.join(root, "packages", "nana-pack", "lib"), { recursive: true });
 	fs.copyFileSync(PROCESS_TREE, path.join(root, "packages", "nana-pack", "lib", "process-tree.mjs"));
-	fs.copyFileSync(RUNTIME_MAP_CONFIG, path.join(root, "packages", "nana-pack", "lib", "runtime-map-config.mjs"));
 	fs.copyFileSync(SUITE_RECORDS_CONFIG, path.join(root, "packages", "nana-pack", "lib", "suite-records-config.mjs"));
 	fs.copyFileSync(path.join(REPO, "packages", "nana-pack", "lib", "land-config.mjs"), path.join(root, "packages", "nana-pack", "lib", "land-config.mjs"));
 	fs.copyFileSync(WINDOWS_SKIPS_CONFIG, path.join(root, "packages", "nana-pack", "lib", "windows-skips-config.mjs"));
@@ -469,55 +466,6 @@ for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
 // req: R-915 R-917
 check("termination cleans the active process tree and runner temp roots (external signals on POSIX; handler trigger on Windows)", signalResults.every(Boolean));
 
-// ── case I: the runtime-map coverage knob, unset (R-1270) ────────────────────────────────────
-const rootKnob = mkRoot("knob-unset", {
-	"packages/probe/tests/coverage-env.test.mjs": [
-		'import * as fs from "node:fs";',
-		'fs.writeFileSync(process.env.PROBE_OUT + "/coverage-env.json", JSON.stringify({',
-		"\tcoverage: String(process.env.NODE_V8_COVERAGE), options: String(process.env.NODE_OPTIONS),",
-		"}));",
-		'console.log("PASS coverage-env fixture ran");',
-		"",
-	].join("\n"),
-});
-// This file is itself a test file, so a real `npm run map:measure` sets NODE_V8_COVERAGE on
-// THIS process. Node copies a parent's own NODE_V8_COVERAGE into any child env that lacks the
-// key, even one `run()`'s deleteKeys already stripped it from — so the "absent" cases also
-// delete it from THIS process's own env before spawning (restored after), the same move R-618's
-// scrub test makes for the knob variable itself.
-const v8CoverageDir = path.join(TD, "caller-v8-coverage");
-const ambientV8Coverage = process.env.NODE_V8_COVERAGE;
-delete process.env.NODE_V8_COVERAGE;
-const knobSet = run(rootKnob, [], { NODE_OPTIONS: "--stack-trace-limit=50" }, [COVERAGE_ENV, "NODE_V8_COVERAGE"]);
-const knobAbsent = run(rootKnob, [], {}, [COVERAGE_ENV, "NODE_OPTIONS", "NODE_V8_COVERAGE"]);
-const knobV8Set = run(rootKnob, [], { NODE_V8_COVERAGE: v8CoverageDir }, [COVERAGE_ENV, "NODE_OPTIONS"]);
-if (ambientV8Coverage !== undefined) process.env.NODE_V8_COVERAGE = ambientV8Coverage;
-const knobEnvSet = readJson(knobSet.out_dir, "coverage-env.json");
-const knobEnvAbsent = readJson(knobAbsent.out_dir, "coverage-env.json");
-const knobEnvV8Set = readJson(knobV8Set.out_dir, "coverage-env.json");
-/** No RECORD_FILE or COMPLETION_FILE basename exists anywhere under `dir`. */
-function noKnobFiles(dir) {
-	const stack = [dir];
-	while (stack.length) {
-		const d = stack.pop();
-		let entries;
-		try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { continue; }
-		for (const entry of entries) {
-			const p = path.join(d, entry.name);
-			if (entry.isDirectory()) stack.push(p);
-			else if (entry.name === RECORD_FILE || entry.name === COMPLETION_FILE) return false;
-		}
-	}
-	return true;
-}
-const knobUnsetOk = !knobSet.out.includes(KNOB_LINE) && !knobAbsent.out.includes(KNOB_LINE) && !knobV8Set.out.includes(KNOB_LINE)
-	&& noKnobFiles(rootKnob) && noKnobFiles(knobSet.tmp) && noKnobFiles(knobAbsent.tmp) && noKnobFiles(knobV8Set.tmp)
-	&& knobEnvSet?.options === "--stack-trace-limit=50" && knobEnvSet?.coverage === "undefined"
-	&& knobEnvAbsent?.options === "undefined" && knobEnvAbsent?.coverage === "undefined"
-	&& knobEnvV8Set?.options === "undefined" && knobEnvV8Set?.coverage === v8CoverageDir;
-// req: R-1270
-check("R-1270: with the coverage knob unset, the runner prints no knob line, writes no record or completion file, and passes the caller's NODE_V8_COVERAGE and NODE_OPTIONS unchanged, absent or set", knobUnsetOk);
-
 // ── case I2: the whole-run record knob (R-2546) ─────────────────────────────────────────────
 const rootRecord = mkRoot("suite-record", {
 	"packages/probe/tests/a-pass.test.mjs": [
@@ -539,13 +487,12 @@ const rootRecord = mkRoot("suite-record", {
 function runRecorded(name, args, extra = {}) {
 	const recordFile = path.join(TD, `${name}.json`);
 	fs.rmSync(recordFile, { force: true });
-	const result = run(rootRecord, args, { [RECORD_FILE_ENV]: recordFile, NANA_TEST_TIMEOUT_MS: String(RECORD_LIMIT_MS), ...extra }, extra[COVERAGE_ENV] === undefined ? [COVERAGE_ENV] : []);
+	const result = run(rootRecord, args, { [RECORD_FILE_ENV]: recordFile, NANA_TEST_TIMEOUT_MS: String(RECORD_LIMIT_MS), ...extra });
 	let record = null;
 	try { record = JSON.parse(fs.readFileSync(recordFile, "utf8")); } catch {}
 	return { result, record, recordFile };
 }
-const recordCoverage = path.join(TD, "suite-record-coverage");
-const recordedSerial = runRecorded("record-serial", [], { [COVERAGE_ENV]: recordCoverage, PATH: noPath });
+const recordedSerial = runRecorded("record-serial", [], { PATH: noPath });
 const recordedParallel = runRecorded("record-parallel", ["--jobs=2"], { PATH: noPath });
 const recordByPath = (record) => new Map((record?.files ?? []).map((entry) => [entry.path, entry]));
 // req: R-4023
@@ -560,9 +507,9 @@ const expectedRecordLabels = new Map([
 	["packages/probe/tests/e-signal.test.mjs", "FAIL"],
 	["packages/nana-pack/tests/post-edit-hardening.test.mjs", posix ? "SKIP" : "PASS"],
 ]);
-const recordsMatchOutput = (result, record, entries, expectedJobs, covered) => record?.schema === RECORD_SCHEMA
+const recordsMatchOutput = (result, record, entries, expectedJobs) => record?.schema === RECORD_SCHEMA
 	&& record.exitCode === result.code && record.jobs === expectedJobs && record.platform === process.platform
-	&& record.coverage === covered && typeof record.wallSeconds === "number" && record.wallSeconds >= 0
+	&& typeof record.wallSeconds === "number" && record.wallSeconds >= 0
 	&& record.files.length === expectedRecordLabels.size
 	&& [...expectedRecordLabels].every(([file, label]) => entries.get(file)?.label === label
 		&& typeof entries.get(file)?.seconds === "number" && entries.get(file).seconds >= 0
@@ -589,7 +536,8 @@ spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.i
 const mutationRecordFile = path.join(TD, "mutation-record.json");
 const recordedMutation = run(rootRecordMutation, [], { [RECORD_FILE_ENV]: mutationRecordFile });
 const mutationRecord = JSON.parse(fs.readFileSync(mutationRecordFile, "utf8"));
-const recordedUnset = run(rootKnob, [], {}, [RECORD_FILE_ENV]);
+const rootPlain = mkRoot("record-unset", { "packages/probe/tests/plain.test.mjs": 'console.log("PASS plain fixture");\n' });
+const recordedUnset = run(rootPlain, [], {}, [RECORD_FILE_ENV]);
 function noSuiteRunRecordUnder(dir) {
 	const stack = [dir];
 	while (stack.length) {
@@ -610,13 +558,13 @@ function noSuiteRunRecordUnder(dir) {
 	return true;
 }
 // req: R-2546
-check("R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count, platform and coverage",
-	recordsMatchOutput(recordedSerial.result, recordedSerial.record, serialFiles, 1, true)
-		&& recordsMatchOutput(recordedParallel.result, recordedParallel.record, parallelFiles, 2, false)
+check("R-2546: with the record knob set, the runner writes one run record with every file's label, seconds and cause, each unnamed failure, the exit code, wall seconds, job count and platform",
+	recordsMatchOutput(recordedSerial.result, recordedSerial.record, serialFiles, 1)
+		&& recordsMatchOutput(recordedParallel.result, recordedParallel.record, parallelFiles, 2)
 		&& causesOk
 		&& mutationRecord.exitCode === 1
 		&& mutationRecord.unnamedFailures?.some((failure) => failure.includes("tracked repository files changed by tests: tracked.txt"))
-		&& noSuiteRunRecordUnder(rootKnob) && noSuiteRunRecordUnder(recordedUnset.tmp) && !recordedUnset.out.includes("suite record:"));
+		&& noSuiteRunRecordUnder(rootPlain) && noSuiteRunRecordUnder(recordedUnset.tmp) && !recordedUnset.out.includes("suite record:"));
 
 const filterRecordFile = path.join(TD, "filtered-record.json");
 const filterArgs = ["a-pass", "c-silent"];

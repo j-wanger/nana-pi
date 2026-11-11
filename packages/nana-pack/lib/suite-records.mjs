@@ -208,11 +208,11 @@ function baselineText(current, baseline, { mainTip, now }) {
 		return "no baseline exists (the next local land or hand run records one)";
 	}
 	const age = Math.max(0, Math.floor((Date.parse(now) - timeValue(baseline)) / 3_600_000));
-	return `baseline ${baseline.tip.slice(0, TIP_DIGITS)} age ${age}h coverage ${baseline.coverage ? "yes" : "no"} wall ${numberText(baseline.wallSeconds)}s -> ${numberText(current.wallSeconds)}s`;
+	return `baseline ${baseline.tip.slice(0, TIP_DIGITS)} age ${age}h wall ${numberText(baseline.wallSeconds)}s -> ${numberText(current.wallSeconds)}s`;
 }
 
 function baselineLabels(baseline, filePath) {
-	return (baseline?.files ?? []).filter((file) => file.path === filePath);
+	return finalFiles(baseline).filter((file) => file.path === filePath);
 }
 
 function failureClass(file, current, baseline, records) {
@@ -220,8 +220,6 @@ function failureClass(file, current, baseline, records) {
 		&& (record.files ?? []).some((entry) => entry.path === file.path && entry.label === "PASS"));
 	if (passedAtTip) return "passing in another clean run at this tip";
 	const labels = baselineLabels(baseline, file.path);
-	if (labels.some((entry) => entry.coverage === true && entry.label === "FAIL")
-		&& labels.some((entry) => entry.coverage === false && entry.label === "PASS")) return "failed only under coverage at baseline";
 	if (labels.some((entry) => entry.label === "FAIL")) return "failing at baseline too";
 	return "new";
 }
@@ -235,12 +233,7 @@ export function suiteRecordLines(current, { root, records = readSuiteRecords({ r
 	const failedFiles = final.filter((file) => file.label === "FAIL");
 	const failed = failedFiles.map((file) => `${file.path} [${failureClass(file, current, baseline, records)}; ${file.cause ?? "unknown cause"}]`);
 	for (const name of current.unnamedFailures ?? []) failed.push(`${name} [unnamed]`);
-	const passedOnlyWithoutCoverage = final.filter((file) => {
-		const labels = (current.files ?? []).filter((entry) => entry.path === file.path);
-		return file.label === "PASS" && file.coverage === false
-			&& labels.some((entry) => entry.coverage === true && entry.label === "FAIL");
-	}).map((file) => file.path);
 	const counts = recordCounts(current);
-	const last = `${RECORD_LINE_PREFIX} ${counts.PASS} PASS, ${counts.FAIL} FAIL; failed: ${failed.length ? failed.join(", ") : "none"}; passed only without coverage: ${passedOnlyWithoutCoverage.length ? passedOnlyWithoutCoverage.join(", ") : "none"}`;
+	const last = `${RECORD_LINE_PREFIX} ${counts.PASS} PASS, ${counts.FAIL} FAIL; failed: ${failed.length ? failed.join(", ") : "none"}`;
 	return [first, last];
 }

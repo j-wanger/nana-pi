@@ -1,5 +1,9 @@
 # FEAT-031 — known bugs
 
+- Runtime map (runtime-map-live, seat): every locked-suite stop finds the suite's process tree through `ps`. Where `ps` fails, the first signal reaches nothing, and 500 ms later the kill step kills only the child's process group, so detached descendants survive.
+- Runtime map (runtime-map-live, final review r3): the kill step signals single PIDs and walks the tree from the child 500 ms after the first signal, even if the child has exited. A PID reused in that window would get SIGKILL; main's group kill has the same kind of window.
+- Runtime map (runtime-map-live, final review r3): a descendant that starts a new process group after the first walk, then loses its parent before the kill step, is never reached. The row promises only what the first signal reached and the root's group.
+
 - lane-checks' batched start-time read records a pid's start time the first time the test sees it, which can be after the process exited; on Windows a reused pid could then be matched and its unrelated tree killed (win-class review 3, SHOULD; inferred, no observed case).
 - lane-checks' refresh skips pids it already tracks, so a reused pid inside one fixture keeps the old start time; one slow batched query leaves every member of that batch without a start time (review 3, NOTEs).
 - R-640's canonical POSIX `/tmp` root is unpinned: the alias checks test only the first temp root (review 2, NOTE 4).
@@ -31,7 +35,7 @@
 - Windows skip list (win-leg-blocking): nothing flags a list entry once someone fixes its cause. The list check catches only a removed or renamed file.
 - Parallel suite (parallel-runner): an argument after the locked suite command counts as a filter, so that run skips the machine-wide lock. A job count passed that way runs the whole suite in parallel without the lock. Main does the same for the verbose flag.
 - Parallel suite (parallel-runner): the pool ran the full suite three times on this Mac. The seat compared two runs on the merged tip with CI's serial macOS run: every file matched. Since the ci-jobs lane (2026-10-22), CI runs the pool at four files on every leg.
-- Parallel suite (parallel-runner): per-file seconds from a parallel run are seconds under load. The runtime map's measure runs through the locked suite, so its seconds now come from a parallel run too.
+- Parallel suite (parallel-runner): per-file seconds from a parallel run are seconds under load.
 - Parallel suite (parallel-runner): outside load still reaches files off the run-alone list, such as a builder's single test file or a mutation run's parts. The seat rule against splitting a run beside a full suite stands.
 - Parallel suite (parallel-runner): in a parallel run, verbose output appears when a file ends, not while it runs.
 - Parallel suite (parallel-runner): the default of four jobs ignores the machine's core count. On a small machine, set a lower job count.
@@ -89,7 +93,6 @@
 - Suite records (suite-records, plan): a baseline older than 300 runs reads as none.
 - Suite records (suite-records, plan): a commit made during a run is not seen. The record names the HEAD the run started at.
 - Suite records (suite-records, plan): a runner crash leaves no record.
-- Suite records (suite-records, plan): runs made before a lane's first commit count to no lane.
 - Suite records (suite-records, final review r1): the land's rerun loop reuses one record file and does not clear it between files. If a rerun child dies before writing, the previous run's record is read, so only the stored record's labels are wrong; the exit code stays nonzero.
 - Suite records (suite-records, final review r1): a prune error after the record is stored, such as EBUSY on Windows, replaces the two closing lines with one problem line. The exit code is unaffected.
 - Suite records (suite-records, final review r1): every stored run re-reads main's whole history with `rev-list --parents`. It is cheap at this repo's size but grows with history.

@@ -2,7 +2,7 @@
 /**
  * @module scripts/product-report.mjs
  * @purpose Builds a deterministic HTML product ledger from the requirements tree, deliverable checks, HANDOFF asks, and repository provenance.
- * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional GitHub issue reader and CI budget, the HTML template, repository root and output path, runtime data, suite records, and the build ledger.
+ * @inputs REQUIREMENTS.md, its parsed artifact registry, its ledger folder's HEAD tree and history through an injected git runner, HANDOFF.md, an optional GitHub issue reader and CI budget, the HTML template, repository root and output path, suite records, and the build ledger.
  * @outputs A complete product ledger HTML file with Overview maker links, one-line Product deliverables, feature-detail deliverable blocks and artifact cards with class-bound ages, two Artifacts lists with maker links, feature artifact index lines, ordered stage and constraint metadata, and an exported report model and renderer.
  * @effects disk (reads sources and stores, atomically writes the report), process (queries git and reports CLI errors).
  * @errors Refuses malformed ledgers, asks or stores, required git provenance failures, and output failures with named diagnostics; optional age failures render their reason.
@@ -20,8 +20,6 @@ import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
 import { ASK_LABELS, parseAskBody } from "../packages/nana-pack/lib/ask-shape.mjs";
 import { issuesPointer, readHandoffIssues } from "../packages/nana-pack/lib/handoff-issues.mjs";
 import { CI_READ_TIMEOUT_MS } from "../packages/nana-pack/lib/land-config.mjs";
-import { dataPath, hashFile, loadRuntime, runtimeEntryChanged } from "../packages/nana-pack/lib/runtime-map.mjs";
-import { NOT_COUNTED } from "../packages/nana-pack/lib/runtime-map-config.mjs";
 import { GITHUB_REMOTE } from "../packages/nana-pack/lib/land-ci.mjs";
 import { TIP_DIGITS } from "../packages/nana-pack/lib/land-config.mjs";
 import { MAX_GIT_BUFFER } from "./git-runner.mjs";
@@ -46,16 +44,12 @@ export const NOT_READ_BY_CODE = "not read by code";
 export const NO_ARTIFACT_NAMED = "artifact not written down";
 // Contract (R-2791): the exact reason prefix for artifact classes intentionally excluded from age measurement.
 export const AGE_NOT_MEASURED_PREFIX = "age not measured: ";
-// Contract (R-2544, R-2545): exact Product-view age labels and reasons.
+// Contract (R-2544): exact Product-view age labels and reasons.
 export const LAST_CHANGED_PREFIX = "last changed";
-export const MEASURED_AT_TIP_PREFIX = "measured at tip";
 export const AGE_UNKNOWN_PREFIX = "age unknown: ";
 export const NOT_TRACKED_AT_HEAD = "not tracked at HEAD";
 export const SHALLOW_CLONE_REASON = "shallow clone";
 export const GIT_HISTORY_FAILURE_REASON = "git could not read the history";
-export const RUNTIME_NO_TIP_OR_TIME = "the runtime data records no tip or time";
-export const RUNTIME_TIME_INVALID = "the runtime data's time does not parse";
-export const TIP_NOT_IN_HISTORY_SUFFIX = " is not in HEAD's history";
 // Contract (R-2744, R-2745): exact clone-shared record age labels and reasons.
 export const RECORD_AT_TIP_PREFIX = "newest record at tip";
 export const NO_READABLE_RECORD = "no readable record";
@@ -68,7 +62,7 @@ export const STALE_AGE_DAYS = 30;
 // Contract (R-2920 to R-2925, R-2927): Overview headings, destinations and finished-line labels.
 export const OVERVIEW_BLOCKS = Object.freeze([
   Object.freeze(["What it does", "#product"]), Object.freeze(["Needs you", "#decisions"]),
-  Object.freeze(["Broken", "#issues"]), Object.freeze(["Gaps", "#product"]), Object.freeze(["Stale", "#features"]),
+  Object.freeze(["Broken", "#issues"]), Object.freeze(["Gaps", "#product"]), Object.freeze(["Stale", "#artifacts"]),
 ]);
 // chosen (R-3053): show three consequential asks on the Overview while linking the remainder.
 export const NEEDS_YOU_ASK_CAP = 3;
@@ -77,9 +71,7 @@ export const OVERVIEW_LABELS = Object.freeze({
   mustDecide: "Must decide", since: "since", questions: "Open questions in the ledger",
   recommendation: ASK_LABELS.recommends, question: ASK_LABELS.question, gains: ASK_LABELS.gains, cost: ASK_LABELS.cost,
   otherwise: ASK_LABELS.otherwise, noneRecorded: ASK_LABELS.none,
-  violated: "Violated", notPassed: "Did not pass in this clone's last measured run",
-  failed: "failed", skippedOnly: "skipped only", skipped: "skipped", unmeasured: "unmeasured", noRecordedRun: "no recorded run", noRun: "implemented rows with no recorded run (unmeasured)",
-  runtimeMissing: "no recorded run: ", deliverableGaps: "Deliverables code does not make and read",
+  violated: "Violated", deliverableGaps: "Deliverables code does not make and read",
   notes: "deliverable notes", artifactGaps: "Artifacts with no declared reader",
   staleArtifacts: `Artifacts older than ${STALE_AGE_DAYS} days before HEAD's commit`,
   notMeasured: "age not measured", unknown: "age unknown", noDeliverables: "no deliverable lines",
@@ -90,28 +82,6 @@ export const DETAIL_HEADINGS = Object.freeze({ deliverables: "Deliverables", art
 export const ARTIFACT_WALK_FLAGS = Object.freeze(["-z", "-c", "--name-only", "--relative", "--root", "--no-renames", "--no-show-signature"]);
 // contract (R-1511): the prefix every cited-test file link is built from.
 const GITHUB_BLOB_PREFIX = "https://github.com/";
-
-// contract (R-1650, R-1651): the two recorded labels the not-passed rule reads. Module scope, and
-// only buildReport (never renderInto, which runs through String()) reads them.
-const PASS_LABEL = "PASS";
-const FAIL_LABEL = "FAIL";
-
-// The unique files a row's evidence cites, in citation order (R-1650..R-1655: the rule works on a
-// row's unique cited files, never one entry per cited test).
-function uniqueFilesOf(evidence) {
-  const files = [];
-  for (const { file } of citedTestsOf(evidence)) if (!files.includes(file)) files.push(file);
-  return files;
-}
-
-// R-1650/R-1651/R-1652/R-1653: did not pass when any cited file's recorded label is FAIL, or when
-// every cited file has a recorded run and none is PASS. No cited file never counts (R-1650). This
-// reads `runState.label` only — `changed` never enters the decision either way (R-1654).
-function didNotPass(runStates) {
-  if (!runStates.length) return false;
-  if (runStates.some((state) => state?.label === FAIL_LABEL)) return true;
-  return runStates.every((state) => state && state.label !== PASS_LABEL);
-}
 
 // The cited-test rule (must-meet.md, report-test-details-2026-10-19): a citation holding "::", a
 // non-empty title, and a path with "/" and no ":". Split at the first "::". This is deliberately
@@ -224,12 +194,6 @@ function formatArtifactAge(record, commits, headEpoch) {
   return { text: `${LAST_CHANGED_PREFIX} ${plural(commits, "commit")} and ${plural(days, "day")} before HEAD by ${record.hash.slice(0, TIP_DIGITS)}: ${record.subject}`, days };
 }
 
-function formatRuntimeAge(data, commits, headEpoch, measured) {
-  const dirty = Number.isInteger(data.dirty) && data.dirty > 0 ? ` with ${plural(data.dirty, "uncommitted file")}` : "";
-  const days = wholeDays(headEpoch, measured.getTime() / 1000);
-  return { text: `${MEASURED_AT_TIP_PREFIX} ${data.tip.slice(0, TIP_DIGITS)} on ${measured.toISOString()}${dirty}, ${plural(commits, "commit")} and ${plural(days, "day")} before HEAD`, days };
-}
-
 function formatRecordAge(record, commits, headEpoch) {
   const recorded = new Date(record.time);
   const days = wholeDays(headEpoch, recorded.getTime() / 1000);
@@ -237,7 +201,6 @@ function formatRecordAge(record, commits, headEpoch) {
 }
 
 const STORE_READERS_BY_WRITER = Object.freeze({
-  "scripts/runtime-measure.mjs": () => ({ runtime: true }),
   "packages/nana-pack/lib/suite-records.mjs": ({ root, runGit }) => ({ records: readSuiteRecords({ root, runGit }).map((record) => ({ tip: record.tip, time: record.recordedAt })) }),
   "packages/nana-pack/lib/build-records.mjs": ({ commonDir }) => {
     try {
@@ -249,13 +212,12 @@ const STORE_READERS_BY_WRITER = Object.freeze({
 
 // Contract (R-2793): the page has exactly one reader key for each sealed age-table key.
 export const STORE_READERS_BY_KEY = Object.freeze(Object.fromEntries(Object.entries(ARTIFACT_AGE_TABLE).map(([key, binding]) => [key, STORE_READERS_BY_WRITER[binding.writer]])));
-const RUNTIME_AGE_KEY = Object.keys(ARTIFACT_AGE_TABLE).find((key) => ARTIFACT_AGE_TABLE[key].writer === "scripts/runtime-measure.mjs");
 
 function recordStoreEntries(key, { root, commonDir, runGit }) {
   return STORE_READERS_BY_KEY[key]?.({ root, commonDir, runGit }) ?? { records: [] };
 }
 
-function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, runtimeReason, ageDays }) {
+function artifactAges({ artifacts, root, gitRunner, trackedPaths, ageDays }) {
   const ages = new Map();
   const setAge = (key, age) => {
     if (typeof age === "string") ages.set(key, age);
@@ -315,9 +277,7 @@ function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, r
     }
   }
 
-  const cloneArtifacts = ageable.filter((artifact) => artifact.className === "clone store");
-  const runtimeArtifacts = cloneArtifacts.filter((artifact) => artifact.tableKey === RUNTIME_AGE_KEY);
-  const recordArtifacts = cloneArtifacts.filter((artifact) => !runtimeArtifacts.includes(artifact));
+  const recordArtifacts = ageable.filter((artifact) => artifact.className === "clone store");
   if (recordArtifacts.length) {
     if (shallow) {
       for (const artifact of recordArtifacts) ages.set(artifact.key, unknownAge(SHALLOW_CLONE_REASON));
@@ -347,26 +307,6 @@ function artifactAges({ artifacts, root, gitRunner, trackedPaths, runtimeData, r
     }
   }
 
-  for (const artifact of runtimeArtifacts) {
-    if (!runtimeData) ages.set(artifact.key, unknownAge(runtimeReason));
-    else if (typeof runtimeData.tip !== "string" || !runtimeData.tip || typeof runtimeData.measuredAt !== "string" || !runtimeData.measuredAt) ages.set(artifact.key, unknownAge(RUNTIME_NO_TIP_OR_TIME));
-    else {
-      const measured = new Date(runtimeData.measuredAt);
-      if (!Number.isFinite(measured.getTime())) ages.set(artifact.key, unknownAge(RUNTIME_TIME_INVALID));
-      else if (shallow) ages.set(artifact.key, unknownAge(SHALLOW_CLONE_REASON));
-      else {
-        let ancestor;
-        try { ancestor = run(["merge-base", "--is-ancestor", runtimeData.tip, "HEAD"]); } catch { ancestor = null; }
-        if (!ancestor || ancestor.status !== 0) ages.set(artifact.key, unknownAge(`tip ${runtimeData.tip.slice(0, TIP_DIGITS)}${TIP_NOT_IN_HISTORY_SUFFIX}`));
-        else {
-          let count;
-          try { count = run(["rev-list", "--count", `${runtimeData.tip}..HEAD`]); } catch { count = null; }
-          const commits = Number(String(count?.stdout ?? "").trim());
-          setAge(artifact.key, count?.status === 0 && Number.isInteger(commits) ? formatRuntimeAge(runtimeData, commits, headEpoch, measured) : unknownAge(GIT_HISTORY_FAILURE_REASON));
-        }
-      }
-    }
-  }
   return ages;
 }
 
@@ -407,8 +347,6 @@ export function renderInto(document, model, { hash = "" } = {}) {
         const info = model.files?.[t.file];
         if (info?.href) { const link = el("a", t.file, li); link.setAttribute("href", info.href); link.setAttribute("target", "_blank"); link.setAttribute("rel", "noopener noreferrer"); }
         else text(li, t.file);
-        const run = info?.run;
-        text(li, run ? ` — File's last measured run: ${run.label}${run.changed ? " · changed since" : ""}` : " — No recorded run");
       }
     }
     return card;
@@ -511,25 +449,14 @@ export function renderInto(document, model, { hash = "" } = {}) {
         for (const line of entry.lines) { const p = el("p", undefined, card); renderSegments(p, line.segments); }
       }
     }
-    el("h3", "Requirements", root); if (model.runtime?.legend) paragraph(root, "", model.runtime.legend); for (const item of feature.rows) row(root, item);
+    el("h3", "Requirements", root); for (const item of feature.rows) row(root, item);
   }
-  if (view === "issues") {
-    if (model.runtime?.legend) paragraph(root, "", model.runtime.legend);
-    for (const item of model.violated) row(root, item);
-    // contract (R-1655): declared inside renderInto, which runs through String() on the page —
-    // a module-scope constant here would throw there.
-    const notPassedHeading = `Implemented rows that did not pass in this clone's last measured run: ${model.notPassed.length}`;
-    const notPassedNote = "A row appears here when a cited file's last recorded run failed, or when every cited file's last recorded run skipped or failed. A file with no recorded run counts neither way.";
-    el("h3", notPassedHeading, root);
-    paragraph(root, "", notPassedNote);
-    for (const item of model.notPassed) row(root, item);
-  }
+  if (view === "issues") for (const item of model.violated) row(root, item);
   if (view === "requirements") {
     const search = el("input", undefined, root); search.setAttribute("type", "search"); search.setAttribute("aria-label", "Search requirements");
     const status = el("select", undefined, root); status.setAttribute("aria-label", "Filter by status"); const featureFilter = el("select", undefined, root); featureFilter.setAttribute("aria-label", "Filter by feature");
     const addOption = (select, value) => { const option = el("option", value || "All", select); option.setAttribute("value", value); };
     addOption(status, ""); for (const value of ["implemented", "untested", "violated", "planned", "retired"]) addOption(status, value); addOption(featureFilter, ""); for (const item of model.features) addOption(featureFilter, item.id);
-    if (model.runtime?.legend) paragraph(root, "", model.runtime.legend);
     const list = el("div", undefined, root); const all = []; for (const item of model.features) for (const r of item.rows) if (!all.some((entry) => entry.id === r.id)) all.push(r);
     const update = () => { list.replaceChildren(); const candidates = featureFilter.value ? (model.features.find((item) => item.id === featureFilter.value)?.rows ?? []) : all; for (const item of candidates) if ((!search.value || `${item.id} ${item.requirement} ${item.evidence}`.toLowerCase().includes(search.value.toLowerCase())) && (!status.value || item.status === status.value)) row(list, item); };
     search.addEventListener("input", update); status.addEventListener("change", update); featureFilter.addEventListener("change", update); update();
@@ -587,34 +514,10 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     }
   } catch { /* no origin, or a runner that throws, is not an error (R-1511) */ }
 
-  // R-1512/R-1514: dataPath calls its git hook with {cwd} only (no encoding), so the hook is
-  // wrapped here to add it; a dataPath throw (no git-common-dir, e.g. not a git checkout at all)
-  // counts as no runtime data, same as a missing, unreadable or wrong-schema file.
-  const runtimeRunner = (args, options = {}) => gitResult(gitRunner, options.cwd ?? root, args, options);
-  let runtimeData = null;
-  let runtimeReason = "no runtime data";
-  try {
-    const loaded = loadRuntime(dataPath(root, { git: runtimeRunner }));
-    if (loaded.ok) runtimeData = loaded.data;
-    else runtimeReason = loaded.reason;
-  } catch { /* a dataPath throw counts as no runtime data (R-1514) */ }
-
-  // R-1513: a cited file's label is marked changed when it, or any file the runtime data credits
-  // it with running, is missing or hashes (cached, since many rows can cite the same file)
-  // differently from the recorded hash.
-  const hashCache = new Map();
-  const hashOf = (file) => { if (!hashCache.has(file)) hashCache.set(file, hashFile(path.resolve(root, file))); return hashCache.get(file); };
-  function runStateOf(file) {
-    if (!runtimeData) return null;
-    const entry = runtimeData.tests?.[file];
-    if (!entry) return null;
-    const changed = runtimeEntryChanged(runtimeData, file, { hashOf });
-    return { label: entry.label, changed };
-  }
   const files = new Map();
   function testsOf(evidence) {
     return citedTestsOf(evidence).map(({ title, file }) => {
-      if (!files.has(file)) files.set(file, { href: githubHref(githubRepo, commit, file), run: runStateOf(file) });
+      if (!files.has(file)) files.set(file, { href: githubHref(githubRepo, commit, file) });
       return { title, file };
     });
   }
@@ -633,10 +536,8 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
       if (claim.artifact) artifactDescriptors.set(`path:${claim.artifact}`, { key: `path:${claim.artifact}`, className: "tracked", location: claim.artifact, plain: true });
     }
   }
-  const runtimeBinding = ARTIFACT_AGE_TABLE[RUNTIME_AGE_KEY];
-  artifactDescriptors.set("overview:runtime", { key: "overview:runtime", live: true, className: "clone store", location: RUNTIME_AGE_KEY, run: runtimeBinding.run, writers: [runtimeBinding.writer] });
   const ageDays = new Map();
-  const ages = artifactAges({ artifacts: [...artifactDescriptors.values()], root, gitRunner, trackedPaths, runtimeData, runtimeReason, ageDays });
+  const ages = artifactAges({ artifacts: [...artifactDescriptors.values()], root, gitRunner, trackedPaths, ageDays });
   const fieldValues = (capability, field) => (capability.capabilityFields?.[field] ?? []).flatMap(({ value }) => field === "Kind" ? [value] : value.split(/,\s*/));
   const featureHeadings = parsed.headings.filter((heading) => heading.id.startsWith("FEAT-"));
   const featureHeadingById = new Map(featureHeadings.map((feature) => [feature.id, feature]));
@@ -814,12 +715,6 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
     };
   }
   const violated = rows.filter((row) => row.status === "violated");
-  // R-1650..R-1655: implemented rows this clone's last measured run did not pass, in ledger order
-  // and without duplicates (rows is the ledger's own flat, already-deduplicated row list).
-  const notPassed = rows.filter((row) => row.status === "implemented" && didNotPass(uniqueFilesOf(row.evidence).map(runStateOf)));
-  // R-1512/R-1514 legend: the label is per file (not per cited test), what NOT_COUNTED excludes,
-  // and — only when there is no runtime data at all — the reason nothing is recorded anywhere.
-  const legend = `Each file's label is reported once, not per cited test — a run covering a file can hide a skipped check inside it. ${NOT_COUNTED}.${runtimeData ? "" : ` No recorded run anywhere in this report: ${runtimeReason}.`}`;
   const questions = parseOpenQuestions(ledgerText);
   const labels = OVERVIEW_LABELS;
   const line = (text) => [{ text }];
@@ -827,12 +722,6 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const shapedAsks = asks.map((ask, index) => ({ ...ask, parsed: parseAskBody(ask.title.body, ask.tag.since), order: index }));
   const blocking = shapedAsks.filter((ask) => ask.tag.kind === "blocking");
   const kindCount = (kind) => shapedAsks.filter((ask) => ask.tag.kind === kind).length;
-  const failed = notPassed.filter((row) => uniqueFilesOf(row.evidence).some((file) => runStateOf(file)?.label === FAIL_LABEL)).length;
-  const noRun = rows.filter((row) => {
-    if (row.status !== "implemented") return false;
-    const cited = uniqueFilesOf(row.evidence);
-    return cited.length > 0 && cited.every((file) => !runStateOf(file));
-  }).length;
   const check = deliverableResult.check;
   const deliverableGaps = check.byCapability.flatMap((capability) => capability.gapRows);
   const parked = check.byCapability.reduce((sum, capability) => sum + capability.parked, 0);
@@ -861,21 +750,20 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   const overviewLines = [
     hasDeliverables ? [line(deliverableLines[0]), ...check.byCapability.map((capability) => line(`${capability.id} · ${capabilityById.get(capability.id).label}: ${capability.countText}`))] : [line(labels.noDeliverables)],
     needsLines,
-    [line(`${labels.violated}: ${violated.length}`), ...idsLine(violated),
-      line(`${labels.notPassed}: ${runtimeData ? `${notPassed.length} · ${labels.failed}: ${failed} · ${labels.skippedOnly}: ${notPassed.length - failed} · ${labels.noRun}: ${noRun} · ${ages.get("overview:runtime")}` : `${labels.runtimeMissing}${runtimeReason}`}`), ...idsLine(notPassed)],
+    [line(`${labels.violated}: ${violated.length}`), ...idsLine(violated)],
     [line(`${labels.deliverableGaps}: ${hasDeliverables ? `${deliverableGaps.length} · ${labels.parked}: ${parked} · ${labels.notes}: ${check.notes.length}` : labels.noDeliverables}`),
       ...(hasDeliverables && deliverableGaps.length ? [line(deliverableGaps.join(", "))] : []),
       line(`${labels.artifactGaps}: ${artifacts.hasRegistry ? `${artifactGaps.length} · ${labels.parked}: ${artifactParked}` : artifacts.emptyText}`), ...(artifactGaps.length ? [artifactGaps.flatMap(({ id }, index) => [...(index ? [{ text: ", " }] : []), { text: id }, ...makerSegments(registry.byId.get(id))])] : [])],
     [line(`${labels.staleArtifacts}: ${artifacts.hasRegistry ? `${staleEntries.length} · ${labels.notMeasured}: ${notMeasured} · ${labels.unknown}: ${unmeasured.length - notMeasured}` : artifacts.emptyText}`),
       ...staleEntries.map((entry) => [{ text: `${entry.id} · ${entry.name} · ${ageDays.get(`registry:${entry.id}`)} days` }, ...makerSegments(entry)])],
   ];
-  const recordsSummary = `Records: violated ${violated.length} · ${runtimeData ? `failed ${failed} · skipped ${notPassed.length - failed} · unmeasured ${noRun}` : labels.noRecordedRun} · Gaps ${deliverableGaps.length} · Stale ${staleEntries.length}`;
+  const recordsSummary = `Records: violated ${violated.length} · Gaps ${deliverableGaps.length} · Stale ${staleEntries.length}`;
   const overview = OVERVIEW_BLOCKS.map(([heading, href], index) => ({ heading, href, lines: overviewLines[index] }));
   const issueItems = issueData?.items ?? [];
   const issueAsks = shapedAsks.map((ask) => ({ number: ask.number, kind: ask.tag.kind, since: ask.tag.since, title: ask.title.title, body: ask.title.body, url: ask.url ?? null, groups: ask.parsed.groups, recommendation: ask.parsed.recommendation }));
   const nextItems = issueItems.filter((item) => item.kind === "next").map((item) => ({ ...item, url: `${issueData.url.replace(/\/$/, "")}/${item.number}` }));
   const issueNotice = issueData?.failure ?? (issueData?.truncated ? "Open issues may be longer than the fetched list." : null);
-  const model = { commit, date, clean: !dirty, askLabels: ASK_LABELS, recordsSummary, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), notPassed: notPassed.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: issueData ? issueAsks : asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), ...(issueData ? { nextItems, issueNotice } : {}), questions, files: Object.fromEntries(files), runtime: { legend } };
+  const model = { commit, date, clean: !dirty, askLabels: ASK_LABELS, recordsSummary, overview, deliverableLines, capabilities, artifacts, features, violated: violated.map((row) => ({ id: row.id, requirement: row.requirement, status: row.status, evidence: row.evidence, tests: testsOf(row.evidence) })), asks: issueData ? issueAsks : asks.map(({ tag, title }) => ({ kind: tag.kind, since: tag.since, title: title.title, body: title.body })), ...(issueData ? { nextItems, issueNotice } : {}), questions, files: Object.fromEntries(files) };
   return { ...model, model, template: await readFile(TEMPLATE, "utf8") };
 }
 
