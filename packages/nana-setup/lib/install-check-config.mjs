@@ -65,11 +65,9 @@ export const PI_TURN = {
   args: ["--offline", "-e", "packages/nana-setup/lib/install-check-turn.mjs", "--provider", "nana-install-check-fixture", "--model", "nana-install-check-turn", "--no-session", "-p"],
   tool: "bash",
   record: ".nana-install-check-turn.json",
-  noteFile: "install-check.md",
   rulingsHeading: "## Standing rulings (nana)",
   seatGuideHeading: "## Seat guide (nana)",
   writingTag: "<nana-writing>",
-  knowledgeMarker: "[nana:knowledge]",
   gateBlockPrefix: "nana-gate: verifier pipe blocked (headless fail-closed):",
   extensionErrorPrefix: "Extension error (",
 };

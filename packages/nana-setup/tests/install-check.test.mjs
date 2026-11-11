@@ -125,7 +125,6 @@ function passingTurnRecord(token) {
   const powershell = installConfig.PI_TURN_POWERSHELL;
   return {
     system: `${token}\n${turn.rulingsHeading}\n${turn.seatGuideHeading}\n${turn.writingTag}`,
-    userMessages: [`${turn.knowledgeMarker} ~/notes/docs/${turn.noteFile}`],
     toolResults: [
       { toolName: turn.tool, isError: true, text: `${turn.gateBlockPrefix} sample` },
       ...(powershell ? [{ toolName: powershell.tool, isError: true, text: `${turn.gateBlockPrefix} sample` }] : []),
@@ -167,7 +166,7 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       fs.mkdirSync(path.join(sessionDir, "memory"), { recursive: true });
       fs.symlinkSync(path.join(home, ".claude/nana-memory/shared"), path.join(sessionDir, "memory/shared"), "dir");
       const hooks = {};
-      for (const hook of HOOKS.filter((item) => !item.platforms || item.platforms.includes(platformName))) {
+      for (const hook of HOOKS) {
         const entry = { type: "command", command: `node ${hook.script}`, timeout: hook.timeout };
         if (platformName === "win32") { entry.command = "node"; entry.args = [hook.script]; }
         const matcher = hook.matcher && typeof hook.matcher === "object" ? hook.matcher[platformName] : hook.matcher;
@@ -264,7 +263,6 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       const notice = "nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra";
       return { status: 0, stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
     }
-    if (joined.includes("nana-knowledge.ts")) return { status: 0, stdout: `${installConfig.PI_TURN.knowledgeMarker} ${installConfig.PI_TURN.noteFile}` };
     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
     return { status: 0, stdout: "" };
   };
@@ -382,13 +380,13 @@ check("pi session: runs with NANA_TEST_TEMP_ROOTS set empty", async () => {
 });
 
 // req: R-1084
-check("spawn: every child goes through the injected spawn (git init twice, Git Bash discovery, install, pi install, pi list, pi session, each hook hit and miss, doctor)", async () => {
+check("spawn: every child goes through the injected spawn (project git init, Git Bash discovery, install, pi install, pi list, pi session, each hook, doctor)", async () => {
   for (const platformName of ["linux", "win32"]) {
     const fixture = recordingRun({ platformName });
     try {
       await fixture.run;
       const joined = fixture.calls.map(({ command, args }) => `${command} ${args.join(" ")}`).join("\\n");
-      assert.equal(fixture.calls.filter((call) => call.args[0] === "init").length, 2);
+      assert.equal(fixture.calls.filter((call) => call.args[0] === "init").length, 1);
       if (platformName === "linux") {
         for (const name of ["nana-setup.mjs", "list", "--mode rpc", "nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"]) assert.ok(joined.includes(name), name);
         assert.ok(fixture.calls.some((call) => call.args.includes("doctor")));
@@ -475,7 +473,7 @@ check("reporting: the first lines name Git Bash on win32 only, then pi and node"
   } finally { fs.rmSync(win.home, { recursive: true, force: true }); fs.rmSync(unix.home, { recursive: true, force: true }); }
 });
 
-const hookGroups = (platform = "darwin", overrides = {}) => HOOKS.filter((h) => !h.platforms || h.platforms.includes(platform)).map((h) => {
+const hookGroups = (platform = "darwin", overrides = {}) => HOOKS.map((h) => {
   const e = { type: "command", command: h.form[platform] === "exec" ? "node" : `node ${h.script}`, timeout: h.timeout, ...(h.form[platform] === "exec" ? { args: [h.script] } : {}) };
   const matcher = Object.hasOwn(overrides, h.label) ? overrides[h.label] : h.matcher && typeof h.matcher === "object" ? h.matcher[platform] : h.matcher;
   return { event: h.event, group: { ...(matcher === null ? {} : { matcher }), hooks: [e] } };
@@ -527,7 +525,7 @@ check("form: a shell-form entry under win32 fails", () => { const rows = hookGro
 check("form: an exec-form entry under darwin fails", () => { const rows = hookGroups(); rows[0].group.hooks[0].args = ["nana-objective.mjs"]; expectBad(rows); });
 // req: R-1082
 check("form: each row's form is read from the sealed table, never inferred from args", () => {
-  for (const platform of ["darwin", "win32"]) for (const h of HOOKS.filter(x => !x.platforms || x.platforms.includes(platform))) assert.ok(["exec", "shell"].includes(h.form[platform]));
+  for (const platform of ["darwin", "win32"]) for (const h of HOOKS) assert.ok(["exec", "shell"].includes(h.form[platform]));
   const rows = hookGroups("darwin"); rows[0].group.hooks[0].args = ["nana-objective.mjs"]; expectBad(rows);
   const winRows = hookGroups("win32"); winRows[0].group.hooks[0].command = "not-node"; expectBad(winRows, "win32");
 });
@@ -597,9 +595,9 @@ check("dispatch: a hook that runs past its timeout is a FAIL whose reason prints
   try {
     const result = await fixture.run;
     assert.ok(result.lines.includes("FAIL hook objective — timeout: timed out after 5432 ms"));
-    for (const hook of HOOKS.filter((row) => !row.platforms || row.platforms.includes("linux"))) {
+    for (const hook of HOOKS) {
       const calls = seen.filter((call) => call.script === hook.script);
-      assert.equal(calls.length, hook.shortLabel === "verifier pipe" ? 2 : 1, hook.label);
+      assert.equal(calls.length, 1, hook.label);
       assert.ok(calls.every((call) => call.timeout === hook.timeout * 1000), hook.label);
     }
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }
@@ -639,7 +637,7 @@ check("shared memory: a link at another key or with another target fails", async
     if (args.includes("install") && args.some(arg => arg.includes("nana-setup.mjs"))) {
       const link = path.join(fixture.home, ".claude/projects", projectKey(path.join(fixture.home, "project")), "memory/shared");
       fs.rmSync(link, { force: true });
-      fs.symlinkSync(path.join(fixture.home, "notes"), link, "dir");
+      fs.symlinkSync(path.join(fixture.home, "project"), link, "dir");
     }
     return result;
   }});
@@ -672,8 +670,8 @@ check("checklist: the check writes only the objective lines and one MEMORY.md li
       assert.equal((objective.match(/installcheck_/g) ?? []).length, 2);
       assert.equal((memory.match(/^- \[/gm) ?? []).length, 1);
       assert.equal(fs.existsSync(path.join(fixture.home, ".claude-placeholder")), false);
-      assert.equal(fixture.calls.find(call => call.args[0] === "init").options.cwd, path.join(fixture.home, "notes"));
-      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative.startsWith(".local/bin/pi-review") || relative.startsWith(".local/bin/pi-worker") || relative === ".pi/agent/nana-pack.json" || relative === ".pi/agent/settings.json" || relative === ".pi/agent/nana-journal.jsonl" || relative === '.pi/agent/nana-context-loads.jsonl' || relative === installConfig.PI_TURN?.record || relative === ["notes", "docs", installConfig.PI_TURN.noteFile].join("/");
+      assert.equal(fixture.calls.find(call => call.args[0] === "init").options.cwd, path.join(fixture.home, "project"));
+      const ownedByInstallOrPi = (relative) => relative === ".claude/settings.json" || relative.startsWith(".claude/projects/") || relative.startsWith(".local/bin/pi-review") || relative.startsWith(".local/bin/pi-worker") || relative === ".pi/agent/nana-pack.json" || relative === ".pi/agent/settings.json" || relative === ".pi/agent/nana-journal.jsonl" || relative === '.pi/agent/nana-context-loads.jsonl' || relative === installConfig.PI_TURN?.record;
       const written = [];
       const visit = (directory) => {
         for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
