@@ -3,18 +3,12 @@
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - pi-review has no verdict re-ask; an unread verdict still needs a new review, unlike claude-review's confirmation path.
-- Clean revision: a derivation killed outright leaves its scratch folder in the OS temp folder. Nothing reclaims it later.
-- Clean revision: on Windows, antivirus might hold a new object and make the scratch removal fail. That would turn a good result into a refusal. It is a guess; one Windows CI run did not show it.
-- Clean revision: a configured clean filter runs during each derivation. It may write outside the scratch folder or give a different result each run; the README says so.
-- Clean revision: dirty-tree snapshot values change once when this lands, so land it with no review running. Old ledger lines stay as they are.
 - Clean revision (review): deriving the tree refreshes the timestamps of objects git re-hashes, so git's cleanup keeps unreachable copies of them a little longer.
 - Clean revision (review): an ignored file force-added and staged, not committed, now reviews as the plain commit, but the reviewer's copy still shows it. nana-land refuses while it stays staged. Unstaged afterwards, the land goes ahead on a review that saw one extra file.
 - Clean revision: each derivation takes about a third of a second longer on nana-pi.
-- Clean revision: no test or wrong-code pair covers the scratch folder's removal or the refusal of a path holding a newline. Neither covers an untracked nested repository with commits. No pair runs on Windows, so only the Windows CI check pins the alternates file's form there.
 - Unread verdict (unread-verdict-loud): a bold first verdict line that agrees with the final line still leaves the round empty. Accepting it would loosen the verdict reader, which is the owner's call.
 - Unread verdict (unread-verdict-loud): exit 1 from pi-review or review-ledger run no longer always means no round was spent. The notice says when one was.
 - Unread verdict (unread-verdict-loud): when the tree changes during a review, the launchers print only the old changed-tree message, with no notice.
-- Unread verdict (unread-verdict-loud): for a review of a dirty tree, the notice names the snapshot revision. nana-land refuses that snapshot's commit.
 - Unread verdict (unread-verdict-loud): a re-review of a revision already counted shows an unchanged count of rounds left. Reviews still running count as used.
 - Unread verdict (unread-verdict-loud): no check pins the empty-output reason or the notice's opening words, which name the item, revision and round. No wrong-code pair runs on Windows.
 - Unread verdict (unread-verdict-loud): the notice has no length cap. It escapes plain control characters, but 8-bit control characters and Unicode line separators reach the terminal raw. The plan said none would.
@@ -99,7 +93,6 @@
 - Review runner (lane-temp-cleanup, attack): pi-review crashes on an uncaught write error when its standard-error pipe closes mid-review, as pi-worker did before lane-temp-cleanup. Fixing it is a review-tool lane.
 - Pid liveness (hard-kill-watcher, plan): review-round keeps its own private pid-liveness copy; the shared `pidAlive` now lives in process-tree.mjs.
 - Claude review launcher (impact-artifacts, round 1): the Opus reviewer also wrote its verdict in its first sentence, as the writing rule asks (inferred). The ledger refused the round, so the lane needed a confirmation round.
-- Review movement (review-movement, plan): the movement reads HEAD's committed ledger. A dirty-tree review with uncommitted ledger edits reads none, or leaves the edits out, with no sign of it.
 - Review movement (review-movement, plan): claude-review computes the movement at launch, so a commit before admission can make the section's head differ from the reviewed revision. `tree movement: none` names no revision.
 - Review movement (review-movement, plan): the base is always the local `main`. A project that branches lanes from elsewhere gets a not-computed line or a movement against `main`, and says so only by its revisions.
 - Review movement (review-movement, plan): a local `main` that lags its remote gives a movement that includes rows already landed upstream.
@@ -122,7 +115,6 @@
 - Keep movement (keep-movement, plan): a `--repo` naming a subfolder gets no movement file and no message, since the ledger check reads relative to that folder (the independent check saw it).
 - Keep movement (keep-movement, plan): a failed movement write is pinned only through a read-only file; root on POSIX can write it, so that case skips there.
 - Review movement (review-movement, final review): claude-review computes the prompt's movement before review-ledger admits the review; a commit in that gap pairs one revision's movement with the next revision's review. keep's file computes its own copy, so it does not inherit the gap.
-- Keep movement (keep-movement, land review): R-2910's test leaves out the plan's uncommitted ledger edit before the first keep, so nothing pins that the file reports HEAD and not the working tree.
 - Carry (one-reviewer): `packages/nana-pack/README.md` omits legacy land from its roster example and compatibility warning; manually copied rosters fail on older checkouts.
 - Carry (one-reviewer): `bin/claude-review.mjs` refuses only exact lowercase `--role land`; other case spellings pass as ordinary reviews.
 - Carry (one-reviewer): `REQUIREMENTS.md` CAP-02 still describes reviewer and land models; retired R-2967's evidence names an obsolete test title.

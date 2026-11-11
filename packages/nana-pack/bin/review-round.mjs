@@ -162,9 +162,7 @@ export function repoKeyOf(tree) {
   throw new Error(`git rev-parse --git-common-dir failed in ${tree} — admission refused`);
 }
 
-/** Repository identity + the reviewed tree's revision parts. repo = repoKeyOf(tree) (shared by all
- *  worktrees of one repository). Non-Git admission throws; legacy `path:` keys are readable only in
- *  existing tallies. Every scope requires a clean tree. */
+/** Resolve the reviewed repository root, retaining git's discovery diagnostic before safety checks. */
 export function reviewRoot(cwd = process.cwd()) {
   const tree = resolve(cwd);
   const r = gitOut(tree, ['rev-parse', '--show-toplevel'], { okStatus: [0, 128] });
@@ -176,6 +174,7 @@ export function reviewRoot(cwd = process.cwd()) {
   return realPath(top, { mustExist: true });
 }
 
+/** Repository identity and clean HEAD. Legacy path keys and snapshot records remain read-only history. */
 export function treeScope(cwd = process.cwd()) {
   const root = reviewRoot(cwd);
   const { head, snapshot } = workingState(root);

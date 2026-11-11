@@ -1132,7 +1132,7 @@ Purpose: Keep reviewer roles separate, suppress unrelated context mutation, appl
 | R-3766 | Both reviewer launchers shall omit tree movement and choose known bugs solely from the brief Feature line. | implemented | `packages/nana-pack/tests/review-paperwork.test.mjs::M2: both prompts omit movement and use only the brief feature known bugs` |
 | R-3767 | Both reviewer launchers shall admit a fourth revision without an extra flag and refuse --over-cap with a message that round caps were removed. | implemented | `packages/nana-pack/tests/review-paperwork.test.mjs::M3: both launchers record fourth revisions and refuse removed flag` |
 | R-3768 | nana-land shall land a verified LAND-covered tip with passing CI without kept review texts or text notes, while refusing absent LAND, same-revision non-LAND, live reviews and uncovered commits. | implemented | `packages/nana-pack/tests/review-paperwork.test.mjs::M4: land needs LAND coverage plus CI but no kept texts` |
-| R-3769 | Both reviewer launchers and nana-land shall read legacy records containing over-cap fields, kept-text references and round numbers with macOS and Windows path spellings without changing those records. | implemented | `packages/nana-pack/tests/review-paperwork.test.mjs::M5: both launchers and land preserve old store records and path spellings` |
+| R-3769 | Both reviewer launchers and nana-land shall read legacy records containing snapshot revisions, over-cap fields, kept-text references and round numbers with macOS and Windows path spellings without changing those records. | implemented | `packages/nana-pack/tests/review-paperwork.test.mjs::M5: both launchers and land preserve old store records and path spellings` |
 | R-3770 | The toolkit shall remove the movement CLI, movement libraries and ledger CLI while preserving the git report helper behavior and passing its map, README, tree and runner-list checks. | untested | Coverage removed; behavior stays. |
 | R-3771 | The shared working pattern, AGENTS, both objective files, seat guide, pack README and requirements skill shall omit the removed review paperwork obligations while preserving marker equality. | untested | Coverage removed; behavior stays. |
 | R-3772 | WHEN HEAD changes during a Claude review seeded with legacy records, the launcher shall exit nonzero, record no verified LAND for either revision, release the reservation, preserve legacy records and leave nana-land refusing. | implemented | `packages/nana-pack/tests/review-paperwork.test.mjs::M8: changed HEAD refuses Claude LAND and releases with legacy records intact` |
@@ -2773,7 +2773,7 @@ Read by: R-291 · person: agents and reviewers can generate an outline to inspec
 Parked: R-291 · since 2026-10-25: no code reads the optional local outline; a code reader would reopen this hold
 Made by: R-1014 · land: scripts/test-locked.mjs, scripts/product-report.mjs · A-045
 Made by: R-1014 · manual: npm run report refreshes the hand report; only fallback locked lands write the clone copy, never CI lands
-Read by: R-1014 · person: the seat reads the land copy's test status at each fallback land (issue 243)
+Read by: R-1014 · person: the seat reads the land copy's capability purposes, outcomes and feature counts at each fallback land (issue 243)
 Parked: R-1014 · since 2026-10-23: the local land copy has no code reader; a session-start line that consumes that copy deletes this line
 Made by: R-616 · suite: scripts/test.mjs
 Made by: R-616 · CI: .github/workflows/ci.yml, scripts/test.mjs · A-034

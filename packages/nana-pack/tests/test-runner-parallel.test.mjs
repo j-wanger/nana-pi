@@ -32,7 +32,6 @@ const RUNNER_SOURCE = fs.readFileSync(RUNNER, "utf8");
 const LIB_DIR = path.join(REPO, "packages", "nana-pack", "lib");
 const LIB_NAMES = [...new Set([
 	...[...RUNNER_SOURCE.matchAll(/from\s+"\.\.\/packages\/nana-pack\/lib\/([\w.-]+\.mjs)"/g)].map((m) => m[1]),
-	"land-config.mjs",
 ])];
 const TD = tmpDir(path.join(os.tmpdir(), "runner-parallel-test-"));
 const posix = process.platform !== "win32";

@@ -145,7 +145,12 @@ import { tmp, outs, PI_WORKER, mod, home, agent, tallyFile, auditFile, resDir, f
 
 // 16. Git-clean normalized checkouts admit as plain HEAD, without writing the real index.
 {
- const revOf = d => mod.resolveRevision(undefined, mod.treeScope(d), d);
+ const revOf = d => {
+  const admitted = mod.admit(["--item", "normalized", "--tree", d], { home, launcher: "test" });
+  if (!admitted.ok) throw new Error(admitted.message);
+  mod.release(admitted.id, { home });
+  return admitted.res.revision;
+ };
  const S = repo("S", 1);
  const index = path.join(S.d, ".git", "index"), before = fs.readFileSync(index), stat = fs.statSync(index);
  const clean = revOf(S.d);

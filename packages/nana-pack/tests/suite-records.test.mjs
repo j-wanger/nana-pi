@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/suite-records.test.mjs
  * @purpose Pin whole-run suite records at the runner-to-locked-suite boundary.
- * @inputs The real locked suite and runner, temporary git repositories, injected suite commands, locks, platforms, and record paths.
+ * @inputs The real locked suite and runner, temporary git repositories, injected suite commands, locks and record paths.
  * @outputs Nine requirement-tagged PASS or FAIL checks and a nonzero exit when one fails.
  * @effects process (runs bounded fixture suites), disk (temporary repositories, a linked worktree, locks, records, and runner fixtures).
  * @errors Reports the requirement title whose record behavior differs and exits nonzero.
@@ -103,7 +103,7 @@ const realStore = path.join(realCommon, ...STORE_SUBPATH.split("/"));
 const realStoreBefore = snapshot(realStore);
 const fakeLog = path.join(TD, "fake.jsonl");
 let caseNumber = 0;
-function runCase({ args = [], cwd = fixture.linked, exit = 0, mode = "pass", extraEnv = {}, tempRoot, platform = "darwin", now } = {}) {
+function runCase({ args = [], cwd = fixture.linked, exit = 0, mode = "pass", extraEnv = {}, tempRoot, now } = {}) {
 	caseNumber++;
 	const caseRoot = tempRoot ?? path.join(TD, `case-${caseNumber}`);
 	if (tempRoot === undefined) fs.mkdirSync(caseRoot, { recursive: true });
@@ -115,7 +115,7 @@ function runCase({ args = [], cwd = fixture.linked, exit = 0, mode = "pass", ext
 		NANA_FAKE_LOG: fakeLog,
 		NANA_FAKE_MODE: mode,
 		NANA_FAKE_EXIT: String(exit),
-		NANA_LOCKED_OPTIONS: JSON.stringify({ tempRoot: caseRoot, platform }),
+		NANA_LOCKED_OPTIONS: JSON.stringify({ tempRoot: caseRoot }),
 		...(now ? { NANA_FAKE_NOW: now } : {}),
 		...extraEnv,
 	};

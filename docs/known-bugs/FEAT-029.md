@@ -18,8 +18,8 @@
 - Impact artifacts (impact-artifacts, plan): the parse chain loads a TypeScript module, so the block needs Node's type stripping, Node 22.18 or later. On an older Node it prints the artifact note every time.
 - Impact artifacts (impact-artifacts, plan): other projects get nothing, because the templates ship no ledger parse.
 - Impact artifacts (impact-artifacts, final review): R-2820's check never asserts the `—` for an artifact with no readers. It names files only by absolute path, never by a relative, `./` or native-separator form.
-- Impact artifacts (impact-artifacts, final review): R-2823's check counts one note per failure case but runs no command. Only R-1278's copied shim checks the kept output and exit code, and only for an unloadable parse.
-- Impact artifacts (impact-artifacts, final review): on a Node older than 22.18, R-1272 and R-2822 fail in the suite rather than degrade to the artifact note.
+- Impact artifacts (impact-artifacts, final review): R-2823's "keep the generator's output and exit code" clause has no command-level check since R-1278's copied-shim fixture was removed.
+- Impact artifacts (impact-artifacts, final review): on a Node older than 22.18, R-2822 fails in the suite rather than degrading to the artifact note.
 - Lane class (lane-class): the script reads both manifests before any prefix rule, so a `--root` without them exits 1 even for a path a prefix rule would have classed (read from the code, not run).
 - Lane class (lane-class): R-2969's row says the project section, but its check matches the line anywhere in AGENTS.md. The byte-identical template check keeps it out of the marker region only.
 - Lane class (lane-class): the script counts every file under nana-setup's bin and lib as install, but the definition names install, uninstall and doctor. Over the 193 past lanes with a recorded class, 12 that changed only the install-check instrument, the README rehearsal or the project command print install where the judged class is ordinary (`seat-check-51e3b35d.md`). They get more review, not less.

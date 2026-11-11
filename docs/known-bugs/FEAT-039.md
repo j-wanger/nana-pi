@@ -114,4 +114,4 @@
 - Visual check (visual-check, final review): R-3143's test does not check the usage line, nor `--reference` given with `--before`; the code handles both.
 - Visual check (visual-check, final review): the R-3145 demo fixture is a made-up two-line answer, not the adversary's recorded hive answer the plan named.
 - Visual check (visual-check, final review): the watchdog writes the child's error stream into reader.md, so a Claude Code warning can add a stray line.
-- Land report (ci-suite, plan residual): a land that uses CI as the suite does not refresh the land report; fallback lands and hand runs do.
+- Land report (ci-suite, plan residual): a land that uses CI as the suite does not refresh the land report; only fallback lands do. Hand report runs refresh the hand report.

@@ -59,7 +59,7 @@ const tally = f => rows(store.ledgerPaths(f.home).tally);
 function seedLegacy(f) {
   const legacy = [
     { v: 1, kind: 'round', repo: 'path:/old/mac checkout', item: 'old', revision: 'old-a', round: 9, overCap: 'historic reason', text: { sha256: 'a'.repeat(64), bytes: 42 } },
-    { v: 2, kind: 'round', repo: 'path:C:\\old checkout\\.git', item: 'old', revision: 'old-b', round: 10, override: 'historic', verdict: 'LAND' },
+    { v: 2, kind: 'round', repo: 'path:C:\\old checkout\\.git', item: 'old', revision: `old-b+snap:${'b'.repeat(64)}`, round: 10, override: 'historic', verdict: 'LAND' },
   ];
   // Each record may carry trailing blanks, but an empty physical record is invalid.
   write(store.ledgerPaths(f.home).tally, legacy.map(r => JSON.stringify(r) + ' \t').join('\r\n'));

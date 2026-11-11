@@ -7,7 +7,7 @@
  * @errors none
  */
 
-// chosen (D1, R-2596, 2026-10-22): beside nana/runtime-map.json and nana/suite-runs in the git common folder.
+// chosen (D1, R-2596, 2026-10-22): beside nana/suite-runs in the git common folder.
 export const BUILD_RECORDS_SUBPATH = "nana/build-records.jsonl";
 // contract (R-2596, R-2600): readers skip records of every other schema.
 export const BUILD_RECORD_SCHEMA = 1;
