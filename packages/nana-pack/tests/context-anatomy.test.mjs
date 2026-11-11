@@ -59,7 +59,7 @@ function args(f, launcher, extra = []) {
   return ['--item', `item-${path.basename(f.dir)}`, '--out', out, '--poll', '0.05', '--retries', '0', '--', '--provider', 'fake', '--model', 'small', '--append-system-prompt', f.brief, '-p', 'review', ...extra];
 }
 function launch(f, launcher, extra = [], env = f.env) {
-  if (launcher === 'claude-review') {
+  if ((launcher === 'claude-review' || launcher === 'pi-review') && git(f.lane, 'status', '--porcelain')) {
     git(f.lane, 'add', '-A');
     git(f.lane, 'commit', '--allow-empty', '-qm', 'review fixture inputs');
   }

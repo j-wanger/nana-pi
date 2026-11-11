@@ -12,13 +12,12 @@
  *  non-regular or blank review standard), when every attempt stalled or failed, when the round could not
  *  be recorded, or when its recorded verdict is empty; exit 0 otherwise
  */
-import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, statSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, statSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, relative, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { admit, complete, release, startHeartbeat, treeScope, reviewRoot, resolveRevision, inTreeRedirect, outInTree, realOut } from './review-round.mjs';
-import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
+import { admit, complete, release, startHeartbeat, treeScope, reviewRoot, resolveRevision, inTreeRedirect, outInTree } from './review-round.mjs';
+import { realPath } from '../lib/real-path.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog } from './pi-watchdog.mjs';
 import { REVIEWER_CHILD_ENV, piChildSkillArgs } from './worker-config.mjs';
@@ -75,7 +74,6 @@ const git = (cwd, args) => {
   if (r.status !== 0) throw new Error((r.stderr || `git ${args[0]} failed`).trim());
   return r.stdout;
 };
-const list = (cwd, args) => git(cwd, args).split('\0').filter(Boolean);
 const reclaimDeadReviewWorktrees = () => {
   const listed = git(sourceRoot, ['worktree', 'list', '--porcelain']);
   const paths = listed.split(/\r?\n/).filter((line) => line.startsWith('worktree ')).map((line) => line.slice(9));
@@ -118,24 +116,6 @@ const removeWorktree = () => {
   });
   if (remaining) throw new Error(`worktree registration remains: ${tempRoot}`);
 };
-const copySnapshot = (root, target, excludedPath = null) => {
-  const files = [...new Set([...list(root, ['ls-tree', '-r', '-z', '--name-only', 'HEAD']), ...list(root, ['ls-files', '-z']), ...list(root, ['ls-files', '--others', '--exclude-standard', '-z'])])];
-  const excludedKey = excludedPath ? gitPathKey(resolve(excludedPath)) : null;
-  // MUST 1 (brief 3): git's untracked listing carries the disk case here, so the path-key skip
-  // above handles the case-diverged folder without relying on a potentially lossy file identity.
-  for (const p of files) {
-    const from = join(root, p), to = join(target, p);
-    if (excludedKey && gitPathKey(resolve(from)) === excludedKey) continue;
-    let st;
-    try { st = lstatSync(from); } catch (e) { if (e.code === 'ENOENT' || e.code === 'ENOTDIR') { rmSync(to, { recursive: true, force: true }); continue; } throw e; }
-    mkdirSync(dirname(to), { recursive: true });
-    rmSync(to, { recursive: true, force: true });
-    if (st.isSymbolicLink()) symlinkSync(readlinkSync(from), to);
-    else if (st.isFile()) { copyFileSync(from, to); chmodSync(to, st.mode & 0o777); }
-    else if (st.isDirectory()) mkdirSync(to, { recursive: true });
-    else throw new Error(`unsupported source entry: ${p}`);
-  }
-};
 try {
   sourceRoot = reviewRoot(sourceTree);
   sourceOutWarning = outInTree(sourceRoot, outPath);
@@ -145,19 +125,8 @@ try {
   sourceRevision = resolveRevision(optionValue('--revision'), sourceScope, sourceScope.root);
   reclaimDeadReviewWorktrees();
   if (sourceOutWarning) process.stderr.write(`pi-review: WARNING: ${sourceOutWarning}\n`);
-  if (sourceRedirect) throw new Error(`redirect the review log outside the reviewed tree (${sourceRedirect})`);
-  // Reject nested repositories (including untracked non-ignored ones) before creating a reservation.
+  // Initialized submodules are not populated by the detached checkout.
   const gitlinks = git(sourceRoot, ['ls-files', '--stage', '-z']).split('\0').filter((x) => x.startsWith('160000 ')).map((x) => x.slice(x.indexOf('\t') + 1));
-  const trackedAndUntracked = [...new Set([...list(sourceRoot, ['ls-files', '-z']), ...list(sourceRoot, ['ls-files', '--others', '--exclude-standard', '-z'])])];
-  for (const p of trackedAndUntracked) {
-    if (gitlinks.some((link) => p === link || p.startsWith(`${link}/`))) continue;
-    const parts = p.split('/');
-    for (let i = 1; i <= parts.length; i++) {
-      const parent = join(sourceRoot, ...parts.slice(0, i));
-      try { lstatSync(join(parent, '.git')); throw new Error(`nested repository cannot be materialized: ${parts.slice(0, i).join('/')}`); }
-      catch (e) { if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw e; }
-    }
-  }
   for (const p of gitlinks) {
     const status = spawnSync('git', ['-C', join(sourceRoot, p), 'rev-parse', '--show-toplevel'], { encoding: 'utf8' });
     if (status.status === 0) throw new Error(`initialized submodule cannot be materialized: ${p}`);
@@ -168,14 +137,6 @@ try {
   if (add.status !== 0) throw new Error(`cannot create detached review worktree: ${(add.stderr || '').trim()}`);
   tempRootReal = realPath(tempRoot, { mustExist: true });
   if (setupSignal) throw new Error(`aborted by ${setupSignal} while preparing the immutable checkout`);
-  const outReal = realOut(outPath);
-  const outputRelative = relative(sourceRoot, outReal);
-  const checkoutOutPath = outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? outReal : resolve(tempRoot, outputRelative);
-  copySnapshot(sourceRoot, tempRoot, outputRelative === '..' || outputRelative.startsWith(`..${sep}`) ? null : outReal);
-  const checkoutScope = treeScope(tempRoot, { exclude: [checkoutOutPath] });
-  const checkoutRevision = resolveRevision(sourceScope.head, checkoutScope, checkoutScope.root);
-  if (checkoutRevision !== sourceRevision) throw new Error(`dirty snapshot could not be reproduced exactly (source ${sourceRevision}, checkout ${checkoutRevision}); review refused without consuming a round`);
-
   const childArgs = [...w.ownArgs];
   const treeIndex = childArgs.indexOf('--tree');
   if (treeIndex >= 0) childArgs[treeIndex + 1] = tempRoot;

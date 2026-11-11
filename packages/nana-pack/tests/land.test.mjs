@@ -46,8 +46,10 @@ check("tracked main changes refuse before running the suite", () => {
 // req: R-975
 check("tracked source changes refuse before running the suite", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-dirty-source-")); const main = repo(root, "main");
-	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next"); writeFileSync(path.join(feature, "base.txt"), "dirty\n");
-	const out = runLand({ tree: feature, main, suite: 'node -e "process.exit(0)"', reviewed: [] });
+	const feature = tree(main, "integration"); commit(feature, "next.txt", "next\n", "next");
+	const home = path.join(root, "home"), tip = reviewTip(feature, home);
+	writeFileSync(path.join(feature, "base.txt"), "dirty\n");
+	const out = executeLand({ tree: feature, main, home, suite: 'node -e "process.exit(0)"', reviewed: [`${tip}=item`] });
 	assert.notEqual(out.code, 0); assert.match(out.text, /tracked changes/i);
 });
 // req: R-975
@@ -265,9 +267,12 @@ check("an in-flight review of the reviewed tip refuses without merging", () => {
 check("an in-flight snapshot review of the reviewed tip refuses without merging", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-inflight-snapshot-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); const tip = commit(feature, "next.txt", "next\\n", "next"); const home = path.join(root, "home");
-	reviewTip(feature, home); writeFileSync(path.join(feature, "untracked-inflight.txt"), "snapshot state\\n");
+	reviewTip(feature, home);
 	const held = admit(["--item", "pending-snapshot", "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs", pid: process.pid });
-	assert.equal(held.ok, true, held.message); assert.equal(held.res.pid, process.pid); assert.match(held.res.revision, new RegExp(`^${tip}\\+snap:`));
+	assert.equal(held.ok, true, held.message); assert.equal(held.res.pid, process.pid);
+	// Legacy in-flight snapshot records remain land blockers; new admissions never create them.
+	held.res.revision = `${tip}+snap:${"a".repeat(64)}`;
+	writeFileSync(path.join(ledgerPaths(home).resDir, `${held.id}.json`), JSON.stringify(held.res));
 	const before = git(main, "rev-parse", "HEAD"); const out = executeLand({ tree: feature, main, suite: 'node -e "process.exit(0)"', reviewed: [`${tip}=item`], home });
 	assert.notEqual(out.code, 0); assert.match(out.text, /review in flight/); assert.equal(git(main, "rev-parse", "HEAD"), before);
 });
@@ -295,8 +300,11 @@ check("a verified SEND-BACK for another item at the commit refuses land", () => 
 check("a verified SEND-BACK at a working-state snapshot refuses land", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-send-back-snapshot-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
-	reviewTip(feature, home, "item"); writeFileSync(path.join(feature, "untracked.txt"), "present during review\n");
+	reviewTip(feature, home, "item");
 	assert.equal(recordReview(feature, home, "snapshot-review", "SEND-BACK").ok, true);
+	const rows = tallyRows(home), snapshot = "a".repeat(64);
+	Object.assign(rows.at(-1), { revision: `${sha}+snap:${snapshot}`, snapshot });
+	writeTallyRows(home, rows); // seed the legacy record instead of admitting a dirty tree
 	const out = runLand({ tree: feature, main, suite: 'node -e "process.exit(0)"', reviewed: [`${sha}=item`], home });
 	assert.notEqual(out.code, 0); assert.match(out.text, /non-LAND verdict/i); assert.match(out.text, /snapshot-review\/.*SEND-BACK/);
 });
@@ -323,10 +331,12 @@ check("a legacy round without verdict does not block a version-2 LAND", () => {
 check("an unverified SEND-BACK beside LAND does not block land", () => {
 	const root = tmpDir(path.join(os.tmpdir(), "land-unverified-send-back-")); const main = repo(root, "main");
 	const feature = tree(main, "integration"); const sha = commit(feature, "next.txt", "next\n", "next"); const home = path.join(root, "home");
-	reviewTip(feature, home, "item"); writeFileSync(path.join(feature, "base.txt"), "changed mid-review\n");
+	reviewTip(feature, home, "item");
 	const admission = admit(["--item", "unverified", "--tree", feature, "--role", "test"], { home, cwd: feature, launcher: "land.test.mjs" });
-	assert.equal(admission.ok, true, admission.message); writeFileSync(path.join(feature, "base.txt"), "base\n");
+	assert.equal(admission.ok, true, admission.message);
+	writeFileSync(path.join(feature, "base.txt"), "changed mid-review\n");
 	assert.equal(complete(admission.res, "VERDICT: SEND-BACK", { home }).ok, false);
+	writeFileSync(path.join(feature, "base.txt"), "base\n");
 	const out = runLand({ tree: feature, main, suite: 'node -e "process.exit(0)"', reviewed: [`${sha}=item`], home });
 	assert.equal(out.code, 0, out.text);
 });
