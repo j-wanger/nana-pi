@@ -47,7 +47,6 @@ export const CALL_NAMES = ["test", "it", "check"];
  * Rows off EARS form (G-013) tolerated before the rail fails naming them (G-015). Measured 200 at
  * design-ruling.md §0 (2026-10-04); 0 since the lane close the same day (lane-close-ruling.md §1).
  * The repository's zero-off-form check enforces G-013; the allowance has no separate seal.
- * and held equal to the measured count by R-757's seal.
  */
 export const EARS_ALLOWANCE = 0;
 

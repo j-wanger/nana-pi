@@ -13,7 +13,6 @@
 - Test retirement (test-retire, review round 1, SHOULD): the R-070/R-774 fold tests only `gate.allowPatterns = null`, not all three arrays null, and no longer checks that a benign edit passes to distinguish built-in denies from fail-closed blocking of everything.
 - Test retirement (test-retire, review round 1, NOTE): the trace test's CLI spawn now has a 20 s limit instead of none, bounding a whole-repository checker despite this lane retiring that pattern; its measured runtime was about 0.2 s.
 - Test retirement (test-retire, review round 1, NOTE): `Repository checks` runs only on macOS, so Linux and Windows lose the full map and README command-line runs previously made by deleted land cases; in-process checks remain.
-- Test retirement (test-retire, review round 1, NOTE): test-packs-ci M8 now excuses test files deleted by a lane commit, which supports retirement lanes but loosens the check.
 - Test retirement (test-retire, review round 1, NOTE): R-2482 remains implemented while its evidence pins only the limit constant, as its Evidence cell states.
 
 - Records out (review 1, NOTE 4): parked R-3178..R-3186 evidence cells still cite removed selective-ci record files; comments in packages/nana-pack/bin/worker-config.mjs, packages/nana-pack/lib/runtime-map*.mjs, packages/nana-pack/lib/test-runner-config.mjs, packages/nana-pack/lib/windows-skips-config.mjs, packages/nana-setup/lib/working-config.mjs and scripts/code-search-config.mjs cite record paths now only in git history.
