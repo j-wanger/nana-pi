@@ -117,6 +117,45 @@ await check("M12: ci-wait replay selects and proves the edited main-pack test", 
   assert.equal(proof(missing).ok, false, "reader accepted an omitted edited main test");
   assert.equal(proof({ ...record, files: record.files.map(f => f.path === edited ? { ...f, label: "FAIL" } : f) }).ok, false);
 });
+// req: R-4070
+await check("M13: basename readers cross packs while hub basenames select nothing", async () => {
+  const reader = "packages/probe/tests/reader.test.mjs";
+  const manual = "packages/probe/tests/manual.test.mjs";
+  const membership = { [land]: "land", [reader]: "main", [manual]: "manual" };
+  const root = fixtureRoot("names", {
+    [land]: 'console.log("PASS land");\n',
+    [reader]: 'console.log("PASS reader", "brief.txt", "README.md", "REQUIREMENTS.md", "AGENTS.md", "HANDOFF.md");\r\n',
+    [manual]: 'console.log("PASS manual", "brief.txt");',
+    "notes/brief.txt": "base",
+    "README.md": "base",
+  }, membership);
+  git(root, "init", "-b", "main"); git(root, "config", "user.email", "fixture@example.invalid"); git(root, "config", "user.name", "Fixture");
+  git(root, "add", "."); git(root, "commit", "-m", "base");
+  put(root, "notes/brief.txt", "changed"); git(root, "add", "."); git(root, "commit", "-m", "text input");
+  const selected = await selectPackFiles({ root, files: Object.keys(membership), membership, packs: ["land", "module"], changedFrom: "main~1" });
+  assert(selected.files.includes(reader)); assert(!selected.files.includes(manual));
+  assert(selected.selection.failSafe, "fixture graph failure must not erase name matches");
+  assert.deepEqual(selected.selection.nameMatches, [{ path: reader, reasons: ["names notes/brief.txt"] }]);
+  const run = { id: 73, run_attempt: 1 };
+  const record = { filters: [], platform: process.platform, exitCode: 0,
+    packRun: { complete: true, packs: selected.packs, selection: selected.selection },
+    files: selected.files.map(path => ({ path, label: "PASS", seconds: 0 })) };
+  const proof = record => proveCiSuite({ code: 0, parsed: [{ run, leg: "macos-latest", attempt: 1, record }], problems: [] }, [run], process.platform);
+  assert.equal(proof(record).ok, true);
+  assert.equal(proof({ ...record, files: record.files.filter(file => file.path !== reader) }).ok, false);
+  const only = execute(root, ["--changed-tests-from=main~1"]);
+  assert.equal(only.status, 0, only.out); assert.match(only.out, /1 selected files/);
+  assert.deepEqual(only.record.files.map(file => file.path), [reader]);
+  for (const hub of ["README.md", "REQUIREMENTS.md", "AGENTS.md", "HANDOFF.md"]) {
+    put(root, hub, "changed"); git(root, "add", "."); git(root, "commit", "-m", "hub input");
+    const hubs = await selectPackFiles({ root, files: Object.keys(membership), membership, packs: [], changedFrom: "HEAD~1", changedTestsOnly: true });
+    assert.deepEqual(hubs.files, []); assert.deepEqual(hubs.selection.nameMatches, []);
+  }
+  const empty = execute(root, ["--changed-tests-from=HEAD~1"]);
+  assert.equal(empty.status, 0, empty.out); assert.match(empty.out, /0 selected files/); assert.match(empty.out, /empty committed selection: pass/);
+  const missing = execute(root, ["--changed-tests-from=missing-ref"]);
+  assert.equal(missing.status, 1, missing.out); assert.match(missing.out, /(?:fatal|Not a valid object name|not a valid object name).*missing-ref/);
+});
 // req: R-3858
 await check("M9: complete-pack locked runs serialize retain records and path filters bypass", async () => {
   const { root } = selectionRoot("locked");
