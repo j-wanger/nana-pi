@@ -22,7 +22,7 @@ const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
 const { CLAUDE_CODE_EXEC_FLOOR, desiredHooks, shq } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
-const { PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
+const { PI_REVIEW_BIN, PI_WORKER_BIN, NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, KNOWLEDGE_CLI } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { renderWinShims } = await import(new URL("../lib/win-shims.mjs", import.meta.url).href);
 const { findGitBash } = await import(new URL("../lib/install-check.mjs", import.meta.url).href);
 
@@ -66,6 +66,7 @@ const pathBins = new Map([
 	["nana-land", NANA_LAND_BIN],
 	["nana-setup", NANA_SETUP_BIN],
 	["nana-writing", NANA_WRITING_BIN],
+	["nana-knowledge", KNOWLEDGE_CLI],
 ]);
 const expectedShimFiles = [...pathBins].flatMap(([name, source]) => {
 	const rendered = renderWinShims(source, binDir);
@@ -80,7 +81,7 @@ const secondPathInstall = run(["install", "--home", home], { NANA_SETUP_PLATFORM
 const allHelp = [...pathBins.keys()].every((name) => {
 	const shim = path.join(binDir, name);
 	const args = name === "nana-writing" ? ["--report"] : ["--help"];
-	const expected = name === "nana-writing" ? /summary sentences=/ : /(?:usage|nana-setup —)/i;
+	const expected = name === "nana-writing" ? /summary sentences=/ : /(?:usage|nana-setup —|nana-knowledge —)/i;
 	const shExecutable = process.platform === "win32"
 		? findGitBash(String(process.env.Path ?? process.env.PATH ?? "").split(";"))
 		: "/bin/sh";
@@ -97,8 +98,8 @@ const exactAndUnchanged = expectedShimFiles.every(([file, bytes]) => shimFileSta
 	const after = shimFileState(before.file);
 	return after?.bytes.equals(before.bytes) && after.mtimeMs === before.mtimeMs;
 });
-// req: R-1610
-check("win32 install leaves an sh and a .cmd shim for each PATH command, rewriting only what differs and backing up a hand-written file", expectedShimFiles.length === 10 && exactAndUnchanged && allHelp && secondPathInstall.status === 0 && [...pathBins.keys()].every((name) => /unchanged/.test(secondPathInstall.stdout.split("\n").find((row) => row.includes(`PATH ${name}`)) ?? "")) && backup && fs.readFileSync(path.join(binDir, backup), "utf8") === "@echo hand-written\r\n", secondPathInstall.stdout);
+// req: R-4043
+check("win32 install leaves an sh and a .cmd shim for each PATH command, rewriting only what differs and backing up a hand-written file", expectedShimFiles.length === 12 && exactAndUnchanged && allHelp && secondPathInstall.status === 0 && [...pathBins.keys()].every((name) => /unchanged/.test(secondPathInstall.stdout.split("\n").find((row) => row.includes(`PATH ${name}`)) ?? "")) && backup && fs.readFileSync(path.join(binDir, backup), "utf8") === "@echo hand-written\r\n", secondPathInstall.stdout);
 // R-1051: the five Node hook settings entries are wired on win32 now, in exec form — not skipped.
 for (const label of ["settings SessionStart objective", "settings SessionStart adoption", "settings SessionStart shared-memory", "settings SessionStart roster notice"]) {
 	check(`win32: ${label} is created, not skipped`, line(label).includes("created"), line(label));
@@ -157,7 +158,7 @@ const missingLand = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win3
 run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
 fs.writeFileSync(path.join(binDir, "pi-worker"), renderWinShims(PI_REVIEW_BIN, binDir).sh);
 const wrongWorker = run(["doctor", "--home", home], { NANA_SETUP_PLATFORM: "win32" }, doctorCwd);
-// req: R-1615
+// req: R-4044
 check("win32 doctor reads each PATH command ✓ only when both its shims are this checkout's", nanaLandCmdPresent && healthyPathRows && missingLand.status === 1 && /✗ PATH nana-land/.test(missingLand.stdout) && wrongWorker.status === 1 && /✗ PATH pi-worker/.test(wrongWorker.stdout), `${doc.stdout}\n${missingLand.stdout}\n${wrongWorker.stdout}`);
 run(["install", "--home", home], { NANA_SETUP_PLATFORM: "win32" });
 for (const w of win32Wanted) {

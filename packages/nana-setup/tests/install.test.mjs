@@ -32,7 +32,7 @@ const check = (n, ok, extra) => {
 };
 
 // req: R-589
-check("steps module outputs contract names the nana-setup PATH link", /<binDir>\/pi-review, pi-worker, nana-land, nana-setup and nana-writing/.test(fs.readFileSync(path.join(pkg, "lib", "steps.mjs"), "utf8")));
+check("steps module outputs contract names the nana-setup PATH link", /<binDir>\/pi-review, pi-worker, nana-land, nana-setup, nana-writing and nana-knowledge/.test(fs.readFileSync(path.join(pkg, "lib", "steps.mjs"), "utf8")));
 
 const tmps = [];
 /** The pi-subagents vendor package nana-setup only READS (never installs — architecture-ruling
@@ -83,6 +83,12 @@ if (process.platform !== "win32") {
 	const reportEnvKeysSetByTest = Object.keys(reportEnv);
 	const report = spawnSync("nana-writing", ["--report"], { cwd: NEUTRAL_CWD, encoding: "utf8", input: reportText, env: reportEnv });
 	const expectedReport = "-:1: length: 26 words (cap 25)\nsummary sentences=1 words=26 over=1 passive=0 banned=0 verdict=1/1 identifiers=0\n";
+	const knowledge = spawnSync("nana-knowledge", ["query", "tiny knowledge", "--json"], {
+		cwd: NEUTRAL_CWD, encoding: "utf8", timeout: 30_000,
+		env: { ...process.env, PATH: limitedPath, NANA_KNOWLEDGE_HOME: path.join(writingHome, ".pi", "agent", "nana-knowledge"), NODE_NO_WARNINGS: "1" },
+	});
+	// req: R-4045
+	check("nana-knowledge resolves on PATH after install and queries by bare name", knowledge.status === 0 && JSON.parse(knowledge.stdout).some((hit) => hit.title === "Note"), knowledge.stderr);
 	const identical = run(["install", "--home", writingHome]);
 	const identicalTarget = (() => { try { return fs.realpathSync(writingLink); } catch { return null; } })();
 	if (fs.existsSync(writingLink)) fs.unlinkSync(writingLink);

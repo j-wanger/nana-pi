@@ -14,7 +14,7 @@
  *  through the PATH entries; the settings write's fsync'd temp-file rename
  *  preserves mode; <claudeHome>/nana-memory/shared/MEMORY.md,
  *  <piHome>/nana-pack.json, nana-objective.md, nana-rulings.md and nana-seat.md in pi's agent dir (links on POSIX, copies on
- *  win32), removal of unchanged historical subagent config and reviewer seeds, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land, nana-setup and nana-writing, per-package pi `packages` registrations, the win32 skill
+ *  win32), removal of unchanged historical subagent config and reviewer seeds, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land, nana-setup, nana-writing and nana-knowledge, per-package pi `packages` registrations, the win32 skill
  *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
  *  NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, PATH_COMMANDS, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, realpathSafe(), resolvePackageEntryPath(), directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
@@ -82,14 +82,15 @@ export const PI_WORKER_BIN = path.join(repoRoot, "packages", "nana-pack", "bin",
 export const NANA_LAND_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "nana-land.mjs");
 export const NANA_SETUP_BIN = path.join(pkgRoot, "bin", "nana-setup.mjs");
 export const NANA_WRITING_BIN = path.join(repoRoot, "packages", "nana-pack", "bin", "nana-writing.mjs");
+export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "bin", "nana-knowledge.ts");
 export const PATH_COMMANDS = Object.freeze([
 	["pi-review", PI_REVIEW_BIN],
 	["pi-worker", PI_WORKER_BIN],
 	["nana-land", NANA_LAND_BIN],
 	["nana-setup", NANA_SETUP_BIN],
 	["nana-writing", NANA_WRITING_BIN],
+	["nana-knowledge", KNOWLEDGE_CLI],
 ]);
-export const KNOWLEDGE_CLI = path.join(repoRoot, "packages", "nana-knowledge", "bin", "nana-knowledge.ts");
 
 const win = () => platform() === "win32";
 
