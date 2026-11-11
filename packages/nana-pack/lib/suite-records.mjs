@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/suite-records.mjs
  * @purpose Resolve, retain, read, compare, and summarize full-suite run records shared by a clone's worktrees.
  * @inputs A repository root, store folder, record file or run record, with injectable filesystem, git runner, clock, process id, and retention cap.
- * @outputs A git common directory, validated run record, Git facts, a stored record path, valid current-schema records, final or slow files, counts, number text, or closing record lines.
+ * @outputs A git common directory, validated run record, Git facts, a stored record path, valid current-schema records, final files, counts, number text, or closing record lines.
  * @effects disk (git-common-dir suite record files), process (git queries through the injected runner).
  * @errors Throws a named git, filesystem, record-tip, or clock error for callers to report without changing a suite verdict.
  */
@@ -10,17 +10,12 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import { MAIN_REF, TIP_DIGITS } from "./land-config.mjs";
 import {
-	MAIN_REF,
 	RECORD_LINE_PREFIX,
 	RECORD_SCHEMA,
-	SLOWER_LIST_MAX,
-	SLOWEST_LIST_MAX,
-	SLOWER_MIN_RATIO,
-	SLOWER_MIN_SECONDS,
 	STORE_SUBPATH,
 	SUITE_RECORDS_KEEP,
-	TIP_DIGITS,
 } from "./suite-records-config.mjs";
 
 const defaultGit = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8" });
@@ -206,23 +201,6 @@ export function recordCounts(record) {
 	};
 }
 
-function slowerText(current, baseline) {
-	if (!baseline) return "slower: none";
-	if (current.jobs !== baseline.jobs) return "slower: none (job counts differ)";
-	const oldByPath = new Map(finalFiles(baseline).map((file) => [file.path, file]));
-	const slower = [];
-	for (const file of finalFiles(current)) {
-		const old = oldByPath.get(file.path);
-		if (!old || !(old.seconds > 0)) continue;
-		const growth = file.seconds - old.seconds;
-		const ratio = file.seconds / old.seconds;
-		if (growth >= SLOWER_MIN_SECONDS && ratio >= SLOWER_MIN_RATIO) slower.push({ path: file.path, growth, ratio });
-	}
-	slower.sort((left, right) => right.growth - left.growth || right.ratio - left.ratio || left.path.localeCompare(right.path));
-	if (!slower.length) return "slower: none";
-	return `slower: ${slower.slice(0, SLOWER_LIST_MAX).map((entry) => `${entry.path} +${numberText(entry.growth)}s x${numberText(entry.ratio)}`).join(", ")}`;
-}
-
 function baselineText(current, baseline, { mainTip, now }) {
 	if (!baseline) {
 		if (!mainTip) return "no baseline exists (no main branch)";
@@ -248,22 +226,11 @@ function failureClass(file, current, baseline, records) {
 	return "new";
 }
 
-function laneTotals(root, current, records, runGit) {
-	let tips = new Set();
-	if (current.mergeBase) {
-		const result = runGit(root, ["rev-list", "HEAD", `^${current.mergeBase}`]);
-		if (!result?.error && result?.status === 0) tips = new Set(String(result.stdout ?? "").trim().split(/\r?\n/).filter(Boolean));
-	}
-	const included = records.filter((record) => tips.has(record.tip));
-	const seconds = [...included, current].reduce((sum, record) => sum + (Number(record.wallSeconds) || 0), 0);
-	return { count: included.length + 1, minutes: (seconds / 60).toFixed(1) };
-}
-
 /** Compare a just-finished run with retained records and return its two bounded closing lines. */
 export function suiteRecordLines(current, { root, records = readSuiteRecords({ root }), runGit = defaultGit, now = current.recordedAt } = {}) {
 	const graph = mainDistances(root, current.mergeBase, runGit);
 	const baseline = baselineOf(records, graph.distances);
-	const first = `${RECORD_LINE_PREFIX} ${baselineText(current, baseline, { mainTip: graph.mainTip, now })}; ${slowerText(current, baseline)}`;
+	const first = `${RECORD_LINE_PREFIX} ${baselineText(current, baseline, { mainTip: graph.mainTip, now })}`;
 	const final = finalFiles(current);
 	const failedFiles = final.filter((file) => file.label === "FAIL");
 	const failed = failedFiles.map((file) => `${file.path} [${failureClass(file, current, baseline, records)}; ${file.cause ?? "unknown cause"}]`);
@@ -274,7 +241,6 @@ export function suiteRecordLines(current, { root, records = readSuiteRecords({ r
 			&& labels.some((entry) => entry.coverage === true && entry.label === "FAIL");
 	}).map((file) => file.path);
 	const counts = recordCounts(current);
-	const lane = laneTotals(root, current, records, runGit);
-	const last = `${RECORD_LINE_PREFIX} ${counts.PASS} PASS, ${counts.FAIL} FAIL; failed: ${failed.length ? failed.join(", ") : "none"}; passed only without coverage: ${passedOnlyWithoutCoverage.length ? passedOnlyWithoutCoverage.join(", ") : "none"}; this lane: ${lane.count} full runs, ${lane.minutes} min`;
+	const last = `${RECORD_LINE_PREFIX} ${counts.PASS} PASS, ${counts.FAIL} FAIL; failed: ${failed.length ? failed.join(", ") : "none"}; passed only without coverage: ${passedOnlyWithoutCoverage.length ? passedOnlyWithoutCoverage.join(", ") : "none"}`;
 	return [first, last];
 }

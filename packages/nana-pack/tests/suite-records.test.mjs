@@ -365,16 +365,15 @@ check("R-2554: a locked run prints at most two record lines and the last restate
 		&& shapeLines.at(-1)?.includes("1 PASS, 3 FAIL")
 		&& shapeTail.includes("1 PASS, 3 FAIL") && shapeTail.includes("first fail.test.mjs")
 		&& shapeTail.includes("second-fail.test.mjs") && shapeTail.includes(unnamed)
-		&& shapeLines[0]?.includes("slower:")
 		&& passingRerun.result.status === 0 && passingRerunLines.length <= 2
 		&& passingRerunLines.at(-1)?.includes("1 PASS, 0 FAIL; failed: none")
 		&& passingRerunLines.at(-1)?.includes(`passed only without coverage: ${rerunFile}`)
-		&& passingRerunLines.every((line) => occurrences(line, rerunFile) === 1)
+		&& occurrences(passingRerunLines.at(-1), rerunFile) === 1
 		&& failingRerun.result.status === 2 && failingRerunLines.length <= 2
 		&& failingRerunLines.at(-1)?.includes(`0 PASS, 1 FAIL; failed: ${rerunFile} [passing in another clean run at this tip; exit 2]`)
 		&& !failingRerunLines.at(-1)?.includes("exit 1")
 		&& failingRerunLines.at(-1)?.includes("passed only without coverage: none")
-		&& failingRerunLines.every((line) => occurrences(line, rerunFile) === 1),
+		&& occurrences(failingRerunLines.at(-1), rerunFile) === 1,
 	JSON.stringify({ passing: outputOf(passingShape), failing: outputOf(failingShape), passingRerun: outputOf(passingRerun), failingRerun: outputOf(failingRerun) }));
 
 const problemResults = [];
