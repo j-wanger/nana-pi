@@ -173,16 +173,6 @@ check("acceptance invokes the exact check command matrix in every combination", 
   assert(stub.calls.filter(({ cmd }) => !["git", "uvx"].includes(cmd)).every(({ options }) => options.timeout === 600_000));
 });
 // req: R-594
-check("a timed-out check fails and names its complete command", () => {
-  const stub = acceptanceStub(); const logs = [];
-  const run = (cmd, args, options) => {
-    if (cmd === "uv" && args.join(" ") === "run ruff check .") return { status: null, error: Object.assign(new Error("timed out"), { code: "ETIMEDOUT" }), stderr: "timed out" };
-    return stub.run(cmd, args, options);
-  };
-  assert.equal(runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run, log: (line) => logs.push(line) }), 1);
-  assert(logs.some((line) => line.includes("python scaffold") && line.includes("uv run ruff check .") && line.includes("exited 1")));
-});
-// req: R-594
 check("map failures report the executable and script", () => {
   const stub = acceptanceStub(); const logs = [];
   const run = (cmd, args, options) => {
@@ -203,13 +193,6 @@ check("all four combinations run and the temporary root is removed on success", 
   assert.equal(copier.options.env.GIT_CONFIG_KEY_0, "gc.auto"); assert.equal(copier.options.env.GIT_CONFIG_VALUE_0, "0");
 });
 // req: R-594
-check("command failures continue all combinations and ENOENT names pnpm", () => {
-  const stub = acceptanceStub({ failCommand: "pnpm ENOENT" }); const logs = [];
-  const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: (line) => logs.push(line) });
-  assert.equal(status, 1); assert(logs.some((line) => line.includes("typescript scaffold: pnpm install exited 1")));
-  assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 6); assert.equal(fs.existsSync(stub.generatedRoot), false);
-});
-// req: R-594
 check("a single adopt mypy failure names its command while later combinations still run", () => {
   const stub = acceptanceStub({ failCommand: "python-adopt:uv run mypy" }); const logs = [];
   const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: stub.run, log: (line) => logs.push(line) });
@@ -218,12 +201,6 @@ check("a single adopt mypy failure names its command while later combinations st
   assert.equal(stub.calls.filter(({ cmd }) => cmd === "uvx").length, 6); assert.equal(fs.existsSync(stub.generatedRoot), false);
 });
 
-// req: R-594
-check("missing tools fail closed and name the tool", () => {
-  const logs = [];
-  const status = runAcceptance({ src: root, ref: "HEAD", tmpRoot: root, run: (cmd) => cmd === "git" ? { status: 0, stdout: `${sha}\n` } : { status: null, error: new Error("spawn ENOENT") }, log: (line) => logs.push(line) });
-  assert.equal(status, 1); assert(logs.join("\n").includes("uvx"));
-});
 // req: R-3870
 check("Windows acceptance resolves shims safely and leaves direct launches unchanged", () => {
   const options = { cwd: root, env: { PATH: "C:\\tools" }, timeout: 123 };

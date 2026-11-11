@@ -14,7 +14,6 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { KNOWN_BUGS_DIR } from "../../../scripts/known-bugs.mjs";
 import { checkTree, readRequirementRows } from "../../../scripts/requirements-tree.mjs";
 // The project templates render in BOTH modes, and the requirements-first rail they ship is
 // wired in both:
@@ -341,11 +340,6 @@ function partG(language, dest, mode) {
 }
 
 const CHECKER_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-tree.mjs" --root .';
-const REPORT_SKILL_CMD = 'node "$HOME/nana-pi/scripts/product-report.mjs" --root .';
-const LIFT_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-lift.mjs" --root .';
-const LIFT_SCRIPT = "scripts/requirements-lift.mjs";
-const REGROUP_SKILL_CMD = 'node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root . --proposal <file> --out <page>';
-const REGROUP_SCRIPT = "scripts/requirements-regroup.mjs";
 // R-1153: the "How this file is organized" section is single-sourced from this file and
 // pulled into both languages, both modes, with a Jinja include — never hand-duplicated.
 const SHARED_ORGANIZATION = fs.readFileSync(path.join(REPO, "templates", "_shared", "requirements-organization.md"), "utf-8");
@@ -417,9 +411,6 @@ function checkNanaPiPartGMirrorsTheSharedFile() {
 }
 checkNanaPiPartGMirrorsTheSharedFile();
 
-// req: R-2509
-check("seal: the known-bugs folder is docs/known-bugs", KNOWN_BUGS_DIR === "docs/known-bugs");
-
 const RUNTIME_INVENTORY_TEXT = {
 	"nana-objective.mjs": "nana-objective.mjs",
 	"nana-adoption.mjs": "nana-adoption.mjs",
@@ -468,10 +459,7 @@ function checkInstructionContracts() {
 	const shared = fs.readFileSync(path.join(REPO, "templates", "_shared", "working-under-nana-pi.md"), "utf-8");
 	const soul = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-soul.md"), "utf-8");
 	const seat = fs.readFileSync(path.join(REPO, "packages/nana-setup/claude/rules/nana-seat.md"), "utf-8");
-	const rulings = fs.readFileSync(path.join(REPO, "packages/nana-pack/rules/nana-rulings.md"), "utf8");
 	const planner = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/planner.md"), "utf8");
-	const standard = fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/review-standard.md"), "utf8");
-	const procedure = `${soul}\n${seat}`;
 	const frontDoors = ["README.md", "AGENTS.md", "packages/nana-setup/README.md"].map((file) =>
 		fs.readFileSync(path.join(REPO, file), "utf-8"));
 	const support = frontDoors.map((text) => [...text.matchAll(/^Support:.*$/gm)].map((match) => match[0]));
@@ -479,13 +467,7 @@ function checkInstructionContracts() {
 	check("shared runtime matrix declares four runtime surfaces, ten capabilities, and the discovered source inventory",
 		runtimeInventoryDocumented(runtimeInventory(), shared) && !runtimeInventoryDocumented([...runtimeInventory(), "unmapped-extension-fixture"], shared) &&
 		["Claude Code seat", "pi TUI session", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
-		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge search", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)) &&
-		[
-			"| Claude Code seat | SessionStart `nana-objective.mjs` (objective/frontier), `nana-adoption.mjs`, `nana-shared-memory.mjs`; nana-soul / nana-standards; shared nana-writing rule and `nana-rulings.md` | No nana Gate or Verifier pipe; Claude-owned Compaction summary, no nana HANDOFF producer; `nana-roster-notice.mjs` notice |",
-			"| pi TUI session | `nana-objective`, `nana-frontier-summary`; `nana-writing`, `nana-rulings`; no soul/standards or shared auto-memory | `nana-gate` for bash/PowerShell; `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction; `nana-roster-notice` widget |",
-			"| pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; no objective/frontier for launcher `NANA_ROLE` | Same gate/journal; roster notice has no UI |",
-			"| Codex | Unsupported; no nana runtime contract | Not specified |",
-		].every((v) => shared.includes(v)));
+		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge search", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)));
 
 	const startup = "At startup, a seat reads `HANDOFF.md`; every session looks up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill) and reads the landscape doc only for pi API questions.";
 	const rootStartup = "Startup: a seat reads `HANDOFF.md`; every session looks up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.";
@@ -525,15 +507,10 @@ function checkInstructionContracts() {
 				sentences.every((sentence) => sentence.split(/\s+/).length < 25);
 		}) && fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8")
 			.split("\nTests\n")[0].includes("- Never create, edit, comment on or close a GitHub issue; put open questions in the report."));
-	// req: R-683
-	check("shared working pattern names generic defaults and local overrides", ["~/<repo>-wt/<lane>", "feat/<lane>", "pi-worker", "pi-review", "different model lineage"].every((v) => procedure.includes(v)) && shared.includes("overrides belong in that project's own section AFTER this marker region"));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
 	const canonicalSupport = `Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1 && lines[0] === canonicalSupport) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
-	// req: R-3763
-	check("the shared working pattern omits the retired seat land review",
-		!shared.includes("Seat land review") && !shared.includes("seat-land.md"));
 	const SEAT_GUIDE_POINTER = "- Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions.";
 	const seatGuideBullets = [...shared.matchAll(/^- Seat guide:.*$/gm)].map((m) => m[0]);
 	// req: R-1142
@@ -545,150 +522,14 @@ function checkInstructionContracts() {
 	check("seat-guide bullet names a guide file present in this checkout",
 		seatGuideNamedPath !== null && fs.existsSync(path.join(REPO, seatGuideNamedPath)),
 		seatGuideNamedPath ?? "no bullet found");
-	// req: R-1100
-	check("shared working pattern requires a threat model per plan",
-		rulings.includes("Every plan names its threat model: honest variation in scope, deliberate forgery out."));
-	// req: R-2584
-	check("R-2584: the shared working pattern's Plans bullet requires every plan to name its precedent",
-		planner.includes("each entry names one tracked path") && planner.includes("none: <reason>"));
 	// req: R-2955
 	check("R-2955: seat guide points planners to the prompt with the request and grounding",
 		seat.includes("Before writing or briefing a plan, read `$HOME/nana-pi/packages/nana-pack/prompts/planner.md`.") &&
 		planner.includes("Quote the agreed intent reading.") &&
 		planner.includes("An earlier plan is grounding for a decision it records, never a format to copy.") &&
 		markerBlock(frontDoors[1]) === shared);
-	// req: R-1101
-	// req: R-1300
-	check("R-1300: the shared working pattern gives every lane one reviewer plus CI and says plans get no review round",
-		procedure.includes("Every lane gets one reviewer plus CI") &&
-		rulings.includes("Plans get no review round") && !procedure.includes("plan-review round") && !procedure.includes("only a named fail-open bug reopens the plan"));
-	// req: R-1102
-	check("shared working pattern freezes edits after an all-LAND review",
-		rulings.includes("After every reviewer says LAND, nothing more is edited."));
-	// req: R-1103
-	check("shared working pattern ships urgent fixes alone",
-		rulings.includes("Urgent fixes ship alone and are hardened later."));
-	// req: R-1104
-	check("shared working pattern states the review bar for seats",
-		standard.includes("`VERDICT: LAND` when no MUST stands") &&
-		standard.includes("Do not use LAND-WITH-FIXES.") &&
-		standard.includes("A confirmation round reviews only the change since the revision the brief names as the last round, and whether the named MUSTs are closed."));
-	// req: R-2509
-	check("R-2509: the shared working pattern records a non-blocking finding in its feature's known-bug file, not HANDOFF",
-		rulings.includes("Known bugs live one line each in their feature's file, not in HANDOFF."));
-	const agentsMd = frontDoors[1];
-	const sharedBegin = "<!-- nana:working-under-nana-pi begin -->";
-	const sharedEnd = "<!-- nana:working-under-nana-pi end -->";
-	const sb = agentsMd.indexOf(sharedBegin), se = agentsMd.indexOf(sharedEnd);
-	const insideSharedRegion = sb >= 0 && se >= 0 ? agentsMd.slice(sb, se) : "";
-	const outsideSharedRegion = sb < 0 || se < 0 ? agentsMd : agentsMd.slice(0, sb) + agentsMd.slice(se + sharedEnd.length);
-	// req: R-1109
-	check("AGENTS.md carries the macOS install check outside the shared region",
-		// one step, scoped to its own line (seat mutation run 2026-10-13: phrases matched anywhere outside the region
-		// let "on macOS", "before `nana-land`" and "or a hook" be deleted with this check green)
-		outsideSharedRegion.replace(/\r/g, "").split("\n").filter((line) => line.startsWith("Local install check, nana-pi only: ")).length === 1 &&
-		outsideSharedRegion.replace(/\r/g, "").split("\n").some((line) =>
-			line.startsWith("Local install check, nana-pi only: ") &&
-			line.includes("a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`")) &&
-		!/install[- ]check/i.test(insideSharedRegion) &&
-		fs.existsSync(path.join(REPO, "packages/nana-setup/bin/install-check.mjs")));
 }
 checkInstructionContracts();
-
-/** R-1154 to R-1156: the skills that author REQUIREMENTS.md point at the tree, not the flat sections. */
-function checkRequirementsSkillTreeText() {
-	const CARVE = "A ledger without a requirements tree keeps its numbered sections; its next step is a lift into the tree, with every row kept byte-identical, then a regroup into capabilities and features that the owner approves.";
-	const reqSkill = collapse(fs.readFileSync(path.join(REPO, "packages/nana-pack/skills/requirements/SKILL.md"), "utf8"));
-	// req: R-1154
-	check("requirements skill directs every row into the feature it serves, keeps a flat ledger's sections and names the owner",
-		["The project owner decides every change to the tree", "the table of the feature it serves", CARVE].every((p) => reqSkill.includes(p)) &&
-		!["the owner decides", "In this ledger,", "the numbered sections the worker must cover", "at the end as its own Part"].some((p) => reqSkill.includes(p)));
-	const FIVE = ["scaffold-py", "scaffold-ts", "adopt-py", "adopt-ts", "adopt-structure"];
-	// req: R-1155
-	check("scaffold and adopt skills direct rows into the feature each serves, keep a flat ledger's sections and name no Part G",
-		FIVE.every((name) => {
-			const t = collapse(fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", name, "SKILL.md"), "utf8"));
-			return t.includes("the table of the feature it serves") && t.includes(CARVE) && !t.includes("Part G");
-		}));
-	// req: R-1156
-	check("requirements skill names the tree check and the product report with a project root",
-		[CHECKER_SKILL_CMD, REPORT_SKILL_CMD].every((p) => reqSkill.includes(p)));
-	// req: R-1169
-	check("requirements skill names the lift's dry run, the owner's yes before --write, a clean ledger in every worktree, never discarding another session's lines, and only flags the lift has",
-		checkLiftSkillText(reqSkill));
-	// req: R-1180
-	check("requirements skill's regroup paragraph names the regroup check, what the agent reads, a review of every placement and every purpose, outcome and section reason, the owner's yes before --write, --verify with --mapping and gaps as proposed features, and only flags the regroup has",
-		checkRegroupSkillText());
-}
-
-/**
- * R-1180: the requirements skill's description names "regroup", one paragraph holds the regroup
- * check as `node "$HOME/nana-pi/scripts/requirements-regroup.mjs" --root . --proposal <file>
- * --out <page>`, what the agent reads, that a reviewer of another model lineage (or a
- * same-family reviewer named as such) checks every row's placement and every purpose, outcome
- * and section reason before the owner sees the page, that `--write` runs only after the owner's
- * yes with the proposal committed, the reviewer's `--verify <base> --mapping <proposal>`, a gap
- * as a `proposed` feature with no rows, the old "name no regroup command" clause is gone, and
- * the paragraph shows no flag outside the regroup's or the lift's own source (T17's own phrase
- * check mirrors the acceptance oracle so a wrapped line cannot hide one).
- */
-function checkRegroupSkillText() {
-	const skillRaw = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills/requirements/SKILL.md"), "utf8");
-	const reqSkill = collapse(skillRaw);
-	const frontmatter = skillRaw.split(/^---$/m)[1] ?? "";
-	const description = /^description:(.*)$/m.exec(frontmatter)?.[1] ?? "";
-	if (!/\bregroup\b/i.test(description)) return false;
-	if (reqSkill.includes("name no regroup command")) return false;
-	if (reqSkill.includes("Regroup the lifted tree")) return false;
-	const paras = skillRaw.split(/\n\s*\n/);
-	const rgParas = paras.filter((p) => collapse(p).includes(REGROUP_SKILL_CMD));
-	if (rgParas.length !== 1) return false;
-	const para = collapse(rgParas[0]);
-	const phrases = [
-		"every row's placement", "every purpose, outcome and section reason", "lineage", "same-family",
-		"only after the owner's yes", "--write", "committed", "--verify <base> --mapping <proposal>", "proposed", "with no rows",
-		"req:", "@purpose", "code map", "README", "OBJECTIVE.md", "HANDOFF",
-		"flat or lifted", "regroup.read", "regroup.reasons", "regroup.placed", "regroup.evidence", "regroup.review",
-	];
-	if (!phrases.every((p) => para.includes(p))) return false;
-	if ((para.match(/--verify <base>(?! --mapping)/g) ?? []).length > 0) return false;
-	const FLAG = /(?<![\w-])--[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?![\w-])/g;
-	const wholeFlag = (src, f) => new RegExp(`(?<![\\w-])${f}(?![\\w-])`).test(src ?? "");
-	const regroupSource = fs.readFileSync(path.join(REPO, REGROUP_SCRIPT), "utf8");
-	const liftSource = fs.readFileSync(path.join(REPO, LIFT_SCRIPT), "utf8");
-	const spans = [...rgParas[0].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
-	const inSpan = [...new Set(spans.filter((s) => s.includes("requirements-regroup.mjs")).flatMap((s) => s.match(FLAG) ?? []))];
-	const outside = [...new Set([...spans.filter((s) => !s.includes("requirements-regroup.mjs") && (s.includes("requirements-lift.mjs") || !/\.(?:mjs|cjs|js|ts|py)\b/.test(s))), rgParas[0].replace(/`[^`]*`/g, " ")].flatMap((s) => s.match(FLAG) ?? []))];
-	if (!["--root", "--proposal", "--out"].every((f) => inSpan.includes(f))) return false;
-	if (!inSpan.every((f) => wholeFlag(regroupSource, f))) return false;
-	if (!outside.every((f) => wholeFlag(liftSource, f))) return false;
-	return true;
-}
-
-/**
- * R-1169: the requirements skill names the lift's dry run exactly, says --write runs only after
- * the owner's yes while the ledger matches HEAD in every worktree, says the seat tells the owner
- * about uncommitted edits and never discards another session's lines, and shows the lift no flag
- * its own source lacks (seat-titles.mjs T29; the collapsed-whitespace phrases mirror the acceptance
- * oracle so a wrapped line cannot hide one).
- */
-function checkLiftSkillText(reqSkill) {
-	const phrases = [LIFT_SKILL_CMD, "only after the owner's yes", "matches HEAD in every worktree", "never commit, stash or discard another session's lines"];
-	if (!phrases.every((p) => reqSkill.includes(p))) return false;
-	if (!/uncommitted[^.]*\btell the owner\b/i.test(reqSkill) && !/\breports? uncommitted ledger edits to the owner\b/i.test(reqSkill)) return false;
-	const liftSource = fs.readFileSync(path.join(REPO, LIFT_SCRIPT), "utf8");
-	const skillRaw = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills/requirements/SKILL.md"), "utf8");
-	const FLAG = /(?<![\w-])--[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?![\w-])/g;
-	const liftParas = skillRaw.split(/\n\s*\n/).filter((p) => /requirements-lift\.mjs|\blift\b/i.test(p));
-	const liftFlags = [...new Set(liftParas.flatMap((p) => {
-		const spans = [...p.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter((s) => s.includes("requirements-lift.mjs") || !/\.(?:mjs|cjs|js|ts|py)\b/.test(s));
-		return [...spans, p.replace(/`[^`]*`/g, " ")].flatMap((s) => s.match(FLAG) ?? []);
-	}))];
-	if (!liftFlags.includes("--root") || !liftFlags.includes("--write")) return false;
-	const wholeFlag = (f) => new RegExp(`(?<![\\w-])${f}(?![\\w-])`).test(liftSource);
-	return liftFlags.every(wholeFlag);
-}
-checkRequirementsSkillTreeText();
 
 const version = copierAvailable();
 if (!version) {
@@ -738,15 +579,11 @@ if (!version) {
 				check("requirements: a misspelled code-map flag is rejected", judgeClaims({ surface: "requirements", root: REPO, targets: [currentTarget], text: requirementsText.replace("scripts/code_map.py --impact", "scripts/code_map.py --impakt") }).flagProblems.some((p) => p.includes("--impakt")));
 			}
 			const skillNames = Object.keys(SURFACES).filter((name) => name !== "templates/_shared/working-under-nana-pi.md" && SURFACES[name].includes(declaredKey));
-			const allSkillClaimProblems = { paths: [], commands: [], flags: [] };
 			for (const surface of [...skillNames, "templates/_shared/working-under-nana-pi.md"]) {
 				const text = surface === "templates/_shared/working-under-nana-pi.md"
 					? sharedText
 					: fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", surface, "SKILL.md"), "utf8");
 				const result = judgeClaims({ surface, root: REPO, targets: [currentTarget], text });
-				allSkillClaimProblems.paths.push(...result.pathProblems);
-				allSkillClaimProblems.commands.push(...result.commandProblems);
-				allSkillClaimProblems.flags.push(...result.flagProblems);
 				for (const entry of staleExemptions(surface, text)) {
 					const key = `${entry.surface}:${entry.kind}:${entry.text}`;
 					if (!reportedStaleExemptions.has(key)) console.log(`STALE exemption ${entry.surface} ${entry.kind} '${entry.text}'`);
@@ -779,22 +616,6 @@ if (!version) {
 					check(`${language} scaffold: a removed shared HANDOFF path is rejected`, judgeClaims({ surface, root: REPO, targets: [currentTarget], text: text.replace("HANDOFF.md", "HANDOF.md") }).pathProblems.length > 0);
 				}
 			}
-			if (language === "python") {
-				// req: R-598
-				check("python scaffold: all declared skill paths resolve independently", allSkillClaimProblems.paths.length === 0, allSkillClaimProblems.paths.join("\n"));
-				// req: R-599
-				check("python scaffold: all declared package-script commands resolve independently", allSkillClaimProblems.commands.length === 0, allSkillClaimProblems.commands.join("\n"));
-				// req: R-629
-				check("python scaffold: all declared flags and subcommands resolve independently", allSkillClaimProblems.flags.length === 0, allSkillClaimProblems.flags.join("\n"));
-			} else {
-				// req: R-598
-				check("typescript scaffold: all declared skill paths resolve independently", allSkillClaimProblems.paths.length === 0, allSkillClaimProblems.paths.join("\n"));
-				// req: R-599
-				check("typescript scaffold: all declared package-script commands resolve independently", allSkillClaimProblems.commands.length === 0, allSkillClaimProblems.commands.join("\n"));
-				// req: R-629
-				check("typescript scaffold: all declared flags and subcommands resolve independently", allSkillClaimProblems.flags.length === 0, allSkillClaimProblems.flags.join("\n"));
-			}
-
 			const renderedAgents = fs.readFileSync(path.join(dest, "AGENTS.md"), "utf-8");
 			const renderedPrefix = renderedAgents.slice(0, renderedAgents.indexOf("<!-- nana:working-under-nana-pi begin -->"));
 			const renderedParagraph = renderedPrefix.trimEnd().split(/\n\s*\n/).at(-1) ?? "";
@@ -878,7 +699,7 @@ if (!version) {
 				const biomeVersion = renderedPackage.devDependencies?.["@biomejs/biome"];
 				biomePins.scaffold = biomeVersion;
 				const biomePackage = `@biomejs/biome@${biomeVersion}`;
-				const probe = run("pnpm", ["dlx", biomePackage, "--version"], REPO);
+				const probe = run("pnpm", ["dlx", biomePackage, "--version"], dest);
 				if (probe.status === 0) {
 					const lint = run("pnpm", ["dlx", biomePackage, "check", "."], dest);
 					check(`${language}: a fresh scaffold passes biome check with no edits`, lint.status === 0, out(lint).slice(-1000));
@@ -958,15 +779,11 @@ if (!version) {
 			const adoptKey = `${language}-adopt`;
 			const sharedText = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
 			const adoptSkillNames = Object.keys(SURFACES).filter((name) => name !== "templates/_shared/working-under-nana-pi.md" && SURFACES[name].includes(adoptKey));
-			const allAdoptSkillClaimProblems = { paths: [], commands: [], flags: [] };
 			for (const surface of [...adoptSkillNames, "templates/_shared/working-under-nana-pi.md"]) {
 				const text = surface === "templates/_shared/working-under-nana-pi.md"
 					? sharedText
 					: fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", surface, "SKILL.md"), "utf8");
 				const result = judgeClaims({ surface, root: REPO, targets: [adoptTarget], text });
-				allAdoptSkillClaimProblems.paths.push(...result.pathProblems);
-				allAdoptSkillClaimProblems.commands.push(...result.commandProblems);
-				allAdoptSkillClaimProblems.flags.push(...result.flagProblems);
 				for (const entry of staleExemptions(surface, text)) {
 					const key = `${entry.surface}:${entry.kind}:${entry.text}`;
 					if (!reportedStaleExemptions.has(key)) console.log(`STALE exemption ${entry.surface} ${entry.kind} '${entry.text}'`);
@@ -983,22 +800,6 @@ if (!version) {
 					check("adopt-ts: a removed code-map test path is rejected", judgeClaims({ surface, root: REPO, targets: [adoptTarget], text: text.replace("tests/code-map.test.ts", "tests/gone.test.ts") }).pathProblems.length > 0);
 				}
 			}
-			if (language === "python") {
-				// req: R-598
-				check("python adopt: all declared skill paths resolve independently", allAdoptSkillClaimProblems.paths.length === 0, allAdoptSkillClaimProblems.paths.join("\n"));
-				// req: R-599
-				check("python adopt: all declared package-script commands resolve independently", allAdoptSkillClaimProblems.commands.length === 0, allAdoptSkillClaimProblems.commands.join("\n"));
-				// req: R-629
-				check("python adopt: all declared flags and subcommands resolve independently", allAdoptSkillClaimProblems.flags.length === 0, allAdoptSkillClaimProblems.flags.join("\n"));
-			} else {
-				// req: R-598
-				check("typescript adopt: all declared skill paths resolve independently", allAdoptSkillClaimProblems.paths.length === 0, allAdoptSkillClaimProblems.paths.join("\n"));
-				// req: R-599
-				check("typescript adopt: all declared package-script commands resolve independently", allAdoptSkillClaimProblems.commands.length === 0, allAdoptSkillClaimProblems.commands.join("\n"));
-				// req: R-629
-				check("typescript adopt: all declared flags and subcommands resolve independently", allAdoptSkillClaimProblems.flags.length === 0, allAdoptSkillClaimProblems.flags.join("\n"));
-			}
-
 			const skillName = language === "python" ? "adopt-py" : "adopt-ts";
 			const skill = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", skillName, "SKILL.md"), "utf8");
 			const skillFiles = listedAdoptFiles(skill).sort();

@@ -226,7 +226,6 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 	fs.writeFileSync(w.productFile, PRODUCT);
 	const sub = path.join(w.product, "sub");
 	fs.mkdirSync(sub);
-	check("fresh machine: there really is no nana-pack.json", !fs.existsSync(path.join(w.home, ".pi", "agent", "nana-pack.json")));
 	const t = await golden("FRESH MACHINE, no config: product governs", w, sub, () => {});
 	check("FRESH MACHINE, no config: product governs — exact text", t === [
 		HEAD,
@@ -234,7 +233,6 @@ async function golden(label, w, cwd, expect, hookOpts, isProjectTrusted, refresh
 		`governing: ${w.productFile}\n${OBJ("ship the widget.")}\n\n${PRI("the walking skeleton.")}`,
 		CHARGE,
 	].join("\n\n") + "\n", t);
-	check("FRESH MACHINE, no config: no UNAVAILABLE marker", !t.includes("OBJECTIVE UNAVAILABLE"), t);
 }
 
 

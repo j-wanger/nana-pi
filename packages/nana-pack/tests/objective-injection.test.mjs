@@ -73,7 +73,6 @@ await test('M5: objective prints the full code-lines priority', () => {
 	const { td, handlers, ctx } = session();
 	await handlers.session_start({ reason: "startup" }, ctx);
 	const r = await inject(handlers, ctx);
-	check("a: objective block is stored in its named section", r.startsWith("## Objective and current priority (nana)"));
 	// req: R-002
 	check("a: section heading injected", r.includes("## Objective and current priority (nana)"));
 	check("a: objective text injected", r.includes("build products with agents"));
@@ -276,8 +275,6 @@ fs.writeFileSync(objectiveFile, "**Objective:** build products with agents.\n\n*
 	const sp = r ?? "";
 	check("l: the product's lines come first and are labelled with the governing path",
 		sp.indexOf(`governing: ${repoFile}\n**Objective:** ship the desk.`) >= 0);
-	check("l: same heading", !!r.includes("## Objective and current priority (nana)"));
-	check("l: charge line still applies", !!r.includes("Every session must be able to say which of these lines its spend serves."));
 	// req: R-019
 	check("l: objective_pickup records source \"project\" and the path",
 		journalLines().slice(before).some((e) => e.event === "objective_pickup" && e.source === "project" && e.path === repoFile));

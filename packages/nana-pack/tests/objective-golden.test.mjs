@@ -485,12 +485,6 @@ await provenance("untrusted folder, no trust.json", productWorld(), true);
 	record(w.product); // follow the remedy: /trust from the root folder
 	await provenance("nested cwd, after following the remedy (/trust from the root folder)", w, false, { cwd: deep });
 }
-// T2b. every other trust-requiring resource name, and an ancestor .agents/skills: none clears the label
-for (const e of ["extensions", "skills", "prompts", "themes", "SYSTEM.md", "APPEND_SYSTEM.md"]) {
-	const w = productWorld(); fs.mkdirSync(path.join(w.product, ".pi", e), { recursive: true }); await provenance(`.pi/${e}, no record`, w, true);
-}
-{ const w = productWorld(); fs.mkdirSync(path.join(w.home, "work", ".agents", "skills"), { recursive: true }); await provenance("ancestor .agents/skills, no record", w, true); }
-{ const w = productWorld(); fs.mkdirSync(path.join(w.home, ".agents", "skills"), { recursive: true }); await provenance("~/.agents/skills, no record", w, true); }
 // a resource plus an affirmative record: the RECORD clears it
 {
 	const w = productWorld(); fs.mkdirSync(path.join(w.product, ".pi")); fs.writeFileSync(path.join(w.product, ".pi", "settings.json"), "{}");

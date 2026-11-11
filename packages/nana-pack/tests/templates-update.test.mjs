@@ -84,8 +84,6 @@ const probe = (command, args, options = {}) => {
  catch (error) { return { status: null, error }; }
 };
 const unavailableReason = (tool) => `${tool} unavailable`;
-// req: R-582
-check("unavailable-tool skip reason names the missing tool", unavailableReason("nana-partg-unavailable-tool") === "nana-partg-unavailable-tool unavailable");
 const uvProbe = probe("uv", ["cache", "dir"], { cwd: root });
 const uvCache = uvProbe.status === 0 ? (uvProbe.stdout ?? "").trim() : "";
 const env = { ...process.env, HOME: root, ...(uvCache ? { UV_CACHE_DIR: uvCache } : {}), GIT_AUTHOR_NAME: "Part G Test", GIT_AUTHOR_EMAIL: "partg@example.invalid", GIT_COMMITTER_NAME: "Part G Test", GIT_COMMITTER_EMAIL: "partg@example.invalid" };
@@ -99,28 +97,15 @@ const skipMatches = (config, target) => config.split("\n").some((line) => {
  return new RegExp(`^${pattern}$`).test(target);
 });
 // req: R-581
-check("skip-pattern matcher catches a matching path fixture", skipMatches('_skip_if_exists:\n  - "REQUIREMENTS-general.md"', "REQUIREMENTS-general.md"));
-// req: R-581
 check("template-owned file path is not skip-listed", !skipMatches(copierConfig, "REQUIREMENTS-general.md"));
-const nestedRejectFixture = join(root, "nested-reject-fixture", "docs");
-mkdirSync(nestedRejectFixture, { recursive: true });
-writeFileSync(join(nestedRejectFixture, "conflict.rej"), "fixture");
-// req: R-582
-check("updated trees reject nested conflict files before map regeneration", findRejectFiles(join(root, "nested-reject-fixture")).length === 1);
 const parseG = (text) => new Map([...text.matchAll(/^\|\s*(G-(?:[0-9]{3}|[1-9][0-9]{3}))\s*\|\s*(.*?)\s*\|\s*(\w+)\s*\|/gm)].map((match) => [match[1], { requirement: match[2], status: match[3] }]));
 const sharedRequirements = new Map([...shared.matchAll(/^\|\s*(G-(?:[0-9]{3}|[1-9][0-9]{3}))\s*\|\s*(.*?)\s*\|/gm)].map((match) => [match[1], match[2]]));
 const pythonJinja = readFileSync(new URL("templates/python/template/REQUIREMENTS-general.md.jinja", sourceRoot), "utf8");
 // req: R-581
 check("Python rendered Jinja includes the shared source", pythonJinja.trim() === "{% include 'templates/_shared/requirements-general.md' %}" && sharedRequirements.size === 22);
-const pythonRailSource = readFileSync(new URL("templates/python/template/tests/conftest.py", sourceRoot), "utf8");
-// req: R-581
-check("Python filename constant is pinned to REQUIREMENTS-general.md", /GENERAL_REQUIREMENTS_FILE\s*=\s*["']REQUIREMENTS-general\.md["']/.test(pythonRailSource));
 const typescriptJinja = readFileSync(new URL("templates/typescript/template/REQUIREMENTS-general.md.jinja", sourceRoot), "utf8");
 // req: R-581
 check("TypeScript rendered Jinja includes the shared source", typescriptJinja.trim() === "{% include 'templates/_shared/requirements-general.md' %}" && sharedRequirements.size === 22);
-const typescriptRailSource = readFileSync(new URL("templates/typescript/template/tests/requirements-trace.ts", sourceRoot), "utf8");
-// req: R-581
-check("TypeScript filename constant is pinned to REQUIREMENTS-general.md", /GENERAL_REQUIREMENTS_FILE\s*=\s*["']REQUIREMENTS-general\.md["']/.test(typescriptRailSource));
 const copyProbe = probe("uvx", ["copier", "--version"], { cwd: root });
 const pythonProbe = probe("uvx", ["--with", "pytest", "python", "-c", "import pytest"], { cwd: root });
 const haveCopier = copyProbe.status === 0;

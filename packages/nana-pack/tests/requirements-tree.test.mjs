@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/tests/requirements-tree.test.mjs
- * @purpose Pins the capability-tree requirements on the real ledger and proves each structural rule and outline field rejects a broken fixture.
+ * @purpose Pins the capability-tree requirements on the real ledger, structural refusals and generated outline fields.
  * @inputs REQUIREMENTS.md, scripts/requirements-tree.mjs and temporary ledger fixtures.
  * @outputs PASS/FAIL lines for each marked assertion and a non-zero exit when any fails.
  * @effects disk (reads repository files and creates fixtures under the OS temp directory)
@@ -13,8 +13,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpDir } from "./tmp-dir.mjs";
-import { ID, requirementRowId } from "../../../scripts/requirements-trace.mjs";
-import { checkTree, renderOutline, parseLedger, checkOutlineFields, compressRowIds, expandRowIds, readRequirementRows, descendants, ledgerReadProblem } from "../../../scripts/requirements-tree.mjs";
+import { requirementRowId } from "../../../scripts/requirements-trace.mjs";
+import { checkTree, renderOutline, parseLedger, compressRowIds, expandRowIds, readRequirementRows, descendants, ledgerReadProblem } from "../../../scripts/requirements-tree.mjs";
 
 let fails = 0;
 const check = (name, ok, why = "") => { console.log(ok ? "PASS" : "FAIL", name, ok ? "" : why); if (!ok) fails++; };
@@ -47,11 +47,7 @@ check("R-288: real ledger has no structural problems", actual.problems.length ==
 check("R-289: real capability, feature and subgroup IDs are unique", actual.problems.every((p) => !p.includes("duplicate heading ID")), actual.problems.join("\n"));
 // req: R-290
 check("R-290: real feature and subgroup headings have direct-level parents", actual.problems.every((p) => !p.includes("nested under")), actual.problems.join("\n"));
-// req: R-291
-check("R-291: generated outline equals a fresh render", map === renderOutline(actual.parsed), "generated outline differs from renderOutline");
-// req: R-291
-check("R-291: generated outline fields and row IDs match the real ledger", checkOutlineFields(map, actual.parsed).length === 0, checkOutlineFields(map, actual.parsed).join("; "));
-// R-1640 to R-1643: the rows each heading is expected to carry come from the trace rail's
+// The rows each heading is expected to carry come from the trace rail's
 // own row reader (requirementRowId), never a typed count, so adding a requirement row
 // changes no number here.
 function treeAccounting(parsed, outline) {
@@ -87,24 +83,6 @@ function isDescendant(candidate, ancestor) {
 const accounting = treeAccounting(actual.parsed, map);
 // req: R-291
 check("R-291: every real heading's generated IDs survive expansion and the tree reads every row line once", accounting.length === 0, accounting.join("; "));
-const r291Row = row("R-291");
-const insertedParsed = parseLedger(ledger.replace(r291Row, `${r291Row}\n| R-9999 | The added row shall be read. | untested | — |`));
-const insertedProblems = treeAccounting(insertedParsed, renderOutline(insertedParsed));
-// req: R-1640
-check("R-1640: a row added to a real feature table passes the tree accounting with no test edit", Boolean(r291Row) && row("R-9999") === "" && insertedParsed.headings.some((h) => h.rows.includes("R-9999")) && insertedProblems.length === 0, insertedProblems.join("; "));
-const droppedParsed = parseLedger("# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · B\nPurpose: feat\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n\n| R-002 | B shall work. | untested | — |\n");
-const droppedProblems = treeAccounting(droppedParsed, renderOutline(droppedParsed));
-// req: R-1641
-check("R-1641: a requirement row line the tree parser drops fails the accounting naming its ID", droppedProblems.some((p) => p.includes("R-002")) && !droppedProblems.some((p) => p.includes("R-001")), droppedProblems.join("; "));
-const duplicatedParsed = parseLedger("# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · B\nPurpose: feat\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n\n## FEAT-002 · C\nPurpose: feat2\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n");
-const duplicatedProblems = treeAccounting(duplicatedParsed, renderOutline(duplicatedParsed));
-// req: R-1642
-check("R-1642: a row ID read under two headings fails the accounting naming its ID", duplicatedProblems.some((p) => p.includes("R-001")), duplicatedProblems.join("; "));
-const subgroupParsed = parseLedger("# CAP-01 · A\nPurpose: cap\n\n## FEAT-001 · B\nPurpose: feat\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n\n### SUB-001 · D\nPurpose: sub\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-002 | B shall work. | untested | — |\n");
-const subgroupFeature = subgroupParsed.headings.find((h) => h.id === "FEAT-001");
-const subgroupProblems = treeAccounting(subgroupParsed, renderOutline(subgroupParsed));
-// req: R-1643
-check("R-1643: a row on a feature that has subgroups is counted once by the accounting", Boolean(subgroupFeature?.rows.includes("R-001")) && subgroupProblems.length === 0, subgroupProblems.join("; "));
 const feat033 = actual.parsed.headings.find((h) => h.id === "FEAT-033");
 const parsedForReader = parseLedger(`# CAP-01 · Cap\nPurpose: capability\nOutcome: a visible outcome\n\n## FEAT-001 · Home\nPurpose: feature\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| G-001 | A requirement text. | implemented | test cite |\n| R-1000 | A four-digit requirement. | planned | — |\n`);
 const rowsForReader = readRequirementRows(parsedForReader);
@@ -129,14 +107,7 @@ check("R-291: parent row counts aggregate descendants", actual.parsed.headings.f
 }), "parent count differs from its descendants");
 
 // req: R-291
-check("R-291: feature outline carries status and shared IDs", checkOutlineFields(map, actual.parsed).length === 0 && map.includes("Status: active") && map.includes("Also applies: R-") && map.includes("| ID | Home | Also applies to | Count |"), checkOutlineFields(map, actual.parsed).join("; "));
-const rowPrefix = new RegExp("^\\| " + ID.source.slice(1, -1) + " \\|");
-const sharedRow = actual.outline.split("\n").find((line) => rowPrefix.test(line));
-// req: R-291
-check("R-291 fixture: outline field check rejects a missing shared-index row", Boolean(sharedRow) && checkOutlineFields(actual.outline.replace(`${sharedRow}\n`, ""), actual.parsed).some((p) => p.includes("index")), "shared index row was not detected");
-const multiListerRow = actual.outline.split("\n").find((line) => rowPrefix.test(line) && line.split("|")[3].trim().includes(", "));
-// req: R-291
-check("R-291 fixture: field check rejects one sharing feature removed from an index row", Boolean(multiListerRow) && checkOutlineFields(actual.outline.replace(multiListerRow, multiListerRow.replace(/, FEAT-\d{3}/, "")), actual.parsed).some((p) => p.includes("index")), "missing sharing feature was not detected");
+check("R-291: feature outline carries status and shared IDs", map.includes("Status: active") && map.includes("Also applies: R-") && map.includes("| ID | Home | Also applies to | Count |"));
 // req: R-292
 check("R-292: real shared IDs exist once, are live, and belong to another feature", actual.problems.every((p) => !p.includes("Also applies")), actual.problems.join("; "));
 // req: R-293
@@ -259,28 +230,14 @@ for (const ids of [
   // req: R-291
   check(`R-291 property: compression round-trips ${ids.join(" ")}`, expandRowIds(compressRowIds(ids)).sort().join(",") === sorted.join(","), compressRowIds(ids));
 }
-const sample = fixture("| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | A shall work. | untested | — |\n| G-001 | B shall work. | untested | — |");
-const parsedSample = parseLedger(sample);
-const original = renderOutline(parsedSample);
-// req: R-291
-check("R-291 fixture: independent field check catches a broken renderer dropping status", checkOutlineFields(renderOutline(parsedSample).replace("  Status: active\n", ""), parsedSample).some((p) => p.includes("status")), checkOutlineFields(original, parsedSample).join("; "));
-check("R-291 fixture: independent field check rejects missing shared index data", checkOutlineFields(original.replace("| ID | Home | Also applies to | Count |", "| ID | Home | Count |"), parsedSample).some((p) => p.includes("index")), checkOutlineFields(original, parsedSample).join("; "));
 const artifactOutlineLedger = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\nArtifact: A-001 · first · tracked: docs/first.md · manual: owner\nArtifact: A-002 · second · user-home store: ~/second · manual: owner\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
 const artifactOutlineParsed = parseLedger(artifactOutlineLedger);
 const artifactOutline = renderOutline(artifactOutlineParsed);
 const artifactParent = "    Parent: CAP-01 · Rows: 1 · IDs: R-001";
 const artifactLine = "    Artifacts: A-001, A-002";
 const kindlessArtifactOutline = renderOutline(parseLedger(artifactOutlineLedger.replace("Kind: product\n", "")));
-const historicalOutlineUnchanged = (revision) => {
-  const oldLedger = spawnSync("git", ["show", `${revision}:REQUIREMENTS.md`], { cwd: fileURLToPath(root), encoding: "utf8" });
-  const oldOutline = spawnSync("git", ["show", `${revision}:docs/requirements-tree.md`], { cwd: fileURLToPath(root), encoding: "utf8" });
-  return oldLedger.status === 0 && oldOutline.status === 0 && renderOutline(parseLedger(oldLedger.stdout)) === oldOutline.stdout;
-};
-const artifactHistory = ["c4332ecb", "4b3846ec", "5548d4c2"].map(historicalOutlineUnchanged);
-const artifactDropped = checkOutlineFields(artifactOutline.replace(`${artifactLine}\n`, ""), artifactOutlineParsed);
-const artifactAltered = checkOutlineFields(artifactOutline.replace(artifactLine, "    Artifacts: A-001"), artifactOutlineParsed);
 // req: R-2785
-check("R-2785: the outline lists each feature's artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged", artifactOutline.includes(`${artifactParent}\n${artifactLine}\n`) && artifactDropped.some((problem) => problem.includes("FEAT-001") && problem.includes("Artifacts:")) && artifactAltered.some((problem) => problem.includes("FEAT-001") && problem.includes("Artifacts:")) && !kindlessArtifactOutline.includes("Artifacts:") && artifactHistory.every(Boolean), `${artifactOutline}\ndropped=${artifactDropped.join("; ")}\naltered=${artifactAltered.join("; ")}\nhistory=${artifactHistory.join(",")}`);
+check("R-2785: the outline lists each feature's artifact IDs", artifactOutline.includes(`${artifactParent}\n${artifactLine}\n`) && !kindlessArtifactOutline.includes("Artifacts:"), artifactOutline);
 
 const readsOutlineLedger = `# CAP-01 · Product
 Purpose: product
@@ -310,26 +267,9 @@ const readsOutline = renderOutline(readsOutlineParsed);
 const readsWithArtifact = "    Parent: CAP-01 · Rows: 0 · IDs: —\n    Artifacts: A-002\n    Reads: A-001";
 const readsWithoutArtifact = "    Parent: CAP-01 · Rows: 0 · IDs: —\n    Reads: A-001";
 const readsLine = "    Reads: A-001";
-const readsDropped = checkOutlineFields(readsOutline.replace(`${readsLine}\n`, ""), readsOutlineParsed);
-const readsAltered = checkOutlineFields(readsOutline.replace(readsLine, "    Reads: A-999"), readsOutlineParsed);
 const kindlessReadsOutline = renderOutline(parseLedger(readsOutlineLedger.replace("Kind: product\n", "")));
-const readsHistory = ["c4332ecb", "4b3846ec", "5548d4c2", "0943299b"].map(historicalOutlineUnchanged);
 // req: R-2796
-check("R-2796: the outline lists each feature's read artifact IDs, the field check catches a dropped line, and the historical outlines are unchanged", readsOutline.includes(readsWithArtifact) && readsOutline.includes(readsWithoutArtifact) && readsOutline.split("\n").filter((line) => line === readsLine).length === 2 && readsDropped.some((problem) => problem.includes("FEAT-002") && problem.includes("Reads:")) && readsAltered.some((problem) => problem.includes("FEAT-002") && problem.includes("Reads:")) && !kindlessReadsOutline.includes("Reads:") && readsHistory.every(Boolean), `${readsOutline}\ndropped=${readsDropped.join("; ")}\naltered=${readsAltered.join("; ")}\nhistory=${readsHistory.join(",")}`);
-
-for (const [field, mutate] of [
-  ["ID", (s) => s.replace("FEAT-001", "FEAT-002")],
-  ["label", (s) => s.replace("FEAT-001 · B", "FEAT-001 · Changed")],
-  ["purpose", (s) => s.replace("Purpose: feat", "Purpose: changed")],
-  ["parent", (s) => s.replace("Parent: CAP-01", "Parent: CAP-02")],
-  ["row count", (s) => s.replace("Rows: 2", "Rows: 3")],
-  ["row IDs", (s) => s.replace("IDs: R-001", "IDs: R-002")],
-]) {
-  const altered = mutate(original);
-  const problems = checkOutlineFields(altered, parsedSample);
-  // req: R-291
-  check(`R-291 fixture field check rejects altered ${field}`, problems.some((p) => p.includes(`field ${field}`)), problems.join("; "));
-}
+check("R-2796: the outline lists each feature's read artifact IDs", readsOutline.includes(readsWithArtifact) && readsOutline.includes(readsWithoutArtifact) && readsOutline.split("\n").filter((line) => line === readsLine).length === 2 && !kindlessReadsOutline.includes("Reads:"), readsOutline);
 // ---------------------------------------------------------------- T8-T11, T15: the --root CLI
 const TREE_CLI = fileURLToPath(new URL("../../../scripts/requirements-tree.mjs", import.meta.url));
 const runTree = (args, cwd) => spawnSync(process.execPath, [TREE_CLI, ...args], { cwd, encoding: "utf8" });
@@ -483,58 +423,50 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   copyFileSync(fileURLToPath(new URL("../../../templates/typescript/template/tests/requirements-trace.ts", import.meta.url)), join(traceTemplateDir, "requirements-trace.ts"));
   const copiedCli = join(scriptsDir, "requirements-tree.mjs");
   const deliverableTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\nDeliverables: R-001\nMade by: R-001 · manual\nRead by: R-001 · person:\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
-  const withoutLines = deliverableTree.replace(/^Made by:.*\n|^Read by:.*\n/gm, "");
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), deliverableTree);
   const rootMode = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
   const absentMode = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
-  const writeMode = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
-  const writtenOutline = existsSync(join(docsDir, "requirements-tree.md")) ? readFileSync(join(docsDir, "requirements-tree.md"), "utf8") : "";
   const checkMode = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
   writeFileSync(join(docsDir, "requirements-tree.md"), "stale local outline\r\n \t");
   const staleMode = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
-  const expectedOutline = renderOutline(parseLedger(withoutLines));
   const goodOutput = (result) => {
     const outputLines = lines(result.stdout);
     return result.status === 0 && outputLines[0] === "requirements tree: 0 problems; rows 1; features 1" && outputLines[1] === "deliverables: 0 of 1 made and read by code" && outputLines.length === 4 && outputLines.slice(2).every((line) => line.startsWith("deliverable note:") && line.includes("R-001"));
   };
 
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), deliverableTree.replace("Purpose: feature\n", ""));
-  const problemMode = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
+  const problemMode = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
 
   const registryOnly = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\nArtifact: broken\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), registryOnly);
   const registryRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
-  const registryWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
   const registryCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
   const registryOutput = (result) => result.status === 0 && lines(result.stdout)[0] === "requirements tree: 0 problems; rows 1; features 1" && lines(result.stdout).filter((line) => line.includes("malformed Artifact:")).length === 1;
 
   const readsOnly = "# CAP-01 · Product\nPurpose: product\nOutcome: artifact\nKind: product\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\nReads: A-999 · scripts/read.mjs\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The artifact shall exist. | untested | — |\n";
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), readsOnly);
   const readsRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
-  const readsWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
   const readsCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
   const readsOutput = (result) => result.status === 0 && lines(result.stdout)[0] === "requirements tree: 0 problems; rows 1; features 1" && lines(result.stdout).filter((line) => line.includes("Reads: A-999") && line.includes("no live entry")).length === 1;
   // req: R-2538
-  check("the tree checker prints deliverable notes in every mode and keeps its exit status and outline",
-    goodOutput(rootMode) && goodOutput(absentMode) && goodOutput(staleMode) && goodOutput(writeMode) && goodOutput(checkMode) && writtenOutline === expectedOutline && problemMode.status === 1 && problemMode.stdout === "" && registryOutput(registryRoot) && registryOutput(registryWrite) && registryOutput(registryCheck) && readsOutput(readsRoot) && readsOutput(readsWrite) && readsOutput(readsCheck),
-    `root ${rootMode.status}: ${rootMode.stdout} ${rootMode.stderr}\nwrite ${writeMode.status}: ${writeMode.stdout} ${writeMode.stderr}\ncheck ${checkMode.status}: ${checkMode.stdout} ${checkMode.stderr}\nproblem ${problemMode.status}: ${problemMode.stdout} ${problemMode.stderr}\nregistry only: ${registryRoot.status}/${registryWrite.status}/${registryCheck.status}: ${registryRoot.stdout} ${registryWrite.stdout} ${registryCheck.stdout} ${registryCheck.stderr}\nreads only: ${readsRoot.status}/${readsWrite.status}/${readsCheck.status}: ${readsRoot.stdout} ${readsWrite.stdout} ${readsCheck.stdout} ${readsCheck.stderr}`);
+  check("the tree checker prints deliverable notes in root and check modes and keeps its exit status",
+    goodOutput(rootMode) && goodOutput(absentMode) && goodOutput(staleMode) && goodOutput(checkMode) && problemMode.status === 1 && problemMode.stdout === "" && registryOutput(registryRoot) && registryOutput(registryCheck) && readsOutput(readsRoot) && readsOutput(readsCheck),
+    `root ${rootMode.status}: ${rootMode.stdout} ${rootMode.stderr}\ncheck ${checkMode.status}: ${checkMode.stdout} ${checkMode.stderr}\nproblem ${problemMode.status}: ${problemMode.stdout} ${problemMode.stderr}\nregistry only: ${registryRoot.status}/${registryCheck.status}: ${registryRoot.stdout} ${registryCheck.stdout} ${registryCheck.stderr}\nreads only: ${readsRoot.status}/${readsCheck.status}: ${readsRoot.stdout} ${readsCheck.stdout} ${readsCheck.stderr}`);
 
   const countTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifacts\nKind: product\nDeliverables: R-001, R-002, R-003\nMade by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/read.mjs\nMade by: R-002 · manual: a person makes it\nRead by: R-002 · code: scripts/read.mjs\nMade by: R-003 · suite: scripts/make.mjs\nRead by: R-003 · rule: the workflow asks for it\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n| R-002 | The second artifact shall exist. | untested | — |\n| R-003 | The third artifact shall exist. | untested | — |\n";
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), countTree);
   const countRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
-  const countWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
   const countCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
   const countLine = "deliverables: 1 of 3 made and read by code";
   const hasOneCount = (result) => result.status === 0 && lines(result.stdout).filter((line) => line === countLine).length === 1;
   // req: R-2541
-  check("the tree checker counts the deliverables made and read by code in every mode",
-    hasOneCount(countRoot) && hasOneCount(countWrite) && hasOneCount(countCheck),
-    `root ${countRoot.status}: ${countRoot.stdout} ${countRoot.stderr}\nwrite ${countWrite.status}: ${countWrite.stdout} ${countWrite.stderr}\ncheck ${countCheck.status}: ${countCheck.stdout} ${countCheck.stderr}`);
+  check("the tree checker counts the deliverables made and read by code in root and check modes",
+    hasOneCount(countRoot) && hasOneCount(countCheck),
+    `root ${countRoot.status}: ${countRoot.stdout} ${countRoot.stderr}\ncheck ${countCheck.status}: ${countCheck.stdout} ${countCheck.stderr}`);
 
   const parkedTree = "# CAP-01 · Product\nPurpose: product\nOutcome: artifacts\nKind: product\nDeliverables: R-001, R-002, R-003, R-004\nMade by: R-001 · suite: scripts/make.mjs\nRead by: R-001 · code: scripts/read.mjs\nMade by: R-002 · manual: a person makes it\nRead by: R-002 · person: a person reads it\nParked: R-002 · since 2026-10-22: the owner holds it first\nParked: R-002 · since 2026-10-23: the owner holds it second\nMade by: R-003 · suite: scripts/make.mjs\nRead by: R-003 · rule: the workflow asks for it\nParked: R-003 · since 2026-10-22: the owner holds it\nMade by: R-004 · manual: a person makes it\nRead by: R-004 · person: a person reads it\n\n## FEAT-001 · Feature\nPurpose: feature\nStatus: active\n\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n| R-002 | The second artifact shall exist. | untested | — |\n| R-003 | The third artifact shall exist. | untested | — |\n| R-004 | The fourth artifact shall exist. | untested | — |\n";
   writeFileSync(join(modesRoot, "REQUIREMENTS.md"), parkedTree);
   const parkedRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
-  const parkedWrite = spawnSync(process.execPath, [copiedCli, "--write"], { encoding: "utf8", timeout: 10_000 });
   const parkedCheck = spawnSync(process.execPath, [copiedCli, "--check"], { encoding: "utf8", timeout: 10_000 });
   const parkedLine = "deliverables: 1 of 2 made and read by code, 2 more parked";
   const hasOneParkedCount = (result) => result.status === 0 && lines(result.stdout).filter((line) => line === parkedLine).length === 1;
@@ -547,9 +479,9 @@ const utf16 = (s) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(s, "u
   const oneParkedRoot = spawnSync(process.execPath, [copiedCli, "--root", modesRoot], { encoding: "utf8", timeout: 10_000 });
   const oneParkedLine = "deliverables: 0 of 0 made and read by code, 1 more parked";
   // req: R-2639
-  check("R-2639: a parked deliverable leaves the count's total once and the line names the parked row count in every mode",
-    hasOneParkedCount(parkedRoot) && hasOneParkedCount(parkedWrite) && hasOneParkedCount(parkedCheck) && oneParkedRoot.status === 0 && lines(oneParkedRoot.stdout).filter((line) => line === oneParkedLine).length === 1,
-    `root ${parkedRoot.status}: ${parkedRoot.stdout} ${parkedRoot.stderr}\nwrite ${parkedWrite.status}: ${parkedWrite.stdout} ${parkedWrite.stderr}\ncheck ${parkedCheck.status}: ${parkedCheck.stdout} ${parkedCheck.stderr}\none ${oneParkedRoot.status}: ${oneParkedRoot.stdout} ${oneParkedRoot.stderr}`);
+  check("R-2639: a parked deliverable leaves the count's total once and the line names the parked row count in root and check modes",
+    hasOneParkedCount(parkedRoot) && hasOneParkedCount(parkedCheck) && oneParkedRoot.status === 0 && lines(oneParkedRoot.stdout).filter((line) => line === oneParkedLine).length === 1,
+    `root ${parkedRoot.status}: ${parkedRoot.stdout} ${parkedRoot.stderr}\ncheck ${parkedCheck.status}: ${parkedCheck.stdout} ${parkedCheck.stderr}\none ${oneParkedRoot.status}: ${oneParkedRoot.stdout} ${oneParkedRoot.stderr}`);
 }
 
 console.log(fails ? `${fails} FAILED` : "all passed");

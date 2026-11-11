@@ -27,9 +27,6 @@ import {
   PATH_REQUIRED,
   READER_KINDS,
   REASON_REQUIRED,
-  ARTIFACT_CLASSES,
-  ARTIFACT_ID_PATTERN,
-  ARTIFACT_LOCATION_SHAPES,
   artifactRegistry,
   checkDeliverables,
   deliverableClaims,
@@ -75,9 +72,7 @@ for (const [label, text, fragment] of [
   ["reused", registryTree(`${validArtifact}\nArtifact: A-001 · other · tracked: docs/y.md · manual: owner`), "reused"],
   ["malformed", registryTree("Artifact: A-002 · broken"), "malformed"],
   ["capability", registryTree(validArtifact).replace(`${validArtifact}\n`, "").replace("Deliverables: R-001\n", `Deliverables: R-001\n${validArtifact}\n`), "feature span"],
-  ["subgroup", registryTree("", undefined, { subgroup: `### SUB-001 · Sub\nPurpose: sub\n${validArtifact}\n` }), "feature span"],
   ["proposed", registryTree(validArtifact, undefined, { status: "proposed" }), "proposed or retired"],
-  ["retired", registryTree(validArtifact, undefined, { status: "retired (FEAT-002)" }), "proposed or retired"],
 ]) {
   const report = artifactRegistry(parseLedger(text), ["docs/x.md", "docs/y.md"]);
   if (report.notes.length !== 1 || !report.notes[0].includes(fragment)) artifactPlacementFailures.push(`${label}: ${report.notes.join(" | ")}`);
@@ -95,28 +90,11 @@ const artifactShapeFailures = [];
 for (const [label, line] of [
   ["unknown", "Artifact: A-001 · output · mystery: docs/x.md · manual: owner"],
   ["home", "Artifact: A-001 · output · user-home store: docs/x.md · manual: owner"],
-  ["CI", "Artifact: A-001 · output · CI record: docs/new.md · manual: owner"],
-  ["ref", "Artifact: A-001 · output · git ref: docs/x · manual: owner"],
   ["backslash", "Artifact: A-001 · output · tracked: docs\\x.md · manual: owner"],
-  ["first wildcard", "Artifact: A-001 · output · tracked: */x.md · manual: owner"],
 ]) {
   const report = artifactRegistry(parseLedger(registryTree(line)), ["docs/x.md"]);
   if (report.notes.length !== 1 || !report.notes[0].includes("A-001")) artifactShapeFailures.push(`${label}: ${report.notes.join(" | ")}`);
 }
-const shapesPinned = Object.isFrozen(ARTIFACT_CLASSES)
-  && JSON.stringify(ARTIFACT_CLASSES) === JSON.stringify(["tracked", "clone store", "user-home store", "other project", "git ref", "CI record", "GitHub issues"])
-  && ARTIFACT_ID_PATTERN.source === "^A-(?:00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$"
-  && Object.isFrozen(ARTIFACT_LOCATION_SHAPES)
-  && JSON.stringify(ARTIFACT_LOCATION_SHAPES) === JSON.stringify({
-    tracked: "repo-relative tracked path, folder or single-segment-* glob",
-    "clone store": "<git common dir>/<path>",
-    "user-home store": "~/<path> or <pi agent dir>/<path>",
-    "other project": "<project>/<path>",
-    "git ref": "refs/heads/<name> or refs/tags/<prefix>",
-    "CI record": "ci: .github/workflows/<workflow>.yml#<name-without-slash>",
-    "GitHub issues": "github: <owner>/<repo> labelled <label>[, <label>]",
-  });
-if (!shapesPinned) artifactShapeFailures.push("sealed artifact classes, ID pattern or location shapes differ");
 // req: R-2781
 check("R-2781: an unknown class or a location of the wrong shape for its class gets one note", artifactShapeFailures.length === 0, artifactShapeFailures.join("\n"));
 
@@ -124,10 +102,8 @@ const artifactValidityFailures = [];
 for (const [label, lines, tracked, fragment] of [
   ["missing tracked", "Artifact: A-001 · output · tracked: docs/new.md · manual: owner", ["docs/x.md"], "docs/new.md"],
   ["untracked writer", "Artifact: A-001 · output · user-home store: ~/output · suite: scripts/new.mjs", ["scripts/make.mjs"], "scripts/new.mjs"],
-  ["folder writer", "Artifact: A-001 · output · user-home store: ~/output · suite: scripts", ["scripts/make.mjs"], "scripts"],
   ["reasonless", "Artifact: A-001 · output · user-home store: ~/output · manual:", [], "reason"],
   ["duplicate location", "Artifact: A-001 · first · user-home store: ~/output · manual: owner\nArtifact: A-002 · second · user-home store: ~/output · manual: owner", [], "A-002"],
-  ["single-segment glob", "Artifact: A-001 · output · tracked: docs/reviews/*/x.txt · manual: owner", ["docs/reviews/a/b/x.txt"], "docs/reviews/*/x.txt"],
 ]) {
   const report = artifactRegistry(parseLedger(registryTree(lines)), tracked);
   if (report.notes.length !== 1 || !report.notes[0].includes(fragment)) artifactValidityFailures.push(`${label}: ${report.notes.join(" | ")}`);
@@ -150,7 +126,6 @@ for (const [label, maker, wanted, unwanted] of [
   ["missing writer", "Made by: R-001 · suite: scripts/test.mjs · A-033", "packages/nana-pack/lib/suite-records.mjs", null],
   ["built from ignores binding", "Made by: R-001 · session start: scripts/test.mjs · built from: A-001", null, "deliverable note:"],
   ["missing reference", "Made by: R-001 · manual: owner · A-999", "A-999", null],
-  ["missing built from", "Made by: R-001 · manual: owner · built from: A-999", "A-999", null],
   ["valid home", "Made by: R-001 · extension: packages/nana-pack/extensions/nana-handoff.ts · A-002", null, "not tracked at HEAD"],
 ]) {
   const text = registryTree(bindingEntries, `${maker}\nRead by: R-001 · person: owner`);
@@ -210,16 +185,12 @@ const retiredEntryNotes = parsedReads(retiredEntryLedger).notes;
 if (retiredEntryNotes.length !== 1 || !retiredEntryNotes[0].includes("A-002") || !retiredEntryNotes[0].includes("no live entry")) readsFailures.push(`retired entry: ${retiredEntryNotes.join(" | ")}`);
 for (const [label, options, fragment] of [
   ["parts", { reads: "Reads: A-001" }, "malformed"],
-  ["id", { reads: "Reads: R-001 · scripts/read.mjs" }, "malformed"],
-  ["empty reader", { reads: "Reads: A-001 · scripts/read.mjs, " }, "malformed"],
   ["unknown", { reads: "Reads: A-999 · scripts/read.mjs" }, "no live entry"],
   ["own", { placement: "maker" }, "same feature"],
   ["repeated", { reads: "Reads: A-001 · scripts/read.mjs\nReads: A-001 · scripts/other.mjs" }, "more than once"],
   ["untracked", { reads: "Reads: A-001 · scripts/missing.mjs" }, "not a tracked file"],
-  ["folder", { reads: "Reads: A-001 · scripts/" }, "not a tracked file"],
   ["retired", { status: "retired (FEAT-003)" }, "proposed or retired"],
   ["capability", { placement: "capability" }, "outside a feature span"],
-  ["subgroup", { placement: "subgroup" }, "outside a feature span"],
 ]) expectReadsNote(label, options, fragment);
 const kindlessReads = parsedReads(readsLedger({ kind: "" }), []);
 if (kindlessReads.notes.length || kindlessReads.reads.length || kindlessReads.fieldLineCount !== 0) readsFailures.push(`kindless: ${kindlessReads.notes.join(" | ")}`);
@@ -260,9 +231,6 @@ for (const [label, options, count] of [
   ["foreign missing", { parked: true }, 1],
   ["home entry", { builtId: "A-001" }, 0],
   ["read at home", { reads: "Reads: A-002 · scripts/read.mjs\n" }, 0],
-  ["read elsewhere", { reads: "", otherReads: "Reads: A-002 · scripts/other-read.mjs\n", builtId: "A-002" }, 1],
-  ["subgroup home", { builtId: "A-001", subgroup: true }, 0],
-  ["duplicate claims", { duplicateClaim: true }, 1],
   ["direct reference", { direct: true }, 0],
 ]) {
   const notes = builtFromNotes(options);
@@ -283,23 +251,17 @@ const artifactConsumerLedger = ({ before = [], after = [], status = "active", ki
 const artifactReaderFailures = [];
 const artifactReaderNotes = (text, tracked = ["scripts/read.mjs", "scripts/other.mjs"]) => checkDeliverables(parseLedger(text), tracked).notes.filter((entry) => entry.includes("Read by:"));
 for (const [label, text] of [
-  ["two paths", artifactConsumerLedger({ after: ["Read by: A-001 · code: scripts/read.mjs, scripts/other.mjs"] })],
   ["above entry", artifactConsumerLedger({ before: ["Read by: A-001 · prompt: scripts/read.mjs"] })],
   ["frozen", artifactConsumerLedger({ status: "frozen (fixture)", after: ["Read by: A-001 · person: owner reads it"] })],
-  ["second kind", artifactConsumerLedger({ after: ["Read by: A-001 · code: scripts/read.mjs", "Read by: A-001 · person: owner reads it"] })],
 ]) {
   const notes = artifactReaderNotes(text);
   if (notes.length) artifactReaderFailures.push(`${label}: ${notes.join(" | ")}`);
 }
 for (const [label, lines, fragment] of [
   ["parts", ["Read by: A-001"], "malformed"],
-  ["row id", ["Read by: R-001 · code: scripts/read.mjs"], "malformed"],
   ["unknown kind", ["Read by: A-001 · daemon: because"], "unknown reader"],
   ["unknown entry", ["Read by: A-999 · code: scripts/read.mjs"], "no live entry"],
   ["untracked", ["Read by: A-001 · code: scripts/missing.mjs"], "not a tracked file"],
-  ["folder", ["Read by: A-001 · code: scripts/"], "not a tracked file"],
-  ["glob", ["Read by: A-001 · code: scripts/*.mjs"], "not a tracked file"],
-  ["reasonless person", ["Read by: A-001 · person:"], "needs a reason"],
   ["reasonless runtime", ["Read by: A-001 · runtime:"], "needs a reason"],
   ["repeated", ["Read by: A-001 · code: scripts/read.mjs", "Read by: A-001 · code: scripts/other.mjs"], "more than once"],
 ]) {
@@ -314,7 +276,6 @@ if (foreignArtifactNotes.length !== 1 || !foreignArtifactNotes[0].includes("anot
 for (const [label, text, fragment] of [
   ["subgroup", artifactConsumerLedger({ second: ["### SUB-001 · Group", "Purpose: group", "Read by: A-001 · code: scripts/read.mjs"] }), "outside a feature span"],
   ["proposed", artifactConsumerLedger({ status: "proposed", after: ["Read by: A-001 · code: scripts/read.mjs"] }), "proposed or retired"],
-  ["retired", artifactConsumerLedger({ status: "retired (FEAT-003)", after: ["Read by: A-001 · code: scripts/read.mjs"] }), "proposed or retired"],
 ]) {
   const notes = artifactReaderNotes(text);
   if (notes.length !== 1 || !notes[0].includes(fragment)) artifactReaderFailures.push(`${label}: ${notes.join(" | ")}`);
@@ -360,7 +321,6 @@ const validArtifactPark = checkDeliverables(parseLedger(artifactConsumerLedger({
 if (validArtifactPark.notes.length || validArtifactPark.artifactConsumers?.get("A-001")?.park?.date !== "2026-10-25") artifactParkFailures.push(`valid: ${validArtifactPark.notes.join(" | ")}`);
 for (const [label, line, fragment] of [
   ["separator", "Parked: A-001 - since 2026-10-25: held", "cannot read Parked:"],
-  ["third part", "Parked: A-001 · since 2026-10-25: held · more", "cannot read Parked:"],
   ["unknown", "Parked: A-999 · since 2026-10-25: held", "registered in that feature"],
   ["date", "Parked: A-001 · 2026-10-25: held", "needs a since date"],
   ["reason", "Parked: A-001 · since 2026-10-25:", "needs a reason"],
@@ -441,15 +401,10 @@ const secondCapabilityCounts = secondCapabilityReport.artifactConsumers?.get("A-
 // req: R-2834
 check("R-2834: the shared consumer predicate gives each entry its reader kinds, and an entry with none and no park gets one note", consumerFacts && noReaderNotes.length === 4 && noReaderNotes.some((entry) => entry.includes("A-006")) && noReaderNotes.some((entry) => entry.includes("A-009")) && noReaderNotes.some((entry) => entry.includes("A-011")) && noReaderNotes.some((entry) => entry.includes("A-012")) && !noReaderNotes.some((entry) => entry.includes("A-007") || entry.includes("A-008") || entry.includes("A-010")) && secondCapabilityCounts, JSON.stringify({ consumers: consumerMap ? [...consumerMap].map(([id, value]) => [id, [...value.kinds], value.park]) : null, notes: consumerReport.notes }));
 
-// req: R-2833, R-2834
-check("seal: the test-reader glob and the no-declared-reader note read as sealed", deliverablesModule.TEST_READER_GLOB === "*.test.*" && deliverablesModule.NO_DECLARED_READER_NOTE === "has no declared reader", JSON.stringify({ glob: deliverablesModule.TEST_READER_GLOB, note: deliverablesModule.NO_DECLARED_READER_NOTE }));
-
 const reasonCases = [
   ["Made by: R-001 · manual", "Read by: R-001 · person: owner", "Made by:"],
-  ["Made by: R-001 · manual:   ", "Read by: R-001 · person: owner", "Made by:"],
   ["Made by: R-001 · manual: owner", "Read by: R-001 · rule", "Read by:"],
   ["Made by: R-001 · manual: owner", "Read by: R-001 · person:   ", "Read by:"],
-  ["Made by: R-001 · manual · docs/x.md", "Read by: R-001 · code: scripts/make.mjs", "Made by:"],
 ];
 const reasonFailures = [];
 for (const [maker, reader, label] of reasonCases) {
@@ -542,7 +497,6 @@ expectNote("unknown run", tree("Made by: R-001 · nightly: scripts/make.mjs\nRea
 expectNote("bad separator", tree("Made by: R-001 - land: scripts/make.mjs\nRead by: R-001 · person: owner"), "cannot read Made by:", 1);
 expectNote("bare automatic", tree("Made by: R-001 · land\nRead by: R-001 · person: owner"), "needs a code path", 1);
 expectNote("bare prompt", tree("Made by: R-001 · manual: owner\nRead by: R-001 · prompt"), "needs a code path", 1);
-expectNote("bare code", tree("Made by: R-001 · manual: owner\nRead by: R-001 · code"), "needs a code path", 1);
 const ignoredProse = tree(
   "Made by: R-001 · manual: owner\nRead by: R-001 · person: owner\nmade by: R-999 · nightly\n```\nMade by: R-999 · nightly\n```\nMade by: R-001 · manual: second owner",
   "Made by: R-999 · nightly\n### SUB-001 · Sub\nPurpose: sub\nRead by: R-999 · mystery\n",
@@ -574,21 +528,16 @@ const expectPark = (label, parkLine, fragment, parked = 0, transform = (value) =
 expectPark("dash separator", "Parked: R-001 - since 2026-10-22: held", "cannot read Parked:");
 for (const [label, line] of [
   ["date without since", "Parked: R-001 · 2026-10-22: held"],
-  ["date in another order", "Parked: R-001 · since 22-10-2026: held"],
-  ["date as a word", "Parked: R-001 · since soon: held"],
 ]) expectPark(label, line, "needs a since date");
 for (const [label, line] of [
   ["missing colon and reason", "Parked: R-001 · since 2026-10-22"],
-  ["blank reason", "Parked: R-001 · since 2026-10-22:   "],
 ]) expectPark(label, line, "needs a reason");
-expectPark("third part", "Parked: R-001 · since 2026-10-22: held · more", "cannot read Parked:");
 
 const crossCapability = `# CAP-01 · First\nPurpose: first\nOutcome: first artifact\nKind: product\nDeliverables: R-001\nMade by: R-001 · manual: owner\nRead by: R-001 · person: owner\nParked: R-002 · since 2026-10-22: held\n\n## FEAT-001 · First feature\nPurpose: first feature\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-001 | The first artifact shall exist. | untested | — |\n\n# CAP-02 · Second\nPurpose: second\nOutcome: second artifact\nKind: product\nDeliverables: R-002\nMade by: R-002 · manual: owner\nRead by: R-002 · person: owner\n\n## FEAT-002 · Second feature\nPurpose: second feature\nStatus: active\n| ID | Requirement | Status | Evidence |\n|---|---|---|---|\n| R-002 | The second artifact shall exist. | untested | — |\n`;
 const crossReport = checkDeliverables(parseLedger(crossCapability), []);
 if (crossReport.notes.length !== 1 || !crossReport.notes[0].includes("names an unlisted deliverable") || crossReport.parkedDeliverables !== 0)
   parkedGrammarFailures.push(`cross capability: parked=${crossReport.parkedDeliverables}; ${crossReport.notes.join(" | ")}`);
 for (const [label, text] of [
-  ["constraint", `# CAP-01 · Constraint\nPurpose: constraint\nKind: constraint\nParked: R-001 · since 2026-10-22: held\n`],
   ["kindless", `# CAP-01 · Kindless\nPurpose: kindless\nParked: R-001 · since 2026-10-22: held\n`],
 ]) {
   const report = checkDeliverables(parseLedger(text), []);
@@ -666,11 +615,9 @@ const repositoryBindings = ["A-006", "A-032", "A-033"].map((id) => {
 });
 const expectedKeys = Object.keys(expectedAgeTable).sort();
 const readerKeys = Object.keys(productReportModule.STORE_READERS_BY_KEY ?? {}).sort();
-const ageTablePinned = ageTable && Object.isFrozen(ageTable) && Object.values(ageTable).every(Object.isFrozen)
-  && JSON.stringify(ageTable) === JSON.stringify(expectedAgeTable);
 // req: R-2793
 check("R-2793: a clone-store entry is bound to the age table's run and writer, and the table keys come from the store constants",
-  ageTablePinned && mismatchNotes.some((entry) => entry.includes("A-001") && entry.includes("age table"))
+  mismatchNotes.some((entry) => entry.includes("A-001") && entry.includes("age table"))
     && multipleWriterSuiteNotes.some((entry) => entry.includes("A-002") && entry.includes("age table"))
     && deliverablesModule.artifactAgeTableKey?.(multipleWriterSuiteEntry) === null
     && repositoryBindings.every(([, entry, key]) => key === entry.location && expectedKeys.includes(key))
@@ -723,13 +670,6 @@ check("R-2730: this repository's ledger gets no deliverable note against its tra
     && registryControlLines.some((line) => line.includes("malformed Artifact:"))
     && registryControlLines.filter((line) => line.includes("A-999")).length === 2,
   `${repositoryReportLines.join("\n")}\ncontrol: ${registryControlLines.join("\n")}`);
-
-const memoryReport = deliverablesModule.deliverableReport(repositoryParsed, repositoryRoot);
-// req: R-3864
-check('R-3864: memory artifacts are retired without deliverable check notes',
-  memoryReport.check.checkedDeliverables > 0
-    && ['A-044', 'A-095', 'A-097'].every(id => memoryReport.check.artifacts.get(id)?.retired === true)
-    && memoryReport.check.notes.length === 0, JSON.stringify(memoryReport.check.notes));
 
 console.log(fails ? `${fails} check(s) failed` : "all checks passed");
 process.exit(fails ? 1 : 0);

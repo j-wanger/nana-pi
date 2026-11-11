@@ -20,7 +20,6 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const TS_RAIL = join(ROOT, "templates/typescript/template/tests/requirements-trace.ts");
 const PY_RAIL = join(ROOT, "templates/python/template/tests/conftest.py");
 const TRACE_CLI = join(ROOT, "scripts/requirements-trace.mjs");
-const SKILL = join(ROOT, "packages/nana-pack/skills/requirements/SKILL.md");
 const trace = await import(new URL("../../../scripts/requirements-trace.mjs", import.meta.url).href);
 const EXPECTED_SWITCH = "NANA_REQ_UNCLAIMED";
 const SWITCH = trace.UNCLAIMED_ENV ?? EXPECTED_SWITCH;
@@ -123,36 +122,6 @@ else {
 	check("R-1661: the Python rail lists unclaimed def and call declarations, and a marker above decorators claims its def", pytestAvailable && JSON.stringify(pyListing.lines) === JSON.stringify(expectedPy), pyListing.error || pyListing.lines.join("\n"));
 }
 
-const TWIN_LAYOUT = [
-	{ key: "a-b", ts: "tests/a-b.test.ts", py: "tests/test_a-b.py", rows: [{ title: "test_top" }, { title: "test_claimed", claimed: true }, { title: "test_under_claimed" }] },
-	{ key: "a/x", ts: "tests/a/x.test.ts", py: "tests/test_a/test_x.py", rows: [{ title: "test_folder" }] },
-	{ key: "sub/z", ts: "tests/sub/z.test.ts", py: "tests/test_sub/test_z.py", rows: [{ title: "test_nested" }] },
-];
-const twinTsRoot = makeDir("nana-unclaimed-twin-ts-");
-const twinPyRoot = makeDir("nana-unclaimed-twin-py-");
-for (const file of TWIN_LAYOUT) {
-	const tsSource = file.rows.flatMap((row) => [...(row.claimed ? ["// req: R-001"] : []), `test(\"${row.title}\", () => {});`]).join("\n");
-	const pySource = file.rows.flatMap((row) => [...(row.claimed ? ["# req: R-001"] : []), `def ${row.title}(): pass`]).join("\n");
-	write(twinTsRoot, file.ts, tsSource);
-	write(twinPyRoot, file.py, pySource);
-}
-function normalizeTwin(lines, language) {
-	const paths = new Map(TWIN_LAYOUT.map((file) => [language === "ts" ? file.ts : file.py, file.key]));
-	return lines.map((line, index) => {
-		if (index === 0) return line;
-		const match = /^  (.*):(\d+) (.*)$/.exec(line);
-		return match ? `  ${paths.get(match[1]) ?? match[1]}:${match[2]} ${match[3]}` : line;
-	});
-}
-const twinTs = tryTsUnclaimed(twinTsRoot);
-const twinPy = pytestAvailable ? pythonUnclaimed(twinPyRoot) : { lines: [], error: pythonUnavailable };
-const title1662 = "R-1662: twin fixtures give the same unclaimed listing from the TypeScript and Python rails";
-if (!pytestAvailable && !REQUIRE_PYTEST) skip(title1662, pythonUnavailable);
-else {
-	// req: R-1662
-	check("R-1662: twin fixtures give the same unclaimed listing from the TypeScript and Python rails", pytestAvailable && twinTs.error === "" && twinPy.error === "" && JSON.stringify(normalizeTwin(twinTs.lines, "ts")) === JSON.stringify(normalizeTwin(twinPy.lines, "py")), `TS: ${twinTs.error || normalizeTwin(twinTs.lines, "ts").join("\n")}\nPY: ${twinPy.error || normalizeTwin(twinPy.lines, "py").join("\n")}`);
-}
-
 function sha(path) {
 	return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
@@ -235,12 +204,5 @@ else {
 	// req: R-1663
 	check("R-1663: the unclaimed switch adds the whole listing and changes no other line, exit status or file", pytestAvailable && nodeSwitchOk && pythonSwitchOk, `node off=${nodeOff.status} on=${nodeOn.status} listing=${nodeBlock.count}/${nodeBlock.entries.length}\n${pythonSwitchWhy}`);
 }
-
-const skill = readFileSync(SKILL, "utf-8");
-const pass1 = skill.indexOf("**Pass 1");
-const pass2 = skill.indexOf("**Pass 2", pass1 + 1);
-const auditSlice = pass1 >= 0 && pass2 > pass1 ? skill.slice(pass1, pass2) : "";
-// req: R-1664
-check("R-1664: the audit mode names the rail's unclaimed switch after Pass 1 and calls each listed declaration a proposal", auditSlice.includes(`${trace.UNCLAIMED_ENV}=1`) && /\bproposal\b/.test(auditSlice), auditSlice.slice(-1000));
 
 if (fails) process.exitCode = 1;

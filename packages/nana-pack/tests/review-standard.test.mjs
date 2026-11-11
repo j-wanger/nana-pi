@@ -21,7 +21,7 @@ const PACK = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const STANDARD_TEXT = fs.readFileSync(path.join(PACK, "prompts", "review-standard.md"), "utf8");
 
 // ---------------------------------------------------------------- R-1107: the last-line verdict grammar
-// req: R-1107
+// req: R-1107 R-1104
 check("review standard asks for a last-line LAND or SEND-BACK verdict",
 	STANDARD_TEXT.includes("The last line of your answer is exactly `VERDICT: LAND` when no MUST stands, or `VERDICT: SEND-BACK` when one does") &&
 	STANDARD_TEXT.includes("optionally followed by a score") &&
@@ -29,7 +29,7 @@ check("review standard asks for a last-line LAND or SEND-BACK verdict",
 	STANDARD_TEXT);
 
 // ---------------------------------------------------------------- R-1108: the MUST definition and the confirmation-round limit
-// req: R-1108
+// req: R-1108 R-1104
 check("R-1108: the review standard makes a missing or empty must-meet test, a broken main use on a named platform and the four listed harms a MUST, and every other finding a known bug",
 	STANDARD_TEXT.includes("a must-meet test the brief names that is missing, or that still passes with the feature removed") &&
 	STANDARD_TEXT.includes("a bug that stops the feature's main use the brief names, on a platform the brief names") &&

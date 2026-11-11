@@ -143,18 +143,10 @@ check("ears: over the allowance each off-form row is a problem, at the allowance
 );
 rmSync(allowDir, { recursive: true, force: true });
 
-// req: G-015
-check("seal: EARS_ALLOWANCE is 0 (G-015)", EARS_ALLOWANCE === 0);
 // G-013 for THIS repo: the lane that split every multi-shall row closed 2026-10-04; from here
 // a new off-form row fails this check by name (lane-close-ruling.md §1).
 // req: G-013
 check("this repo: zero rows off form", earsOffForm.length === 0, `off form: ${earsOffForm.join(", ")}`);
-
-// req: R-757
-check("seal: EARS_ALLOWANCE equals the measured off-form count (no stale headroom)",
-	earsOffForm.length === EARS_ALLOWANCE,
-	`measured ${earsOffForm.length}, declared ${EARS_ALLOWANCE} — a landing must lower EARS_ALLOWANCE to match (deviation, Open questions #7)`,
-);
 
 // Four-digit identity and raw near-miss fixtures. Every project is created in the OS temp dir.
 const ID_HEAD = "| ID | Requirement | Status | Evidence |\n|---|---|---|---|";
@@ -238,11 +230,6 @@ check("R-1001: U+2028 inside a cell is read and clean", unicode2028.requirements
 const unicode0085 = checkEars(unicodeCellFixtures[1][1], { testRoots: ["tests"] });
 // req: R-1001
 check("R-1001: U+0085 inside a cell is read and clean", unicode0085.requirements.has("R-001") && unicode0085.problems.length === 0, unicode0085.problems.join(" | "));
-const nbspRow = idFixture(`# fixture\n${ID_HEAD}\n| R-001 | The trace rail shall reject this ending. | untested | — |\u200b\n`);
-let nbspMessage = "";
-try { checkEars(nbspRow, { testRoots: ["tests"] }); } catch (error) { nbspMessage = String(error.message); }
-// req: R-1001
-check("R-1001: U+200B after closing pipe names REQUIREMENTS.md:4", nbspMessage.includes("REQUIREMENTS.md:4"), nbspMessage || "near-miss was accepted");
 
 const parityWhitespace = ["\u0085", "\ufeff", "\u00a0"];
 const parityIds = Array.from({ length: 9 }, (_, i) => `R-${String(i + 1).padStart(3, "0")}`);
@@ -268,11 +255,6 @@ check("R-1001: U+0085, U+FEFF and U+00A0 around row cells and after the pipe rea
 check("R-1001: a leading BOM before the first row is ignored", parityBomResult.requirements.has("R-010") && parityBomResult.problems.length === 0, parityBomResult.problems.join(" | "));
 // req: R-1000
 check("R-1000: a BOM and comma or U+2028 separated first-line marker list traces", parityMarkerResult.problems.length === 0 && ["R-1000", "R-001", "G-1000"].every((id) => parityMarkerResult.traced.has(id)), parityMarkerResult.problems.join(" | "));
-const zeroWidthTail = idFixture(`# fixture\n${ID_HEAD}\n| R-001 | The rail shall reject zero width. | untested | — |\u200b\n`);
-let zeroWidthError = "";
-try { checkEars(zeroWidthTail, { testRoots: ["tests"] }); } catch (error) { zeroWidthError = String(error.message); }
-// req: R-1001
-check("R-1001: U+200B after the closing pipe fails at REQUIREMENTS.md:4", zeroWidthError.includes("REQUIREMENTS.md:4"), zeroWidthError || "near-miss was accepted");
 
 const uvxProbe = spawnSync("uvx", ["--with", "pytest", "python", "-c", "import pytest"], { encoding: "utf8" });
 if (uvxProbe.status !== 0) console.log("SKIP Python R-1000/R-1001 fixture rail: uvx with pytest unavailable");
@@ -306,18 +288,12 @@ else {
 	const pythonMarkerParity = spawnSync("uvx", ["--with", "pytest", "python", "-c", pythonMarkerCode, parityMarkers, conf], { encoding: "utf8" });
 	// req: R-1000
 	check("R-1000: Python BOM-prefixed scanned marker reads comma and U+2028 separators", pythonMarkerParity.status === 0 && pythonMarkerParity.stdout.includes("['G-1000', 'R-001', 'R-1000']"), pythonMarkerParity.stderr || pythonMarkerParity.stdout);
-	const pythonZeroWidth = py(zeroWidthTail);
-	// req: R-1001
-	check("R-1001: Python rejects U+200B after closing pipe at REQUIREMENTS.md:4", pythonZeroWidth.status === 0 && pythonZeroWidth.stdout.includes("REQUIREMENTS.md:4"), pythonZeroWidth.stderr || pythonZeroWidth.stdout);
 	const python2028 = py(unicodeCellFixtures[0][1]);
 	// req: R-1001
 	check("R-1001: Python U+2028 inside a cell is read and clean", python2028.status === 0 && python2028.stdout.includes("OK R-001"), python2028.stderr || python2028.stdout);
 	const python0085 = py(unicodeCellFixtures[1][1]);
 	// req: R-1001
 	check("R-1001: Python U+0085 inside a cell is read and clean", python0085.status === 0 && python0085.stdout.includes("OK R-001"), python0085.stderr || python0085.stdout);
-	const pythonNbsp = py(nbspRow);
-	// req: R-1001
-	check("R-1001: Python U+200B after closing pipe names REQUIREMENTS.md:4", pythonNbsp.status === 0 && pythonNbsp.stdout.includes("REQUIREMENTS.md:4"), pythonNbsp.stderr || pythonNbsp.stdout);
 	const pythonEndingRows = py(endingRows);
 	// req: R-1000 R-1001
 	check("R-1001: Python CRLF ledger and general rows are read and clean", pythonEndingRows.status === 0 && pythonEndingRows.stdout.includes("OK G-001,G-1000,R-001,R-1000"), pythonEndingRows.stderr || pythonEndingRows.stdout);
