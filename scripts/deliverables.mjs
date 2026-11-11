@@ -729,4 +729,3 @@ export function deliverableReport(parsed, ledgerFolder, gitRunner = (args, optio
     check: report,
   };
 }
-

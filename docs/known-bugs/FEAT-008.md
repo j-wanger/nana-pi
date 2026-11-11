@@ -49,16 +49,15 @@
 - CI as the suite (ci-suite, plan residual A6): a stacked pull request with a non-main base tests another tree.
 - CI as the suite (ci-suite, plan residual A9): the fallback list leaves out the runner config and Windows skip files.
 - CI as the suite (ci-suite, plan residual A3): a project whose seat pi differs from its CI pi has no suite run against the seat's pi; the pi comparison is by hand, not in `nana-land`.
-- CI as the suite (ci-suite, plan residual): the slower-file baseline thins because builders and CI lands record no local runs; CI slow-file notes partly replace it.
 - CI as the suite (ci-suite, plan residual): the macOS CI runner skips R-1740 and R-1741, so a macOS-only break there is caught only by a local run.
 - CI as the suite (ci-suite, independent check): a `package.json` change pointing `npm test` at another file is not on the fallback list.
 - CI as the suite (ci-suite, independent check): a record whose files are all SKIP with exit 0 is accepted; the check needs one final file, not one PASS.
 - CI as the suite (ci-suite, independent check): an attempt-1 record is accepted when attempt 2 re-ran that platform with no record and its job lacks `started_at`.
 - CI as the suite (ci-suite, independent check): a reader problem on any leg, Linux included, sends the land to the local suite; safe, but it costs the full local run.
-- CI as the suite (ci-suite, independent check): the records are read twice, once for the proof and once to keep them after the merge (plan choice O1); this costs time only.
-- CI as the suite (ci-suite, final review): the budget wrapper's stop flag counts time after the last call, so the post-merge "stopped at the 60 s budget" note can appear on a finished read; it is advisory.
+- CI as the suite (ci-suite, final review): the budget wrapper's stop flag counts time after the last call, so a finished pre-merge proof can count as stopped and force an unneeded local suite.
 - CI as the suite (ci-suite, final review): the changed-path listing quotes non-ASCII paths, so a workflow file with a non-ASCII name would not match the workflows folder.
 - CI as the suite (ci-suite, final review): a future `.github/actions/` folder is not on the fallback list.
+- gh timeout coverage (leftover-cuts): ghDefault's refusal of a zero or fractional timeout has no test since its only check was removed.
 - Land test split (land-test-split, review round 1): R-3490's 180 s bound is backed only by lane-folder timing records; no tagged check measures time, so a later slowdown goes uncaught.
 - Main CI wait: failing files come from job-log FAIL text, not CI suite records; a file absent from that text is recorded only by job name.
 - CI wait (ci-wait-ready, plan): a run cancelled by hand looks like a capacity cancellation, so nana-ci-wait re-runs its cancelled jobs up to twice.

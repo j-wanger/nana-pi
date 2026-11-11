@@ -97,7 +97,7 @@ export function parseWatchdogArgv(argv, { defaultRetries = 2 } = {}) {
     return { error: '--stall-secs and --poll must be positive numbers' };
   }
   if (!Number.isInteger(retries) || retries < 0) return { error: '--retries must be a whole number >= 0 (re-attempts after the first)' };
-  return { ownArgs, outPath, stallSecs, retries, retriesExplicit: ownArgs.includes('--retries'), pollSecs, piArgs: argv.slice(sep + 1) };
+  return { ownArgs, outPath, stallSecs, retries, pollSecs, piArgs: argv.slice(sep + 1) };
 }
 
 /** Parse one CPU reader result as seconds. Windows emits a whole .NET TimeSpan tick count;

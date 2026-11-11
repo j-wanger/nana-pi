@@ -213,3 +213,8 @@
 - Carry (bench-retire): `lib/state-manifest.mjs` still inventories the retired bench agent directory.
 - Carry (setup-retire): `packages/nana-setup/README.md` omits that retiring subagent setup leaves previously installed pi-subagents packages in place.
 - Carry (setup-retire): `lib/uninstall.mjs` retireSeed checks ancestor safety before leaf existence, reporting unsafe-ancestor skips even when the retired seed is absent.
+- Doctor privacy (doctor-privacy review 1, S1): doctor and install JSON parse failures always give manual repair advice; a single-backslash Windows path no longer gets forward-slash advice because privateJsonFailure does not keep jsonParseFailure's repair kind.
+- Doctor privacy (doctor-privacy review 1, S2): the knowledge-index row prints only ERR_SQLITE_ERROR for a missing, garbage or empty index; error.errstr would keep the cause without file bytes.
+- Doctor privacy (doctor-privacy review 1, N1): `packages/nana-setup/bin/stale-copies.mjs:39` builds a parse-error detail from error.message; it is not printed today.
+- Doctor privacy (doctor-privacy review 1, inferred, never observed): doctor prints pi settings.json package entries verbatim, so a package source holding a credential-bearing git URL would print.
+- Doctor privacy (doctor-privacy review 1, N3/N4): settings rows repeat the file name; `packages/nana-setup/lib/settings.mjs:16` has an unused realPath import.

@@ -331,7 +331,7 @@ CI covers event-selected test packs. Builders run touched tests, commit and repo
 
 On a shared machine, run a fallback full suite with `npm run test:locked` (implemented by `scripts/test-locked.mjs`); it serializes full runs across worktrees. Add a path substring after `--` for an unlocked filtered run, such as `npm run test:locked -- packages/nana-pack/tests/test-locked.test.mjs`. Two runs reclaiming the same dead holder's lock at the same instant may both proceed; this can share CPU but cannot lose suite data.
 
-Each unfiltered locked run keeps a suite record in the suite-runs store beneath the clone's shared git directory. Its two closing record lines name the clean baseline and slower files, then repeat the PASS and FAIL counts and every failure with its class and cause, followed by this lane's full-run count and minutes. A land prefixes both lines so its success report retains them. Each CI suite leg uploads the same runner record. After a CI-checked land, nana-land keeps the tip's records in the ci-runs store beside suite-runs and notes files that reached half their recorded per-file limit.
+Each unfiltered locked run keeps a suite record in the suite-runs store beneath the clone's shared git directory. Its two closing record lines name the clean baseline, then repeat the PASS and FAIL counts and every failure with its class and cause. A land prefixes both lines so its success report retains them. Each CI suite leg uploads the same runner record.
 
 `npm test` from the repo root (`scripts/test.mjs`) runs every `packages/*/tests/*.test.mjs`
 one file at a time, each from its package dir with a fresh
