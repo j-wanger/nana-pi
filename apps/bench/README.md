@@ -136,7 +136,7 @@ It does not enumerate subagent files or pi seat sessions.
 
 ```bash
 node apps/bench/anatomy.mjs segment --role seat --runtime claude-code --projects <claude-projects-root> --repo <repo-root> --out <private-folder>
-node apps/bench/anatomy.mjs report --in <private-folder> --corrections <private-corrections-jsonl>
+node apps/bench/anatomy.mjs report --in <private-folder>
 node apps/bench/test/anatomy-seat.test.mjs
 ```
 
@@ -146,7 +146,7 @@ Seat stores use safe ordinal ids, with the session map and evidence ids kept onl
 Existing label, sample, agreement and assembly readers also accept these stores.
 Labelling is optional, paid and builder-framed; this lane makes no model-label claim about seat context.
 
-Seat `report` adds `slots`: kinds, phases, start kinds, sessions, segments, coverage, reads and corrections.
+Seat `report` adds `slots`: kinds, phases, start kinds, sessions, segments, coverage, reads and repeats.
 Recorded payload is not delivered context. UTF-16 chars are not tokens, and recorded totals bound nothing about delivery.
 Headline kind shares use only `recorded-input`; `unknown` payload stays separate.
 Kind totals include all retained chars, including glue and opaque oversize tools listings.
@@ -178,12 +178,6 @@ Owner turns use event identities rather than a shared owner slot.
 Seat-only read classes include memory, delegation, web, skill, write and other, without changing builder classes.
 Shell reads use the builder classifier and its conservative equal character split.
 
-Corrections accept memory-score label rows or memory-making candidate rows.
-The shared strict reader rejects malformed rows with a fixed diagnostic.
-Candidate rows carrying `claim` mark counts `estimated`; other rows mark them `labelled`.
-Evidence drops paired suffixes before joining and deduplicates by owner turn.
-The tables separate correction, decision, explicit none, unlabelled, conflict, structured answers,
-outside sessions and missing turns. They never print evidence pointers.
 No causal claim follows from these descriptive counts. The seat's private baseline and live context comparison run separately.
 
 ## Layout
@@ -194,7 +188,7 @@ lib/anatomy.mjs     private writer policy and counts-only subcommand boundary
 lib/anatomy-config.mjs  vocabulary, rules, splitters, sampling and reporting choices with provenance
 lib/anatomy-sessions.mjs  absolute brief-file matching, historical fallback and multi-attempt pi context extraction
 lib/anatomy-seat.mjs  streamed Claude Code seat adapter, boundaries and private event identity
-lib/anatomy-slots.mjs  role-neutral kind totals, coverage, repeats, reads and correction joins
+lib/anatomy-slots.mjs  role-neutral kind totals, coverage, repeats and reads
 lib/anatomy-spans.mjs  lossless Markdown units and glue with deterministic labels
 lib/anatomy-pulls.mjs  dedicated and wrapped shell reads by function
 lib/anatomy-measures.mjs  counts, shared normalization, agreement, blind sampling and span-based assembly

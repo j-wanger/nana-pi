@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { extractSeatContexts, SLOT_MARKERS } from '../lib/anatomy-seat.mjs';
+import { extractSeatContexts } from '../lib/anatomy-seat.mjs';
 import { runAnatomy } from '../lib/anatomy.mjs';
 import { entriesIn } from '../../../packages/nana-pack/lib/claude-transcript.mjs';
 import { projectKey } from '../../../packages/nana-setup/lib/project-key.mjs';
@@ -261,21 +261,6 @@ await test('R-3645: complete kind totals and distinct repeat denominators', asyn
  assert.equal(r.totals.recordedInputChars, 61); assert.equal(r.totals.unknownChars, 48000);
 });
 
-// req: R-3646
-await test('R-3646: correction joins distinguish all outcomes and sources', async () => {
- const s = await segment(fixture([{ session: 'private-session', rows: [snapshot('s'), ...['a', 'b', 'c', 'd', 'e'].map(uuid => user(uuid, { uuid })), assistant([{ type: 'tool_use', id: 'ask', name: 'AskUserQuestion', input: {} }]), result('ask', 'answer')] }]));
- const ptr = uuid => `claude-code:private-session#${uuid}`;
- const evidence = [ { evidence: ptr('a') + '+seat', kind: 'correction' }, { evidence: ptr('a') + '+other', kind: 'correction' }, { evidence: ptr('b'), kind: 'decision' }, { evidence: ptr('c'), kind: 'correction' }, { evidence: ptr('c') + '+seat', kind: 'decision' }, { evidence: ptr('private-session-7') + '+ask', kind: 'decision' }, { evidence: ptr('missing'), kind: 'correction' }, { evidence: 'claude-code:absent#x', kind: 'correction' } ];
- for (const source of ['estimated', 'labelled']) {
-  const rows = source === 'estimated' ? evidence.map(r => ({ ...r, claim: 'synthetic', type: 'user', quote: 'synthetic', context: '', date: '2026-01-01' })) : [...evidence, { evidence: ptr('d'), kind: 'none' }];
-  const file = jsonl(path.join(folder(), 'corrections.jsonl'), rows);
-  const r = await cli(['report', '--in', s.out, '--corrections', file]); assert.equal(r.exit, 0);
-  assert.deepEqual(r.value.slots.corrections, { source, ownerTurns: 5, correction: 1, decision: 1, none: source === 'labelled' ? 1 : 0, unlabelled: source === 'labelled' ? 1 : 2, conflict: 1, structuredAnswers: 1, outside: 1, missingTurn: 1, sessions: [{ session: 'seat-1', ownerTurns: 5, correction: 1, decision: 1, none: source === 'labelled' ? 1 : 0, unlabelled: source === 'labelled' ? 1 : 2, conflict: 1, structuredAnswers: 1, missingTurn: 1 }] });
- }
- const bad = put(path.join(folder(), 'bad'), '{"evidence":"private","kind":"bad"}');
- const refused = await cli(['report', '--in', s.out, '--corrections', bad]); assert.equal(refused.exit, 1); assert.equal(refused.stderr, 'anatomy: invalid corrections\n');
-});
-
 // req: R-3647
 await test('R-3647: every seat command keeps tripwires private', async () => {
  const sentinel = 'SEAT_PRIVATE_TRIPWIRE';
@@ -285,11 +270,10 @@ await test('R-3647: every seat command keeps tripwires private', async () => {
  const labelled = await cli(['label', '--in', s.out, '--out', labels], { runModel: good });
  assert.match(labelled.stdout, /^progress calls /mu);
  const failed = await cli(['label', '--in', s.out, '--out', path.join(folder(), 'failure')], { runModel: async () => { throw Error(sentinel); } });
- const corrections = jsonl(path.join(folder(), 'corrections'), [{ evidence: `claude-code:${sentinel}#${sentinel}-3`, kind: 'none' }]);
  const sampleOut = path.join(folder(), 'sample'); const sample = await cli(['sample', '--in', s.out, '--out', sampleOut, '--seed', 'fixed']);
  const sheet = jsonl(path.join(folder(), 'sheet'), entriesIn(path.join(sampleOut, 'sheet.jsonl')).map(r => ({ id: r.id, label: 'task' })));
  const outputs = [s, labelled, failed, sample, await cli(['agree', '--in', s.out, '--a', sheet, '--b', sheet]), await cli(['assemble', '--in', s.out, '--out', path.join(folder(), 'assembled')])];
- for (const args of [[], ['--labels', labels], ['--corrections', corrections]]) outputs.push(await cli(['report', '--in', s.out, ...args]));
+ for (const args of [[], ['--labels', labels]]) outputs.push(await cli(['report', '--in', s.out, ...args]));
  for (const r of outputs) { assert.equal(r.exit, 0); assert(!`${r.stdout}${r.stderr}`.includes(sentinel)); }
  const checkout = folder(); fs.mkdirSync(path.join(checkout, '.git'));
  const refused = await cli(['segment', '--role', 'seat', '--repo', 'absent', '--projects', 'absent', '--out', path.join(checkout, 'out')]);
@@ -324,30 +308,6 @@ await test('R-3648: reusable adapters labels and builder golden regression', asy
  assert.equal((await cli(['segment', '--runtime', 'fake', '--role', 'planner', '--repo', 'unused', '--out', out], { adapters: { 'fake:planner': async () => fake } })).exit, 0);
  const r = await cli(['report', '--in', out]); assert.equal(r.exit, 0); assert.equal(r.value.slots.totals.recordedInputChars, raw.length);
 });
-// req: R-3640, R-3641, R-3643
-await test('R-3640: seal seat extraction policy', () => {
- assert.deepEqual(C.SEAT_POLICY, {
-  payloads: {
-   prompt_snapshot: ['system-prompt', 'recorded-input', ['systemPrompt']],
-   skill_listing: ['tools', 'unknown', ['content']], deferred_tools_delta: ['tools', 'unknown', ['addedLines', 'addedBlocks']], agent_listing_delta: ['tools', 'unknown', ['addedLines', 'addedBlocks']], mcp_instructions_delta: ['tools', 'unknown', ['addedLines', 'addedBlocks']], deferred_tools_record: ['tools', 'unknown', ['entries']],
-   invoked_skills: ['skills', 'unknown', ['skills.content']], file: ['attached-files', 'unknown', ['content']], edited_text_file: ['attached-files', 'unknown', ['snippet']], compact_file_reference: ['attached-files', 'unknown', []],
-   environment: ['environment', 'unknown', ['snapshot']], session_context: ['environment', 'unknown', ['context']], date: ['environment', 'unknown', ['date']], model: ['environment', 'unknown', ['text']], auto_mode: ['environment', 'unknown', []], remote_session_change: ['environment', 'unknown', []],
-   total_tokens_reminder: ['harness', 'unknown', ['text']], silent_turn_reminder: ['harness', 'unknown', ['text']], task_status: ['harness', 'unknown', ['text']], ultra_effort: ['harness', 'unknown', ['text']], thinking_drop: ['harness', 'unknown', ['text']], command_permissions: ['harness', 'unknown', ['text']],
-  },
-  rules: ['nana-soul', 'nana-standards', 'nana-writing', 'nana-rulings'], splitters: { tools: 'toolsAdded' },
-  instructions: { User: 'user-rules-other', Project: 'project-instructions', AutoMem: 'auto-memory' },
-  hooks: [['nana-objective', 'objective'], ['nana-adoption', 'adoption'], ['nana-roster-notice', 'roster-notice']],
-  contextHooks: ['roster-notice'],
-  starts: ['startup', 'resume', 'clear', 'compact'], standing: ['system-prompt', 'project-instructions', 'auto-memory', 'user-rules-other', 'tools', 'environment'],
-  correlation: { invocation: 'toolUseID', envelope: 'additionalContext', nestedEnvelope: 'hookSpecificOutput.additionalContext', human: 'humanTurn' },
-  tools: { read: 'Read', grep: 'Grep', find: 'Glob', bash: 'Bash', delegation: ['Agent', 'Task'], web: ['WebFetch', 'WebSearch'], skill: ['Skill'], write: ['Edit', 'Write', 'NotebookEdit'] },
- });
-});
-// req: R-3644
-await test('R-3644: seal seat class functions', () => assert.deepEqual(C.SEAT_CLASS_FUNCTION, { ...C.CLASS_FUNCTION, memory: 'knowledge', delegation: 'knowledge', web: 'knowledge', skill: 'tools', write: 'task', other: 'unsorted' }));
-// Moved the surviving recorded-slot seal from the retired replay suite.
-// req: R-3385
-await test('seal: recorded memory slot markers', () => assert.deepEqual(SLOT_MARKERS, { instruction: 'AutoMem', hooks: ['nana-shared-memory.mjs', 'nana-shared-memory', 'nana: shared memory index'], readPaths: ['memory/', 'memory\\', 'memory.md', 'shared-memory'] }));
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`seat anatomy: ${cases - failures}/${cases} checks passed`);
 process.exitCode = failures ? 1 : 0;

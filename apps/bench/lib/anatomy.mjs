@@ -19,7 +19,7 @@ import { reportSlots } from "./anatomy-slots.mjs";
 export const ANATOMY_ADAPTERS = Object.freeze({ 'pi:builder': extractContexts, 'claude-code:seat': extractSeatContexts });
 
 const COMMANDS = ["segment", "report", "sample", "agree", "assemble", "label"];
-const OPTIONS = ["repo", "sessions", "out", "in", "seed", "n", "a", "b", "context", "drop", "stage", "resume", "labels", "model", "a2", "b2", "role", "runtime", "projects", "corrections"];
+const OPTIONS = ["repo", "sessions", "out", "in", "seed", "n", "a", "b", "context", "drop", "stage", "resume", "labels", "model", "a2", "b2", "role", "runtime", "projects"];
 const BOOLEAN_OPTIONS = ["heavy"];
 function argsIn(argv) {
  const [command, ...rest] = argv;
@@ -41,7 +41,7 @@ export async function runAnatomy(argv, { runModel, caps, adapters = {}, stdout =
  try {
   const args = argsIn(argv), print = (o) => stdout(`${JSON.stringify(o)}\n`);
   if ((args.heavy && (args.command !== "sample" || !args.labels)) || (args.labels && !["report", "sample"].includes(args.command)) || (args.model && args.command !== "agree") || ((args.a2 || args.b2) && (args.command !== "agree" || !args.model || !args.a2 || !args.b2))) throw new Error("arguments");
-  if ((args.corrections && args.command !== 'report') || ((args.role || args.runtime || args.projects) && args.command !== 'segment')) throw new Error('arguments');
+  if ((args.role || args.runtime || args.projects) && args.command !== 'segment') throw new Error('arguments');
   let out;
   if (args.resume && args.command !== "label") throw new Error("arguments");
   if (args.command === "label") {
@@ -70,7 +70,7 @@ export async function runAnatomy(argv, { runModel, caps, adapters = {}, stdout =
   const labelStore = args.labels || args.model ? await readLabels(args.labels ?? args.model, contexts) : null;
   if (args.command === "report") {
    const report = labelStore ? reportLabels(contexts, labelStore) : reportContexts(contexts);
-   print(contexts.some(c => c.role && c.role !== 'builder') ? { ...report, slots: reportSlots(contexts, { corrections: args.corrections }) } : report);
+   print(contexts.some(c => c.role && c.role !== 'builder') ? { ...report, slots: reportSlots(contexts) } : report);
   }
   if (args.command === "sample") {
    const options = { seed: args.seed, n: args.n === undefined ? SAMPLE_SIZE : Number(args.n), heavy: Boolean(args.heavy) };
@@ -95,7 +95,7 @@ export async function runAnatomy(argv, { runModel, caps, adapters = {}, stdout =
   }
   return 0;
  } catch (error) {
-  const reason = error.code === 'INVALID_CORRECTIONS' ? 'invalid corrections' : error.code === "OUTPUT_CHECKOUT" ? "output checkout refused" : error.code === "OUTPUT_SYMLINK" ? "output symlink refused" : error.code === "OUTPUT_OCCUPIED" ? "output not empty" : error.code === "LABEL_FINGERPRINT" ? "label fingerprint mismatch" : error.code === "INVALID_LABELS" ? "invalid labels" : error.code === "LABEL_STORE_MISMATCH" ? "label store mismatch" : error.code === "MODEL_LABELS_MISSING" && /^model labels missing: \d+$/u.test(error.message) ? error.message : /^ids differ: \d+$/u.test(error.message) ? error.message : "invalid inputs or read/write failure";
+  const reason = error.code === "OUTPUT_CHECKOUT" ? "output checkout refused" : error.code === "OUTPUT_SYMLINK" ? "output symlink refused" : error.code === "OUTPUT_OCCUPIED" ? "output not empty" : error.code === "LABEL_FINGERPRINT" ? "label fingerprint mismatch" : error.code === "INVALID_LABELS" ? "invalid labels" : error.code === "LABEL_STORE_MISMATCH" ? "label store mismatch" : error.code === "MODEL_LABELS_MISSING" && /^model labels missing: \d+$/u.test(error.message) ? error.message : /^ids differ: \d+$/u.test(error.message) ? error.message : "invalid inputs or read/write failure";
   stderr(`anatomy: ${reason}\n`); return 1;
  }
 }

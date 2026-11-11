@@ -1,27 +1,13 @@
 /**
  * @module apps/bench/lib/anatomy-slots.mjs
- * @purpose Report recorded role payload kinds, repeats, reads and correction joins without private text.
- * @inputs Normalized role contexts and an optional explicit corrections JSONL path.
- * @outputs Counts-only kind, phase, session, coverage, repeat and outcome tables.
- * @effects disk (optional corrections file only)
- * @errors Malformed corrections throw a fixed INVALID_CORRECTIONS diagnostic.
+ * @purpose Report recorded role payload kinds, repeats and reads without private text.
+ * @inputs Normalized role contexts.
+ * @outputs Counts-only kind, phase, session, coverage, repeat and read tables.
+ * @effects none
+ * @errors none
  */
-import fs from 'node:fs';
 import { distinctUnits, normalize } from './anatomy-measures.mjs';
 import { OVERSIZE_UNIT_CHARS, REPORT_PARTS, SEAT_CLASS_FUNCTION, SEAT_POLICY, SHARE_DIGITS } from './anatomy-config.mjs';
-
-// Preserved corrections-file reader; scoring commands no longer ship.
-const kinds = ['correction', 'decision', 'lesson'];
-function rows(file, labels, { allowDuplicates = false } = {}) {
- const records = fs.readFileSync(file, 'utf8').split(/\r?\n/u).filter(line => line.trim()).map(line => JSON.parse(line));
- const seen = new Set();
- for (const row of records) {
-  if (typeof row?.evidence !== 'string' || !row.evidence || !(labels ? [...kinds, 'none'] : kinds).includes(row.kind)) throw new Error('invalid score record');
-  if (labels && !allowDuplicates && seen.has(row.evidence)) throw new Error('duplicate label');
-  seen.add(row.evidence);
- }
- return records;
-}
 
 const sum = (items, value) => items.reduce((n, item) => n + value(item), 0);
 const share = (n, total) => total ? Number((100 * n / total).toFixed(SHARE_DIGITS)) : 0;
@@ -41,44 +27,8 @@ function kindRows(parts) {
   return found.length ? [{ kind, delivery, chars: sum(found, ({ p }) => p.raw.length), share: delivery === 'recorded-input' ? share(sum(found, ({ p }) => p.raw.length), denominator) : null }] : [];
  }));
 }
-function outcomeCounts() { return { ownerTurns: 0, correction: 0, decision: 0, none: 0, unlabelled: 0, conflict: 0, structuredAnswers: 0, missingTurn: 0 }; }
-function correctionsOf(contexts, file) {
- let input;
- try { input = rows(file, true, { allowDuplicates: true }); } catch { throw Object.assign(Error('invalid corrections'), { code: 'INVALID_CORRECTIONS' }); }
- const source = input.some(row => typeof row.claim === 'string') ? 'estimated' : 'labelled';
- const sessionMap = new Map(), entries = new Map(), turns = new Map();
- for (const c of contexts) {
-  const session = c.session ?? c.id;
-  if (!sessionMap.has(c.sourceSession)) sessionMap.set(c.sourceSession, { session, ...outcomeCounts() });
-  for (const e of c.entries ?? []) if (!e.inherited) entries.set(`${c.sourceSession}#${e.uuid}`, e);
-  for (const [index, t] of (c.turns ?? []).entries()) if (!t.inherited) turns.set(`${c.sourceSession}#${t.uuid ?? `unrecorded-${c.id}-${index}`}`, sessionMap.get(c.sourceSession));
- }
- for (const row of turns.values()) row.ownerTurns++;
- const joined = new Map();
- for (const row of input) {
-  const key = row.evidence.replace(/\+.*$/u, '').replace(/^claude-code:/u, '');
-  const kinds = joined.get(key) ?? new Set(); kinds.add(row.kind); joined.set(key, kinds);
- }
- let outside = 0;
- for (const [key, kinds] of joined) {
-  const session = key.split('#')[0], row = sessionMap.get(session);
-  if (!row) { outside++; continue; }
-  const entry = entries.get(key);
-  if (!entry) { row.missingTurn++; continue; }
-  if (entry.structured) { row.structuredAnswers++; continue; }
-  if (!turns.has(key)) { row.missingTurn++; continue; }
-  if (kinds.size > 1) row.conflict++;
-  else { const kind = [...kinds][0]; if (['correction', 'decision', 'none'].includes(kind)) row[kind]++; else row.unlabelled++; }
- }
- for (const [key, row] of turns) if (!joined.has(key)) row.unlabelled++;
- const sessions = [...sessionMap.values()].sort((a, b) => a.session.localeCompare(b.session));
- const result = { source, ...outcomeCounts(), outside };
- for (const key of Object.keys(outcomeCounts())) result[key] = sum(sessions, row => row[key]);
- return { ...result, sessions };
-}
-
 /** Deterministic kind totals include glue and oversize spans; function shares do not. */
-export function reportSlots(contexts, { corrections } = {}) {
+export function reportSlots(contexts) {
  const kept = fresh(contexts), parts = allParts(kept), all = allParts(contexts), total = totals(parts);
  const observations = contexts.flatMap(c => c.observations ? [c.observations] : []);
  const sessions = [...new Set(contexts.map(c => c.session ?? c.id))].sort().map(session => {
@@ -119,6 +69,5 @@ export function reportSlots(contexts, { corrections } = {}) {
    exactDuplicate: { chars: exact, denominator: total.recordedInputChars + total.unknownChars, basis: 'new payload chars byte-identical after the first payload' },
    normalizedDuplicate: { units: sum([...normalized.values()], n => Math.max(0, n - 1)), denominator: sum([...normalized.values()], n => n), basis: 'new unit occurrences equal after normalize, including oversize, after the first' },
   },
-  ...(corrections ? { corrections: correctionsOf(contexts, corrections) } : {}),
  };
 }
