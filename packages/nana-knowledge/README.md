@@ -35,7 +35,11 @@ indexes rebuild from readable sources; source problems prevent replacement.
 Ranking uses FTS5 BM25 with title weight four. Query prints title, path and snippet
 pointers, or structured JSON. Every field stays bounded and on one line. Unsafe paths
 use reversible JSON escaping; prose cannot introduce the pointer field separator.
-No hits prints `(no hits)`; missing or damaged indexes make query exit one.
+Query always runs an incremental build first, creating a missing index. If refresh
+is locked or fails, one stderr line warns that results may be stale and query searches
+the existing index. An unusable index makes query exit one; hits exit zero.
+No hits prints `(no hits)`. Monthly archives (YYYY-MM.md under sessions) remain indexed but
+are excluded from query results; other session notes remain eligible.
 Builds hold an exclusive lock and incrementally reindex changed content hashes.
 
 ## The hook

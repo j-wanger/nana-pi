@@ -65,12 +65,18 @@ async function cmdQuery(argv: string[]): Promise<number> {
 	const limit = li >= 0 ? Math.max(1, parseInt(argv[li + 1], 10) || 5) : 5;
 	const text = argv.filter((a, i) => !a.startsWith("--") && !(li >= 0 && i === li + 1)).join(" ").trim();
 	if (!text) { console.error(USAGE); return 2; }
+	try {
+		const stats = await build();
+		if (stats.problem || stats.keptDamage) console.error("index refresh incomplete — results may be stale");
+	} catch (err) {
+		console.error(`${err instanceof BuildLockedError ? "index refresh locked" : "index refresh failed"} — results may be stale`);
+	}
 	if (!fs.existsSync(paths.db)) { console.error(`no index at ${paths.db} — run: nana-knowledge build`); return 1; }
 	let db;
 	let hits;
 	try {
 		db = await openDb(paths.db, {});
-		hits = search(db, text, limit);
+		hits = search(db, text, limit, { excludeMonthlySessionArchives: true });
 	} catch (err) {
 		console.error(`query failed: ${err instanceof Error ? err.message : "index error"}`);
 		return 1;

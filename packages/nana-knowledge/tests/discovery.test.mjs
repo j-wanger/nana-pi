@@ -213,7 +213,7 @@ check("status exits 0", status.status === 0);
 // req: R-216
 check("status marks discovered roots", (status.stdout.match(/\(discovered\)/g) ?? []).length === 3);
 
-// D6: automatic hook excludes monthly archives in SQL before TOP_K, while explicit query retains them.
+// Query excludes monthly archives in SQL before selecting its top results.
 const archiveRoot = path.join(td, "archive-root");
 fs.mkdirSync(path.join(archiveRoot, "sessions"), { recursive: true });
 fs.mkdirSync(path.join(archiveRoot, "docs", "sessions"), { recursive: true });
@@ -232,18 +232,43 @@ const { runHook } = await import(new URL("../lib/hook.ts", import.meta.url).href
 const queryCli = cp.spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url)), "query", "quantum archive signal"], {
 	encoding: "utf8", env: { ...process.env, NANA_KNOWLEDGE_HOME: archiveHome },
 });
-// req: R-239
-check("query CLI still returns monthly session archives", queryCli.status === 0 && slash(queryCli.stdout).includes("/sessions/2026-09.md"));
+// req: R-4042
+check("query CLI filters archives before top-three ranking", queryCli.status === 0 && queryCli.stdout.includes("Live Article") && !slash(queryCli.stdout).includes("/sessions/2026-"));
 const automatic = await runHook(JSON.stringify({ prompt: "quantum archive signal", session_id: "archive-session", cwd: td }), { spawnFn: () => {} });
-// req: R-239
 check("hook filters archives before top-three ranking and prints only the non-archive article", automatic.reason === "ok" && automatic.hits.length === 1 && slash(automatic.hits[0].path).endsWith("/article.md") && automatic.hits.every((h) => !/[/\\\\]sessions[/\\\\][0-9]{4}-[0-9]{2}\.md$/.test(h.path)));
 const nonArchiveMatches = search(archiveDb, "boundary token", 20, { excludeMonthlySessionArchives: true });
-// req: R-239
+// req: R-4042
 check("README, date outside sessions, and non-monthly session notes are retained", ["README.md", "2026-09.md", "2026-09-notes.md"].every((name) => nonArchiveMatches.some((h) => h.path.endsWith(name))));
 archiveDb.prepare("INSERT INTO docs (key,path,root,kind,loc,title,body) VALUES (?,?,?,?,?,?,?)").run("backslash-archive", "C:\\repo\\sessions\\2026-09.md", archiveRoot, "articles", null, "Backslash archive", "quantum archive signal");
-// req: R-239
+// req: R-4042
 check("backslash-separated monthly archive path is excluded", !search(archiveDb, "quantum archive signal", 20, { excludeMonthlySessionArchives: true }).some((h) => h.key === "backslash-archive"));
 archiveDb.close();
+
+// Query's main use: new notes are searchable without a separate build, even on first use.
+const refreshHome = homeFor("query-refresh");
+const refreshRoot = path.join(td, "refresh-root");
+fs.mkdirSync(refreshRoot);
+writeSources(refreshHome, { roots: [{ path: refreshRoot, kind: "articles" }] });
+const queryFresh = () => cp.spawnSync(process.execPath, [fileURLToPath(new URL("../bin/nana-knowledge.ts", import.meta.url)), "query", "freshorchid beacon", "--json"], {
+	encoding: "utf8", timeout: 30_000, env: { ...process.env, NANA_KNOWLEDGE_HOME: refreshHome, NODE_NO_WARNINGS: "1" },
+});
+md(path.join(refreshRoot, "first.md"), "# First\nfreshorchid beacon\n");
+const firstQuery = queryFresh();
+// req: R-4040
+check("query builds a missing index before searching", firstQuery.status === 0 && JSON.parse(firstQuery.stdout).some((h) => h.path.endsWith("first.md")));
+md(path.join(refreshRoot, "new.md"), "# Freshorchid beacon\nfreshorchid beacon new note\n");
+const refreshedQuery = queryFresh();
+// req: R-4040
+check("query refreshes a new note into its top three without build", refreshedQuery.status === 0 && JSON.parse(refreshedQuery.stdout).slice(0, 3).some((h) => h.path.endsWith("new.md")));
+fs.writeFileSync(path.join(refreshHome, "build.lock"), JSON.stringify({ pid: process.pid, at: Date.now() }));
+const lockedQuery = queryFresh();
+// req: R-4041
+check("locked query warns once and returns existing hits with exit zero", lockedQuery.status === 0 && JSON.parse(lockedQuery.stdout).length > 0 && lockedQuery.stderr.trim().split("\n").length === 1 && lockedQuery.stderr.includes("results may be stale"));
+fs.rmSync(path.join(refreshHome, "build.lock"));
+fs.writeFileSync(path.join(refreshHome, "sources.json"), "{");
+const failedQuery = queryFresh();
+// req: R-4041
+check("failed refresh warns once and returns existing hits with exit zero", failedQuery.status === 0 && JSON.parse(failedQuery.stdout).length > 0 && failedQuery.stderr.trim().split("\n").length === 1 && failedQuery.stderr.includes("results may be stale"));
 
 // Fresh default seed: nested historical literals must not shadow discovered repo roots.
 const fakeHome = path.join(td, "fake-home");
