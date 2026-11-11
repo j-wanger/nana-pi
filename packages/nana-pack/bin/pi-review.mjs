@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { admit, complete, release, startHeartbeat, treeScope, resolveRevision, inTreeRedirect, outInTree, realOut } from './review-round.mjs';
+import { admit, complete, release, startHeartbeat, treeScope, reviewRoot, resolveRevision, inTreeRedirect, outInTree, realOut } from './review-round.mjs';
 import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
 import { reviewShaped } from './review-shape.mjs';
 import { parseWatchdogArgv, runWatchdog } from './pi-watchdog.mjs';
@@ -64,11 +64,8 @@ if (optionValue('--role') === 'land') {
 }
 const sourceTree = resolve(process.cwd(), optionValue('--tree', '.'));
 const outPath = resolve(process.cwd(), w.outPath);
-const sourceScope = treeScope(sourceTree, { exclude: [outPath] });
-const sourceRevision = resolveRevision(optionValue('--revision'), sourceScope, sourceScope.root);
-const sourceRoot = realPath(sourceScope.root, { mustExist: true });
+let sourceScope, sourceRevision, sourceRoot;
 let sourceOutWarning = null;
-const sourceRedirect = inTreeRedirect(sourceRoot);
 let tempRoot = null, tempRootReal = null, admittedId = null, setupSignal = null;
 let knownBugFolder = null;
 const setupSignalHandlers = new Map(['SIGINT', 'SIGTERM', 'SIGHUP'].map((signal) => [signal, () => { setupSignal = signal; }]));
@@ -140,8 +137,13 @@ const copySnapshot = (root, target, excludedPath = null) => {
   }
 };
 try {
-  reclaimDeadReviewWorktrees();
+  sourceRoot = reviewRoot(sourceTree);
   sourceOutWarning = outInTree(sourceRoot, outPath);
+  const sourceRedirect = inTreeRedirect(sourceRoot);
+  if (sourceRedirect) throw new Error(`redirect the review log outside the reviewed tree (${sourceRedirect})`);
+  sourceScope = treeScope(sourceTree);
+  sourceRevision = resolveRevision(optionValue('--revision'), sourceScope, sourceScope.root);
+  reclaimDeadReviewWorktrees();
   if (sourceOutWarning) process.stderr.write(`pi-review: WARNING: ${sourceOutWarning}\n`);
   if (sourceRedirect) throw new Error(`redirect the review log outside the reviewed tree (${sourceRedirect})`);
   // Reject nested repositories (including untracked non-ignored ones) before creating a reservation.

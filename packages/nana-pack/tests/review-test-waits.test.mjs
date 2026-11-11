@@ -125,7 +125,7 @@ const metaMs = Date.now() - metaStart;
 const output = `${meta.stdout ?? ""}${meta.stderr ?? ""}`;
 const pass = (title) => new RegExp(`^PASS ${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "m").test(output);
 const watchedPasses = [
-  "dirty working state is reproduced exactly and reviewer runs in the immutable checkout",
+  "reviewer runs in the immutable checkout at the committed revision",
   "pi-review appends the review standard text once after the immutable sentence",
   "pi-review records its provider, model, actual attempts and duration",
   "source commit during review does not void the admitted round",
@@ -140,7 +140,7 @@ check("R-1920: immutable-review passes every watched launch's checks when each r
 // req: R-1921
 check("R-1921: immutable-review reads the full prompt when the fake reviewer pauses while writing its record",
   pass(watchedPasses[0]) && pass(watchedPasses[1]),
-  JSON.stringify({ dirtyState: pass(watchedPasses[0]), reviewStandard: pass(watchedPasses[1]), status: meta.status, metaMs }));
+  JSON.stringify({ committedState: pass(watchedPasses[0]), reviewStandard: pass(watchedPasses[1]), status: meta.status, metaMs }));
 
 const failLines = output.split(/\r?\n/).filter((line) => line.startsWith("FAIL "));
 const cleanupLines = failLines.filter((line) => /^FAIL the test's temporary folder is removed at the end EBUSY /.test(line));

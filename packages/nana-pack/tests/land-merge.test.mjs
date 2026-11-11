@@ -301,18 +301,17 @@ check("normalized checkout review lands its exact tip", () => {
 	git(main, "update-index", "--chmod=+x", "run.sh"); // a committed mode, never chmod
 	git(main, "commit", "-m", "exec");
 	const feature = tree(main, "mm3-integration"); // `git worktree add` checks out base.txt as CRLF here
-	commit(feature, "next.txt", "next\n", "next");
+	commit(feature, "next.txt", "next\r\n", "next");
 	chmodSync(path.join(feature, "run.sh"), 0o644); // the committed exec bit is lost on disk
 	const crlfBytes = readFileSync(path.join(feature, "base.txt"));
 	assert.ok(crlfBytes.includes(0x0d), "precondition: base.txt was not checked out with CRLF");
-	mkdirSync(path.join(feature, "docs", "reviews", "x"), { recursive: true });
 	const tip = git(feature, "rev-parse", "HEAD");
 	const home = path.join(root, "home");
 	mkdirSync(path.join(home, ".pi", "agent"), { recursive: true });
 	const fakeBin = path.join(root, "fake-bin");
 	if (process.platform === "win32") writeFakePi(fakeBin, "console.log('VERDICT: LAND');\n");
 	else { mkdirSync(fakeBin, { recursive: true }); writeFileSync(path.join(fakeBin, "pi"), "#!/bin/sh\necho 'VERDICT: LAND'\n"); chmodSync(path.join(fakeBin, "pi"), 0o755); }
-	const out = path.join(feature, "docs", "reviews", "x", "r1.md");
+	const out = path.join(root, "r1.md");
 	const env = { ...process.env, HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR: path.join(home, '.pi/agent'), PATH: `${fakeBin}${path.delimiter}${process.env.PATH}` };
 	const review = spawnSync(process.execPath, [PI_REVIEW, "--item", "mm3", "--out", out, "--retries", "0", "--", "-p", "review"], { cwd: feature, env, encoding: "utf8", timeout: 30000 });
 	assert.equal(review.status, 0, review.stderr);

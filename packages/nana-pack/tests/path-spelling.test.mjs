@@ -239,11 +239,9 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
 
 // ================================================================= GP2 (R-1351)
 // WHEN --out names an untracked, non-ignored in-tree file through a second spelling of a folder
-// on its path, pi-review and shared review runner shall warn, run the review and leave the file out
-// of the review's snapshot and (pi-review) out of the review checkout.
+// on its path, pi-review and shared review runner refuse without reserving or consuming a round.
 {
   const gp2Repo = repo(tmpRoot, "gp2-repo");
-  const headSha = git(gp2Repo, "rev-parse", "HEAD");
   const canonical = fs.realpathSync.native(gp2Repo);
   const spellings = otherSpellings(canonical, "GP2");
   // darwin: a folder stored in NFD on disk, reached by its NFC-typed spelling, and the reverse
@@ -256,7 +254,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     spellings.push({ kind: "nfd-via-nfc", path: path.join(canonical, nfcName) }, { kind: "nfc-via-nfd", path: path.join(canonical, nfdName) });
   }
   // req: R-1351
-  if (spellings.length) check("GP2: an untracked in-tree --out reached through a second spelling of a folder on its path warns, runs, and stays out of the snapshot and the review checkout", () => {
+  if (spellings.length) check("GP2: an untracked in-tree --out reached through a second spelling of a folder on its path refuses without a round", () => {
    for (const { kind, path: spelled } of spellings) {
     printSpelling("GP2", kind, canonical, spelled);
     const outDir = spelled;
@@ -273,31 +271,25 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
       } else {
         res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
       }
-      ok(res.status === 0, `[${kind}/${launcher}] expected exit 0: ${res.stderr}`);
-      ok(/WARNING: .*inside the reviewed tree/.test(res.stderr), `[${kind}/${launcher}] missing in-tree warning: ${res.stderr}`);
-      const rows = readRounds(home, { item });
-      ok(rows.length === 1, `[${kind}/${launcher}] expected one recorded round, got ${rows.length}`);
-      ok(rows[0].revision === headSha && !rows[0].unverified, `[${kind}/${launcher}] expected the bare HEAD sha, got ${JSON.stringify(rows[0])}`);
-      if (launcher === "pi-review") {
-        ok(fs.existsSync(listing), `[${kind}/${launcher}] the fake pi never ran`);
-        const names = fs.readFileSync(listing, "utf8").split(/\r?\n/);
-        ok(!names.includes("review-out.md"), `[${kind}/${launcher}] the review checkout held the excluded --out file: ${names}`);
-      }
+      ok(res.status === 1, `[${kind}/${launcher}] expected exit 1: ${res.stderr}`);
+      ok(/uncommitted paths/.test(res.stderr), `[${kind}/${launcher}] missing dirty-tree refusal: ${res.stderr}`);
+      ok(readRounds(home, { item }).length === 0, `[${kind}/${launcher}] a round was recorded`);
+      const reservations = path.join(home, ".pi", "agent", "review-ledger.reservations");
+      ok(!fs.existsSync(reservations) || fs.readdirSync(reservations).length === 0, `[${kind}/${launcher}] a reservation remains`);
+      if (launcher === "pi-review") ok(!fs.existsSync(listing), `[${kind}/${launcher}] the fake pi ran`);
       fs.writeFileSync(outPath, "old output\n"); // restore for the next launcher's run
     }
     // This kind's --out location is reached via a DIFFERENT folder spelling each iteration
     // (sometimes the repo root itself, sometimes a subfolder): remove it so it cannot leak
-    // into a later kind's snapshot as an unrelated extra untracked file.
+    // into a later kind's refusal as an unrelated extra untracked file.
     fs.rmSync(outPath, { force: true });
    }
   });
-  else console.log(skipMsg("GP2: an untracked in-tree --out reached through a second spelling of a folder on its path warns, runs, and stays out of the snapshot and the review checkout"));
+  else console.log(skipMsg("GP2: an untracked in-tree --out reached through a second spelling of a folder on its path refuses without a round"));
 }
 
 // -- GP2 case divergence (MUST 1 of brief 2, matching leg): an untracked --out under the SAME
-// disk/index case-diverged folder as above must still stay out of the snapshot and the review
-// checkout — the enumerated untracked path can carry git's adjust_dirname_case (the INDEX's case
-// for the folder), while the exclude set `realOut`/`relUnder` built carries the disk's case.
+// disk/index case-diverged folder as above must still refuse through the clean-tree rule.
 {
   const cd2Repo = repo(tmpRoot, "gp2-case-divergence-repo");
   fs.mkdirSync(path.join(cd2Repo, "Docs"));
@@ -311,7 +303,6 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
   // `reset --mixed` (see the GP1 case-divergence block above): moves HEAD/index back to the
   // pre-rename commit without touching the working tree, so the disk stays "docs".
   git(cd2Repo, "reset", "--mixed", cd2Base);
-  const headSha2 = git(cd2Repo, "rev-parse", "HEAD");
   const diskName2 = fs.readdirSync(cd2Repo).find((n) => n.toLowerCase() === "docs");
   if (diskName2 !== "docs") {
     console.log("SKIP GP2 (case-divergence): this volume's git kept the disk and index/HEAD case in sync after reset --mixed");
@@ -321,7 +312,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
     console.log("SKIP GP2 (case-divergence): this volume is case-sensitive, so the rename left two different folders");
   } else {
     // req: R-1351
-    check("GP2: an untracked in-tree --out under a folder whose disk case diverges from git's index/HEAD stays out of the snapshot and the review checkout", () => {
+    check("GP2: an untracked in-tree --out under a folder whose disk case diverges from git's index/HEAD refuses without a round", () => {
       const outPath = path.join(cd2Repo, "docs", "gp2-casediv-out.md");
       fs.writeFileSync(outPath, "old output\n");
       for (const launcher of ["ledger-run", "pi-review"]) {
@@ -334,16 +325,12 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
         } else {
           res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: cd2Repo, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
         }
-        ok(res.status === 0, `[${launcher}] expected exit 0: ${res.stderr}`);
-        ok(/WARNING: .*inside the reviewed tree/.test(res.stderr), `[${launcher}] missing in-tree warning: ${res.stderr}`);
-        const rows = readRounds(home, { item });
-        ok(rows.length === 1, `[${launcher}] expected one recorded round, got ${rows.length}`);
-        ok(rows[0].revision === headSha2 && !rows[0].unverified, `[${launcher}] expected the bare HEAD sha, got ${JSON.stringify(rows[0])}`);
-        if (launcher === "pi-review") {
-          ok(fs.existsSync(listing), `[${launcher}] the fake pi never ran`);
-          const names = fs.readFileSync(listing, "utf8").split(/\r?\n/);
-          ok(!names.includes("gp2-casediv-out.md"), `[${launcher}] the review checkout held the excluded --out file: ${names}`);
-        }
+        ok(res.status === 1, `[${launcher}] expected exit 1: ${res.stderr}`);
+        ok(/uncommitted paths/.test(res.stderr), `[${launcher}] missing dirty-tree refusal: ${res.stderr}`);
+        ok(readRounds(home, { item }).length === 0, `[${launcher}] a round was recorded`);
+        const reservations = path.join(home, ".pi", "agent", "review-ledger.reservations");
+        ok(!fs.existsSync(reservations) || fs.readdirSync(reservations).length === 0, `[${launcher}] a reservation remains`);
+        if (launcher === "pi-review") ok(!fs.existsSync(listing), `[${launcher}] the fake pi ran`);
         fs.writeFileSync(outPath, "old output\n");
       }
     });

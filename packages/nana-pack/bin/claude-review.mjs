@@ -98,7 +98,7 @@ const knownBugs = reviewKnownBugSection(tree, null, brief.text);
 const prompt = `${brief.text}\n\n${knownBugs.text === null ? '' : `${knownBugs.text}\n\n`}${STANDARD_HEADING}\n\n${standard.text}\n\n${renderReviewerSentence(value('--item'), tree)}\n`;
 const ownArgs = ['--item', value('--item'), '--out', resolve(value('--out')), '--tree', tree];
 for (const name of OPTIONAL) if (parsed.values.has(name)) ownArgs.push(name, value(name));
-try { treeScope(tree, { requireClean: true }); } catch (error) { die(error.message); }
+try { treeScope(tree); } catch (error) { die(error.message); }
 // Admission precedes settings reads; the reservation belongs to this launcher, not an intermediary.
 const admission = admit(ownArgs, { launcher: 'claude-review', model: reviewer.model, attempts: 1 });
 if (!admission.ok) die(admission.message);

@@ -309,6 +309,7 @@ A.at(0);
 	}
 	// req: R-620
 	check("tracked stdout and untracked stderr redirects into the reviewed tree are refused through both launchers", redirectsRefused);
+	fs.rmSync(path.join(A.d, "redirect.log")); // later reviews now require a clean source
 }
 
 // 5. reject incomplete review-shaped outputs through both launch paths

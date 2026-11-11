@@ -10,8 +10,7 @@
  *  tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the
  *  projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
  * @effects disk (an O_EXCL lock around every read-decide-write, reservation files, the kept-text store, the never-rotated tally
- *  and the rotated audit log; a scratch index and object folder under the OS temp folder while deriving the
- *  working state, removed after each derivation), process (spawns git through spawnSync, runs a renewing
+ *  and the rotated audit log), process (spawns git through spawnSync, runs a renewing
  *  heartbeat interval)
  * @errors canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control
  *  character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, a retired option, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or
@@ -26,15 +25,11 @@
 //  - ITEM = {repo, slug}. The slug is canonicalized (canonicalItem); repo = realpath of the git
 //    COMMON dir of --tree (default: launcher cwd), so every worktree of one repository shares an item.
 //    A non-git reviewed tree is refused; legacy path: ledger records remain readable.
-//  - A ROUND is a distinct REVISION reviewed for the item. Revision = the reviewed tree's git HEAD
-//    (full sha) when the working tree's CONTENT equals HEAD's; otherwise
-//    "<sha>+snap:<full sha256 of the working-state snapshot>" (T2b fix r3, sol r2 #11 — see
-//    workingSnapshot: raw file content + mode + path of every tracked and non-ignored untracked
-//    file, independent of the index and of diff rendering). --revision is only the fallback when
-//    HEAD cannot be resolved (and inside git it must name that commit). Any number of reviews —
-//    any roles — on one revision are ONE round. --role is audit metadata only.
-//  - --out on a TRACKED path of the reviewed tree is refused; elsewhere in the tree (not ignored) it
-//    warns (sol r3 ruling; see outInTree).
+//  - A ROUND is a distinct HEAD commit reviewed for the item. Admission requires a clean tree.
+//    Any number of reviews — any roles — on one revision are ONE round. --role is audit metadata only.
+//    Legacy +snap records remain readable, but new admissions never derive snapshots.
+//  - --out on a TRACKED path is refused; a non-ignored in-tree path warns that an existing output
+//    refuses admission and a newly written output makes the tree dirty (see outInTree).
 //  - every git failure REFUSES admission with the git error (sol r2 #10) — never "clean".
 //  - a completed verdict earns the round; a stall / failure returns the reservation. Exception:
 //    a completion whose tree changed mid-review consumes the round as unverified (below).
@@ -49,15 +44,15 @@
 // (see README "Trust model").
 
 import {
-  openSync, closeSync, writeSync, writeFileSync, readFileSync, fstatSync, fchmodSync, lstatSync, mkdirSync, mkdtempSync,
-  readdirSync, unlinkSync, renameSync, rmSync, realpathSync, readlinkSync, existsSync, futimesSync, constants as C,
+  openSync, closeSync, writeSync, writeFileSync, readFileSync, fstatSync, fchmodSync, lstatSync, mkdirSync,
+  readdirSync, unlinkSync, renameSync, readlinkSync, existsSync, futimesSync, constants as C,
 } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
+import { homedir } from 'node:os';
 import { join, resolve, basename, dirname, relative, isAbsolute, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
 import { UNREAD_VERDICT_CONDITIONS, VERDICT_LOOKALIKE_FOLD, FIRST_LINE_LABEL_WORDS, FIRST_LINE_LABEL_STEMS } from '../lib/verdict-config.mjs';
-import { realPath, gitPathKey, fileIdentity } from '../lib/real-path.mjs';
+import { realPath, fileIdentity } from '../lib/real-path.mjs';
 import { renameWithRetry, RENAME_RETRY_CODES } from '../lib/rename-retry.mjs';
 
 export const LEDGER_MAX_BYTES = 1024 * 1024; // audit log rotation threshold (the tally never rotates)
@@ -70,9 +65,6 @@ export const REVIEW_TEXT_EXTENSION = '.md';
 export const REVIEW_TEXT_HASH = 'sha256';
 export const REVIEW_TEXT_HASH_HEX_CHARS = 64;
 // chosen, measured 2026-10-22: no size cap; observed p95 8.5 KB and maximum 17.8 KB.
-// chosen: names the throwaway scratch index+object folder workingState borrows the repo's objects into
-// (W7c amend, 2026-10-18), so a leftover from a crashed derivation is recognizable in the OS temp dir.
-export const SNAPSHOT_SCRATCH_PREFIX = 'nana-snapshot-';
 const LOCK_WAIT_MS = 15_000;
 const LOCK_ORPHAN_MS = 5_000; // a lock file with no readable pid, older than this, is a crashed create
 // A reservation is stale when its owner stops renewing it for this long (heartbeat every 1/5 of it).
@@ -140,12 +132,10 @@ export function optValue(args, name) {
 }
 
 /** Run git; THROWS with git's own error on any failure (sol r2 #10: never read a failure as "clean").
- *  Pinned config so nothing a user sets changes what is enumerated. `env` (W7c amend, 2026-10-18)
- *  overlays process.env — workingState's scratch derivation points GIT_INDEX_FILE and
- *  GIT_OBJECT_DIRECTORY at a throwaway folder so the real index and object store are never written. */
-function gitOut(cwd, args, { okStatus = [0], env } = {}) {
+ *  Pinned config disables optional status accelerators. */
+function gitOut(cwd, args, { okStatus = [0] } = {}) {
   const r = spawnSync('git', ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', ...args],
-    { cwd, encoding: 'utf8', maxBuffer: 1 << 30, env: env ? { ...process.env, ...env } : process.env });
+    { cwd, encoding: 'utf8', maxBuffer: 1 << 30, env: process.env });
   if (r.error) throw new Error(`git ${args[0]} could not run in ${cwd}: ${r.error.message} — admission refused`);
   if (!okStatus.includes(r.status)) {
     throw new Error(`git ${args.join(' ')} failed in ${cwd} (exit ${r.status ?? r.signal}): ` +
@@ -174,8 +164,8 @@ export function repoKeyOf(tree) {
 
 /** Repository identity + the reviewed tree's revision parts. repo = repoKeyOf(tree) (shared by all
  *  worktrees of one repository). Non-Git admission throws; legacy `path:` keys are readable only in
- *  existing tallies. `exclude` = absolute paths left out of the snapshot. */
-export function treeScope(cwd = process.cwd(), { exclude = [], requireClean = false } = {}) {
+ *  existing tallies. Every scope requires a clean tree. */
+export function reviewRoot(cwd = process.cwd()) {
   const tree = resolve(cwd);
   const r = gitOut(tree, ['rev-parse', '--show-toplevel'], { okStatus: [0, 128] });
   if (r.status !== 0) {
@@ -183,9 +173,13 @@ export function treeScope(cwd = process.cwd(), { exclude = [], requireClean = fa
     throw new Error(`git rev-parse failed in ${tree}: ${r.stderr.trim().split('\n')[0]} — admission refused`);
   }
   const top = r.stdout.trim();
-  const root = realPath(top, { mustExist: true });
-  const { head, snapshot } = workingState(root, exclude, { requireClean });
-  return { repo: repoKeyOf(tree), root, head, snapshot };
+  return realPath(top, { mustExist: true });
+}
+
+export function treeScope(cwd = process.cwd()) {
+  const root = reviewRoot(cwd);
+  const { head, snapshot } = workingState(root);
+  return { repo: repoKeyOf(root), root, head, snapshot };
 }
 
 function headOf(root) {
@@ -196,119 +190,19 @@ function headOf(root) {
 }
 
 const nulList = (t) => t.split('\0').filter(Boolean);
-const byteOrder = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
-const sha256 = (...parts) => { const h = createHash('sha256'); for (const x of parts) h.update(x); return h.digest('hex'); };
-
-/** Write `objectsDir` as the scratch object folder's one alternate (W7c amend, 2026-10-18): the derivation
- *  borrows the repo's objects by FILE, never by the delimiter-joined GIT_ALTERNATE_OBJECT_DIRECTORIES env
- *  var, which breaks on a path holding the platform delimiter (plan-attack.md). One absolute path per line;
- *  forward slashes on Windows (git's own alternates parser wants them); a path holding a newline cannot be
- *  the sole line separator, so it refuses rather than risk a misread. */
-function writeAlternates(file, objectsDir) {
-  if (objectsDir.includes('\n')) {
-    throw new Error(`the repository's object directory ${JSON.stringify(objectsDir)} holds a newline — the scratch alternates file cannot encode it; admission refused`);
-  }
-  writeFileSync(file, `${process.platform === 'win32' ? objectsDir.split('\\').join('/') : objectsDir}\n`);
-}
-
 // chosen: bound a launch refusal without hiding the instruction beneath a long path list.
 export const CLEAN_REVIEW_PATH_CAP = 10;
 
-/** {head, snapshot}: snapshot = null when the working tree equals HEAD's tree and no nested repository is
- *  dirty or new, else the FULL sha256 of "tree <id>\0" plus every nested record below, sorted in byte order.
- *  The tree is what `git add -A` would record over HEAD (W7c amend, 2026-10-18 — plan-design.md, amended by
- *  plan-attack.md): git applies its own core.fileMode, core.autocrlf, core.symlinks, .gitattributes, clean
- *  filters and ignores, so a checkout git itself calls clean reads clean here too.
- *  Built with:
- *    - a THROWAWAY index seeded by `read-tree HEAD` (never a copy of the real index, R-710/R-1374 stay live);
- *    - a THROWAWAY object folder that borrows the repo's objects through its `info/alternates` file (never
- *      the real index or object store is written);
- *    - the REAL index read first (the untracked-directory listing below), so a corrupt index still refuses
- *      admission (R-712 stays live) before any scratch folder is created;
- *    - `--out` paths (named by `exclude`) restored to HEAD after the add: `git add -A` can itself
- *      re-case an ancestor directory to match an index entry already seeded from HEAD (a case-diverged
- *      folder, MUST 1 of brief 2), so the excluded path's own file identity (dev+ino, win-review-paths'
- *      case-diverged-folder fallback) finds the add's own git-listed spelling to reset, never a string compare;
- *    - an untracked, non-ignored DIRECTORY (a new, uninitialized nested repository) excluded from the add —
- *      an unborn one makes `git add -A` exit 128 — and folded in instead by a recursive call, always
- *      recorded as "new <head|unborn>[+snap:x]\t<path>" (a change, like R-835);
- *    - an initialized submodule (160000 in the post-add scratch index) folded in by the same recursion,
- *      recorded as "sub <head>+snap:<x>\t<path>" only when dirty — a clean one needs no record, since its
- *      gitlink already lands on its HEAD commit, same as the superproject's own tree.
- *  "Equals HEAD" compares the scratch tree's id against `git rev-parse <head>^{tree}`. */
-export function workingState(root, exclude = [], { requireClean = false } = {}) {
-  if (requireClean) {
-    const entries = nulList(gitOut(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all']).stdout);
-    const paths = [];
-    for (let i = 0; i < entries.length; i++) {
-      paths.push(entries[i].slice(3));
-      if (/[RC]/.test(entries[i].slice(0, 2))) i++; // -z rename/copy source follows the destination.
-    }
-    if (paths.length) throw new Error(`uncommitted paths: ${paths.slice(0, CLEAN_REVIEW_PATH_CAP).map(p => JSON.stringify(p)).join(', ')}; commit or remove them, then review`);
+/** A clean tree's HEAD, with no snapshot. Status reads the real index but never refreshes it. */
+export function workingState(root) {
+  const entries = nulList(gitOut(root, ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--untracked-files=all']).stdout);
+  const paths = [];
+  for (let i = 0; i < entries.length; i++) {
+    paths.push(entries[i].slice(3));
+    if (/[RC]/.test(entries[i].slice(0, 2))) i++; // -z rename/copy source follows the destination.
   }
-  const head = headOf(root);
-  if (!head) return { head: null, snapshot: null };
-  // Reads the REAL index (git needs it to know what is "other"), so a corrupt index still refuses here,
-  // before any scratch folder exists (R-712).
-  const nested = nulList(gitOut(root, ['ls-files', '-z', '--others', '--exclude-standard']).stdout)
-    .filter((p) => p.endsWith('/')).map((p) => p.slice(0, -1));
-  const skip = new Set(exclude.map((x) => relUnder(root, realOut(x))).filter(Boolean).map(gitPathKey));
-  // MUST 1 (brief 3): git's untracked listing carries the disk case here, so the path-key skip
-  // above handles the nested-directory exclusion's case-diverged folder (never added, so never re-cased).
-  const skipIds = exclude.map((x) => {
-    const real = realOut(x), rel = relUnder(root, real);
-    return rel ? { base: basename(rel), id: fileIdentity(real) } : null;
-  }).filter((s) => s?.id);
-  const scratch = mkdtempSync(join(tmpdir(), SNAPSHOT_SCRATCH_PREFIX));
-  try {
-    const scratchObjects = join(scratch, 'objects');
-    mkdirSync(join(scratchObjects, 'info'), { recursive: true });
-    const objectsDir = resolve(root, gitOut(root, ['rev-parse', '--git-path', 'objects']).stdout.trim());
-    writeAlternates(join(scratchObjects, 'info', 'alternates'), objectsDir);
-    const emptyHooks = join(scratch, 'hooks');
-    mkdirSync(emptyHooks);
-    const env = { GIT_INDEX_FILE: join(scratch, 'index'), GIT_OBJECT_DIRECTORY: scratchObjects };
-    // R-1378 / F2 / F3 (build 2, 2026-10-19): pinned on every scratch command so a stat-less scratch
-    // index never trips core.safecrlf against a clean, git-normalized checkout; a split-index repo
-    // never leaves a sharedindex.* file in the REAL .git; and the repository's own hooks (notably
-    // post-index-change, which fires on every index write) never run.
-    const SCRATCH_CONFIG = ['-c', 'core.safecrlf=false', '-c', 'core.splitIndex=false', '-c', `core.hooksPath=${emptyHooks}`];
-    const scratchGit = (args) => gitOut(root, [...SCRATCH_CONFIG, ...args], { env });
-    scratchGit(['read-tree', head]);
-    scratchGit(['add', '-A', '--', ':/', ...nested.map((p) => `:(top,literal,exclude)${p}`)]);
-    if (skipIds.length) {
-      // A literal pathspec is case-SENSITIVE even under core.ignorecase (probed), so a re-cased ancestor
-      // directory needs the file's own identity, not its spelling, to find what the add actually staged.
-      const bases = new Set(skipIds.map((s) => s.base));
-      const candidates = nulList(scratchGit(['ls-files', '-z']).stdout).filter((p) => bases.has(basename(p)));
-      const toReset = candidates.filter((p) => {
-        const id = fileIdentity(join(root, p));
-        return id && skipIds.some((s) => s.id.dev === id.dev && s.id.ino === id.ino);
-      });
-      if (toReset.length) scratchGit(['reset', '-q', head, '--', ...toReset.map((p) => `:(top,literal)${p}`)]);
-    }
-    const tree = scratchGit(['write-tree']).stdout.trim();
-    const recs = [];
-    for (const rec of nulList(scratchGit(['ls-files', '-z', '--stage']).stdout)) {
-      const m = /^160000 [0-9a-f]+ \d\t([\s\S]+)$/.exec(rec);
-      if (!m) continue;
-      const p = m[1];
-      if (!existsSync(join(root, p, '.git'))) continue; // uninitialized: its gitlink already matches HEAD
-      const sub = workingState(realpathSync(join(root, p)));
-      if (sub.snapshot) recs.push(`sub ${sub.head}+snap:${sub.snapshot}\t${p}\0`);
-    }
-    for (const p of nested) {
-      if (skip.has(gitPathKey(p))) continue;
-      const sub = workingState(realpathSync(join(root, p)));
-      recs.push(`new ${sub.head ?? 'unborn'}${sub.snapshot ? `+snap:${sub.snapshot}` : ''}\t${p}\0`);
-    }
-    recs.sort(byteOrder);
-    const headTree = gitOut(root, ['rev-parse', `${head}^{tree}`]).stdout.trim();
-    const clean = !recs.length && tree === headTree;
-    return { head, snapshot: clean ? null : sha256(`tree ${tree}\0`, ...recs) };
-  } finally {
-    rmSync(scratch, { recursive: true, force: true });
-  }
+  if (paths.length) throw new Error(`uncommitted paths: ${paths.slice(0, CLEAN_REVIEW_PATH_CAP).map(p => JSON.stringify(p)).join(', ')}; commit or remove them, then review. Keep non-ignored --out files outside the reviewed tree`);
+  return { head: headOf(root), snapshot: null };
 }
 /** `abs` relative to `root` as a git path ("a/b"), or null when it is `root` itself or outside it.
  *  Outside = the FIRST path SEGMENT is ".." (T2b r5: a string prefix test misread "..notes.md"). */
@@ -634,15 +528,16 @@ function parseReview(args, cwd) {
   if (rawItem === undefined) return { missing: true };
   const item = canonicalItem(rawItem);
   const outAbs = out ? resolve(cwd, out) : null;
-  const exclude = out ? [realOut(outAbs)] : []; // the review's own output (where the write LANDS) is not the reviewed work
-  const revision = deriveRevision(revArg, tree, exclude);
-  const warning = out ? outInTree(revision.root, outAbs) : null; // throws on a tracked --out, symlinked or not
-  const redirect = inTreeRedirect(revision.root);
+  // Protect tracked output and redirects even when the source is already dirty.
+  const root = reviewRoot(tree);
+  const warning = out ? outInTree(root, outAbs) : null;
+  const redirect = inTreeRedirect(root);
   if (redirect) throw new Error(`redirect the review log outside the reviewed tree (${redirect})`);
-  return { key: { repo: revision.repo, item }, revision: revision.id, role, out, cwd: tree, revArg, exclude, warning };
+  const revision = deriveRevision(revArg, tree);
+  return { key: { repo: revision.repo, item }, revision: revision.id, role, out, cwd: tree, revArg, warning };
 }
-function deriveRevision(revArg, tree, exclude) {
-  const scope = treeScope(tree, { exclude });
+function deriveRevision(revArg, tree) {
+  const scope = treeScope(tree);
   return { repo: scope.repo, root: scope.root, id: resolveRevision(revArg, scope, scope.root) };
 }
 
@@ -667,12 +562,7 @@ export function inTreeRedirect(root, fds = [1, 2]) {
   return null;
 }
 
-/** --out inside the reviewed tree (sol r3 ruling). The output is excluded from the snapshot, so:
- *   - a TRACKED path (in HEAD or the index) is REFUSED (throws): excluding it would mask the review
- *     overwriting a tracked file — a silent data-loss/mutation the revision could never show;
- *   - an ignored path returns null (the snapshot never reads it — the recommended in-tree place);
- *   - any other in-tree path returns a warning (a leftover output there changes the NEXT revision
- *     and so can spend a distinct-revision slot); outside the tree, or outside git → null. */
+/** Tracked --out paths refuse; ignored/outside paths are silent; other in-tree paths warn. */
 /** Whether `relGit` is tracked in the index or HEAD (MUST 1, brief 2): a literal pathspec compare
  *  first (cheap, covers the ordinary case); when it misses and the target exists on disk, a
  *  case-only folder rename can leave git's own index/HEAD spelling different from the disk
@@ -702,11 +592,11 @@ export function outInTree(root, outAbs) {
   const head = headOf(root);
   if (trackedByPath(root, relGit, head) || trackedByIdentity(root, real, head)) {
     throw new Error(`--out ${outAbs}${real === outAbs ? '' : ` (→ ${real})`} is a TRACKED file in the reviewed tree (${root}): the review would overwrite it, and ` +
-      'excluding it from the snapshot would hide that. Write the output outside the tree (or to an ignored path)');
+      'the output must not modify reviewed files. Write the output outside the tree (or to an ignored path)');
   }
   if (gitOut(root, ['check-ignore', '-q', '--', relGit], { okStatus: [0, 1] }).status === 0) return null;
-  return `--out ${real} is inside the reviewed tree (${root}) and not ignored: it is excluded from this review's ` +
-    'snapshot, but a leftover output there changes the next revision. Prefer a path outside the tree or an ignored one';
+  return `--out ${real} is inside the reviewed tree (${root}) and not ignored: an existing output refuses admission as uncommitted paths; ` +
+    'a new output makes the tree dirty. Write outside the tree or to an ignored path';
 }
 /** The ledger record's view of a revision: both parts, so an audit sees which state was reviewed. */
 export function revisionParts(revision) {
@@ -742,7 +632,7 @@ export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd
       const d = decide(p, q.key, q.revision, true);
       ensureDir(p.resDir);
       const id = `${Date.now()}-${pid}-${randomBytes(6).toString('hex')}`;
-      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, cwd: q.cwd, revArg: q.revArg, exclude: q.exclude, provider: provider ?? null, model: model ?? null, attempts, startedAt: new Date().toISOString() };
+      const res = { id, pid, ...q.key, revision: q.revision, role: q.role, out: q.out, launcher, cwd: q.cwd, revArg: q.revArg, provider: provider ?? null, model: model ?? null, attempts, startedAt: new Date().toISOString() };
       const fd = openSync(join(p.resDir, `${id}.json`), C.O_WRONLY | C.O_CREAT | C.O_EXCL | C.O_NOFOLLOW, 0o600);
       try { writeSync(fd, JSON.stringify(res)); } finally { closeSync(fd); }
       const note = `${d.where}; admitted as round ${d.round}` +
@@ -796,7 +686,7 @@ export function complete(r, out, { home = homedir(), attempts = r?.attempts ?? 1
       // The final derivation happens HERE, under the lock, immediately before recording (sol r3
       // TOCTOU): deriving before the lock let an edit made while waiting on it receive a valid verdict.
       let now = null, why = '';
-      try { now = deriveRevision(r.revArg, r.cwd, r.exclude ?? []).id; } catch (e) { why = e.message; }
+      try { now = deriveRevision(r.revArg, r.cwd).id; } catch (e) { why = e.message; }
       const stable = now === held.revision;
       // audit rotation first (only the verbose log rotates), so a refusal there writes nothing
       rotateAudit(p);
