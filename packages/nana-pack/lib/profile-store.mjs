@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/lib/profile-store.mjs
- * @purpose Write immutable shape records and derive the profile's effective trust, liveness and bounded display.
+ * @purpose Preserve immutable profile and project records with effective trust, liveness and bounded display.
  * @inputs Claims, owner quotes, runtime environment, clock, random source, record files and events.
  * @outputs Exclusive-created JSON records/events, normalized IDs and effective state or show text.
  * @effects disk
@@ -13,7 +13,7 @@ import { parseJsonBytes } from './json-text.mjs';
 import { readBounded } from './bounded-read.mjs';
 import { CANDIDATE_FIELDS, USER_KIND_WORDS } from './profile-config.mjs';
 import { suiteRecordStamp } from './suite-records.mjs';
-import { PROFILE_MEDIUM_SESSIONS, PROFILE_SHOW_BUDGET, PROFILE_LIMITS, PROFILE_SESSION_VARIABLES, PROFILE_STAMP_FORMAT, PROFILE_PATH_POLICY, PROFILE_LAYOUT as L, PROFILE_WORDS as W } from './profile-config.mjs';
+import { PROJECTS_FOLDER, FOLDER_ID_LENGTH, PROFILE_MEDIUM_SESSIONS, PROFILE_SHOW_BUDGET, PROFILE_LIMITS, PROFILE_SESSION_VARIABLES, PROFILE_STAMP_FORMAT, PROFILE_PATH_POLICY, PROFILE_LAYOUT as L, PROFILE_WORDS as W } from './profile-config.mjs';
 
 /** NFC, folded case and all whitespace collapsed: shared by IDs and quote comparisons. */
 export const normalizeProfileText = text => String(text).normalize('NFC').toLowerCase().replace(/\s+/gu,' ').trim();
@@ -139,6 +139,26 @@ export function effectiveState(recordFiles,events) {
   survivor.absorbed=[...absorbed].sort();
  }
  return states;
+}
+export function writeMemoryFile(dir,repository,folder,id,value,{now=()=>new Date(),random=randomBytes}={}) {
+ return exclusiveJson(dir,`${PROJECTS_FOLDER}/${repository.slice(0,FOLDER_ID_LENGTH)}/${folder}`,id,value,profileStamp(now()),random);
+}
+/** Existing project areas use the same record/event reader as the root profile. */
+export function readMemoryStore(dir,{onUnparseable=()=>{}}={}) {
+ const areas=[readProfileStore(dir)],base=path.join(dir,PROJECTS_FOLDER);
+ if(fs.existsSync(base)) for(const name of fs.readdirSync(base)) if(fs.statSync(path.join(base,name)).isDirectory()) areas.push(readProfileStore(path.join(base,name),{onUnparseable}));
+ return effectiveState(areas.flatMap(a=>a.recordFiles),areas.flatMap(a=>a.events));
+}
+/** Caller holds the clone lock; a saved profile claim supersedes matching extracted records. */
+export function mergeMemory(dir,input,{now=()=>new Date(),random=randomBytes,env=process.env}={}) {
+ const normalized=claimId(input.claim);
+ const matches=readMemoryStore(dir).filter(r=>r.live&&claimId(r.claim)===normalized&&r.source==='extracted');
+ const record=writeProfileRecord(dir,input,{env,now,random});
+ for(const previous of matches) {
+  const event={id:previous.id,action:'supersede',target:record.id,quote:record.quote,stamp:profileStamp(now())};
+  writeMemoryFile(dir,previous.repository,L.events,previous.id,event,{now,random});
+ }
+ return record;
 }
 /** Trust first, then newest; reserve a fold line so output never exceeds its whole budget. */
 export function show(states) {

@@ -13,13 +13,12 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { piAgentDir } from '../lib/agent-dir.mjs';
 import { profileGuard, seatGuard, dailyCounter } from '../lib/profile-guards.mjs';
-import { mergeMemory, readMemoryStore, writeMemoryFile } from '../lib/memory-store.mjs';
 import { readBounded, BOUNDED_READ_CAP } from '../lib/bounded-read.mjs';
 import { parseJsonBytes } from '../lib/json-text.mjs';
 import { ghFromEnvironment, ghResult } from '../lib/gh-runner.mjs';
 import { writePackConfigMember } from '../lib/pack-config-write.mjs';
 import { profileGit, gitText, withProfileLock, recoverProfile, commitProfile, syncProfile } from '../lib/profile-sync.mjs';
-import { claimId, readProfileStore, effectiveState, show, validateProfileSave, writeProfileEvent, normalizeProfileText, profileStamp } from '../lib/profile-store.mjs';
+import { mergeMemory, readMemoryStore, writeMemoryFile, claimId, readProfileStore, effectiveState, show, validateProfileSave, writeProfileEvent, normalizeProfileText, profileStamp } from '../lib/profile-store.mjs';
 import { PROFILE_GIT_TIMEOUT_MS, PROFILE_LIMITS, PROFILE_REMOTE_FORMS, PROFILE_LAYOUT as L, PROFILE_WORDS as W } from '../lib/profile-config.mjs';
 
 /** Like resolveRoster, read only this member and refuse dangling links and malformed bytes. */

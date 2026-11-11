@@ -44,6 +44,11 @@ export const PROFILE_REMOTE_FORMS = Object.freeze([
 ]);
 // Chosen 2026-10-31 (R-3248): independent append-only records/events and git-local controls.
 export const PROFILE_LAYOUT = Object.freeze({records:'records',events:'events',marker:'.nana-profile',lock:'nana-profile.lock',counter:'nana-profile-day.json',attributes:'* -text\n',readme:'Private owner profile. Records are append-only JSON; use nana-profile, never edit records by hand.\n'});
+// Preserved 2026-11-09: profile sync still recovers stopped writers.
+export const STALE_INDEX_LOCK_MS=2*PROFILE_GIT_TIMEOUT_MS;
+// Preserved 2026-11-09: existing project records retain their original paths.
+export const FOLDER_ID_LENGTH=16;
+export const PROJECTS_FOLDER='projects';
 // Chosen 2026-10-31 (R-3249): fixed diagnostic lines stay sealed.
 // R-4002: local git refusals append stderr separately, redacting home and URL credentials.
 // Profile shape words and diagnostics remain compatible with existing records.

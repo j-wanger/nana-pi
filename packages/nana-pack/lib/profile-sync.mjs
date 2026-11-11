@@ -9,9 +9,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { STALE_INDEX_LOCK_MS, STORE_LAYOUT } from './memory-run-config.mjs';
 import { releaseLaneLock } from './lane-lock.mjs';
-import { PROFILE_GIT_TIMEOUT_MS, PROFILE_PATH_POLICY, PROFILE_LOCK_WAIT_MS, PROFILE_LOCK_STALE_MS, PROFILE_PUSH_RETRIES, PROFILE_LAYOUT as L, PROFILE_WORDS as W } from './profile-config.mjs';
+import { STALE_INDEX_LOCK_MS, PROJECTS_FOLDER, PROFILE_GIT_TIMEOUT_MS, PROFILE_PATH_POLICY, PROFILE_LOCK_WAIT_MS, PROFILE_LOCK_STALE_MS, PROFILE_PUSH_RETRIES, PROFILE_LAYOUT as L, PROFILE_WORDS as W } from './profile-config.mjs';
 
 /** Like the gh seam, a command array permits fully local cross-platform fixtures. */
 export function profileGit(env = process.env) {
@@ -58,10 +57,10 @@ export function commitProfile(dir,runGit,message) {
  const entries=status ? status.split('\0').filter(Boolean) : [];
  for(let i=0;i<entries.length;i++) {
   const entry=entries[i]; const name=entry.slice(3);
-  if(![L.records,L.events,STORE_LAYOUT.projects].some(folder=>name.startsWith(`${folder}/`))) throw Error(W.dirty);
+  if(![L.records,L.events,PROJECTS_FOLDER].some(folder=>name.startsWith(`${folder}/`))) throw Error(W.dirty);
   if(/[RC]/.test(entry.slice(0,2))) throw Error(W.dirty);
  }
- gitText(runGit,dir,['add','--',...[L.records,L.events,STORE_LAYOUT.projects].filter(folder=>fs.existsSync(path.join(dir,folder)))]);
+ gitText(runGit,dir,['add','--',...[L.records,L.events,PROJECTS_FOLDER].filter(folder=>fs.existsSync(path.join(dir,folder)))]);
  const diff=runGit(dir,['diff','--cached','--quiet']);
  if(diff.status===1) gitText(runGit,dir,['commit','-m',message]); else if(diff.status!==0||diff.error) throw profileGitFailure(diff);
 }

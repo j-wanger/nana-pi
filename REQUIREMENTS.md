@@ -596,6 +596,9 @@ Purpose: Keep what the seat learns about its owner in a private, synced store, r
 | R-3247 | The profile shall accept only the sealed GitHub HTTPS, SCP SSH and explicit SSH push URL forms for verification. | implemented | `packages/nana-pack/tests/profile-store.test.mjs::seal: PROFILE_REMOTE_FORMS` |
 | R-3248 | The profile shall use the sealed records, events, marker and lock layout without text conversion. | untested | Coverage removed; behavior stays. diet1: removed the unearned seal. |
 | R-3249 | The profile shall use the shared saved source and user kind vocabulary with its sealed save, trust, evidence, refusal and sync words. | untested | Coverage removed; behavior stays. diet1: removed the unearned seal. |
+| R-3295 | The shared merge step shall keep one live normalized claim or unit and prefer the seat's saved record over extracted records. | untested | Profile compatibility remains in `packages/nana-pack/lib/profile-store.mjs`; the memory-run check was removed. |
+| R-3304 | Stale index-lock age shall be twice the profile git timeout. | untested | `packages/nana-pack/lib/profile-config.mjs` retains the derived bound; the memory-run seal was removed. |
+
 ### SUB-022 · Shape memory candidates with a model
 Purpose: Classify owner turns and review findings with a capped, isolated model pass into the same shaped candidates, so they score against the same labels as the rules.
 
@@ -652,7 +655,6 @@ Purpose: Make new enabled repository units once into a private, synchronized pro
 | R-3292 | — | retired | retired (was 371fee63) |
 | R-3293 | — | retired | retired (was 371fee63) |
 | R-3294 | The maker and seat saves shall converge across two clones with atomically published never-overwritten store files, git-local controls, short clone-lock holds, a 1000 millisecond local merge-lock wait and recovery of stale index locks and paused rebases before branch-dependent operations, keeping network steps outside the clone lock. | untested | `packages/nana-pack/tests/memory-run.test.mjs::R-3294: two machines and seat saves converge without machine files`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3291: torn records do not block saves or repeat done units`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3294: local merge waits for a brief seat lock`; `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3294: seal local merge lock wait`; `packages/nana-pack/tests/memory-run-recovery.test.mjs::R-3294: paused rebase recovers before fetch and pending work completes` |
-| R-3295 | The shared merge step shall keep one live normalized claim or unit and prefer the seat's saved record over extracted records. | untested | `packages/nana-pack/tests/memory-run.test.mjs::R-3295: one live normalized claim prefers the seat in either order` |
 | R-3296 | — | retired | retired (was 371fee63) |
 | R-3297 | — | retired | retired (was 371fee63) |
 | R-3298 | — | retired | retired (was 371fee63) |
@@ -661,7 +663,6 @@ Purpose: Make new enabled repository units once into a private, synchronized pro
 | R-3301 | — | retired | retired (was 371fee63) |
 | R-3302 | — | retired | retired (was 371fee63) |
 | R-3303 | — | retired | retired (was 371fee63) |
-| R-3304 | Stale index-lock age shall be twice the profile git timeout. | untested | `packages/nana-pack/tests/memory-run-seals.test.mjs::R-3304: seal derived index age` |
 | R-3305 | — | retired | retired (was 371fee63) |
 | R-3306 | — | retired | retired (was 371fee63) |
 | R-3307 | — | retired | retired (was 371fee63) |
