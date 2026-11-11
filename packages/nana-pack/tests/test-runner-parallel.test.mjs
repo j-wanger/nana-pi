@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-pack/tests/test-runner-parallel.test.mjs
  * @purpose Pin the test runner's --jobs=N parallel-pool contract and its delayed-start meeting fixtures from OUTSIDE it.
- * @inputs scripts/test.mjs, every packages/nana-pack/lib/*.mjs module its import lines name, and the suite config's land dependency (copied
+ * @inputs scripts/test.mjs and every packages/nana-pack/lib/*.mjs module its import lines name (copied
  *  verbatim into each throwaway root, so the real bytes run, read from source), the fixture test files
  *  this file writes, and env PROBE_OUT it hands each child
  * @outputs one PASS / FAIL line per check and a non-zero exit when any check failed
@@ -14,7 +14,7 @@
 // R-1477 (R-1476 lives in test-locked.test.mjs instead, beside the command it changes).
 //
 // mkRoot copies the real scripts/test.mjs plus every packages/nana-pack/lib/*.mjs module ITS OWN import
-// lines name (parsed from its source) and suite-records-config's required land-config dependency. Fixtures report their observations by writing JSON
+// lines name (parsed from its source). Fixtures report their observations by writing JSON
 // into $PROBE_OUT rather than printing, and derive overlap from {start, end} timestamps they record
 // themselves — never from guessing at scheduling.
 import { tmpDir } from "./tmp-dir.mjs";

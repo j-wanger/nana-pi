@@ -12,7 +12,7 @@ export const RECORD_FILE_ENV = "NANA_SUITE_RECORD_FILE";
 // contract (R-2546, R-2547): readers skip records from every other schema.
 export const RECORD_SCHEMA = 1;
 
-// contract (R-2547); chosen: sit beside the runtime map in the git common directory.
+// contract (R-2547); chosen: clone-shared records live in the git common directory.
 export const STORE_SUBPATH = "nana/suite-runs";
 
 // chosen: keep main's flake records beside, never inside, the local baseline store.
@@ -24,7 +24,7 @@ export const SUITE_RECORDS_KEEP = 300;
 // chosen (measurements 2026-10-23): about 100 days at 40 records a day, past GitHub's 90-day retention.
 export const CI_RECORDS_KEEP = 4_000;
 
-// contract (R-2549 to R-2555): distinguish suite-record output from the runner's verdict lines.
+// contract (R-2549, R-2550, R-2553, R-2554): distinguish suite-record output from verdict lines.
 export const RECORD_LINE_PREFIX = "suite record:";
 
 // contract (R-2632, R-2634): CI suite-record artifacts share this name prefix.

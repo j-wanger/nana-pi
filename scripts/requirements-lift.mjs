@@ -561,7 +561,7 @@ function mappingFromBytes(buf, path, text, verify = false) {
   let raw = buf.toString("utf8");
   if (raw.startsWith(BOM)) raw = raw.slice(1);
   let parsed;
-  try { parsed = JSON.parse(raw); } catch (e) { return { problems: [`${path}${verify ? " " : ": "}not valid JSON (${e.message})`] }; }
+  try { parsed = JSON.parse(raw); } catch (e) { return { problems: [`${path}${verify ? " is " : ": "}not valid JSON (${e.message})`] }; }
   if (!isPlainObject(parsed)) return { problems: [`${path}: the top level must be an object`] };
   if (parsed.lift !== MAPPING_FORMAT) return { problems: [`${path}: mapping is lift version ${JSON.stringify(parsed.lift)}, not ${MAPPING_FORMAT}`] };
   for (const s of stringsOf(parsed)) {
