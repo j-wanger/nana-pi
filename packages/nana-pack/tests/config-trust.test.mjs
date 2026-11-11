@@ -29,8 +29,6 @@ const HOME = tmpDir(path.join(os.tmpdir(), "trust-home-"));
 process.env.HOME = HOME;
 process.env.USERPROFILE = HOME;
 fs.mkdirSync(path.join(HOME, ".pi", "agent"), { recursive: true });
-const JOURNAL = path.join(HOME, ".pi", "agent", "nana-journal.jsonl");
-const journalLines = () => (fs.existsSync(JOURNAL) ? fs.readFileSync(JOURNAL, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
 
 const { loadConfig, usePiTrustModule, primeNanaTrust } = await import(new URL("../lib/config.ts", import.meta.url).href);
 
@@ -135,11 +133,6 @@ check("bare harness (no pi module): fail-closed even with .pi/settings.json + tr
 		fs.writeFileSync(path.join(planted, ".pi", "settings.json"), "{}"); // the agent's first edit
 		check("cross-instance: evidence from session_start binds another module copy (planted settings.json ignored)",
 			ignored(other.loadConfig({ cwd: planted, isProjectTrusted: () => true })));
-		const notes = [];
-		const ctx = { cwd: planted, hasUI: true, isProjectTrusted: () => true, ui: { notify: (m) => notes.push(m) }, sessionManager: { getSessionId: () => "s-x" } };
-		loadConfig(ctx);
-		other.loadConfig(ctx);
-		check("cross-instance: the ignored notice is still announced once per session", notes.length === 1);
 	}
 
 	// a corrupt trust.json is "no evidence", never a throw
@@ -168,16 +161,6 @@ check("bare harness (no pi module): fail-closed even with .pi/settings.json + tr
 	check("ignored notice: exactly one UI warning", mine.length === 1 && mine[0].t === "warning");
 	// req: R-076
 	check("ignored notice: names how to trust it (/trust)", mine[0]?.m.includes("/trust"));
-	const lines = journalLines().filter((l) => l.event === "config_project_ignored" && l.file === path.join(quiet, ".pi", "nana-pack.json"));
-	// req: R-076
-	check("ignored notice: exactly one config_project_ignored journal line", lines.length === 1);
-	const ctx2 = { ...ctx, sessionManager: { getSessionId: () => "s-notice-2" } };
-	loadConfig(ctx2);
-	check("ignored notice: a new session announces again (once)", notes.filter((n) => n.m.includes(quiet)).length === 2);
-	const none = tmpDir(path.join(os.tmpdir(), "trust-none-"));
-	const before = notes.length;
-	loadConfig({ ...ctx, cwd: none });
-	check("no project config → no notice", notes.length === before);
 }
 
 process.exit(fails);

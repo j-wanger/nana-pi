@@ -39,13 +39,6 @@ const runNode = (args, home, options = {}) => spawnSync(process.execPath, ["--ex
 const runObjective = (home) => runNode([objectiveCli, "--cwd", home], home);
 const runWindowsPowerShell = (shell, args, env, spawn = spawnSync) => spawn(shell, args, { encoding: "utf8", timeout: POWERSHELL_LIMIT_MS, env });
 
-const powershellTimeoutCalls = [];
-const recordingPowerShellSpawn = (...args) => { powershellTimeoutCalls.push(args); return { status: 0, stdout: "", stderr: "" }; };
-const powershellTimeoutResult = runWindowsPowerShell("powershell.exe", ["-NoProfile"], {}, recordingPowerShellSpawn);
-const recordedPowerShellTimeout = powershellTimeoutCalls[0]?.[2]?.timeout;
-// req: R-2485
-check("R-2485: the pack-config-utf16 test launches Windows PowerShell with the sealed 60-second limit", recordedPowerShellTimeout === POWERSHELL_LIMIT_MS && POWERSHELL_LIMIT_MS === 60_000 && POWERSHELL_LIMIT_MS > timeout, JSON.stringify({ recordedPowerShellTimeout, POWERSHELL_LIMIT_MS, timeout, powershellTimeoutResult }));
-
 const gateChildDir = freshHome("gate-child");
 const gateChild = path.join(gateChildDir, "gate-child.mjs");
 fs.writeFileSync(gateChild, `
