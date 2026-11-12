@@ -34,7 +34,7 @@ try {
   ]);
   if (!isAbsolute(payload.cwd)) throw new Error("invalid cwd");
   const command = payload.tool_input.command;
-  const { segments, segmentable } = splitCommand(command);
+  const { segments, segmentable } = splitCommand(command, true);
   const candidates = segmentable ? segments : [...segments, ...detectionSegments(command)];
   const hits = rmOutsideTargets(candidates, payload.cwd, "bash", {
    home: homedir(), tempRoots: [], segmentable, platform: process.platform, env: process.env, strict: true,

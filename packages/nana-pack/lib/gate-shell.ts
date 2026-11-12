@@ -53,8 +53,8 @@ export function dequote(s: string, escapes = true): string {
 const NESTING =
 	/^(\.|source)\s|(^|[\s;&|(!])(eval|xargs|source|parallel|watch)(\s|$)|(^|[\s;&|(/\\!])(sh|bash|zsh|dash|ksh|fish|su|cmd|pwsh|powershell)(\.exe)?\s(.*\s)?[-/](\w*c|command|encodedcommand|k)(\s|$)/i;
 
-/** Quote-aware split. Never throws. */
-export function splitCommand(cmd: string): { segments: Segment[]; segmentable: boolean } {
+/** Quote-aware split. Strict Bash callers preserve CR for escape tokenization. Never throws. */
+export function splitCommand(cmd: string, preserveCR = false): { segments: Segment[]; segmentable: boolean } {
 	const segments: Segment[] = [];
 	let ok = true;
 	let cur = "";
@@ -62,7 +62,10 @@ export function splitCommand(cmd: string): { segments: Segment[]; segmentable: b
 	let q: string | null = null;
 	const push = (nextPiped: boolean) => {
 		if (cur.trim()) {
-			segments.push({ text: cur.trim(), piped });
+			// Trimming an escaped CR leaves a lone backslash, a drive root on Windows.
+			// Keep CR for the strict tokenizer; pi retains its original trimming.
+			const text = preserveCR ? cur.trimStart().replace(/[^\S\r]+$/, "") : cur.trim();
+			segments.push({ text, piped });
 			piped = nextPiped;
 		} else piped = piped || nextPiped; // `a |\n sh` is still a pipe into sh
 		cur = "";

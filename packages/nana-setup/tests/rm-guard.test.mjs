@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { tmpDir } from "./tmp-dir.mjs";
 import { test } from "./waking-fixture.mjs";
@@ -23,7 +23,18 @@ writeFileSync(join(root, "outside"), "pre-existing\n");
 const payload = command => ({ session_id: "recorded-workflow", transcript_path: join(root, "transcript.jsonl"),
  cwd, permission_mode: "bypassPermissions", hook_event_name: "PreToolUse", agent_id: "builder-1",
  tool_name: "Bash", tool_input: { command }, tool_use_id: "toolu_recorded" });
-const invoke = input => spawnSync(process.execPath, [hook], { cwd, input, encoding: "utf8", timeout: 5000 });
+const forcedWindows = `
+ import path from 'node:path';
+ import { syncBuiltinESMExports } from 'node:module';
+ // Change ESM path bindings, not Node's own CommonJS loader paths.
+ const nativePath = { ...path };
+ Object.assign(path, path.win32);
+ syncBuiltinESMExports();
+ Object.assign(path, nativePath);
+ Object.defineProperty(process, 'platform', { value: 'win32' });
+ await import(${JSON.stringify(pathToFileURL(hook).href)});
+`;
+const invoke = (input, windows = false) => spawnSync(process.execPath, windows ? ["--input-type=module", "-e", forcedWindows] : [hook], { cwd, input, encoding: "utf8", timeout: 5000 });
 function run(value) {
  const result = invoke(JSON.stringify(value));
  assert.equal(result.status, 0, result.stderr);
@@ -103,7 +114,14 @@ await test("column-zero LF continuations expose deletion targets but CRLF does n
   for (const ending of ["", "\n", " \n", "\t\n"]) {
    denied("rm -rf build \\\n" + target + ending);
   }
-  assert.equal(run(payload("rm -rf build \\\r\n" + target)), "", target);
+  for (const ending of ["", "\n", " \n", "\t\n"]) {
+   const command = "rm -rf build \\\r\n" + target + ending;
+   assert.equal(run(payload(command)), "", target);
+   const windows = invoke(JSON.stringify({ ...payload(command), cwd: "C:\\lane" }), true);
+   assert.equal(windows.status, 0, windows.stderr);
+   assert.equal(windows.stderr, "");
+   assert.equal(windows.stdout, "", `win32: ${target}`);
+  }
  }
  assert.equal(run(payload("rm -rf build \\\nout")), "");
 });
