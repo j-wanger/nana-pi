@@ -10,7 +10,8 @@
  * @errors a failed check prints FAIL with the observed detail and the run exits 1; an unexpected throw
  *  propagates and fails the run
  */
-import { probeShortPath, tmpDir } from "./tmp-dir.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
+import { probeShortPath } from "./tmp-dir.mjs";
 import { reviewRunHarness } from './review-run-harness.mjs';
 import { writeFakePi } from "./fake-pi.mjs";
 import { spawnSync } from "node:child_process";

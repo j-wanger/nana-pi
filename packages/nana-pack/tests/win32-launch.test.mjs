@@ -8,7 +8,8 @@
  *  (on win32, npm pack/install and pi-worker/pi-review/review-ledger child processes)
  * @errors Failed assertions exit nonzero.
  */
-import { probeShortPath, tmpDir } from "./tmp-dir.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
+import { probeShortPath } from "./tmp-dir.mjs";
 import { withPathPrepended } from "./env-path.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";

@@ -21,7 +21,8 @@ import {
 } from "../lib/build-records-config.mjs";
 import { collectBuildUsage, readBuildLedger, renderLaneLine } from "../lib/build-records.mjs";
 import { findPiRoot } from "./pi-install.mjs";
-import { probeShortPath, tmpDir } from "./tmp-dir.mjs";
+import { tmpDir } from "./tmp-dir.mjs";
+import { probeShortPath } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import { killWorkerTree, windowsProcesses } from "./process-tree-helper.mjs";
 import { pidAlive } from "../lib/process-tree.mjs";
