@@ -211,7 +211,6 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-setup/tests/project-dismiss.test.mjs": "module",
   "packages/nana-setup/tests/project-key.test.mjs": "land",
   "packages/nana-setup/tests/project-odd-seeds.test.mjs": "module",
-  "packages/nana-setup/tests/project-stale.test.mjs": "module",
   "packages/nana-setup/tests/project-working-region.test.mjs": "land",
   "packages/nana-setup/tests/project.test.mjs": "main",
   "packages/nana-setup/tests/readme-rehearsal.test.mjs": "module",
