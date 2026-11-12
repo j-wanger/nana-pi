@@ -4,7 +4,7 @@ Dated rulings stay verbatim, except the superseded Windows policy noted below. E
 
 ## Moved from start text
 
-- 2026-10-10: rm runs freely only inside the working directory. Home: advisory rm path gate `packages/nana-pack/extensions/nana-gate.ts`; shell policy `packages/nana-pack/lib/gate-rm-outside.ts`.
+- 2026-10-10: rm runs freely only inside the working directory. Home: pi-only advisory rm gate `packages/nana-pack/extensions/nana-gate.ts` and `packages/nana-pack/lib/gate-rm-outside.ts`. Claude Code has no rm tool and relies on the safety line kept at start in `packages/nana-pack/rules/nana-rulings.md`.
 - 2026-10-22: A helper's second caller imports it rather than copying it. A plan's Precedent section names any move of a private helper to a shared module. Home: `packages/nana-pack/prompts/builder-preamble.md`, `packages/nana-pack/prompts/planner.md`.
 
 - 2026-09-18: Memory has two tiers: shared rules for every project, and project facts in the project. Start a session in the product's own folder. Home: shared-memory hook `packages/nana-setup/claude/hooks/nana-shared-memory.mjs`; project startup guidance `AGENTS.md`.
@@ -30,7 +30,7 @@ Dated rulings stay verbatim, except the superseded Windows policy noted below. E
 - 2026-11-09: The memory factory is cut (owner D3). The owner profile store stays. Home: automatic-saving-off instruction in `packages/nana-setup/claude/rules/nana-seat.md`; profile guards `packages/nana-pack/tests/profile-store-guards.test.mjs`.
 - 2026-11-09: A red main leg re-runs once at the same commit; a green re-run keeps lands open, and the flake is recorded per file and fixed in source. Lane tips do not run the full Windows suite for now. The lane-built code map and requirements tree move out of each lane's commits in their own lane. Home: main CI reader `packages/nana-pack/lib/main-ci.mjs`; lane/main job split `.github/workflows/ci.yml`; generated-map policy `code-map.config.json` and tree check `scripts/requirements-tree.mjs`. Flake repair remains seat judgment.
 - 2026-11-10: The next lane's build may start once the previous lane has LAND and green CI on its own tip, while main CI runs; a red main still blocks every land. Home: red-main check `packages/nana-pack/bin/nana-land.mjs`; lane scheduling remains seat judgment.
-- 2026-11-10: Process records move to a private folder outside the repo; old records stay in history. The knowledge lookup trial becomes a two-hour offline comparison with plain search, and a cut waits for the owner's explicit go. No outside-project lanes before the 2026-11-22 review. Home: record instructions `packages/nana-pack/prompts/builder-preamble.md`; archive pointer `docs/reviews/README.md`; priority lock `packages/nana-pack/bin/pi-worker.mjs`. Trial choices remain in this dated record.
+- 2026-11-10: Process records move to a private folder outside the repo; old records stay in history. The knowledge lookup trial becomes a two-hour offline comparison with plain search, and a cut waits for the owner's explicit go. No outside-project lanes before the 2026-11-22 review. Home: record instructions `packages/nana-pack/prompts/builder-preamble.md`; archive pointer `docs/reviews/README.md`; priority lock `packages/nana-pack/bin/pi-worker.mjs`. This ruling also stays verbatim at start in `packages/nana-pack/rules/nana-rulings.md`: the knowledge cut requires explicit approval, and the outside-project hold has no tool.
 
 ## Earlier records
 

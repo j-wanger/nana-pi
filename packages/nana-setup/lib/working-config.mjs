@@ -10,7 +10,7 @@
  * (docs/plan/agents-trim.md, R-3965); seat procedure lives in seat-side rules. */
 export const WORKING_SECTION_CHAR_CAP = 4500;
 
-/** derived: R-4250 enforces equality; ratchet
+/** derived: ratchet
  * UTF-16 characters (String.length) after CRLF-to-LF conversion and leading BOM
  * removal, rounded up to the next 100, not UTF-8 bytes; R-4250 enforces equality.
  */
@@ -19,8 +19,8 @@ export const START_FILE_CHAR_BUDGETS = Object.freeze({
 	"packages/nana-setup/claude/rules/nana-standards.md": 4200,
 	// 2026-11-09 Defaults target: seat guide ≤1.5k characters.
 	"packages/nana-setup/claude/rules/nana-seat.md": 6700, // remeasured after removing the prose ratchet
-	// 2026-11-09 Defaults target: rulings posture-only.
-	"packages/nana-pack/rules/nana-rulings.md": 2200,
+	// 2026-11-09 Defaults target: posture and safety lines without a tool.
+	"packages/nana-pack/rules/nana-rulings.md": 2500,
 	"packages/nana-pack/rules/nana-writing.md": 1500,
 	"AGENTS.md": 12500,
 	"packages/nana-pack/prompts/builder-preamble.md": 5300,
