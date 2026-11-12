@@ -161,7 +161,7 @@ try {
     if (isBrief) reviewBrief = text;
     if (w.piArgs[i] === '--append-system-prompt') i++;
   }
-  const knownBugs = reviewKnownBugSection(tempRoot, null, reviewBrief);
+  const knownBugs = reviewKnownBugSection(tempRoot, reviewBrief);
   let knownBugPrompt = null;
   if (knownBugs.text !== null) {
     knownBugFolder = mkdtempSync(join(tmpdir(), 'nana-review-known-bugs-'));

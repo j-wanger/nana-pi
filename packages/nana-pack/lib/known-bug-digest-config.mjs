@@ -13,4 +13,6 @@ export const KNOWN_BUG_DIGEST_CHARS = 6000;
 export const KNOWN_BUG_MATCH_MIN_CHARS = 4;
 // contract R-3214: one section after movement, before the Claude review standard.
 export const KNOWN_BUG_SECTION_HEADING = '## Feature known bugs';
+// chosen: one fixed discovery sentence for all folded feature digests.
+export const KNOWN_BUG_FOLDER_SENTENCE = "Every feature's known bugs live in docs/known-bugs/.";
 export const KNOWN_BUG_SECTION_LEAD = 'A recorded line is context and does not change a finding’s class under the review standard.';

@@ -94,7 +94,7 @@ const brief = readRequiredFile(briefPath, 'brief');
 if (brief.problem) die(brief.problem);
 const standard = readReviewStandard();
 if (standard.problem) die(`review standard refused: ${standard.problem}`);
-const knownBugs = reviewKnownBugSection(tree, null, brief.text);
+const knownBugs = reviewKnownBugSection(tree, brief.text);
 const prompt = `${brief.text}\n\n${knownBugs.text === null ? '' : `${knownBugs.text}\n\n`}${STANDARD_HEADING}\n\n${standard.text}\n\n${renderReviewerSentence(value('--item'), tree)}\n`;
 const ownArgs = ['--item', value('--item'), '--out', resolve(value('--out')), '--tree', tree];
 for (const name of OPTIONAL) if (parsed.values.has(name)) ownArgs.push(name, value(name));
