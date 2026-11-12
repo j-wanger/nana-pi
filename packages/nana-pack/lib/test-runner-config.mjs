@@ -28,6 +28,10 @@ export const CHANGED_FROM_FLAG = "--changed-from=";
 // chosen 2026-11-11 (R-4071): builder-stop changed/name-only selection, without complete packs.
 export const CHANGED_TESTS_FROM_FLAG = "--changed-tests-from=";
 
+// chosen (lane-check-skip brief, R-3996): explicit bypass and worktree-local pass record.
+export const LANE_CHECK_FRESH_FLAG = "--fresh";
+export const LANE_CHECK_PASS_FILE = "nana-lane-check-pass.json";
+
 /** Stable path hashing needs no OS-specific ordering or runtime baseline. Preserve collection order. */
 export function shardFiles(files, shard, key = (file) => file) {
 	if (!shard) return files;

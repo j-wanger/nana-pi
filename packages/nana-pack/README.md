@@ -357,11 +357,19 @@ It uses the builder's credential-stripped environment, with a fifteen-minute dea
 script invocation (`LANE_CHECK_TIMEOUT_MS`, including the base rail) and bounded output.
 The project owns the script; nana-pi's root `scripts/check-lane.mjs` owns the ordered
 lost-round rail and comments. Its final step runs only changed tests and basename-naming tests
-against the committed tip's merge base with main, through the existing runner's `--changed-tests-from=main` flag.
+between the merge base with main and the working tree, through the existing runner's `--changed-tests-from=main` flag.
 It reports the selection count before running and each step's wall time, passes a computed empty selection and fails missing merge bases with git's reason.
 A lane changing the runner or a shared test helper selects nearly every test; the recorded
 233-file broad run took 543.5 seconds on the seat's Mac (2026-11-11).
-Selection ignores uncommitted edits and requires no fetch; a stale main only widens the diff.
+Selection includes committed, staged and unstaged tracked edits plus untracked non-ignored files,
+deduplicated. Clean-checkout selection is unchanged and requires no fetch.
+After a full pass, the root runner records its content key and time in the worktree's own
+git directory. A repeat with unchanged working-tree content (including tracked files matching
+ignore rules and untracked non-ignored files), main commit, main/HEAD merge base, Node version
+and check-list/script hash prints one reuse line naming that pass's time and key, without running
+checks. Committing unchanged content preserves reuse. `npm run check:lane -- --fresh` always
+runs the full rail. Key errors fall back to full checks; failed, crashed or interrupted runs
+record no pass. Edits during checks prevent recording a pass.
 It prints `check:lane: pass` on success;
 `check:lane: fail: <check>` ends at the first red check with exit 1, while a spawn
 error or signal prints `check:lane: error: <check>` with exit 2. This supplements CI.
