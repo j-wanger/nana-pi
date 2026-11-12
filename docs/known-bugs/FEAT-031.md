@@ -87,7 +87,6 @@
 - PowerShell config check (win-leg-flakes, cause audit): pack-config-utf16 ends on an uncaught ENOENT when PowerShell writes no file. Its header promises a named failure with PowerShell's status, error and time.
 - Stale-copies on Windows (win-leg-flakes, cause audit): an install the test stops at its limit leaves its knowledge-build grandchild holding the index file. The test stops only the direct child.
 - Install-child limit (win-leg-flakes, plan; final review): five test files now each define the same 20-second install-child limit. One shared test value would keep them together. The stale-copies file exports its copy, though nothing imports it.
-- Config tests by hand (writing-adoption, final review): the config-normalize test can write into the checkout. Run directly with the agent folder variable set, its journal fixture appends to a file named x. The suite runner clears the variable, and main behaves the same.
 - Locked suite (runtime-map-live, independent check): `node scripts/test-locked.mjs` run outside npm fails, because it launches a command named "undefined".
 - Suite records (suite-records, plan): records stay in the clone that ran them. CI and other machines keep none.
 - Suite records (suite-records, plan): a plain `npm test`, a filtered run, and a one-file rerun after a time-limit failure keep no record.
