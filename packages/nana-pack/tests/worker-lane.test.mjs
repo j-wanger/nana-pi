@@ -309,7 +309,6 @@ const RULE_LINE = {
 	knownBugsFolder: `- Remove only the known-bug lines your brief names; never make any other edit under \`${KNOWN_BUGS_DIR}/\`.`,
 	trackedDeletion: "- Delete tracked files with `git rm -q --`.",
 	sharedTemp: "- Test files use the shared `tmpDir` helper for temp folders and never call `mkdtemp`.",
-	testInventory: "- After adding or deleting a test file, run `node scripts/test.mjs test-runner`.",
 	removedTextSearch: "- Before reporting, grep tests for every sentence the change removed or renamed.",
 	noNestedCheckers: "- Suite tests never re-run the suite or whole-repo checkers.\n  Code map, README, requirements tree and requirements trace run as seat checks and in their own tests.",
 	precedentFirst: "- Read every file your brief's Precedent section names before designing, follow its pattern, and report each departure with its reason.",
@@ -337,7 +336,7 @@ check("R-2510: only brief-named known-bug removals are allowed and HANDOFF stays
 // req: R-3650
 check("R-3650: the builder preamble forbids reading, printing or using a stored credential exactly once", preambleOnce(RULE_LINE.storedCredential), RULE_LINE.storedCredential);
 for (const key of [
-	"packageManagers", "trackedDeletion", "sharedTemp", "testInventory", "removedTextSearch", "noNestedCheckers",
+	"packageManagers", "trackedDeletion", "sharedTemp", "removedTextSearch", "noNestedCheckers",
 	"precedentFirst", "reuseNotCopy", "knownBugsContext", "validationFirst", "briefNamedTests",
 	"awaitEveryAsyncCase", "crlfAndWhitespace", "idsFromBriefRange", "noSuiteTestRunsSeatScript",
 	"noUnnamedTestDeleted", "touchedTestsBeforeCommit", "seatChecksBeforeDone", "longOutputToFile",

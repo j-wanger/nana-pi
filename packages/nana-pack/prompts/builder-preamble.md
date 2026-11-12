@@ -26,7 +26,6 @@ Tests
 - A change that reads text line by line gets CRLF, trailing space or tab, and no-final-newline cases.
 - No test writes the repository it runs in; put fixtures in the OS temp directory.
 - Test files use the shared `tmpDir` helper for temp folders and never call `mkdtemp`.
-- After adding or deleting a test file, run `node scripts/test.mjs test-runner`.
 - No suite test runs, imports or copies a seat script.
 - Suite tests never re-run the suite or whole-repo checkers.
   Code map, README, requirements tree and requirements trace run as seat checks and in their own tests.

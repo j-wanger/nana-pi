@@ -23,7 +23,7 @@ export const START_FILE_CHAR_BUDGETS = Object.freeze({
 	"packages/nana-pack/rules/nana-rulings.md": 2600, // measured 2026-11-12: 2537 normalized characters after the priority and ruling update
 	"packages/nana-pack/rules/nana-writing.md": 1500,
 	"AGENTS.md": 12500,
-	"packages/nana-pack/prompts/builder-preamble.md": 5300,
+	"packages/nana-pack/prompts/builder-preamble.md": 5200, // measured 2026-11-12: 5141 normalized characters after start-text trim 2 part A
 	"packages/nana-pack/prompts/review-standard.md": 1400,
 	"packages/nana-pack/prompts/planner.md": 7400,
 });
