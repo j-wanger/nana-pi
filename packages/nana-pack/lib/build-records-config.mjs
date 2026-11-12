@@ -41,4 +41,3 @@ export const BUILD_LEDGER_READ_MAX_BYTES = 32 * 1024 * 1024;
 export const REPORT_COST_DIGITS = 2;
 // chosen (D8, R-2600): reports use elapsed whole minutes rounded down.
 export const REPORT_MILLISECONDS_PER_MINUTE = 60_000;
-export const REPORT_MINUTE_ROUNDING = "floor";

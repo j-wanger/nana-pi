@@ -3036,7 +3036,7 @@ cover).
 
 ## FEAT-030 · Get trustworthy feedback after edits
 Purpose: Run matching checks after file edits and communicate failures, timeouts, skipped work and evidence state correctly.
-Status: active
+Status: frozen (post-edit runtime removed at 7eb8aa53; no live requirement rows remain)
 Also applies: R-079, R-781
 
 | ID | Requirement | Status | Evidence |

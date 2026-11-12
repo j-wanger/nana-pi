@@ -27,7 +27,6 @@ import { releaseLaneLock } from "./lane-lock.mjs";
 import { killProcessTree, pidAlive } from "./process-tree.mjs";
 
 export const LANE_WATCHER_HOP_FLAG = "--hop";
-export const LANE_WATCHER_WATCH_FLAG = "--watch";
 
 const childScript = fileURLToPath(new URL("lane-watcher-child.mjs", import.meta.url));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
