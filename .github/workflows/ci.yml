@@ -151,7 +151,7 @@ jobs:
           npm run readme:check
           node scripts/requirements-trace.mjs
           node scripts/requirements-tree.mjs --check
-      # contract (R-3853, R-3857): retire stays on main; the runner adds release on release-path hits.
+      # contract (R-3853, R-3857): retire stays on main; lanes add individually selected release files.
       - run: npm test -- --jobs=${{ env.NANA_CI_JOBS }} --pack=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'land,main,module,retire' || 'land,module' }} ${{ github.ref != 'refs/heads/main' && '--changed-from=origin/main' || '' }}
         if: matrix.os != 'windows-latest'
         env:

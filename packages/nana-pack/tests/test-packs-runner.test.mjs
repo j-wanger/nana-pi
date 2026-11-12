@@ -95,8 +95,28 @@ await check("M11: acceptance-win-cmd replay selects edited release tests and rel
       assert(selected.files.includes(file), `edited test omitted: ${file}`);
       assert.deepEqual(selected.selection.changedTests.find(item => item.path === file)?.reasons, ["changed test"]);
     }
-    assert(selected.packs.includes("release"), `release omitted for ${diff.join(",")}`);
-    assert(files.filter(f => TEST_PACKS[f] === "release").every(f => selected.files.includes(f)));
+    assert(!selected.packs.includes("release"), `release pack promoted for ${diff.join(",")}`);
+    const expected = diff.includes("packages/nana-pack/lib/release-status.mjs")
+      ? "packages/nana-pack/tests/release-status.test.mjs" : "packages/nana-pack/tests/template-release.test.mjs";
+    assert(selected.files.includes(expected), `release caller omitted for ${diff.join(",")}`);
+    assert(selected.selection.release.every(item => item.reasons.length));
+    if (diff.length === 1 && diff[0].endsWith(".test.mjs")) {
+      for (const slow of ["data-pack", "templates-update"]) assert(!selected.files.includes(`packages/nana-pack/tests/${slow}.test.mjs`), `unrelated ${slow} selected`);
+    }
+  }
+  // The slow files retain their own test, helper, graph and name-match routes.
+  for (const [input, expected, reason] of [
+    ["packages/nana-pack/tests/data-pack.test.mjs", "packages/nana-pack/tests/data-pack.test.mjs", "changed test"],
+    ["packages/nana-pack/tests/templates-update.test.mjs", "packages/nana-pack/tests/templates-update.test.mjs", "changed test"],
+    ["packages/nana-pack/tests/data-pack-fixtures.py", "packages/nana-pack/tests/data-pack.test.mjs", "names"],
+    ["packages/nana-pack/tests/tmp-dir.mjs", "packages/nana-pack/tests/templates-update.test.mjs", "caller of"],
+    ["packages/nana-pack/lib/config.ts", "packages/nana-setup/tests/setup-tail.test.mjs", "names"],
+    ["packages/nana-pack/extensions/nana-gate.ts", "packages/nana-setup/tests/setup-tail.test.mjs", "names"],
+  ]) {
+    const selected = await selectPackFiles({ root: REPO, files, packs: ["land", "module"], changedFrom: "main", readDiff: () => [input, "package.json"] });
+    assert(selected.files.includes(expected), `input route lost: ${input}`);
+    assert([...selected.selection.changedTests, ...selected.selection.nameMatches, ...selected.selection.release]
+      .some(item => item.path === expected && item.reasons.some(r => r.startsWith(reason))), `${input}: missing ${reason}`);
   }
 });
 // req: R-3851
