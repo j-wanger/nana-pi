@@ -78,14 +78,21 @@ export function ghAsyncFromEnvironment(env, options = {}) {
 }
 
 export const firstLine = (value) => String(value ?? "").split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? "";
+/** Only transport failures are retryable; auth, malformed data and missing tools are not. */
+export function ghNetworkFailure(result) {
+	return result?.ok === false && (result.kind === "timeout" || (["exit", "spawn"].includes(result.kind) && /TLS handshake|connection (?:reset|refused|timed out)|i\/o timeout|\btimeout\b|\btimed out\b|no such host|temporary failure in name resolution|\bDNS\b|\b(?:ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENETUNREACH|EHOSTUNREACH|ENOTFOUND|EAI_AGAIN)\b/i.test(`${result.errorCode ?? ""} ${result.reason}`)));
+}
+
 export function ghResult(runGh, cwd, args, options = { env: process.env }) {
 	let result;
 	try { result = runGh(cwd, args, options); }
 	catch (error) { result = { error }; }
+	// Budgeted callers can propagate a classified failure through this runner seam.
+	if (result?.error?.ghFailure) return result.error.ghFailure;
 	if (result?.error?.code === "ETIMEDOUT") return { ok: false, kind: "timeout", reason: `gh timed out after ${result.nanaTimeoutMs ?? options?.timeoutMs} ms` };
 	if (result?.error) {
 		const lead = result.error.code === "ENOENT" ? "cannot start gh" : "gh could not start";
-		return { ok: false, kind: result.error.code === "ENOENT" ? "missing" : "spawn", reason: `${lead}: ${result.error.message ?? "unknown error"}` };
+		return { ok: false, kind: result.error.code === "ENOENT" ? "missing" : "spawn", errorCode: result.error.code, reason: `${lead}: ${result.error.message ?? "unknown error"}` };
 	}
 	if (result?.status !== 0) {
 		const detail = firstLine(result?.stderr) || firstLine(result?.stdout);

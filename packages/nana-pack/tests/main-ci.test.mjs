@@ -15,6 +15,8 @@ import { mainCi } from "../lib/main-ci.mjs";
 import { countIdentityWords } from "../../../scripts/identity-scan.mjs";
 import { RECORD_SCHEMA, CI_WORKFLOW_RUN_PATH } from "../lib/suite-records-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+import { check } from "./profile-fixture.mjs";
+import { artifactGh, ciFixture, commit, executeCi, git, gitRunner, mergeSnapshot } from "./land-fixtures.mjs";
 
 const root = tmpDir(path.join(os.tmpdir(), "main-ci-"));
 const sha = "a".repeat(40);
@@ -57,9 +59,8 @@ function fixture({ runs = [run(20), run(30, { event: "pull_request" })], failLeg
 	return { ...result, calls, scans, output: output.join("\n"), creates: calls.filter((args) => args[0] === "issue" && args[1] === "create") };
 }
 
-const check = (title, fn) => { try { fn(); console.log("PASS", title); } catch (error) { console.log("FAIL", title, error.stack); process.exitCode = 1; } };
 // req: R-3183
-check("R-3183: main push reds include required and advisory legs with scanned deduplicated seat-only posting", () => {
+await check("R-3183: main push reds include required and advisory legs with scanned deduplicated seat-only posting", () => {
 	const red = fixture();
 	assert.equal(red.red, true); assert.match(red.output, /windows-latest.*packages\/p\/tests\/red.test.mjs/);
 	assert.match(red.output, /--post/);
@@ -98,4 +99,41 @@ check("R-3183: main push reds include required and advisory legs with scanned de
 	const hit = fixture({ post: true, file: "packages/privateword/tests/red.test.mjs" });
 	assert.equal(hit.creates.length, 0); assert.notEqual(hit.code, 0); assert.match(hit.output, /identity scan/i);
 	for (const role of ["worker", "reviewer"]) { const child = fixture({ role, post: true }); assert.equal(child.creates.length, 0); assert.notEqual(child.code, 0); }
+});
+
+// req: R-3183
+await check("network replay: main evidence stays unreadable and land refuses until GitHub answers", () => {
+	for (const failure of [{ status: 1, stderr: "net/http: TLS handshake timeout" }, { error: Object.assign(new Error("timeout"), { code: "ETIMEDOUT" }), nanaTimeoutMs: 30000 }]) {
+		const f = ciFixture("network", { workflowOnMain: true });
+		commit(f.main, "package.json", '{"name":"nana-pi"}\n', "toolkit");
+		git(f.feature, "merge", "--no-edit", "main"); f.tip = git(f.feature, "rev-parse", "HEAD");
+		const mainSha = git(f.main, "rev-parse", "HEAD"), before = mergeSnapshot(f);
+		const main = run(43165681762, { workflow_id: 1, run_number: 1, head_sha: mainSha }), lane = run(101, { workflow_id: 1, run_number: 2, head_sha: f.tip, event: "pull_request", head_branch: "integration" });
+		const items = [main, lane].flatMap(r => legs.map(leg => ({ run: r.id, leg, attempt: 1, record: { schema: RECORD_SCHEMA, platform: leg, exitCode: 0, files: [{ path: "fixture.test.mjs", label: "PASS" }] } })));
+		const artifacts = artifactGh([main, lane], items);
+		const jobs = [...legs.map(leg => `suite (${leg})`), ...["macos-latest", "windows-latest"].flatMap(os => ["ceiling", "floor"].map(pi => `install-check (${os}, ${pi})`))].map(name => ({ name, status: "completed", conclusion: "success", run_attempt: 1 }));
+		let failures = 4;
+		const runGh = (cwd, args, opts) => {
+			assert.notEqual(args[0], "issue", "network failures never authorize posting");
+			if (args[0] === "repo") return { status: 0, stdout: '{"nameWithOwner":"example/fixture"}' };
+			if (args.at(-1).includes("/actions/workflows/")) return { status: 0, stdout: JSON.stringify({ workflow_runs: [main] }) };
+			if (args.at(-1).includes(`/runs/${main.id}/artifacts?`) && failures-- > 0) return failure;
+			if (args.at(-1).includes("/jobs?")) return { status: 0, stdout: JSON.stringify({ jobs }) };
+			return artifacts(cwd, args, opts);
+		};
+		const read = () => {
+			const output = [];
+			const result = mainCi({ cwd: f.main, runGh, runGit: gitRunner, tempRoot: f.root, env: {}, post: true, expectedSha: mainSha, writeLine: l => output.push(l) });
+			return { ...result, text: output.join("\n") };
+		};
+		for (let i = 0; i < 3; i++) {
+			const out = read(); assert.equal(out.code, 1); assert.notEqual(out.red, true); assert.equal(out.evidenceReadable, false, out.text);
+			assert.match(out.text, /unreadable: GitHub did not answer; retry/); assert.doesNotMatch(out.text, /\bred\b|--post|missing/);
+		}
+		const refused = executeCi(f, [lane], { runGh });
+		assert.equal(refused.code, 1); assert.match(refused.text, /unreadable: GitHub did not answer; retry/); assert.doesNotMatch(refused.text, /--post/);
+		assert.deepEqual(mergeSnapshot(f), before);
+		assert.equal(read().red, false);
+		const landed = executeCi(f, [lane], { runGh }); assert.equal(landed.code, 0, landed.text);
+	}
 });

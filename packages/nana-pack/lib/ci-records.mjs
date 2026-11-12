@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/ci-records.mjs
  * @purpose Read CI suite-record artifacts for one revision without changing repository state.
  * @inputs A revision, repository root, injected git and gh runners, filesystem, temporary root, clock-independent GitHub responses, and output sink.
- * @outputs A process code, record count, parsed records, and bounded CI totals, slowest-file, missing-input, cleanup, and closing lines.
+ * @outputs A process code, record count, parsed records, classified gh failures, and bounded CI totals, slowest-file, missing-input, cleanup, and closing lines.
  * @effects disk (temporary artifact downloads), process (git and injected gh calls), network (through the injected gh runner).
  * @errors Every unavailable revision, origin, gh response, run listing, artifact, record, leg, or cleanup becomes a named line; no readable record returns code 1.
  */
@@ -99,7 +99,7 @@ export function readCiRecords(argv = [], {
 	if (typeof runGh !== "function") { line("gh runner is unavailable"); return { code: 1, records: 0, parsed: [] }; }
 	const base = `repos/${repository.owner}/${repository.repo}`;
 	const runsResult = ghJson(runGh, cwd, ["api", "--hostname", CI_HOST, `${base}/actions/runs?head_sha=${sha}&per_page=${GH_PAGE_SIZE}`], "workflow_runs");
-	if (!runsResult.ok) { line(runsResult.reason); return { code: 1, records: 0, parsed: [] }; }
+	if (!runsResult.ok) { line(runsResult.reason); return { code: 1, records: 0, parsed: [], ghFailures: [runsResult] }; }
 	const runs = runsResult.values.filter((run) => run?.path === CI_WORKFLOW_RUN_PATH && !duplicateCiRun(run, repository) && (runId === undefined || String(run.id) === String(runId))).sort((left, right) => idCompare(left.id, right.id));
 	if (!runs.length) { line(`no CI run for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0, parsed: [] }; }
 
@@ -108,14 +108,15 @@ export function readCiRecords(argv = [], {
 	const jobs = [];
 	const missingLegs = new Set();
 	const problems = [];
+	const ghFailures = [];
 	try {
 		fsApi.mkdirSync(tempRoot, { recursive: true });
 		downloadRoot = fsApi.mkdtempSync(path.join(tempRoot, "nana-ci-records-"));
 		for (const run of runs) {
 			const artifactsResult = ghJson(runGh, cwd, ["api", "--hostname", CI_HOST, `${base}/actions/runs/${run.id}/artifacts?per_page=${GH_PAGE_SIZE}`], "artifacts");
-			if (!artifactsResult.ok) { problems.push(`run ${run.id}: artifact listing failed: ${artifactsResult.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`); continue; }
+			if (!artifactsResult.ok) { ghFailures.push(artifactsResult); problems.push(`run ${run.id}: artifact listing failed: ${artifactsResult.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`); continue; }
 			const jobsResult = ghJson(runGh, cwd, ["api", "--hostname", CI_HOST, `${base}/actions/runs/${run.id}/jobs?filter=latest&per_page=${GH_PAGE_SIZE}`], "jobs");
-			if (!jobsResult.ok) problems.push(`run ${run.id}: job listing failed: ${jobsResult.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`);
+			if (!jobsResult.ok) { ghFailures.push(jobsResult); problems.push(`run ${run.id}: job listing failed: ${jobsResult.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`); }
 			else jobs.push(...jobsResult.values.map((job) => ({ run, job, leg: legOfJob(job) })));
 			const artifacts = artifactsResult.values
 				.map((value) => ({ value, identity: artifactIdentity(value?.name) }))
@@ -124,6 +125,7 @@ export function readCiRecords(argv = [], {
 				const folder = path.join(downloadRoot, `${run.id}-${artifact.id}`);
 				const downloaded = ghResult(runGh, cwd, ["run", "download", String(run.id), "--repo", `${CI_HOST}/${repository.owner}/${repository.repo}`, "--name", artifact.name, "--dir", folder]);
 				if (!downloaded.ok) {
+					ghFailures.push(downloaded);
 					missingLegs.add(identity.leg);
 					problems.push(`artifact ${artifact.name} from run ${run.id}: download failed: ${downloaded.reason.replace(/^gh failed \([^)]*\):?\s*/, "")}`);
 					continue;
@@ -165,7 +167,7 @@ export function readCiRecords(argv = [], {
 	printed.sort((left, right) => idCompare(left.run.id, right.run.id) || left.leg.localeCompare(right.leg) || left.attempt - right.attempt);
 	for (const item of printed) { writeLine(totalsText(item)); writeLine(slowestText(item)); }
 	for (const problem of problems) line(problem);
-	if (!printed.length) { line(`no readable record for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0, parsed: [], jobs, missingLegs: [...missingLegs], problems }; }
+	if (!printed.length) { line(`no readable record for ${sha.slice(0, TIP_DIGITS)}`); return { code: 1, records: 0, parsed: [], jobs, missingLegs: [...missingLegs], problems, ghFailures }; }
 	line(`${printed.length} records from ${runs.length} CI runs at ${sha.slice(0, TIP_DIGITS)}; seconds are hosted-runner seconds under each record's job count`);
-	return { code: 0, records: printed.length, parsed: printed, jobs, missingLegs: [...missingLegs], problems };
+	return { code: 0, records: printed.length, parsed: printed, jobs, missingLegs: [...missingLegs], problems, ghFailures };
 }
