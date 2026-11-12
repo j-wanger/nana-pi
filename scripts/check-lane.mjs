@@ -16,6 +16,7 @@ const checks = [
   ['requirements-tree --check', ['scripts/requirements-tree.mjs', '--check']], // helper-start 95138872
   ['map:check', ['scripts/code-map.mjs', '--check']], // cut-a dbe250c0
   ['readme:check', ['scripts/readme-check.mjs']], // helper-start 4f103106, command/path claims
+  ['templates-working', ['scripts/test.mjs', 'templates-working.test.mjs']], // start-budget: includes AGENTS.md, excluded from name matching
   ['test-packs', ['scripts/test.mjs', 'test-packs']], // waking 5f317d5b
   ['code-map-launch', ['scripts/test.mjs', 'code-map-launch.test.mjs']], // cut-a dbe250c0
   ['requirements-deliverables', ['scripts/test.mjs', 'requirements-deliverables.test.mjs']], // cut-a dbe250c0

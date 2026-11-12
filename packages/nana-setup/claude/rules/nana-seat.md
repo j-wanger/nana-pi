@@ -29,7 +29,6 @@ This rule is for the seat, the session that launches builders and reviewers; a s
   Export CI logs when the builder must read a failure.
   The seat files lane records (briefs, plans, review texts, CI excerpts and evidence) in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`), never in the repository. Builders and planner children return records in their report or under `$TMPDIR`; do not widen their lane write boundary. `<project>` is the main checkout's folder name, the folder that holds the shared git directory, not the lane worktree's name.
   Serialize lanes sharing `templates/_shared/working-under-nana-pi.md`, `AGENTS.md`, `packages/nana-setup/claude/rules/nana-seat.md`, `code-map.config.json`, `packages/nana-pack/tests/code-map-launch.test.mjs` or `REQUIREMENTS.md`.
-  Name `node scripts/requirements-trace.mjs` among every brief's seat checks, including small fix briefs.
 - Before you end your turn, name and start what waits on nothing else: another lane's build, separate research agents. Each lane's own steps stay in order.
 
   In pi, the seat asks the user to start another lane's build from another pi session; its own builds run in the foreground.
