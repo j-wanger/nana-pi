@@ -192,19 +192,19 @@ test('R-3211: cloud carry preserves settings-only logins without exposing values
   }
 });
 // req: R-3212
-test('R-3212: over-cap digests and Claude builders keep header brief matches and maximal whole tail', async () => {
+test('R-3212: over-cap digests and Claude builders keep only header and brief matches', async () => {
   const { digestKnownBugs } = await import('../lib/known-bug-digest.mjs');
   const capacity = await cap();
   for (const newline of ['\n', '\r\n']) {
     const f = fixture(), data = over(capacity, newline); write(f.bug, data.text);
     const delivered = digestKnownBugs(data.text, 'docs/known-bugs/FEAT-006.md', f.briefText).text;
     const claude = launch(f, 'pi-worker', ['--lane-size', 'larger']); good(claude);
-    assert.ok(delivered.length - data.header.length <= capacity); assert.ok(delivered.startsWith(data.header)); assert.ok(delivered.includes(data.lines[2])); assert.ok(delivered.includes(data.lines.at(-1)));
+    assert.ok(delivered.length - data.header.length <= capacity); assert.ok(delivered.startsWith(data.header)); assert.ok(delivered.includes(data.lines[2])); assert.ok(!delivered.includes(data.lines.at(-1)));
     assert.ok(claude.call.prompt.endsWith(delivered));
     const kept = delivered.split(/\r?\n/).filter(l=>l.startsWith('- ')); for (const line of kept) assert.ok(data.lines.includes(line));
     const omitted = data.lines.length - kept.length;
-    assert.ok(delivered.endsWith(`${omitted} known-bug lines omitted for size; read the whole file docs/known-bugs/FEAT-006.md before you report the known bugs your change touches.`));
-    const next = data.lines.filter(l=>!kept.includes(l)).at(-1); assert.ok(delivered.length - data.header.length + next.length + newline.length > capacity);
+    assert.ok(delivered.endsWith(`${omitted} known-bug lines omitted for size; read the whole file docs/known-bugs/FEAT-006.md before you report the known bugs your change touches. Every feature's known bugs live in docs/known-bugs/.`));
+    assert.deepEqual(kept, [data.lines[2]]);
     const loads = rows(f.log); const part = loads[0].parts.find(p=>p.name==='known bugs'); assert.equal(part.fullChars, data.text.length); assert.equal(part.deliveredChars, delivered.length);
   }
   for (const newline of ['\n', '\r\n']) {
@@ -213,9 +213,10 @@ test('R-3212: over-cap digests and Claude builders keep header brief matches and
     const source = 'docs/known-bugs/FEAT-006.md';
     const text = header + line + newline + '- ' + 'é'.repeat(capacity * 2);
     const result = digestKnownBugs(text, source);
-    assert.ok(result.text.startsWith(header + line + newline));
+    assert.ok(result.text.startsWith(header));
+    assert.ok(!result.text.includes(line));
     assert.ok(result.text.length - header.length <= capacity);
-    assert.ok(result.text.endsWith(`1 known-bug lines omitted for size; read the whole file ${source} before you report the known bugs your change touches.`));
+    assert.ok(result.text.endsWith(`2 known-bug lines omitted for size; read the whole file ${source} before you report the known bugs your change touches. Every feature's known bugs live in docs/known-bugs/.`));
     assert.equal(digestKnownBugs(header.trimEnd(), source).text, header.trimEnd());
   }
 });
@@ -228,20 +229,26 @@ test('R-3213: exactly-at-cap non-ASCII digests and Claude builder files pass unc
   const claude = launch(f, 'pi-worker', ['--lane-size', 'larger']); good(claude); assert.ok(claude.call.prompt.endsWith(text));
 });
 // req: R-3214
-test('R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading', async () => {
+test('R-3214: both reviewers share brief-selected known bugs with a lead and no empty heading', async () => {
   const { reviewKnownBugSection, digestKnownBugs } = await import('../lib/known-bug-digest.mjs');
   const { KNOWN_BUG_SECTION_LEAD, KNOWN_BUG_SECTION_HEADING } = await import('../lib/known-bug-digest-config.mjs');
   const capacity = await cap(), f = fixture(); const short = '# Small\r\n\r\n- tiny ' + 'é'.repeat(Math.floor(capacity/6)) + ' \t'; write(f.bug, short);
   const big = over(capacity).text; write(path.join(f.lane, 'docs/known-bugs/FEAT-007.md'), big);
-  const section = reviewKnownBugSection(f.lane, 'FEAT-006 · first\r\nFEAT-007 · next \t', f.briefText);
-  assert.ok(section.text.includes(KNOWN_BUG_SECTION_LEAD)); assert.equal(section.parts.length, 2);
+  const section = reviewKnownBugSection(f.lane, f.briefText);
+  assert.ok(section.text.includes(KNOWN_BUG_SECTION_LEAD)); assert.equal(section.parts.length, 1);
   assert.ok(section.text.includes(short.replaceAll('\r\n', '\n')));
-  assert.ok(section.parts[1].deliveredChars > Math.floor(capacity/2)); assert.ok(section.parts.reduce((n,p)=>n+p.deliveredChars,0) - '# Small\n\n'.length - over(capacity).header.length <= capacity);
+  assert.equal(section.parts[0].source, 'docs/known-bugs/FEAT-006.md');
+  assert.ok(!section.text.includes(big));
   const cr = launch(f, 'claude-review'); good(cr); const pr = launch(f, 'pi-review'); good(pr);
-  const piText = pr.call.prompts.at(-1).text; const expected = reviewKnownBugSection(f.lane, null, f.briefText).text;
+  const piText = pr.call.prompts.at(-1).text; const expected = reviewKnownBugSection(f.lane, f.briefText).text;
   assert.equal(piText, expected); assert.ok(cr.call.stdin.includes(expected)); assert.ok(cr.call.stdin.indexOf(expected)<cr.call.stdin.indexOf('## Review standard'));
+  const bigBrief = f.briefText.replace('FEAT-006', 'FEAT-007'); write(f.brief, bigBrief);
+  const folded = reviewKnownBugSection(f.lane, bigBrief).text;
+  assert.ok(folded.includes('quoted needle')); assert.ok(!folded.includes('ordinary'));
+  const bigCr = launch(f, 'claude-review'); good(bigCr); const bigPr = launch(f, 'pi-review'); good(bigPr);
+  assert.ok(bigCr.call.stdin.includes(folded)); assert.equal(bigPr.call.prompts.at(-1).text, folded);
   write(f.brief, 'No feature.\n'); const empty = launch(f, 'pi-review'); good(empty); assert.ok(!empty.call.prompts.some(p=>p.text.includes(KNOWN_BUG_SECTION_HEADING)));
-  assert.equal(reviewKnownBugSection(f.lane, 'FEAT-999 · missing', 'No feature').text, null);
+  assert.equal(reviewKnownBugSection(f.lane, 'Feature: FEAT-999 · missing').text, null);
   const one = '# Header\n\n- ' + '你'.repeat(capacity * 2);
   const headerOnly = digestKnownBugs(one, 'docs/known-bugs/FEAT-007.md', '', Math.floor(capacity/2)).text;
   assert.ok(headerOnly.startsWith('# Header\n\n1 known-bug lines omitted')); assert.ok(!headerOnly.includes('- 你'));

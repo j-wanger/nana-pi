@@ -467,8 +467,8 @@ function checkInstructionContracts() {
 		["Claude Code seat", "pi TUI session", "pi reviewer/worker child", "Codex"].every((v) => shared.includes(v)) &&
 		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge search", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)));
 
-	const startup = "At startup, a seat reads `HANDOFF.md`; every session looks up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill) and reads the landscape doc only for pi API questions.";
-	const rootStartup = "Startup: a seat reads `HANDOFF.md`; every session looks up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Read the landscape document only for pi API questions.";
+	const startup = "At startup, a seat reads `HANDOFF.md`; every session looks up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill). Landscape predates pi 1.x; installed pi docs win.";
+	const rootStartup = "Startup: a seat reads `HANDOFF.md`; every session looks up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Landscape predates pi 1.x; installed pi docs win.";
 	const startupFiles = [
 		shared,
 		fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8"),
@@ -488,7 +488,7 @@ function checkInstructionContracts() {
 		].every((sentence) => soul.includes(sentence)) && fs.readFileSync(path.join(REPO, "packages/nana-pack/prompts/builder-preamble.md"), "utf8")
 			.split("\nTests\n")[0].includes("- Never create, edit, comment on or close a GitHub issue; put open questions in the report."));
 	const competingWindowsClaim = `${frontDoors[0]}\neverything here works in PowerShell or cmd`;
-	const canonicalSupport = `Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.`;
+	const canonicalSupport = `Support: macOS tested; lanes wait for selected Windows tests; the full Windows suite runs on main, and red main blocks lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code ${CLAUDE_CODE_EXEC_FLOOR} or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.`;
 	// req: R-684
 	check("three front doors carry one identical scoped platform claim", support.every((lines) => lines.length === 1 && lines[0] === canonicalSupport) && !frontDoors.some(hasBroadWindowsParity) && hasBroadWindowsParity(competingWindowsClaim));
 	const seatGuideBullets = [...shared.matchAll(/^- Seat guide:.*$/gm)].map((m) => m[0]);
@@ -527,7 +527,7 @@ if (!version) {
 			// req: R-3899
 			check(`${language}: M6 rendered working region equals the shared bytes without a notes step`,
 				markerBlock(fs.readFileSync(path.join(dest, "AGENTS.md"), "utf8")) === working &&
-				!working.includes("Put HANDOFF and session notes") && fs.readFileSync(path.join(REPO, "packages/nana-pack/rules/nana-rulings.md"), "utf8").includes("nothing is written after a land."));
+				!working.includes("Put HANDOFF and session notes") && fs.readFileSync(path.join(REPO, "docs/decisions.md"), "utf8").includes("nothing is written after a land."));
 			if (language === "python") {
 				const cp1252 = runCp1252(dest);
 				if (!cp1252.available) {

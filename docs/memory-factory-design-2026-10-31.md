@@ -54,6 +54,8 @@ The memory store is always private. Nothing in it reaches a public repo. A lesso
 | Reviewers | the feature's known bugs; decisions the change must honour | — | user memory; the builder's reasoning |
 | Lands and CI | — | — | they are sources for making, not consumers |
 
+Claude Code builders and both reviewers share the feature known-bug digest. Files within its post-header budget pass unchanged. Over budget, it keeps the header and only whole lines matching brief Precedent paths or backticked spans, with no unmatched fill. The fold counts omitted lines, names the source to read, and points to `docs/known-bugs/` for every feature. Reviewers select the file from the brief's Feature line. Pi builders receive a read instruction instead.
+
 ## How retrieval works
 
 Hybrid, set by role. A push bundle is small, budgeted and placed in the slot each role's context already has; it carries what the role must not miss, chosen by role, feature, the files the brief touches and scope. Search covers the long tail and is open only to the seat and the planner. Builders and reviewers are push-only, so builds repeat, reviews stay independent and builders get no automatic pull. The load log records every push and a pull log records every search, so checking can tell whether a memory was used.
