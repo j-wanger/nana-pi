@@ -325,7 +325,10 @@ After first-look on a product-page lane, run `npm run outside-reader -- --from <
 ## Tests
 
 PR CI runs land plus affected module tests and every edited nonmanual test on macOS.
-Release-path changes, release-test edits and their graph dependencies add the release pack.
+Lanes add release files individually for template inputs (`copier.yml`, `templates/**`, `scripts/template-*.mjs`),
+changed tests, graph reach or name matches; setup-path changes never add the whole release pack.
+The slow data-pack and templates-update tests follow those same rules.
+Setup-tail alone keeps its previous lane triggers to preserve its Windows coverage; it never promotes sibling files.
 Main runs land, main, module and retire on macOS, Windows and Linux; Linux stays advisory.
 Superseded PR runs cancel; main runs never cancel. `npm run release` runs the release pack before acceptance.
 
@@ -356,7 +359,8 @@ For changed files under any bin/ or scripts/ folder, name matching also includes
 its last extension when that stem has at least 6 characters and matches as an escaped whole word
 (`\b<stem>\b`) not followed directly by `/` or `\`, printing `names <stem> (<path>)` reasons.
 Hub basenames README.md, REQUIREMENTS.md, AGENTS.md and HANDOFF.md are excluded from name matching.
-Suite records list changed tests and name matches separately; CI readers refuse proof missing any selected test. `scripts/test-packs.mjs`
+Suite records list changed tests, name matches and lane release selections separately;
+the runner prints each reason, and CI readers refuse proof missing any selected test. `scripts/test-packs.mjs`
 uses import and launch reach, blind reach and text-input watches; uncertainty runs every module test.
 `packages/nana-pack/lib/test-packs-config.mjs` declares membership and sealed selection policy.
 Every collected file needs a pack. Browser tests stay manual. A complete-pack

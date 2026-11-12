@@ -380,6 +380,7 @@ if (packArgs.length || changedOnlyArgs.length) {
 		for (const item of selected.selection.nameMatches) console.log(`[packs] names ${item.path}: ${item.reasons.join("; ")}`);
 		for (const item of selected.selection.changedTests) console.log(`[packs] test ${item.path}: ${item.reasons.join("; ")}`);
 		for (const item of selected.selection.module) console.log(`[packs] module ${item.path}: ${item.reasons.join("; ")}`);
+		for (const item of selected.selection.release) console.log(`[packs] release ${item.path}: ${item.reasons.join("; ")}`);
 		console.log(`[packs] ${changedOnlyArgs.length ? "changed/name-matched tests" : selected.packs.join(",")}: ${selected.files.length} selected files`);
 		if (changedOnlyArgs.length && !selected.files.length) {
 			console.log("[runner] empty working-tree selection: pass (no tests to run)");

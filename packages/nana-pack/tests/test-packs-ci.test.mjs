@@ -33,6 +33,7 @@ function runnerFixture(name) {
   }
   return { root: fixtureRoot(name, files, membership), membership };
 }
+// req: R-3851
 // req: R-3853
 await check("M4: PR CI selects macOS packs release watches and cancellation while main runs every OS", async () => {
   assert.match(JSON.parse(fs.readFileSync(path.join(REPO, "package.json"), "utf8")).scripts.release, /--pack=release/);
@@ -47,14 +48,34 @@ await check("M4: PR CI selects macOS packs release watches and cancellation whil
   const cancel = concurrency.match(/^  cancel-in-progress: \$\{\{ (.+) \}\}$/m)?.[1]; assert(cancel);
   assert.equal(evaluate(cancel, "pull_request"), true); assert.equal(evaluate(cancel, "push"), false);
   const group = concurrency.match(/^  group: (.+)$/m)?.[1]; assert(group.includes("github.event.pull_request.number")); assert(group.includes("github.run_id"));
-  const { root, membership } = runnerFixture("release-watch");
+  const data = "packages/nana-pack/tests/data-pack.test.mjs";
+  const update = "packages/nana-pack/tests/templates-update.test.mjs";
+  const tail = "packages/nana-setup/tests/setup-tail.test.mjs";
+  const land = "packages/probe/tests/land.test.mjs";
+  const membership = { [land]: "land", [data]: "release", [update]: "release", [tail]: "release" };
+  const root = fixtureRoot("release-watch", Object.fromEntries(Object.keys(membership).map(file => [file, 'console.log("PASS fixture");\n'])), membership);
   git(root, "init", "-b", "main"); git(root, "config", "user.name", "Fixture"); git(root, "config", "user.email", "fixture@example.invalid"); git(root, "add", "."); git(root, "commit", "-m", "base");
   const { selectPackFiles } = await import("../../../scripts/test-packs.mjs");
-  for (const file of ["templates/input.md", "copier.yml", "packages/nana-setup/lib/input.mjs"]) {
-    const selected = await selectPackFiles({ root, files: Object.keys(membership), membership, packs: ["land", "module"], changedFrom: "main", readDiff: () => [file], makeGraph: () => { throw new Error("uncertain graph"); } });
-    assert(selected.packs.includes("release"), file);
-    assert(Object.keys(membership).filter(f => membership[f] === "release").every(f => selected.files.includes(f)));
+  for (const file of ["templates/input.md", "copier.yml", "scripts/template-probe.mjs", "packages/nana-setup/lib/input.mjs", "package.json"]) {
+    put(root, file, "// changed input\n"); git(root, "add", "."); git(root, "commit", "-m", "input");
+    const selected = await selectPackFiles({ root, files: Object.keys(membership), membership, packs: ["land", "module"], changedFrom: "HEAD~1", makeGraph: () => { throw new Error("uncertain graph"); } });
+    assert(!selected.packs.includes("release"), file);
+    const template = !file.startsWith("packages/nana-setup/") && file !== "package.json";
+    assert.deepEqual(selected.files.sort(), (template ? [land, data, update, tail] : [land, tail]).sort(), file);
+    assert(selected.selection.release.every(item => item.reasons.length));
+    const r = execute(root, ["--pack=land,module", "--changed-from=HEAD~1"]);
+    assert.equal(r.status, 0, r.out);
+    assert.deepEqual(r.record.files.map(f => f.path).sort(), selected.files);
+    assert.match(r.out, /\[packs\] release .*: (?:release input|coverage hold)/);
+    for (const slow of [data, update]) if (template) assert(r.out.split("\n").some(line => line.includes(slow) && line.includes("release input")), r.out);
+    const run = { id: 71, run_attempt: 1 };
+    const proof = record => proveCiSuite({ code: 0, parsed: [{ run, leg: "macos-latest", attempt: 1, record }], problems: [] }, [run], process.platform);
+    assert.equal(proof(r.record).ok, true);
+    assert.equal(proof({ ...r.record, files: r.record.files.filter(f => f.path !== tail) }).ok, false);
+    assert.equal(proof({ ...r.record, packRun: { ...r.record.packRun, selection: { ...r.record.packRun.selection, release: "invalid" } } }).ok, false);
   }
+  assert.deepEqual(execute(root, ["--pack=release"]).record.files.map(f => f.path).sort(), [data, update, tail].sort());
+  assert.deepEqual(execute(root, ["--pack=land,main,module,retire"]).record.files.map(f => f.path), [land]);
 });
 // req: R-3854
 await check("M5: land accepts complete lane pack records and refuses filtered or landless proof", () => {
