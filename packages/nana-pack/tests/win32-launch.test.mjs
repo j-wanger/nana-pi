@@ -8,7 +8,7 @@
  *  (on win32, npm pack/install and pi-worker/pi-review/review-ledger child processes)
  * @errors Failed assertions exit nonzero.
  */
-import { tmpDir } from "./tmp-dir.mjs";
+import { probeShortPath, tmpDir } from "./tmp-dir.mjs";
 import { withPathPrepended } from "./env-path.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -240,12 +240,12 @@ console.log("VERDICT: LAND");
 		const flippedCase = flippedDrive.replace(/[^\\]+$/, swapCase); // drive letter AND the final folder's case flipped
 		const caseOut = path.join(temp, "case-out.md");
 		const caseRun = spawnSync(process.execPath, [workerBin, "--poll", "0.1", "--stall-secs", "15", "--out", caseOut, "--lane", "altpath", "--brief", brief], { cwd: flippedCase, encoding: "utf8", timeout: 60000, env });
-		const shortPathProbe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${longWt}').ShortPath`], { encoding: "utf8" });
-		const shortPath = shortPathProbe.status === 0 ? shortPathProbe.stdout.trim() : null;
+		const shortPathProbe = probeShortPath(longWt);
+		const shortPath = shortPathProbe.shortPath;
 		let shortRunOk = Boolean(shortPath && shortPath.toLowerCase() !== longWt.toLowerCase());
-		let shortNote = JSON.stringify({ shortPath, longWt, stderr: shortPathProbe.stderr });
+		let shortNote = JSON.stringify({ shortPath, longWt, probe: shortPathProbe.detail });
 		if (!shortRunOk && !process.env.CI) {
-			console.log("SKIP Windows: lane pi-worker starts pi from a short worktree path — no distinct 8.3 path is available");
+			console.log(`SKIP Windows: lane pi-worker starts pi from a short worktree path — no distinct 8.3 path is available: ${shortPathProbe.detail}`);
 			shortRunOk = true;
 		} else if (shortRunOk) {
 			const shortRun = spawnSync(process.execPath, [workerBin, "--poll", "0.1", "--stall-secs", "15", "--out", path.join(temp, "short-out.md"), "--lane", "altpath", "--brief", brief], { cwd: shortPath, encoding: "utf8", timeout: 60000, env });

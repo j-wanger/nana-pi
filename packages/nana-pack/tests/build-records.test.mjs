@@ -21,7 +21,7 @@ import {
 } from "../lib/build-records-config.mjs";
 import { collectBuildUsage, readBuildLedger, renderLaneLine } from "../lib/build-records.mjs";
 import { findPiRoot } from "./pi-install.mjs";
-import { tmpDir } from "./tmp-dir.mjs";
+import { probeShortPath, tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import { killWorkerTree, windowsProcesses } from "./process-tree-helper.mjs";
 import { pidAlive } from "../lib/process-tree.mjs";
@@ -230,12 +230,12 @@ const noSessionEnd = lines().find((row) => row.kind === "end");
 const noSessionOk = noSessionRun.status === 0 && noSessionEnd?.cost === null && noSessionEnd?.costReason?.includes(noSessionEnd ? lines().find((row) => row.kind === "start")?.sessionDir : "never");
 let shortPathOk = true, shortPathDetail = "not run outside win32";
 if (process.platform === "win32") {
-	const shortPathProbe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${LANE}').ShortPath`], { encoding: "utf8" });
-	const shortPath = shortPathProbe.status === 0 ? shortPathProbe.stdout.trim() : null;
+	const shortPathProbe = probeShortPath(LANE);
+	const shortPath = shortPathProbe.shortPath;
 	shortPathOk = Boolean(shortPath && shortPath.toLowerCase() !== LANE.toLowerCase());
-	shortPathDetail = JSON.stringify({ shortPath, lane: LANE, stderr: shortPathProbe.stderr });
+	shortPathDetail = JSON.stringify({ shortPath, lane: LANE, probe: shortPathProbe.detail });
 	if (!shortPathOk && !process.env.CI) {
-		console.log("SKIP R-2598: session usage through a short worktree path — no distinct 8.3 path is available");
+		console.log(`SKIP R-2598: session usage through a short worktree path — no distinct 8.3 path is available: ${shortPathProbe.detail}`);
 		shortPathOk = true;
 	} else if (shortPathOk) {
 		resetRecords();

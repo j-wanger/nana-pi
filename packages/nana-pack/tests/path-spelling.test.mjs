@@ -10,7 +10,7 @@
  * @errors a failed check prints FAIL with the observed detail and the run exits 1; an unexpected throw
  *  propagates and fails the run
  */
-import { tmpDir } from "./tmp-dir.mjs";
+import { probeShortPath, tmpDir } from "./tmp-dir.mjs";
 import { reviewRunHarness } from './review-run-harness.mjs';
 import { writeFakePi } from "./fake-pi.mjs";
 import { spawnSync } from "node:child_process";
@@ -124,16 +124,16 @@ function otherSpellings(canonical, label) {
     out.push({ kind: "link", path: path.join(linkParent, name) });
   } catch (e) { console.log(`SKIP ${label} (link): ${e.message}`); }
   if (win32) {
-    // MUST 4 (brief 2): the 8.3 short name, probed the way win32-launch.test.mjs:310-337 does —
+    // MUST 4 (brief 2): the 8.3 short name, probed through the shared helper —
     // neither a case flip nor a link, so it still turns a check red where `path.win32.relative`
     // folds a mere case difference away.
-    const shortProbe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${canonical}').ShortPath`], { encoding: "utf8" });
-    const shortPath = shortProbe.status === 0 ? shortProbe.stdout.trim() : null;
+    const shortProbe = probeShortPath(canonical);
+    const shortPath = shortProbe.shortPath;
     if (shortPath && shortPath.toLowerCase() !== canonical.toLowerCase()) out.push({ kind: "8.3", path: shortPath });
     else if (process.env.CI) check(`${label}: a distinct 8.3 path is available in CI`, () => {
-      ok(false, `a distinct 8.3 path is required: ${shortProbe.stderr}`);
+      ok(false, `a distinct 8.3 path is required: ${shortProbe.detail}`);
     });
-    else console.log(`SKIP ${label} (8.3): no distinct short path is available`);
+    else console.log(`SKIP ${label} (8.3): no distinct short path is available: ${shortProbe.detail}`);
   }
   return out;
 }

@@ -15,6 +15,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
+import { probeShortPath } from "../../nana-pack/tests/tmp-dir.mjs";
 
 const CASE_LIMIT_MS = 20_000;
 const checkout = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -44,14 +45,14 @@ if (process.platform === "win32") {
 	if (driveSpelling !== canonical) spellings.push({ kind: "lowercase drive", path: driveSpelling });
 	else console.log("SKIP spelling lowercase drive — the canonical drive is already lowercase or absent");
 	let shortSpelling = copied.toLowerCase() !== canonical.toLowerCase() ? copied : null;
+	let probe;
 	if (!shortSpelling) {
-		const escaped = canonical.replaceAll("'", "''");
-		const probe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${escaped}').ShortPath`], { encoding: "utf8", timeout: CASE_LIMIT_MS });
-		const candidate = probe.status === 0 ? probe.stdout.trim() : "";
+		probe = probeShortPath(canonical);
+		const candidate = probe.shortPath;
 		if (candidate && candidate.toLowerCase() !== canonical.toLowerCase()) shortSpelling = candidate;
 	}
 	if (shortSpelling) spellings.push({ kind: "8.3 short", path: shortSpelling });
-	else console.log("SKIP spelling 8.3 short — no distinct short path is available");
+	else console.log(`SKIP spelling 8.3 short — no distinct short path is available: ${probe.detail}`);
 }
 const uniqueSpellings = [...new Map(spellings.map((item) => [item.path, item])).values()];
 for (const spelling of uniqueSpellings) console.log(`SPELLING ${spelling.kind} — canonical=${canonical} spelled=${spelling.path}`);
