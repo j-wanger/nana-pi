@@ -40,6 +40,6 @@
 - Context shaping (kb-digest, review SHOULD 1; not a regression): broad stems such as `test`, `land`, `install` and `build` can fill the budget in file order before a specific line.
 - Context shaping (kb-digest, review): every backticked span gets full path, basename and name up to the first dot derivation (`read/write` gives `write`).
 - Context shaping (kb-digest, review): a stale local `main` adds main's files as terms.
-- Context shaping (kb-digest, review): a diff over 1 MiB drops all changed-file terms.
+- Context shaping (kb-digest, review): a changed-file name list over 1 MiB (renames count twice) drops all changed-file terms.
 - Context shaping (kb-digest, review): the git calls have no timeout.
 - Carry (ci-flakes): `context-anatomy.test.mjs` no longer bounds post-deadline launcher delay in R-3732 beyond its twenty-second spawn timeout.
