@@ -29,6 +29,25 @@ git show 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/evidence 5667a2515bdc2152
 git show 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/sessions 5667a2515bdc2152efc90ec6a4c1017f20da41c4:docs/sessions/2026-10.md
 ```
 
+## Stale design docs and output
+
+Eight stale design docs and the stray acceptance output now live outside the repository
+in the private records folder and git history. Their last pre-removal commit is
+`68a4c94ea06033da1779b266b979a2312e287e7b`:
+
+- `docs/agent-frontend-design-2026-09-04.md`
+- `docs/review-punchlist-2026-09-08.md`
+- `docs/coop-perspective-game-design-2026-09-06.md`
+- `docs/pi-web-access-review-2026-09-08.md`
+- `docs/tools-research-2026-09-08.md`
+- `docs/nana-stack-comparison-2026-09-03.md`
+- `docs/local-models.md`
+- `docs/lane-brief-template-2026-09-28.md`
+- `acceptance-output.txt`
+
+`docs/memory-factory-design-2026-10-31.md` stays as the known-bug digest contract.
+The hardening plan stays as historical context, marked with its completion date.
+
 ## Bench studies and raw research
 
 Retired bench studies (including frozen fixtures) and raw deep-research sources live in
