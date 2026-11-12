@@ -2,7 +2,7 @@
  * @module packages/nana-setup/lib/win-shims.mjs
  * @purpose Render extensionless sh and `.cmd` launchers for Windows PATH commands.
  * @inputs An absolute Node bin file and the directory that will hold its shims.
- * @outputs renderWinShims() returns byte-exact { sh, cmd } text; sealed suffix, line-ending and layout values.
+ * @outputs renderWinShims() returns byte-exact { sh, cmd } text; sealed suffix and line-ending values.
  * @effects none
  * @errors Non-string or non-absolute inputs throw TypeError; path operations may throw their native errors.
  */
@@ -12,8 +12,6 @@ import * as path from "node:path";
 export const WIN_SHIM_SUFFIXES = Object.freeze({ sh: "", cmd: ".cmd" });
 // Contract: Git Bash reads LF and cmd-shim emits CRLF (design §Design, R-1611/R-1612), npm cmd-shim 7.0.0 read 2026-10-19.
 export const WIN_SHIM_LINE_ENDINGS = Object.freeze({ sh: "\n", cmd: "\r\n" });
-// Contract provenance for the find_dp0/SETLOCAL/endLocal-goto template (design §Design, R-1612/R-1614).
-export const WIN_CMD_SHIM_LAYOUT = "npm cmd-shim 7.0.0";
 
 export const shellQuote = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
 const batchPath = (value) => value.replaceAll("/", "\\").replaceAll("%", "%%");

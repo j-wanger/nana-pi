@@ -1,19 +1,13 @@
 /**
  * @module packages/nana-knowledge/lib/tokenize.ts
- * @purpose Turn a prompt into FTS5 query tokens, and decide whether a prompt is worth a knowledge pull at
- *  all.
- * @inputs arbitrary prompt text (callers slice it to PROMPT_MAX_CHARS first)
- * @outputs lowercased alnum tokens, the meaningful (non-stopword, len>2, deduped) tokens, an OR-joined
- *  quoted FTS5 MATCH string, and a skip reason or null
+ * @purpose Turn query text into FTS5 query tokens.
+ * @inputs query text and token arrays
+ * @outputs lowercased alnum tokens, meaningful (non-stopword, len>2, deduped) tokens and an OR-joined quoted FTS5 MATCH string
  * @effects none
- * @errors none — a non-string prompt yields the skip reason `not-a-string`, alongside too-short,
- *  slash-command, harness-notification and too-few-tokens
+ * @errors none for typed inputs
  */
 // Prompt -> FTS5 query. Deliberately dumb: alnum runs, a short stopword list, and
 // an OR-join. No stemming here (the FTS5 table carries the porter tokenizer).
-
-/** Only this much of a prompt is tokenized — a pasted 2 MB log is not a better query. */
-export const PROMPT_MAX_CHARS = 8 * 1024;
 
 export const STOPWORDS: ReadonlySet<string> = new Set([
 	"the", "and", "for", "are", "but", "not", "you", "your", "with", "that", "this", "from",
@@ -44,25 +38,6 @@ export function meaningfulTokens(text: string): string[] {
 		out.push(t);
 	}
 	return out;
-}
-
-const NOTIFICATION_PREFIXES = ["<system-reminder>", "[SYSTEM NOTIFICATION", "<task-notification>"];
-
-/**
- * Reasons a prompt is not worth a pull. Returns null when the prompt should be queried.
- * Order matters only for the reported reason.
- */
-export function skipReason(prompt: unknown): string | null {
-	if (typeof prompt !== "string") return "not-a-string";
-	const p = prompt.trim();
-	if (p.length < 12) return "too-short";
-	if (p.startsWith("/")) return "slash-command";
-	// Harness notifications arrive on the same channel as the owner's own typing.
-	// They are machine text about the session, not a question — the first live run
-	// pulled pointers for a task-completion notice.
-	if (NOTIFICATION_PREFIXES.some((x) => p.startsWith(x))) return "harness-notification";
-	if (meaningfulTokens(p).length < 2) return "too-few-tokens";
-	return null;
 }
 
 /** FTS5 MATCH string. Tokens are alnum-only but quote anyway — FTS5 has keywords. */

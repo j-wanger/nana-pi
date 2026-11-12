@@ -1,8 +1,8 @@
 /**
  * @module packages/nana-pack/lib/claude-transcript.mjs
- * @purpose Share Claude transcript reading, day conversion and private-folder creation.
- * @inputs Transcript files, project roots, timestamps and explicit output folders.
- * @outputs Entries, text, dated days, sorted transcript paths, optional counts-only observations and private folders.
+ * @purpose Share Claude transcript reading and private-folder creation.
+ * @inputs Transcript files, project roots and explicit output folders.
+ * @outputs Entries, text, sorted transcript paths, optional counts-only observations and private folders.
  * @effects disk (reads transcripts and creates private folders)
  * @errors Filesystem errors propagate; torn JSON lines are skipped; unsafe output folders are refused.
  */
@@ -10,9 +10,6 @@ import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 
-// Provenance: writing-trial-extractor's existing day convention, moved unchanged
-// 2026-10-31; contract plan A11, R-3207.
-export const DAY_TIMEZONE = "America/New_York";
 export function textFrom(value) {
  if (typeof value === "string") return value;
  if (Array.isArray(value)) return value.map(textFrom).filter(Boolean).join("\n");
@@ -40,20 +37,6 @@ export async function* streamEntriesIn(file, { observe } = {}) {
    yield entry;
   }
  } finally { lines.close(); input.destroy(); }
-}
-export function assistantText(entry) {
- if (entry.type !== "assistant" || entry.isSidechain !== false) return "";
- const message = entry.message ?? entry;
- if (message.role && message.role !== "assistant") return "";
- const content = message.content ?? entry.content;
- return Array.isArray(content)
-  ? content.filter((part) => part?.type === "text" || typeof part === "string").map(textFrom).join("\n")
-  : textFrom(content);
-}
-export function edtDay(timestamp) {
- const date = new Date(timestamp);
- if (Number.isNaN(date.valueOf())) return null;
- return new Intl.DateTimeFormat("en-CA", { timeZone: DAY_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
 /** No selector preserves writing-trial scope; explicit selectors can include worktrees. */
 export function transcriptFiles(root, selectProject = (name) => !name.includes("-wt-") && !name.includes("-private-tmp-"), { observe } = {}) {
