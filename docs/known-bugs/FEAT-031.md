@@ -1,5 +1,7 @@
 # FEAT-031 — known bugs
 
+- an untracked stray file (for example `.DS_Store`, not ignored) now widens local changed-test selection and, in pack mode, an unmapped untracked path runs every module test; time only (lane-check-skip review 2, 2026-11-12)
+
 - Suite records (runtime-retire review 1 NOTE 9): the baseline reads each file's final entry, so an old coverage-failed then rerun-passed baseline classes a current failure as new; correct, but unpinned.
 
 - Runtime map (runtime-map-live, seat): every locked-suite stop finds the suite's process tree through `ps`. Where `ps` fails, the first signal reaches nothing, and 500 ms later the kill step kills only the child's process group, so detached descendants survive.

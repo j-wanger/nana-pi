@@ -28,7 +28,7 @@ Expected changes to existing tests are a forecast, never a limit on what the bui
 
 An earlier plan is grounding for a decision it records, never a format to copy.
 Run `npm run map:search -- "<need>"` for each part of the lane; under Precedent, name what you took from the results, adding to your own list rather than replacing it.
-For code files, use the project's map impact command to forecast callers and tests. For files the map does not cover, search tests and checkers for the path and every literal the change breaks.
+For code files, use the project's map impact command to forecast callers and tests. For files the map does not cover, search tests and checkers for every literal the change breaks.
 
 Write the Feature line at the start of a line as `Feature: FEAT-nnn · <label>`. Write every plan section, from Purpose through Validation, as a `##` heading. Under **Precedent**, each entry names one tracked path, in backticks or as its first word, or uses `none: <reason>`. A leading code span wins; otherwise, when the first word has no slash or file extension, the first backticked span wins if present; otherwise the first word wins. Under **Outside precedent**, name one open-source project for the lane's main part, with its licence and one of `adopt`, `borrow` or `skip` and a reason; put any other public reference after it. When none applies, write `none:` with where you looked. Read the feature's known-bug file when one exists.
 

@@ -1,5 +1,8 @@
 # FEAT-006 — known bugs
 
+- index-only states (a staged force-add of an ignored file; `git rm --cached` of an unchanged file left on disk) can change step 13's selection without changing the lane-check key (lane-check-skip review 2, 2026-11-12)
+- Windows: lane-checks R-4022 (a stop during tip or base checks kills the check tree) failed with `onBase=true, relayDelay=7000: child pid survived the stop` on main fdb244a4 (2026-11-10) and on lane CI 43240235139 at 29829cc3 (2026-11-12); passed on rerun tips; cause unproven, possibly the stop arriving during work before the checks spawn (lane-check-skip, 2026-11-12)
+
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - Waking hook: the project-scope command's `$CLAUDE_PROJECT_DIR` expansion has not run on a Windows checkout path with spaces; this pre-existing path behavior cannot be checked from macOS.
