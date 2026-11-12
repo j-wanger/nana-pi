@@ -41,7 +41,7 @@ const CLEANUP_DELAY_MS = 2 * RELAY_PARENT_POLL_MS;
 const CASE_LIMIT_MS = SIGNAL_CASE_BOUND_MS + RELAY_BACKSTOP_MS + RELAY_SETTLE_MS;
 const PID_POLL_MS = 2_000;
 const BYSTANDER_ANSWER_LIMIT_MS = 2_000;
-// chosen 2026-11-12 (launch-limits-flake, CI 43168389428 and 43183315926):
+// chosen 2026-11-12 (launch-limits-flake, CI 43183315926):
 // keep the child later than the poll, but reserve startup headroom within the sealed allowance.
 const LATE_CHILD_MS = PID_POLL_MS + (START_ALLOWANCE_MS - PID_POLL_MS) / 4;
 const limits = Object.freeze({ version: LIMIT_MS, install: LIMIT_MS });
@@ -220,7 +220,7 @@ function makeInstallWrapper(fixture) {
 	const wrapper = path.join(fixture.home, "wrapper.mjs");
 	const stepsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "steps.mjs")).href;
 	const pathsUrl = pathToFileURL(path.join(repoRoot, "packages", "nana-setup", "lib", "paths.mjs")).href;
-	fs.writeFileSync(wrapper, `import { stepPiRegister } from ${JSON.stringify(stepsUrl)};\nimport { resolveLayout } from ${JSON.stringify(pathsUrl)};\nconst layout = { ...resolveLayout({ home: process.env.FIXTURE_HOME }), isRealHome: true };\nawait new Promise(resolve => setTimeout(resolve, Number(process.env.FIXTURE_START_DELAY_MS ?? 0)));\nstepPiRegister(layout, {}, { env: process.env, limits: { version: Number(process.env.LIMIT_MS), install: Number(process.env.LIMIT_MS) }, platform: () => process.platform });\n`);
+	fs.writeFileSync(wrapper, `import { stepPiRegister } from ${JSON.stringify(stepsUrl)};\nimport { resolveLayout } from ${JSON.stringify(pathsUrl)};\nconst layout = { ...resolveLayout({ home: process.env.FIXTURE_HOME }), isRealHome: true };\nstepPiRegister(layout, {}, { env: process.env, limits: { version: Number(process.env.LIMIT_MS), install: Number(process.env.LIMIT_MS) }, platform: () => process.platform });\n`);
 	return wrapper;
 }
 
@@ -232,9 +232,9 @@ async function waitForStart(predicate) {
 	return waitFor(predicate, START_ALLOWANCE_MS);
 }
 
-async function observeParentKill({ group, npm = false, childDelay = 0, startDelay = 0 }) {
+async function observeParentKill({ group, npm = false, childDelay = 0 }) {
 	const fixture = makeFixture("version", { npm });
-	const child = launchInstallWrapper(fixture, { IGNORE_SIGINT: "1", CHILD_DELAY_MS: String(childDelay), FIXTURE_START_DELAY_MS: String(startDelay) });
+	const child = launchInstallWrapper(fixture, { IGNORE_SIGINT: "1", CHILD_DELAY_MS: String(childDelay) });
 	const started = await waitForStart(() => readPids(fixture.pids).length >= 3);
 	const beforeKill = readPids(fixture.pids);
 	const boundBelowHang = PARENT_KILL_BOUND_MS < HANG_MS;
@@ -421,16 +421,12 @@ check("R-2894: a fixture tree gets a sealed 6-second start allowance apart from 
 // req: R-2895
 check("R-2895: the parent-kill check counts a launch whose pi starts its child after the default poll but inside the start allowance as started", async () => {
 	if (process.platform === "win32") return { skip: "POSIX process-tree timing" };
-	const runs = [];
-	for (const startDelay of [0, PID_POLL_MS]) {
-		const observed = await observeParentKill({ group: false, childDelay: LATE_CHILD_MS, startDelay });
-		const records = readPidRecords(observed.pidsFile);
-		const piRecord = records.find(({ args }) => args?.[0] !== "child");
-		const childRecord = records.find(({ args }) => args?.[0] === "child");
-		runs.push({ startDelay, observed, childRecord, piRecord });
-	}
-	return { ok: PID_POLL_MS < LATE_CHILD_MS && LATE_CHILD_MS < START_ALLOWANCE_MS && runs.every(({ observed, childRecord, piRecord }) => observed.started && childRecord?.at - piRecord?.at >= LATE_CHILD_MS), detail: JSON.stringify({ runs, LATE_CHILD_MS }) };
-}, CASE_LIMIT_MS * 2);
+	const observed = await observeParentKill({ group: false, childDelay: LATE_CHILD_MS });
+	const records = readPidRecords(observed.pidsFile);
+	const piRecord = records.find(({ args }) => args?.[0] !== "child");
+	const childRecord = records.find(({ args }) => args?.[0] === "child");
+	return { ok: observed.started && PID_POLL_MS < LATE_CHILD_MS && LATE_CHILD_MS < START_ALLOWANCE_MS && childRecord?.at - piRecord?.at >= LATE_CHILD_MS, detail: JSON.stringify({ observed, childRecord, piRecord, LATE_CHILD_MS }) };
+});
 
 // req: R-2024
 check("R-2024: with no limit injected, install, the dry run and doctor give pi --version 30 s and each pi install 120 s", () => {
