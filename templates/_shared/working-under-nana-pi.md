@@ -1,6 +1,6 @@
 ## Working under nana-pi
 
-The bullets below describe pi sessions; other runtimes receive only the surfaces listed here. At startup, a seat reads `HANDOFF.md`; every session looks up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill) and reads the landscape doc only for pi API questions.
+The bullets below describe pi sessions; other runtimes receive only the surfaces listed here. At startup, a seat reads `HANDOFF.md`; every session looks up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill). Landscape predates pi 1.x; installed pi docs win.
 
 | Runtime | Context and rules | Checks and state |
 |---|---|---|

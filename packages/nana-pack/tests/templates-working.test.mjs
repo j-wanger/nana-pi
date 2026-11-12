@@ -36,8 +36,8 @@ if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(file
 	const budgetFailures = Object.entries(START_FILE_CHAR_BUDGETS).flatMap(([file, budget]) => {
 		const count = fs.readFileSync(path.join(REPO, file), "utf8").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").length;
 		const rounded = Math.ceil(count / 100) * 100;
-		if (count > budget) return [`${file}: ${count} characters exceeds budget ${budget}`];
-		return budget !== rounded ? [`${file}: ${count} characters; budget ${budget} must ${budget > rounded ? "drop to" : "equal"} ${rounded}`] : [];
+		if (count > budget) return [`${file}: ${count} characters exceeds budget ${budget}; set ${rounded} in packages/nana-setup/lib/working-config.mjs`];
+		return budget !== rounded ? [`${file}: ${count} characters; budget ${budget} must ${budget > rounded ? "drop to" : "equal"} ${rounded} in packages/nana-setup/lib/working-config.mjs`] : [];
 	});
 	// req: R-4250
 	check("R-4250: start file budgets equal normalized character counts rounded up to 100", budgetFailures.length === 0);
