@@ -53,7 +53,7 @@ export function reviewKnownBugSection(root, brief = '') {
   try {
     const git = args => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
     const base = git(['merge-base', 'HEAD', 'main']).trim();
-    changedFiles = git(['diff', '--name-only', '-z', base, 'HEAD', '--']).split('\0').filter(Boolean);
+    changedFiles = git(['diff', '--no-renames', '--name-only', '-z', base, 'HEAD', '--']).split('\0').filter(Boolean);
   } catch {} // Review delivery must not depend on git or a local main branch being available.
   const digest = digestKnownBugs(file.text, file.source, brief, KNOWN_BUG_DIGEST_CHARS, changedFiles);
   const parts = [{ name: 'known bugs', source: file.source, fullChars: file.text.length, deliveredChars: digest.text.length }];
