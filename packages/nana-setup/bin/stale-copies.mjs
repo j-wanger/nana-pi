@@ -2,7 +2,7 @@
 /**
  * @module packages/nana-setup/bin/stale-copies.mjs
  * @purpose Report unhealthy installed Claude Code hooks, rules, skills or settings.
- * @inputs the default active-home layout, its Claude settings, shared hook-health rows, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM.
+ * @inputs the default active-home layout, its Claude settings, shared hook-health rows, managed rule and skill lists, filesystem state and NANA_SETUP_PLATFORM; ignores all arguments, including --cwd.
  * @outputs one optional installed-copy notice, including blocked skill paths to move.
  * @effects disk (reads installed and source files; runs install's skill step in dry-run mode), process (writes stdout).
  * @errors unexpected failures reach the launcher, which emits the unavailable marker.
