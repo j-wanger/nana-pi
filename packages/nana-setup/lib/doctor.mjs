@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-setup/lib/doctor.mjs
- * @purpose Judge one machine and return an ordered check list covering its setup surfaces and memory links.
+ * @purpose Judge one machine and return an ordered check list covering its setup surfaces.
  * @inputs a layout from resolveLayout; opts.projectDir (default process.cwd()), opts.releaseRepo and opts.runGit; NANA_SETUP_PLATFORM
  *  and PATH; `pi --version`; on disk — <claudeHome>/hooks, rules (incl. nana-personal.md and nana-rulings.md), skills, settings.json,
  *  the settings lock, nana-memory/shared/MEMORY.md, projects/<key>/memory, <piHome>/settings.json and
@@ -10,7 +10,7 @@
  * @outputs an array of { status, label, detail, installLabel? } rows, including pi's `pi dependencies` row, linked-folder legacy rows that name every present path to move by hand, and a safe place and error-kind repair
  *  for invalid nana-pack JSON, a FAIL `pi objective.path` row (naming the value and the default file) only when
  *  that value is present and neither a string nor null, and a win32-only note row naming the Claude Code hooks' CLAUDE_CODE_EXEC_FLOOR;
- *  knowledgeIndexState(), knowledgeSourcesState(), memoryLinkState(); STATUS (ok | fail | note | warn); NODE_FLOOR
+ *  knowledgeIndexState(), knowledgeSourcesState(); STATUS (ok | fail | note | warn); NODE_FLOOR
  *  ("22.18"); PI_NODE_FLOOR ("22.19"); versionAtLeast(); skillLinkState()
  *  { ok, detail }; projectFileState() { status, kind, detail }; packageSourceState(); firstOnPath(); winShimState()
  * @effects disk (reads only), process (spawns node and a bounded pi --version process tree to probe)
@@ -28,7 +28,7 @@ import { realPath } from "../../nana-pack/lib/real-path.mjs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import { pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { projectMemoryDir, sharedLinkState } from "./project-key.mjs";
+import { sharedLinkState } from "./project-key.mjs";
 import { retiredHookCommands, commandInvokes, entryInvokes, retiredKnowledgeHook, retiredMemoryHook, CLAUDE_CODE_EXEC_FLOOR } from "./settings.mjs";
 import { CLAUDE_RULES, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_INSTALL_HINT, PATH_COMMANDS, KNOWLEDGE_CLI, directoryAncestorsAreSafe, remoteMatches, entryMatches, resolvePackageEntryPath, realpathSafe, linkedSkillFolder, lstatSafe, objectiveTarget, ownSkillCopy, packageCoverage, ruleSource, skillFiles } from "./steps.mjs";
 import { hookLinkRows, hookSettingsRows } from "./hook-health.mjs";
@@ -151,63 +151,6 @@ export function projectFileState(v) {
 export const NODE_FLOOR = "22.18";
 /** measured: installed pi 1.4.0 package.json engines.node >=22.19.0, read 2026-11-09; R-650. */
 export const PI_NODE_FLOOR = "22.19";
-
-/** chosen: cap diagnostic output while still naming common broken links, 2026-10-07. */
-export const MEMORY_LINK_ISSUE_LIMIT = 30;
-
-function memoryFiles(root) {
-	const found = [];
-	const visit = (dir) => {
-		let entries;
-		try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
-		for (const entry of entries) {
-			const file = path.join(dir, entry.name);
-			if (entry.isDirectory()) visit(file);
-			else if (entry.isFile() && entry.name.endsWith(".md")) found.push(file);
-		}
-	};
-	visit(root);
-	return found;
-}
-
-function memoryName(file) {
-	try {
-		const text = fs.readFileSync(file, "utf8");
-		const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text);
-		return match?.[1].match(/^name:[ \t]*(.*?)[ \t]*$/m)?.[1]?.replace(/^['"]|['"]$/g, "") || null;
-	} catch { return null; }
-}
-
-export function memoryLinkState(sharedRoot, projectRoot) {
-	const tiers = { shared: new Map(), project: new Map() };
-	for (const [tier, root] of [["shared", sharedRoot], ["project", projectRoot]]) {
-		for (const file of memoryFiles(root)) {
-			const name = memoryName(file);
-			if (!name) continue;
-			const list = tiers[tier].get(name) ?? [];
-			list.push(file);
-			tiers[tier].set(name, list);
-		}
-	}
-	const issues = [];
-	let danglingCount = 0;
-	for (const [tier, root] of [["shared", sharedRoot], ["project", projectRoot]]) {
-		for (const file of memoryFiles(root)) {
-			let text;
-			try { text = fs.readFileSync(file, "utf8"); } catch { continue; }
-			for (const [, name] of text.matchAll(/\[\[([^\]]+)\]\]/g)) {
-				const shared = tiers.shared.get(name) ?? [];
-				const local = tiers.project.get(name) ?? [];
-				let issue = null;
-				if (shared.length > 1 || (tier === "project" && local.length > 1)) issue = `ambiguous name [[${name}]] in ${shared.length > 1 ? "shared" : "project"} tier`;
-				else if (tier === "shared" && !shared.length && local.length) issue = `shared-to-project link [[${name}]]`;
-				else if (tier === "shared" && !shared.length || tier === "project" && !shared.length && !local.length) danglingCount++;
-				if (issue) issues.push(`${path.basename(file)}: ${issue}`);
-			}
-		}
-	}
-	return { ok: issues.length === 0, issues, danglingCount };
-}
 
 /** Three-segment numeric version compare (no pre-release handling — the versions this floor
  *  check reads, an npm package.json's own `version`, never carry one). Non-numeric input (an
@@ -450,12 +393,6 @@ export function diagnose(layout, opts = {}) {
 		"this project's shared link",
 		state === "linked" ? project : `${state} for ${project} — the SessionStart hook creates it on the next session`,
 	);
-	const memoryState = memoryLinkState(layout.sharedMemoryDir, projectMemoryDir(layout.projectsDir, project));
-	const issues = memoryState.issues.length
-		? `${memoryState.issues.slice(0, MEMORY_LINK_ISSUE_LIMIT).join("; ")}${memoryState.issues.length > MEMORY_LINK_ISSUE_LIMIT ? `; … ${memoryState.issues.length - MEMORY_LINK_ISSUE_LIMIT} more` : ""}`
-		: memoryState.danglingCount ? "no cross-tier or ambiguous wiki links" : "all wiki links resolve within permitted memory tiers";
-	const dangling = memoryState.danglingCount ? `· ${memoryState.danglingCount} links name memories not written yet` : "";
-	add(memoryState.ok ? OK : WARN, "memory links", [issues, dangling].filter(Boolean).join(" "));
 
 	// --- pi user config ---
 	// Checked where the PACK reads it: layout.piHome is nana-pack's own active-agent-dir resolver
