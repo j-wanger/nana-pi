@@ -415,7 +415,3 @@ function buildOpen(db: Db, sources: LoadedSources, t0: number): BuildStats {
 	try { stats.dbBytes = fs.statSync(paths.db).size; } catch { /* ignore */ }
 	return stats;
 }
-
-export async function docCount(db: Db): Promise<number> {
-	try { return db.prepare("SELECT COUNT(*) AS n FROM docs").get().n as number; } catch { return 0; }
-}
