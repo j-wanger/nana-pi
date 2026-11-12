@@ -20,7 +20,7 @@ export const START_FILE_CHAR_BUDGETS = Object.freeze({
 	// 2026-11-09 Defaults target: seat guide ≤1.5k characters.
 	"packages/nana-setup/claude/rules/nana-seat.md": 6800, // measured 2026-11-12: 6719 normalized characters after restoring the dated default
 	// 2026-11-09 Defaults target: posture and safety lines without a tool.
-	"packages/nana-pack/rules/nana-rulings.md": 2500,
+	"packages/nana-pack/rules/nana-rulings.md": 2600, // measured 2026-11-12: 2537 normalized characters after the priority and ruling update
 	"packages/nana-pack/rules/nana-writing.md": 1500,
 	"AGENTS.md": 12500,
 	"packages/nana-pack/prompts/builder-preamble.md": 5300,

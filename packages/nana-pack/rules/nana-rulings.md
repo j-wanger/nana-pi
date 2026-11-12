@@ -3,8 +3,9 @@
 These rulings guide the seat, the session that plans lanes and launches builders and reviewers; a builder or reviewer acts only within its brief and reads them as background.
 
 - 2026-10-10: rm runs freely only inside the working directory.
-- 2026-11-10: Process records move to a private folder outside the repo; old records stay in history. The knowledge lookup trial becomes a two-hour offline comparison with plain search, and a cut waits for the owner's explicit go. No outside-project lanes before the 2026-11-22 review.
+- 2026-11-10: Process records move to a private folder outside the repo; old records stay in history. A cut of knowledge search waits for the owner's explicit go.
 - 2026-09-16: Each session says which objective or current-priority line its spend serves, or proposes updating them.
+- 2026-11-12: When the owner's words change the objective, the priority or a ruling, the seat applies that change itself the same turn, through a reviewed lane, without asking first.
 - 2026-11-09: A ruling lives where it acts. A ruling that a tool or another file holds keeps its dated words in `$HOME/nana-pi/docs/decisions.md`, naming that home; only posture lines, and safety lines without a tool, stay here at start. A new ruling lands in the reviewed change of the lane that records it, and removes any ruling it replaces.
 - 2026-10-17: Development is feature-first. Plans get no review round.
 - 2026-11-04: Exploration artifacts get at most one review: usable means they load and their reference passes. Fix unusable blockers; record other gaps. Harden for scored use only where observed results warrant it.
