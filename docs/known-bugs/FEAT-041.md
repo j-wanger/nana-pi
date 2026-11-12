@@ -10,7 +10,7 @@
 - Context shaping (context-anatomy, seat measurement): the account email stays in the Claude reviewer's context; it comes from login, not settings.
 - Context shaping (context-anatomy, seat measurement): a per-model effort level that is not a string blocks the fallback to the top-level level.
 - Context shaping (context-anatomy, seat measurement): carried environment names match case-insensitively while the sealed environment overrides by exact name.
-- Context shaping (context-anatomy build 2): a known-bug file's header is always delivered whole, so a large header can exceed a feature's share of the cap.
+- Context shaping (context-anatomy build 2): a known-bug file's header is always delivered whole, so a large header can exceed the post-header budget on its own.
 - Context shaping (context-anatomy, final review): the Claude Code builder launched by pi-worker still gets no `--effort`; the reviewer now does.
 - Context shaping (context-anatomy, final review): when brief-matched known-bug lines alone exceed the cap, some precedent-matched lines fold behind the read-the-whole-file line.
 - Context shaping (context-anatomy, final review): the ancestor-exclusion glob escapes `]` as `[]]`, unverified across glob engines.
@@ -37,4 +37,9 @@
 - Context shaping (leak-guard, review round 1): a submodule entry in the range makes the scan exit 2 (loud, not silent), and Windows PowerShell 5.1 lacks the `&&` the seat-rule bullet uses.
 - Carry (leak-guard): `lib/leak-scan.mjs` scans merge-commit first-parent diffs, flagging already-public main content brought into a lane.
 - Carry (leak-guard): `lib/leak-scan.mjs` refuses unknown base or tip refs without identifying which ref failed.
+- Context shaping (kb-digest, review SHOULD 1; not a regression): broad stems such as `test`, `land`, `install` and `build` can fill the budget in file order before a specific line.
+- Context shaping (kb-digest, review): every backticked span gets full path, basename and name up to the first dot derivation (`read/write` gives `write`).
+- Context shaping (kb-digest, review): a stale local `main` adds main's files as terms.
+- Context shaping (kb-digest, review): a diff over 1 MiB drops all changed-file terms.
+- Context shaping (kb-digest, review): the git calls have no timeout.
 - Carry (ci-flakes): `context-anatomy.test.mjs` no longer bounds post-deadline launcher delay in R-3732 beyond its twenty-second spawn timeout.

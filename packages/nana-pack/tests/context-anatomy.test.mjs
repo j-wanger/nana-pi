@@ -254,6 +254,17 @@ test('R-3214: both reviewers share brief-selected known bugs with a lead and no 
   assert.ok(folded.includes('- bug 1: child-context '));
   const bigCr = launch(f, 'claude-review'); good(bigCr); const bigPr = launch(f, 'pi-review'); good(bigPr);
   assert.ok(bigCr.call.stdin.includes(folded)); assert.equal(bigPr.call.prompts.at(-1).text, folded);
+  git(f.repo, 'update-ref', '-d', 'refs/heads/main');
+  assert.equal(reviewKnownBugSection(f.lane, bigBrief).text, `${KNOWN_BUG_SECTION_HEADING}\n\n${KNOWN_BUG_SECTION_LEAD}\n\n${digestKnownBugs(fs.readFileSync(path.join(f.lane, 'docs/known-bugs/FEAT-007.md'), 'utf8'), 'docs/known-bugs/FEAT-007.md', bigBrief).text}`);
+  const renamed = fixture();
+  write(path.join(renamed.lane, 'lib/retired-widget.test.mjs'), '// unchanged content\n');
+  git(renamed.lane, 'add', '-A'); git(renamed.lane, 'commit', '-qm', 'original file');
+  git(renamed.repo, 'merge', '--ff-only', 'feat/alpha');
+  git(renamed.lane, 'mv', 'lib/retired-widget.test.mjs', 'lib/current-widget.test.mjs');
+  write(renamed.bug, big.replace('- bug 0: ordinary', '- bug 0: retired-widget').replace('- bug 1: ordinary', '- bug 1: current-widget'));
+  git(renamed.lane, 'add', '-A'); git(renamed.lane, 'commit', '-qm', 'rename reviewed file');
+  const renameSection = reviewKnownBugSection(renamed.lane, renamed.briefText).text;
+  assert.ok(renameSection.includes('- bug 0: retired-widget ') && renameSection.includes('- bug 1: current-widget '));
   write(f.brief, 'No feature.\n'); const empty = launch(f, 'pi-review'); good(empty); assert.ok(!empty.call.prompts.some(p=>p.text.includes(KNOWN_BUG_SECTION_HEADING)));
   assert.equal(reviewKnownBugSection(f.lane, 'Feature: FEAT-999 · missing').text, null);
   const one = '# Header\n\n- ' + '你'.repeat(capacity * 2);
