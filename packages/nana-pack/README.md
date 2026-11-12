@@ -763,8 +763,9 @@ reports checked, verdict passes, report sentences/over-cap, HANDOFF sentences/ov
 lost-detail complaint. The trial stopped at day 14 or 20 reports (HANDOFF did not count toward
 this), whichever came first, or after two lost-detail complaints.
 
-**Markdown-aware splitting (Amendment 1 §A2).** A fence (3+ backticks/tildes) toggles fenced
-state; every check skips a fenced line, banned included. A heading or a table row (`|`-led)
+**Markdown-aware splitting (Amendment 1 §A2).** A fence opens on 3+ backticks or tildes and
+closes on a run of the same character at least as long with nothing after it
+(`lib/markdown-fence.mjs`); every check skips a fenced line, banned included. A heading or a table row (`|`-led)
 never becomes a sentence, though the banned scan still reads it. A blank line or a list-item
 line (`-`, `*`, `+`, or `1.`/`1)`) ends the current paragraph; a list item starts a new one with
 its marker stripped. Any other line joins the current paragraph with one space (a soft wrap),

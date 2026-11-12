@@ -12,6 +12,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { artifactReads, artifactRegistry, checkDeliverables, deliverableReport } from "./deliverables.mjs";
 import { ID, requirementRowId, WHITESPACE } from "./requirements-trace.mjs";
+import { fenceMask } from "../packages/nana-pack/lib/markdown-fence.mjs";
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;
@@ -29,22 +30,12 @@ export function markdownTableCells(line) {
   const cells = line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
   return cells.length >= 2 ? cells : null;
 }
-const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-
 function scanBlocks(lines) {
-  const opaque = Array(lines.length).fill(false);
+  const opaque = fenceMask(lines);
   const headingsByLine = new Map();
-  let fence = null;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (fence) {
-      opaque[i] = true;
-      const close = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
-      if (close && close[1][0] === fence.char && close[1].length >= fence.length) fence = null;
-      continue;
-    }
-    const opener = FENCE.exec(line);
-    if (opener) { opaque[i] = true; fence = { char: opener[1][0], length: opener[1].length }; continue; }
+    if (opaque[i]) continue;
     const atx = ATX.exec(line);
     if (atx) {
       const structural = HEADING.exec(line);

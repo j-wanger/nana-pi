@@ -310,6 +310,14 @@ check("seal: VERDICT_WORDS is exactly the named list", JSON.stringify(VERDICT_WO
 	check("markdown: the fenced banned word is never reported (every check skips a fence)", bannedFindings(fixture).length === 0, JSON.stringify(bannedFindings(fixture)));
 }
 {
+	const long = `${Array.from({ length: SENTENCE_CAP + 2 }, (_, i) => `word${i}`).join(" ")}.`;
+	const text = ["A short sentence opens the text.", "", "````", "```", long, "````", "", long].join("\n");
+	const variants = [text, text.replaceAll("\n", "\r\n"), text.split("\n").map((line) => `${line} \t`).join("\n")];
+	const lines = variants.map((value) => checkText("fence", value).findings.filter((finding) => finding.check === "length").map((finding) => finding.line));
+	// req: R-4290
+	check("R-4290: a shorter marker inside a longer fence stays fenced and the prose after the block is checked", lines.every((value) => JSON.stringify(value) === "[8]"), JSON.stringify(lines));
+}
+{
 	const { bannedLines } = extractBlocks("# Heading with dogfood\n\n| dogfood | b |\n");
 	const headingHit = bannedLines.some((l) => l.text.includes("# Heading"));
 	const tableHit = bannedLines.some((l) => l.text.startsWith("| dogfood"));

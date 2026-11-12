@@ -18,6 +18,7 @@ import {
 } from "./requirements-tree.mjs";
 import { requirementRowId, ID } from "./requirements-trace.mjs";
 import { proveLift } from "./requirements-lift-proof.mjs";
+import { fenceMask } from "../packages/nana-pack/lib/markdown-fence.mjs";
 
 // ---------------------------------------------------------------------- tunables (§3.1)
 /** Contract: the prefix every default placeholder Purpose/Outcome carries. Sealed by T14. */
@@ -49,23 +50,6 @@ function segments(text) {
   return body === "" ? [] : body.split(/(?<=\n)/);
 }
 const bare = (seg) => seg.replace(/\r?\n$/, "");
-const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-function fenceMask(bareLines) {
-  const mask = Array(bareLines.length).fill(false);
-  let fence = null;
-  for (let i = 0; i < bareLines.length; i++) {
-    const line = bareLines[i];
-    if (fence) {
-      mask[i] = true;
-      const close = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
-      if (close && close[1][0] === fence.char && close[1].length >= fence.length) fence = null;
-      continue;
-    }
-    const open = FENCE.exec(line);
-    if (open) { mask[i] = true; fence = { char: open[1][0], length: open[1].length }; }
-  }
-  return mask;
-}
 const ATX = /^ {0,3}(#{1,6})(?:[ \t]+(.*))?$/;
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
 const TREE_HEADING = /^(#{1,3}) (CAP-\d{2}|FEAT-\d{3}|SUB-\d{3}) · (.+)$/;

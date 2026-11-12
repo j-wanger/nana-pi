@@ -12,11 +12,12 @@
 // filesystem and no stdin.
 import { BANNED_WORDS, IDENTIFIER_CODE_SPAN, IDENTIFIER_PATH, MIN_SENTENCE_WORDS, PASSIVE, PASSIVE_EXCEPTIONS, SENTENCE_CAP, VERDICT_WORDS } from "./writing-config.mjs";
 
+import { fenceMask } from "./markdown-fence.mjs";
+
 const URL_RE = /https?:\/\/\S+/g;
 /** A sentence ends at ., ! or ?, optionally followed by a closing quote or bracket, then
  *  whitespace or the end (Amendment 1 §A2 rule 6). */
 const SENTENCE_END = /[.!?](?=["'’”)\]]*(?:\s|$))/g;
-const FENCE_RE = /^\s{0,3}(`{3,}|~{3,})/;
 const HEADING_RE = /^\s{0,3}#{1,6}(?:\s|$)/;
 const TABLE_ROW_RE = /^\s{0,3}\|/;
 const LIST_RE = /^\s{0,3}(?:[-*+]|\d+[.)])\s+(.*)$/;
@@ -39,13 +40,13 @@ const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  *    become a prose block.
  *  - bannedLines: every physical line the banned-word scan reads — every line NOT inside a
  *    fence (fenced lines are skipped by every check; a heading or table row is still read).
- * A fence toggles on a line of 3+ backticks or tildes (optional up-to-3-space indent).
+ * Fences follow lib/markdown-fence.mjs.
  */
 export function extractBlocks(text) {
 	const lines = text.split(/\r\n|\r|\n/);
 	const proseBlocks = [];
 	const bannedLines = [];
-	let fenced = false;
+	const fenced = fenceMask(lines);
 	let current = null; // { segments: [{ line, text }] }
 	const flush = () => {
 		if (current && current.segments.length) proseBlocks.push(current);
@@ -53,12 +54,7 @@ export function extractBlocks(text) {
 	};
 	lines.forEach((raw, i) => {
 		const lineNo = i + 1;
-		if (FENCE_RE.test(raw)) {
-			fenced = !fenced;
-			flush();
-			return;
-		}
-		if (fenced) return; // every check skips fenced lines, banned included
+		if (fenced[i]) { flush(); return; } // every check skips fenced lines, banned included
 		bannedLines.push({ line: lineNo, text: raw });
 		if (BLANK_RE.test(raw) || HEADING_RE.test(raw) || TABLE_ROW_RE.test(raw)) {
 			flush();
