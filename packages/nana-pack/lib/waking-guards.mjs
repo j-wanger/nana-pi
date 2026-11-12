@@ -8,7 +8,7 @@
  */
 import { LAUNCHER_ROLES } from "./frontier-summary-config.mjs";
 import { commandIndex, splitCommand, tokens } from "./gate-shell.ts";
-import { LANDING_LINES, LANDING_VERDICTS, LANE_TOOL_LAUNCHES, MEASURES_PHRASE, OWNER_WINDOW_MS, WAKE_INTERVAL_MINUTES, REPORT_SENTENCE_MIN, WRITING_FINDING_CAP, WRITING_REASON_CAP } from "./waking-config.mjs";
+import { LANDING_LINES, LANDING_VERDICTS, LANE_TOOL_LAUNCHES, MAIN_CI_POST_FLAG, MAIN_CI_TOOL, MAIN_CI_WAIT_FLAG, MEASURES_PHRASE, OWNER_WINDOW_MS, TRUNCATING_PIPE_TOOLS, WAKE_INTERVAL_MINUTES, REPORT_SENTENCE_MIN, WRITING_FINDING_CAP, WRITING_REASON_CAP } from "./waking-config.mjs";
 import { checkText, extractBlocks, hasVerdictWord } from "./writing-check.mjs";
 
 function nothingWaits(text) {
@@ -65,8 +65,7 @@ function armed(job) {
 const deny = reason => ({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
 const base = word => word.split(/[\\/]/).pop();
 
-function launches(command) {
- return splitCommand(command).segments.some(segment => {
+function launchParts(segment) {
   const words = tokens(segment.text, true);
   let index = commandIndex(words);
   // setsid is not one of the gate parser's transparent wrappers.
@@ -81,8 +80,15 @@ function launches(command) {
   }
   const tool = base(words[index] ?? "");
   const args = words.slice(index + 1);
-  return !args.includes("--help") && LANE_TOOL_LAUNCHES.some(entry => entry.tool === tool && args.some(arg => arg === entry.flag || arg.startsWith(`${entry.flag}=`)));
- });
+  return { tool, args };
+}
+
+function laneLaunch({ tool, args }) {
+ return !args.includes("--help") && LANE_TOOL_LAUNCHES.some(entry => entry.tool === tool && args.some(arg => arg === entry.flag || arg.startsWith(`${entry.flag}=`)));
+}
+
+function launches(command) {
+ return splitCommand(command).segments.some(segment => laneLaunch(launchParts(segment)));
 }
 
 function detaches(command) {
@@ -113,9 +119,20 @@ export function wakingDecision(payload, { role, now = Date.now(), lanes, readTra
  if (payload?.hook_event_name !== "PreToolUse") return null;
  if (payload.tool_name === "Bash") {
   const input = payload.tool_input;
-  if (typeof input?.command !== "string" || !launches(input.command)) return null;
-  if (input.run_in_background === true && !detaches(input.command)) return null;
-  return deny("Run it as its own background call, so its exit wakes the seat.");
+  if (typeof input?.command !== "string") return null;
+  if (launches(input.command) && !(input.run_in_background === true && !detaches(input.command))) {
+   return deny("Run it as its own background call, so its exit wakes the seat.");
+  }
+  if (payload.stop_hook_active === true) return null;
+  const segments = splitCommand(input.command).segments;
+  const parts = segments.map(launchParts);
+  if (parts.some(({ tool, args }) => tool === MAIN_CI_TOOL && args.includes(MAIN_CI_WAIT_FLAG) && !args.includes(MAIN_CI_POST_FLAG))) {
+   return deny("Add --post, so a main that stays red after its one rerun posts its own issue.");
+  }
+  if (parts.some((part, index) => (laneLaunch(part) || part.tool === MAIN_CI_TOOL) && segments[index + 1]?.piped && TRUNCATING_PIPE_TOOLS.includes(parts[index + 1].tool))) {
+   return deny("Write the output to a file instead; a pipe hides the tool's exit code.");
+  }
+  return null;
  }
  if (payload.tool_name !== "AskUserQuestion" || !lanes().length) return null;
  let newest = -Infinity;

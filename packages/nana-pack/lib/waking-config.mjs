@@ -21,6 +21,12 @@ export const LANE_TOOL_LAUNCHES = [
  { tool: "claude-review.mjs", flag: "--item" },
  { tool: "nana-ci-wait.mjs", flag: "--tip" },
 ];
+/** contract (seat-tools brief, 2026-11-12, R-4212): red main waits post their own issue. */
+export const MAIN_CI_TOOL = "nana-main-ci.mjs";
+export const MAIN_CI_WAIT_FLAG = "--wait";
+export const MAIN_CI_POST_FLAG = "--post";
+/** contract (seat-tools brief, 2026-11-12, R-4213): truncating pipes hide launch exit codes. */
+export const TRUNCATING_PIPE_TOOLS = ["tail", "head"];
 /** chosen: local read-only git queries should finish well inside a hook invocation. */
 export const WAKING_GIT_TIMEOUT_MS = 2000;
 /** chosen: two counted sentences includes the approved two-sentence status-report failure. */
