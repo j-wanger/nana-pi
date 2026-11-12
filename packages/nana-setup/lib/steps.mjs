@@ -54,7 +54,7 @@ import { openCopyRecord } from "./copy-record.mjs";
 
 export class SetupError extends Error {}
 
-export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs"];
+export const HOOKS = ["nana-objective.mjs", "nana-adoption.mjs", "nana-shared-memory.mjs", "nana-roster-notice.mjs", "nana-rm-guard.mjs"];
 const RETIRED_HOOKS = ["context-size-check.sh", "nana-objective.sh", "nana-adoption.sh", "nana-shared-memory.sh", "verifier-pipe.mjs", ...RETIRED_HOOK_FILES];
 /** The rules installed into ~/.claude/rules, each a symlink into claude/rules/ here —
  *  except nana-writing.md and RULINGS_FILE, sourced from the pack (see ruleSource below;

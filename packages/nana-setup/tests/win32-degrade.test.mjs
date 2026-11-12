@@ -118,7 +118,7 @@ const hookScriptNames = win32Wanted.filter((w) => fs.existsSync(path.join(pkg, "
 const printedLabels = (output) => output.split("\n").flatMap((row) => row.match(/^\s*\S\s(.+?)\s{2,}/)?.[1] ?? []);
 const printsNoHookFileRows = (output) => {
 	const labels = printedLabels(output);
-	return hookScriptNames.length === 4 && hookScriptNames.every((script) => labels.every((label) => !label.includes(script))) && win32Wanted.every((w) => labels.includes(`settings ${w.label}`));
+	return hookScriptNames.length === 5 && hookScriptNames.every((script) => labels.every((label) => !label.includes(script))) && win32Wanted.every((w) => labels.includes(`settings ${w.label}`));
 };
 // req: R-1860
 check("win32 install prints no row labelled with a Claude Code hook script", printsNoHookFileRows(r.stdout), r.stdout);
