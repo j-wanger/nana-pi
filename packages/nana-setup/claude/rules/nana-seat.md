@@ -36,7 +36,7 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - Keep no more lanes building than the lanes line of this machine's roster command allows, `node "$HOME/nana-pi/packages/nana-pack/bin/nana-roster.mjs"`, and at most two more in planning. A lane in planning has no build yet and no builder working in it. A lane counts as building from its first build until it lands or closes.
 - The builder preamble holds the builder's rules and the review standard holds the reviewer's. Judge review findings by the review standard, and restate neither in a brief.
 
-- Profile saving stays off pending a reader (2026-11-10 default); retain private store. Decisions keep dated words in docs/decisions.md; nana-rulings.md keeps only posture/tool-less safety lines. Threads: GitHub issues.
+- Automatic profile saving stays off pending a reader. Keep the private store. Decisions live in `$HOME/nana-pi/docs/decisions.md`. `nana-rulings.md` keeps posture and tool-less safety lines. Threads use GitHub issues.
 
 At session start, run the main CI check command when the block names it, and run it again after each land once that land's main run finishes. Use `--post` when it reports red.
 Land the reviewed fix through `nana-land … --fixes-red <run>`.
