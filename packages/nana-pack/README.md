@@ -700,6 +700,17 @@ nothing waits on the owner also reads blocking ask issues through the bounded HA
 issue reader; failures drop only that check. Wake reminders come first in the same block.
 A set `NANA_ROLE` or active Stop retry skips all readers and checks.
 
+The waking hook also holds four seat checks:
+- A verdict-led final message must include the phrase "median lane" for both measures:
+  median lane hours and code removed since 7 November.
+- A LANDED-led final message must include lines starting `Deferred:` and `Validation:`.
+- Bash launches of `bin/nana-main-ci.mjs` with `--wait` must include `--post`.
+- A lane-tool launch or `bin/nana-main-ci.mjs` piped directly into `tail` or `head` is denied;
+  redirect output to a file instead, preserving the tool's exit code.
+
+These checks share role and active-retry abstention. The existing lane-launch detach refusal
+still runs first and asks for its own background call.
+
 Known limits: only the final text block after the last tool call is checked; pi has no
 Stop hook. A manually started child without `NANA_ROLE` looks like a seat.
 The user-scope `writing.enabled` key reaches pi only; Claude Code keeps its linked rule.
