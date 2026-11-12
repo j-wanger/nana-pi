@@ -1,14 +1,14 @@
 /**
  * @module packages/nana-pack/lib/gate-rm-outside.ts
- * @purpose Find readable non-recursive rm targets outside the working and accepted temp folders.
- * @inputs shell segments, cwd, tool name, home, accepted temp roots, injected platform and environment, and the command's segmentable verdict
- * @outputs a map from each rm segment with an outside target to that target's full path; gitBashPath and the Git Bash temp and drive constants
+ * @purpose Resolve deletion targets outside the working folder, with pi temp exemptions or strict agent-only checks.
+ * @inputs shell segments, cwd, tool name, home, accepted temp roots, platform/environment, segmentability and optional strict agent mode
+ * @outputs a map of outside or unresolved deletion segments to paths or reasons; gitBashPath and Git Bash temp/drive constants
  * @effects disk (canonicalizes the cwd, temp roots, cd folders, and target parents)
- * @errors never throws; an internal failure marks the segment text as outside
+ * @errors pi mode marks internal failures outside; strict mode rethrows for the caller's fail-open boundary
  */
 import * as path from "node:path";
 import { within } from "./gate-temp-roots.ts";
-import { base, commandIndex, PS_REMOVE, type Segment, tokens } from "./gate-shell.ts";
+import { base, commandIndex, detectionSegments, PS_REMOVE, type Segment, tokens } from "./gate-shell.ts";
 import { realPath } from "./real-path.mjs";
 
 // contract: R-2335 — shell and PowerShell words that move the folder used for later relative targets.
@@ -49,6 +49,21 @@ export function gitBashPath(spelling: string, { platform, env }: { platform?: No
 
 const REDIRECTION = /(?:\d+)?(?:&>|>&|>>?|<<?)\s*(?:&?\d+|"(?:\\.|[^"])*"|'[^']*'|[^\s;&|]+)/g;
 const DYNAMIC = /[*?\[\]{}$`]/;
+
+/** Strict expansion is safe only in the last part: rm removes matched links, not their targets. */
+function unresolvedPattern(target: string): boolean {
+	if (/[$`]/.test(target)) return true;
+	if (!DYNAMIC.test(target)) return false;
+	const parts = target.split(/[/\\]/);
+	if (target.includes("..") || parts.slice(0, -1).some((part) => DYNAMIC.test(part))) return true;
+	// Reject unbalanced/nested brace groups as well as groups spanning a path separator.
+	return /[{}]/.test(parts.at(-1)!.replace(/\{[^{}]*\}/g, ""));
+}
+
+function findDeletion(args: string[]): boolean {
+	return args.includes("-delete") || args.some((word, i) =>
+		/^-(exec|execdir|ok|okdir)$/.test(word) && ["rm", "rmdir", "unlink"].includes(base(args[i + 1] ?? "")));
+}
 
 function shellWords(text: string): string[] {
 	const protectedBraces = withoutRedirections(text).replace(/\{[^{}\s]+\}/g, (word) => word.replaceAll("{", "\uE000").replaceAll("}", "\uE001"));
@@ -141,18 +156,20 @@ function cdFolder(args: string[], home: string): string | null {
 /**
  * Return each segment whose first readable rm target lies outside both the canonical cwd and every
  * canonical accepted temp root. Segment processing is ordered so a preceding cd can move the base.
+ * Strict mode (Claude agents) accepts no temp roots, includes rmdir/unlink/find deletion actions/git clean,
+ * and reports unresolved targets; uncertain cd outcomes retain both possible bases.
  */
 export function rmOutsideTargets(
 	segments: Segment[],
 	cwd: string,
 	tool: string,
-	{ home, tempRoots, segmentable, platform, env }: { home: string; tempRoots: string[]; segmentable: boolean; platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv },
+	{ home, tempRoots, segmentable, platform, env, strict = false }: { home: string; tempRoots: string[]; segmentable: boolean; platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv; strict?: boolean },
 ): Map<Segment, string> {
 	const hits = new Map<Segment, string>();
 	try {
 		const powershell = tool === "powershell";
 		const cwdReal = realPath(cwd);
-		const roots = [cwdReal, ...tempRoots.map((root) => realPath(root))];
+		const roots = [cwdReal, ...(strict ? [] : tempRoots.map((root) => realPath(root)))];
 		let folders: Folder[] = [{ typed: path.resolve(cwd), real: cwdReal }];
 
 		for (const segment of segments) {
@@ -163,6 +180,33 @@ export function rmOutsideTargets(
 				const args = words.slice(index + 1);
 				const cdWords = powershell ? PS_CD_WORDS : CD_WORDS;
 
+				const deletion = ["rm", "rmdir", "unlink"].includes(command) ||
+					(command === "find" && (args.includes("-delete") || (strict && findDeletion(args)))) ||
+					(command === "git" && (args[0] === "clean" || (args[0]?.startsWith("-") && args.includes("clean"))));
+				if (strict && !segmentable) {
+					// Strict callers cannot determine runtime input to xargs or a nested shell.
+					// Use the existing detection tokenizer, not a second shell parser.
+					const flat = tokens(segment.text);
+					const flatIndex = commandIndex(flat, true);
+					const indirect = flat.slice(0, flatIndex).some((word) => /^(?:xargs|sh|bash|zsh|dash|ksh|fish|su|cmd|pwsh|powershell|eval|watch|parallel|source)$/.test(base(word)));
+					const indirectDeletion = indirect && flat.some((word, i) => ["rm", "rmdir", "unlink"].includes(base(word)) ||
+						(base(word) === "find" && findDeletion(flat.slice(i + 1))) ||
+						(base(word) === "git" && flat.slice(i + 1).includes("clean")));
+					const substitutionDeletion = [...segment.text.matchAll(/\$\(|`/g)].some((match) =>
+						detectionSegments(segment.text.slice(match.index! + match[0].length)).some((nested) => {
+							const nestedWords = tokens(nested.text);
+							const nestedIndex = commandIndex(nestedWords, true);
+							const nestedCommand = base(nestedWords[nestedIndex] ?? "");
+							return ["rm", "rmdir", "unlink"].includes(nestedCommand) ||
+								(nestedCommand === "find" && findDeletion(nestedWords.slice(nestedIndex + 1))) ||
+								(nestedCommand === "git" && nestedWords[nestedIndex + 1] === "clean");
+						}));
+					if (indirectDeletion || substitutionDeletion || (deletion && /^\s*\(/.test(segment.text))) {
+						hits.set(segment, `unresolved deletion: ${segment.text}`);
+						continue;
+					}
+				}
+
 				if (POP_WORDS.has(command)) {
 					folders = [];
 					continue;
@@ -170,7 +214,7 @@ export function rmOutsideTargets(
 				if (cdWords.has(command)) {
 					const rawTyped = cdFolder(args, home);
 					const typed = rawTyped !== null && !powershell && platform !== undefined && env !== undefined ? gitBashPath(rawTyped, { platform, env }) : rawTyped;
-					if (typed === null || typed.startsWith("$") || typed.startsWith("`") || /^~[^/\\]/.test(typed)) {
+					if (typed === null || typed.startsWith("$") || typed.startsWith("`") || /^~[^/\\]/.test(typed) || (strict && (DYNAMIC.test(typed) || typed.split(/[/\\]/).includes("..")))) {
 						folders = [];
 						continue;
 					}
@@ -183,29 +227,69 @@ export function rmOutsideTargets(
 							next.push({ typed: nextTyped, real: realPath(nextTyped) });
 						}
 					}
-					folders = segmentable ? next : [...folders, ...next].filter((folder, i, all) => all.findIndex((other) => other.real === folder.real) === i);
+					folders = segmentable && !strict ? next : [...folders, ...next].filter((folder, i, all) => all.findIndex((other) => other.real === folder.real) === i);
 					continue;
 				}
 
-				if ((powershell && !PS_REMOVE.has(command)) || (!powershell && command !== "rm")) continue;
-				const targets = powershell ? powershellTargets(args) : bashTargets(args);
+				if (strict ? !deletion : ((powershell && !PS_REMOVE.has(command)) || (!powershell && command !== "rm"))) continue;
+				let targets = powershell ? powershellTargets(args) : bashTargets(args);
+				if (strict && command === "find") {
+					// Predicates select within the roots; -L could traverse a link outside them.
+					if (args.some((word) => ["-L", "-follow", "-files0-from", "-f", "-D"].includes(word) || /^-O/.test(word))) {
+						hits.set(segment, `unresolved deletion: ${segment.text}`); continue;
+					}
+					let start = 0;
+					while (["-H", "-P", "--"].includes(args[start])) start++;
+					const rootsAndExpression = args.slice(start);
+					const end = rootsAndExpression.findIndex((word) => /^[-(!]/.test(word));
+					targets = rootsAndExpression.slice(0, end < 0 ? rootsAndExpression.length : end);
+					if (!targets.length) targets = ["."];
+				}
+				if (strict && command === "git") {
+					// Git global options can move the worktree or run arbitrary aliases.
+					if (args[0] !== "clean" || args.slice(1).some((word) => /^-(?:e|C|c)|^--(?:exclude|git-dir|work-tree)/.test(word))) {
+						hits.set(segment, `unresolved deletion: ${segment.text}`); continue;
+					}
+					targets = bashTargets(args.slice(1));
+					if (!targets.length) targets = ["."];
+				}
+				if (strict && !targets.length) { hits.set(segment, `unresolved deletion: ${segment.text}`); continue; }
 				for (const target of targets) {
+					// Only final-part expansions have a literal prefix we can safely judge.
+					// Parent steps can traverse a link before normalization;
+					// git pathspec magic and rmdir -p can delete beyond the literal target too.
+					if (strict && platform === "win32" && /^\/(?!\/)/.test(target) && gitBashPath(target, { platform, env }) === target) {
+						hits.set(segment, `unresolved shell root: ${target}`); break;
+					}
+					if (strict && (unresolvedPattern(target) || target.startsWith(":") || target.split(/[/\\]/).includes("..") ||
+						(command === "find" && args.includes("-H") && DYNAMIC.test(target)) ||
+						(command === "rmdir" && args.some((arg) => arg === "--parents" || /^-[^-]*p/.test(arg))))) {
+						hits.set(segment, `unresolved target: ${target}`); break;
+					}
 					const absoluteLike = path.isAbsolute(powershell ? target.replaceAll("\\", path.sep) : target) || target.startsWith("~") || target.startsWith("$HOME") || target.startsWith("${HOME}") || (powershell && target.toLowerCase().startsWith("$env:"));
 					const bases = absoluteLike ? [{ typed: path.resolve(cwd), real: cwdReal }] : folders;
+					if (strict && !bases.length) { hits.set(segment, `unresolved target: ${target}`); break; }
 					for (const folder of bases) {
 						const placed = placedTarget(target, folder, home, powershell, platform, env);
-						if (placed !== null && roots.every((root) => !strictWithin(root, placed.compared))) {
+						if (strict && placed === null) { hits.set(segment, `unresolved target: ${target}`); break; }
+						// Strict literal targets follow the final link conservatively (including a trailing slash).
+						// Expansions use placedTarget's canonical literal prefix instead.
+						const compared = strict && placed && !DYNAMIC.test(target) ? realPath(placed.full) : placed?.compared;
+						const contains = strict ? within : strictWithin;
+						if (placed !== null && compared !== undefined && roots.every((root) => !contains(root, compared))) {
 							hits.set(segment, placed.full);
 							break;
 						}
 					}
 					if (hits.has(segment)) break;
 				}
-			} catch {
+			} catch (error) {
+				if (strict) throw error;
 				hits.set(segment, path.resolve(cwd, segment.text));
 			}
 		}
-	} catch {
+	} catch (error) {
+		if (strict) throw error;
 		for (const segment of segments) hits.set(segment, path.resolve(cwd || ".", segment.text));
 	}
 	return hits;

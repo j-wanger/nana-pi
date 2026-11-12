@@ -71,7 +71,7 @@ Objective: nearest project unless user-disabled; none for launcher-role children
 ### Session guidance
 
 - **Compaction summary:** compaction summaries are pi-owned background state, not the project frontier. Persist carry before a final report or session boundary. Builders and reviewers put open questions in their report; only the seat posts issues.
-- **Gate:** Advisory pi gate inspects selected shell commands and protected edit/write targets. It is not a security boundary; see the pack README for exact scope and limits, including the interpreter code-operand path gap for floored settings, auth, MCP and extension files.
+- **Gate:** pi's advisory gate checks shell commands and protected edits/writes. nana-rm-guard.mjs guards Claude agent deletes, not the seat. Neither is a sandbox. See `$HOME/nana-pi/packages/nana-pack/README.md` and `$HOME/nana-pi/packages/nana-setup/README.md` for limits.
 - **Post-edit:** nana runs no per-edit checks in either runtime; run project checks explicitly.
 
 ### Working pattern

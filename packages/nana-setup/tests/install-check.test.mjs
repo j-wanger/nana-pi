@@ -263,6 +263,11 @@ function recordingRun({ platformName = "linux", env = {}, failInstall = false, s
       const notice = "nana active · roster (default): builder gpt-6-luna high, reviewer gpt-5.6-sol, land gpt-6-astra";
       return { status: 0, stdout: `${JSON.stringify({ systemMessage: notice, hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: notice } })}\n` };
     }
+    if (joined.includes("nana-rm-guard.mjs")) {
+      const input = JSON.parse(options.input);
+      return { status: 0, stdout: input.agent_id && input.tool_input.command.includes("outside-scratch")
+        ? JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Report the path to the seat." } }) : "" };
+    }
     if (joined.includes("nana-setup.mjs") && args.includes("doctor")) return { status: 0, stdout: "" };
     return { status: 0, stdout: "" };
   };
@@ -597,7 +602,7 @@ check("dispatch: a hook that runs past its timeout is a FAIL whose reason prints
     assert.ok(result.lines.includes("FAIL hook objective — timeout: timed out after 5432 ms"));
     for (const hook of HOOKS) {
       const calls = seen.filter((call) => call.script === hook.script);
-      assert.equal(calls.length, 1, hook.label);
+      assert.equal(calls.length, hook.shortLabel === "rm guard" ? 3 : 1, hook.label);
       assert.ok(calls.every((call) => call.timeout === hook.timeout * 1000), hook.label);
     }
   } finally { fs.rmSync(fixture.home, { recursive: true, force: true }); }

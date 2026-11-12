@@ -167,7 +167,7 @@ export function entryInvokes(hook, spec, platform) {
 export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
 
 /**
- * The five active hook entries the nana experience needs, in the order they are added.
+ * The active hook entries the nana experience needs, in the order they are added.
  *
  * When `platform` is absent or not "win32", the output is byte-identical to `main`: every hook
  * runs in shell form from `hooksDir` (the live symlinks under `~/.claude/hooks`), paths are
@@ -177,7 +177,7 @@ export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
  * On win32 every entry is written in EXEC form instead — `command: "node"` plus an `args` array,
  * which Claude Code spawns directly with no shell (hooks#exec-form-and-shell-form). There is
  * never a usable symlink into `~/.claude/hooks` on this platform (stepHooks skips it), so every
- * win32 script path names the CHECKOUT's own copy directly: the five hooks under
+ * win32 script path names the CHECKOUT's own copy directly: the hooks under
  * `<repoRoot>/packages/nana-setup/claude/hooks/`. No path is quoted or escaped — exec form passes each
  * `args` element exactly as written. The retired knowledge entry is matched separately, never written.
  * The retired verifier is matched separately and never installed.
@@ -198,11 +198,13 @@ export function desiredHooks({ hooksDir, repoRoot, platform }) {
 	const adoption = nodeHook("nana-adoption.mjs", "nana: unadopted repositories");
 	const shared = nodeHook("nana-shared-memory.mjs", "nana: shared memory index");
 	const rosterNotice = nodeHook("nana-roster-notice.mjs", "nana: roster notice");
+	const rmGuard = nodeHook("nana-rm-guard.mjs", "nana: agent deletion guard");
 	return [
 		{ event: "SessionStart", label: "SessionStart objective", marker: "nana-objective.mjs", spec: objective.spec, entry: objective.entry },
 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: adoption.spec, entry: adoption.entry },
 		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: shared.spec, entry: shared.entry },
 		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: rosterNotice.spec, entry: rosterNotice.entry },
+		{ event: "PreToolUse", matcher: "Bash", label: "PreToolUse rm guard", marker: "nana-rm-guard.mjs", spec: rmGuard.spec, entry: rmGuard.entry },
 	];
 }
 

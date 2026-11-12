@@ -62,7 +62,7 @@ export function mapHookEntries(groups, platformName) {
     if (!e || typeof e !== "object" || Array.isArray(e) || e.type !== "command" || typeof e.command !== "string" || e.timeout !== expected.timeout ||
         (e.args !== undefined && (!Array.isArray(e.args) || e.args.some((arg) => typeof arg !== "string"))) ||
         Object.keys(e).some((k) => !ALLOWED_HOOK_KEYS.includes(k))) failures.push({ item: expected.label, code: "bad-shape" });
-    if (!matches(hit.matcher, "startup")) failures.push({ item: expected.label, code: "bad-matcher" });
+    if (!matches(hit.matcher, expected.matcher)) failures.push({ item: expected.label, code: "bad-matcher" });
     found.push({ expected, ...hit });
   }
   if (malformedGroup || all.length !== HOOKS.length || used.size !== HOOKS.length)
@@ -439,7 +439,10 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
     if (structural) { report(label, structural.code, false, hookFailureReason(entry, expected, structural.code, platformName)); return; }
     const invocation = hookInvocation(entry, platformName, bash);
     const hookEnv = { ...childEnv, CLAUDE_PROJECT_DIR: project };
-    const result = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(sample), env: hookEnv });
+    const hookSample = expected.shortLabel === "rm guard"
+      ? { hook_event_name: "PreToolUse", agent_id: "install-check-agent", cwd: project, tool_name: "Bash", tool_input: { command: `rm -rf '${path.join(home, "outside-scratch")}'` } }
+      : sample;
+    const result = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(hookSample), env: hookEnv });
     const stdout = result.stdout ?? "";
     let passed = !structural && okay(result) && stdout.length <= SAMPLE_INPUTS.maxOutput;
     if (expected.shortLabel === "objective") passed &&= stdout.startsWith("[nana:objective]") && stdout.includes(token) && !stdout.includes("OBJECTIVE UNAVAILABLE");
@@ -452,6 +455,18 @@ export async function runInstallCheck({ root, home, platformName, env, spawn, ex
       passed &&= stdout.includes("[nana:shared-memory]") && stdout.includes(`- [${token}]`) && target === memoryTarget && loads.length === 1 && loads[0].v === 1 && loads[0].printedChars === stdout.length;
     }
     if (expected.shortLabel === "roster notice") passed &&= rosterNoticeOutputOk(stdout);
+    if (expected.shortLabel === "rm guard") {
+      let decision;
+      try { decision = JSON.parse(stdout).hookSpecificOutput; } catch {}
+      passed &&= decision?.hookEventName === "PreToolUse" && decision?.permissionDecision === "deny" && /seat/i.test(decision?.permissionDecisionReason ?? "");
+      for (const input of [
+        { ...hookSample, agent_id: undefined },
+        { ...hookSample, tool_input: { command: "rm -rf ./inside-scratch" } },
+      ]) {
+        const allowed = await invoke(invocation.command, invocation.args, { cwd: project, timeout: expected.timeout * 1000, input: JSON.stringify(input), env: hookEnv });
+        passed &&= okay(allowed) && allowed.stdout === "";
+      }
+    }
     const code = result.error?.code === "ETIMEDOUT" ? "timeout" : passed ? null : structural?.code ?? (!stdout ? "no-output" : "unexpected");
     let detail = "";
     if (!passed) detail = !okay(result) ? reason(result) : structural ? hookFailureReason(entry, expected, structural.code, platformName) : "required hook output or fixture condition was not observed";

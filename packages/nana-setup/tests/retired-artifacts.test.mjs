@@ -16,6 +16,7 @@ import { withPiStub } from "./stub-pi.mjs";
 import { stepRetiredArtifacts } from "../lib/steps.mjs";
 import assert from 'node:assert/strict';
 import { resolveLayout } from "../lib/paths.mjs";
+import { desiredHooks } from "../lib/settings.mjs";
 
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
@@ -88,7 +89,8 @@ function treeSnapshot(root) {
         const result = run(['install', '--home', h], env);
         if (result.status !== 0) throw new Error(result.stdout + result.stderr);
         const after = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
-        if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', owner: 'keep', hooks: [foreign] }])) throw new Error('managed verifier entries survive or foreign siblings changed');
+        const rmGuard = desiredHooks({ hooksDir: layout.hooksDir, repoRoot: repo, platform }).find(wanted => wanted.marker === 'nana-rm-guard.mjs').entry;
+         if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', owner: 'keep', hooks: [foreign, rmGuard] }])) throw new Error('managed verifier entries survive or foreign siblings changed');
         if (fs.lstatSync(target, { throwIfNoEntry: false })) throw new Error('retired hook link remains installed');
       }
     }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('retirement case timeout')), 20_000); })]);
@@ -117,7 +119,8 @@ function treeSnapshot(root) {
       if (installed.status !== 0) throw new Error(installed.stdout + installed.stderr);
       if (fs.existsSync(layout.subagentConfig) || fs.existsSync(layout.reviewerAgent)) throw new Error('unchanged old seeds survived install');
       const after = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
-      if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign] }])) throw new Error('install left a released verifier form or changed siblings');
+      const rmGuard = desiredHooks({ hooksDir: layout.hooksDir, repoRoot: repo, platform: process.env.NANA_SETUP_PLATFORM ?? process.platform }).find(wanted => wanted.marker === 'nana-rm-guard.mjs').entry;
+       if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign, rmGuard] }])) throw new Error('install left a released verifier form or changed siblings');
     }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('old-home retirement timeout')), 20_000); })]);
   } catch (error) { problem = error.message; }
   finally { clearTimeout(timer); }
