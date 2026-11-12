@@ -156,6 +156,15 @@ await check("M13: basename readers cross packs while hub basenames select nothin
   const missing = execute(root, ["--changed-tests-from=missing-ref"]);
   assert.equal(missing.status, 1, missing.out); assert.match(missing.out, /(?:fatal|Not a valid object name|not a valid object name).*missing-ref/);
 
+  // A package folder is not a command name; a space after the same stem still counts.
+  for (const separator of ["/", "\\"]) {
+    put(root, land, `packages/nana-setup${separator}x`);
+    put(root, reader, "nana-setup ");
+    const names = await selectPackFiles({ root, files: Object.keys(membership), membership, packs: [], changedFrom: "main", changedTestsOnly: true, readDiff: () => ["packages/nana-setup/bin/nana-setup.mjs"] });
+    assert.deepEqual(names.files, [reader], separator);
+    assert.deepEqual(names.selection.nameMatches, [{ path: reader, reasons: ["names nana-setup (packages/nana-setup/bin/nana-setup.mjs)"] }]);
+  }
+
   // Command readers omit file endings; longer words alone must not widen selection.
   put(root, land, 'console.log("pi-reviewer", "reviewer", "piXreview");');
   put(root, manual, 'console.log("pi-review", "review", "pi.review");');

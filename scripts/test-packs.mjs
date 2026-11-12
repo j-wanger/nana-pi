@@ -60,7 +60,7 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
     const stem = path.posix.basename(changed, path.posix.extname(changed));
     const inCommandFolder = path.posix.dirname(changed).split("/").some(folder => NAME_MATCH_STEM_FOLDERS.includes(folder));
     const stemPattern = inCommandFolder && stem.length >= NAME_MATCH_STEM_MIN_LENGTH
-      ? new RegExp(`\\b${stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`) : null;
+      ? new RegExp(`\\b${stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b(?![/\\\\])`) : null;
     return { changed, basename, stem, stemPattern };
   });
   if (namedPaths.length) {
