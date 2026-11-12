@@ -1,7 +1,7 @@
 /**
  * @module packages/nana-setup/tests/memory-pause.test.mjs
  * @purpose Prove setup retires automatic memory dispatch on old and fresh homes.
- * @inputs Temporary homes, released hook shapes, installer, doctor and uninstaller.
+ * @inputs Temporary homes, released hook shapes, installer and doctor.
  * @outputs Awaited bounded PASS or FAIL cases.
  * @effects disk (temporary homes), process (doctor probes)
  * @errors Assertion failures fail the owning case.
@@ -14,7 +14,6 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { check } from '../../nana-pack/tests/profile-fixture.mjs';
 import { resolveLayout, repoRoot } from '../lib/paths.mjs';
 import { install } from '../lib/steps.mjs';
-import { uninstall } from '../lib/uninstall.mjs';
 import { diagnose } from '../lib/doctor.mjs';
 import { shq } from '../lib/settings.mjs';
 import { HOOKS } from '../lib/install-check-config.mjs';
@@ -49,14 +48,5 @@ await check('R-3862: install retires memory dispatch and doctor names the repair
   assert.deepEqual(read().hooks.SessionEnd, [{ hooks: [foreign] }]);
   assert.throws(() => fs.lstatSync(link), { code: 'ENOENT' });
   assert.ok(!HOOKS.some(h => h.event === 'SessionEnd' || h.label === 'hook memory making'));
- });
-});
-// req: R-3865
-await check('R-3865: uninstall directly retires pre-cut memory hooks and preserves foreign entries', () => {
- fixture(({ layout, link, read }) => {
-  process.env.NANA_SETUP_PLATFORM = 'darwin';
-  uninstall(layout);
-  assert.deepEqual(read().hooks.SessionEnd, [{ hooks: [foreign] }]);
-  assert.throws(() => fs.lstatSync(link), { code: 'ENOENT' });
  });
 });

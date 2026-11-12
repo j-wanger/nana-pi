@@ -6,7 +6,7 @@
  * @outputs shq() single-quoted paths; tokenize() argv or null; commandInvokes() boolean; entryInvokes() boolean;
  *  desiredHooks(); hookTargets(); mergeRepoHooks(); validateShape(); hasHook();
  *  mergeHooks() { settings (mutated in place), added labels, changed }; removeRetiredContextHook();
- *  retiredHookCommands(); removeInstallerHooks(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); isRetiredVerifierHook(); removeRetiredVerifierHook(); retiredMemoryHook(); isRetiredMemoryHook(); removeRetiredMemoryHook(); removeRetiredHook(); serialize() JSON text; CLAUDE_CODE_EXEC_FLOOR
+ *  retiredHookCommands(); installerTarget(); retiredKnowledgeHook(); isRetiredKnowledgeHook(); removeRetiredKnowledgeHook(); isRetiredVerifierHook(); removeRetiredVerifierHook(); retiredMemoryHook(); isRetiredMemoryHook(); removeRetiredMemoryHook(); removeRetiredHook(); serialize() JSON text; CLAUDE_CODE_EXEC_FLOOR
  * @effects disk (reads only)
  * @errors none thrown — validateShape returns the reason the shape cannot be extended, and any
  *  command that is unparseable or carries a shell operator reads as NOT installed
@@ -172,7 +172,7 @@ export const CLAUDE_CODE_EXEC_FLOOR = "2.1.139";
  * When `platform` is absent or not "win32", the output is byte-identical to `main`: every hook
  * runs in shell form from `hooksDir` (the live symlinks under `~/.claude/hooks`), paths are
  * single-quoted. The callers that pass no platform keep
- * this POSIX output: `uninstall.mjs`, `migrateLegacyHooks`, and the tests that call it bare.
+ * this POSIX output: `migrateLegacyHooks` and the tests that call it bare.
  *
  * On win32 every entry is written in EXEC form instead — `command: "node"` plus an `args` array,
  * which Claude Code spawns directly with no shell (hooks#exec-form-and-shell-form). There is
@@ -260,7 +260,7 @@ export function hookTargets(settings, event, spec, platform) {
 	return out;
 }
 
-/** Historical entry descriptor, retained for ownership matching and uninstall, never installation. */
+/** Historical entry descriptor, retained for ownership matching, never installation. */
 export function retiredKnowledgeHook({ repoRoot = "", platform } = {}) {
 	const target = `${repoRoot}/packages/nana-knowledge/bin/nana-knowledge.ts`;
 	return {
@@ -361,47 +361,6 @@ export function removeRetiredContextHook(settings, { hooksDir } = {}) {
 		group.hooks = kept;
 	}
 	return changed;
-}
-
-function canonical(value) {
-	if (Array.isArray(value)) return value.map(canonical);
-	if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]));
-	return value;
-}
-
-/** Remove exact desired hook entries, preserving all unrelated structure.
- *  `platform` only forwards to desiredHooks: uninstall itself refuses on win32 before this ever
- *  runs there (uninstall.mjs), so this pure case exists for a function that is already tested. */
-export function removeInstallerHooks(settings, { hooksDir, repoRoot, platform } = {}) {
-	const wanted = [...desiredHooks({ hooksDir, repoRoot, platform }), retiredKnowledgeHook({ repoRoot, platform })];
-	const removed = removeRetiredVerifierHook(settings) ? ["PreToolUse verifier pipe (retired)"] : [];
-	if (removeRetiredMemoryHook(settings, { hooksDir })) removed.push('SessionEnd memory making');
-	const hooks = settings?.hooks;
-	if (!hooks || typeof hooks !== "object" || Array.isArray(hooks)) return removed;
-	for (const [event, groups] of Object.entries(hooks)) {
-		if (!Array.isArray(groups)) continue;
-		let emptiedByRemoval = false;
-		for (let gi = groups.length - 1; gi >= 0; gi--) {
-			const group = groups[gi];
-			if (!Array.isArray(group?.hooks) || group.hooks.length === 0) continue;
-			const matching = wanted.filter((item) => item.event === event && (item.matcher === undefined ? group.matcher === undefined : group.matcher === item.matcher));
-			if (!matching.length) continue;
-			const oldLength = group.hooks.length;
-			group.hooks = group.hooks.filter((entry) => {
-				const index = matching.findIndex((item) => JSON.stringify(canonical(item.entry)) === JSON.stringify(canonical(entry)));
-				if (index < 0) return true;
-				removed.push(matching[index].label);
-				return false;
-			});
-			if (oldLength > 0 && group.hooks.length === 0) {
-				groups.splice(gi, 1);
-				emptiedByRemoval = true;
-			}
-		}
-		if (groups.length === 0 && emptiedByRemoval) delete hooks[event];
-	}
-	if (Object.keys(hooks).length === 0 && removed.length > 0) delete settings.hooks;
-	return removed;
 }
 
 /**

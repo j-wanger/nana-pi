@@ -8,7 +8,7 @@
  */
 // Sealed tunables for nana's standing rulings (rulings-file lane, 2026-10-19). Defined once
 // here, read by name everywhere else (extensions/nana-rulings.ts, nana-setup's lib/steps.mjs,
-// lib/paths.mjs, lib/doctor.mjs, lib/state-manifest.mjs). Retuning any of these must change no
+// lib/paths.mjs, lib/doctor.mjs). Retuning any of these must change no
 // code — only this file.
 
 /** contract R-1412/R-1413: the installed file's own name, both in pi's active agent dir and in

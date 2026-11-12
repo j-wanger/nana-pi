@@ -279,7 +279,7 @@ Cut a tag only with `npm run release -- [--ref <rev>] [--push]` (`scripts/templa
 
 ### Updating and partial adoption
 
-- **Pack and Claude Code half** — follow the canonical [updating and removal runbook](packages/nana-setup/README.md#updating-and-removing) for source updates, install and doctor. Targetless `pi update` updates pi itself; `pi update <source>` and `pi update --extensions` update packages only.
+- **Pack and Claude Code half** — follow the canonical [updating runbook](packages/nana-setup/README.md#updating) for source updates, install and doctor. Targetless `pi update` updates pi itself; `pi update <source>` and `pi update --extensions` update packages only.
 - **Part of the pack** — install the whole pack, then `pi config` (TUI; Tab
   switches user/project scope) to switch individual extensions and skills on or
   off. There is no per-skill install; enable/disable is the partial surface.

@@ -12,7 +12,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { desiredHooks, shq, removeInstallerHooks } from '../lib/settings.mjs';
+import { desiredHooks, shq } from '../lib/settings.mjs';
 import { stepSettings, readClaudeSettings } from '../lib/steps.mjs';
 import { resolveLayout, repoRoot } from '../lib/paths.mjs';
 import { tmpDir } from "./tmp-dir.mjs";
@@ -76,17 +76,6 @@ await test('R-3740: install removes shell and exec knowledge entries and preserv
     const foreign = [customized, { ...entry(), timeout: 9 }, { ...entry(), async: true }, { ...entry(), args: [] }, { ...entry(), type: 'prompt' }, { ...entry('C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts', true), args: ['C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts', 'hook', '--owner'] }, { type: 'command', command: 'echo foreign', timeout: 17 }, { ...entry(), statusMessage: 'owner knowledge' }];
     const after = installSettings(layout, { hooks: { UserPromptSubmit: [{ hooks: [entry(), entry('C:/old checkout/packages/nana-knowledge/bin/nana-knowledge.ts', true), ...foreign] }] } }, platform);
     assert.equal(JSON.stringify(promptEntries(after)), JSON.stringify(foreign));
-  });
-});
-
-// req: R-3742
-await test('R-3742: uninstall still removes the previous installer knowledge entry', options, () => {
-  fixture(layout => {
-    const foreign = { type: 'command', command: 'echo foreign' };
-    const settings = { hooks: { UserPromptSubmit: [{ hooks: [entry(knowledge), foreign] }] } };
-    const removed = removeInstallerHooks(settings, { hooksDir: layout.hooksDir, repoRoot });
-    assert.ok(removed.includes('UserPromptSubmit knowledge pull'));
-    assert.deepEqual(promptEntries(settings), [foreign]);
   });
 });
 

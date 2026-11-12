@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 const pkg = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const cli = path.join(pkg, "bin", "nana-setup.mjs");
 const repo = path.resolve(pkg, "..", "..");
-const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, removeInstallerHooks, serialize, shq, migrateLegacyHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
+const { commandInvokes, desiredHooks, retiredKnowledgeHook, entryInvokes, hasHook, hookTargets, installerTarget, mergeHooks, mergeRepoHooks, serialize, shq, migrateLegacyHooks } = await import(new URL("../lib/settings.mjs", import.meta.url).href);
 const { SetupError, install, readClaudeSettings, stepSettings, withSettingsLock, writeSettingsAtomic } = await import(new URL("../lib/steps.mjs", import.meta.url).href);
 const { resolveLayout, platform } = await import(new URL("../lib/paths.mjs", import.meta.url).href);
 
@@ -244,26 +244,6 @@ check("four active hook entries are wanted", wanted.length === 4);
 	// req: R-653
 	check("installerTarget on POSIX rejects the two win32-only forms", installerTarget({ command: "node '/old/packages/nana-knowledge/bin/nana-knowledge.ts' hook", timeout: 5, statusMessage: "nana: knowledge pull" }, knowledgePosix, undefined) === null && installerTarget({ command: "node", args: ["/old/packages/nana-setup/claude/hooks/nana-objective.mjs"], timeout: 5, statusMessage: "nana: objective + current priority" }, objPosix, undefined) === null);
 }
-{
-	const wantedWin32 = desiredHooks({ hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
-	const settings = { hooks: {} };
-	for (const w of wantedWin32) {
-		settings.hooks[w.event] ??= [];
-		let group = settings.hooks[w.event].find((g) => g.matcher === w.matcher);
-		if (!group) { group = { ...(w.matcher ? { matcher: w.matcher } : {}), hooks: [] }; settings.hooks[w.event].push(group); }
-		group.hooks.push(w.entry);
-	}
-	settings.hooks.SessionStart[0].hooks.push({ type: "command", command: "node", args: ["/repo/packages/nana-setup/claude/hooks/nana-objective.mjs", "--extra"], timeout: 5, statusMessage: "nana: objective + current priority" });
-	const removed = removeInstallerHooks(settings, { hooksDir: "/unused", repoRoot: "/repo", platform: "win32" });
-	// req: R-1050
-	check("forced-win32 removeInstallerHooks removes exactly the four entries", removed.length === 4, JSON.stringify(removed));
-	// Guarded with optional chaining, not a plain settings.hooks.SessionStart[0] read: a wrong
-	// removeInstallerHooks that over-removes can empty and delete the whole SessionStart group (or
-	// settings.hooks itself), and this case must still report FAIL rather than throw and abort
-	// every check after it in the file (sol r2 round 2 item 3).
-	check("forced-win32 removeInstallerHooks keeps the entry whose args differ", settings.hooks?.SessionStart?.[0]?.hooks?.length === 1 && settings.hooks.SessionStart[0].hooks[0].args.includes("--extra"), JSON.stringify(settings.hooks?.SessionStart));
-}
-
 /* --- exact legacy SessionStart entries migrate in place -------------------------------- */
 {
 	const foreign = { type: "command", command: "echo foreign", timeout: 5, statusMessage: "other" };

@@ -6,7 +6,6 @@
 - Windows copy backups (win-copy-backup-noise, plan): a home reached through another spelling of its path misses its record entries. Another letter case or a short name is such a spelling. Each changed copy then gets one backup, which is safe.
 - Windows copy backups (win-copy-backup-noise, plan): the Windows skill row still prints only the number of files copied. It never names a backup.
 - Windows copy backups (win-copy-backup-noise, plan): no test pins that install saves the record inside its settings lock. The install overlap tests cover other files.
-- Windows copy backups (win-copy-backup-noise, plan and independent check): Windows has no uninstall, so the record file stays there. macOS and Linux never write it. Uninstall there leaves a record file that something else put in place.
 - Windows copy backups (win-copy-backup-noise, plan): the record is a JSON file at the top of the Claude folder. The plan infers that Claude Code ignores it; nobody has tested that.
 - Windows copy backups (win-copy-backup-noise, seat): no run proves that Windows itself refuses a rename over a read-only copy. The read-only check fakes that refusal on every system, the Windows leg included. So the backup fallback has not met a real Windows refusal.
 - Windows copy backups (win-copy-backup-noise, seat): a crash between the temporary write and the rename leaves a hidden temporary file beside the copy. Nothing removes it later. Its name does not end like a rule file, so Claude Code should not load it as one (inferred).

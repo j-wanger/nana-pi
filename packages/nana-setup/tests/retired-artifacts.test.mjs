@@ -102,7 +102,6 @@ function treeSnapshot(root) {
   let timer, problem;
   try {
     await Promise.race([Promise.resolve().then(() => {
-      if (process.platform === 'win32') return; // uninstall is POSIX-only
       const h = home();
       const layout = resolveLayout({ home: h });
       fs.mkdirSync(layout.claudeHome, { recursive: true });
@@ -114,24 +113,16 @@ function treeSnapshot(root) {
         fs.mkdirSync(path.dirname(file), { recursive: true });
         fs.copyFileSync(path.join(pkg, 'pi', 'retired', source), file);
       }
-      const removed = run(['uninstall', '--yes', '--home', h], { ...process.env, NANA_SETUP_PLATFORM: 'darwin' });
-      if (removed.status !== 0) throw new Error(removed.stdout + removed.stderr);
-      if (fs.existsSync(layout.subagentConfig) || fs.existsSync(layout.reviewerAgent)) throw new Error('unchanged old seeds survived uninstall');
-      const remaining = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
-      if (JSON.stringify(remaining.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign] }])) throw new Error('uninstall left retired wiring or changed siblings');
-      fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [shell, exec, foreign] }] } }));
       const installed = run(['install', '--home', h]);
       if (installed.status !== 0) throw new Error(installed.stdout + installed.stderr);
+      if (fs.existsSync(layout.subagentConfig) || fs.existsSync(layout.reviewerAgent)) throw new Error('unchanged old seeds survived install');
       const after = JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'));
       if (JSON.stringify(after.hooks.PreToolUse) !== JSON.stringify([{ matcher: 'Bash', hooks: [foreign] }])) throw new Error('install left a released verifier form or changed siblings');
     }), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('old-home retirement timeout')), 20_000); })]);
   } catch (error) { problem = error.message; }
   finally { clearTimeout(timer); }
-  if (process.platform === 'win32') console.log('SKIP M9: old-home uninstall is POSIX-only');
-  else {
-    // req: R-3807
-    check('M9: old-home uninstall removes retired wiring and unchanged seeds before install preserves only foreign siblings', !problem, problem);
-  }
+  // req: R-3807
+  check('M9: old-home install removes retired wiring and unchanged seeds preserving foreign siblings', !problem, problem);
 }
 
 async function test(title, body) {
@@ -142,6 +133,21 @@ async function test(title, body) {
   } catch (error) { check(title, false, error.stack); }
   finally { clearTimeout(timer); }
 }
+// Moved install coverage from the retired command's round-trip test.
+// req: R-660
+await test('released context entry and its link are retired by install', () => {
+  const h = home();
+  const layout = resolveLayout({ home: h });
+  fs.mkdirSync(layout.hooksDir, { recursive: true });
+  fs.writeFileSync(layout.claudeSettings, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: `bash '${layout.hooksDir}/context-size-check.sh'` }] }] } }));
+  const link = path.join(layout.hooksDir, 'context-size-check.sh');
+  fs.symlinkSync(path.join(pkg, 'claude/hooks/context-size-check.sh'), link);
+  const installed = run(['install', '--home', h]);
+  assert.equal(installed.status, 0, installed.stdout + installed.stderr);
+  assert.equal(fs.lstatSync(link, { throwIfNoEntry: false }), undefined);
+  assert.ok(!JSON.stringify(JSON.parse(fs.readFileSync(layout.claudeSettings, 'utf8'))).includes('context-size-check.sh'));
+});
+
 const oldSeeds = layout => [[layout.subagentConfig, 'subagent-config.seed.json'], [layout.reviewerAgent, 'reviewer.seed.md']];
 const seedBytes = name => fs.readFileSync(path.join(pkg, 'pi', 'retired', name));
 
@@ -180,8 +186,8 @@ await test('M8: retirement preserves edited marked foreign and linked seeds and 
       } else fs.writeFileSync(file, bytes);
       expected.push([file, fs.readFileSync(file), mode === 'link' ? fs.readlinkSync(file) : null]);
     }
-    for (const command of ['install', ...(platform === 'darwin' ? ['uninstall'] : [])]) for (const dry of [true, false]) {
-      const result = run([command, '--home', h, ...(command === 'uninstall' && !dry ? ['--yes'] : []), ...(dry ? ['--dry-run'] : [])], { ...process.env, NANA_SETUP_PLATFORM: platform });
+    for (const dry of [true, false]) {
+      const result = run(['install', '--home', h, ...(dry ? ['--dry-run'] : [])], { ...process.env, NANA_SETUP_PLATFORM: platform });
       assert.equal(result.status, 0, result.stdout + result.stderr);
       for (const [file, bytes, link] of expected) {
         assert.deepEqual(fs.readFileSync(file), bytes);

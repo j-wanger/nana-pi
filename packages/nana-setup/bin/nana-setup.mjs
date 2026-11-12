@@ -2,8 +2,8 @@
 /**
  * @module packages/nana-setup/bin/nana-setup.mjs
  * @purpose The nana-setup CLI parses argv, resolves one layout, runs its command and prints results.
- * @inputs argv (`install` | `uninstall` | `doctor` | `project [dir]` | `state` | `trust <dir>`, trust store, plus --home, --claude-home, --pi-home,
- *  --repository, --paths, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
+ * @inputs argv (`install` | `doctor` | `project [dir]` | `trust <dir>`, trust store, plus --home, --claude-home, --pi-home,
+ *  --repository, --name, --check, --not-a-project, --dry-run, --yes, -h/--help); process.cwd() for a
  *  defaulted project dir; whatever resolveLayout reads (HOME, CLAUDE_CONFIG_DIR, PI_CODING_AGENT_DIR,
  *  NANA_SETUP_PLATFORM); the step and check reports returned by lib/steps, lib/doctor, lib/project.
  * @outputs stdout: the install root / claude home / pi home banner, a "<mark> <label> <status>
@@ -18,7 +18,7 @@
  *  --version`; replaces the warning listeners for doctor and project --check; sets process.exitCode)
  * @errors exit 2 for an unknown option or command, no command, a usage SetupError (including a relative
  *  ambient PI_CODING_AGENT_DIR or CLAUDE_CONFIG_DIR, a .nana-not-a-project marker, a missing parent directory, a pi trust
- *  store that cannot be loaded from npm's global folder); uninstall operational failures print ✗ and exit 1; exit 1
+ *  store that cannot be loaded from npm's global folder); exit 1
  *  when any row is ✗ or, for doctor, any ✗/! row, and for an unexpected throw outside doctor's
  *  install dry-run prediction (stack on stderr);
  *  exit 0 otherwise
@@ -40,19 +40,15 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createInterface } from "node:readline/promises";
 import { diagnose, STATUS } from "../lib/doctor.mjs";
-import { CLAUDE_CONFIG_ENV, repoRoot, resolveLayout, tildeify, platform } from "../lib/paths.mjs";
+import { CLAUDE_CONFIG_ENV, repoRoot, resolveLayout, tildeify } from "../lib/paths.mjs";
 import { checkProject, dismissProject, projectName, refuseIfDismissed, setupProject } from "../lib/project.mjs";
 import { PI_INSTALL_HINT, SetupError, install, installExitCode } from "../lib/steps.mjs";
 import { decideTrust } from "../lib/trust-decision.mjs";
-import { stateRows } from "../lib/state-manifest.mjs";
-import { uninstall } from "../lib/uninstall.mjs";
 
 const USAGE = `nana-setup — bootstrap the whole nana experience from this repo
 
   nana-setup install [options]        install / repair every piece (idempotent)
-  nana-setup uninstall --dry-run|--yes [options] remove nana-owned pieces safely
   nana-setup doctor  [options]        one ✓/✗/! line per piece; exits 1 on any ✗ or !
-  nana-setup state [--paths] [options] list state stores; --paths prints durable regular-file paths
   nana-setup project [dir] [options]  make a folder a nana project (idempotent)
   nana-setup trust <dir> [--yes]      record pi project trust after confirmation
 
@@ -70,9 +66,7 @@ Options
   --yes                accepted for scripts; install never prompts
   -h, --help
 
-Uninstall is POSIX-only and requires exactly one of --dry-run or --yes. Edited seeds, foreign settings
-entries, external links, backups and remote pi packages are left in place. Install never overwrites an
-existing private rule or pi config.
+Install never overwrites an existing private rule or pi config.
 `;
 
 function parse(argv) {
@@ -86,8 +80,7 @@ function parse(argv) {
 		} else if (a === "--name") {
 			opts.name = argv[++i];
 			if (!opts.name) throw new SetupError("--name needs a value");
-		} else if (a === "--paths") opts.paths = true;
-		else if (a === "--check") opts.check = true;
+		} else if (a === "--check") opts.check = true;
 		else if (a === "--not-a-project") opts.notAProject = true;
 		else if (a === "--dry-run") opts.dryRun = true;
 		else if (a === "--yes" || a === "-y") opts.yes = true;
@@ -157,23 +150,6 @@ function refuseCwdRelativeClaudeHome(layout, what) {
 	);
 }
 
-function runUninstall(opts) {
-	if (Boolean(opts.dryRun) === Boolean(opts.yes)) throw new SetupError("uninstall requires exactly one of --dry-run or --yes");
-	if (platform() === "win32") throw new SetupError("uninstall is POSIX-only");
-	const layout = resolveLayout(opts);
-	refuseCwdRelativePiHome(layout, "this uninstall");
-	let results;
-	try { results = uninstall(layout, opts); }
-	catch (err) {
-		const problem = { label: "uninstall preflight", status: "problem", detail: err.message };
-		console.log(`  ✗ ${problem.label}  ${problem.status}  ${problem.detail}`);
-		return 1;
-	}
-	const width = Math.max(1, ...results.map((r) => r.label.length));
-	for (const r of results) console.log(`  ${SYMBOL[r.status] ?? (r.status === "problem" ? "✗" : "–")} ${r.label.padEnd(width)}  ${r.status.padEnd(9)}${r.detail ? `  ${r.detail}` : ""}`);
-	return results.some((r) => r.status === "problem") ? 1 : 0;
-}
-
 function runInstall(opts) {
 	const layout = resolveLayout(opts);
 	refuseCwdRelativePiHome(layout, "this install");
@@ -205,145 +181,6 @@ function runInstall(opts) {
 	// A ✗ row is a machine that is NOT set up. Exiting 0 there tells automation the install
 	// succeeded (sol r3) — the dry run included, since it reports the same ✗.
 	return installExitCode(results);
-}
-
-function within(root, target) {
-	const rel = path.relative(root, target);
-	return rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
-}
-
-function statePresence(target, home) {
-	if (target.includes("*")) return expandPattern(target, home).some((entry) => {
-		try { fs.lstatSync(entry); return true; }
-		catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return false; throw err; }
-	}) ? "present" : "absent";
-	try { fs.lstatSync(target); return "present"; }
-	catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return "absent"; throw err; }
-}
-
-function hasSymlinkComponent(root, target) {
-	const relative = path.relative(root, target);
-	if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return true;
-	let current = root;
-	for (const part of relative.split(path.sep).filter(Boolean)) {
-		current = path.join(current, part);
-		try { if (fs.lstatSync(current).isSymbolicLink()) return true; }
-		catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return false; throw err; }
-	}
-	return false;
-}
-
-function walkRegularFiles(root, current, files) {
-	if (hasSymlinkComponent(root, current)) return;
-	let st;
-	try { st = fs.lstatSync(current); } catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return; throw err; }
-	if (st.isSymbolicLink()) return;
-	if (st.isFile()) { files.push(current); return; }
-	if (!st.isDirectory()) return;
-	for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-		const child = path.join(current, entry.name);
-		let childStat;
-		try { childStat = fs.lstatSync(child); } catch (err) { if (err.code === "ENOENT") continue; throw err; }
-		if (childStat.isSymbolicLink()) continue;
-		if (childStat.isFile()) files.push(child);
-		else if (childStat.isDirectory()) walkRegularFiles(root, child, files);
-	}
-}
-
-function runState(opts) {
-	const layout = resolveLayout(opts);
-	refuseCwdRelativePiHome(layout, "this state listing");
-	for (const [name, root] of [["home", layout.base], ["Claude home", layout.claudeHome], ["pi home", layout.piHome], ["knowledge home", layout.knowledgeHome]]) {
-		if (/[?*\[\]{}]/.test(root)) throw new SetupError(`glob metacharacter in configured ${name}: ${root}`);
-	}
-	const rows = stateRows(layout);
-	if (!opts.paths) {
-		for (const row of rows) console.log(`${row.store}\t${row.class}\t${row.owner}\t${row.path}\t${statePresence(row.path, layout.base)}`);
-		return 0;
-	}
-	const files = new Set();
-	const durableRows = rows.filter((row) => row.class === "durable");
-	const roots = [
-		{ name: "Claude home", path: layout.claudeHome },
-		{ name: "pi home", path: layout.piHome },
-		{ name: "knowledge home", path: layout.knowledgeHome },
-	].map((root) => ({ ...root, path: realpathThroughExistingAncestor(root.path) }));
-	const overlaps = (left, right) => within(left, right) || within(right, left);
-	for (let i = 0; i < roots.length; i++) for (let j = i + 1; j < roots.length; j++) {
-		const expectedKnowledgeNesting = (roots[i].name === "pi home" && roots[j].name === "knowledge home" && path.dirname(roots[j].path) === roots[i].path) || (roots[j].name === "pi home" && roots[i].name === "knowledge home" && path.dirname(roots[i].path) === roots[j].path);
-		if (!expectedKnowledgeNesting && overlaps(roots[i].path, roots[j].path)) {
-			console.error(`overlapping roots: ${roots[i].name} and ${roots[j].name}`);
-			return 2;
-		}
-	}
-	const durableDirs = durableRows.filter((row) => row.kind === "dir" || row.kind === "dir-pattern").flatMap((row) =>
-		(row.path.includes("*") ? expandPattern(row.path, layout.base) : [row.path]).map((target) => ({ name: row.store, path: realpathThroughExistingAncestor(target) })),
-	);
-	for (const dir of durableDirs) for (const root of roots) {
-		// Durable directories naturally live inside their owning home; only overlap across roots is unsupported.
-		if (within(root.path, dir.path)) continue;
-		if (overlaps(dir.path, root.path)) {
-			console.error(`overlapping roots: ${root.name} and ${dir.name}`);
-			return 2;
-		}
-	}
-	for (let i = 0; i < durableDirs.length; i++) for (let j = i + 1; j < durableDirs.length; j++) {
-		if (overlaps(durableDirs[i].path, durableDirs[j].path)) {
-			console.error(`overlapping roots: ${durableDirs[i].name} and ${durableDirs[j].name}`);
-			return 2;
-		}
-	}
-
-	for (const row of durableRows) {
-		if (!within(layout.base, row.path)) {
-			console.error(`durable store outside home: ${row.store} (${row.path})`);
-			return 2;
-		}
-		const targets = row.path.includes("*") ? expandPattern(row.path, layout.base) : [row.path];
-		for (const target of targets) {
-			if (!within(layout.base, target)) { console.error(`durable store outside home: ${row.store} (${target})`); return 2; }
-			if (hasSymlinkComponent(layout.base, target)) continue;
-			const found = [];
-			walkRegularFiles(layout.base, target, found);
-			for (const file of found) {
-				const name = path.relative(layout.base, file);
-				if (name.startsWith("-")) { console.error(`leading dash in durable store ${row.store}`); return 2; }
-				if (/[\u0000-\u001f\u007f]/.test(name)) { console.error(`control character in durable store ${row.store}`); return 2; }
-				files.add(name.split(path.sep).join("/"));
-			}
-		}
-	}
-	for (const file of [...files].sort()) console.log(file);
-	return 0;
-}
-
-function expandPattern(pattern, home) {
-	const absolute = path.resolve(pattern);
-	const root = home ?? path.parse(absolute).root;
-	const relative = path.relative(root, absolute);
-	if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return [];
-	const parts = relative.split(path.sep).filter(Boolean);
-	const walk = (current, index) => {
-		if (index === parts.length) return [current];
-		const part = parts[index];
-		if (!part.includes("*")) {
-			const next = path.join(current, part);
-			try { if (fs.lstatSync(next).isSymbolicLink()) return []; }
-			catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return []; throw err; }
-			return walk(next, index + 1);
-		}
-		let entries;
-		try { entries = fs.readdirSync(current, { withFileTypes: true }); }
-		catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return []; throw err; }
-		const matcher = new RegExp(`^${part.split("*").map((text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*")}$`);
-		return entries.filter((entry) => matcher.test(entry.name)).flatMap((entry) => {
-			const child = path.join(current, entry.name);
-			try { if (fs.lstatSync(child).isSymbolicLink()) return []; }
-			catch (err) { if (err.code === "ENOENT" || err.code === "ENOTDIR") return []; throw err; }
-			return walk(child, index + 1);
-		});
-	};
-	return walk(root, 0);
 }
 
 function runDoctor(opts) {
@@ -554,9 +391,7 @@ async function main(argv) {
 	}
 	try {
 		if (cmd === "install") return runInstall(opts);
-		if (cmd === "uninstall") return runUninstall(opts);
 		if (cmd === "doctor") return runDoctor(opts);
-		if (cmd === "state") return runState(opts);
 		if (cmd === "project") return await runProject(opts);
 		if (cmd === "trust") { await runTrust(opts); return 0; }
 	} catch (err) {

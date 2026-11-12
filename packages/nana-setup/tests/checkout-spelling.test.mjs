@@ -2,7 +2,7 @@
 /**
  * @module packages/nana-setup/tests/checkout-spelling.test.mjs
  * @purpose Prove setup treats honest second spellings of its checkout as the same checkout.
- * @inputs A copied checkout fixture, nana-setup install/doctor/uninstall and stale-copies CLIs, native path spellings, and temporary homes.
+ * @inputs A copied checkout fixture, nana-setup install/doctor and stale-copies CLIs, native path spellings, and temporary homes.
  * @outputs PASS/FAIL/SKIP lines and a summary; a nonzero exit when any check fails.
  * @effects disk (temporary checkout, homes and projects only), process (spawns setup and spelling probes).
  * @errors Fixture or assertion failures fail their case; every child process has a per-case timeout.
@@ -267,20 +267,6 @@ uniqueSpellings.length ? check("R-1984: links, hook entries and pi entries writt
 		assert(installed.status === 0 && noProblemRow(installed), `${form.name}/${spelling.kind}: exit=${installed.status}\n${installed.stdout}\n${installed.stderr}`);
 	});
 }) : skip("R-1984 — no second spelling is available on this volume");
-
-// req: R-1985
-uniqueSpellings.length && process.platform !== "win32" ? check("R-1985: uninstall --dry-run would unlink every link written through another spelling of the checkout", () => {
-	for (const spelling of uniqueSpellings) {
-		const form = { name: "POSIX", platform: undefined };
-		const { item, changed } = earlierHome(form, spelling, `1985-${spelling.kind}`);
-		const result = run(canonical, ["uninstall", "--dry-run"], item);
-		assertFinished(result, "uninstall dry run");
-		const wouldUnlink = String(result.stdout).split(/\r?\n/u).filter((line) => line.includes("would unlink")).length;
-		assert(result.status === 0, `${spelling.kind}: exit=${result.status}\n${result.stdout}\n${result.stderr}`);
-		assert(wouldUnlink === changed.links, `${spelling.kind}: expected ${changed.links} would-unlink rows, got ${wouldUnlink}\n${result.stdout}`);
-		assert(!result.stdout.includes("resolves outside repository"), `${spelling.kind}: outside-repository row\n${result.stdout}`);
-	}
-}) : skip(process.platform === "win32" ? "R-1985 — uninstall is POSIX-only" : "R-1985 — no second spelling is available on this volume");
 
 console.log(`SUMMARY  PASS=${passes} FAIL=${fails} SKIP=${skips}`);
 if (fails) process.exitCode = 1;

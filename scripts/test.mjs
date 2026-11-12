@@ -232,7 +232,7 @@ const SKIPS = {
 	"packages/nana-pack/tests/win32-launch.test.mjs": () => process.platform !== "win32" ? "native Windows launch cases (forced fixtures run in win32-forced)" : null,
 	"packages/nana-setup/tests/win-shims.test.mjs": () => process.platform !== "win32" ? "native Windows shim cases (sh fixtures run in win-shims-sh)" : null,
 	"packages/nana-setup/tests/checkout-spelling.test.mjs": checkoutSpellingSkipReason,
-	"packages/nana-setup/tests/checkout-converge.test.mjs": () => process.platform === "win32" ? "POSIX-only: skill links are copies on win32 and uninstall refuses there" : null,
+	"packages/nana-setup/tests/checkout-converge.test.mjs": () => process.platform === "win32" ? "POSIX-only: skill links are copies on win32" : null,
 	// Historical fixture key used by test-runner.test.mjs to exercise a missing tool.
 	// The real post-edit test is retired; only OS-temporary runner fixtures use this entry.
 	"packages/nana-pack/tests/post-edit-hardening.test.mjs": () =>

@@ -17,7 +17,7 @@
  *  win32), removal of unchanged historical subagent config and reviewer seeds, <knowledgeHome>/index.db, <binDir>/pi-review, pi-worker, nana-land, nana-setup, nana-writing and nana-knowledge, per-package pi `packages` registrations, the win32 skill
  *  mirror's SKILL_COPY_MARKER (".nana-setup-copy") file; also exports HOOKS, CLAUDE_RULES,
  *  PACK_RULES_DIR, ruleSource, CLAUDE_SKILLS, PACK_SKILLS_DIR, PI_REVIEW_BIN, PI_WORKER_BIN, KNOWLEDGE_CLI,
- *  NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, PATH_COMMANDS, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, realpathSafe(), resolvePackageEntryPath(), directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), SetupError and the helpers doctor reuses
+ *  NANA_LAND_BIN, NANA_SETUP_BIN, NANA_WRITING_BIN, PATH_COMMANDS, PI_INSTALL_HINT, PI_LAUNCH_LIMITS_MS, PRIVATE_RULE_SEED, SHARED_MEMORY_SEED, PI_PACK_SEED, PI_OBJECTIVE_SEED, realpathSafe(), resolvePackageEntryPath(), directoryAncestorsAreSafe(), linkedSkillFolder(), SKILL_COPY_MARKER, ownSkillCopy(), retiredSeedRows(), retireSeed(), SetupError and the helpers doctor reuses
  * @effects disk, process (spawns `nana-knowledge build`,
  *  bounded `pi --version` / `pi install` process trees, `git rev-parse`)
  * @errors SetupError — the Claude home, rules, shared-memory or off-win32 hooks folder is an unreachable link; settings.json unreadable, not valid JSON, or a shape the merge will not
@@ -39,7 +39,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { CREATED, PROBLEM, SKIPPED, UNCHANGED, UPDATED, ensureDir, linkFile, seedFile, writeBytesWithBackup, writeIfChanged } from "./fsops.mjs";
 import { pkgRoot, platform, repoRoot } from "./paths.mjs";
-import { retiredHookCommands, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeInstallerHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, removeRetiredMemoryHook, removeRetiredVerifierHook, serialize, validateShape } from "./settings.mjs";
+import { retiredHookCommands, desiredHooks, mergeHooks, mergeRepoHooks, migrateLegacyHooks, removeRetiredContextHook, removeRetiredKnowledgeHook, removeRetiredMemoryHook, removeRetiredVerifierHook, serialize, validateShape } from "./settings.mjs";
 import { lockHolder, removalCommands, settingsLockPath } from "./settings-lock.mjs";
 import { matchesRetiredArtifact, retiredArtifacts, RETIRED_HOOK_FILES, retiredHookLinkOwned } from "./retired.mjs";
 import { findOnPath, findPi } from "../../nana-pack/lib/win-command.mjs";
@@ -50,8 +50,7 @@ import { pinPiInstall, readPiPin } from "./pi-pin.mjs";
 import { RULINGS_FILE, SEAT_GUIDE_FILE } from "../../nana-pack/lib/rulings-config.mjs";
 import skillCopyHistory from "./skill-copy-history.json" with { type: "json" };
 import { openCopyRecord } from "./copy-record.mjs";
-import { retiredSeedRows } from './state-manifest.mjs';
-import { retireSeed } from './uninstall.mjs';
+
 
 export class SetupError extends Error {}
 
@@ -978,6 +977,24 @@ export function stepPrePush({ repository, dryRun = false } = {}) {
 	} catch {
 		return [{label,status:PROBLEM,detail:'cannot install repository pre-push hook'}];
 	}
+}
+
+/** Exact historical bytes, retained only for safe install retirement; never seeded. */
+export function retiredSeedRows(layout) {
+  return [['subagent config.json', layout.subagentConfig, 'subagent-config.seed.json'], ['reviewer.md', layout.reviewerAgent, 'reviewer.seed.md']].map(([store, target, name]) => ({ store, path: target, source: path.join(pkgRoot, 'pi', 'retired', name), kind: 'seed' }));
+}
+
+const exists = (p) => { try { return fs.lstatSync(p); } catch (e) { if (e.code === "ENOENT" || e.code === "ENOTDIR") return null; throw e; } };
+const result = (label, status, detail = "") => ({ label, status, detail });
+
+/** Exact-byte seed removal; never follows a leaf or parent link. */
+export function retireSeed(row, { dryRun = false, root } = {}) {
+  if (root && !directoryAncestorsAreSafe(root, path.dirname(row.path), true)) return result(row.store, 'skipped', 'left — unsafe seed ancestor');
+  const st = exists(row.path);
+  if (!st) return result(row.store, 'unchanged', 'absent');
+  if (!st.isFile() || st.isSymbolicLink() || !row.source || !fs.readFileSync(row.path).equals(fs.readFileSync(row.source))) return result(row.store, 'skipped', 'left — edited since seeding (yours)');
+  if (!dryRun) fs.unlinkSync(row.path);
+  return result(row.store, dryRun ? 'created' : 'updated', `${dryRun ? 'would remove' : 'removed'} unchanged seed`);
 }
 
 /* ------------------------------------------------------------------------------- install */
