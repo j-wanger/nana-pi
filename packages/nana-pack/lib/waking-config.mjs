@@ -25,6 +25,11 @@ export const LANE_TOOL_LAUNCHES = [
 export const WAKING_GIT_TIMEOUT_MS = 2000;
 /** chosen: two counted sentences includes the approved two-sentence status-report failure. */
 export const REPORT_SENTENCE_MIN = 2;
+/** contract (seat-tools brief, 2026-11-12, R-4210): measures marker in verdict-led statuses. */
+export const MEASURES_PHRASE = "median lane";
+/** contract (seat-tools brief, 2026-11-12, R-4211): landing reports name deferrals and validation. */
+export const LANDING_VERDICTS = ["LANDED"];
+export const LANDING_LINES = ["Deferred:", "Validation:"];
 /** chosen: a dozen findings keeps the correction actionable without flooding Stop output. */
 export const WRITING_FINDING_CAP = 12;
 /** chosen: bound finding details and issue titles while leaving room for the correction instruction. */

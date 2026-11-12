@@ -183,9 +183,9 @@ export function bannedFindings(text) {
 }
 
 /** True only when a listed uppercase verdict is the first token, allowing leading emphasis markers. */
-function hasVerdictWord(text) {
+export function hasVerdictWord(text, verdictWords = VERDICT_WORDS) {
 	const firstToken = text.trim().replace(/^(?:[*_~]{1,2})*/, "");
-	return VERDICT_WORDS.some((word) => new RegExp(`^${escapeRegExp(word)}(?=$|[\\s.,!?;:])`).test(firstToken));
+	return verdictWords.some((word) => new RegExp(`^${escapeRegExp(word)}(?=$|[\\s.,!?;:])`).test(firstToken));
 }
 
 /** null when the first prose sentence carries a verdict word/phrase (no finding); a finding
