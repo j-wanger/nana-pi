@@ -7,6 +7,9 @@
  * @errors Failed assertions set a nonzero exit status.
  */
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { fillSeed, SHARED_DIR } from "../../nana-setup/lib/project.mjs";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -31,6 +34,14 @@ function fixture(name) {
 }
 const textOf = view => view.nodes.map(node => node.textContent ?? node.text ?? "").join(" ");
 try {
+  await withinCaseLimit("shared seed report", async () => {
+    const seed = fillSeed(fs.readFileSync(path.join(SHARED_DIR, "HANDOFF.md"), "utf8"), { name: "Seeded project", date: "2026-11-12" });
+    const { root } = treeFixture(temp, "shared-seed", ledger, seed);
+    const out = path.join(temp, "shared-seed.html");
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL("../../../scripts/product-report.mjs", import.meta.url)), "--root", root, "--out", out], { encoding: "utf8", timeout: 30_000 });
+    // req-candidate: R-2514
+    check("product report accepts the rendered shared seed and writes a page", result.status === 0 && fs.existsSync(out) && fs.readFileSync(out, "utf8").includes("<html"), result.stderr);
+  });
   await withinCaseLimit("report rebuild and issue asks", async () => {
     const { root, git } = fixture("deterministic");
     fs.mkdirSync(path.join(root, "tests")); fs.writeFileSync(path.join(root, "tests/pin.test.mjs"), "// fixture\n");
@@ -131,16 +142,12 @@ try {
   await withinCaseLimit("list asks and failed issue read", async () => {
     const repo = fixture("pages-legacy"); let calls = 0;
     const after = path.join(temp, "pages-legacy.html");
-    const views = [];
-    for (const heading of ["Open for Avery (notes)", "Open", "oPeN (notes)", "OPEN—notes", "Open notes"]) {
-      fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), `## ${heading} \t\r\n- **[optional, since 2026-10-10] Fixture question.** \t`);
-      await generateReport({ root: repo.root, out: after, readIssues: () => { calls++; throw new Error("must not call"); } });
-      views.push(renderHtmlAt(fs.readFileSync(after, "utf8"), "#decisions"));
-    }
-    const drawn = views[0];
+    fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), "## Open for Avery (notes) \t\r\n- **[optional, since 2026-10-10] Fixture question.** \t");
+    await generateReport({ root: repo.root, out: after, readIssues: () => { calls++; throw new Error("must not call"); } });
+    const drawn = renderHtmlAt(fs.readFileSync(after, "utf8"), "#decisions");
     const card = drawn.nodes.find(node => node.tag === "article" && node.children.some(child => child.tag === "h3" && child.textContent === "Fixture question"));
     // req: R-2514
-    check("an Open or Open for heading is read as the asks section", calls === 0 && views.every(view => view.model.asks.some(ask => ask.title === "Fixture question")));
+    check("an Open for heading with any name is read as the asks section", calls === 0 && drawn.model.asks.some(ask => ask.title === "Fixture question"));
     // req: R-2983
     check("R-2983: list-ask Decisions drawing matches main's captured text", card?.children[0]?.tag === "h3" && card.children.map(node => node.textContent).join("\n") === "Fixture question\nKind: optional\nSince: 2026-10-10\nAsk: ");
     fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), "## Open for the owner\nhttps://github.com/example-org/example-repo/issues\n");

@@ -64,7 +64,7 @@ fs.writeFileSync(fakeGh, `process.stdout.write(JSON.stringify([{number:1,title:"
 const worlds = [
 	{ name: "issues", cwd: world("frontier-golden-issues", "## Next\nLocal pointer.\n## Open for the owner\nhttps://github.com/example/project/issues\n"), env: { [GH_COMMAND_ENV]: JSON.stringify([process.execPath, fakeGh]) } },
 	{ name: "full", cwd: world("frontier-golden-full", "## Next\n1. **Build the path.** body\n## Open for the owner\n- **[blocking, since 2026-10-01] Choose now.** body\n"), env: {} },
-	{ name: "seed", cwd: world("frontier-golden-seed", "## Where things stand\n\n## Next\n- Fill this in.\n\n## Open for the owner\n- Fill this in.\n"), env: {} },
+	{ name: "seed", cwd: world("frontier-golden-seed", "## Where things stand\n\n## Next\n- Fill this in.\n\n## Open\n- Fill this in.\n"), env: {} },
 	{ name: "CRLF", cwd: world("frontier-golden-crlf", "## Next\r\n- Windows line\r\n"), env: {} },
 	{ name: "unreadable", cwd: world("frontier-golden-unreadable", "x", { unreadable: true }), env: {} },
 	{ name: "missing", cwd: world("frontier-golden-missing", null), env: {} },

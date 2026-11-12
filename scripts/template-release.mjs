@@ -40,6 +40,7 @@ export function runRelease({ repo, ref = "HEAD", push = false, runGit = defaultG
   if (!tags.ok) { log(`release failed: ${tags.error}`); return 1; }
   const latest = selectReleaseTag(tags.out.split(/\r?\n/).filter(Boolean));
   if (!latest) { log("release failed: no plain version tag exists"); return 1; }
+  if (!call(runGit, repo, ["merge-base", "--is-ancestor", latest, sha]).ok) { log("nothing to release"); return 0; }
   const diff = releaseSurfaceDiff({ repo, tag: latest, sha, runGit });
   if (diff.changed === null) { log(`release failed: template tree difference unavailable (${diff.error})`); return 1; }
   if (!diff.changed) { log("nothing to release"); return 0; }

@@ -17,6 +17,7 @@ import { ARTIFACT_AGE_TABLE, artifactAgeTableKey, artifactReads, artifactRegistr
 import { checkTree, descendants, ledgerReadProblem, parseLedger, readRequirementRows } from "./requirements-tree.mjs";
 import { WHITESPACE, citesOf } from "./requirements-trace.mjs";
 import { splitOpenSection } from "../packages/nana-pack/lib/handoff-asks.mjs";
+import { isNamed, OPEN_SECTION_PREFIX } from "../packages/nana-pack/lib/frontier-config.mjs";
 import { ASK_LABELS, parseAskBody } from "../packages/nana-pack/lib/ask-shape.mjs";
 import { issuesPointer, readHandoffIssues } from "../packages/nana-pack/lib/handoff-issues.mjs";
 import { CI_READ_TIMEOUT_MS } from "../packages/nana-pack/lib/land-config.mjs";
@@ -492,7 +493,7 @@ export async function buildReport({ root = REPO_ROOT, gitRunner = (args, options
   }
   const asks = pointer
     ? (issueData?.items ?? []).filter((item) => item.kind !== "next").map((item) => ({ number: item.number, tag: { kind: item.kind ?? "ask", since: String(item.createdAt ?? "").slice(0, 10) }, title: { title: item.title, body: item.body, kind: item.kind ?? "ask", since: String(item.createdAt ?? "").slice(0, 10) }, url: `${issueData.url.replace(/\/$/, "")}/${item.number}` }))
-    : splitOpenSection(handoff);
+    : splitOpenSection(handoff, (title) => isNamed(title, OPEN_SECTION_PREFIX));
   for (const ask of asks) {
     if (!ask.tag || !ask.title || !validDate(ask.tag.since) || ask.tag.kind !== ask.title.kind || ask.tag.since !== ask.title.since) {
       throw new Error(`HANDOFF.md line ${ask.line}: malformed Open for the owner entry`);

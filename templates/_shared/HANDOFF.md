@@ -8,7 +8,7 @@ Read `OBJECTIVE.md` first.*
 
 - <what is true right now — replace this line>
 
-## Open for the owner
+## Open
 
 1. <the first unresolved question, and who owns it — replace this line>
 
