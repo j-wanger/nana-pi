@@ -74,7 +74,7 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
   }
   const nameMatches = new Set(selection.nameMatches.map(item => item.path));
   if (changedTestsOnly) return { packs: [], selection, files: files.filter(file => changedTests.has(file) || nameMatches.has(file)) };
-  // Release files supplement a lane individually; neither setup edits nor fail-safe promote a pack.
+  // Setup edits add only individually selected release files; a fail-safe lane adds every release file.
   const lane = changedFrom && packs.includes("land") && packs.includes("module") && !packs.includes("main");
   const releaseReasons = new Map();
   const addRelease = (file, reason) => {
@@ -117,7 +117,7 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
       if (selection.failSafe) { reasons.clear(); all(`fail-safe: ${selection.failSafe}`); }
     }
   }
-  if (selection.failSafe) holdReleaseCoverage(`fail-safe: ${selection.failSafe}`);
+  if (selection.failSafe) for (const file of files) addRelease(file, `fail-safe: ${selection.failSafe}`);
   selection.release = [...releaseReasons].sort(([a], [b]) => a.localeCompare(b)).map(([path, reasons]) => ({ path, reasons: [...reasons] }));
   selection.module = [...reasons].sort(([a], [b]) => a.localeCompare(b)).map(([path, reasons]) => ({ path, reasons: [...reasons] }));
   return { packs, selection, files: files.filter(file => changedTests.has(file) || nameMatches.has(file) || releaseReasons.has(file) || (packs.includes(membership[file]) && (membership[file] !== "module" || reasons.has(file)))) };

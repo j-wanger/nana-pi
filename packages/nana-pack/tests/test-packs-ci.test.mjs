@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/test-packs-ci.test.mjs
  * @purpose Pin event-specific CI packs and every pack-record consumer through real runner output.
  * @inputs Workflow, pack membership, copied runner fixtures and injected GitHub artifact transport.
- * @outputs Four awaited bounded must-meet verdicts.
+ * @outputs Five awaited bounded must-meet verdicts.
  * @effects disk (OS temp only), process (runner and git children).
  * @errors Failed assertions set exit 1.
  */
@@ -54,13 +54,18 @@ await check("M4: PR CI selects macOS packs release watches and cancellation whil
   const land = "packages/probe/tests/land.test.mjs";
   const membership = { [land]: "land", [data]: "release", [update]: "release", [tail]: "release" };
   const root = fixtureRoot("release-watch", Object.fromEntries(Object.keys(membership).map(file => [file, 'console.log("PASS fixture");\n'])), membership);
+  put(root, "packages/probe/lib/input.mjs", "/**\n * @module packages/probe/lib/input.mjs\n * @purpose Fixture input.\n * @inputs none\n * @outputs none\n * @effects none\n * @errors none\n */\n");
+  put(root, "code-map.config.json", JSON.stringify({ roots: ["packages/probe/lib"], moduleExtensions: [".mjs"], layers: [{ id: "all", title: "All", blurb: "Fixture", match: ".*" }], packages: [{ id: "probe", prefix: "" }], mapPath: "map.md", ignore: [] }));
   git(root, "init", "-b", "main"); git(root, "config", "user.name", "Fixture"); git(root, "config", "user.email", "fixture@example.invalid"); git(root, "add", "."); git(root, "commit", "-m", "base");
   const { selectPackFiles } = await import("../../../scripts/test-packs.mjs");
-  for (const file of ["templates/input.md", "copier.yml", "scripts/template-probe.mjs", "packages/nana-setup/lib/input.mjs", "package.json"]) {
+  const { repoGraph } = await import("../../../scripts/code-map.mjs");
+  for (const file of ["templates/input.md", "copier.yml", "scripts/template-probe.mjs", "packages/nana-setup/claude/input.md"]) {
     put(root, file, "// changed input\n"); git(root, "add", "."); git(root, "commit", "-m", "input");
-    const selected = await selectPackFiles({ root, files: Object.keys(membership), membership, packs: ["land", "module"], changedFrom: "HEAD~1", makeGraph: () => { throw new Error("uncertain graph"); } });
+    const selected = await selectPackFiles({ root, files: Object.keys(membership), membership, packs: ["land", "module"], changedFrom: "HEAD~1", makeGraph: () => repoGraph(root) });
     assert(!selected.packs.includes("release"), file);
-    const template = !file.startsWith("packages/nana-setup/") && file !== "package.json";
+    assert.equal(selected.selection.failSafe, null);
+    const template = !file.startsWith("packages/nana-setup/");
+    if (!template) assert.deepEqual(selected.selection.release, [{ path: tail, reasons: [`coverage hold packages/nana-setup/**: ${file}`] }]);
     assert.deepEqual(selected.files.sort(), (template ? [land, data, update, tail] : [land, tail]).sort(), file);
     assert(selected.selection.release.every(item => item.reasons.length));
     const r = execute(root, ["--pack=land,module", "--changed-from=HEAD~1"]);
@@ -76,6 +81,20 @@ await check("M4: PR CI selects macOS packs release watches and cancellation whil
   }
   assert.deepEqual(execute(root, ["--pack=release"]).record.files.map(f => f.path).sort(), [data, update, tail].sort());
   assert.deepEqual(execute(root, ["--pack=land,main,module,retire"]).record.files.map(f => f.path), [land]);
+});
+// req: R-3853
+await check("M4b: fail-safe policy and unreadable diff lanes select every release file", async () => {
+  const { selectPackFiles } = await import("../../../scripts/test-packs.mjs");
+  const { repoGraph } = await import("../../../scripts/code-map.mjs");
+  const membership = Object.fromEntries(Object.entries(TEST_PACKS).filter(([, pack]) => pack === "release"));
+  const files = Object.keys(membership);
+  for (const readDiff of [() => ["packages/nana-pack/lib/test-runner-config.mjs"], () => { throw new Error("diff unavailable"); }]) {
+    const selected = await selectPackFiles({ root: REPO, files, membership, packs: ["land", "module"], changedFrom: "main", readDiff, makeGraph: () => repoGraph(REPO) });
+    assert(selected.selection.failSafe);
+    assert.deepEqual(selected.files.sort(), [...files].sort());
+    assert.deepEqual(selected.selection.release.map(item => item.path).sort(), [...files].sort());
+    assert(selected.selection.release.every(item => item.reasons.includes(`fail-safe: ${selected.selection.failSafe}`)));
+  }
 });
 // req: R-3854
 await check("M5: land accepts complete lane pack records and refuses filtered or landless proof", () => {
