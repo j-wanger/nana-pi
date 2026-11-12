@@ -186,7 +186,6 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-setup/tests/doctor-detail.test.mjs": "module",
   "packages/nana-setup/tests/doctor-fix-line.test.mjs": "module",
   "packages/nana-setup/tests/doctor-knowledge.test.mjs": "module",
-  "packages/nana-setup/tests/doctor-memory-links.test.mjs": "module",
   "packages/nana-setup/tests/doctor-package-source.test.mjs": "module",
   "packages/nana-setup/tests/doctor-pi-dependencies.test.mjs": "module",
   "packages/nana-setup/tests/doctor-quiet.test.mjs": "module",

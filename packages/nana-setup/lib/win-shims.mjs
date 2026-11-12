@@ -32,6 +32,7 @@ export function renderWinShims(binFile, shimDir) {
 	const target = sameWindowsDrive(binFile, shimDir)
 		? `"%dp0%\\${batchPath(path.win32.relative(shimDir, binFile))}"`
 		: `"${batchPath(path.win32.resolve(binFile))}"`;
+	// Contract provenance for the find_dp0/SETLOCAL/endLocal-goto template: npm cmd-shim 7.0.0 (design §Design, R-1612/R-1614).
 	const cmdLines = [
 		"@ECHO off",
 		"GOTO start",
