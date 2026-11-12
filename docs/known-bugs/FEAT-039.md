@@ -1,5 +1,11 @@
 # FEAT-039 — known bugs
 
+- Records summary (runtime-retire review 1 NOTE 5): the Stale count lists artifacts only, and its link goes to the artifacts view, which does not list stale entries.
+- Issue #337: owner-picks mode is not followable from the template alone.
+- Issue #337: the phone-width check differs from first-look's build-1 shots.
+- Issue #337: R-3162 and R-3163 matches are loose.
+- Issue #337: the template's first line names experiments u1 to u7 without saying what they were.
+
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - R-3101 accepts a retired row as evidence. Only a row anchor rejects `retired` (R-3108).

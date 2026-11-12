@@ -650,7 +650,7 @@ and after each land once main's run finishes. Builders and reviewers never run i
 ```bash
 node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs" --cwd "<project root>"
 node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs" --cwd "<project root>" --post
-node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs" --cwd "<project root>" --wait --sha <sha>
+node "$HOME/nana-pi/packages/nana-pack/bin/nana-main-ci.mjs" --cwd "<project root>" --wait --sha <sha> --post
 ```
 
 The command reads only main's push runs of `ci`, choosing the newest run, never an older green run.

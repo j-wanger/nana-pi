@@ -1,5 +1,8 @@
 # FEAT-005 — known bugs
 
+- Writing Stop hook (seat-tools review 1 SHOULD 1): the measures phrase match is case-sensitive.
+- Writing Stop hook (seat-tools review 1 SHOULD 2): landing lines must start at column 0 with no list marker or emphasis.
+
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - Writing Stop hook (writing-stop, review 1): with `session_crons` present, a lane-reader failure still hides writing findings; isolate the wake read in a later hook lane.

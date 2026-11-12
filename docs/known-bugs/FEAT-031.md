@@ -1,5 +1,7 @@
 # FEAT-031 — known bugs
 
+- Suite records (runtime-retire review 1 NOTE 9): the baseline reads each file's final entry, so an old coverage-failed then rerun-passed baseline classes a current failure as new; correct, but unpinned.
+
 - Runtime map (runtime-map-live, seat): every locked-suite stop finds the suite's process tree through `ps`. Where `ps` fails, the first signal reaches nothing, and 500 ms later the kill step kills only the child's process group, so detached descendants survive.
 - Runtime map (runtime-map-live, final review r3): the kill step signals single PIDs and walks the tree from the child 500 ms after the first signal, even if the child has exited. A PID reused in that window would get SIGKILL; main's group kill has the same kind of window.
 - Runtime map (runtime-map-live, final review r3): a descendant that starts a new process group after the first walk, then loses its parent before the kill step, is never reached. The row promises only what the first signal reached and the root's group.
@@ -112,7 +114,7 @@
 - CI records (ci-timing-records, final review): when a run's artifact listing fails, that run gets one line and its legs get none, as the plan asks.
 - Windows flakes (win-flake-hardening, plan): only a finished file's temp folder is guarded; a busy per-file home folder still ends the runner, as before, though all four measured holds were under the temp folder.
 - Windows flakes (win-flake-hardening, plan): the temp-folder removal retries (5 at 100 ms) are chosen, not measured on a Windows hold.
-- Windows flakes (win-flake-hardening, plan): R-1471's and R-1473's overlap preconditions keep their timing; neither failed in 93 Windows attempts.
+- R-1471's overlap precondition failed once on main at 0213d662 (Windows shard 3, `overlapped1471: false`); the waiter recorded the first flake; the source fix moves the overlap proofs onto R-1470's partner barrier at a second record (issue #440).
 - Windows test limits (win-test-limits, plan): worker-lane's `launchTogether` and build-records keep `--poll 0.1`; neither has a child limit that can fail on time.
 - Windows flakes (win-flake-hardening, plan): templates-update's adopt failure stays for shared-helpers.
 - Windows flakes (win-flake-hardening, plan): CI re-runs cannot prove the failure rate fell; the proof is the injected schedules and their wrong-code pairs.

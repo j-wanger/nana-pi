@@ -1,5 +1,7 @@
 # FEAT-007 — known bugs
 
+- Clean-tree review (review 2 NOTE 3): claude-review refuses an existing in-tree `--out` with the "uncommitted paths" message, because its pre-check runs before admission; R-725's test covers only the shared runner.
+
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - pi-review has no verdict re-ask; an unread verdict still needs a new review, unlike claude-review's confirmation path.
