@@ -4,10 +4,10 @@
  * @inputs Origin repository, remote head and tip, injected git and gh, monotonic clock, sleep and tip workflow text.
  * @outputs Readiness, run classifications and bounded waiter verdicts with failure files, supersession, flake, success and rerun lines.
  * @effects process, network (through injected git and gh), disk (clone CI records); timer waits
- * @errors Invalid evidence, API failures and expiry return named refusals, never success.
+ * @errors Invalid evidence, non-network API failures and expiry return named refusals; network errors remain unknown until the same deadline.
  */
 import { spawnSync } from 'node:child_process';
-import { ghDefault, ghEnvironment, ghResult } from './gh-runner.mjs';
+import { ghDefault, ghEnvironment, ghNetworkFailure, ghResult } from './gh-runner.mjs';
 import { githubRepoOf, judgeRuns } from './land-ci.mjs';
 import { failedJobFiles, mainCi, recordMainFlakes } from './main-ci.mjs';
 import {
@@ -22,20 +22,38 @@ const sleepAsync = ms => new Promise(resolve=>setTimeout(resolve,ms));
 const repoName = r => `${r.owner}/${r.repo}`;
 const endpoint = (pattern,r) => pattern.replace('<owner>',r.owner).replace('<repo>',r.repo);
 const targetedEnv = env => ({...ghEnvironment(env),GH_HOST:CI_HOST});
-const expired = () => new Error('CI did not finish before the wait deadline');
+const expired = last => new Error(`CI did not finish before the wait deadline${last?`; last gh error: ${last.reason}`:''}`);
 
 /** One clock/deadline covers all reads, writes and sleeps, including readiness. */
-function budget({now=()=>performance.now(),deadline,runGh=ghDefault(),cwd=process.cwd(),env=process.env}={}) {
+function budget({now=()=>performance.now(),deadline,runGh=ghDefault(),cwd=process.cwd(),env=process.env,sleep=sleepAsync}={}) {
  const end=deadline??now()+CI_WAIT_TIMEOUT_MS;
  const remaining=()=>Math.floor(end-now());
+ let lastNetwork;
+ const timeout=()=>expired(lastNetwork);
  const call=args=>{
-  const left=remaining();if(left<1) throw expired();
+  const left=remaining();if(left<1) throw timeout();
   const result=ghResult(runGh,cwd,args,{env:targetedEnv(env),timeoutMs:Math.min(CI_READ_TIMEOUT_MS,left)});
-  if(remaining()<1) throw expired();
-  if(!result.ok) throw new Error(result.reason);
+  if(ghNetworkFailure(result)) lastNetwork=result;
+  if(remaining()<1) throw timeout();
+  if(!result.ok) throw Object.assign(new Error(result.reason),{ghFailure:result});
   return result.stdout;
  };
- return {call,remaining,deadline:end};
+ // Retry reads only. A lost write response must be observed, never blindly repeated.
+ const retry=async read=>{
+  for(;;) {
+   try {
+    const result=read();
+    if(result?.networkError) throw Object.assign(new Error(result.networkError.reason),{ghFailure:result.networkError});
+    return result;
+   } catch(error) {
+    if(!ghNetworkFailure(error.ghFailure)) throw error;
+    lastNetwork=error.ghFailure;
+    const delay=Math.min(CI_POLL_INTERVAL_MS,remaining());if(delay<1) throw timeout();
+    await sleep(delay);if(remaining()<1) throw timeout();
+   }
+  }
+ };
+ return {call,retry,remaining,timeout,deadline:end};
 }
 
 /** Read local origin/upstream identity; explicit branch overrides the remote head, never GH_REPO. */
@@ -73,10 +91,10 @@ export function ciReadiness(options={}) {
    if(p.mergeable==='MERGEABLE') return {ok:true,pr:p};
    if(p.mergeable!=='UNKNOWN') throw new Error(`PR #${p.number} has unreadable mergeability`);
    if(i+1===reads) return {ok:false,unknown:true,message:`PR #${p.number} mergeability is unknown; retry nana-ci-wait after GitHub computes it`};
-   const ms=Math.min(CI_READY_DELAY_MS,b.remaining());if(ms<1) throw expired();sleep(ms);
+   const ms=Math.min(CI_READY_DELAY_MS,b.remaining());if(ms<1) throw b.timeout();sleep(ms);
   }
   throw new Error('readiness has no reads');
- } catch(error) {return {ok:false,message:error.message};}
+ } catch(error) {return {ok:false,message:error.message,...(ghNetworkFailure(error.ghFailure)?{networkError:error.ghFailure}:{})};}
 }
 
 /** Success follows the run conclusion; recovery needs complete attempt-matched evidence. */
@@ -116,18 +134,18 @@ export async function waitForCi(options={}) {
  const {repository,tip,sleep=sleepAsync,writeLine=()=>{}}=options;
  const b=budget(options), notes=[], states=new Map();let last=[];
  const finish=(code,text)=>({code,text:[...notes,text].filter(Boolean).join('\n')+'\n'});
- const pause=async ms=>{const delay=Math.min(ms,b.remaining());if(delay<1) throw expired();await sleep(delay);if(b.remaining()<1) throw expired();};
+ const pause=async ms=>{const delay=Math.min(ms,b.remaining());if(delay<1) throw b.timeout();await sleep(delay);if(b.remaining()<1) throw b.timeout();};
  try {
   // Share the same budget but await readiness pauses rather than blocking the command's event loop.
   for(let i=0;;i++) {
-   const ready=ciReadiness({...options,reads:1,budget:b});
+   const ready=await b.retry(()=>ciReadiness({...options,reads:1,budget:b}));
    if(ready.ok) break;
    if(!ready.unknown || i+1>=CI_READY_READS) return finish(1,ready.message);
    await pause(CI_READY_DELAY_MS);
   }
   for(;;) {
    const api=endpoint(CI_RUNS_PATH,repository);
-   const raw=b.call(['api','--hostname',CI_HOST,`${api}?head_sha=${tip}&per_page=${CI_RUNS_PAGE_SIZE}`]);
+   const raw=await b.retry(()=>b.call(['api','--hostname',CI_HOST,`${api}?head_sha=${tip}&per_page=${CI_RUNS_PAGE_SIZE}`]));
    const verdict=judgeRuns(raw,tip,repository);
    if(!verdict.runs) return finish(1,verdict.message);
    last=verdict.runs;
@@ -141,7 +159,7 @@ export async function waitForCi(options={}) {
     if(state.waiting && String(run.id)===state.id && run.run_attempt<=state.attempt) continue;
     state.waiting=false;
     if(run.status!==CI_DONE_STATUS||run.conclusion===CI_PASS_CONCLUSION) continue;
-    const jobs=ciRunJobs(run,{...options,budget:b});
+    const jobs=await b.retry(()=>ciRunJobs(run,{...options,budget:b}));
     const kind=classifyRun(run,jobs,{workflowText:options.workflowText});
     if(kind!=='capacity-cancelled') {
      const lines=[];
@@ -155,12 +173,12 @@ export async function waitForCi(options={}) {
     }
     if(state.count>=CI_CANCEL_RERUNS) return finish(1,`${verdict.message}; capacity-cancelled after ${state.count+1} attempts`);
     // Re-read the remote PR immediately before any write: an old waiter must not cancel its successor.
-    const ready=ciReadiness({...options,reads:1,budget:b});
+    const ready=await b.retry(()=>ciReadiness({...options,reads:1,budget:b}));
     const head=ready.pr?.headRefOid ?? ready.head;
     if(head && head!==tip) return finish(1,`ci: superseded at ${tip}: branch now at ${head}`);
     if(!ready.ok && !ready.unknown) return finish(1,ready.message);
     try {b.call(['run','rerun',String(run.id),'--failed','--repo',`${CI_HOST}/${repoName(repository)}`]);}
-    catch(error) {return finish(1,`rerun ${run.id} failed: ${error.message}`);}
+    catch(error) {if(!ghNetworkFailure(error.ghFailure)) return finish(1,`rerun ${run.id} failed: ${error.message}`);}
     state.requested.add(identity);
     state.count++;state.id=String(run.id);state.attempt=run.run_attempt;state.waiting=true;
     const note=`ci: rerun ${run.id} after capacity-cancelled attempt ${run.run_attempt} (${state.count}/${CI_CANCEL_RERUNS})`;
@@ -186,10 +204,10 @@ export async function waitForMainCi(options={}) {
  const finish=code=>({code,text:lines.join('\n')+'\n'});
  try {
   const runGit=(root,args)=>{
-   const left=b.remaining();if(left<1) throw expired();
+   const left=b.remaining();if(left<1) throw b.timeout();
    const settings={timeoutMs:Math.min(CI_READ_TIMEOUT_MS,left)};
    const result=options.runGit?options.runGit(root,args,settings):spawnSync('git',args,{cwd:root,encoding:'utf8',timeout:settings.timeoutMs,maxBuffer:CHILD_OUTPUT_MAX_BYTES});
-   if(b.remaining()<1) throw expired();
+   if(b.remaining()<1) throw b.timeout();
    return result;
   };
   let sha=options.sha;
@@ -202,7 +220,7 @@ export async function waitForMainCi(options={}) {
   // Pin the final report's repo lookup too; ambient GH_REPO must not redirect it.
   const runGh=(_root,args)=>({status:0,stdout:b.call(args[0]==='repo'&&args[1]==='view'?['repo','view',`${CI_HOST}/${repoName(repository)}`,...args.slice(2)]:args)});
   for(;;) {
-   const body=JSON.parse(b.call(['api','--hostname',CI_HOST,`${endpoint(CI_RUNS_PATH,repository)}?head_sha=${sha}&event=push&branch=main&per_page=${CI_RUNS_PAGE_SIZE}`]));
+   const body=JSON.parse(await b.retry(()=>b.call(['api','--hostname',CI_HOST,`${endpoint(CI_RUNS_PATH,repository)}?head_sha=${sha}&event=push&branch=main&per_page=${CI_RUNS_PAGE_SIZE}`])));
    if(!Array.isArray(body.workflow_runs)||body.workflow_runs.length>=CI_RUNS_PAGE_SIZE) throw new Error('main workflow runs are unreadable or incomplete');
    const newest=new Map();
    for(const run of body.workflow_runs.filter(r=>r.head_sha===sha&&r.event==='push'&&r.head_branch==='main')) {
@@ -217,11 +235,11 @@ export async function waitForMainCi(options={}) {
     if(state.waiting && run.run_attempt<=state.attempt) {pending=true;continue;}
     if(run.status!==CI_DONE_STATUS) {pending=true;continue;}
     state.waiting=false;
-    const jobs=ciRunJobs(run,{...options,repository,budget:b,latest:true});
+    const jobs=await b.retry(()=>ciRunJobs(run,{...options,repository,budget:b,latest:true}));
     if(run.run_attempt>1 && !state.failures.size && !state.recovered) {
      for(let attempt=1;attempt<run.run_attempt;attempt++) {
       const earlier={...run,run_attempt:attempt};
-      const prior=ciRunJobs(earlier,{...options,repository,budget:b});
+      const prior=await b.retry(()=>ciRunJobs(earlier,{...options,repository,budget:b}));
       for(const job of prior.filter(job=>job.run_attempt===attempt&&job.status===CI_DONE_STATUS&&![CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion))) {
        state.failures.set(job.name,[...new Set([...(state.failures.get(job.name)??[]),...logFiles(earlier,job,repository)])]);
       }
@@ -244,7 +262,8 @@ export async function waitForMainCi(options={}) {
       state.failures.set(job.name,files);
       line(`Main CI: ${job.name}: red${files.length?': '+files.join(', '):''}`);
      }
-     b.call(['run','rerun',String(run.id),'--failed','--repo',`${CI_HOST}/${repoName(repository)}`]);
+     try {b.call(['run','rerun',String(run.id),'--failed','--repo',`${CI_HOST}/${repoName(repository)}`]);}
+     catch(error) {if(!ghNetworkFailure(error.ghFailure)) throw error;}
      state.count++;state.attempt=run.run_attempt;state.waiting=true;pending=true;
      line(`Main CI: rerun ${run.id} at ${sha} (${state.count}/${MAIN_CI_RED_RERUNS})`);
      continue;
@@ -260,11 +279,11 @@ export async function waitForMainCi(options={}) {
     }
    }
    if(!pending) {
-    const report=mainCi({...options,cwd,runGit,runGh,expectedSha:sha,atSha:true,writeLine:line});
+    const report=await b.retry(()=>mainCi({...options,cwd,runGit,runGh,expectedSha:sha,atSha:true,writeLine:line}));
     return finish(red||report.code!==0||report.red?1:0);
    }
-   const delay=Math.min(CI_POLL_INTERVAL_MS,b.remaining());if(delay<1) throw expired();
-   await sleep(delay);if(b.remaining()<1) throw expired();
+   const delay=Math.min(CI_POLL_INTERVAL_MS,b.remaining());if(delay<1) throw b.timeout();
+   await sleep(delay);if(b.remaining()<1) throw b.timeout();
   }
  } catch(error) {
   line(`Main CI: ${error.message}${error.message.includes('CI did not finish')?': '+(last.map(r=>`${r.name??r.path} run ${r.id} attempt ${r.run_attempt} (${r.status})`).join('; ')||'no run'):''}`);

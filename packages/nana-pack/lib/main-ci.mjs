@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/main-ci.mjs
  * @purpose Report main push CI failures and retain per-file flake evidence, optionally posting one scanned seat issue.
  * @inputs Repository cwd, environment, injected gh and optional git runners, job logs, scanner, temporary root, expected main SHA and advisory-Linux land mode.
- * @outputs A verdict, evidenceReadable flag for completed runs, per-leg failed paths and jobs, unfinished-run notice and exact posting command.
+ * @outputs A verdict, evidenceReadable flag for completed runs, per-leg failed paths and jobs, network-unreadable retry status, unfinished-run notice and exact posting command.
  * @effects disk (temporary CI downloads and clone CI flake records), process (local gh and identity scan), network (gh).
  * @errors Unreadable CI, scan failures, launcher posting and gh failures return code 1 with a named line.
  */
@@ -13,7 +13,7 @@ import path from "node:path";
 import { readCiRecords } from "./ci-records.mjs";
 import { ciSuiteLegs, requiredCiJobs, toolkitCi } from "./land-ci.mjs";
 import { finalFiles, readSuiteRecords, storeSuiteRecord } from "./suite-records.mjs";
-import { ghDefault, ghResult } from "./gh-runner.mjs";
+import { ghDefault, ghNetworkFailure, ghResult } from "./gh-runner.mjs";
 import { CI_HOST, CI_READ_TIMEOUT_MS, CI_DONE_STATUS, CI_PASS_CONCLUSION, CI_ADVISORY_JOB, MAIN_REF, TIP_DIGITS, MAIN_CI_FLAKE_FIX_COUNT } from "./land-config.mjs";
 import { GH_PAGE_SIZE, CI_WORKFLOW_RUN_PATH, GH_OUTPUT_MAX_BYTES, CI_STORE_SUBPATH, CI_RECORDS_KEEP, RECORD_SCHEMA } from "./suite-records-config.mjs";
 import { MAIN_CI_COMMAND_PREFIX, WATCH_COMMAND_PREFIX, WATCH_SEAT_MARKER, LAUNCHER_ROLES } from "./frontier-summary-config.mjs";
@@ -60,16 +60,20 @@ export function recordMainFlakes(run, failures, { cwd, runGit, writeLine }) {
 
 export function mainCi({ cwd = process.cwd(), post = false, env = process.env, runGh = ghDefault({ timeoutMs: CI_READ_TIMEOUT_MS }), runGit, scanText = defaultScan, tempRoot, expectedSha, atSha = false, advisoryLinux = false, writeLine = console.log } = {}) {
 	const line = (text) => writeLine(`Main CI: ${text}`);
+	const unreadable = (networkError, run) => {
+		line(`${run ? `run ${run.id} ${run.head_sha.slice(0, TIP_DIGITS)} ` : ""}unreadable: GitHub did not answer; retry (${networkError.reason})`);
+		return { code: 1, evidenceReadable: false, networkError, ...(run ? { run } : {}) };
+	};
 	if (post && LAUNCHER_ROLES.includes(env.NANA_ROLE)) { line("posting refused under launcher role"); return { code: 1 }; }
 	try {
 		const repoResult = ghResult(runGh, cwd, ["repo", "view", "--json", "nameWithOwner"], { env });
-		if (!repoResult.ok) throw new Error(repoResult.reason);
+		if (!repoResult.ok) { if (ghNetworkFailure(repoResult)) return unreadable(repoResult); throw new Error(repoResult.reason); }
 		const repository = JSON.parse(repoResult.stdout).nameWithOwner;
 		if (typeof repository !== "string" || !/^[\w.-]+\/[\w.-]+$/.test(repository)) throw new Error("unreadable repository");
 		const branch = MAIN_REF.replace("refs/heads/", "");
 		const endpoint = `repos/${repository}/actions/workflows/${CI_WORKFLOW_RUN_PATH.split("/").at(-1)}/runs?branch=${branch}&event=push&per_page=${GH_PAGE_SIZE}${atSha ? `&head_sha=${expectedSha}` : ''}`;
 		const result = ghResult(runGh, cwd, ["api", "--hostname", CI_HOST, endpoint], { env });
-		if (!result.ok) throw new Error(result.reason);
+		if (!result.ok) { if (ghNetworkFailure(result)) return unreadable(result); throw new Error(result.reason); }
 		const runs = JSON.parse(result.stdout).workflow_runs;
 		if (!Array.isArray(runs)) throw new Error("unreadable workflow runs");
 		const pushes = runs.filter((run) => run.event === "push" && run.head_branch === branch && run.path === CI_WORKFLOW_RUN_PATH).sort((a, b) => Number(b.id) - Number(a.id) || Number(b.run_attempt) - Number(a.run_attempt));
@@ -84,6 +88,10 @@ export function mainCi({ cwd = process.cwd(), post = false, env = process.env, r
 		const failures = toolkit ? requiredCiJobs((records.jobs ?? []).map(({ job }) => job), { main: true }).problems : [];
 		// Land and main use the same per-shard latest-execution and completeness decision.
 		const selected = ciSuiteLegs(records);
+		const networkError = records.ghFailures?.filter(ghNetworkFailure).at(-1);
+		const failedJob = records.jobs?.some(({ job }) => job.status === CI_DONE_STATUS && ![CI_PASS_CONCLUSION, "skipped", "neutral"].includes(job.conclusion));
+		const failedRecord = selected.records.some(({ record }) => record.exitCode !== 0 || record.unnamedFailures?.length || finalFiles(record).some(file => file.label === "FAIL"));
+		if (networkError && run.conclusion === CI_PASS_CONCLUSION && !failedJob && !failedRecord) return unreadable(networkError, run);
 		if (!selected.ok) failures.push(selected.reason);
 		for (const { leg, record } of selected.records) {
 			const files = finalFiles(record).filter((file) => file.label === "FAIL").map((file) => file.path);
