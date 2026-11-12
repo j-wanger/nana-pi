@@ -6,14 +6,14 @@
  *  state (common dir, HEAD, tracked and non-ignored untracked content, git config and attributes), stdout/stderr
  *  file identities, captured review text, complete()'s optional rename seam, withLock's optional open/clock/sleep seams,
  *  env NANA_REVIEW_RES_STALE_MS, and ledger files under ~/.pi/agent
- * @outputs an admission or refusal with its note and warning, a reservation file, a round appended to the
+ * @outputs an admission or refusal with its note, a reservation file, a round appended to the
  *  tally, a hash-addressed kept text, audit lines (rotated past LEDGER_MAX_BYTES), a heartbeat stopper, the
  *  projected round number, and completion results carrying the recorded verdict plus an unread-verdict note
  * @effects disk (an O_EXCL lock around every read-decide-write, reservation files, the kept-text store, the never-rotated tally
  *  and the rotated audit log), process (spawns git through spawnSync, runs a renewing
  *  heartbeat interval)
  * @errors canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control
- *  character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, uncommitted paths, an in-tree output redirect, a retired option, a git failure, a non-ignored in-tree --out, a malformed tally line, a non-regular ledger or lock path, or
+ *  character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, uncommitted paths, an in-tree output redirect, a retired option, a git failure, a non-ignored untracked or force-added ignored tracked in-tree --out, a malformed tally line, a non-regular ledger or lock path, or
  *  a lost reservation
  */
 // The store retains its existing names so old histories remain readable.
@@ -528,11 +528,11 @@ function parseReview(args, cwd) {
   const outAbs = out ? resolve(cwd, out) : null;
   // Protect tracked output and redirects even when the source is already dirty.
   const root = reviewRoot(tree);
-  const warning = out ? outInTree(root, outAbs) : null;
+  if (out) outInTree(root, outAbs);
   const redirect = inTreeRedirect(root);
   if (redirect) throw new Error(`redirect the review log outside the reviewed tree (${redirect})`);
   const revision = deriveRevision(revArg, tree);
-  return { key: { repo: revision.repo, item }, revision: revision.id, role, out, cwd: tree, revArg, warning };
+  return { key: { repo: revision.repo, item }, revision: revision.id, role, out, cwd: tree, revArg };
 }
 function deriveRevision(revArg, tree) {
   const scope = treeScope(tree);
@@ -636,7 +636,7 @@ export function admit(args, { launcher, pid = process.pid, home = homedir(), cwd
       const note = `${d.where}; admitted as round ${d.round}` +
         (d.again ? ' (revision already counted — no new round)' : '') +
         ` (${q.role} @ ${shortRev(q.revision)})`;
-      return { ok: true, id, res, note, warning: q.warning };
+      return { ok: true, id, res, note };
     });
   } catch (e) {
     return { ok: false, message: failMessage(e) };
@@ -652,7 +652,7 @@ export function project(args, { home = homedir(), cwd = process.cwd() } = {}) {
     const run = () => decide(p, q.key, q.revision, false);
     const d = lstatOrNull(p.dir) ? withLock(p, run) : run(); // no ledger dir: nothing to read, nothing created
     return { ok: true, note: `${d.where}; next review of ${shortRev(q.revision)} would be round ${d.round}` +
-      (d.again ? ' (revision already counted — no new round)' : ''), warning: q.warning };
+      (d.again ? ' (revision already counted — no new round)' : '') };
   } catch (e) {
     return { ok: false, message: failMessage(e) };
   }

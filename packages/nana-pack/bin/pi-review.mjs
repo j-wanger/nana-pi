@@ -6,7 +6,7 @@
  *  and the pi args), the user-scope review ledger, the reviewed tree's git revision, and
  *  prompts/review-standard.md and the brief feature's known bugs
  * @outputs the review text written to --out and the kept-text store, a round recorded in the ledger,
- *  an external temporary known-bug prompt file, and admission, warning and SUCCESS, FAILED or unread-verdict lines
+ *  an external temporary known-bug prompt file, and admission and SUCCESS, FAILED or unread-verdict lines
  * @effects disk (output, checkout, known-bug prompt and review store), process (git, watchdog child and heartbeat)
  * @errors exit 1 when admission is refused (a git failure, a bad --out, bad args, a missing,
  *  non-regular or blank review standard), when every attempt stalled or failed, when the round could not
@@ -64,7 +64,6 @@ if (optionValue('--role') === 'land') {
 const sourceTree = resolve(process.cwd(), optionValue('--tree', '.'));
 const outPath = resolve(process.cwd(), w.outPath);
 let sourceScope, sourceRevision, sourceRoot;
-let sourceOutWarning = null;
 let tempRoot = null, tempRootReal = null, admittedId = null, setupSignal = null;
 let knownBugFolder = null;
 const setupSignalHandlers = new Map(['SIGINT', 'SIGTERM', 'SIGHUP'].map((signal) => [signal, () => { setupSignal = signal; }]));
@@ -118,13 +117,12 @@ const removeWorktree = () => {
 };
 try {
   sourceRoot = reviewRoot(sourceTree);
-  sourceOutWarning = outInTree(sourceRoot, outPath);
+  outInTree(sourceRoot, outPath);
   const sourceRedirect = inTreeRedirect(sourceRoot);
   if (sourceRedirect) throw new Error(`redirect the review log outside the reviewed tree (${sourceRedirect})`);
   reclaimDeadReviewWorktrees();
   sourceScope = treeScope(sourceTree);
   sourceRevision = resolveRevision(optionValue('--revision'), sourceScope, sourceScope.root);
-  if (sourceOutWarning) process.stderr.write(`pi-review: WARNING: ${sourceOutWarning}\n`);
   // Initialized submodules are not populated by the detached checkout.
   const gitlinks = git(sourceRoot, ['ls-files', '--stage', '-z']).split('\0').filter((x) => x.startsWith('160000 ')).map((x) => x.slice(x.indexOf('\t') + 1));
   for (const p of gitlinks) {
@@ -152,7 +150,6 @@ try {
   if (!adm.ok) throw new Error(adm.message);
   admittedId = adm.id;
   process.stderr.write(`pi-review: ${adm.note}\n`);
-  if (adm.warning) process.stderr.write(`pi-review: WARNING: ${adm.warning}\n`);
 
   let reviewBrief = '';
   for (let i=0;i<w.piArgs.length;i++) {

@@ -34,7 +34,6 @@ export async function runReview(args, command, { input, onSpawn, admission, unre
   const note = message => process.stderr.write(`${launcher}: ${message}\n`);
   if (!adm.ok) { note(adm.message); return 1; }
   note(adm.note);
-  if (adm.warning) note(`WARNING: ${adm.warning}`);
   const out = adm.res.out;
   let folder = null, stopHeartbeat = () => {};
   const cleanup = () => { release(adm.id); if (folder) { try { rmSync(folder, { recursive: true, force: true }); } catch {} } };
