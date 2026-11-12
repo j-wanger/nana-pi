@@ -426,6 +426,7 @@ const RUNTIME_INVENTORY_TEXT = {
 	"nana-adoption": "`nana-adoption`",
 	"nana-knowledge": "`nana-knowledge`",
 	"nana-roster-notice.mjs": "nana-roster-notice.mjs",
+	"nana-rm-guard.mjs": "nana-rm-guard.mjs",
 	"nana-roster-notice": "`nana-roster-notice`",
 	"nana-rulings": "`nana-rulings`",
 };

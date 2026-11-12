@@ -105,7 +105,7 @@ seed(f7Home, { hooks: { PreToolUse: clone(f7Groups) } });
 const f7Install = run(['install', '--home', f7Home]);
 const f7After = JSON.parse(fs.readFileSync(settingsPath(f7Home), 'utf8'));
 // req: R-1888 R-1889
-check('win32 install: owner verifier look-alikes and their extra keys stay byte-identical', f7Install.status === 0 && byteEqual(f7After.hooks.PreToolUse, f7Groups), f7Install.stdout);
+check('win32 install: owner verifier look-alikes and their extra keys stay byte-identical', f7Install.status === 0 && byteEqual(f7After.hooks.PreToolUse.map(group => ({ ...group, hooks: group.hooks.filter(hook => !hook.args?.[0]?.endsWith('/nana-rm-guard.mjs')) })), f7Groups), f7Install.stdout);
 
 const f1Doctor = run(["doctor", "--home", f1Home]);
 const f1BeforeSecond = fs.readFileSync(settingsPath(f1Home));
@@ -149,7 +149,7 @@ seed(f4Home, { hooks: {
 } });
 const f4Install = run(["install", "--home", f4Home]);
 const f4After = JSON.parse(fs.readFileSync(settingsPath(f4Home), "utf8"));
-const f4Preserved = f4Install.status === 0 && byteEqual(f4After.hooks.SessionStart[0].hooks.slice(0, f4ObjectiveLookalikes.length), f4ObjectiveLookalikes) && byteEqual(f4After.hooks.PreToolUse.find((group) => group.matcher === "Bash")?.hooks, [f4Verifier]) && byteEqual(f4After.hooks.UserPromptSubmit[0].hooks, [f4Knowledge]);
+const f4Preserved = f4Install.status === 0 && byteEqual(f4After.hooks.SessionStart[0].hooks.slice(0, f4ObjectiveLookalikes.length), f4ObjectiveLookalikes) && byteEqual(f4After.hooks.PreToolUse.find((group) => group.matcher === "Bash")?.hooks.slice(0, 1), [f4Verifier]) && byteEqual(f4After.hooks.UserPromptSubmit[0].hooks, [f4Knowledge]);
 // req: R-653
 check("win32 install: shell-form look-alikes (timeout, message, quoting, folder) stay byte-identical", f4Preserved, `${f4Install.stdout}\n${JSON.stringify(f4After.hooks)}`);
 
@@ -174,7 +174,7 @@ const vDoctor = run(["doctor", "--home", vHome]);
 const slashPath = (value) => value.replaceAll("\\", "/");
 const installCommand = (wanted) => [wanted.entry.command, ...wanted.entry.args].map(slashPath).join(" ");
 const safeRoute = "remove that entry by hand, then run nana-setup install";
-const vRowsRepairByHand = winWanted.every((wanted, index) => {
+const vRowsRepairByHand = winWanted.filter(wanted => wanted.event === "SessionStart").every((wanted, index) => {
 	const line = settingsLine(vDoctor.stdout, wanted.label);
 	const editRoute = `to edit instead, run ${installCommand(wanted)}`;
 	return line?.trimStart().startsWith("✗ ") && line.includes(slashPath(adviceDeadPaths[index])) && !line.slice(line.indexOf("install leaves")).includes("\\") && line.includes(safeRoute) && line.includes(editRoute) && line.indexOf(safeRoute) < line.indexOf(editRoute);

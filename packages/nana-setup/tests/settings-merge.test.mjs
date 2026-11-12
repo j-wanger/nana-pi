@@ -36,7 +36,7 @@ const wanted = desiredHooks({ hooksDir: "/h", repoRoot: "/r" });
 // Historical descriptors exercise public helpers, not install's active wanted set.
 const historicalHooks = options => [...desiredHooks(options), retiredKnowledgeHook(options)];
 const spec = (label) => (wanted.find((w) => w.label === label) ?? retiredKnowledgeHook()).spec;
-check("four active hook entries are wanted", wanted.length === 4);
+check("five active hook entries are wanted", wanted.length === 5);
 
 /* --- paths are quoted, so a space in the home or clone still runs --------------------- */
 {
@@ -89,7 +89,7 @@ check("four active hook entries are wanted", wanted.length === 4);
 {
 	const s = {};
 	const r = mergeHooks(s, wanted);
-	check("empty settings: all four active entries added", r.added.length === 4);
+	check("empty settings: all five active entries added", r.added.length === 5);
 	check("empty settings: one group per event", s.hooks.SessionStart.length === 1 && s.hooks.UserPromptSubmit === undefined);
 	// req: R-316
 	check("empty settings: merging again adds nothing", mergeHooks(s, wanted).added.length === 0);
@@ -110,7 +110,7 @@ check("four active hook entries are wanted", wanted.length === 4);
 	};
 	const before = JSON.stringify(s.hooks.Stop);
 	const r = mergeHooks(s, wanted);
-	check("the other four are added", r.added.length === 4);
+	check("the other five are added", r.added.length === 5);
 	// req: R-316
 	check("foreign SessionStart hook still first", s.hooks.SessionStart[0].hooks[0].command.endsWith("session-start.sh"));
 	// req: R-316
@@ -163,6 +163,7 @@ check("four active hook entries are wanted", wanted.length === 4);
 		{ event: "SessionStart", label: "SessionStart adoption", marker: "nana-adoption.mjs", spec: { interpreters: ["node"], script: "nana-adoption.mjs" }, entry: { type: "command", command: "node '/h/nana-adoption.mjs'", timeout: 5, statusMessage: "nana: unadopted repositories" } },
 		{ event: "SessionStart", label: "SessionStart shared-memory", marker: "nana-shared-memory.mjs", spec: { interpreters: ["node"], script: "nana-shared-memory.mjs" }, entry: { type: "command", command: "node '/h/nana-shared-memory.mjs'", timeout: 5, statusMessage: "nana: shared memory index" } },
 		{ event: "SessionStart", label: "SessionStart roster notice", marker: "nana-roster-notice.mjs", spec: { interpreters: ["node"], script: "nana-roster-notice.mjs" }, entry: { type: "command", command: "node '/h/nana-roster-notice.mjs'", timeout: 5, statusMessage: "nana: roster notice" } },
+		{ event: "PreToolUse", matcher: "Bash", label: "PreToolUse rm guard", marker: "nana-rm-guard.mjs", spec: { interpreters: ["node"], script: "nana-rm-guard.mjs" }, entry: { type: "command", command: "node '/h/nana-rm-guard.mjs'", timeout: 5, statusMessage: "nana: agent deletion guard" } },
 	];
 	// req: R-1061
 	// req: R-1208

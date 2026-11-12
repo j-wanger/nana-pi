@@ -216,6 +216,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-setup/tests/readme-rehearsal.test.mjs": "module",
   "packages/nana-setup/tests/relative-agent-dir.test.mjs": "module",
   "packages/nana-setup/tests/retired-artifacts.test.mjs": "module",
+  "packages/nana-setup/tests/rm-guard.test.mjs": "land",
   "packages/nana-setup/tests/roster-notice-hook.test.mjs": "land",
   "packages/nana-setup/tests/rulings-install.test.mjs": "module",
   "packages/nana-setup/tests/seat-pull-off.test.mjs": "module",

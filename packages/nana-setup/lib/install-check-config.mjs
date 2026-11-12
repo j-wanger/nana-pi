@@ -12,6 +12,8 @@ export const HOOKS = [
   { label: "hook adoption", shortLabel: "adoption", event: "SessionStart", matcher: "startup", script: "nana-adoption.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook shared memory", shortLabel: "shared memory", event: "SessionStart", matcher: "startup", script: "nana-shared-memory.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
   { label: "hook roster notice", shortLabel: "roster notice", event: "SessionStart", matcher: "startup", script: "nana-roster-notice.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
+  // Contract: R-4263, agent-only Bash PreToolUse guard (2026-11-12).
+  { label: "hook rm guard", shortLabel: "rm guard", event: "PreToolUse", matcher: "Bash", script: "nana-rm-guard.mjs", timeout: 5, form: { darwin: "shell", linux: "shell", win32: "exec" } },
 ];
 // contract: R-1209 — independent of nana-pack's roster-notice-config.mjs (the install check's
 // own sealed contract), so a notice-config change cannot silently loosen what the check accepts.
