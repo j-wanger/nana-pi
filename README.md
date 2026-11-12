@@ -112,6 +112,11 @@ selection count and wall time. An empty selection passes; an unreadable diff fai
 Uncommitted edits do not widen selection; stale main only widens the committed diff, so no fetch is needed.
 It stops at the first failure and names it;
 the ordered list comments identify the recorded lost rounds. This is not a full suite.
+A repeat reuses the worktree-local git pass record only when working-tree content (including
+untracked non-ignored files), main, Node version and the check-list/script hash are unchanged.
+The reuse line names the pass time and content key; committing unchanged content preserves it.
+`npm run check:lane -- --fresh` forces all checks. Key errors run checks; failures, crashes,
+interruptions and edits during a run record no pass.
 
 `npm run readme:check` holds every README in `readme-check.config.json` to its claims. All
 three are thin shims — `scripts/code-map.mjs`, `scripts/readme-check.mjs` and

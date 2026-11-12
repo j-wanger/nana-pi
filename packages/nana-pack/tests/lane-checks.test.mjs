@@ -158,6 +158,42 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
     }
   }
 }
+// req: R-3996
+await check('R-3996: unchanged content reuses a full pass and edits force checks', () => fixture(({ root, lane, env, git, commit }) => {
+  const runner = fileURLToPath(new URL('../../../scripts/check-lane.mjs', import.meta.url));
+  const preload = join(root, 'checks-preload.cjs');
+  const mode = join(root, 'check-mode');
+  // Exercise the real cache and git index, but never re-run project checks from a suite test.
+  fs.writeFileSync(preload, `const cp=require('node:child_process'), fs=require('node:fs');
+    const original=cp.spawnSync;
+    cp.spawnSync=(command,args,options)=> {
+      if(command!==process.execPath) return original(command,args,options);
+      const mode=fs.existsSync(${JSON.stringify(mode)}) ? fs.readFileSync(${JSON.stringify(mode)},'utf8') : '';
+      return mode==='crash' ? {status:null,signal:'SIGTERM'} : {status:mode==='fail'?1:0};
+    };
+    require('node:module').syncBuiltinESMExports();`);
+  const run = (...args) => {
+    const result = spawnSync(process.execPath, ['--require', preload, runner, ...args], { cwd: lane, env, encoding: 'utf8', timeout: 10000 });
+    assert.equal(result.error, undefined);
+    return result;
+  };
+  const full = (...args) => { const r=run(...args); assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /running: requirements-trace/); assert.match(r.stdout, /check:lane: pass/); return r; };
+  const reuse = () => { const r=run(); assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /^check:lane: reusing pass recorded at .+; content key [a-f0-9]{64}\n$/); return r; };
+  full(); reuse();
+  assert.equal(git('status', '--porcelain'), '', 'cache must stay outside the tree');
+  fs.writeFileSync(join(lane, 'seed'), 'edited'); full(); reuse();
+  fs.writeFileSync(join(lane, 'new file'), 'untracked'); full();
+  commit(); reuse();
+  full('--fresh'); reuse();
+  for (const modeName of ['fail', 'crash']) {
+    fs.writeFileSync(mode, modeName);
+    const r=run('--fresh'); assert.equal(r.status, modeName==='fail'?1:2);
+    fs.rmSync(mode); full(); reuse();
+  }
+  git('update-ref', 'refs/heads/main', 'HEAD'); full(); reuse();
+  assert.equal(git('diff', '--cached'), '', 'temporary index must not stage files');
+}));
+
 const red = "console.error('lost-round output'); console.error('check:lane: fail: test-packs'); process.exitCode=1;";
 const pass = "if (!require('node:fs').existsSync('built-tip')) throw Error('checked the base, not the tip'); console.log('check:lane: pass');";
 

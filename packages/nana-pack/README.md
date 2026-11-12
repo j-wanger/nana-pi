@@ -362,6 +362,12 @@ It reports the selection count before running and each step's wall time, passes 
 A lane changing the runner or a shared test helper selects nearly every test; the recorded
 233-file broad run took 543.5 seconds on the seat's Mac (2026-11-11).
 Selection ignores uncommitted edits and requires no fetch; a stale main only widens the diff.
+After a full pass, the root runner records its content key and time in the worktree's own
+git directory. A repeat with unchanged working-tree content (including untracked non-ignored
+files), main commit, Node version and check-list/script hash prints one reuse line naming
+that pass's time and key, without running checks. `npm run check:lane -- --fresh` always
+runs the full rail. Key errors fall back to full checks; failed, crashed or interrupted runs
+record no pass. Edits during checks prevent recording a pass.
 It prints `check:lane: pass` on success;
 `check:lane: fail: <check>` ends at the first red check with exit 1, while a spawn
 error or signal prints `check:lane: error: <check>` with exit 2. This supplements CI.
