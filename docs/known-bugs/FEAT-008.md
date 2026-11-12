@@ -71,10 +71,10 @@
 - Carry (land-merged-tests): `nana-land.mjs` swallows merge-coverage computation errors, leaving only uncovered-commit diagnostics without the refusal cause.
 - Carry (land-merged-tests): `nana-land.mjs` checks review coverage before moved-main refusal, so hand-resolved lane merges can hide the needed main-merge remedy.
 - Carry (land-merged-tests): `packages/nana-pack/README.md` phrases `merge.renormalize=false`, `check-attr --source`, `git ≥ 2.40` and `bors-ng` lack direct tests after M9's removal.
-- gh network (gh-network, review 1, 2026-11-12): the waiter treats a rerun request that fails before sending as delivered. The waiter waits its full budget for a run that finished red; it still exits 1.
-- gh network (gh-network, review 1, 2026-11-12): gh's real DNS failure prints "error connecting to <host>" then "check your internet connection". Only the first line is read, so it is not classed as a network error.
-- gh network (gh-network, review 1, 2026-11-12): one network failure in a read hides a real non-network problem in the same read. Land still refuses.
+- gh network (gh-network, review 1, 2026-11-12): `packages/nana-pack/lib/ci-wait.mjs` (lines 180–183 and 265–268) treats a rerun request that fails before sending as delivered. The main waiter waits its full budget for a run that finished red; the lane waiter does so after a capacity cancellation. Both still exit 1.
+- gh network (gh-network, review 1, 2026-11-12): gh's real DNS failure prints "error connecting to <host>" then "check your internet connection". Only the first line is read, and the classifier in `packages/nana-pack/lib/gh-runner.mjs` (about line 83) matches neither line.
+- gh network (gh-network, review 1, 2026-11-12): In `packages/nana-pack/lib/main-ci.mjs` (about line 94), one network failure hides a non-network problem in the same read. Land still refuses.
 - gh network (gh-network, review 1, 2026-11-12): the classifier also matches non-network text, including the timeout RangeError and the waiter's own deadline error.
 - gh network (gh-network, review 1, 2026-11-12): a good read does not clear the last network error.
-- gh network (gh-network, review 1, 2026-11-12): land mode ignores the advisory-Linux exemption when a network failure is present.
+- gh network (gh-network, review 1, 2026-11-12): land mode ignores the advisory-Linux exemption when a network failure is present. The read prints "red" and a post line instead of "unreadable".
 - gh network (gh-network, review 1, 2026-11-12): each retry under `--wait` adds another unreadable line.

@@ -43,9 +43,9 @@
 - Template Biome (biome-pin, final review): if the adopt render fails, R-2559 fails too, repeating the render failure without hiding it.
 - Template Biome (biome-pin, final review): the seat pair script cuts each FAIL line at 140 characters, so b4's line in the output file ends mid-sentence.
 - Template Biome (biome-pin, final review): the TypeScript template's `^5.9.0` and `^22.0.0` ranges carry the same open-range risk as ruff, though they are less likely to break a lint gate.
-- Project check (project-drift-notice): the named fix also seeds any absent frontier file and month log. It replaces a CLAUDE.md placeholder, writes `.pi/nana-pack.json` and starts a knowledge build.
+- Project check (project-drift-notice): the fix named by `project --check` also seeds any absent frontier file and month log. It replaces a CLAUDE.md placeholder, writes `.pi/nana-pack.json` and starts a knowledge build.
 - Project check (project-drift-notice): a copier project compares against main's shared section, not its template tag. Its documented copier update does not clear the drift, and the named fix writes unreleased text that a later update may conflict with.
-- Project check (project-drift-notice, independent check): a read-only AGENTS.md with a drifted region gets a `project` fix that skips the file. A read-only root makes `nana-setup project` exit 1 with a stack trace.
+- Project check (project-drift-notice, independent check): a read-only root makes `nana-setup project` exit 1 with a stack trace.
 - Project check (project-stale-docs, review 1, 2026-11-12): `project --check` crashes with a stack trace on an unreadable (mode-000) AGENTS.md before printing any row. This also happens with an OBJECTIVE.md folder in the root.
 - Deliverable lines (park-honestly, final review): R-1150's CI maker, the release job, runs only on a push to main, never on a pull request run. Pull requests still run the render test in the suite; R-596 has the same gap.
 - Project check (project-check-line, plan): `project --check` prints a symlink target raw, so a target holding a newline breaks its one-row-per-line shape (measured).
