@@ -308,7 +308,7 @@ export function diagnose(layout, opts = {}) {
 	const checks = [];
 	const add = (status, label, detail, installLabel) => checks.push({ status, label, detail, ...(installLabel === undefined ? {} : { installLabel }) });
 
-	// --- runtime floor: the `node` the objective hook will run (the one on this PATH) ---
+	// --- runtime floor: the `node` the objective and rm guard hooks will run (on this PATH) ---
 	// R-1057: win32 runs this too now, on whatever `node` doctor's own PATH finds — which may
 	// differ from the one Claude Code's exec-form hooks resolve (declared limit, CHANGE.md §3).
 	{
@@ -318,8 +318,8 @@ export function diagnose(layout, opts = {}) {
 			v && versionAtLeast(v, NODE_FLOOR) ? OK : FAIL,
 			"node for the objective hook",
 			v
-				? `${v}${versionAtLeast(v, NODE_FLOOR) ? "" : ` is older than ${NODE_FLOOR} — the objective hook prints OBJECTIVE UNAVAILABLE until Node is upgraded`} (needs ≥ ${NODE_FLOOR})`
-				: `node not found on PATH (needs ≥ ${NODE_FLOOR})`,
+				? `${v}${versionAtLeast(v, NODE_FLOOR) ? "" : ` is older than ${NODE_FLOOR} — the objective hook prints OBJECTIVE UNAVAILABLE and the rm guard gives no decision until Node is upgraded`} (needs ≥ ${NODE_FLOOR})`
+				: `node not found on PATH — the objective hook is unavailable and the rm guard gives no decision (needs ≥ ${NODE_FLOOR})`,
 		);
 	}
 

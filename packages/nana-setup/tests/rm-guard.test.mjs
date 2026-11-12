@@ -7,7 +7,7 @@
  * @errors Assertion failures fail the test.
  */
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -68,14 +68,44 @@ await test("recorded agent outside deletion denies while seat and inside deletio
 });
 
 // req: R-4261
+await test("inside final-part expansions and plain deletes beside complex commands stay silent", { timeout: 45000 }, () => {
+ for (const command of ["rm -f ./out/*.json", "rm *.log", "rm -rf {build,out}",
+  "rm -f out/file?.[jt]s", "rm -rf out/{build,dist}",
+  'rm -f scratch.txt && git commit -m "$(cat <<\'EOF\'\ncleanup\nEOF\n)"',
+  "rm -rf build && (npm ci)", "rm -rf build; ls `pwd`",
+  "rm -rf build && find . | xargs grep foo"]) {
+  assert.equal(run(payload(command)), "", command);
+ }
+});
+
+// req: R-4261
+await test("outside expansions find exec roots and nested deletes deny", { timeout: 45000 }, () => {
+ mkdirSync(join(root, "elsewhere"));
+ symlinkSync(join(root, "elsewhere"), join(cwd, "linkout"), process.platform === "win32" ? "junction" : "dir");
+ for (const command of ["rm -rf ../*", "rm -rf linkout/*", "rm -rf /tmp/x*",
+  "rm -rf {build,../out}", "rm -rf {build,out/sub}", "rm -rf build/*/", "rm -rf build/*/file",
+  "find /tmp -name 'nana-*' -exec rm -rf {} +", "find /x -execdir rm {} \\;",
+  "cd linkout; find . -exec rm {} +", "find linkout -ok unlink {} \\;", "find linkout -okdir rmdir {} \\;",
+  "bash -c 'rm -rf build'", "echo x | xargs rm", 'echo "$(rm build)"', "echo `rm build`",
+  "rm build && echo \"$(rm out)\"",
+  "rm -rf ~/x", 'rm -r "$HOME"/x', "cd .. && rm x", "cd /tmp; rm x", "pushd /tmp; rm x",
+  "find /x -delete", "find ~/x -delete", "git -C /x clean", "xargs rm", "(cd /tmp && rm x)",
+  "\\rm /tmp/x", "/bin/rm /tmp/x", "env rm /tmp/x", "nice rm /tmp/x", "timeout 5 rm /tmp/x",
+  "rm -rf linkout/", "rm -rf linkout/sub", "find -H link* -delete"]) denied(command);
+ for (const command of ["find . -exec rm {} +", "find build -execdir rm {} \\;", "find . -ok unlink {} \\;", "find . -okdir rmdir {} \\;"]) {
+  assert.equal(run(payload(command)), "", command);
+ }
+});
+
+// req: R-4261
 await test("unresolved deletion targets deny for seat review", { timeout: 45000 }, () => {
- for (const command of ['rm -rf "$TARGET"', 'rm -rf build/*', 'rm -rf "$(printf /tmp/x)"',
+ for (const command of ['rm -rf "$TARGET"', 'rm -rf "$(printf /tmp/x)"',
   'find /tmp/x -delete', 'find -H /tmp/x -delete', 'find -files0-from list -delete',
   'find ./build -follow -delete', 'printf /tmp/x | xargs rm', 'bash -c "rm -rf /tmp/x"',
   `rmdir '${join(root, "outside")}'`, `unlink '${join(root, "outside")}'`,
   `git -C '${root}' clean -fd`, 'cd "$TARGET"; rm x', 'xargs -a list rm',
   'bash -o pipefail -c "rm /tmp/x"', 'cd build/..; rm x']) denied(command);
- for (const command of ["rmdir build", "unlink ./build", "find build -delete", "git clean -fd -- build"]) {
+ for (const command of ["rm -rf build/*", "rmdir build", "unlink ./build", "find build -delete", "git clean -fd -- build"]) {
   assert.equal(run(payload(command)), "", command);
  }
 });

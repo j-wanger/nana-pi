@@ -62,3 +62,10 @@
 - Git Bash paths in the gate (gate-rm-gitbash-tmp, two reviews): on Windows without Git Bash, the test header promises 16 pass and 1 skip. The real count there is 15 pass and 2 skip.
 - Git Bash paths in the gate (gate-rm-gitbash-tmp, final review): R-2492 says any spelling that starts with a slash and one letter reads as a drive. The code leaves a spelling with a backslash or a leading double slash unread, so it asks.
 - Gate blocks (audit re-check, 2026-10-22): a gate block is never kept, so no count of blocks exists.
+- Claude agent rm guard (review 1, 2026-11-12): `git clean -e/--exclude` is denied even though exclusions only narrow deletion.
+- Claude agent rm guard (review 1, 2026-11-12): git environment prefixes such as `GIT_WORK_TREE=…` and `GIT_DIR=…` are not judged.
+- Claude agent rm guard (review 1, 2026-11-12): inline interpreter deletes, `rsync --delete`, `shred -u` and `git worktree remove` are not judged.
+- Claude agent rm guard (review 1, 2026-11-12): `rm -rf <the cwd itself>` gets no decision.
+- Claude agent rm guard (review 1, 2026-11-12): conservative over-denies include `rm -rf linkout` without a slash, `cd build; rm -rf ../out`, `xargs git rm` and a heredoc line starting with `rm`.
+- Claude agent rm guard (review 1, 2026-11-12): the hook trusts the input `cwd`; behaviour after a persistent `cd` is unverified.
+- Claude agent rm guard (review 1, 2026-11-12): the PowerShell tool is not matched.
