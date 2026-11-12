@@ -54,7 +54,7 @@ The memory store is always private. Nothing in it reaches a public repo. A lesso
 | Reviewers | the feature's known bugs; decisions the change must honour | — | user memory; the builder's reasoning |
 | Lands and CI | — | — | they are sources for making, not consumers |
 
-Claude Code builders and both reviewers share the feature known-bug digest. Files within its post-header budget pass unchanged. Over budget, it keeps the header and only whole lines matching brief Precedent paths or backticked spans, with no unmatched fill. The fold counts omitted lines, names the source to read, and points to `docs/known-bugs/` for every feature. Reviewers select the file from the brief's Feature line. Pi builders receive a read instruction instead.
+Claude Code builders and both reviewers share the feature known-bug digest. Files within its post-header budget pass unchanged. Over budget, it keeps the header and selects whole bug lines using the brief's Precedent paths or any backticked span: full path, basename, and name up to the first dot, with a minimum of four characters per term and no unmatched fill. Reviewers also add the reviewed tree's changed files against the merge-base of HEAD and main, with both names of renamed files (`--no-renames`), using the same derivation. If git fails or main is missing, reviewers silently fall back to brief terms alone. The fold counts omitted lines, names the source to read, and points to `docs/known-bugs/` for every feature. Reviewers select the file from the brief's Feature line. Pi builders receive a read instruction instead.
 
 ## How retrieval works
 

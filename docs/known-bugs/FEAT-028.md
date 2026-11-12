@@ -93,7 +93,7 @@
 - Artifact readers (artifact-readers, plan): the rule that a currency or presence check is not a reader is prose. The checker cannot tell, and A-053's Reads line still counts.
 - Artifact readers (artifact-readers, plan): the test-reader rule is a file-name rule, so spec files and test helpers without `.test.` pass.
 - Artifact readers (artifact-readers, plan): the outline does not list artifact Read by or Parked lines; the movement report does.
-- Artifact readers (artifact-readers, plan): the template prose edit cuts a template tag on land, so copier-linked projects show drift.
+- Artifact readers (artifact-readers, plan): the template prose edit cuts a template tag on land. Only `project --check` reports shared-section drift in copier-linked projects; session start no longer reports it.
 - Artifact readers (artifact-readers, plan): projects that carry a registry get the coverage note the first time they run the checker, report-only there.
 - Artifact readers (artifact-readers, plan): the assessment's extra Reads lines for A-038, A-039 and A-050 stay unrecorded.
 - Artifact readers (artifact-readers, final review): the Read by lines of A-067 and A-068 name the stale-copies module, which only checks currency. pi and Claude Code read those files at session start, so runtime lines should name them.
