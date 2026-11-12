@@ -243,8 +243,12 @@ export const TEST_PACKS = Object.freeze({
 
 /** Fail closed rather than silently dropping a newly collected file. */
 export function packProblems(files, membership = TEST_PACKS) {
-  return files.filter(file => typeof membership[file] !== "string" || !PACK_NAMES.includes(membership[file]))
-    .map(file => `test pack missing or ambiguous: ${file}`);
+  return [
+    ...files.filter(file => typeof membership[file] !== "string" || !PACK_NAMES.includes(membership[file]))
+      .map(file => `test pack missing or ambiguous: ${file}`),
+    ...EXECUTION_FAIL_SAFE_PATHS.filter(file => !Object.hasOwn(FAIL_SAFE_PATHS, file))
+      .map(file => `execution fail-safe path missing from FAIL_SAFE_PATHS: ${file}`),
+  ];
 }
 
 // contract (ci-packs M7, R-3856), chosen 2026-11-07: text readers have no import edges.
@@ -272,6 +276,12 @@ export const FAIL_SAFE_PATHS = Object.freeze({
   "package.json": "contract R-3856: runner command",
   "code-map.config.json": "contract R-3856: graph configuration",
 });
+// chosen (R-3853), 2026-11-12, release-failsafe build 2: execution paths; slow-tests review SHOULD-1
+export const EXECUTION_FAIL_SAFE_PATHS = Object.freeze([
+  "scripts/test.mjs",
+  "packages/nana-pack/lib/test-runner-config.mjs",
+  "package.json",
+]);
 // contract (R-3851, R-3853), chosen 2026-11-12: retain setup-tail's only Windows
 // execution route, including the old release-pack triggers, without promoting other files.
 export const RELEASE_COVERAGE_HOLDS = Object.freeze({

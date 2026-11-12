@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/test-packs-ci.test.mjs
  * @purpose Pin event-specific CI packs and every pack-record consumer through real runner output.
  * @inputs Workflow, pack membership, copied runner fixtures and injected GitHub artifact transport.
- * @outputs Five awaited bounded must-meet verdicts.
+ * @outputs Six awaited bounded must-meet verdicts.
  * @effects disk (OS temp only), process (runner and git children).
  * @errors Failed assertions set exit 1.
  */
@@ -88,13 +88,29 @@ await check("M4b: fail-safe policy and unreadable diff lanes select every releas
   const { repoGraph } = await import("../../../scripts/code-map.mjs");
   const membership = Object.fromEntries(Object.entries(TEST_PACKS).filter(([, pack]) => pack === "release"));
   const files = Object.keys(membership);
-  for (const readDiff of [() => ["packages/nana-pack/lib/test-runner-config.mjs"], () => { throw new Error("diff unavailable"); }]) {
-    const selected = await selectPackFiles({ root: REPO, files, membership, packs: ["land", "module"], changedFrom: "main", readDiff, makeGraph: () => repoGraph(REPO) });
+  const selectionPath = "packages/nana-pack/lib/test-packs-config.mjs";
+  const cases = [
+    ...["packages/nana-pack/lib/test-runner-config.mjs", "scripts/test.mjs", "package.json"].map(file => ({ readDiff: () => [selectionPath, file] })),
+    { readDiff: () => { throw new Error("diff unavailable"); } },
+    { readDiff: () => [selectionPath], makeGraph: () => { throw new Error("graph unavailable"); } },
+  ];
+  for (const { readDiff, makeGraph = () => repoGraph(REPO) } of cases) {
+    const selected = await selectPackFiles({ root: REPO, files, membership, packs: ["land", "module"], changedFrom: "main", readDiff, makeGraph });
     assert(selected.selection.failSafe);
     assert.deepEqual(selected.files.sort(), [...files].sort());
     assert.deepEqual(selected.selection.release.map(item => item.path).sort(), [...files].sort());
     assert(selected.selection.release.every(item => item.reasons.includes(`fail-safe: ${selected.selection.failSafe}`)));
   }
+});
+// req: R-3853
+await check("M4c: selection-only fail-safe retains setup-tail without slow release files", async () => {
+  const { selectPackFiles } = await import("../../../scripts/test-packs.mjs");
+  const { repoGraph } = await import("../../../scripts/code-map.mjs");
+  const membership = Object.fromEntries(Object.entries(TEST_PACKS).filter(([, pack]) => pack === "release"));
+  const selected = await selectPackFiles({ root: REPO, files: Object.keys(membership), membership, packs: ["land", "module"], changedFrom: "main", readDiff: () => ["packages/nana-pack/lib/test-packs-config.mjs"], makeGraph: () => repoGraph(REPO) });
+  assert.equal(selected.selection.failSafe, "policy path changed: packages/nana-pack/lib/test-packs-config.mjs");
+  assert.deepEqual(selected.files, ["packages/nana-setup/tests/setup-tail.test.mjs"]);
+  assert.deepEqual(selected.selection.release, [{ path: "packages/nana-setup/tests/setup-tail.test.mjs", reasons: [`coverage hold: fail-safe: ${selected.selection.failSafe}`] }]);
 });
 // req: R-3854
 await check("M5: land accepts complete lane pack records and refuses filtered or landless proof", () => {
