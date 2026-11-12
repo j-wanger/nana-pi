@@ -272,7 +272,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
         res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: canonical, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
       }
       ok(res.status === 1, `[${kind}/${launcher}] expected exit 1: ${res.stderr}`);
-      ok(/uncommitted paths/.test(res.stderr), `[${kind}/${launcher}] missing dirty-tree refusal: ${res.stderr}`);
+      ok(/--out.*inside the reviewed tree/.test(res.stderr), `[${kind}/${launcher}] missing in-tree output refusal: ${res.stderr}`);
       ok(readRounds(home, { item }).length === 0, `[${kind}/${launcher}] a round was recorded`);
       const reservations = path.join(home, ".pi", "agent", "review-ledger.reservations");
       ok(!fs.existsSync(reservations) || fs.readdirSync(reservations).length === 0, `[${kind}/${launcher}] a reservation remains`);
@@ -289,7 +289,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
 }
 
 // -- GP2 case divergence (MUST 1 of brief 2, matching leg): an untracked --out under the SAME
-// disk/index case-diverged folder as above must still refuse through the clean-tree rule.
+// disk/index case-diverged folder as above must still refuse before admission.
 {
   const cd2Repo = repo(tmpRoot, "gp2-case-divergence-repo");
   fs.mkdirSync(path.join(cd2Repo, "Docs"));
@@ -326,7 +326,7 @@ const printSpelling = (label, kind, canonical, spelled) => console.log(`${label}
           res = spawnSync(process.execPath, [PI_REVIEW, "--item", item, "--out", outPath, "--retries", "0", "--poll", "1", "--", "-p", "review"], { cwd: cd2Repo, env: env(home, { OBSERVE_LISTING: listing }), encoding: "utf8" });
         }
         ok(res.status === 1, `[${launcher}] expected exit 1: ${res.stderr}`);
-        ok(/uncommitted paths/.test(res.stderr), `[${launcher}] missing dirty-tree refusal: ${res.stderr}`);
+        ok(/--out.*inside the reviewed tree/.test(res.stderr), `[${launcher}] missing in-tree output refusal: ${res.stderr}`);
         ok(readRounds(home, { item }).length === 0, `[${launcher}] a round was recorded`);
         const reservations = path.join(home, ".pi", "agent", "review-ledger.reservations");
         ok(!fs.existsSync(reservations) || fs.readdirSync(reservations).length === 0, `[${launcher}] a reservation remains`);

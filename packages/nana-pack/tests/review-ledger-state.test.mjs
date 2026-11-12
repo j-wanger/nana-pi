@@ -194,7 +194,7 @@ import { tmp, outs, PI_WORKER, mod, home, agent, tallyFile, auditFile, resDir, f
  check("…and no reservation is left behind", fs.readdirSync(resDir).length === 0);
 }
 
-// 20. Output safety: tracked aliases refuse, untracked leftovers refuse, ignored/outside remain silent.
+// 20. Output safety: tracked aliases and non-ignored in-tree outputs refuse, ignored/outside remain silent.
 {
  freshHome("20"); const O = repo("O", 1);
  fs.writeFileSync(path.join(O.d, ".gitignore"), "*.log\n"); gitIn(O.d, "add", ".gitignore"); gitIn(O.d, "commit", "-qm", "ignore");
@@ -207,11 +207,19 @@ import { tmp, outs, PI_WORKER, mod, home, agent, tallyFile, auditFile, resDir, f
  const headOnly = mod.admit(["--item", "outt", "--out", path.join(O.d, "f")], { launcher: "test", home, cwd: O.d });
  check("…and a path tracked in HEAD but removed from the index", headOnly.ok === false && /TRACKED/.test(headOnly.message), JSON.stringify(headOnly));
  gitIn(O.d, "reset", "-q");
- fs.writeFileSync(path.join(O.d, "new-out.md"), "VERDICT: LAND\n");
- const untracked = ledgerRun(["--item", "outu"], { cwd: O.d, outFile: path.join(O.d, "new-out.md") });
+ const outPath = path.join(O.d, "new-out.md"), invoked = path.join(tmp, "in-tree-out-invoked");
+ const refusals = [];
+ for (const exists of [false, true]) {
+  if (exists) fs.writeFileSync(outPath, "VERDICT: LAND\n");
+  const untracked = ledgerRun(["--item", "outu"], { cwd: O.d, outFile: outPath,
+   cmd: [process.execPath, "-e", `require('fs').writeFileSync(${JSON.stringify(invoked)}, 'ran'); console.log('VERDICT: LAND')`] });
+  refusals.push(untracked.status === 1 && untracked.stderr.includes(mod.realOut(outPath)) && /--out/.test(untracked.stderr) && /[Ww]rite.*outside the tree/.test(untracked.stderr) &&
+   !/admitted as round/.test(untracked.stderr) && !fs.existsSync(invoked) && roundsOf("outu").length === 0 && (!fs.existsSync(resDir) || fs.readdirSync(resDir).length === 0) &&
+   (exists ? fs.readFileSync(outPath, "utf8") === "VERDICT: LAND\n" : !fs.existsSync(outPath)));
+ }
  // req: R-725
- check("an untracked in-tree --out refuses as an uncommitted path", untracked.status === 1 && /uncommitted paths/.test(untracked.stderr) && /--out/.test(untracked.stderr) && roundsOf("outu").length === 0, untracked.stderr);
- fs.rmSync(path.join(O.d, "new-out.md"));
+ check("a new or existing non-ignored in-tree --out refuses before admission without consuming a round", refusals.every(Boolean), JSON.stringify(refusals));
+ fs.rmSync(outPath);
  const ignored = ledgerRun(["--item", "outi"], { cwd: O.d, outFile: path.join(O.d, "r.log") });
  // req: R-845
  check("an ignored in-tree --out is silent", ignored.status === 0 && !/WARNING/.test(ignored.stderr), ignored.stderr);
@@ -229,7 +237,9 @@ import { tmp, outs, PI_WORKER, mod, home, agent, tallyFile, auditFile, resDir, f
   check(`${label} is refused BEFORE the review (target byte-identical, nothing reserved or counted)`, s.status === 1 && /TRACKED file/.test(s.stderr) && !/admitted/.test(s.stderr) && fs.readFileSync(path.join(O.d, "f")).equals(fBytes) && roundsOf("outs").length === 0 && fs.readdirSync(resDir).length === 0 && noStack(s), s.stderr);
  }
  const dangling = path.join(outs, "dangling.md"); fs.symlinkSync(path.join(O.d, "made-by-link.md"), dangling);
- check("a dangling --out link is resolved to where the write would land (in-tree → warns)", /inside the reviewed tree/.test(mod.outInTree(O.d, dangling) ?? ""));
+ let danglingRefusal = "";
+ try { mod.outInTree(O.d, dangling); } catch (e) { danglingRefusal = e.message; }
+ check("a dangling --out link is resolved to where the write would land (in-tree → refuses)", /inside the reviewed tree/.test(danglingRefusal));
  fs.writeFileSync(path.join(O.d, "..notes.md"), "NOTES\n"); gitIn(O.d, "add", "..notes.md"); gitIn(O.d, "commit", "-qm", "dotdot");
  const dd = ledgerRun(["--item", "outd"], { cwd: O.d, outFile: path.join(O.d, "..notes.md") });
  // req: R-724

@@ -231,10 +231,11 @@ test('R-3213: exactly-at-cap non-ASCII digests and Claude builder files pass unc
 test('R-3214: both reviewers share known bugs with a lead fallback ordered shares and no empty heading', async () => {
   const { reviewKnownBugSection, digestKnownBugs } = await import('../lib/known-bug-digest.mjs');
   const { KNOWN_BUG_SECTION_LEAD, KNOWN_BUG_SECTION_HEADING } = await import('../lib/known-bug-digest-config.mjs');
-  const capacity = await cap(), f = fixture(); const short = '# Small\n\n- tiny ' + 'é'.repeat(Math.floor(capacity/6)) + '\n'; write(f.bug, short);
+  const capacity = await cap(), f = fixture(); const short = '# Small\r\n\r\n- tiny ' + 'é'.repeat(Math.floor(capacity/6)) + ' \t'; write(f.bug, short);
   const big = over(capacity).text; write(path.join(f.lane, 'docs/known-bugs/FEAT-007.md'), big);
   const section = reviewKnownBugSection(f.lane, 'FEAT-006 · first\r\nFEAT-007 · next \t', f.briefText);
   assert.ok(section.text.includes(KNOWN_BUG_SECTION_LEAD)); assert.equal(section.parts.length, 2);
+  assert.ok(section.text.includes(short.replaceAll('\r\n', '\n')));
   assert.ok(section.parts[1].deliveredChars > Math.floor(capacity/2)); assert.ok(section.parts.reduce((n,p)=>n+p.deliveredChars,0) - '# Small\n\n'.length - over(capacity).header.length <= capacity);
   const cr = launch(f, 'claude-review'); good(cr); const pr = launch(f, 'pi-review'); good(pr);
   const piText = pr.call.prompts.at(-1).text; const expected = reviewKnownBugSection(f.lane, null, f.briefText).text;

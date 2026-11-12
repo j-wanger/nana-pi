@@ -13,7 +13,7 @@
  *  and the rotated audit log), process (spawns git through spawnSync, runs a renewing
  *  heartbeat interval)
  * @errors canonicalItem throws on a slug that is empty, over SLUG_MAX, holds a separator, `..` or a control
- *  character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, an in-tree output redirect, a retired option, a git failure, a tracked --out, a malformed tally line, a non-regular ledger or lock path, or
+ *  character; admit / project / complete return {ok:false, message} for a missing --item, a tree outside git, uncommitted paths, an in-tree output redirect, a retired option, a git failure, a non-ignored in-tree --out, a malformed tally line, a non-regular ledger or lock path, or
  *  a lost reservation
  */
 // The store retains its existing names so old histories remain readable.
@@ -28,8 +28,7 @@
 //  - A ROUND is a distinct HEAD commit reviewed for the item. Admission requires a clean tree.
 //    Any number of reviews — any roles — on one revision are ONE round. --role is audit metadata only.
 //    Legacy +snap records remain readable, but new admissions never derive snapshots.
-//  - --out on a TRACKED path is refused; a non-ignored in-tree path warns that an existing output
-//    refuses admission and a newly written output makes the tree dirty (see outInTree).
+//  - --out on a TRACKED or non-ignored in-tree path is refused before reservation (see outInTree).
 //  - every git failure REFUSES admission with the git error (sol r2 #10) — never "clean".
 //  - a completed verdict earns the round; a stall / failure returns the reservation. Exception:
 //    a completion whose tree changed mid-review consumes the round as unverified (below).
@@ -561,7 +560,7 @@ export function inTreeRedirect(root, fds = [1, 2]) {
   return null;
 }
 
-/** Tracked --out paths refuse; ignored/outside paths are silent; other in-tree paths warn. */
+/** Tracked and non-ignored in-tree --out paths refuse; ignored/outside paths are silent. */
 /** Whether `relGit` is tracked in the index or HEAD (MUST 1, brief 2): a literal pathspec compare
  *  first (cheap, covers the ordinary case); when it misses and the target exists on disk, a
  *  case-only folder rename can leave git's own index/HEAD spelling different from the disk
@@ -594,8 +593,8 @@ export function outInTree(root, outAbs) {
       'the output must not modify reviewed files. Write the output outside the tree (or to an ignored path)');
   }
   if (gitOut(root, ['check-ignore', '-q', '--', relGit], { okStatus: [0, 1] }).status === 0) return null;
-  return `--out ${real} is inside the reviewed tree (${root}) and not ignored: an existing output refuses admission as uncommitted paths; ` +
-    'a new output makes the tree dirty. Write outside the tree or to an ignored path';
+  throw new Error(`--out ${real} is inside the reviewed tree (${root}) and not ignored: refused before admission. ` +
+    'Write the review outside the tree or to an ignored path');
 }
 /** The ledger record's view of a revision: both parts, so an audit sees which state was reviewed. */
 export function revisionParts(revision) {

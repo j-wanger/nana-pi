@@ -41,7 +41,7 @@ export function reviewKnownBugSection(root, movement, brief = '') {
   const features = [...new Set([...String(movement ?? '').matchAll(/\b(FEAT-\d{3}) · /g)].map(m => m[1]))];
   const read = feature => {
     const source = `${KNOWN_BUGS_DIR}/${feature}.md`;
-    try { const file = join(root, source); if (statSync(file).isFile()) return { source, text: readFileSync(file,'utf8') }; } catch {}
+    try { const file = join(root, source); if (statSync(file).isFile()) return { source, text: readFileSync(file,'utf8').replaceAll('\r\n', '\n') }; } catch {}
     return null;
   };
   let files = features.map(read).filter(Boolean);

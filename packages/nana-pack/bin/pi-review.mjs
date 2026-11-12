@@ -121,9 +121,9 @@ try {
   sourceOutWarning = outInTree(sourceRoot, outPath);
   const sourceRedirect = inTreeRedirect(sourceRoot);
   if (sourceRedirect) throw new Error(`redirect the review log outside the reviewed tree (${sourceRedirect})`);
+  reclaimDeadReviewWorktrees();
   sourceScope = treeScope(sourceTree);
   sourceRevision = resolveRevision(optionValue('--revision'), sourceScope, sourceScope.root);
-  reclaimDeadReviewWorktrees();
   if (sourceOutWarning) process.stderr.write(`pi-review: WARNING: ${sourceOutWarning}\n`);
   // Initialized submodules are not populated by the detached checkout.
   const gitlinks = git(sourceRoot, ['ls-files', '--stage', '-z']).split('\0').filter((x) => x.startsWith('160000 ')).map((x) => x.slice(x.indexOf('\t') + 1));

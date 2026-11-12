@@ -3,9 +3,8 @@
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - pi-review has no verdict re-ask; an unread verdict still needs a new review, unlike claude-review's confirmation path.
-- Clean revision (review): deriving the tree refreshes the timestamps of objects git re-hashes, so git's cleanup keeps unreachable copies of them a little longer.
-- Clean revision (review): an ignored file force-added and staged, not committed, now reviews as the plain commit, but the reviewer's copy still shows it. nana-land refuses while it stays staged. Unstaged afterwards, the land goes ahead on a review that saw one extra file.
-- Clean revision: each derivation takes about a third of a second longer on nana-pi.
+- Clean-tree review: `git status` hides a modified file carrying skip-worktree or assume-unchanged, so claude-review and the shared runner record the plain HEAD sha for it. pi-review is safe: it reviews a fresh checkout.
+- Clean-tree review: a clean submodule at its recorded commit is no longer pinned to admit as the plain sha for claude-review and the shared runner.
 - Unread verdict (unread-verdict-loud): a bold first verdict line that agrees with the final line still leaves the round empty. Accepting it would loosen the verdict reader, which is the owner's call.
 - Unread verdict (unread-verdict-loud): exit 1 from pi-review or review-ledger run no longer always means no round was spent. The notice says when one was.
 - Unread verdict (unread-verdict-loud): when the tree changes during a review, the launchers print only the old changed-tree message, with no notice.
@@ -71,7 +70,7 @@
 - Kept review texts (review-outputs-kept, independent check): `keep` skips a damaged kept text without saying so, and its "kept N" count includes files already present. The land still notes damaged texts.
 - Kept review texts (review-outputs-kept, independent check): the land's refusal names the item, the revision and the re-run, but not which kept file is damaged; the notes name the file only on a passing land.
 - Kept review texts (review-outputs-kept, independent check): a failed store write leaves its reservation file on disk until the next admission prunes it; its process has exited, so it holds no round.
-- Claude review launcher (claude-review-launcher, plan): no immutable checkout; the reviewer works in the live tree, as every scratch-wrapper round did. A write there or a builder edit makes the verdict unverified and uses the round.
+- Claude review launcher (claude-review-launcher, plan): no immutable checkout; the reviewer works in the live tree, as every scratch-wrapper round did. A write there or a builder edit makes the verdict unverified and uses the round; a non-ignored in-tree --out is now refused before admission.
 - Claude review launcher (claude-review-launcher, plan): no liveness watchdog and no retries beyond Claude Code's own; a hung `claude` hangs the launcher.
 - Claude review launcher (claude-review-launcher, plan): the ledger records the alias (`opus`), not the resolved model id, and a null provider.
 - Claude review launcher (claude-review-launcher, plan): not on PATH and no doctor line; the seat runs it through node on every platform.

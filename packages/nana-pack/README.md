@@ -176,6 +176,8 @@ Both launchers record reviews through `bin/review-round.mjs`, the user-scope rev
   **Both reviewers require a clean tree.** Modified tracked files, staged changes and non-ignored
   untracked files refuse with `uncommitted paths` before any reservation, consuming no round.
   Commit or remove those paths before reviewing; ignored files are allowed.
+  A non-ignored in-tree `--out` is refused before reservation even if it does not exist yet;
+  write the review outside the tree or to an ignored path. Tracked outputs are always refused.
   Admission uses `git --no-optional-locks status --porcelain=v1 -z --untracked-files=all`, leaving
   the real index's bytes and mtime unchanged. Git's normalization applies: a CRLF checkout under
   `core.autocrlf=true`, a lost execute bit under `core.fileMode=false`, and a clean checkout under
@@ -219,7 +221,7 @@ pi-review --item <slug> --role sol --out "$scratch/sol-r1.md" -- --provider open
 **The review standard.** Before admission, `pi-review` and `claude-review` read `prompts/review-standard.md` and refuse —
 exit 1, no reservation and no reviewer child — when the file is missing, not a regular file, or blank
 after trimming. `pi-review` appends its text once after the immutable-checkout sentence. `claude-review`
-puts its text once between the brief and its reviewer sentence. Both launchers add known bugs selected by the brief's Feature line. A review brief therefore states only
+puts its text once between the brief and its reviewer sentence. Both launchers add known bugs selected by the brief's Feature line, normalizing CRLF to LF so git's checkout line endings do not change the reviewer section. A review brief therefore states only
 the threat model and never repeats the bar. Every lane gets one reviewer plus CI. Both launchers refuse `--role land` before admission with a one reviewer message.
 
 ### Claude Code reviewer (`bin/claude-review.mjs`)

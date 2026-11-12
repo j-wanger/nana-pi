@@ -148,9 +148,11 @@ const checkout = observed[0];
 const checkoutCanon = checkout ? canonPath(checkout) : "";
 const snapshotCorrect = launched && fs.existsSync(observePid) && /^\d+\n?$/.test(fs.readFileSync(observePid, "utf8")) && fs.realpathSync(checkout) === fs.realpathSync(observed[1]) && observed[2] === "reviewer" &&
   observed[3].includes(`Your cwd is an immutable checkout of revision ${revision} at ${observed[1]}; read files there, not in other worktrees`) &&
-  fs.readFileSync(path.join(checkout, "tracked.txt"), "utf8") === "base\n" &&
-  fs.readFileSync(path.join(checkout, hostileName), "utf8") === "newline filename\n" &&
-  fs.readlinkSync(path.join(checkout, "link.txt")) === "tracked.txt" &&
+  fs.readFileSync(path.join(checkout, "tracked.txt"), "utf8").replaceAll("\r\n", "\n") === "base\n" &&
+  fs.readFileSync(path.join(checkout, hostileName), "utf8").replaceAll("\r\n", "\n") === "newline filename\n" &&
+  (git(repo, "config", "--type=bool", "--get", "--default", "true", "core.symlinks") === "true"
+    ? fs.readlinkSync(path.join(checkout, "link.txt"))
+    : fs.readFileSync(path.join(checkout, "link.txt"), "utf8")) === "tracked.txt" &&
   !fs.existsSync(path.join(checkout, "ignored.txt"));
 // A commit to the source after admission must not change completion's checkout revision.
 if (launched) {
