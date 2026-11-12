@@ -105,7 +105,8 @@ this checkout in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana
 `docs/reviews/README.md` gives checked commands for the archive snapshots.
 
 `npm run check:lane` runs the project-owned builder-stop rail in `scripts/check-lane.mjs`:
-requirements trace, requirements-tree check, map check, README check, then test-packs,
+requirements trace, requirements-tree check, map check, README check, then templates-working
+(including the start-file character budgets), test-packs,
 code-map-launch, requirements-deliverables, requirements-cap-kinds, readme-check, known-bugs
 and test-runner through the canonical test runner. Finally it runs only changed and name-matched
 tests since the committed tip's merge base with main (`--changed-tests-from=main`), reporting the

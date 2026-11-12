@@ -327,6 +327,7 @@ Read by: A-089 · person: the seat inspects private per-launch context measureme
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
+| R-4250 | Each budgeted start file shall contain at most its configured character budget. | implemented | `packages/nana-pack/tests/templates-working.test.mjs::R-4250: budgeted start files fit their configured character budgets` |
 | R-3835 | The machine-root case shall judge exact single matches for given and real spellings independently of repeated git fixture setup time. | implemented | `packages/nana-pack/tests/leak-scan.test.mjs::M4: every platform matches given and real machine roots once` |
 | R-3836 | The launch-process judge shall accept an identity-confirmed exit inside its existing wait and reject a surviving launch child. | implemented | `packages/nana-setup/tests/pi-launch-limits.test.mjs::M2: controlled slow exit passes inside the wait but a surviving child fails` |
 | R-3837 | The changed root and timeout cases shall reject wrong matching and omitted descendant cleanup. | implemented | `packages/nana-pack/tests/leak-scan.test.mjs::M4: every platform matches given and real machine roots once`, `packages/nana-setup/tests/pi-launch-limits.test.mjs::R-2023: every process a timed-out pi --version or pi install started, pi's own child included, has ended when install, the dry run and doctor report` |

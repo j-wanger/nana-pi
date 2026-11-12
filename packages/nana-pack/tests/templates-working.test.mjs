@@ -10,7 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { WORKING_SECTION_CHAR_CAP } from "../../nana-setup/lib/working-config.mjs";
+import { START_FILE_CHAR_BUDGETS, WORKING_SECTION_CHAR_CAP } from "../../nana-setup/lib/working-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { buildSeatGuideBlock } from "../extensions/nana-rulings.ts";
 import { SEAT_GUIDE_FILE, SEAT_GUIDE_HEADING } from "../lib/rulings-config.mjs";
@@ -29,6 +29,16 @@ export function markerBlock(text) {
 
 if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url))) {
 {
+	// Text inputs named here also select this guard in check:lane's name-matched tests:
+	// nana-soul.md, nana-standards.md, nana-seat.md, nana-rulings.md, nana-writing.md,
+	// AGENTS.md, builder-preamble.md, review-standard.md, planner.md.
+	const overBudget = Object.entries(START_FILE_CHAR_BUDGETS).flatMap(([file, budget]) => {
+		const count = fs.readFileSync(path.join(REPO, file), "utf8").length;
+		return count > budget ? [`${file}: ${count} characters exceeds budget ${budget}`] : [];
+	});
+	// req: R-4250
+	check("R-4250: budgeted start files fit their configured character budgets", overBudget.length === 0);
+	for (const failure of overBudget) console.error(failure);
 	const agents = fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf8");
 	const shared = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
 	const block = markerBlock(agents);
