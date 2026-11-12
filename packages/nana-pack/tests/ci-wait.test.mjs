@@ -297,3 +297,33 @@ await check('M13: a concluded main run does not wait for its queued release job'
  const pending=await waitForMainCi({...active.options,deadline:17});
  assert.match(pending.text,/CI did not finish/);assert.equal(active.time(),17);
 });
+
+// req: R-3723
+await check('network replay: lane and main waiters poll through gh failures within the original budget',async()=>{
+ const {waitForCi,waitForMainCi}=await api();
+ const failures=[
+  ...['\n','\r\n',' \t\r\n',''].map(suffix=>({status:1,stderr:`net/http: TLS handshake timeout${suffix}`})),
+  {error:Object.assign(new Error('timeout'),{code:'ETIMEDOUT'}),nanaTimeoutMs:C.CI_READ_TIMEOUT_MS},
+  ...['connection reset by peer','i/o timeout','lookup api.github.com: no such host','dial tcp: connection refused'].map(stderr=>({status:1,stderr})),
+ ];
+ for(const failure of failures) for(const main of [false,true]) {
+  const f=main?mainWaitFake({fail:false}):fake(), original=f.options.runGh;
+  let left=4;
+  f.options.runGh=(...args)=>left-->0?failure:original(...args);
+  const out=await (main?waitForMainCi:waitForCi)(f.options);
+  assert.equal(out.code,0,out.text);assert(f.time()>=4*C.CI_POLL_INTERVAL_MS);assert(f.time()<C.CI_WAIT_TIMEOUT_MS);
+  assert(!f.calls.some(c=>(c.args??c)[1]==='rerun'));
+ }
+ for(const phase of ['/jobs?','/artifacts?','download']) {
+  const f=mainWaitFake({fail:false}), original=f.options.runGh;let left=2;
+  f.options.runGh=(root,args,opts)=>args.some(a=>a.includes(phase))&&(phase!=='download'||args.includes('suite-record-macos-latest-1'))&&left-->0?failures[0]:original(root,args,opts);
+  const out=await waitForMainCi(f.options);assert.equal(out.code,0,out.text);assert.equal(left<1,true);assert(f.time()>=2*C.CI_POLL_INTERVAL_MS);
+ }
+ for(const main of [false,true]) {
+  const f=main?mainWaitFake({fail:false}):fake();let calls=0;
+  f.options.runGh=()=>({status:1,stderr:++calls===1?'connection reset by peer':'net/http: TLS handshake timeout'});
+  const out=await (main?waitForMainCi:waitForCi)({...f.options,deadline:2*C.CI_POLL_INTERVAL_MS+7});
+  assert.equal(out.code,1);assert.match(out.text,/CI did not finish.*last gh error:.*TLS handshake timeout/);assert.doesNotMatch(out.text,/last gh error:.*connection reset/);
+  assert.equal(f.time(),2*C.CI_POLL_INTERVAL_MS+7);assert.equal(calls,3);
+ }
+});

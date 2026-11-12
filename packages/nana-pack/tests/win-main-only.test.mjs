@@ -191,5 +191,5 @@ await check("M13: main-only release still needs Windows and all rule surfaces ag
  }
  const shared = read("templates/_shared/working-under-nana-pi.md"), agents = read("AGENTS.md");
  assert.equal(agents.split("<!-- nana:working-under-nana-pi begin -->\n")[1].split("<!-- nana:working-under-nana-pi end -->")[0], shared);
- assert(agents.split("\n").find(line => line.startsWith("Support:")).includes("lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands"));
+ assert(agents.split("\n").find(line => line.startsWith("Support:")).includes("lanes wait for selected Windows tests; the full Windows suite runs on main, and red main blocks lands"));
 });

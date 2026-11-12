@@ -2,11 +2,10 @@
 
 Adoption of the [pi coding agent](https://github.com/earendil-works/pi), nana pack, knowledge search, and project templates.
 
-Support: macOS tested; lanes land without waiting for Windows; Windows runs on main after each land, and a red main blocks further lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.
+Support: macOS tested; lanes wait for selected Windows tests; the full Windows suite runs on main, and red main blocks lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.
 Sibling repo to `~/nana-agent-loop`.
 
-- `research/` — grounded landscape knowledge. Start with `research/pi-landscape-2026-09-01.md`
-  (adoption verdict + full capability map, adversarially verified). Raw deep-research sources
+- `research/` — `research/pi-landscape-2026-09-01.md` predates pi 1.x; installed pi docs win. Raw deep-research sources
   live in the private records folder and git history; see `docs/reviews/README.md`.
 - `packages/` — our pi packages, chiefly the nana extension pack: eight extensions (gate,
   lifecycle, adoption, objective, frontier summary, writing, roster notice, rulings), plus scaffold +
@@ -43,8 +42,7 @@ its full revert do not mint an empty template tag.
 - `scripts/glob-match.mjs` — the shared minimal glob matcher for artifact paths in report consumers.
 - `apps/bench/` — builder and seat context anatomy. Retired study records and frozen fixtures
   live in the private records folder and git history; see `docs/reviews/README.md` and `apps/bench/README.md`.
-- `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` is the ratified
-  shippability plan.
+- `docs/` — design docs; `docs/shippable-nana-pi-options-2026-09-02.md` records the September shippability plan.
 
 ## Claude Code seat waking (nana-pi only)
 
