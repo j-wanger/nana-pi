@@ -1,5 +1,7 @@
 # FEAT-013 — known bugs
 
+- Pi launch tests (launch-limits-flake, 2026-11-12): R-2133's relay-also-signalled phase failed lock cleanup (`cleaned:false`, started/exited/dead true) at 06:35Z in `ci-43168389428-failed.log`; its cleanup wait is the 2-second PID poll. `main-ci-43183315926-attempt1-failed.log` later reports only the combined 15-second case timeout, with no phase timings. These saved records do not show whether startup, signal grace or cleanup consumed that budget; no deterministic reproduction or timing fix is established.
+
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - Hook rows on Windows (win-hook-rows): a few code comments still say install skips the hook files on Windows. Install now prints no hook-file row there. Their point, that Windows gets no hook file, still holds. No user sees them.
