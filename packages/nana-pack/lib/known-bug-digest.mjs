@@ -25,7 +25,7 @@ export function digestKnownBugs(text, source, brief = '', budget = KNOWN_BUG_DIG
   const parsed = readBrief(brief);
   const terms = [...(parsed.precedent ?? []).filter(p => p.kind === 'path').map(p => p.value), ...[...brief.matchAll(/`([^`\r\n]+)`/g)].map(m => m[1]), ...changedFiles].flatMap(term => {
     const basename = posix.basename(term.replaceAll('\\', '/'));
-    return [term, basename, basename.slice(0, basename.length - posix.extname(basename).length)];
+    return [term, basename, basename.split('.')[0]];
   }).filter(term => term.length >= KNOWN_BUG_MATCH_MIN_CHARS);
   const selected = new Set();
   const fold = n => `${n} known-bug lines omitted for size; read the whole file ${source} before you report the known bugs your change touches. ${KNOWN_BUG_FOLDER_SENTENCE}`;

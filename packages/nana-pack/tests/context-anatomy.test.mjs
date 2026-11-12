@@ -245,11 +245,13 @@ test('R-3214: both reviewers share brief-selected known bugs with a lead and no 
   assert.equal(piText, expected); assert.ok(cr.call.stdin.includes(expected)); assert.ok(cr.call.stdin.indexOf(expected)<cr.call.stdin.indexOf('## Review standard'));
   const bigBrief = f.briefText.replace('FEAT-006', 'FEAT-007'); write(f.brief, bigBrief);
   write(path.join(f.lane, 'lib/ci-wait.mjs'), '// changed file\n');
-  write(path.join(f.lane, 'docs/known-bugs/FEAT-007.md'), big.replace('- bug 0: ordinary', '- bug 0: nana-ci-wait cancellation'));
+  write(path.join(f.lane, 'lib/child-context.test.mjs'), '// changed test\n');
+  write(path.join(f.lane, 'docs/known-bugs/FEAT-007.md'), big.replace('- bug 0: ordinary', '- bug 0: nana-ci-wait cancellation').replace('- bug 1: ordinary', '- bug 1: child-context'));
   git(f.lane, 'add', '-A'); git(f.lane, 'commit', '-qm', 'change reviewed file');
   assert.ok(reviewKnownBugSection(f.lane, bigBrief).text.includes('- bug 0: nana-ci-wait cancellation'));
   const folded = reviewKnownBugSection(f.lane, bigBrief).text;
   assert.ok(folded.includes('quoted needle')); assert.ok(!folded.includes('ordinary'));
+  assert.ok(folded.includes('- bug 1: child-context '));
   const bigCr = launch(f, 'claude-review'); good(bigCr); const bigPr = launch(f, 'pi-review'); good(bigPr);
   assert.ok(bigCr.call.stdin.includes(folded)); assert.equal(bigPr.call.prompts.at(-1).text, folded);
   write(f.brief, 'No feature.\n'); const empty = launch(f, 'pi-review'); good(empty); assert.ok(!empty.call.prompts.some(p=>p.text.includes(KNOWN_BUG_SECTION_HEADING)));
