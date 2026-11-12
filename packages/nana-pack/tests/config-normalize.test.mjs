@@ -38,14 +38,12 @@ const LEAVES = {
 	journal: { enabled: ["bool", false], path: ["path", path.join(tmpDir(path.join(os.tmpdir(), "norm-j-")), "j.jsonl")] },
 	objective: { enabled: ["bool", false], path: ["path", "/tmp/nana-o.md"], projectFile: ["path", "OBJECTIVE.md"] },
 	writing: { enabled: ["bool", false] },
-	receipts: { enabled: ["bool", false], dir: ["path", "/tmp/nana-r"] },
 };
 const DEFAULTS = {
 	gate: { extraPatterns: [], allowPatterns: [], protectedPaths: [] },
 	journal: { enabled: true, path: null },
 	objective: { enabled: true, path: null, projectFile: null },
 	writing: { enabled: true },
-	receipts: { enabled: true, dir: null },
 };
 const validFor = (k, v) =>
 	k === "bool" ? typeof v === "boolean" : k === "days" ? typeof v === "number" && Number.isFinite(v) && v > 0 : k === "path" ? v === null || typeof v === "string" : Array.isArray(v) && v.length === 0; // [] is the only valid array among VALUES
@@ -69,8 +67,7 @@ function isTyped(c) {
 		&& (c.gate.stopReason === null || typeof c.gate.stopReason === "string")
 		&& typeof c.journal.enabled === "boolean" && nul(c.journal.path)
 		&& typeof c.objective.enabled === "boolean" && nul(c.objective.path) && nul(c.objective.projectFile)
-		&& typeof c.writing.enabled === "boolean"
-		&& typeof c.receipts.enabled === "boolean" && nul(c.receipts.dir);
+		&& typeof c.writing.enabled === "boolean";
 }
 
 /** fresh HOME (+ optional user config), fresh project dir (+ optional trusted project config) */
@@ -199,13 +196,6 @@ for (const f of failed.slice(0, 20)) console.log("  FAIL", f);
 	const p = load(env({ user: VALID, projectText: text }));
 	named("trailing-comma PROJECT file: contributes nothing, user config intact", !p.threw && eq(p.cfg.gate.allowPatterns, VALID.gate.allowPatterns) && eq(p.cfg.journal, VALID.journal));
 	named("trailing-comma PROJECT file: gate stops conservatively (no valid project policy in this process)", PARSE_PSTOP.test(p.cfg?.gate.stopReason ?? ""));
-}
-{
-	// Moved from post-edit-status: receipts compatibility belongs to the config loader.
-	const e = env({ user: { receipts: { enabled: true, dir: "legacy-receipts" } } });
-	const r = load(e);
-	// req: R-865
-	check("legacy receipts config is accepted without diagnostics or receipt files", !r.threw && r.cfg.receipts.enabled === true && r.cfg.receipts.dir === "legacy-receipts" && !fs.existsSync(path.join(e.home, ".pi", "agent", "nana-journal.jsonl")) && !fs.existsSync(path.join(e.ctx.cwd, "legacy-receipts")));
 }
 {
 	const r = load(env({ userText: "﻿" + JSON.stringify({ journal: { enabled: false } }) }));

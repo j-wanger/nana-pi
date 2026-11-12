@@ -1131,7 +1131,7 @@ const gateEscapeResult = await withCaseLimit("bad escape in a gate pattern", asy
 	const cwd = path.join(w.home, "elsewhere");
 	const hookText = await golden("bad escape in a gate pattern", w, cwd, () => {});
 	const piText = await runPi(w, cwd);
-	const keys = /\b(?:gate|extraPatterns|allowPatterns|protectedPaths|stopReason|postEdit|commands|notify|enabled|headless|journal|path|handoff|staleAfterDays|objective|projectFile|receipts|dir)\b/;
+	const keys = /\b(?:gate|extraPatterns|allowPatterns|protectedPaths|stopReason|postEdit|commands|notify|enabled|headless|journal|path|handoff|staleAfterDays|objective|projectFile|dir)\b/;
 	return [hookText ?? "", piText ?? ""].every((text) => {
 		const configLines = text.split("\n").filter((line) => line.startsWith(CONFIG_FAILURE_PREFIX));
 		if (configLines.length !== 1 || text.includes("zq7")) return false;

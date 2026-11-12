@@ -5,7 +5,7 @@
  * @inputs <pi's active agent dir>/nana-pack.json (user scope) and <cwd>/.pi/nana-pack.json (project scope,
  *  nana-trusted only), pi's trust module and trust.json, and the extension ctx (cwd, isProjectTrusted,
  *  hasUI, ui, sessionManager)
- * @outputs a NanaPackConfig (gate, journal, objective, writing, legacy receipts) with
+ * @outputs a NanaPackConfig (gate, journal, objective, writing) with
  *  gate.stopReason set when a gate block is unusable, the resolved journal file path, compiled
  *  allow/extra/protected regexes, user-only objective and writing blocks, and safe shared parse-failure detail in a gate stop or the user-scope objective block
  * @effects disk (reads both config files, lstats a symlinked one, reads pi's trust store, appends the
@@ -88,8 +88,6 @@ export interface NanaPackConfig {
 	objective: { enabled: boolean; path: string | null; projectFile: string | null; configFailure?: { file: string; line?: number; column?: number; repair: "forward-slash" | "manual" } };
 	/** The writing rule prompt section. USER SCOPE ONLY — project config never contributes. */
 	writing: { enabled: boolean };
-	/** Deprecated compatibility keys; accepted and ignored for one release after decision D5, 2026-10-06. */
-	receipts: { enabled: boolean; dir: string | null };
 }
 
 const DEFAULTS: NanaPackConfig = {
@@ -97,7 +95,6 @@ const DEFAULTS: NanaPackConfig = {
 	journal: { enabled: true, path: null },
 	objective: { enabled: true, path: null, projectFile: null },
 	writing: { enabled: true },
-	receipts: { enabled: true, dir: null },
 };
 
 // ---------------------------------------------------------------- process-wide state
@@ -192,7 +189,6 @@ const SCHEMA: Record<string, Record<string, Leaf>> = {
 	journal: { enabled: bool, path: pathOrNull },
 	objective: { enabled: bool, path: pathOrNull, projectFile: fileNameOrDefault },
 	writing: { enabled: bool },
-	receipts: { enabled: bool, dir: pathOrNull },
 };
 
 interface FileRead {
@@ -530,7 +526,6 @@ export function loadConfig(ctx: ConfigContext): NanaPackConfig {
 			// USER SCOPE ONLY, for the same reason as objective.enabled: a project cannot
 			// silence an owner-level prompt section, even after the project is trusted.
 			writing: merge("writing", u.writing),
-			receipts: merge("receipts", u.receipts, project.receipts),
 		};
 	} catch (e) {
 		// Unreachable by design; if it happens, the safest typed config is a stopped gate.

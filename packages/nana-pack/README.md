@@ -848,8 +848,7 @@ project config never contributes to either one, trusted or not.
 	},
 	"journal": { "enabled": true, "path": null },
 	"objective": { "enabled": true, "path": null, "projectFile": null },
-	"writing": { "enabled": true },
-	"receipts": { "enabled": true, "dir": null }
+	"writing": { "enabled": true }
 }
 ```
 
@@ -1211,8 +1210,6 @@ project config never contributes to either one, trusted or not.
     intended setup, not a repo-supplied link. One addition for a `projectFile` hit *above* the
     workspace root: its own final component is checked, because nobody typed that path — the
     walk found it. Advisory, not a security boundary.
-- **Receipt settings compatibility:** `receipts.enabled` and `receipts.dir` remain accepted
-  but ignored; the pack neither writes nor reads receipts.
 - **Writing trial residuals, recorded at landing rather than fixed further (astra r3, 2026-10-04):**
   - The read ceiling is a BYTE budget; the injected block's cap is a CHARACTER budget. A
     multi-byte-heavy rule (e.g. 2,000 Chinese characters) can be cut well short of
