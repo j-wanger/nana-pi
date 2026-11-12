@@ -3,14 +3,20 @@
  * @purpose Create canonical test temporary roots and exercise explicit aliases, removing roots when the test process exits unless the
  *  caller opts out to clean the root up itself (one holding a symlink or junction that no
  *  generic recursive delete may ever meet).
- * @inputs A mkdtemp prefix, or a root and alias action; CI and platform for alias availability.
+ * @inputs A mkdtemp prefix, or a root and alias action; CI and platform for alias availability; inherited NANA_* environment variables.
  * @outputs Temporary directory paths, or a short-path probe result with status, signal, error, stderr and printable detail.
- * @effects disk (creates and removes temporary directories and links), process (registers exit cleanup, probes Windows short paths and temporarily changes temp environment)
+ * @effects disk (creates and removes temporary directories and links), process (scrubs inherited NANA_* except NANA_TEST_*, registers exit cleanup, probes Windows short paths and temporarily changes temp environment)
  * @errors Propagates directory creation errors and ignores cleanup errors.
  */
 import { mkdtempSync, realpathSync, rmSync, symlinkSync, unlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
+
+// Direct test runs need the runner's NANA_* isolation too. Keep its NANA_TEST_* knobs;
+// fixtures can still set runtime variables explicitly after this helper is imported.
+for (const key of Object.keys(process.env)) {
+  if (/^NANA_/.test(key) && !/^NANA_TEST_/.test(key)) delete process.env[key];
+}
 
 const roots = new Set();
 process.on("exit", () => {
