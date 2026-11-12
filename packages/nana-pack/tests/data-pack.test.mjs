@@ -2,7 +2,7 @@
  * @module packages/nana-pack/tests/data-pack.test.mjs
  * @purpose Exercise data-pack release acceptance and expose its bounded Python fixture runner.
  * @inputs Current template sources, Copier, uv and the acceptance runner.
- * @outputs Seven PASS/FAIL verdicts and the public py fixture runner.
+ * @outputs Eight PASS/FAIL verdicts and the public py fixture runner.
  * @effects disk (temporary fixtures), process (bounded synchronous Python and Copier children).
  * @errors Any failed assertion sets exit status 1.
  */
@@ -49,6 +49,29 @@ check("M1 optional Python scaffold ships exactly the opt-in pack", () => {
   for (const rel of packFiles) { assert(!fs.existsSync(path.join(off, rel)), rel); assert(fs.existsSync(path.join(on, rel)), rel); }
   const before = fs.readFileSync(path.join(off, "tests/test_smoke.py"), "utf8");
   assert.equal(fs.readFileSync(path.join(on, "tests/test_smoke.py"), "utf8"), before);
+});
+// req: R-3843
+check("configured absent store skips by filename while a present duplicate store fails", () => {
+  const dest = render("absent-store", ["data_checks=true"]);
+  fs.writeFileSync(path.join(dest, "data-checks.json"), JSON.stringify({
+    project_root: ".", source_globs: ["src/**/*.py"], databases: [{ label: "fixture", path: "fixture.sqlite" }],
+    identifiers: { item_id: "INTEGER" }, keys: [{ db: "fixture", table: "items", columns: ["item_id"] }],
+    normalizer: {}, connectors: { network_patterns: [], network_modules: [], db_modules: [] },
+    lineage: { report_dirs: [], extensions: [], provenance_key: "provenance", required_fields: ["input_db"] },
+  }));
+  const pytest = () => spawnSync("uvx", ["--with", "pytest", "pytest", "-o", "addopts=", "-rs", "tests/test_data_checks.py"], {
+    cwd: dest, encoding: "utf8", timeout: 180_000, env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
+  });
+  const absent = pytest();
+  assert.equal(absent.status, 0, `${absent.stdout}${absent.stderr}`);
+  assert.match(absent.stdout, /1 skipped/);
+  assert.match(absent.stdout, /Data checks require missing database: fixture\.sqlite/);
+  assert(!fs.existsSync(path.join(dest, "fixture.sqlite")));
+  run("uvx", ["--with", "pytest", "python", "-c", "import sqlite3; c=sqlite3.connect('fixture.sqlite'); c.execute('CREATE TABLE items(item_id INTEGER)'); c.executemany('INSERT INTO items VALUES (?)', [(1,), (1,)]); c.commit(); c.close()"], dest);
+  const present = pytest();
+  assert.equal(present.status, 1, `${present.stdout}${present.stderr}`);
+  assert.match(present.stdout, /1 duplicated key values/);
+  assert.doesNotMatch(present.stdout, /1 skipped/);
 });
 // req: R-3842
 check("M3 unsafe normalizer never changes project bytes", () => { py("readonly"); });

@@ -7,14 +7,14 @@
  * @errors Missing gh, timeout, nonzero exit, organization authors and unreadable data become one status line.
  */
 import { performance } from "node:perf_hooks";
-import { OPEN_SECTION_PREFIX, isNamed } from "./frontier-config.mjs";
+import { isOpenSection } from "./frontier-config.mjs";
 import { ISSUES_FETCH_CAP, ISSUES_READ_LIMIT_MS, ISSUES_WRITE_RESERVE_MS } from "./frontier-summary-config.mjs";
 import { ghFromEnvironment, ghResult } from "./gh-runner.mjs";
 import { scanListSections } from "./markdown-list-sections.mjs";
 
 /** List entries always win over a pointer; fenced examples never opt a project in. */
 export function issuesPointer(text) {
-	const sections = scanListSections(text, { headingMatches: (title) => isNamed(title, OPEN_SECTION_PREFIX) });
+	const sections = scanListSections(text, { headingMatches: isOpenSection });
 	if (!sections.length || sections.some((section) => section.entries.length)) return null;
 	const body = sections.map((section) => section.body).join("\n");
 	if (!body.includes("github.com")) return null;

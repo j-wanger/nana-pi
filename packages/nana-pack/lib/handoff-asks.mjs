@@ -1,18 +1,18 @@
 /**
  * @module packages/nana-pack/lib/handoff-asks.mjs
- * @purpose Splits HANDOFF's Open for the owner section into raw entries with independent tag and title parses.
+ * @purpose Splits HANDOFF's Open or Open for sections into raw entries with independent tag and title parses.
  * @inputs HANDOFF Markdown text.
  * @outputs Ordered ask entries with source lines, frontier tags, and report titles and bodies.
  * @effects none
  * @errors None; absent sections and unparseable tags or titles yield empty results.
  */
-import { OPEN_SECTION_PREFIX, isNamed } from "./frontier-config.mjs";
+import { isOpenSection } from "./frontier-config.mjs";
 import { scanListSections } from "./markdown-list-sections.mjs";
 export const TAG = /\[(blocking|optional|parked),\s*since\s+(\d{4}-\d{2}-\d{2})\]/i;
 const TITLE = /^\s*(?:[-*+]\s+|\d+[.)]\s+)\*\*\[(blocking|optional|parked),\s*since\s+(\d{4}-\d{2}-\d{2})\]\s+(.+?)\.\*\*(.*)$/i;
 
 export function splitOpenSection(text) {
-  const sections = scanListSections(text, { headingMatches: (title) => isNamed(title, OPEN_SECTION_PREFIX) });
+  const sections = scanListSections(text, { headingMatches: isOpenSection });
   return sections.flatMap((section) => section.entries.map((entry) => {
     const tagMatch = TAG.exec(entry.lines.join(" "));
     const titleMatch = TITLE.exec(entry.lines[0]);

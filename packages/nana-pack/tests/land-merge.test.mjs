@@ -240,7 +240,7 @@ check("successful merge prints post-merge release status and divergence", () => 
 	const bare = path.join(root, "origin.git"); git(root, "init", "--bare", bare); git(main, "remote", "add", "origin", bare); git(main, "push", "-u", "origin", "main");
 	const feature = tree(main, "integration"); commit(feature, "templates/new", "new\n", "template change");
 	const out = runLand({ tree: feature, main, suite: "canonical", reviewed: [], runCommand: () => ({ status: 0 }) });
-	assert.equal(out.code, 0, out.text); assert.match(out.text, /release status: .*1 template commit.*v0\.1\.0.*main 1 ahead.*origin/i);
+	assert.equal(out.code, 0, out.text); assert.match(out.text, /release status: .*template changes since v0\.1\.0.*main 1 ahead.*origin/i);
 });
 // req: R-588 R-1007
 check("release status failure after merge keeps success code and output", () => {

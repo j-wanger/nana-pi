@@ -32,22 +32,22 @@ const run = (file, today = "2026-10-06") => {
 {
 	const dir = tmpDir(path.join(os.tmpdir(), "nana-frontier-open-prefix-"));
 	const findingKinds = [];
-	for (const name of ["Avery", "Rowan"]) {
-		const file = path.join(dir, `${name}.md`);
+	for (const [index, heading] of ["Open for Avery", "Open for Rowan", "Open", "oPeN (notes)", "OPEN—notes", "Open notes"].entries()) {
+		const file = path.join(dir, `${index}.md`);
 		const lines = [
 			"## Landed",
 			"- archived",
-			`## Open for ${name}\t`,
+			`## ${heading} \t`,
 			"- LANDED; deadline 2026-10-05.",
 			...Array(READ_WINDOW_LINES + 1).fill("continuation "),
 		];
-		fs.writeFileSync(file, lines.join("\r\n"));
+		fs.writeFileSync(file, lines.join(index % 2 ? "\r\n" : "\n").trimEnd() + " \t");
 		const output = run(file).stdout;
 		findingKinds.push([...new Set([...output.matchAll(/: ([a-z-]+):/g)].map((match) => match[1]))].sort());
 	}
 	const required = ["open-tag", "misplaced-landed", "overdue-date", "section-order", "read-window"];
 	// req: R-2515
-	check("an Open for heading with any name gets every live-section check", JSON.stringify(findingKinds[0]) === JSON.stringify(findingKinds[1]) && required.every((kind) => findingKinds[0].includes(kind)), JSON.stringify(findingKinds));
+	check("an Open or Open for heading gets every live-section check", findingKinds.every((kinds) => JSON.stringify(kinds) === JSON.stringify(findingKinds[0]) && required.every((kind) => kinds.includes(kind))), JSON.stringify(findingKinds));
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 

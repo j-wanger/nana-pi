@@ -6,7 +6,7 @@
  * @effects none
  * @errors none; malformed content produces findings or empty sections.
  */
-import { ARCHIVE_SECTION_NAMES, HANDOFF_WORD_BUDGET, LIVE_SECTION_NAMES, NEXT_SECTION_NAME, OPEN_SECTION_NAME, OPEN_SECTION_PREFIX, READ_WINDOW_BYTES, READ_WINDOW_LINES, isNamed } from "./frontier-config.mjs";
+import { ARCHIVE_SECTION_NAMES, HANDOFF_WORD_BUDGET, LIVE_SECTION_NAMES, NEXT_SECTION_NAME, OPEN_SECTION_NAME, OPEN_SECTION_PREFIX, READ_WINDOW_BYTES, READ_WINDOW_LINES, isNamed, isOpenSection } from "./frontier-config.mjs";
 import { splitOpenSection } from "./handoff-asks.mjs";
 
 export const isDate = (value) => {
@@ -17,6 +17,7 @@ export const isDate = (value) => {
 };
 const isHeading = (line) => /^\s{0,3}#{1,6}\s+/.test(line);
 const isListItem = (line) => /^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(line);
+const liveSectionName = (title) => isOpenSection(title) ? OPEN_SECTION_PREFIX : LIVE_SECTION_NAMES.find((name) => isNamed(title, name));
 
 export function checkFrontier(text, today) {
 	const lines = text.split(/\r\n|\r|\n/);
@@ -41,6 +42,7 @@ export function checkFrontier(text, today) {
 		headingStacks[index] = [...stack];
 	}
 	const inSection = (index, title) => headingStacks[index]?.some((heading) => isNamed(heading.title, title)) ?? false;
+	const inOpenSection = (index) => headingStacks[index]?.some((heading) => isOpenSection(heading.title)) ?? false;
 	const findings = [];
 	const add = (line, kind, detail) => findings.push({ line, kind, detail });
 	const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
@@ -74,8 +76,8 @@ export function checkFrontier(text, today) {
 			const number = Number(ref[1]);
 			if (!nextItems.includes(number)) add(index + 1, "broken-reference", `item ${number} of Next does not resolve`);
 		}
-		if ((inSection(index, NEXT_SECTION_NAME) || inSection(index, OPEN_SECTION_PREFIX)) && /\bLANDED\b/i.test(lines[index])) add(index + 1, "misplaced-landed", "LANDED appears under Next or Open for the owner");
-		if (inSection(index, NEXT_SECTION_NAME) || inSection(index, OPEN_SECTION_PREFIX)) {
+		if ((inSection(index, NEXT_SECTION_NAME) || inOpenSection(index)) && /\bLANDED\b/i.test(lines[index])) add(index + 1, "misplaced-landed", "LANDED appears under Next or Open for the owner");
+		if (inSection(index, NEXT_SECTION_NAME) || inOpenSection(index)) {
 			const dateCue = /\b(?:due|deadline|by|until|verdict\s+on|review\s+on)\b[^;().\n]*?(\d{4}-\d{2}-\d{2})(?:\s*(?:to|through|[-–—])\s*(\d{4}-\d{2}-\d{2}))?/gi;
 			for (const due of lines[index].matchAll(dateCue)) {
 				const date = due[2] ?? due[1];
@@ -97,7 +99,7 @@ export function checkFrontier(text, today) {
 		const archiveName = ARCHIVE_SECTION_NAMES.find((name) => isNamed(firstArchive.title, name));
 		for (const heading of headings) {
 			if (heading.index <= firstArchive.index) continue;
-			const liveName = LIVE_SECTION_NAMES.find((name) => isNamed(heading.title, name));
+			const liveName = liveSectionName(heading.title);
 			if (liveName) add(heading.index + 1, "section-order", `${displayName(liveName)} comes after ${archiveName} at line ${firstArchive.index + 1}`);
 		}
 	}
@@ -107,7 +109,7 @@ export function checkFrontier(text, today) {
 	while ((ending = endings.exec(text))) lineEnds.push(ending.index);
 	lineEnds.push(text.length);
 	for (const heading of headings) {
-		const liveName = LIVE_SECTION_NAMES.find((name) => isNamed(heading.title, name));
+		const liveName = liveSectionName(heading.title);
 		if (!liveName) continue;
 		const endIndex = heading.end < lines.length ? heading.end - 1 : lines.length - 1 - (hasFinalEol ? 1 : 0);
 		const end = endIndex + 1;

@@ -130,13 +130,17 @@ try {
   });
   await withinCaseLimit("list asks and failed issue read", async () => {
     const repo = fixture("pages-legacy"); let calls = 0;
-    fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), "## Open for Avery (notes)\n- **[optional, since 2026-10-10] Fixture question.**\n");
     const after = path.join(temp, "pages-legacy.html");
-    await generateReport({ root: repo.root, out: after, readIssues: () => { calls++; throw new Error("must not call"); } });
-    const drawn = renderHtmlAt(fs.readFileSync(after, "utf8"), "#decisions");
+    const views = [];
+    for (const heading of ["Open for Avery (notes)", "Open", "oPeN (notes)", "OPEN—notes", "Open notes"]) {
+      fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), `## ${heading} \t\r\n- **[optional, since 2026-10-10] Fixture question.** \t`);
+      await generateReport({ root: repo.root, out: after, readIssues: () => { calls++; throw new Error("must not call"); } });
+      views.push(renderHtmlAt(fs.readFileSync(after, "utf8"), "#decisions"));
+    }
+    const drawn = views[0];
     const card = drawn.nodes.find(node => node.tag === "article" && node.children.some(child => child.tag === "h3" && child.textContent === "Fixture question"));
     // req: R-2514
-    check("an Open for heading with any name is read as the asks section", calls === 0 && drawn.model.asks.some(ask => ask.title === "Fixture question"));
+    check("an Open or Open for heading is read as the asks section", calls === 0 && views.every(view => view.model.asks.some(ask => ask.title === "Fixture question")));
     // req: R-2983
     check("R-2983: list-ask Decisions drawing matches main's captured text", card?.children[0]?.tag === "h3" && card.children.map(node => node.textContent).join("\n") === "Fixture question\nKind: optional\nSince: 2026-10-10\nAsk: ");
     fs.writeFileSync(path.join(repo.root, "HANDOFF.md"), "## Open for the owner\nhttps://github.com/example-org/example-repo/issues\n");

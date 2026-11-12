@@ -13,7 +13,6 @@
 - Handoff values (handoff-cap-surrogate plan): the stale pointer's length cap and the one-day constant carry no note of their source, as the coding standards ask.
 - Handoff cut checks (handoff-cap-surrogate): the independent check ran on the first build only. It held over 11 probes, including pi's own loader and a real session's cut. The second build changed only one test, so nobody re-ran the check. The seat's pairs and that check ran on macOS only.
 - Frontier checks (frontier-first, plan): nothing runs the checker at a land or in CI. The suite's R-2473 check is the one automatic pin, and only for this repo's file; other projects' files are checked by no suite.
-- Frontier checks (frontier-first, plan): only the three live names count. The shared seed's Open heading is not Open for the owner, which predates this lane and also applies to the open-tag check.
 - Frontier checks (frontier-first, plan): no test covers the byte count on a file with Windows line endings. The design counts each earlier line's carriage return.
 - Frontier checks (frontier-first, plan): the read window copies pi 1.0.2's defaults; pi 1.3.0 keeps them. A pi upgrade that changes them needs the values retuned, and the two seals then fail naming R-2471 and R-2472.
 - Frontier checks (frontier-first, plan): a single Landed line hundreds of words long is still not flagged; the landed-entry check covers only entries that span lines.
@@ -32,7 +31,6 @@
 - Known bugs (known-bugs, final review): in the move's first rule, a named lane with rows but no brief places the line by its own rows before the next named lane's brief is tried. So a tag naming a row-only lane, then a briefed lane, places by the first lane's rows. The move never hit this case.
 - Known bugs (known-bugs, final review): the size check splits lines on a line feed only, and still passes R-2507. It differs only for a lone carriage return.
 - Frontier block (session-start-frontier, plan): titles only; item bodies, Where things stand, Landed and the known bugs are not shown, so the startup rule to read HANDOFF.md stays.
-- Frontier block (session-start-frontier, plan): a seed-shaped file shows no asks, because the seed's `## Open` heading is not an `Open for ` heading (6 of 14 local files).
 - Frontier block (session-start-frontier, plan): most projects' titles are fallbacks, plain first lines cut at 160 characters rather than at a sentence end.
 - Frontier block (session-start-frontier, plan): read at session start only; an edit shows at the next start, reload, resume, clear or compaction.
 - Frontier block (session-start-frontier, plan): the repository root decides, so a sub-project folder with no `.git` of its own reads the enclosing repository's HANDOFF.md.

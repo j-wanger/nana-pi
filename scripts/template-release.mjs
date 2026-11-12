@@ -9,7 +9,7 @@
 import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { RELEASE_BRANCH_REF, RELEASE_REMOTE_REF, RELEASE_SURFACE, RELEASE_TAG_PATTERN, selectReleaseTag } from "../packages/nana-pack/lib/release-status.mjs";
+import { RELEASE_REMOTE_REF, RELEASE_TAG_PATTERN, releaseSurfaceDiff, selectReleaseTag } from "../packages/nana-pack/lib/release-status.mjs";
 import { runAcceptance } from "./template-acceptance.mjs";
 
 const defaultGit = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8" });
@@ -40,9 +40,9 @@ export function runRelease({ repo, ref = "HEAD", push = false, runGit = defaultG
   if (!tags.ok) { log(`release failed: ${tags.error}`); return 1; }
   const latest = selectReleaseTag(tags.out.split(/\r?\n/).filter(Boolean));
   if (!latest) { log("release failed: no plain version tag exists"); return 1; }
-  const count = call(runGit, repo, ["rev-list", "--count", `${latest}..${sha}`, "--", ...RELEASE_SURFACE]);
-  if (!count.ok || !/^\d+$/.test(count.out)) { log("release failed: template commit count unavailable"); return 1; }
-  if (Number(count.out) === 0) { log("nothing to release"); return 0; }
+  const diff = releaseSurfaceDiff({ repo, tag: latest, sha, runGit });
+  if (diff.changed === null) { log(`release failed: template tree difference unavailable (${diff.error})`); return 1; }
+  if (!diff.changed) { log("nothing to release"); return 0; }
   const accepted = gate(repo, sha);
   if (accepted !== 0) { log("release failed: template acceptance gate failed"); return 1; }
   const [major, minor, patch] = latest.slice(1).split(".").map(Number);

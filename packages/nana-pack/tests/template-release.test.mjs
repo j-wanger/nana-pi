@@ -57,6 +57,10 @@ check("red gate and no template diff create no tag", () => {
   const plain = setup("plain"); let calls = 0; const logs = [];
   assert.equal(runRelease({ repo: plain.repo, gate: () => { calls++; return 0; }, log: (line) => logs.push(line) }), 0);
   assert.equal(calls, 0); assert.match(logs.join("\n"), /nothing to release/);
+  const reverted = setup("reverted"); change(reverted.repo); git(reverted.repo, "revert", "--no-edit", "HEAD"); git(reverted.repo, "push", "origin", "main");
+  logs.length = 0;
+  assert.equal(runRelease({ repo: reverted.repo, gate: () => { calls++; return 0; }, log: (line) => logs.push(line) }), 0);
+  assert.equal(calls, 0); assert.deepEqual(logs, ["nothing to release"]); assert.equal(git(reverted.repo, "tag", "--points-at", "HEAD"), "");
   const red = setup("red"); change(red.repo); git(red.repo, "push", "origin", "main"); calls = 0;
   assert.equal(runRelease({ repo: red.repo, gate: () => { calls++; return 1; }, log: () => {} }), 1);
   assert.equal(calls, 1); assert.equal(git(red.repo, "tag", "--points-at", "HEAD"), "");

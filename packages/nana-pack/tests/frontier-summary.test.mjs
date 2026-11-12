@@ -69,14 +69,14 @@ const lines = (text) => text?.split("\n") ?? [];
 	let at = -1;
 	const ordered = expectedInOrder.every((needle) => { const next = main.indexOf(needle, at + 1); if (next < 0) return false; at = next; return true; });
 	const withoutPath = (value) => value.replace(/^Read from .* at session start\./m, "Read from <path> at session start.");
-	const crlf = block("## Next\r\n1. **CRLF title.** body\r\n## Open for the owner\r\n- **[optional, since 2026-10-01] CRLF ask.** body\r\n").text;
-	const lf = block("## Next\n1. **CRLF title.** body\n## Open for the owner\n- **[optional, since 2026-10-01] CRLF ask.** body\n").text;
+	const crlf = block("## Next\r\n1. **CRLF title.** body\r\n## oPeN \t\r\n- **[optional, since 2026-10-01] CRLF ask.** body \t").text;
+	const lf = block("## Next\n1. **CRLF title.** body\n## oPeN \t\n- **[optional, since 2026-10-01] CRLF ask.** body \t").text;
 	const bom = block(`\uFEFF## Next\n- BOM title\n`).text;
 	const plainBom = block("## Next\n- BOM title\n").text;
 	const ok = ordered && !main.includes("nested item") && !main.includes("not live") && !main.includes("fenced") &&
 		fixtures[1].includes("- Plain bullet title") && fixtures[2].split("- Nested heading item").length === 2 && !fixtures[2].includes("Archived item") &&
 		fixtures[3].includes("[blocking, since 2026-10-01] Tagged without title") && !fixtures[4].includes("fenced only") &&
-		fixtures[5].includes("Open for the owner: none found.") && fixtures[6].includes("Next: none found.") && fixtures[6].includes("Open for the owner: none found.") &&
+		fixtures[5].includes("- [no tag] seed item") && !fixtures[5].includes("Open for the owner: none found.") && fixtures[6].includes("Next: none found.") && fixtures[6].includes("Open for the owner: none found.") &&
 		withoutPath(crlf) === withoutPath(lf) && withoutPath(bom) === withoutPath(plainBom);
 	// req: R-2607
 	check("R-2607: Next titles and ask tags and titles are listed in block order, and nested items, fences and other sections are not", ok, main ?? "null");

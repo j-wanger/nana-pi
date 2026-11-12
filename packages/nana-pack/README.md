@@ -559,8 +559,11 @@ Tests: `tests/review-round.test.mjs` (rules), `tests/review-ledger.test.mjs`, `t
 The `nana-frontier-summary` extension and the existing Claude Code objective hook read
 `HANDOFF.md` from the repository root at every session start. Outside a repository, they read
 it from the session folder. The bounded block quotes only top-level titles from the first Next
-section and Open for the owner asks with their tag or no-tag label. The report-only frontier
-check summary follows those titles.
+section and Open for the owner asks with their tag or no-tag label. Asks headings accept
+`Open for ` followed by any name, or bare `Open`, case-insensitively with the shared section
+matcher's whitespace, parenthesis and em-dash suffixes. The product report uses the same reader;
+all live-section frontier checks apply to both forms. New seeds use `Open for the owner`.
+The report-only frontier check summary follows those titles.
 For projects without an issues pointer, blocking asks get selection priority, while displayed groups keep Next first and then blocking,
 optional, parked and untagged asks.
 
@@ -576,7 +579,7 @@ Run the producer directly with:
 node packages/nana-pack/bin/nana-frontier-summary.mjs --cwd <dir>
 ```
 
-A project opts into issues when its Open for the owner section has no list item and holds
+A project opts into issues when its Open or Open for section has no list item and holds
 an `https://github.com/<owner>/<repo>/issues` pointer paragraph. Plain URLs, angle brackets,
 Markdown links, trailing slashes and query strings work. A GitHub paragraph with an unreadable pointer gets
 one diagnostic line. Other projects retain the existing block without running gh.

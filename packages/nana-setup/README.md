@@ -253,7 +253,7 @@ Doctor's `pi executable` row checks `pi --version` and names the shared install 
 
 Install's dry run decides which ✗ rows doctor's last line gives to `nana-setup install`, and doctor lists the rest by hand. `PATH resolves pi-review` goes to install when the bin folder is already on PATH and no earlier PATH entry holds a pi-review; otherwise doctor lists it by hand. The dry run writes nothing. When install refuses the home, doctor prints `<n> missing — nana-setup install will not run until this is fixed: <first refusal line>`.
 
-Doctor's `release status` row is informational (·). It counts template commits on main since the highest plain vX.Y.Z tag and compares main with origin/main as of the last fetch. It never fetches; the owner decides when to tag and push. The shared reader exports `selectReleaseTag` and `countTemplateCommits` for later release gates.
+Doctor's `release status` row is informational (·). It reports `template changes since <tag>` or `no template change since <tag>` from the tree difference on templates/ and copier.yml between the highest plain vX.Y.Z tag and main, and compares main with origin/main as of the last fetch. It never fetches; the owner decides when to tag and push. The shared reader exports `selectReleaseTag` and `releaseSurfaceDiff` for release gates.
 
 ## Known limits
 

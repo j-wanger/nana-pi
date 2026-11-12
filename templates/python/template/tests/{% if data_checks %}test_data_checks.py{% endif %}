@@ -3,7 +3,7 @@
 @inputs data-checks.json beside the project root
 @outputs a findings table and pytest pass, fail or skip
 @effects disk (immutable data and source reads)
-@errors pytest failure on any error finding; skip when settings are absent
+@errors pytest failure on any error finding; skip when settings or a database are absent
 """
 
 from pathlib import Path
@@ -17,7 +17,11 @@ def test_data_checks() -> None:
     settings = Path(__file__).resolve().parents[1] / "data-checks.json"
     if not settings.exists():
         pytest.skip("Enable data checks: add data-checks.json at the project root.")
-    findings = run_all(load_settings(settings))
+    manifest = load_settings(settings)
+    for database in manifest["databases"]:
+        if not (Path(manifest["project_root"]) / database["path"]).exists():
+            pytest.skip(f"Data checks require missing database: {database['path']}")
+    findings = run_all(manifest)
     table = format_findings(findings)
     print(table)
     assert not any(f["severity"] == "error" for f in findings), table

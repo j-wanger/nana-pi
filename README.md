@@ -27,7 +27,10 @@ Python templates offer a default-off `data_checks` answer. Opting in adds a stan
 read-only checker, settings and a pytest entry point for eight data checks. Adoption preserves
 existing pack files. Release acceptance runs default-off templates plus opted-in Python scaffold
 and adoption projects through their native toolchains; the suite exercises this on macOS and
-Windows too. Configure real inputs before treating a green data test as validation.
+Windows too. Configure real inputs before treating a green data test as validation. A missing configured
+store skips the optional data test and names the file; a present store's errors still fail.
+Release eligibility compares the template-surface trees, not commit counts, so a change and
+its full revert do not mint an empty template tag.
 
 - `packages/nana-knowledge/` — explicit local BM25 (FTS5) search over this machine's
   markdown knowledge stores. Use `nana-knowledge query`; automatic delivery is retired

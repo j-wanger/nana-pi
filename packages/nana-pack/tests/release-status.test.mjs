@@ -28,10 +28,12 @@ const commit = (dir, file, text, message) => { const target = path.join(dir, fil
 const origin = (root, dir) => { const bare = path.join(root, "origin.git"); git(root, "init", "--bare", bare); git(dir, "remote", "add", "origin", bare); git(dir, "push", "-u", "origin", "main"); return bare; };
 
 // req: R-584
-check("counts only template-surface commits after the highest tag", () => {
+check("reports only template-surface tree changes after the highest tag", () => {
   const root = tmpDir(path.join(os.tmpdir(), "release-surface-")); const dir = repo(root); git(dir, "tag", "v0.1.0");
   commit(dir, "templates/x", "one\n", "template change"); commit(dir, "copier.yml", "_subdirectory: templates/{{ language }}/template\n# two\n", "copier change"); commit(dir, "README.md", "docs\n", "docs change");
-  const status = releaseStatus({ repo: dir }); assert.equal(status.tag, "v0.1.0"); assert.equal(status.templateCommits, 2); assert.match(status.line, /2 template commits?.*v0\.1\.0/);
+  const status = releaseStatus({ repo: dir }); assert.equal(status.tag, "v0.1.0"); assert.equal(status.templateChanged, true); assert.match(status.line, /template changes since v0\.1\.0/);
+  git(dir, "revert", "--no-edit", "HEAD~1", "HEAD~2");
+  const reverted = releaseStatus({ repo: dir }); assert.equal(reverted.templateChanged, false); assert.match(reverted.line, /no template change since v0\.1\.0/);
 });
 // req: R-584
 check("selects the highest plain numeric release tag, not a prerelease or nearest tag", () => {
@@ -52,7 +54,7 @@ check("uses only the release reader's allowed read-only Git subcommands", () => 
   const root = tmpDir(path.join(os.tmpdir(), "release-allowlist-")); const dir = repo(root); origin(root, dir); git(dir, "tag", "v0.1.0");
   const calls = []; const recording = (cwd, args) => { calls.push(args); return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }) ? { status: 0, stdout: execFileSync("git", args, { cwd, encoding: "utf8" }), stderr: "" } : { status: 0, stdout: "", stderr: "" }; };
   releaseStatus({ repo: dir, runGit: recording });
-  const allowed = new Set(["rev-parse", "cat-file", "for-each-ref", "rev-list"]); assert(calls.length > 0);
+  const allowed = new Set(["rev-parse", "cat-file", "for-each-ref", "rev-list", "diff"]); assert(calls.length > 0);
   for (const args of calls) assert(allowed.has(args[0]), `unexpected git subcommand ${args[0]}`);
 });
 // req: R-587

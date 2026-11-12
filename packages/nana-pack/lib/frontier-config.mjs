@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/frontier-config.mjs
  * @purpose Defines the sealed word budget, read window and shared section-name matching for HANDOFF frontier reports.
  * @inputs none
- * @outputs HANDOFF_WORD_BUDGET, READ_WINDOW_BYTES, READ_WINDOW_LINES, NEXT_SECTION_NAME, OPEN_SECTION_PREFIX, OPEN_SECTION_NAME, LIVE_SECTION_NAMES, ARCHIVE_SECTION_NAMES, isNamed
+ * @outputs HANDOFF_WORD_BUDGET, READ_WINDOW_BYTES, READ_WINDOW_LINES, NEXT_SECTION_NAME, OPEN_SECTION_PREFIX, BARE_OPEN_SECTION_NAME, OPEN_SECTION_NAME, LIVE_SECTION_NAMES, ARCHIVE_SECTION_NAMES, isNamed, isOpenSection
  * @effects none
  * @errors none
  */
@@ -17,12 +17,19 @@ export const READ_WINDOW_LINES = 2000;
 export const NEXT_SECTION_NAME = "Next";
 /** Contract (R-2514, R-2515): an asks heading starts with this prefix, including its trailing space. */
 export const OPEN_SECTION_PREFIX = "Open for ";
+/** Contract (R-2514, R-2515): accept existing projects' bare seed heading with isNamed suffixes. */
+export const BARE_OPEN_SECTION_NAME = "Open";
 /** Chosen: findings use the role-neutral canonical name even when another name appears in a heading. */
 export const OPEN_SECTION_NAME = "Open for the owner";
 /** Contract value (R-2470, R-2471): this repo's frontier headings, and the names nana-soul.md uses. */
 export const LIVE_SECTION_NAMES = ["Where things stand", NEXT_SECTION_NAME, OPEN_SECTION_PREFIX];
 /** Contract value (R-2470): this repo's archive headings. */
 export const ARCHIVE_SECTION_NAMES = ["Landed", "Carried residuals"];
+
+/** Match both current asks headings and the bare heading shipped to existing projects. */
+export function isOpenSection(title) {
+	return isNamed(title, OPEN_SECTION_PREFIX) || isNamed(title, BARE_OPEN_SECTION_NAME);
+}
 
 /** Match an exact section name with its accepted suffixes, or a declared trailing-space prefix. */
 export function isNamed(title, name) {

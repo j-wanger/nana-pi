@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/release-status.mjs
  * @purpose Report local release lag and main divergence without changing Git state.
  * @inputs A repository path and an injectable `(cwd, args) => spawnSync-result` runner.
- * @outputs Release line, tag, template commit count, ahead/behind counts, and missing inputs.
+ * @outputs Release line, tag, template tree-change flag, ahead/behind counts, and missing inputs.
  * @effects process (spawns read-only git)
  * @errors Missing or failed Git inputs become a status line and never escape as throws.
  */
@@ -31,12 +31,15 @@ export function selectReleaseTag(tags) {
 	return numeric[0] ?? null;
 }
 
-/** Parse a successful Git commit count. */
-export function countTemplateCommits(output) {
-	const text = String(output).trim();
-	if (!/^\d+$/.test(text)) return null;
-	const count = Number(text);
-	return Number.isSafeInteger(count) ? count : null;
+/** Compare release trees; exit 1 means changed, while every other failure stays unavailable. */
+export function releaseSurfaceDiff({ repo, tag, sha, runGit = defaultRunGit }) {
+	try {
+		const result = runGit(repo, ["diff", "--quiet", tag, sha, "--", ...RELEASE_SURFACE]);
+		if (!result?.error && (result?.status === 0 || result?.status === 1)) return { changed: result.status === 1, error: null };
+		return { changed: null, error: String(result?.stderr || result?.error?.message || "git command failed").trim() };
+	} catch (error) {
+		return { changed: null, error: error?.message ?? "git command failed" };
+	}
 }
 
 function invoke(runGit, repo, args) {
@@ -57,7 +60,7 @@ function invoke(runGit, repo, args) {
 export function releaseStatus({ repo, runGit = defaultRunGit }) {
 	const missing = [];
 	let tag = null;
-	let templateCommits = null;
+	let templateChanged = null;
 	let ahead = null;
 	let behind = null;
 	let mainAvailable = false;
@@ -85,10 +88,10 @@ export function releaseStatus({ repo, runGit = defaultRunGit }) {
 					tag = selectReleaseTag(refs.text.split(/\r?\n/).filter(Boolean));
 					if (!tag) missing.push("plain vX.Y.Z release tag unavailable");
 					else {
-						const count = invoke(runGit, repo, ["rev-list", "--count", `${tag}..${RELEASE_BRANCH_REF}`, "--", ...RELEASE_SURFACE]);
-						templateCommits = count.ok ? countTemplateCommits(count.text) : null;
-						if (templateCommits === null) missing.push(`template commit count unavailable${count.ok ? "" : ` (${count.text})`}`);
-						else templateDetail = `${templateCommits} template commit${templateCommits === 1 ? "" : "s"} since ${tag}`;
+						const diff = releaseSurfaceDiff({ repo, tag, sha: RELEASE_BRANCH_REF, runGit });
+						templateChanged = diff.changed;
+						if (templateChanged === null) missing.push(`template tree difference unavailable (${diff.error})`);
+						else templateDetail = `${templateChanged ? "template changes" : "no template change"} since ${tag}`;
 					}
 				}
 			}
@@ -113,5 +116,5 @@ export function releaseStatus({ repo, runGit = defaultRunGit }) {
 	if (originDetail) clauses.push(originDetail);
 	else if (!originAvailable) clauses.push("origin/main status unavailable");
 	if (missing.length) clauses.push(`missing: ${missing.join("; ")}`);
-	return { line: clauses.join("; ") || "release status unavailable", tag, templateCommits, ahead, behind, missing };
+	return { line: clauses.join("; ") || "release status unavailable", tag, templateChanged, ahead, behind, missing };
 }
