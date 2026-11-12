@@ -6,7 +6,7 @@
 
 ## Where things stand
 
-- **Current priority: reduction (the owner, 2026-11-08).** Cut machinery that does not earn its cost and keep the core working. The order and measures are in `OBJECTIVE.md`. Review on 2026-11-22.
+- **Current priority: start text into tools (the owner, 2026-11-12).** Keep each tool only where a sealed experiment shows it helps the objective. The order and measures are in `OBJECTIVE.md`.
 - **UI build briefs (2026-11-05).** A lane that builds a page a person looks at writes its brief from the UI brief template. The template rests on the laptop seat's experiments; the owner chose a rule only.
 - **Builder context (2026-11-06).** Builders get four lessons lines; fix briefs marked `Card: fix` may skip Precedent. Plans state each caller's observable contract.
 - **Load log (2026-11-06).** Each pi builder and pi reviewer launch now logs the context files pi loads, the pi version and the roster slot. Claude Code launches still log no context files.
