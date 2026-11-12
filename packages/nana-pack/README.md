@@ -264,8 +264,9 @@ Same-repository feature PR jobs skip; non-feature and fork PRs retain their own 
 Both paths run macOS and advisory Linux lane packs plus macOS ceiling/floor install checks.
 The lane also runs its selected test files on Windows, using the same land/module packs and `--changed-from=origin/main` as macOS.
 Selection includes changed tests and any collected nonmanual test whose text names a changed path's basename, including added, renamed and deleted paths.
+For changed files under any `bin/` or `scripts/` folder, it also matches the basename without its last extension as an escaped whole word (`\b<stem>\b`), when that stem has at least 6 characters.
 The declared hub basenames README.md, REQUIREMENTS.md, AGENTS.md and HANDOFF.md do not trigger name matching.
-Suite records preserve `names <path>` reasons separately from fail-safe module reasons; CI refuses records missing those selected tests.
+Suite records preserve `names <path>` or `names <stem> (<path>)` reasons separately from fail-safe module reasons; CI refuses records missing those selected tests.
 An empty selection allocates no Windows job. Full Windows shards and Windows install checks remain main-only; feature pushes cannot release.
 The workflow marks skipped feature PR duplicates with a fixed run title; the waiter, land judge and artifact reader exclude only that title with matching event, workflow, feature branch and repository identity.
 The waiter refuses every CONFLICTING PR with exit 1 and the merge-main remedy, before waiting for runs; it neither fetches nor inspects a merge tree.
@@ -356,7 +357,7 @@ pi-worker runs `npm run check:lane` (silently, via npm's `-s`) before the end re
 It uses the builder's credential-stripped environment, with a fifteen-minute deadline per
 script invocation (`LANE_CHECK_TIMEOUT_MS`, including the base rail) and bounded output.
 The project owns the script; nana-pi's root `scripts/check-lane.mjs` owns the ordered
-lost-round rail and comments. Its final step runs only changed tests and basename-naming tests
+lost-round rail and comments. Its final step runs only changed tests and basename- or command-stem-naming tests
 between the merge base with main and the working tree, through the existing runner's `--changed-tests-from=main` flag.
 It reports the selection count before running and each step's wall time, passes a computed empty selection and fails missing merge bases with git's reason.
 A lane changing the runner or a shared test helper selects nearly every test; the recorded

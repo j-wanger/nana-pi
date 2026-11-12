@@ -155,6 +155,27 @@ await check("M13: basename readers cross packs while hub basenames select nothin
   assert.equal(empty.status, 0, empty.out); assert.match(empty.out, /0 selected files/); assert.match(empty.out, /empty working-tree selection: pass/);
   const missing = execute(root, ["--changed-tests-from=missing-ref"]);
   assert.equal(missing.status, 1, missing.out); assert.match(missing.out, /(?:fatal|Not a valid object name|not a valid object name).*missing-ref/);
+
+  // Command readers omit file endings; longer words alone must not widen selection.
+  put(root, land, 'console.log("pi-reviewer", "reviewer", "piXreview");');
+  put(root, manual, 'console.log("pi-review", "review", "pi.review");');
+  for (const ending of ["\r\n", " \t\n", ""]) {
+    put(root, reader, 'console.log("pi-review", "review", "brief", "pi.review");' + ending);
+    for (const [command, stem] of [["bin/pi-review.mjs", "pi-review"], ["packages/probe/scripts/review.mjs", "review"], ["packages/probe/bin/pi.review.mjs", "pi.review"]]) {
+      const names = await selectPackFiles({ root, files: Object.keys(membership), membership, packs: [], changedFrom: "main", changedTestsOnly: true, readDiff: () => [command] });
+      assert.deepEqual(names.files, [reader], command);
+      assert.deepEqual(names.selection.nameMatches, [{ path: reader, reasons: [`names ${stem} (${command})`] }]);
+      const stemRecord = { ...record, packRun: { ...record.packRun, selection: names.selection }, files: [{ path: reader, label: "PASS", seconds: 0 }] };
+      assert.equal(proof(stemRecord).ok, true);
+      assert.equal(proof({ ...stemRecord, files: [] }).ok, false, "CI accepted an omitted stem reader");
+      assert.equal(proof({ ...stemRecord, files: [{ path: reader, label: "FAIL", seconds: 0 }] }).ok, false);
+    }
+    for (const command of ["scripts/brief.mjs", "bin/brief.mjs", "packages/probe/lib/pi-review.mjs", "notes/review.mjs", "bins/pi-review.mjs"]) {
+      const refused = await selectPackFiles({ root, files: Object.keys(membership), membership, packs: [], changedFrom: "main", changedTestsOnly: true, readDiff: () => [command] });
+      assert.deepEqual(refused.files, [], command);
+      assert.deepEqual(refused.selection.nameMatches, []);
+    }
+  }
 });
 // req: R-3858
 await check("M9: complete-pack locked runs serialize retain records and path filters bypass", async () => {
