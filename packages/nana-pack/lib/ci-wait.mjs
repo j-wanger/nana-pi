@@ -219,10 +219,12 @@ export async function waitForMainCi(options={}) {
     state.waiting=false;
     const jobs=ciRunJobs(run,{...options,repository,budget:b,latest:true});
     if(run.run_attempt>1 && !state.failures.size && !state.recovered) {
-     const first={...run,run_attempt:1};
-     const prior=ciRunJobs(first,{...options,repository,budget:b});
-     for(const job of prior.filter(job=>job.run_attempt===1&&job.status===CI_DONE_STATUS&&![CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion))) {
-      state.failures.set(job.name,logFiles(first,job,repository));
+     for(let attempt=1;attempt<run.run_attempt;attempt++) {
+      const earlier={...run,run_attempt:attempt};
+      const prior=ciRunJobs(earlier,{...options,repository,budget:b});
+      for(const job of prior.filter(job=>job.run_attempt===attempt&&job.status===CI_DONE_STATUS&&![CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion))) {
+       state.failures.set(job.name,[...new Set([...(state.failures.get(job.name)??[]),...logFiles(earlier,job,repository)])]);
+      }
      }
      state.recovered=true;
     }
@@ -236,7 +238,6 @@ export async function waitForMainCi(options={}) {
      }
     }
     const failed=jobs.filter(job=>job.status===CI_DONE_STATUS&&![CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion));
-    if(jobs.some(job=>job.status!==CI_DONE_STATUS)) {pending=true;continue;}
     if(failed.length && run.run_attempt<=MAIN_CI_RED_RERUNS) {
      for(const job of failed) {
       const files=logFiles(run,job,repository);

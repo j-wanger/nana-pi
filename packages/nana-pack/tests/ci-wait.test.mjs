@@ -161,13 +161,14 @@ await check('M8: red lane jobs print FAIL paths across line endings',async()=>{
  }
 });
 
-function mainWaitFake({id=101,fail=true,persistent=false,extraPending=false,absent=false,startAttempt=1,failedName='suite (windows-latest)',log='job\tstep\t2026-11-09 FAIL  packages/p/tests/red.test.mjs \t\r\n',logUnavailable=false}={}) {
+function mainWaitFake({id=101,fail=true,persistent=false,extraPending=false,absent=false,startAttempt=1,failedName='suite (windows-latest)',log='job\tstep\t2026-11-09 FAIL  packages/p/tests/red.test.mjs \t\r\n',logUnavailable=false,suiteLegs=['macos-latest','ubuntu-latest','windows-latest'],failedAttempt=a=>a===1||persistent,runConclusion,releaseStatus,runStatus='completed'}={}) {
  const root=tmpDir(path.join(os.tmpdir(),'main-wait-')),calls=[];
  let time=0,attempt=startAttempt,reads=0;
- const run=()=>workflowRun({id,workflow_id:1,head_sha:tip,head_branch:'main',event:'push',path:'.github/workflows/ci.yml',run_attempt:attempt,conclusion:fail&&(attempt===1||persistent)?'failure':'success'});
+ const run=()=>workflowRun({id,workflow_id:1,head_sha:tip,head_branch:'main',event:'push',path:'.github/workflows/ci.yml',run_attempt:attempt,status:runStatus,conclusion:runConclusion?.(attempt)??(fail&&failedAttempt(attempt)?'failure':'success')});
  const latestJobs=()=>[
-  ...['macos-latest','ubuntu-latest','windows-latest'].map((leg,i)=>({id:70+i,name:`suite (${leg})`,status:'completed',conclusion:`suite (${leg})`===failedName&&fail&&(attempt===1||persistent)?'failure':'success',run_attempt:attempt})),
-  ...['macos-latest','windows-latest'].flatMap(os=>['floor','ceiling'].map(pi=>({id:80,name:`install-check (${os}, ${pi})`,status:'completed',conclusion:`install-check (${os}, ${pi})`===failedName&&fail&&(attempt===1||persistent)?'failure':'success',run_attempt:attempt}))),
+  ...suiteLegs.map((leg,i)=>({id:70+i,name:`suite (${leg})`,status:'completed',conclusion:`suite (${leg})`===failedName&&fail&&failedAttempt(attempt)?'failure':'success',run_attempt:attempt})),
+  ...['macos-latest','windows-latest'].flatMap(os=>['floor','ceiling'].map(pi=>({id:80,name:`install-check (${os}, ${pi})`,status:'completed',conclusion:`install-check (${os}, ${pi})`===failedName&&fail&&failedAttempt(attempt)?'failure':'success',run_attempt:attempt}))),
+  ...(releaseStatus?[{id:90,name:'release',status:releaseStatus,conclusion:null,run_attempt:attempt}]:[]),
  ];
  const runGit=(_root,args)=>({status:0,stdout:args[0]==='remote'?'https://github.com/example/fixture.git':args.includes('--git-common-dir')?root:tip});
  const options={cwd:root,tempRoot:root,sha:tip,env:{GH_REPO:'wrong/other',GH_HOST:'wrong.invalid'},runGit,now:()=>time,sleep:ms=>{time+=ms;},runGh:(_root,args,opts)=>{
@@ -178,17 +179,19 @@ function mainWaitFake({id=101,fail=true,persistent=false,extraPending=false,abse
    if(args[1]==='view') return logUnavailable?{status:1,stderr:'recorded log unavailable'}:{status:0,stdout:log};
    const leg=args[args.indexOf('--name')+1].replace('suite-record-','').replace(/-\d+$/,'');
    const folder=args[args.indexOf('--dir')+1];fs.mkdirSync(folder,{recursive:true});
-   fs.writeFileSync(path.join(folder,'record.json'),JSON.stringify({schema:RECORD_SCHEMA,platform:leg,exitCode:leg==='windows-latest'&&persistent?1:0,files:[{path:'packages/p/tests/red.test.mjs',label:leg==='windows-latest'&&persistent?'FAIL':'PASS'}]}));
+   const shard=/^(.*)-shard-(\d+)-of-(\d+)$/.exec(leg);
+   fs.writeFileSync(path.join(folder,'record.json'),JSON.stringify({schema:RECORD_SCHEMA,platform:shard?.[1]??leg,...(shard?{filters:[],shard:{index:Number(shard[2]),count:Number(shard[3])}}:{}),exitCode:leg==='windows-latest'&&persistent?1:0,files:[{path:shard?`packages/p/tests/shard-${shard[2]}.test.mjs`:'packages/p/tests/red.test.mjs',label:leg==='windows-latest'&&persistent?'FAIL':'PASS'}]}));
    return {status:0,stdout:''};
   }
   const endpoint=args.at(-1);let body;
   if(endpoint.includes('/jobs?')) {
    const saved=attempt;
-   if(endpoint.includes('/attempts/1/')) attempt=1;
+   const prior=/\/attempts\/(\d+)\//.exec(endpoint);
+   if(prior) attempt=Number(prior[1]);
    const list=endpoint.includes('/runs/202/')?[{name:'check',status:'completed',conclusion:'success',run_attempt:1}]:latestJobs();
    attempt=saved;body={total_count:list.length,jobs:list};
   }
-  else if(endpoint.includes('/artifacts?')) body={artifacts:['macos-latest','ubuntu-latest','windows-latest'].map((leg,i)=>({id:i+1,name:`suite-record-${leg}-${attempt}`}))};
+  else if(endpoint.includes('/artifacts?')) body={artifacts:suiteLegs.map((leg,i)=>({id:i+1,name:`suite-record-${leg}-${attempt}`}))};
   else {
    reads++;
    body={workflow_runs:absent?[]:[run(),...(extraPending?[workflowRun({id:202,workflow_id:2,path:'.github/workflows/other.yml',head_sha:tip,head_branch:'main',event:'push',status:reads<3?'in_progress':'completed',conclusion:reads<3?null:'success'})]:[])]};
@@ -254,4 +257,43 @@ await check('M11: recorded main rerun prints recovery and restart never requests
  }
  const unavailable=mainWaitFake({startAttempt:2,persistent:true,logUnavailable:true});
  const result=await waitForMainCi(unavailable.options);assert.equal(result.code,1,result.text);assert.match(result.text,/log unavailable/);
+});
+
+// req: R-3995
+await check('M12: attempt 4 restart records the Windows file first failing at attempt 3',async()=>{
+ const {waitForMainCi}=await api();
+ for(const suffix of ['\n','\r\n',' \t\r\n','']) {
+  // Run 43093486745: attempt 1 lost suite records, attempt 3 failed this shard, attempt 4 passed.
+  const f=mainWaitFake({id:43093486745,startAttempt:4,
+   suiteLegs:['macos-latest','ubuntu-latest',...Array.from({length:3},(_,i)=>`windows-latest-shard-${i+1}-of-3`)],
+   failedName:'suite (windows-latest-shard-2-of-3)',failedAttempt:a=>a===3,
+   runConclusion:a=>a===4?'success':'failure',
+   log:`suite\tstep\t2026-11-11 FAIL packages/nana-pack/tests/lane-push-ci.test.mjs${suffix}`});
+  const out=await waitForMainCi(f.options);
+  const stored=()=>readSuiteRecords({root:f.root,runGit:f.runGit,subpath:CI_STORE_SUBPATH});
+  console.log(`attempt-4 replay: ${out.text.trim()}; flake records: ${stored().length}`);
+  assert.equal(out.code,0,out.text);assert.match(out.text,/green after rerun/);
+  assert.match(out.text,/flake: packages\/nana-pack\/tests\/lane-push-ci.test.mjs/);
+  assert.equal(stored().length,1);assert.equal(stored()[0].flake.file,'packages/nana-pack/tests/lane-push-ci.test.mjs');
+  for(const a of [1,2,3]) assert(f.calls.some(args=>args.at(-1).includes(`/attempts/${a}/jobs?`)));
+  assert.equal(f.calls.filter(a=>a[1]==='rerun').length,0);
+  assert.equal((await waitForMainCi(f.options)).code,0);
+  assert.equal(stored().length,1,'restarted waiters retain one record per identity');
+ }
+});
+
+// req: R-4220
+await check('M13: a concluded main run does not wait for its queued release job',async()=>{
+ const {waitForMainCi}=await api();
+ for(const releaseStatus of ['queued','waiting']) {
+  const f=mainWaitFake({id:43093486745,startAttempt:3,persistent:true,releaseStatus});
+  const out=await waitForMainCi({...f.options,deadline:17});
+  console.log(`concluded-run replay (${releaseStatus}): ${out.text.trim()}; elapsed: ${f.time()}`);
+  assert.equal(out.code,1,out.text);assert.doesNotMatch(out.text,/CI did not finish/);
+  assert.match(out.text,/workflow ci run 43093486745 red/);assert.equal(f.time(),0);
+  assert.equal(f.calls.filter(a=>a[1]==='rerun').length,0);
+ }
+ const active=mainWaitFake({runStatus:'in_progress',releaseStatus:'in_progress'});
+ const pending=await waitForMainCi({...active.options,deadline:17});
+ assert.match(pending.text,/CI did not finish/);assert.equal(active.time(),17);
 });
