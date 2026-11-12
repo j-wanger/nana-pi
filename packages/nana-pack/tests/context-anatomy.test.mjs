@@ -244,6 +244,10 @@ test('R-3214: both reviewers share brief-selected known bugs with a lead and no 
   const piText = pr.call.prompts.at(-1).text; const expected = reviewKnownBugSection(f.lane, f.briefText).text;
   assert.equal(piText, expected); assert.ok(cr.call.stdin.includes(expected)); assert.ok(cr.call.stdin.indexOf(expected)<cr.call.stdin.indexOf('## Review standard'));
   const bigBrief = f.briefText.replace('FEAT-006', 'FEAT-007'); write(f.brief, bigBrief);
+  write(path.join(f.lane, 'lib/ci-wait.mjs'), '// changed file\n');
+  write(path.join(f.lane, 'docs/known-bugs/FEAT-007.md'), big.replace('- bug 0: ordinary', '- bug 0: nana-ci-wait cancellation'));
+  git(f.lane, 'add', '-A'); git(f.lane, 'commit', '-qm', 'change reviewed file');
+  assert.ok(reviewKnownBugSection(f.lane, bigBrief).text.includes('- bug 0: nana-ci-wait cancellation'));
   const folded = reviewKnownBugSection(f.lane, bigBrief).text;
   assert.ok(folded.includes('quoted needle')); assert.ok(!folded.includes('ordinary'));
   const bigCr = launch(f, 'claude-review'); good(bigCr); const bigPr = launch(f, 'pi-review'); good(bigPr);

@@ -1,18 +1,19 @@
 /**
  * @module packages/nana-pack/lib/known-bug-digest.mjs
- * @purpose Select whole known-bug lines by brief relevance and file order for bounded role context.
+ * @purpose Select whole known-bug lines by role relevance and file order for bounded context.
  * @inputs Known-bug text, relative source, brief text and reviewed root.
  * @outputs Whole-file or folded digest and a shared reviewer section with per-source sizes.
- * @effects disk (review section reads regular known-bug files)
- * @errors Missing or unreadable feature files are skipped.
+ * @effects disk (review section reads regular known-bug files), process (reviewed tree git diff)
+ * @errors Missing or unreadable feature files are skipped; git failure falls back to brief terms.
  */
 import { readFileSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, posix } from 'node:path';
 import { readBrief } from './brief-precedent.mjs';
 import { KNOWN_BUGS_DIR } from './known-bugs-config.mjs';
 import { KNOWN_BUG_DIGEST_CHARS, KNOWN_BUG_MATCH_MIN_CHARS, KNOWN_BUG_SECTION_HEADING, KNOWN_BUG_SECTION_LEAD, KNOWN_BUG_FOLDER_SENTENCE } from './known-bug-digest-config.mjs';
 
-export function digestKnownBugs(text, source, brief = '', budget = KNOWN_BUG_DIGEST_CHARS) {
+export function digestKnownBugs(text, source, brief = '', budget = KNOWN_BUG_DIGEST_CHARS, changedFiles = []) {
   // Keep physical lines including their original terminator, trailing whitespace and final-line shape.
   const lines = text.match(/[^\r\n]*(?:\r\n|\r|\n|$)/g).filter(Boolean);
   const first = lines.findIndex(line => /^- /.test(line));
@@ -22,7 +23,7 @@ export function digestKnownBugs(text, source, brief = '', budget = KNOWN_BUG_DIG
   const bugs = first < 0 ? [] : lines.slice(first).filter(line => /^- /.test(line));
   const newline = text.includes('\r\n') ? '\r\n' : '\n';
   const parsed = readBrief(brief);
-  const terms = [...(parsed.precedent ?? []).filter(p => p.kind === 'path').map(p => p.value), ...[...brief.matchAll(/`([^`\r\n]+)`/g)].map(m => m[1])].flatMap(term => {
+  const terms = [...(parsed.precedent ?? []).filter(p => p.kind === 'path').map(p => p.value), ...[...brief.matchAll(/`([^`\r\n]+)`/g)].map(m => m[1]), ...changedFiles].flatMap(term => {
     const basename = posix.basename(term.replaceAll('\\', '/'));
     return [term, basename, basename.slice(0, basename.length - posix.extname(basename).length)];
   }).filter(term => term.length >= KNOWN_BUG_MATCH_MIN_CHARS);
@@ -48,7 +49,13 @@ export function reviewKnownBugSection(root, brief = '') {
   const feature = readBrief(brief).feature;
   const file = feature ? read(feature) : null;
   if (!file) return { text: null, parts: [] };
-  const digest = digestKnownBugs(file.text, file.source, brief);
+  let changedFiles = [];
+  try {
+    const git = args => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const base = git(['merge-base', 'HEAD', 'main']).trim();
+    changedFiles = git(['diff', '--name-only', '-z', base, 'HEAD', '--']).split('\0').filter(Boolean);
+  } catch {} // Review delivery must not depend on git or a local main branch being available.
+  const digest = digestKnownBugs(file.text, file.source, brief, KNOWN_BUG_DIGEST_CHARS, changedFiles);
   const parts = [{ name: 'known bugs', source: file.source, fullChars: file.text.length, deliveredChars: digest.text.length }];
   return { text: `${KNOWN_BUG_SECTION_HEADING}\n\n${KNOWN_BUG_SECTION_LEAD}\n\n${digest.text}`, parts };
 }
