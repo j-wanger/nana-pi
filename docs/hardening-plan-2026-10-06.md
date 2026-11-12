@@ -1,3 +1,5 @@
+Historical plan: the hardening program completed on 2026-10-09.
+
 # nana hardening plan — coherent and seamless (2026-10-06)
 
 *Seat synthesis of a read-only audit of nana-pi and the live nana install on this Mac. Goal (Owner, 2026-10-06): the nana experience, and agentic coding done with nana, is coherent and seamless. Governing priority (since 2026-09-16): make the nana-pi experience consistent, coherent and effective. Evidence corpus: `docs/reviews/hardening-audit-2026-10-06/` (`findings.json` holds every finding with its evidence, Fable and sol verdicts; `sol/` holds the gpt-5.6-sol reviews; `lane-summaries.md` and `lanes/` hold the auditors' notes). Finding IDs (L1-01 …, G1a-01 …) below index into `findings.json`.*
