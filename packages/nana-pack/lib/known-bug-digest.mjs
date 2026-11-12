@@ -7,7 +7,7 @@
  * @errors Missing or unreadable feature files are skipped.
  */
 import { readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import { readBrief } from './brief-precedent.mjs';
 import { KNOWN_BUGS_DIR } from './known-bugs-config.mjs';
 import { KNOWN_BUG_DIGEST_CHARS, KNOWN_BUG_MATCH_MIN_CHARS, KNOWN_BUG_SECTION_HEADING, KNOWN_BUG_SECTION_LEAD, KNOWN_BUG_FOLDER_SENTENCE } from './known-bug-digest-config.mjs';
@@ -17,12 +17,15 @@ export function digestKnownBugs(text, source, brief = '', budget = KNOWN_BUG_DIG
   const lines = text.match(/[^\r\n]*(?:\r\n|\r|\n|$)/g).filter(Boolean);
   const first = lines.findIndex(line => /^- /.test(line));
   const header = (first < 0 ? lines : lines.slice(0, first)).join('');
-  // The header is unconditional, even above a feature's share; only the text after it is capped.
+  // The header is unconditional, even above the budget; only the text after it is capped.
   if (text.length - header.length <= budget) return { text, fullChars: text.length, deliveredChars: text.length, headerChars: header.length };
   const bugs = first < 0 ? [] : lines.slice(first).filter(line => /^- /.test(line));
   const newline = text.includes('\r\n') ? '\r\n' : '\n';
   const parsed = readBrief(brief);
-  const terms = [...(parsed.precedent ?? []).filter(p => p.kind === 'path').map(p => p.value), ...[...brief.matchAll(/`([^`\r\n]+)`/g)].map(m => m[1])].filter(term => term.length >= KNOWN_BUG_MATCH_MIN_CHARS);
+  const terms = [...(parsed.precedent ?? []).filter(p => p.kind === 'path').map(p => p.value), ...[...brief.matchAll(/`([^`\r\n]+)`/g)].map(m => m[1])].flatMap(term => {
+    const basename = posix.basename(term.replaceAll('\\', '/'));
+    return [term, basename, basename.slice(0, basename.length - posix.extname(basename).length)];
+  }).filter(term => term.length >= KNOWN_BUG_MATCH_MIN_CHARS);
   const selected = new Set();
   const fold = n => `${n} known-bug lines omitted for size; read the whole file ${source} before you report the known bugs your change touches. ${KNOWN_BUG_FOLDER_SENTENCE}`;
   const render = () => {
@@ -43,16 +46,9 @@ export function reviewKnownBugSection(root, brief = '') {
     return null;
   };
   const feature = readBrief(brief).feature;
-  const files = feature ? [read(feature)].filter(Boolean) : [];
-  if (!files.length) return { text: null, parts: [] };
-  let remaining = KNOWN_BUG_DIGEST_CHARS;
-  const parts = [], sections = [];
-  for (let i=0;i<files.length;i++) {
-    const file = files[i];
-    const digest = digestKnownBugs(file.text, file.source, brief, Math.floor(remaining/(files.length-i)));
-    remaining -= digest.text.length - digest.headerChars;
-    sections.push(digest.text);
-    parts.push({ name: 'known bugs', source: file.source, fullChars: file.text.length, deliveredChars: digest.text.length });
-  }
-  return { text: `${KNOWN_BUG_SECTION_HEADING}\n\n${KNOWN_BUG_SECTION_LEAD}\n\n${sections.join('\n\n')}`, parts };
+  const file = feature ? read(feature) : null;
+  if (!file) return { text: null, parts: [] };
+  const digest = digestKnownBugs(file.text, file.source, brief);
+  const parts = [{ name: 'known bugs', source: file.source, fullChars: file.text.length, deliveredChars: digest.text.length }];
+  return { text: `${KNOWN_BUG_SECTION_HEADING}\n\n${KNOWN_BUG_SECTION_LEAD}\n\n${digest.text}`, parts };
 }

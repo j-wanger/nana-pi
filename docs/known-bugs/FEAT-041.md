@@ -6,7 +6,7 @@
 - Context shaping (context-anatomy, plan residual): a `%`, `!` or `"` in the temp path blocks the Windows `.cmd` launch, as for the Claude Code builder.
 - Context shaping (context-anatomy, plan residual): concurrent load-log writers are not pinned by a test; a torn line is possible.
 - Context shaping (context-anatomy, plan residual): the roster names the reviewer by alias, so a per-model effort entry keyed by the full model id is not matched and the top-level level applies.
-- Context shaping (context-anatomy, plan residual): a review whose movement names no feature with a known-bug file and whose brief has no Feature line gets no known-bug section.
+- Context shaping (context-anatomy, plan residual): a review brief with no Feature line gets no known-bug section.
 - Context shaping (context-anatomy, seat measurement): the account email stays in the Claude reviewer's context; it comes from login, not settings.
 - Context shaping (context-anatomy, seat measurement): a per-model effort level that is not a string blocks the fallback to the top-level level.
 - Context shaping (context-anatomy, seat measurement): carried environment names match case-insensitively while the sealed environment overrides by exact name.

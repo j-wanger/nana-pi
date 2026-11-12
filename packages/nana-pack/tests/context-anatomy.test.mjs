@@ -205,6 +205,7 @@ test('R-3212: over-cap digests and Claude builders keep only header and brief ma
     const omitted = data.lines.length - kept.length;
     assert.ok(delivered.endsWith(`${omitted} known-bug lines omitted for size; read the whole file docs/known-bugs/FEAT-006.md before you report the known bugs your change touches. Every feature's known bugs live in docs/known-bugs/.`));
     assert.deepEqual(kept, [data.lines[2]]);
+    assert.ok(digestKnownBugs(data.text.replace('quoted needle', 'ci-wait.mjs'), 'docs/known-bugs/FEAT-006.md', f.briefText.replace('- seed', '- packages/nana-pack/lib/ci-wait.mjs')).text.includes(data.lines[2].replace('quoted needle', 'ci-wait.mjs')));
     const loads = rows(f.log); const part = loads[0].parts.find(p=>p.name==='known bugs'); assert.equal(part.fullChars, data.text.length); assert.equal(part.deliveredChars, delivered.length);
   }
   for (const newline of ['\n', '\r\n']) {
