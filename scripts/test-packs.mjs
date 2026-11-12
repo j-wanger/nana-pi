@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { CI_READ_TIMEOUT_MS, CHILD_OUTPUT_MAX_BYTES } from "../packages/nana-pack/lib/land-config.mjs";
 import { globMatch } from "./glob-match.mjs";
-import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, NAME_MATCH_HUBS, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
+import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, NAME_MATCH_HUBS, NAME_MATCH_STEM_FOLDERS, NAME_MATCH_STEM_MIN_LENGTH, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
 
 /** Read deduplicated paths from the merge base to the working tree, including untracked non-ignored files; NULs preserve whitespace in paths. */
 export function changedPaths(root, ref) {
@@ -55,13 +55,21 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
   const changedTests = new Set(selection.changedPaths.filter(file => files.includes(file) && membership[file] !== "manual"));
   selection.changedTests = [...changedTests].sort().map(path => ({ path, reasons: ["changed test"] }));
   // Read each eligible test once, independent of the module map that fail-safe clears.
-  const namedPaths = selection.changedPaths.filter(file => !NAME_MATCH_HUBS.includes(path.posix.basename(file)));
+  const namedPaths = selection.changedPaths.filter(file => !NAME_MATCH_HUBS.includes(path.posix.basename(file))).map(changed => {
+    const basename = path.posix.basename(changed);
+    const stem = path.posix.basename(changed, path.posix.extname(changed));
+    const inCommandFolder = path.posix.dirname(changed).split("/").some(folder => NAME_MATCH_STEM_FOLDERS.includes(folder));
+    const stemPattern = inCommandFolder && stem.length >= NAME_MATCH_STEM_MIN_LENGTH
+      ? new RegExp(`\\b${stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`) : null;
+    return { changed, basename, stem, stemPattern };
+  });
   if (namedPaths.length) {
     for (const file of files) {
       if (membership[file] === "manual") continue;
       const text = readFileSync(path.join(root, file), "utf8");
-      const matches = namedPaths.filter(changed => text.includes(path.posix.basename(changed)));
-      if (matches.length) selection.nameMatches.push({ path: file, reasons: matches.map(changed => `names ${changed}`) });
+      const matches = namedPaths.flatMap(({ changed, basename, stem, stemPattern }) =>
+        text.includes(basename) ? [`names ${changed}`] : stemPattern?.test(text) ? [`names ${stem} (${changed})`] : []);
+      if (matches.length) selection.nameMatches.push({ path: file, reasons: matches });
     }
   }
   const nameMatches = new Set(selection.nameMatches.map(item => item.path));

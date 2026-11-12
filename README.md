@@ -350,6 +350,11 @@ starting it.
 `npm test -- --pack=land` runs the land pack. `--pack=land,module --changed-from=main`
 adds affected module tests, every changed collected nonmanual test, and tests in any nonmanual pack
 whose text names a changed path's basename, printing `names <path>` reasons.
+Changed paths run from main's merge base to the working tree: committed, staged and unstaged tracked edits
+plus untracked non-ignored files, deduplicated.
+For changed files under any bin/ or scripts/ folder, name matching also includes the basename without
+its last extension when that stem has at least 6 characters and matches as an escaped whole word
+(`\b<stem>\b`), printing `names <stem> (<path>)` reasons.
 Hub basenames README.md, REQUIREMENTS.md, AGENTS.md and HANDOFF.md are excluded from name matching.
 Suite records list changed tests and name matches separately; CI readers refuse proof missing any selected test. `scripts/test-packs.mjs`
 uses import and launch reach, blind reach and text-input watches; uncertainty runs every module test.

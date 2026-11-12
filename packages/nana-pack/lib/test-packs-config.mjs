@@ -10,6 +10,9 @@
 // Helpers are not runnable files. Browser e2e files remain manual, never collected.
 // chosen 2026-11-11 (R-4070): frequent lane edits; check:lane already checks these hubs.
 export const NAME_MATCH_HUBS = Object.freeze(["README.md", "REQUIREMENTS.md", "AGENTS.md", "HANDOFF.md"]);
+// chosen (EA replay 2026-11-12; sealed bar ea-name-match)
+export const NAME_MATCH_STEM_FOLDERS = Object.freeze(["bin", "scripts"]);
+export const NAME_MATCH_STEM_MIN_LENGTH = 6;
 // contract (ci-packs A1/M7, R-3856): six explicit, non-overlapping pack names.
 export const PACK_NAMES = Object.freeze(["land", "module", "main", "release", "manual", "retire"]);
 export const TEST_PACKS = Object.freeze({
