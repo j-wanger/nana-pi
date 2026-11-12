@@ -271,9 +271,16 @@ export const FAIL_SAFE_PATHS = Object.freeze({
   "package.json": "contract R-3856: runner command",
   "code-map.config.json": "contract R-3856: graph configuration",
 });
-// contract (ci-packs A1, R-3856): release rehearsal inputs.
+// contract (R-3851, R-3853), chosen 2026-11-12: retain setup-tail's only Windows
+// execution route, including the old release-pack triggers, without promoting other files.
+export const RELEASE_COVERAGE_HOLDS = Object.freeze({
+  "packages/nana-setup/tests/setup-tail.test.mjs": Object.freeze(["packages/nana-setup/**"]),
+});
+
+// contract (R-3851, R-3853), chosen 2026-11-12: template rehearsals supplement lanes
+// individually. Setup paths need graph reach or name matches, not pack promotion.
 export const RELEASE_GLOBS = Object.freeze({
-  "templates/**": "contract R-3856: rendered project inputs",
-  "copier.yml": "contract R-3856: template questions",
-  "packages/nana-setup/**": "contract R-3856: installation inputs",
+  "templates/**": "contract R-3851: rendered project inputs",
+  "copier.yml": "contract R-3851: template questions",
+  "scripts/template-*.mjs": "contract R-3851: template tooling",
 });

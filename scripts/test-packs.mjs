@@ -1,8 +1,8 @@
 /**
  * @module scripts/test-packs.mjs
- * @purpose Select complete packs and conservative changed-module tests with auditable reasons.
+ * @purpose Select complete packs and individually affected tests with auditable reasons.
  * @inputs Collected relative paths, pack names, a base ref, tracked working-tree edits, untracked non-ignored files, git and graph boundaries.
- * @outputs Selected paths and a record of changed paths, changed-test and module reasons and fail-safe cause.
+ * @outputs Selected paths and a record of changed paths, changed-test, release and module reasons and fail-safe cause.
  * @effects process (bounded git reads), disk (code graph reads).
  * @errors Invalid packs or incomplete membership throw; uncertain impact selects all modules.
  */
@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { CI_READ_TIMEOUT_MS, CHILD_OUTPUT_MAX_BYTES } from "../packages/nana-pack/lib/land-config.mjs";
 import { globMatch } from "./glob-match.mjs";
-import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, NAME_MATCH_HUBS, NAME_MATCH_STEM_FOLDERS, NAME_MATCH_STEM_MIN_LENGTH, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
+import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, RELEASE_COVERAGE_HOLDS, NAME_MATCH_HUBS, NAME_MATCH_STEM_FOLDERS, NAME_MATCH_STEM_MIN_LENGTH, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
 
 /** Read deduplicated paths from the merge base to the working tree, including untracked non-ignored files; NULs preserve whitespace in paths. */
 export function changedPaths(root, ref) {
@@ -40,10 +40,10 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
   const problems = packProblems(files, membership);
   if (problems.length) throw new Error(problems.join("\n"));
   packs = [...new Set(packs)];
-  const selection = { changedFrom, changedPaths: [], changedTests: [], nameMatches: [], module: [], failSafe: null };
+  const selection = { changedFrom, changedPaths: [], changedTests: [], nameMatches: [], module: [], release: [], failSafe: null };
   const moduleFiles = files.filter(file => membership[file] === "module");
   const reasons = new Map();
-  const add = (file, reason) => { if (!reasons.has(file)) reasons.set(file, new Set()); reasons.get(file).add(reason); };
+  const add = (file, reason, target = reasons) => { if (!target.has(file)) target.set(file, new Set()); target.get(file).add(reason); };
   const all = reason => { for (const file of moduleFiles) add(file, reason); };
   if (changedFrom) {
     try { selection.changedPaths = readDiff(root, changedFrom); }
@@ -74,16 +74,30 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
   }
   const nameMatches = new Set(selection.nameMatches.map(item => item.path));
   if (changedTestsOnly) return { packs: [], selection, files: files.filter(file => changedTests.has(file) || nameMatches.has(file)) };
-  // Release paths and graph callers supplement a lane run, never a single-pack or main run.
+  // Release files supplement a lane individually; neither setup edits nor fail-safe promote a pack.
   const lane = changedFrom && packs.includes("land") && packs.includes("module") && !packs.includes("main");
-  const release = () => { if (lane && !packs.includes("release")) packs.push("release"); };
-  if (selection.changedPaths.some(file => membership[file] === "release" || Object.keys(RELEASE_GLOBS).some(glob => globMatch(glob, file)))) release();
+  const releaseReasons = new Map();
+  const addRelease = (file, reason) => {
+    if (lane && files.includes(file) && membership[file] === "release") add(file, reason, releaseReasons);
+  };
+  const holdReleaseCoverage = reason => {
+    for (const file of Object.keys(RELEASE_COVERAGE_HOLDS)) addRelease(file, `coverage hold: ${reason}`);
+  };
+  for (const changed of selection.changedPaths) {
+    if (membership[changed] === "release") holdReleaseCoverage(`changed release test: ${changed}`);
+    for (const [file, globs] of Object.entries(RELEASE_COVERAGE_HOLDS)) {
+      for (const glob of globs) if (globMatch(glob, changed)) addRelease(file, `coverage hold ${glob}: ${changed}`);
+    }
+    for (const glob of Object.keys(RELEASE_GLOBS)) {
+      if (globMatch(glob, changed)) for (const file of files) addRelease(file, `release input ${glob}: ${changed}`);
+    }
+  }
   if (packs.includes("module")) {
     if (!changedFrom) all("complete module pack");
     else {
       const policy = selection.changedPaths.find(file => Object.hasOwn(FAIL_SAFE_PATHS, file));
       if (policy) selection.failSafe = `policy path changed: ${policy}`;
-      if (!selection.failSafe) {
+      if (!selection.failSafe || lane) {
         try {
           const { impact, blindReach } = await import("./code-map.mjs");
           const graph = await makeGraph(root);
@@ -92,17 +106,19 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
             if (!graph.modules.has(changed) && !Object.keys(WATCH_GLOBS).some(glob => globMatch(glob, changed))) all(`unmapped path: ${changed}`);
             for (const caller of impact(graph, [changed]).callers) {
               if (moduleFiles.includes(caller)) add(caller, `caller of ${changed}`);
-              if (membership[caller] === "release") release();
+              addRelease(caller, `caller of ${changed}`);
+              if (membership[caller] === "release") holdReleaseCoverage(`release caller of ${changed}`);
             }
           }
           for (const file of blindReach(graph)) if (moduleFiles.includes(file)) add(file, "blind reach");
           for (const changed of selection.changedPaths) for (const glob of Object.keys(WATCH_GLOBS)) if (globMatch(glob, changed)) all(`watch glob ${glob}: ${changed}`);
-        } catch { selection.failSafe = "graph could not be read"; }
+        } catch { selection.failSafe ??= "graph could not be read"; }
       }
       if (selection.failSafe) { reasons.clear(); all(`fail-safe: ${selection.failSafe}`); }
     }
   }
-  if (selection.failSafe) release();
+  if (selection.failSafe) holdReleaseCoverage(`fail-safe: ${selection.failSafe}`);
+  selection.release = [...releaseReasons].sort(([a], [b]) => a.localeCompare(b)).map(([path, reasons]) => ({ path, reasons: [...reasons] }));
   selection.module = [...reasons].sort(([a], [b]) => a.localeCompare(b)).map(([path, reasons]) => ({ path, reasons: [...reasons] }));
-  return { packs, selection, files: files.filter(file => changedTests.has(file) || nameMatches.has(file) || (packs.includes(membership[file]) && (membership[file] !== "module" || reasons.has(file)))) };
+  return { packs, selection, files: files.filter(file => changedTests.has(file) || nameMatches.has(file) || releaseReasons.has(file) || (packs.includes(membership[file]) && (membership[file] !== "module" || reasons.has(file)))) };
 }
