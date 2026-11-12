@@ -1,5 +1,7 @@
 # FEAT-031 — known bugs
 
+- Test temp helper (test-role-env-2 review 1 NOTEs): no test pins its import-time scrub, and its header can read as keeping the two runtime-folder overrides. Since shared-helpers, the bench and knowledge tests load it too.
+
 - an untracked stray file (for example `.DS_Store`, not ignored) now widens local changed-test selection and, in pack mode, an unmapped untracked path runs every module test; time only (lane-check-skip review 2, 2026-11-12)
 
 - Suite records (runtime-retire review 1 NOTE 9): the baseline reads each file's final entry, so an old coverage-failed then rerun-passed baseline classes a current failure as new; correct, but unpinned.

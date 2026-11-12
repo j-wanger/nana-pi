@@ -8,7 +8,7 @@
  *  (writing_rule_unavailable) when the file is missing, not a regular file, unreadable, or when
  *  the bytes actually read are not valid UTF-8 — a bounded read never speaks to an unread
  *  remainder, so that is the full extent of the claim, not whole-file validation
- * @effects disk (stats and bounded-reads the rule file; appends the journal)
+ * @effects disk (bounded-reads the rule file through lib/bounded-read.mjs; appends the journal)
  * @errors none — the handler swallows everything; an unusable rule injects nothing rather than
  *  throwing, hanging or exhausting memory
  */
@@ -26,11 +26,9 @@
  * structured prompt and transcript delta.
  *
  * astra r2 MUST 1: the read must never crash or hang pi, regardless of what sits at the rule
- * path. `buildBlock` therefore (a) `statSync`s first and refuses anything that is not a
- * regular file — a FIFO with no writer blocks forever on `read()`, and this is the ONLY
- * defense against that, since no read-side timeout exists in Node's sync fs API — and (b)
- * never allocates or decodes more than WRITING_INJECT_CAP + READ_MARGIN bytes (R-755), however
- * large the file is, so a 64 MiB (or larger) file cannot exhaust the heap. The margin exists so
+ * path. The read goes through lib/bounded-read.mjs, as nana-rulings.ts's does. It refuses a
+ * FIFO or other non-regular file without reading, and reads at most READ_WINDOW + 1 bytes,
+ * however large the file is, so a 64 MiB (or larger) file cannot exhaust the heap. The margin exists so
  * a multi-byte UTF-8 character split exactly at the read boundary can be detected and trimmed
  * rather than misread as a genuinely invalid file.
  *
@@ -48,7 +46,7 @@
  * this at a disposable fixture instead of ever touching the real, installed rule file.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import * as fs from "node:fs";
+import { readBounded, readFailureCause } from "../lib/bounded-read.mjs";
 import { fileURLToPath } from "node:url";
 import { appendJournal, loadConfig } from "../lib/config.ts";
 import { head } from "../lib/display.mjs";
@@ -65,41 +63,12 @@ export const HEADING = "## Writing for the owner (nana)";
  *  cap can still have its possibly-split trailing character trimmed and decoded cleanly. */
 export const READ_MARGIN = 4;
 
-/** The exact byte ceiling a read may request for a file of `fileSize` bytes: never more than
- *  WRITING_INJECT_CAP + READ_MARGIN, whatever the file's real size (R-755). Exported so the
- *  ceiling is pinned directly, by name, rather than inferred from a heap-pressure probe. */
-export function readBudget(fileSize: number): number {
-	return Math.min(fileSize, WRITING_INJECT_CAP + READ_MARGIN);
-}
+/** The most bytes buildBlock decodes (R-755); bounded-read reads one more to tell a longer file. */
+export const READ_WINDOW = WRITING_INJECT_CAP + READ_MARGIN;
 
 export interface BuildResult {
 	block: string | null;
 	cause: string | null;
-}
-
-/** A human description of what occupies `path`, for a refusal message — never throws. */
-function describeKind(st: fs.Stats): string {
-	if (st.isDirectory()) return "a directory";
-	if (st.isFIFO()) return "a FIFO";
-	if (st.isSocket()) return "a socket";
-	if (st.isBlockDevice() || st.isCharacterDevice()) return "a device";
-	return "not a regular file";
-}
-
-/**
- * Read at most `want` bytes of `fd`, looping on short reads (a regular file read can return
- * fewer bytes than requested). Bounded: this never allocates more than `want` bytes regardless
- * of the underlying file's size.
- */
-function readBounded(fd: number, want: number): Buffer {
-	const buf = Buffer.allocUnsafe(want);
-	let total = 0;
-	while (total < want) {
-		const n = fs.readSync(fd, buf, total, want - total, total);
-		if (n === 0) break; // EOF
-		total += n;
-	}
-	return buf.subarray(0, total);
 }
 
 /** The UTF-8 sequence length a lead byte announces (1-4), or 0 when `b` is a continuation byte
@@ -146,43 +115,24 @@ function capBlock(full: string, forceCut: boolean): BuildResult {
  * missing, not a regular file, unreadable, or when the BYTES ACTUALLY READ are not valid
  * UTF-8 (R-752) — a bounded read cannot speak to an unread remainder, so that is the full
  * extent of the claim. Otherwise the block is capped at WRITING_INJECT_CAP chars with the cut
- * announced inside the text (R-753), and the read itself never exceeds readBudget(fileSize)
- * bytes, whatever the file's actual size, so neither a FIFO nor an oversized file can crash or
+ * announced inside the text (R-753), and the decode never exceeds READ_WINDOW bytes,
+ * whatever the file's actual size, so neither a FIFO nor an oversized file can crash or
  * hang the caller (R-755, astra r2 MUST 1).
  */
 export function buildBlock(rulePath: string = RULE_PATH): BuildResult {
-	let st: fs.Stats;
-	try {
-		st = fs.statSync(rulePath); // follows a symlink; a dangling one throws ENOENT, same as missing
-	} catch (err) {
-		return { block: null, cause: `unreadable (${(err as Error).message})` };
-	}
-	if (!st.isFile()) {
-		return { block: null, cause: `not a regular file (${describeKind(st)})` };
-	}
-	const want = readBudget(st.size);
-	const sourceMayExceedWant = st.size > want;
-	let fd: number;
-	try {
-		fd = fs.openSync(rulePath, "r");
-	} catch (err) {
-		return { block: null, cause: `unreadable (${(err as Error).message})` };
-	}
 	let bytes: Buffer;
 	try {
-		bytes = readBounded(fd, want);
+		bytes = readBounded(rulePath, Number.MAX_SAFE_INTEGER, READ_WINDOW);
 	} catch (err) {
-		return { block: null, cause: `unreadable (${(err as Error).message})` };
-	} finally {
-		fs.closeSync(fd);
+		return { block: null, cause: readFailureCause(err) };
 	}
-	// Only when our OWN boundary might have cut the file short is a trailing partial sequence
-	// even a candidate for trimming; a file that ends exactly within `want` bytes gets no such
-	// benefit — its own trailing bytes are either complete or genuinely malformed.
-	const useLen = sourceMayExceedWant ? trimIncompleteTail(bytes) : bytes.length;
+	// Only a file that runs past the window can have a trailing partial sequence trimmed.
+	const crossed = bytes.length > READ_WINDOW;
+	const window = bytes.subarray(0, READ_WINDOW);
+	const useLen = crossed ? trimIncompleteTail(window) : window.length;
 	try {
-		const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, useLen));
-		return capBlock(`${HEADING}\n\n${text}`, sourceMayExceedWant);
+		const text = new TextDecoder("utf-8", { fatal: true }).decode(window.subarray(0, useLen));
+		return capBlock(`${HEADING}\n\n${text}`, crossed);
 	} catch {
 		return { block: null, cause: "not valid UTF-8" };
 	}

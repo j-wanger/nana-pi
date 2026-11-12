@@ -157,8 +157,8 @@ console.log(JSON.stringify({ injected }));
 
 /* --- (b) unavailable: missing / a directory / invalid UTF-8, all disposable (R-752) ---- */
 for (const [label, cause, mk] of [
-	["missing file", "unreadable (ENOENT", (p) => p], // never created
-	["a directory in its place", "not a regular file", (p) => {
+	["missing file", "missing", (p) => p], // never created
+	["a directory in its place", "a directory", (p) => {
 		fs.mkdirSync(p);
 		return p;
 	}],
@@ -182,15 +182,14 @@ for (const [label, cause, mk] of [
 
 /* ======================================================================================
  * astra r3 MUST 1 — the UTF-8 tail fix. Four fixtures, each a disposable file whose read
- * window (readBudget bytes) ends exactly at the boundary described:
+ * window (READ_WINDOW bytes) ends exactly at the boundary described:
  *   (1) a split € (3-byte sequence), (2) a split 😀 (4-byte sequence) — both ACCEPTED, no
  *   replacement character; (3) a genuinely invalid 0xff AT the tail — REFUSED, because its
  *   own "lead byte" announces nothing to wait for; (4) an invalid byte well inside the
  *   window, away from any boundary — REFUSED, as it already was before this fix.
  * ====================================================================================== */
 {
-	const { buildBlock: bb, readBudget } = await import(writingExtUrl);
-	const want = readBudget(Number.MAX_SAFE_INTEGER); // WRITING_INJECT_CAP + READ_MARGIN
+	const { buildBlock: bb, READ_WINDOW: want } = await import(writingExtUrl);
 	const tail = Buffer.from("more text after the boundary, well past the cut.".repeat(10));
 
 	const mkFile = (prefixLen, multibyte) => {
@@ -257,32 +256,17 @@ for (const [label, cause, mk] of [
 	check("cap: an oversized rule is cut at the cap and the cut is announced", ok, block.length);
 }
 
-/* ======================================================================================
- * astra r3 MUST 3 — the read ceiling, pinned DIRECTLY (R-755), not inferred from the
- * heap-pressure probe below. `readBudget` is the exact arithmetic buildBlock uses to size
- * its bounded read; this asserts its maximum equals WRITING_INJECT_CAP + READ_MARGIN for
- * any file at or above that size, and that a smaller file reads its own full size (never
- * more than the file has).
- * ====================================================================================== */
 {
-	const { readBudget, READ_MARGIN } = await import(writingExtUrl);
-	// req: R-755
-	check("byte ceiling: a file at or above the cap never requests more than WRITING_INJECT_CAP + READ_MARGIN bytes", readBudget(WRITING_INJECT_CAP + READ_MARGIN) === WRITING_INJECT_CAP + READ_MARGIN && readBudget(1_000_000_000) === WRITING_INJECT_CAP + READ_MARGIN, JSON.stringify({ atCeiling: readBudget(WRITING_INJECT_CAP + READ_MARGIN), huge: readBudget(1_000_000_000) }));
-}
-{
-	// Behavioral corroboration: a real file whose bytes PAST the ceiling are corrupt must have
-	// NO effect on the result — if the read had gone one byte further, the corrupt byte would
-	// make the whole thing refuse. This proves the ACTUAL read respects readBudget, not just
-	// that the arithmetic above is correct.
-	const { buildBlock: bb, readBudget } = await import(writingExtUrl);
-	const ceiling = readBudget(Number.MAX_SAFE_INTEGER);
+	// Bytes past the read window never reach the decoder, so corrupt bytes there have no
+	// effect on the result.
+	const { buildBlock: bb, READ_WINDOW: ceiling } = await import(writingExtUrl);
 	const p = path.join(tempDir(), "rule.md");
 	const clean = Buffer.alloc(ceiling, 0x41); // exactly the ceiling, all valid ASCII
-	const corruptPastCeiling = Buffer.from([0xff, 0xff, 0xff, 0xff]); // would refuse if ever read
+	const corruptPastCeiling = Buffer.from([0xff, 0xff, 0xff, 0xff]); // would refuse if decoded
 	fs.writeFileSync(p, Buffer.concat([clean, corruptPastCeiling]));
 	const r = bb(p);
 	// req: R-755
-	check("byte ceiling: corrupt bytes exactly past the ceiling are never read (result is unaffected)", r.cause === null && r.block !== null, JSON.stringify(r.cause));
+	check("byte ceiling: corrupt bytes just past the read window never reach the decoder (result is unaffected)", r.cause === null && r.block !== null, JSON.stringify(r.cause));
 }
 
 /* --- (d) reload: an edited DISPOSABLE rule is injected after session_start reason reload (R-754) --- */
