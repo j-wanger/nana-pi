@@ -1,7 +1,7 @@
 /**
  * @module scripts/test-packs.mjs
  * @purpose Select complete packs and conservative changed-module tests with auditable reasons.
- * @inputs Collected relative paths, pack names, a base ref, git and graph boundaries.
+ * @inputs Collected relative paths, pack names, a base ref, tracked working-tree edits, untracked non-ignored files, git and graph boundaries.
  * @outputs Selected paths and a record of changed paths, changed-test and module reasons and fail-safe cause.
  * @effects process (bounded git reads), disk (code graph reads).
  * @errors Invalid packs or incomplete membership throw; uncertain impact selects all modules.
@@ -13,7 +13,7 @@ import { CI_READ_TIMEOUT_MS, CHILD_OUTPUT_MAX_BYTES } from "../packages/nana-pac
 import { globMatch } from "./glob-match.mjs";
 import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, NAME_MATCH_HUBS, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
 
-/** Read committed paths since the actual merge base; NULs preserve whitespace in paths. */
+/** Read deduplicated paths from the merge base to the working tree, including untracked non-ignored files; NULs preserve whitespace in paths. */
 export function changedPaths(root, ref) {
   const git = args => {
     const r = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: CI_READ_TIMEOUT_MS, maxBuffer: CHILD_OUTPUT_MAX_BYTES });
@@ -21,7 +21,9 @@ export function changedPaths(root, ref) {
     return r.stdout;
   };
   const base = git(["merge-base", ref, "HEAD"]).trim();
-  return git(["diff", "--name-only", "--no-renames", "-z", `${base}...HEAD`]).split("\0").filter(Boolean);
+  const tracked = git(["diff", "--name-only", "--no-renames", "-z", base]);
+  const untracked = git(["ls-files", "--others", "--exclude-standard", "-z"]);
+  return [...new Set((tracked + untracked).split("\0").filter(Boolean))];
 }
 
 async function makeRepoGraph(root) {

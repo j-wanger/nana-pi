@@ -152,7 +152,7 @@ await check("M13: basename readers cross packs while hub basenames select nothin
     assert.deepEqual(hubs.files, []); assert.deepEqual(hubs.selection.nameMatches, []);
   }
   const empty = execute(root, ["--changed-tests-from=HEAD~1"]);
-  assert.equal(empty.status, 0, empty.out); assert.match(empty.out, /0 selected files/); assert.match(empty.out, /empty committed selection: pass/);
+  assert.equal(empty.status, 0, empty.out); assert.match(empty.out, /0 selected files/); assert.match(empty.out, /empty working-tree selection: pass/);
   const missing = execute(root, ["--changed-tests-from=missing-ref"]);
   assert.equal(missing.status, 1, missing.out); assert.match(missing.out, /(?:fatal|Not a valid object name|not a valid object name).*missing-ref/);
 });

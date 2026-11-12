@@ -382,7 +382,7 @@ if (packArgs.length || changedOnlyArgs.length) {
 		for (const item of selected.selection.module) console.log(`[packs] module ${item.path}: ${item.reasons.join("; ")}`);
 		console.log(`[packs] ${changedOnlyArgs.length ? "changed/name-matched tests" : selected.packs.join(",")}: ${selected.files.length} selected files`);
 		if (changedOnlyArgs.length && !selected.files.length) {
-			console.log("[runner] empty committed selection: pass (no tests to run)");
+			console.log("[runner] empty working-tree selection: pass (no tests to run)");
 			process.exit(0);
 		}
 		collected = selected.files.map(file => path.join(root, file));

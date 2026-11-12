@@ -2,7 +2,7 @@
 /**
  * @module scripts/check-lane.mjs
  * @purpose Run the project-owned builder-stop checks in order, naming the first failure.
- * @inputs Current worktree files and the canonical Node check commands.
+ * @inputs Current worktree files, main and its HEAD merge base, Node version and canonical check commands.
  * @outputs Check output and a final check:lane pass, fail or error line.
  * @effects process (sequential Node and git children), disk (temporary index and worktree-local git pass record).
  * @errors Exit 1 on a red check and 2 on a crashed check runner.
@@ -39,12 +39,13 @@ function contentKey(gitDir) {
   const folder = fs.mkdtempSync(join(gitDir, 'lane-check-index-'));
   try {
     const env = { ...process.env, GIT_INDEX_FILE: join(folder, 'index') };
-    git(['read-tree', '--empty'], env);
+    git(['read-tree', 'HEAD'], env);
     git(['add', '-A'], env);
     const tree = git(['write-tree'], env);
     const main = git(['rev-parse', '--verify', 'refs/heads/main^{commit}']);
+    const base = git(['merge-base', main, 'HEAD']);
     return createHash('sha256').update(JSON.stringify({
-      tree, main, node: process.version, checks,
+      tree, main, base, node: process.version, checks,
       script: fs.readFileSync(new URL(import.meta.url), 'utf8'),
     })).digest('hex');
   } finally {

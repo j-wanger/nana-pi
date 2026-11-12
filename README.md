@@ -107,13 +107,15 @@ requirements trace, requirements-tree check, map check, README check, then templ
 (including the start-file character budgets), test-packs,
 code-map-launch, requirements-deliverables, requirements-cap-kinds, readme-check, known-bugs
 and test-runner through the canonical test runner. Finally it runs only changed and name-matched
-tests since the committed tip's merge base with main (`--changed-tests-from=main`), reporting the
-selection count and wall time. An empty selection passes; an unreadable diff fails with git's reason.
-Uncommitted edits do not widen selection; stale main only widens the committed diff, so no fetch is needed.
+tests between the merge base with main and the working tree (`--changed-tests-from=main`), reporting the
+selection count and wall time. This includes committed, staged and unstaged tracked edits plus
+untracked non-ignored files, deduplicated. An empty selection passes; an unreadable diff fails with git's reason.
+On a clean checkout the selection is unchanged; no fetch is needed.
 It stops at the first failure and names it;
 the ordered list comments identify the recorded lost rounds. This is not a full suite.
 A repeat reuses the worktree-local git pass record only when working-tree content (including
-untracked non-ignored files), main, Node version and the check-list/script hash are unchanged.
+untracked non-ignored files and tracked files matching ignore rules), main, its merge base with HEAD,
+Node version and the check-list/script hash are unchanged.
 The reuse line names the pass time and content key; committing unchanged content preserves it.
 `npm run check:lane -- --fresh` forces all checks. Key errors run checks; failures, crashes,
 interruptions and edits during a run record no pass.

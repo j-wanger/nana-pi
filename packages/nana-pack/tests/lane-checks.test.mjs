@@ -16,6 +16,7 @@ import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
 import { CASE_LIMIT_MS, withinCaseLimit } from './report-fixtures.mjs';
 import { checkLane, laneCheckLines } from '../lib/lane-checks.mjs';
+import { LANE_CHECK_PASS_FILE } from '../lib/test-runner-config.mjs';
 import { buildEndRecord } from '../lib/build-records.mjs';
 import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
 import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
@@ -160,12 +161,21 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
 }
 // req: R-3996
 await check('R-3996: unchanged content reuses a full pass and edits force checks', () => fixture(({ root, lane, env, git, commit }) => {
-  const runner = fileURLToPath(new URL('../../../scripts/check-lane.mjs', import.meta.url));
+  // Keep script/hash probes outside the lane, without editing this repository.
+  const runner = join(root, 'scripts/check-lane.mjs');
+  fs.mkdirSync(join(root, 'scripts'));
+  fs.mkdirSync(join(root, 'packages/nana-pack/lib'), { recursive: true });
+  fs.copyFileSync(new URL('../../../scripts/check-lane.mjs', import.meta.url), runner);
+  fs.copyFileSync(new URL('../lib/test-runner-config.mjs', import.meta.url), join(root, 'packages/nana-pack/lib/test-runner-config.mjs'));
+  const source = fs.readFileSync(runner, 'utf8');
+  const record = join(git('rev-parse', '--absolute-git-dir'), LANE_CHECK_PASS_FILE);
   const preload = join(root, 'checks-preload.cjs');
   const mode = join(root, 'check-mode');
   // Exercise the real cache and git index, but never re-run project checks from a suite test.
   fs.writeFileSync(preload, `const cp=require('node:child_process'), fs=require('node:fs');
     const original=cp.spawnSync;
+    if(fs.existsSync(${JSON.stringify(mode)}) && fs.readFileSync(${JSON.stringify(mode)},'utf8')==='node')
+      Object.defineProperty(process,'version',{value:'v0.0.0-fixture'});
     cp.spawnSync=(command,args,options)=> {
       if(command!==process.execPath) return original(command,args,options);
       const mode=fs.existsSync(${JSON.stringify(mode)}) ? fs.readFileSync(${JSON.stringify(mode)},'utf8') : '';
@@ -178,7 +188,7 @@ await check('R-3996: unchanged content reuses a full pass and edits force checks
     return result;
   };
   const full = (...args) => { const r=run(...args); assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /running: requirements-trace/); assert.match(r.stdout, /check:lane: pass/); return r; };
-  const reuse = () => { const r=run(); assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /^check:lane: reusing pass recorded at .+; content key [a-f0-9]{64}\n$/); return r; };
+  const reuse = () => { const started=Date.now(); const r=run(); assert.equal(r.status, 0, r.stderr); assert.match(r.stdout, /^check:lane: reusing pass recorded at .+; content key [a-f0-9]{64}\n$/); assert.ok(Date.now()-started<10000); return r; };
   full(); reuse();
   assert.equal(git('status', '--porcelain'), '', 'cache must stay outside the tree');
   fs.writeFileSync(join(lane, 'seed'), 'edited'); full(); reuse();
@@ -188,9 +198,26 @@ await check('R-3996: unchanged content reuses a full pass and edits force checks
   for (const modeName of ['fail', 'crash']) {
     fs.writeFileSync(mode, modeName);
     const r=run('--fresh'); assert.equal(r.status, modeName==='fail'?1:2);
+    assert.match(r.stderr, new RegExp(`check:lane: ${modeName==='fail'?'fail':'error'}: requirements-trace`));
+    assert.equal((r.stdout.match(/check:lane: running:/g) ?? []).length, 1, 'stop at the first failed check');
+    assert.equal(fs.existsSync(record), false, 'failures and crashes leave no pass record');
     fs.rmSync(mode); full(); reuse();
   }
+  // A local exclude must not remove an already tracked file from the content key.
+  fs.appendFileSync(git('rev-parse', '--git-path', 'info/exclude'), '\nseed\n');
+  reuse(); fs.writeFileSync(join(lane, 'seed'), 'ignored but tracked'); full(); reuse();
+  commit(); reuse();
+  fs.writeFileSync(mode, 'node'); full(); reuse();
+  fs.rmSync(mode); full(); reuse();
+  fs.writeFileSync(runner, source + '\n// script hash probe\n'); full(); reuse();
+  fs.writeFileSync(runner, source.replace('const checks = [', "const checks = [\n  ['fixture check', ['fixture.mjs']],")); full(); reuse();
+  fs.writeFileSync(runner, source); full(); reuse();
   git('update-ref', 'refs/heads/main', 'HEAD'); full(); reuse();
+  // Hold main and content fixed, changing only HEAD history so its merge base moves.
+  const main = git('commit-tree', 'HEAD^{tree}', '-p', 'HEAD', '-m', 'same-tree main');
+  git('update-ref', 'refs/heads/main', main); full(); reuse();
+  const head = git('commit-tree', 'HEAD^{tree}', '-p', main, '-m', 'same-tree lane');
+  git('update-ref', 'HEAD', head); full(); reuse();
   assert.equal(git('diff', '--cached'), '', 'temporary index must not stage files');
 }));
 
