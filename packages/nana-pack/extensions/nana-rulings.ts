@@ -1,9 +1,9 @@
 /**
  * @module packages/nana-pack/extensions/nana-rulings.ts
- * @purpose Append seat-only rulings and guide sections, plus applicable stale-install or adopted-project guidance to the system prompt.
- * @inputs pi `session_start` and `before_agent_start` events; session cwd and role; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
- * @outputs rulings and seat-guide text or unavailable markers in their prompt sections, plus independent stale-install and project-stale sections when applicable.
- * @effects disk (bounded-reads installed rulings and project text, inspects project file rows, and compares shipped sources)
+ * @purpose Append seat-only rulings and guide sections, plus applicable stale-install guidance to the system prompt.
+ * @inputs pi `session_start` and `before_agent_start` events; session role; an injectable agent dir; rulings, bounded-read and stale-copy helpers.
+ * @outputs rulings and seat-guide text or unavailable markers in their prompt sections, plus an independent stale-install section when applicable.
+ * @effects disk (bounded-reads installed rulings and seat guide, and compares shipped sources)
  * @errors none — the handler swallows everything; an unusable file injects the marker rather
  *  than throwing, hanging, or exhausting memory
  */
@@ -31,9 +31,9 @@ import { fileURLToPath } from "node:url";
 import { readBounded, readFailureCause } from "../lib/bounded-read.mjs";
 import { piAgentDir } from "../lib/agent-dir.mjs";
 import { RULINGS_FILE, RULINGS_HEADING, RULINGS_READ_CAP, RULINGS_SECTION, RULINGS_UNAVAILABLE, SEAT_GUIDE_FILE, SEAT_GUIDE_HEADING, SEAT_GUIDE_READ_CAP, SEAT_GUIDE_SECTION, SEAT_GUIDE_UNAVAILABLE } from "../lib/rulings-config.mjs";
-import { PROJECT_STALE_SECTION, STALE_SECTION } from "../../nana-setup/lib/stale-copies-config.mjs";
+import { STALE_SECTION } from "../../nana-setup/lib/stale-copies-config.mjs";
 import { LAUNCHER_ROLES } from "../lib/frontier-summary-config.mjs";
-import { linkOk, projectStaleLine, staleNotice } from "../../nana-setup/lib/stale-copies.mjs";
+import { linkOk, staleNotice } from "../../nana-setup/lib/stale-copies.mjs";
 import { pkgRoot } from "../../nana-setup/lib/paths.mjs";
 
 /** One line, addressed to the USER — an agent that reads this tells the user, and never runs
@@ -80,9 +80,8 @@ export default function (pi: ExtensionAPI, opts: { agentDir?: string; env?: Node
 	let seatGuide: string | null = null;
 	let staleRulings = false;
 	let staleSeatGuide = false;
-	let projectStale = "";
 
-	pi.on("session_start", async (_event, ctx) => {
+	pi.on("session_start", async (_event, _ctx) => {
 		// every reason, deliberately: a reload must re-read the file from disk (R-1410)
 		try {
 			const agentDir = opts.agentDir ?? piAgentDir();
@@ -97,11 +96,6 @@ export default function (pi: ExtensionAPI, opts: { agentDir?: string; env?: Node
 			staleRulings = false;
 			staleSeatGuide = false; // never throw out of a handler
 		}
-		try {
-			projectStale = projectStaleLine(ctx?.cwd);
-		} catch {
-			projectStale = "";
-		}
 	});
 
 	pi.on("before_agent_start", async (event, _ctx) => {
@@ -110,7 +104,6 @@ export default function (pi: ExtensionAPI, opts: { agentDir?: string; env?: Node
 			if (seatGuide) (event as any).systemPromptOptions.sections[SEAT_GUIDE_SECTION] = seatGuide;
 			const staleLabels = [...(staleRulings ? [`pi ${RULINGS_FILE}`] : []), ...(staleSeatGuide ? [`pi ${SEAT_GUIDE_FILE}`] : [])];
 			if (staleLabels.length) (event as any).systemPromptOptions.sections[STALE_SECTION] = staleNotice(staleLabels);
-			if (projectStale) (event as any).systemPromptOptions.sections[PROJECT_STALE_SECTION] = projectStale;
 		} catch {
 			// A malformed event must not throw out of an extension handler.
 		}
