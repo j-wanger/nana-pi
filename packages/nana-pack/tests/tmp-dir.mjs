@@ -4,7 +4,7 @@
  *  caller opts out to clean the root up itself (one holding a symlink or junction that no
  *  generic recursive delete may ever meet).
  * @inputs A mkdtemp prefix, or a root and alias action; CI and platform for alias availability.
- * @outputs The created temporary directory path.
+ * @outputs Temporary directory paths, or a short-path probe result with status, signal, error, stderr and printable detail.
  * @effects disk (creates and removes temporary directories and links), process (registers exit cleanup, probes Windows short paths and temporarily changes temp environment)
  * @errors Propagates directory creation errors and ignores cleanup errors.
  */
@@ -31,6 +31,25 @@ export function tmpDirUnmanaged(prefix) {
   return realpathSync.native(mkdtempSync(prefix));
 }
 
+// Chosen: CI runs four test files at once; slow PowerShell cold starts need more than 10 s.
+const SHORT_PATH_PROBE_TIMEOUT_MS = 30_000;
+
+/** Probe a Windows folder's 8.3 spelling; retain diagnostics even when stderr is empty. */
+export function probeShortPath(root) {
+  const args = ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${root.replaceAll("'", "''")}').ShortPath`];
+  const probe = () => spawnSync("powershell", args, { encoding: "utf8", timeout: SHORT_PATH_PROBE_TIMEOUT_MS });
+  let result = probe();
+  if (result.error?.code === "ETIMEDOUT") result = probe();
+  const { status, signal } = result;
+  const error = result.error ? `${result.error.code ?? "Error"}: ${result.error.message}` : null;
+  const stderr = result.stderr ?? "";
+  return {
+    shortPath: status === 0 && !result.error ? result.stdout.trim() : null,
+    status, signal, error, stderr,
+    detail: `status=${status}, signal=${signal}, error=${error}, stderr=${JSON.stringify(stderr)}`,
+  };
+}
+
 /** Exercise an explicit temp-root alias; unlink POSIX aliases before removing their holder. */
 export async function withTempRootAlias(root, title, action) {
   const exercise = async (alias) => {
@@ -45,11 +64,11 @@ export async function withTempRootAlias(root, title, action) {
     }
   };
   if (process.platform === "win32") {
-    const probe = spawnSync("powershell", ["-NoProfile", "-Command", `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${root.replaceAll("'", "''")}').ShortPath`], { encoding: "utf8", timeout: 10000 });
-    const alias = probe.status === 0 ? probe.stdout.trim() : "";
+    const probe = probeShortPath(root);
+    const alias = probe.shortPath;
     if (alias && alias.toLowerCase() !== root.toLowerCase()) return await exercise(alias);
-    if (process.env.CI) throw new Error(`${title}: a distinct 8.3 path is required in CI: ${probe.stderr}`);
-    console.log(`SKIP ${title} — no distinct 8.3 path is available`);
+    if (process.env.CI) throw new Error(`${title}: a distinct 8.3 path is required in CI: ${probe.detail}`);
+    console.log(`SKIP ${title} — no distinct 8.3 path is available: ${probe.detail}`);
     return;
   }
   const holder = tmpDirUnmanaged(join(dirname(root), "temp-alias-"));
