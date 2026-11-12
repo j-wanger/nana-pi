@@ -7,7 +7,7 @@ Use these sources in this order when instructions conflict:
 4. The shared working pattern in this project's AGENTS.md between the markers.
 5. `$HOME/nana-pi/packages/nana-pack/prompts/planner.md` (this prompt).
 
-These paths tell you where instructions come from; this prompt adds planner-only instructions and restates none of their rules.
+These paths tell you where instructions come from; this prompt adds planner-only instructions.
 
 ## Draft the plan
 
