@@ -65,9 +65,9 @@ function findDeletion(args: string[]): boolean {
 		/^-(exec|execdir|ok|okdir)$/.test(word) && ["rm", "rmdir", "unlink"].includes(base(args[i + 1] ?? "")));
 }
 
-function shellWords(text: string): string[] {
+function shellWords(text: string, strict: boolean): string[] {
 	const protectedBraces = withoutRedirections(text).replace(/\{[^{}\s]+\}/g, (word) => word.replaceAll("{", "\uE000").replaceAll("}", "\uE001"));
-	return tokens(protectedBraces, true).map((word) => word.replaceAll("\uE000", "{").replaceAll("\uE001", "}"));
+	return tokens(protectedBraces, true, strict).map((word) => word.replaceAll("\uE000", "{").replaceAll("\uE001", "}"));
 }
 
 function withoutRedirections(text: string): string {
@@ -174,7 +174,7 @@ export function rmOutsideTargets(
 
 		for (const segment of segments) {
 			try {
-				const words = shellWords(segment.text);
+				const words = shellWords(segment.text, strict);
 				const index = commandIndex(words, true);
 				const command = base(words[index] ?? "");
 				const args = words.slice(index + 1);
@@ -183,6 +183,10 @@ export function rmOutsideTargets(
 				const deletion = ["rm", "rmdir", "unlink"].includes(command) ||
 					(command === "find" && (args.includes("-delete") || (strict && findDeletion(args)))) ||
 					(command === "git" && (args[0] === "clean" || (args[0]?.startsWith("-") && args.includes("clean"))));
+				if (strict && deletion && segment.text.includes("`")) {
+					hits.set(segment, `unresolved deletion: ${segment.text}`);
+					continue;
+				}
 				if (strict && !segmentable) {
 					// Strict callers cannot determine runtime input to xargs or a nested shell.
 					// Use the existing detection tokenizer, not a second shell parser.

@@ -66,6 +66,6 @@
 - Claude agent rm guard (review 1, 2026-11-12): git environment prefixes such as `GIT_WORK_TREE=…` and `GIT_DIR=…` are not judged.
 - Claude agent rm guard (review 1, 2026-11-12): inline interpreter deletes, `rsync --delete`, `shred -u` and `git worktree remove` are not judged.
 - Claude agent rm guard (review 1, 2026-11-12): `rm -rf <the cwd itself>` gets no decision.
-- Claude agent rm guard (review 1, 2026-11-12): conservative over-denies include `rm -rf linkout` without a slash, `cd build; rm -rf ../out`, `xargs git rm` and a heredoc line starting with `rm`.
+- Claude agent rm guard (review 1, 2026-11-12): conservative over-denies include `rm -rf linkout` without a slash, `cd build; rm -rf ../out`, `xargs git rm` and a heredoc line starting with `rm` whose target is outside or unresolved.
 - Claude agent rm guard (review 1, 2026-11-12): the hook trusts the input `cwd`; behaviour after a persistent `cd` is unverified.
 - Claude agent rm guard (review 1, 2026-11-12): the PowerShell tool is not matched.

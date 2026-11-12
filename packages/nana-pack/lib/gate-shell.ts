@@ -128,7 +128,8 @@ export function detectionSegments(cmd: string): Segment[] {
 	return out;
 }
 
-export function tokens(text: string, preserveQuotedWords = false): string[] {
+/** Strict Bash callers may join backslash-LF outside single quotes; pi keeps its existing words. */
+export function tokens(text: string, preserveQuotedWords = false, joinLFContinuations = false): string[] {
 	if (!preserveQuotedWords) {
 		return dequote(text.replace(/\$\{HOME\}/g, "$HOME"))
 			.split(/[\s(){};|&`<>]+/)
@@ -140,6 +141,11 @@ export function tokens(text: string, preserveQuotedWords = false): string[] {
 	let quote: string | null = null;
 	for (let i = 0; i < input.length; i++) {
 		const c = input[i];
+		// Bash continues only LF, not CRLF; an already escaped backslash is consumed below.
+		if (joinLFContinuations && quote !== "'" && c === "\\" && input[i + 1] === "\n") {
+			i++;
+			continue;
+		}
 		if (quote) {
 			if (c === quote) quote = null;
 			else if (quote === '"' && c === "\\" && /[\\"$`]/.test(input[i + 1] ?? "")) word += input[++i];

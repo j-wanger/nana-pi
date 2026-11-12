@@ -98,6 +98,24 @@ await test("outside expansions find exec roots and nested deletes deny", { timeo
 });
 
 // req: R-4261
+await test("column-zero LF continuations expose deletion targets but CRLF does not continue", { timeout: 45000 }, () => {
+ for (const target of ["/tmp/x", "~/old", "../other"]) {
+  for (const ending of ["", "\n", " \n", "\t\n"]) {
+   denied("rm -rf build \\\n" + target + ending);
+  }
+  assert.equal(run(payload("rm -rf build \\\r\n" + target)), "", target);
+ }
+ assert.equal(run(payload("rm -rf build \\\nout")), "");
+});
+
+// req: R-4261
+await test("backtick substitutions in deletion segments deny for seat review", { timeout: 45000 }, () => {
+ for (const command of ['rm -rf build `cat list.txt`', 'rm -rf "build`cat list.txt`"',
+  'rmdir `cat list.txt`', 'unlink `cat list.txt`', 'find build -name `cat list.txt` -delete',
+  'git clean -fd -- build `cat list.txt`', 'rm -rf build >`cat list.txt`']) denied(command);
+});
+
+// req: R-4261
 await test("unresolved deletion targets deny for seat review", { timeout: 45000 }, () => {
  for (const command of ['rm -rf "$TARGET"', 'rm -rf "$(printf /tmp/x)"',
   'find /tmp/x -delete', 'find -H /tmp/x -delete', 'find -files0-from list -delete',
