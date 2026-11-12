@@ -25,5 +25,5 @@ export const START_FILE_CHAR_BUDGETS = Object.freeze({
 	"AGENTS.md": 12500,
 	"packages/nana-pack/prompts/builder-preamble.md": 5300,
 	"packages/nana-pack/prompts/review-standard.md": 1400,
-	"packages/nana-pack/prompts/planner.md": 7500,
+	"packages/nana-pack/prompts/planner.md": 7400,
 });
