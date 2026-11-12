@@ -1236,9 +1236,6 @@ project config never contributes to either one, trusted or not.
     multi-byte-heavy rule (e.g. 2,000 Chinese characters) can be cut well short of
     `WRITING_INJECT_CAP` characters while the truncation notice still names the character cap —
     the notice is imprecise in that direction (REQUIREMENTS.md Open questions).
-  - `statSync` then `openSync` is two syscalls, not one: a stable FIFO is refused correctly, but
-    a regular file swapped for a FIFO between those two calls is not caught. The guarantee is
-    "never hangs on a stable, trusted shipped resource", not an unconditional one.
   - The production composition probe (a real objective, the installed pi 1.0.2 runner) already
     passed before this trial's own regression test caught up to it; no injector redesign
     followed from closing that gap.
