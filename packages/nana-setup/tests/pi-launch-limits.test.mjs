@@ -253,15 +253,17 @@ async function runCleanupSignalPhase(signalRelay) {
 	const started = await waitFor(() => fs.existsSync(fixture.lock) && fs.existsSync(fixture.ready) && readPids(fixture.pids).length >= 3);
 	const records = readPidRecords(fixture.pids);
 	const relayPid = records[0]?.ppid;
-	// Capture while this fixture's pi still identifies its live relay as its parent.
+	// The token pins the process seen by this query just before the signal,
+	// not ownership of the pid recorded as this fixture's parent.
 	const relay = { pid: relayPid, start: started ? processStarts([relayPid]).get(relayPid) : null };
-	if (started && signalRelay) killOwned(relay, { signal: "SIGINT" });
+	const relaySignals = started && signalRelay ? killOwned(relay, { signal: "SIGINT" }) : [];
+	const relaySignalled = relaySignals.length === 1 && relaySignals[0] === relayPid;
 	if (started) killOwned(child, { group: true, signal: "SIGINT" });
 	const exited = await Promise.race([exit, sleep(SIGNAL_CASE_BOUND_MS).then(() => false)]);
 	const cleaned = await waitFor(() => !fs.existsSync(fixture.lock));
 	const pids = readPids(fixture.pids);
 	const dead = await waitFor(() => pids.length >= 3 && pids.every((pid) => !processAlive(pid)));
-	return { signalRelay, started: Boolean(started), relayPid, exited, cleaned: Boolean(cleaned), pids, dead: Boolean(dead) };
+	return { signalRelay, relaySignalled, started: Boolean(started), relayPid, exited, cleaned: Boolean(cleaned), pids, dead: Boolean(dead) };
 }
 
 function withFixtureEnv(fixture, run) {
@@ -575,7 +577,8 @@ check("R-2303: on Windows, a kill of the pi launch relay alone ends the npm pi i
 	const records = readPidRecords(fixture.pids);
 	const relayPid = records[0]?.ppid;
 	const launchedPids = records.map(({ pid }) => pid);
-	// Capture while this fixture's pi still identifies its live relay as its parent.
+	// The token pins the process seen by this query just before the signal,
+	// not ownership of the pid recorded as this fixture's parent.
 	const relay = { pid: relayPid, start: started ? processStarts([relayPid]).get(relayPid) : null };
 	if (started && relayPid) killOwned(relay);
 	const killedAt = Date.now();
@@ -602,7 +605,7 @@ check("R-2133: SIGINT to install's process group, alone or with the relay signal
 	if (process.platform === "win32") return { skip: "Windows has no process-group SIGINT" };
 	const delayBelowGrace = CLEANUP_DELAY_MS < RELAY_SIGNAL_GRACE_MS;
 	const phases = [await runCleanupSignalPhase(false), await runCleanupSignalPhase(true)];
-	return { ok: delayBelowGrace && phases.every(({ started, exited, cleaned, dead }) => started && exited && cleaned && dead), detail: JSON.stringify({ cleanupDelay: CLEANUP_DELAY_MS, signalGrace: RELAY_SIGNAL_GRACE_MS, phases }) };
+	return { ok: delayBelowGrace && phases.every(({ signalRelay, relaySignalled, started, exited, cleaned, dead }) => (!signalRelay || relaySignalled) && started && exited && cleaned && dead), detail: JSON.stringify({ cleanupDelay: CLEANUP_DELAY_MS, signalGrace: RELAY_SIGNAL_GRACE_MS, phases }) };
 });
 
 for (const testCase of cases) {

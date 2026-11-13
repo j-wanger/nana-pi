@@ -114,13 +114,18 @@ const treeCommand = ["task", "kill"].join("");
 const productTest = "packages/nana-pack/tests/process-tree.test.mjs";
 const allowedSites = [
 	{ file: productTest, text: "killProcessTree(parent.pid)", reason: "live spawned ChildProcess owned by this case" },
+	...[
+		{ context: `const ${treeCommand}Calls = [];`, reason: "declaration of the stub command-call collector" },
+		{ context: `${treeCommand}Calls.push(`, reason: "stub pushes into the command-call collector" },
+		{ context: `...${treeCommand}Calls,`, reason: "assertion reads the stub command-call collector" },
+	].map(entry => ({ file: productTest, text: treeCommand, ...entry })),
 	...[`"POSIX must not start ${treeCommand}"`, `"${treeCommand}"`,
 		`"R-2657: on Windows both forms start ${treeCommand} /T /F /PID once without a shell, signal no group, call the fallback once when ${treeCommand} cannot start or exits non-zero, and contain a throwing fallback"`,
 		`"R-2658: a pid of 0, 1, -1, 1.5, NaN, null or undefined signals nothing, starts no ${treeCommand} and calls no fallback"`,
 		`"R-2657: Windows ${treeCommand} reaches a real child tree without a shell"`,
 		`"SKIP R-2657: Windows ${treeCommand} reaches a real child tree without a shell"`,
-	].map(text => ({ file: productTest, text, reason: "stub assertion or report text, not a command launch" })),
-	{ file: "packages/nana-pack/tests/worker-claude.test.mjs", text: `"R-2721: Windows: ${treeCommand} /F /T of pi-worker's tree while a directly launched builder runs leaves no temp file, no lane lock and no watcher"`, reason: "report title, not a command launch" },
+	].flatMap(text => [...text.matchAll(new RegExp(`\\b${treeCommand}`, "gi"))].map(match => ({ file: productTest, text: match[0], context: text, reason: "stub assertion or report text, not a command launch" }))),
+	{ file: "packages/nana-pack/tests/worker-claude.test.mjs", text: treeCommand, context: `"R-2721: Windows: ${treeCommand} /F /T of pi-worker's tree while a directly launched builder runs leaves no temp file, no lane lock and no watcher"`, reason: "report title, not a command launch" },
 ];
 function signalSites(source) {
 	const hits = [];
@@ -130,7 +135,7 @@ function signalSites(source) {
 		const { args, end } = callArguments(source, match.index + match[0].lastIndexOf("("));
 		if (args[1] !== "0" && args[0] !== "process.pid") add(match.index, source.slice(match.index, end));
 	}
-	const processAccess = new RegExp(`\\bprocess\\s*(?:\\.\\s*${bareCall}\\b|\\[\\s*["']${bareCall}["']\\s*\\])`, "g");
+	const processAccess = new RegExp(`\\bprocess\\s*(?:\\??\\.\\s*${bareCall}\\b|(?:\\?\\.)?\\[\\s*["'\x60]${bareCall}["'\x60]\\s*\\])`, "g");
 	for (const match of source.matchAll(processAccess)) {
 		const rest = source.slice(match.index + match[0].length);
 		// A direct call was handled above; other accesses can alias or bind the signal route.
@@ -157,20 +162,23 @@ function signalSites(source) {
 		}
 	}
 	for (const match of source.matchAll(/\b(?:import\s+\*\s+as\s+\w+\s+from\s*["'][^"']*process-tree\.mjs["']|(?:import|require)\s*\(\s*["'][^"']*process-tree\.mjs["']\s*\))/g)) add(match.index, match[0]);
-	// String/template contents count even when the command has a prefix or .exe suffix.
+	// Raw source avoids quote pairing shifted by apostrophes in comments.
+	for (const match of source.matchAll(new RegExp(`\\b${treeCommand}`, "gi"))) add(match.index, match[0]);
+	const destructured = new RegExp(`\\b(?:const|let|var)\\s*\\{[^}]*\\b${bareCall}\\s*(?::[^,}]+)?[^}]*\\}\\s*=\\s*process\\b`, "g");
+	for (const match of source.matchAll(destructured)) add(match.index, match[0]);
+	// Keep the string pass only for command names split across concatenated literals.
 	const strings = /(["'`])(?:\\[\s\S]|(?!\1)[^\\])*?\1/g;
-	for (const match of source.matchAll(strings)) {
-		if (match[0].toLowerCase().includes(treeCommand)) add(match.index, match[0]);
-	}
 	const concatenated = /(["'])(?:[^"'\\]|\\.)*\1(?:\s*\+\s*(["'])(?:[^"'\\]|\\.)*\2)+/g;
 	for (const match of source.matchAll(concatenated)) {
 		const text = [...match[0].matchAll(strings)].map(part => part[0].slice(1, -1)).join("");
-		if (text.toLowerCase().includes(treeCommand)) add(match.index, match[0]);
+		if (text.toLowerCase().includes(treeCommand) && !new RegExp(`\\b${treeCommand}`, "i").test(match[0])) add(match.index, match[0]);
 	}
 	const commandName = new RegExp(`\\b${["TASK", "KILL_COMMAND"].join("")}\\b`, "g");
 	for (const match of source.matchAll(commandName)) add(match.index, match[0]);
 	const shell = new RegExp(`(?:/bin/${bareCall}\\b|\\b${bareCall}\\s+(?:-(?:[0-9]+|[A-Z]+)\\b|[0-9]+\\b|["']?\\$)|\\b${["p" + bareCall, bareCall + "all", "Stop" + "-Process"].join("|")}\\b)`, "gi");
 	for (const match of source.matchAll(shell)) add(match.index, match[0]);
+	const shellConcat = new RegExp(`["'\x60]${bareCall}\\s+["'\x60]\\s*\\+`, "gi");
+	for (const match of source.matchAll(shellConcat)) add(match.index, match[0]);
 	const dotNet = new RegExp(`\\.${"Ki" + "ll"}\\s*\\(`, "g");
 	for (const match of source.matchAll(dotNet)) add(match.index, match[0]);
 	const spawned = new RegExp(`\\b(?:spawn(?:Sync)?|exec(?:File)?(?:Sync)?)\\s*\\(\\s*(["'])${bareCall}\\1`, "g");
@@ -184,7 +192,11 @@ function scanProblems(root, allowlist = allowedSites) {
 		if (file === "packages/nana-pack/tests/process-tree-helper.mjs") continue;
 		const source = fs.readFileSync(path.join(root, file), "utf8");
 		for (const hit of signalSites(source)) {
-			const allowed = allowlist.find(entry => !seen.has(entry) && entry.file === file && entry.text === hit.text);
+			const lineStart = source.lastIndexOf("\n", hit.index - 1) + 1;
+			const lineEnd = source.indexOf("\n", hit.index);
+			const lineText = source.slice(lineStart, lineEnd < 0 ? source.length : lineEnd);
+			const allowed = allowlist.find(entry => !seen.has(entry) && entry.file === file && entry.text === hit.text
+				&& (!entry.context || lineText.includes(entry.context)));
 			if (allowed) { seen.add(allowed); continue; }
 			const line = source.slice(0, hit.index).split("\n").length;
 			problems.push(`${file}:${line}:${hit.text}`);
@@ -210,6 +222,12 @@ await check("R-4371: test-kill scan rejects unowned signals and stale exceptions
 			`const tree = await import("${treePath}");`,
 			`const tree = require("${treePath}");`,
 			`${signalCall}.call(process, 42, "SIGKILL")`,
+			`process?.${bareCall}(42, "SIGKILL")`,
+			`process[\`${bareCall}\`](42, "SIGKILL")`,
+			`const { ${bareCall}: stop } = process; stop(42);`,
+			`exec("${bareCall} " + pid)`,
+			`spawnSync("${treeCommand}.exe", [])`,
+			`spawnSync("${treeCommand.toUpperCase()}", [])`,
 			`${signalCall}.apply(process, [42, "SIGKILL"])`,
 			`process["${bareCall}"](42, "SIGKILL")`,
 			`const stop = ${signalCall}; stop(42, "SIGKILL")`,
@@ -218,7 +236,7 @@ await check("R-4371: test-kill scan rejects unowned signals and stale exceptions
 			`import { ${"kill" + "ProcessTree"} as stop } from "${treePath}"; stop(42);`,
 		];
 		for (const route of routes) for (const ending of ["\n", "\r\n", " \t\n", ""]) {
-			fs.writeFileSync(path.join(scratch, file), `// route fixture${ending || "\n"}${route}${ending}`);
+			fs.writeFileSync(path.join(scratch, file), `// fixture's route${ending || "\n"}${route}${ending}`);
 			const hits = scanProblems(scratch, []);
 			assert.ok(hits.length > 0 && hits.every(hit => hit.startsWith(`${file}:2:`)), `missed route: ${route}`);
 		}
