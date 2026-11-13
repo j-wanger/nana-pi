@@ -148,6 +148,7 @@ export const TEST_PACKS = Object.freeze({
   "packages/nana-pack/tests/template-release.test.mjs": "release",
   "packages/nana-pack/tests/templates-render.test.mjs": "main",
   "packages/nana-pack/tests/templates-update.test.mjs": "release",
+  "packages/nana-pack/tests/test-kills.test.mjs": "land",
   "packages/nana-pack/tests/test-locked.test.mjs": "module",
   "packages/nana-pack/tests/test-packs.test.mjs": "land",
   "packages/nana-pack/tests/test-packs-runner.test.mjs": "land",
