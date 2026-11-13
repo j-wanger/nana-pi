@@ -113,11 +113,3 @@ export function windowsLaneWatchers(root, options = {}) {
 	} catch { return []; }
 }
 
-/** Best-effort hard stop for a test worker and its Windows descendants. */
-export function killWorkerTree(child, { platform = process.platform, runner = spawnSync } = {}) {
-	if (!child?.pid) return;
-	try {
-		if (platform === "win32") runner("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
-		else child.kill("SIGKILL");
-	} catch { /* the tree already ended or the command could not start */ }
-}

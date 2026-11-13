@@ -24,7 +24,7 @@ import { findPiRoot } from "./pi-install.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { probeShortPath } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
-import { killWorkerTree, windowsProcesses } from "./process-tree-helper.mjs";
+import { killOwned, windowsProcesses } from "./process-tree-helper.mjs";
 import { pidAlive } from "../lib/process-tree.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -315,7 +315,7 @@ const rememberProcesses = (rows) => {
 	return rows;
 };
 if (process.platform === "win32") rememberProcesses(windowsProcesses({ timeout: CASE_LIMIT_MS }));
-killWorkerTree(hardChild);
+killOwned(hardChild, { tree: true });
 const hardResult = await hardClose;
 const hardDeadline = Date.now() + CASE_LIMIT_MS;
 let hardRecords;
