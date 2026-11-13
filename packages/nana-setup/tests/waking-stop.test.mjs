@@ -46,7 +46,7 @@ await test("R-4140: a final report blocks once with bounded writing findings", {
   const reason = block(invoke(root, { hook_event_name: "Stop", session_crons: [], last_assistant_message: report + ending }));
   assert.match(reason, /verdict.*no verdict word/);
   assert.match(reason, /length.*words/);
-  assert.match(reason, /Fix each finding.*why it stays.*end the turn/);
+  assert.match(reason, /Send only the corrected sentences, not the whole message again.*why a finding stays.*end the turn/);
  }
  assert.match(block(invoke(root, { hook_event_name: "Stop", last_assistant_message: "DONE: inspect `one` and `two`." })), /identifier/);
  const bounded = block(invoke(root, { hook_event_name: "Stop", last_assistant_message: `DONE: ${"dogfood ".repeat(400)}.` }));

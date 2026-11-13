@@ -716,7 +716,7 @@ Claude Code's project Stop hook also checks `last_assistant_message` directly, n
 transcript. A verdict-first message or at least two counted sentences makes a report:
 all report-mode findings count. Shorter messages without a verdict count only length,
 passive and banned findings. The hook lists up to 12 findings within 1,500 detail characters,
-then asks for a correction or a brief reason to keep each finding. An unquoted claim that
+then asks for only the corrected sentences, not the whole message again, or a brief reason to keep each finding. An unquoted claim that
 nothing waits on the owner also reads blocking ask issues through the bounded HANDOFF
 issue reader; failures drop only that check. Wake reminders come first in the same block.
 A set `NANA_ROLE` or active Stop retry skips all readers and checks.

@@ -42,7 +42,7 @@ function writingReason(text, readIssues) {
  if (!findings.length) return null;
  const listed = findings.slice(0, WRITING_FINDING_CAP).join("\n");
  const bounded = listed.length > WRITING_REASON_CAP ? `${listed.slice(0, WRITING_REASON_CAP - 1)}…` : listed;
- return `Writing findings:\n${bounded}${findings.length > WRITING_FINDING_CAP ? "\nMore findings omitted." : ""}\nFix each finding in a corrected message, or say briefly why it stays, then end the turn.`;
+ return `Writing findings:\n${bounded}${findings.length > WRITING_FINDING_CAP ? "\nMore findings omitted." : ""}\nSend only the corrected sentences, not the whole message again, or say briefly why a finding stays, then end the turn.`;
 }
 
 function armed(job) {
