@@ -176,5 +176,4 @@
 - Shard fixture coupling (lane-push-alone, review 1 NOTE-5): win-shards M9 uses the first non-knowledge RUN_ALONE key, so prepending lane-push-ci changed its fixture name from credential-strip without changing what it checks.
 - Stem selection (stem-path, review 1 NOTE-2): folder names written as separate path.join arguments still over-select tests in scripts/test-packs.mjs; this costs time only.
 - Short-path diagnostics (win-short-path, review 1 SHOULD-1): probeShortPath's failure detail omits stdout, hiding a returned long path or PowerShell output from callers that print only the detail.
-- Stop check (req-skill-split, main record a4e96edc): lane-checks R-4022 failed on Windows shard 2 with "cmd.exe pid survived the stop"; no later fix is on main.
 - Review ledger worktrees (priority-steps-2, main record 645f5100): review-ledger-state.test.mjs failed its Windows shard 2 worktree cases, the second main record after fdb244a4 on 2026-11-10; the cause remains unconfirmed.

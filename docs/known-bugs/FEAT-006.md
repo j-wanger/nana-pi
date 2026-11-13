@@ -1,14 +1,13 @@
 # FEAT-006 — known bugs
 
 - index-only states (a staged force-add of an ignored file; `git rm --cached` of an unchanged file left on disk) can change step 13's selection without changing the lane-check key (lane-check-skip review 2, 2026-11-12)
-- Windows: lane-checks R-4022 (a stop during tip or base checks kills the check tree) failed with `onBase=true, relayDelay=7000: child pid survived the stop` on main fdb244a4 (2026-11-10) and on lane CI 43240235139 at 29829cc3 (2026-11-12); passed on rerun tips; cause unproven, possibly the stop arriving during work before the checks spawn (lane-check-skip, 2026-11-12)
+- Windows: lane-checks R-4022 failed in `onBase=true, relayDelay=7000` on fdb244a4 (check pid 9280), 29829cc3 (child pid 2836) and a4e96edc (cmd.exe pid 8476); inferred cause: Windows reused the killed pid and the check counted an unreadable identity as survival, unconfirmed until a Windows `R-4022 note:` shows a reused pid whose holder has an unreadable start and is neither node.exe nor cmd.exe; the stop checks now require the start token read while the check ran and note reused pids with their holder; a recurrence of `survived the stop` now means a real kill gap (lane-checks-r4022, 2026-11-13)
 
 *One line per known bug in this feature, moved from HANDOFF.md on 2026-10-21 and kept word for word. A review finding that does not block a land goes here as one line.*
 
 - Waking hook: the project-scope command's `$CLAUDE_PROJECT_DIR` expansion has not run on a Windows checkout path with spaces; this pre-existing path behavior cannot be checked from macOS.
 
 - `build-records.test.mjs` gives each descendant process query the time left before its wait deadline; a query crossing it fails with ETIMEDOUT and leaves survivors unnamed, although R-2725's evidence says it reports survivors (win-ebusy review 1).
-- Lane-check test teardown kills recorded process IDs without a start-time check, so on Windows a reused ID could end another test file's process (lane-checks-win review S-1).
 - Builder credential strip (builder-credential-strip, plan): scripts can invoke a helper or credential store directly; the environment control stops git's dispatch, and the gate catches only direct shell forms.
 - Builder credential strip (builder-credential-strip, plan): a child can remove the credential controls for its own subprocess.
 - Builder credential strip (builder-credential-strip, plan): managed Claude policy can supply environment above flag settings.

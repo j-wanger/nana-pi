@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
+import { windowsProcesses } from './process-tree-helper.mjs';
 import { CASE_LIMIT_MS, withinCaseLimit } from './report-fixtures.mjs';
 import { checkLane, laneCheckLines } from '../lib/lane-checks.mjs';
 import { LANE_CHECK_PASS_FILE } from '../lib/test-runner-config.mjs';
@@ -23,18 +24,31 @@ import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRA
 
 // Exact OS start tokens, not pid liveness alone, authorize fixture cleanup signals.
 // Read in batches by the test process; fixture preloads never launch native queries.
-function processStarts(pids, { run = spawnSync } = {}) {
+function processStarts(pids, { run = spawnSync, strict = false } = {}) {
   if (!pids.length) return new Map();
   const windows = process.platform === 'win32';
   const result = windows
     ? run('powershell', ['-NoProfile', '-Command', `Get-Process -Id ${pids.join(',')} -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Id) $($_.StartTime.ToUniversalTime().Ticks)" }`], { encoding: 'utf8', timeout: 10000, windowsHide: true })
     : run('ps', ['-o', 'pid=', '-o', 'lstart=', '-p', pids.join(',')], { encoding: 'utf8', timeout: 10000, env: { ...process.env, LC_ALL: 'C' } });
+  if (strict && (result.error || result.signal)) throw new Error(`process identity query failed: ${result.error?.code ?? result.signal}`);
   const starts = new Map();
   for (const line of String(result.stdout ?? '').split(/\r?\n/)) {
     const match = /^\s*(\d+)\s+(.+?)\s*$/.exec(line);
     if (match) starts.set(Number(match[1]), match[2]);
   }
   return starts;
+}
+function identify(pids) {
+  const distinct = [...new Set(pids)];
+  const starts = processStarts(distinct, { strict: true });
+  const missing = distinct.filter(pid => !starts.has(pid));
+  if (missing.length) throw new Error(`no start token for running pid ${missing.join(', ')}`);
+  return starts;
+}
+function survivors(identities) {
+  const running = [...identities.keys()].filter(pid => pidAlive(pid));
+  const starts = processStarts(running, { strict: true });
+  return { pids: running.filter(pid => starts.get(pid) === identities.get(pid)), running, starts };
 }
 const worker = fileURLToPath(new URL('../bin/pi-worker.mjs', import.meta.url));
 let failures = 0;
@@ -77,10 +91,9 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
     refresh();
     const members = [...tracked.values()].filter(member => pidAlive(member.pid));
     const starts = processStarts(members.map(member => member.pid));
-    // An unreadable identity remains a cleanup failure, never permission to signal.
+    // Teardown waits on an unreadable identity but never signals it.
     return members.filter(member => !member.start || !starts.has(member.pid) || starts.get(member.pid) === member.start);
   };
-  const recordedAlive = pid => liveProcesses().some(member => member.pid === pid);
   const killRecorded = (pid, signal = 'SIGKILL', tree = true) => {
     refresh();
     const member = tracked.get(pid);
@@ -146,7 +159,7 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   };
   const commit = () => { git('add', '.'); git('commit', '-qF', message); };
   let actionError;
-  try { return await action({ root, repo, lane, env, base, put, launch, args, records, readCalls, git, commit, track, recordedAlive, killRecorded }); }
+  try { return await action({ root, repo, lane, env, base, put, launch, args, records, readCalls, git, commit, track, killRecorded }); }
   catch (error) { actionError = error; throw error; }
   finally {
     try {
@@ -347,6 +360,7 @@ await check('fixture cleanup keeps an action error with its cleanup error attach
     const starts = processStarts([42], { run: () => ({ stdout: ` 42 native-start-token \t${ending}` }) });
     assert.equal(starts.get(42), 'native-start-token');
   }
+  assert.throws(() => processStarts([42], { strict: true, run: () => ({ error: { code: 'ETIMEDOUT' } }) }), /process identity query failed: ETIMEDOUT/);
   const actionError = new Error('check tree is alive'), cleanupError = new Error('cleanup is busy');
   const remove = (root, options) => { fs.rmSync(root, options); throw cleanupError; };
   await assert.rejects(fixture(() => { throw actionError; }, null, { remove }), error => error === actionError && error.cleanupError === cleanupError);
@@ -359,7 +373,7 @@ await check('R-4022: a stop during tip or base checks kills the check tree and r
     { onBase: false }, { onBase: true },
     { onBase: false, relayDelay: 2 * RELAY_SIGNAL_GRACE_MS },
     { onBase: true, relayDelay: RELAY_BACKSTOP_MS + 2 * RELAY_SIGNAL_GRACE_MS },
-  ]) await fixture(async ({ root, repo, lane, env, put, args, records, readCalls, track, recordedAlive, killRecorded }) => {
+  ]) await fixture(async ({ root, repo, lane, env, put, args, records, readCalls, track, killRecorded }) => {
     const actual = (assertion, value) => `onBase=${onBase}, relayDelay=${relayDelay}: ${assertion}; actual=${JSON.stringify(value)}`;
     const marker = join(root, 'check-started');
     if (!onBase) put(lane, checkSource(root, false));
@@ -395,6 +409,7 @@ await check('R-4022: a stop during tip or base checks kills the check tree and r
       checkPids = JSON.parse(fs.readFileSync(marker, 'utf8'));
       track(child.pid, 'worker');
       for (const member of checkPids.pids) track(member.pid, member.role);
+      const identities = identify(checkPids.pids.map(member => member.pid));
       assert.equal(checkPids.cwd === lane, !onBase, actual('check cwd matches lane', { cwd: checkPids.cwd, lane }));
       assert.ok(checkPids.pids.some(member => member.role === 'check'), actual('check pid recorded', checkPids.pids));
       assert.ok(checkPids.pids.some(member => member.role === 'child'), actual('child pid recorded', checkPids.pids));
@@ -425,10 +440,24 @@ await check('R-4022: a stop during tip or base checks kills the check tree and r
       }
       assert.equal(end.laneChecks.cleanupError, undefined, actual('no cleanup error', end.laneChecks));
       const deadline2 = Date.now() + 5000;
-      while (checkPids.pids.some(member => recordedAlive(member.pid)) && Date.now() < deadline2) await new Promise(resolve => setTimeout(resolve, 20));
-      for (const member of checkPids.pids) {
-        const alive = recordedAlive(member.pid);
-        assert.equal(alive, false, actual(`${member.role} pid ${member.pid} survived the stop`, alive));
+      let remaining = survivors(identities);
+      while (remaining.pids.length && Date.now() < deadline2) {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        remaining = survivors(identities);
+      }
+      const members = [...new Map(checkPids.pids.map(member => [member.pid, member])).values()];
+      const reused = members.filter(member => remaining.running.includes(member.pid) && !remaining.pids.includes(member.pid));
+      let holders = [];
+      if (reused.length && process.platform === 'win32') {
+        try { holders = windowsProcesses(); } catch { /* the identity query already decided survival */ }
+      }
+      for (const member of reused) {
+        const name = holders.find(row => row.pid === member.pid)?.name ?? 'name unread';
+        console.log(`R-4022 note: ${member.role} pid ${member.pid} now belongs to another process (${name}, start ${remaining.starts.get(member.pid) ?? 'unreadable'})`);
+      }
+      for (const member of members) {
+        const start = remaining.pids.includes(member.pid) ? identities.get(member.pid) : undefined;
+        assert.equal(start, undefined, actual(`${member.role} pid ${member.pid} survived the stop`, start));
       }
       if (onBase) assert.equal(fs.existsSync(checkPids.cwd), false, actual('base checkout still exists', fs.existsSync(checkPids.cwd)));
       const worktrees = spawnSync('git', ['worktree', 'list', '--porcelain'], { cwd: repo, env, encoding: 'utf8' });
@@ -546,7 +575,7 @@ await check('a check with an escaped output-pipe holder still returns at the rel
 // req: R-3997
 await check('off Windows, a hard-killed check caller leaves no running check tree', async () => {
   if (process.platform === 'win32') { console.log('SKIP parent-death relay polling is POSIX-only'); return; }
-  await fixture(async ({ root, lane, env, put, commit, track, recordedAlive, killRecorded }) => {
+  await fixture(async ({ root, lane, env, put, commit, track, killRecorded }) => {
     const marker = join(root, 'orphan-check');
     put(lane, `const cp=require('node:child_process'), fs=require('node:fs');
       const child=cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},15000)'], {stdio:'ignore'});
@@ -564,10 +593,15 @@ await check('off Windows, a hard-killed check caller leaves no running check tre
       while (!fs.existsSync(marker) && caller.exitCode === null && Date.now() < startDeadline) await new Promise(resolve => setTimeout(resolve, 20));
       assert.ok(fs.existsSync(marker), 'check did not start'); pids = JSON.parse(fs.readFileSync(marker, 'utf8'));
       track(caller.pid, 'caller'); track(pids.pid, 'check'); track(pids.child, 'child');
+      const identities = identify([pids.pid, pids.child]);
       killRecorded(caller.pid); await ended;
       const deadline = Date.now() + RELAY_PARENT_POLL_MS + RELAY_SIGNAL_GRACE_MS + 2000;
-      while ((recordedAlive(pids.pid) || recordedAlive(pids.child)) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
-      assert.equal(recordedAlive(pids.pid), false); assert.equal(recordedAlive(pids.child), false);
+      let remaining = survivors(identities);
+      while (remaining.pids.length && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        remaining = survivors(identities);
+      }
+      assert.deepEqual(remaining.pids, []);
     } finally {
       if (caller.exitCode === null && caller.signalCode === null) killRecorded(caller.pid);
       if (pids) for (const pid of [pids.pid, pids.child]) killRecorded(pid);
