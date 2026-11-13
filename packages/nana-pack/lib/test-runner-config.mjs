@@ -83,7 +83,12 @@ export const TEMP_REMOVE_RETRY_DELAY_MS = 100;
 // Chosen 2026-11-08: Windows run 42517200227 recorded no password or helper
 // invocation, but a 3000 ms credential probe timed out beside parallel suite files.
 // Isolate suite load rather than increase the probe or case deadline.
+// Chosen 2026-11-13: main CI at 0a136a91 (attempt 3, Windows shard 2) and lane runs
+// 43271660383, 43332355232 and 43335874098 (windows-selected) failed lane-push-ci M6 and M9
+// when git could not start (exit 0xC0000142); each passed on re-run; isolate suite load
+// rather than retry inside the test.
 export const RUN_ALONE = Object.freeze({
+	"packages/nana-pack/tests/lane-push-ci.test.mjs": "load-sensitive git process starts (Windows exit 0xC0000142 beside parallel files)",
 	"packages/nana-pack/tests/credential-strip.test.mjs": "load-sensitive fixture credential probes bounded by 3000 ms",
 	"packages/nana-pack/tests/bounded-read.test.mjs": "load-sensitive timing bound (1000 ms)",
 	"packages/nana-pack/tests/test-locked.test.mjs": "load-sensitive timing bound (1200 ms) and 70-250 ms launch waits",

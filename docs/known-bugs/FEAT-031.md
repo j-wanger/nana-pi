@@ -1,5 +1,7 @@
 # FEAT-031 — known bugs
 
+- Windows process starts (lane-push-alone, seat): running lane-push-ci alone answers four failed git starts (0xC0000142) under suite load; if the failure recurs alone, it is the runner, not the file, and needs a runner-level retry.
+
 - Test temp helper (test-role-env-2 review 1 NOTEs): no test pins its import-time scrub, and its header can read as keeping the two runtime-folder overrides. Since shared-helpers, the bench and knowledge tests load it too.
 
 - an untracked stray file (for example `.DS_Store`, not ignored) now widens local changed-test selection and, in pack mode, an unmapped untracked path runs every module test; time only (lane-check-skip review 2, 2026-11-12)
