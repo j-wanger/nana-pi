@@ -19,3 +19,4 @@
 - CI workflow checks (ci-jobs, final review): R-1313's check repeats its first assertion and no longer pins the non-Windows step line. R-2556 covers that step's `--jobs` argument, but no check pins the step's text.
 - CI workflow checks (ci-jobs, final review): R-2577's check counts only `- run:` lines, so a multi-line `run: |` warm-up would fail it while working in CI. That is a false red only.
 - Release status (setup README residual, moved by setup-readme): a tag that exists only locally reads as released, though Copier renders the highest pushed tag.
+- Release ancestry (kit-fixes, review 2 SHOULD-1): scripts/template-release.mjs treats a Git failure in the latest-tag ancestry check as "nothing to release" and exits 0 instead of refusing; a newest tag outside main's history also silently skips release.

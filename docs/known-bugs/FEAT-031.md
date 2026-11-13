@@ -165,3 +165,16 @@
 - Carry (signal-test-race): `worker-claude.test.mjs` retains unused Windows WC_HOLD_FILE handling because R-2693 skips Windows.
 - Worker retry refusal (pack-residue): pi-worker's lane-mode --retries refusal no longer catches the contrived `--retries --lane-size small 7` argument order.
 - Records out (records-out-2): readers commit 6ded7fdb fails the identity scan because three allowlist entries were removed while their files still existed; the tip is clean, but a check run at that commit is red.
+- Release selection (release-failsafe, review 1 SHOULD-1): promotion reasons name the first policy path rather than the execution path; a masked graph failure is not named either in scripts/test-packs.mjs.
+- Windows release coverage (release-failsafe, review 1 SHOULD-2): a ci.yml change does not select data-pack or templates-update on Windows, so CI toolchain changes can escape those tests until a later template lane.
+- Release execution inputs (release-failsafe, review 1 NOTE-1): process-tree.mjs, windows-skips-config.mjs and .gitattributes are off the execution fail-safe list; copier is unpinned under uvx and uv is fixed only by the setup action.
+- Release documentation (release-failsafe, review 1 NOTE-3): the root README's lane release triggers omit execution-path and unreadable-input promotion.
+- Release checks (release-failsafe, review 1 NOTE-4): no suite check pins packProblems' execution-list subset rule; M4b's title suggests any policy path promotes rather than execution paths and unreadable inputs.
+- Windows start evidence (lane-push-alone, review 1 NOTE-2): all four M9 failures preceded its nested runner, so that runner is not evidence for the recorded process-start failures.
+- Windows start attribution (lane-push-alone, review 1 NOTE-3): the RUN_ALONE comment and known-bug line present all four failures as 0xC0000142, though one run's code and every M9 code are inferred; "the runner" does not distinguish the CI machine from scripts/test.mjs.
+- Run-alone cost (lane-push-alone, review 1 NOTE-4): isolating lane-push-ci adds about 1 to 10 seconds per leg; test-runner-config.mjs still estimates 10 seconds across four files although the list has seven.
+- Shard fixture coupling (lane-push-alone, review 1 NOTE-5): win-shards M9 uses the first non-knowledge RUN_ALONE key, so prepending lane-push-ci changed its fixture name from credential-strip without changing what it checks.
+- Stem selection (stem-path, review 1 NOTE-2): folder names written as separate path.join arguments still over-select tests in scripts/test-packs.mjs; this costs time only.
+- Short-path diagnostics (win-short-path, review 1 SHOULD-1): probeShortPath's failure detail omits stdout, hiding a returned long path or PowerShell output from callers that print only the detail.
+- Stop check (req-skill-split, main record a4e96edc): lane-checks R-4022 failed on Windows shard 2 with "cmd.exe pid survived the stop"; no later fix is on main.
+- Review ledger worktrees (priority-steps-2, main record 645f5100): review-ledger-state.test.mjs failed its Windows shard 2 worktree cases, the second main record after fdb244a4 on 2026-11-10; the cause remains unconfirmed.

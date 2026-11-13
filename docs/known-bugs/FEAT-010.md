@@ -69,3 +69,9 @@
 - Claude agent rm guard (review 1, 2026-11-12): conservative over-denies include `rm -rf linkout` without a slash, `cd build; rm -rf ../out`, `xargs git rm` and a heredoc line starting with `rm` whose target is outside or unresolved.
 - Claude agent rm guard (review 1, 2026-11-12): the hook trusts the input `cwd`; behaviour after a persistent `cd` is unverified.
 - Claude agent rm guard (review 1, 2026-11-12): the PowerShell tool is not matched.
+- Delete comments (rm-guard-2, review 1 SHOULD-1): an inside delete followed by a same-line comment containing backticks is denied by the Claude guard, because it reads raw segment text without stripping comments.
+- Escaped whitespace (rm-guard-2, review 2 NOTE-1): on win32, trimming an escaped trailing space or tab leaves a lone backslash that resolves to the drive root and over-denies; bash reads an inside whitespace name.
+- Escaped CR coverage (rm-guard-2, review 2 NOTE-2): the guard now gives no decision for a parent-step or Windows drive-root spelling ending in backslash-CR-LF, matching bash's inside CR-name reading, but neither shape is tested; Git Bash path conversion of the drive form is unverified.
+- Unescaped CR (rm-guard-2, review 2 NOTE-3): a tilde or parent-step target followed by an unescaped CR denies, though bash reads it as a name inside cwd.
+- Forced Windows harness (rm-guard-2, review 2 NOTE-4): no forced-win32 case asserts a deny, so silently skipping the hook's agent branch could leave its no-decision assertions green.
+- CR contract coverage (rm-guard-2, review 2 NOTE-5): R-4261 states a general escaped-CR rule, but its test pins only a separate trailing backslash before CR-LF; shells using igncr could continue onto an unjudged target, and that option is unverified.

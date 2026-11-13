@@ -7,7 +7,6 @@
 - pi-review has no verdict re-ask; an unread verdict still needs a new review, unlike claude-review's confirmation path.
 - Clean-tree review: `git status` hides a modified file carrying skip-worktree or assume-unchanged, so claude-review and the shared runner record the plain HEAD sha for it. pi-review is safe: it reviews a fresh checkout.
 - Clean-tree review: a clean submodule at its recorded commit is no longer pinned to admit as the plain sha for claude-review and the shared runner.
-- Unread verdict (unread-verdict-loud): a bold first verdict line that agrees with the final line still leaves the round empty. Accepting it would loosen the verdict reader, which is the owner's call.
 - Unread verdict (unread-verdict-loud): exit 1 from pi-review or review-ledger run no longer always means no round was spent. The notice says when one was.
 - Unread verdict (unread-verdict-loud): when the tree changes during a review, the launchers print only the old changed-tree message, with no notice.
 - Unread verdict (unread-verdict-loud): a re-review of a revision already counted shows an unchanged count of rounds left. Reviews still running count as used.
