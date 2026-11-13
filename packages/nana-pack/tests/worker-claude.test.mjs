@@ -742,7 +742,6 @@ const closeOf = (child) => new Promise((resolve) => {
 	else child.once("close", (code, signal) => resolve({ code, signal }));
 });
 const cleanupSafetyTitle = "builder pid-file cleanup preserves an unrelated live process and still kills its live builder";
-// req: R-4370
 try {
 	await withinCaseLimit(cleanupSafetyTitle, async () => {
 		const root = caseTemp("cleanup-identity"), pidFile = path.join(root, "builder.pid");
@@ -782,7 +781,8 @@ try {
 			fs.rmSync(root, { recursive: true, force: true });
 		}
 	});
-	check(cleanupSafetyTitle, true);
+	// req: R-4370
+	check("builder pid-file cleanup preserves an unrelated live process and still kills its live builder", true);
 } catch (error) { check(cleanupSafetyTitle, false, error.stack ?? String(error)); }
 
 const startWrappedWorker = ({ args, env, leader = false }) => {

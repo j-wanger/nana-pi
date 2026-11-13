@@ -134,7 +134,6 @@
 - Windows flakes (impact-artifacts CI, 2026-10-25): R-1984 failed once at 56ad9dd1, because doctor's pi executable row read `·` before and `✓` after. The lane touched no setup code (a first-try flake, inferred).
 - Windows test limits (win-test-limits, plan): R-1779's child guard reads CHILD_LIMIT_MS but has no late-start case; only the seal pins the constant.
 - Windows test limits (win-test-limits, plan): R-1700's tree case keeps 2.5 s with the same Windows start exposure; it has not failed in 171 legs.
-- Windows test limits (win-test-limits, plan): `review-ledger.test.mjs:52` still judges the pid of an exited process; worker-claude cleanup is fixed to require a live spawned child or a matching recorded start token. None failed in 171 legs.
 - Windows test limits (win-test-limits, plan): sources-file's and writing-injection's limits are named but not sealed. A runner stall longer than 30 s per spawn still fails sources-file.
 - Windows test limits (win-test-limits, plan): requirements-deliverables keeps its 10 s git limit, because artifact-readers edited that file.
 - Windows test limits (win-test-limits, plan): the two run-alone files run after the pool drains, about 27 to 36 s more per full parallel run on every platform. Inside the pool, test-runner.test.mjs gains about 10 s, mutation-runner.test.mjs about 13 s, and the R-1701 case about 7.5 s on Windows.
