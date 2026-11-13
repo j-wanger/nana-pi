@@ -19,7 +19,7 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - Re-measure a plan's numbers on current main. Before a fix card or build, reproduce on the current base and make acceptance fail there; if it no longer fails, report the measure and build nothing.
 - After the second fix for one failure, plan a class fix rather than another case fix.
 - When a review blocks one build, sweep sibling builds for that defect class before reporting counts.
-- Each status reports the measures the current priority names; say when unmeasured.
+- Landing and decision reports carry the priority's measures; say when unmeasured.
 - A brief names the frontier facts and contract surfaces (such as HANDOFF promises) its lane affects.
 - A brief names the following checks.
   Name the new requirement ID range.

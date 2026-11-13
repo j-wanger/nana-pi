@@ -8,7 +8,7 @@
  */
 import { LAUNCHER_ROLES } from "./frontier-summary-config.mjs";
 import { commandIndex, splitCommand, tokens } from "./gate-shell.ts";
-import { LANDING_LINES, LANDING_VERDICTS, LANE_TOOL_LAUNCHES, MAIN_CI_POST_FLAG, MAIN_CI_TOOL, MAIN_CI_WAIT_FLAG, MEASURES_PHRASE, OWNER_WINDOW_MS, TRUNCATING_PIPE_TOOLS, WAKE_INTERVAL_MINUTES, REPORT_SENTENCE_MIN, WRITING_FINDING_CAP, WRITING_REASON_CAP } from "./waking-config.mjs";
+import { LANDING_LINES, LANDING_VERDICTS, LANE_TOOL_LAUNCHES, MAIN_CI_POST_FLAG, MAIN_CI_TOOL, MAIN_CI_WAIT_FLAG, MEASURES_PHRASE, MEASURES_VERDICTS, OWNER_WINDOW_MS, TRUNCATING_PIPE_TOOLS, WAKE_INTERVAL_MINUTES, REPORT_SENTENCE_MIN, WRITING_FINDING_CAP, WRITING_REASON_CAP } from "./waking-config.mjs";
 import { checkText, extractBlocks, hasVerdictWord } from "./writing-check.mjs";
 
 function nothingWaits(text) {
@@ -24,8 +24,8 @@ function writingReason(text, readIssues) {
  const report = result.stats.verdict || result.stats.sentences >= REPORT_SENTENCE_MIN;
  const findings = result.findings.filter(finding => report || ["length", "passive", "banned"].includes(finding.check))
   .map(finding => `${finding.check} (line ${finding.line}): ${finding.detail}`);
- if (hasVerdictWord(text) && !text.includes(MEASURES_PHRASE)) {
-  findings.push("measures: a verdict-led status carries both measures (median lane hours and code removed since 7 November)");
+ if (hasVerdictWord(text, MEASURES_VERDICTS) && !text.includes(MEASURES_PHRASE)) {
+  findings.push("measures: a landing or decision report carries both measures (median lane hours and code removed since 7 November)");
  }
  if (hasVerdictWord(text, LANDING_VERDICTS)) {
   const lines = text.split(/\r\n|\r|\n/);

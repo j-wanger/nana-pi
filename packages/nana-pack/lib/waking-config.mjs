@@ -33,6 +33,8 @@ export const WAKING_GIT_TIMEOUT_MS = 2000;
 export const REPORT_SENTENCE_MIN = 2;
 /** contract (seat-tools brief, 2026-11-12, R-4210): measures marker in verdict-led statuses. */
 export const MEASURES_PHRASE = "median lane";
+/** contract (owner 2026-11-13, R-4210): measures only on reports that land work or ask the owner to decide. */
+export const MEASURES_VERDICTS = ["LANDED", "YOUR CALL"];
 /** contract (seat-tools brief, 2026-11-12, R-4211): landing reports name deferrals and validation. */
 export const LANDING_VERDICTS = ["LANDED"];
 export const LANDING_LINES = ["Deferred:", "Validation:"];

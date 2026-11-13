@@ -124,17 +124,23 @@ await test("R-4143: nothing-waits claims check blocking asks and reader failures
 });
 
 // req: R-4210
-await test("R-4210: verdict statuses require measures", { timeout: 45000 }, () => {
+await test("R-4210: landing and decision reports require measures", { timeout: 45000 }, () => {
  const root = noLane();
- for (const verdict of ["OPEN", "LANDED", "BLOCKED", "DONE", "FAILED", "CARRIED", "YOUR CALL"]) {
+ for (const verdict of ["LANDED", "YOUR CALL"]) {
   const text = `${verdict}: checks passed.\nDeferred: none.\nValidation: green.`;
   assert.match(block(invoke(root, { hook_event_name: "Stop", last_assistant_message: text })), /measures:.*median lane hours and code removed since 7 November/);
   const clean = invoke(root, { hook_event_name: "Stop", last_assistant_message: `${text}\nmedian lane hours 1, code removed since 7 November 0.` });
   assert.equal(clean.status, 0, clean.stderr);
   assert.equal(clean.stdout, "");
  }
+ for (const verdict of ["OPEN", "DONE", "BLOCKED", "FAILED", "CARRIED"]) {
+  const result = invoke(root, { hook_event_name: "Stop", last_assistant_message: `${verdict}: checks passed.` });
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /measures:/);
+  assert.equal(result.stdout, "");
+ }
  for (const extra of [{ stop_hook_active: true }, { role: "builder" }]) {
-  const payload = { hook_event_name: "Stop", last_assistant_message: "DONE: checks passed.", ...extra };
+  const payload = { hook_event_name: "Stop", last_assistant_message: "YOUR CALL: checks passed.", ...extra };
   const result = extra.role ? spawnSync(process.execPath, [hook], { cwd: root, encoding: "utf8", timeout: 10000,
    env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, CLAUDE_PROJECT_DIR: root, NANA_ROLE: extra.role }, input: JSON.stringify(payload) }) : invoke(root, payload);
   assert.equal(result.status, 0, result.stderr);
