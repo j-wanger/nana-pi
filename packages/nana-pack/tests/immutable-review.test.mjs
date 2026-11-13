@@ -6,6 +6,7 @@
  * @effects disk (temporary repositories, worktrees and copies of appended prompt files), process (fake review launch).
  * @errors failed assertions exit nonzero; unexpected process errors fail the test.
  */
+import { killOwned, fileIdentity } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import { awaitLaunchRecord } from "./launch-wait.mjs";
@@ -234,9 +235,7 @@ const killedCheckout = killedRecord?.split("\n")[0] ?? "";
 // clean it up itself, but the recovery run's own reclaim (the thing this check pins) may remove
 // it before a canonicalize-at-use would get the chance to resolve it.
 const killedCheckoutCanon = killedCheckout ? canonPath(killedCheckout) : "";
-if (fs.existsSync(killedPidFile)) {
-  try { process.kill(Number(fs.readFileSync(killedPidFile, "utf8").trim()), "SIGKILL"); } catch {}
-}
+killOwned(fileIdentity(killedPidFile));
 killedReview.kill("SIGKILL");
 await killedClosed;
 const staleBeforeRecovery = git(repo, "worktree", "list", "--porcelain");

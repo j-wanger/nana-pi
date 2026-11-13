@@ -11,6 +11,7 @@ import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
+import { killOwned } from "./process-tree-helper.mjs";
 import { awaitLaunchRecord } from "./launch-wait.mjs";
 import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, auditFile, resDir, freshHome, env, pathForms, jsonl, roundsOf, verdictsOf, check, gitIn, repo, A, B, out, ledgerRun, ledgerCheck, reviewAt, finish } from "./review-ledger-fixture.mjs";
 
@@ -44,10 +45,7 @@ import { tmp, outs, bin, PI_REVIEW, PI_WORKER, LEDGER_CLI, mod, home, agent, aud
 	A.at(3);
 	// req: R-714
 	check("the in-flight review remains visible to the locked store reader", /1 review\(s\) in flight/.test(ledgerCheck(["--item", "crash"]).stdout));
-	// win32: a negative pid is not a process-group signal there (libuv's uv_kill → OpenProcess(-pid)
-	// fails, ESRCH); taskkill /T reaches the same tree (k plus its hung grandchild) instead.
-	if (process.platform === "win32") spawnSync("taskkill", ["/T", "/F", "/PID", String(k.pid)]);
-	else process.kill(-k.pid, "SIGKILL");
+	killOwned(k, { group: true, tree: true });
 	await new Promise((r) => k.exitCode !== null || k.signalCode !== null ? r() : k.on("exit", r));
 	const deadPid = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
 	fs.writeFileSync(path.join(agent, "review-ledger.lock"), deadPid);
@@ -74,7 +72,7 @@ if (process.platform !== "win32") {
 		let stderr = ""; k.stderr.on("data", (d) => { stderr += d; });
 		const pidRecord = await awaitLaunchRecord(childPidFile, { closed: exited, isComplete: (text) => /^\d+\n$/.test(text) });
 		const grandchildPid = Number(pidRecord?.trim());
-		if (k.exitCode === null && k.signalCode === null) process.kill(k.pid, sig);
+		killOwned(k, { signal: sig });
 		const code = await exited;
 		let grandchildAlive = pidRecord !== null; try { process.kill(grandchildPid, 0); } catch { grandchildAlive = false; }
 		const reservationReleased = launcher !== "review" || fs.readdirSync(resDir).length === 0;

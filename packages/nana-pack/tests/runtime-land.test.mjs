@@ -14,6 +14,7 @@ import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { LAND_NOTE_PREFIX, LAND_TIP_ENV, TIP_DIGITS } from "../lib/land-config.mjs";
 import * as productReportModule from "../../../scripts/product-report.mjs";
+import { killOwned, fileIdentity } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -193,8 +194,8 @@ await check("off Windows, a stopped full locked run ends remembered orphan targe
 			assert.equal(await waitForPidsToEnd(descendantPids, STOP_WAIT_MS + 3000), true);
 			assert.equal(processIsGone(process.pid), false); assert.notEqual(exit.code ?? 1, 0); assert.equal(fs.existsSync(lockDir), false);
 		} finally {
-			for (const file of pidFiles) { try { process.kill(Number(fs.readFileSync(file, "utf8")), "SIGKILL"); } catch {} }
-			try { process.kill(child.pid, "SIGKILL"); } catch {}
+			for (const file of pidFiles) killOwned(fileIdentity(file));
+			killOwned(child);
 		}
 	}
 });

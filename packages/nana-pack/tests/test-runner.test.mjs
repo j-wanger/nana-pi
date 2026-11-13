@@ -21,6 +21,7 @@
 // Each case gets its own TMPDIR so "the scratch dir is removed" can be asserted without racing
 // other work on the machine.
 // Run: node --experimental-strip-types packages/nana-pack/tests/test-runner.test.mjs
+import { killOwned, fileIdentity } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { RECORD_FILE_ENV, RECORD_SCHEMA } from "../lib/suite-records-config.mjs";
 import { WINDOWS_SKIPS } from "../lib/windows-skips-config.mjs";
@@ -416,8 +417,7 @@ const rootE = mkRoot("E", {
 	].join("\n"),
 });
 const E = run(rootE);
-const holder = Number(fs.readFileSync(path.join(E.out_dir, "holder.pid"), "utf8"));
-try { process.kill(holder, "SIGKILL"); } catch {}
+killOwned(fileIdentity(path.join(E.out_dir, "holder.pid")));
 // req: R-610
 check("after a child exits the runner waits only a bounded drain for stdio to close", labelFor(E.out, "holder.test.mjs") === "PASS" && /stdio still open \d+s after exit/.test(E.out) && E.code === 0 && E.ms < 30000);
 
@@ -459,7 +459,7 @@ for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
 	else signalRunner.send({ type: "runner-terminate", signal: sig });
 	const signalExit = await new Promise((resolve) => signalRunner.on("close", (code, signal) => resolve({ code, signal })));
 	const treeGone = grandchildPid > 0 && gone(grandchildPid);
-	if (grandchildPid > 0 && !treeGone) { try { process.kill(grandchildPid, "SIGKILL"); } catch {} }
+	if (grandchildPid > 0 && !treeGone) killOwned(fileIdentity(path.join(signalOut, "grandchild.pid")));
 	signalResults.push(!!fileTmp && treeGone && !fs.existsSync(fileTmp)
 		&& emptyDir(signalTmp) && signalExit.code === expectedCode && signalOutput.includes(sig));
 }

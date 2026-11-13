@@ -17,6 +17,7 @@
 // lines name (parsed from its source). Fixtures report their observations by writing JSON
 // into $PROBE_OUT rather than printing, and derive overlap from {start, end} timestamps they record
 // themselves — never from guessing at scheduling.
+import { killOwned, fileIdentity } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { RUN_ALONE } from "../lib/test-runner-config.mjs";
 import { HOOK_DEADLINE_MS, HOOK_PRODUCER_TIMEOUT_MS } from "../../nana-setup/lib/hook-producer.mjs";
@@ -555,8 +556,8 @@ for (const [sig, expectedCode] of [["SIGINT", 130], ["SIGTERM", 143]]) {
 	const signalExit = await new Promise((resolve) => signalRunner.on("close", (code, signal) => resolve({ code, signal })));
 	const tree1Gone = pid1 > 0 && gone(pid1);
 	const tree2Gone = pid2 > 0 && gone(pid2);
-	if (pid1 > 0 && !tree1Gone) { try { process.kill(pid1, "SIGKILL"); } catch {} }
-	if (pid2 > 0 && !tree2Gone) { try { process.kill(pid2, "SIGKILL"); } catch {} }
+	if (pid1 > 0 && !tree1Gone) killOwned(fileIdentity(path.join(signalOut, "grandchild1.pid")));
+	if (pid2 > 0 && !tree2Gone) killOwned(fileIdentity(path.join(signalOut, "grandchild2.pid")));
 	signal1475Results.push(
 		!!tmp1 && !!tmp2 && tree1Gone && tree2Gone
 			&& !fs.existsSync(tmp1) && !fs.existsSync(tmp2)

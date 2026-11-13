@@ -14,12 +14,12 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
-import { processStarts, windowsProcesses } from './process-tree-helper.mjs';
+import { killOwned, startTime, processStarts, windowsProcesses } from './process-tree-helper.mjs';
 import { CASE_LIMIT_MS, withinCaseLimit } from './report-fixtures.mjs';
 import { checkLane, laneCheckLines } from '../lib/lane-checks.mjs';
 import { LANE_CHECK_PASS_FILE } from '../lib/test-runner-config.mjs';
 import { buildEndRecord } from '../lib/build-records.mjs';
-import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
+import { pidAlive } from '../lib/process-tree.mjs';
 import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
 
 function identify(pids) {
@@ -68,9 +68,7 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
     const starts = processStarts([...added.keys()]);
     for (const member of added.values()) {
       const start = starts.get(member.pid) ?? null;
-      const startedAt = process.platform === 'win32'
-        ? (Number(start) - 621355968000000000) / 10000
-        : Date.parse(start);
+      const startedAt = startTime(start);
       // A late first refresh must not adopt a process born after the record was written.
       // Explicit track-only members have no record time and retain token matching.
       const foreign = member.at !== undefined && startedAt > member.at;
@@ -88,10 +86,7 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   const killRecorded = (pid, signal = 'SIGKILL', tree = true) => {
     refresh();
     const member = tracked.get(pid);
-    if (member?.start && !member.foreign && processStarts([pid]).get(pid) === member.start) {
-      if (tree) killProcessTree(pid, { signal, fallback: signal => { try { process.kill(pid, signal); } catch {} } });
-      else { try { process.kill(pid, signal); } catch {} }
-    }
+    if (member?.start && !member.foreign) killOwned({ pid, start: member.start }, { group: tree, tree, signal });
   };
   const awaitExit = async () => {
     const deadline = Date.now() + RELAY_SIGNAL_GRACE_MS + RELAY_BACKSTOP_MS;

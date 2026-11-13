@@ -6,6 +6,7 @@
  * @effects disk (temporary fixtures and output files), process (pi-worker, fake pi, ps or PowerShell readers).
  * @errors failed assertions or fixture time limits print FAIL and make the test exit nonzero.
  */
+import { killOwned } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import { spawn, spawnSync } from "node:child_process";
@@ -43,11 +44,7 @@ const M3_CASE_GUARD_MS = 30_000; // chosen: four one-second reads plus cleanup s
 const M4_CASE_GUARD_MS = 30_000; // chosen: three polls and one release read stay well inside 30 seconds.
 
 function killTree(child) {
-  if (!child?.pid) return;
-  try {
-    if (process.platform === "win32") spawnSync("taskkill", ["/T", "/F", "/PID", String(child.pid)], { stdio: "ignore" });
-    else process.kill(-child.pid, "SIGKILL");
-  } catch { /* already gone */ }
+  killOwned(child, { group: true, tree: true });
 }
 
 async function runProcess(command, args, options, limitMs, onStderr = () => {}) {

@@ -21,7 +21,8 @@ import * as config from "../lib/frontier-summary-config.mjs";
 import { GH_COMMAND_ENV } from "../lib/suite-records-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import * as timing from "./issue-watch-timing.mjs";
-import { killProcessTreeNoWait, pidAlive } from "../lib/process-tree.mjs";
+import { killOwned } from "./process-tree-helper.mjs";
+import { pidAlive } from "../lib/process-tree.mjs";
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const TD = tmpDir(path.join(os.tmpdir(), "issue watch "));
 const summaryGh = path.join(TD, "summary-gh.mjs");
@@ -178,7 +179,7 @@ async function runCli({ startDelayMs = 0 } = {}) {
 				const missing = polls() < 3 ? "no third poll" : !/comment by example: .*command answer/.test(stdout) ? "no owner answer line" : restartAt === undefined ? "no restart line" : "no exit after restart";
 				expired = Object.assign(new Error(`CLI deadline: ${missing}`), { pid: child.pid, restartAt });
 				cleanup = setTimeout(() => reject(Object.assign(new Error(`${expired.message}; cleanup did not close child`), { pid: child.pid, restartAt })), timing.CLI_CLEANUP_MS);
-				killProcessTreeNoWait(child.pid, { fallback: (signal) => child.kill(signal) });
+				killOwned(child, { group: true, tree: true, wait: false });
 			};
 			child.stdout.on("data", (data) => {
 				stdout += data;

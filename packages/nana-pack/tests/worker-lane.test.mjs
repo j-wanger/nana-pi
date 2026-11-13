@@ -6,6 +6,7 @@
  * @effects disk (OS temp fixtures and a slow CPU-sampler shim), process (git and worker subprocesses)
  * @errors failed assertions exit nonzero
  */
+import { killOwned, fileIdentity } from "./process-tree-helper.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
 import {
@@ -238,10 +239,7 @@ check("R-2883: worker-lane's launcher runs a fake pi that holds one second to ex
 		&& hold2883?.timerFired === true && !samplerStarted2883
 		&& !samplerIsFirst(resolvedDefaultSampler2883, samplerShim2883) && !stubHasSampler2883,
 	JSON.stringify({ status: launch2883.status, signal: launch2883.signal, elapsedMs: launch2883.elapsedMs, stderrTail: launch2883.stderr?.trim().split(/\r?\n/).slice(-3).join(" | "), samplerName: samplerName2883, resolvedLaunchSampler: resolvedLaunchSampler2883, resolvedDefaultSampler: resolvedDefaultSampler2883, hold: hold2883, samplerStarted: samplerStarted2883, stubHasSampler: stubHasSampler2883 }));
-if (samplerStarted2883) {
-	const samplerPid = Number(fs.readFileSync(samplerMarker2883, "utf8"));
-	if (samplerPid > 0) { try { process.kill(samplerPid, "SIGKILL"); } catch {} }
-}
+if (samplerStarted2883) killOwned(fileIdentity(samplerMarker2883));
 // req: R-2883
 check("seal: worker-lane's launches have a 30-second limit and poll less often than that",
 	CHILD_LIMIT_MS === 30_000 && WORKER_POLL_SECS * 1000 > CHILD_LIMIT_MS,
