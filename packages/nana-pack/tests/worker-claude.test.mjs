@@ -123,8 +123,7 @@ if (prompt && process.env.WC_PROMPT_COPY) fs.copyFileSync(prompt, process.env.WC
 if (settings && process.env.WC_SETTINGS_COPY) fs.copyFileSync(settings, process.env.WC_SETTINGS_COPY);
 if (process.env.WC_PID_FILE) fs.writeFileSync(process.env.WC_PID_FILE, String(process.pid));
 if (process.env.WC_GRANDCHILD) {
-	const grand = require("node:child_process").spawn(process.execPath, ["-e", "setInterval(()=>{},100000)"], { stdio: "ignore" });
-	if (process.env.WC_PID_FILE) fs.writeFileSync(process.env.WC_PID_FILE + ".grand", String(grand.pid));
+	require("node:child_process").spawn(process.execPath, ["-e", "if(process.env.WC_PID_FILE)require('node:fs').writeFileSync(process.env.WC_PID_FILE+'.grand',String(process.pid));setInterval(()=>{},100000)"], { stdio: "ignore" });
 	process.on("SIGTERM", () => {});
 }
 const record = { argv: args, cwd: process.cwd(), prompt, settings, settingsMode: settings ? fs.statSync(settings).mode : null, lock: process.env.WC_LOCK ? fs.existsSync(process.env.WC_LOCK) : false, env: Object.fromEntries(["NANA_ROLE","NANA_WORKTREE_ROOT","NANA_HANDOFF","CLAUDE_CODE_DISABLE_AUTO_MEMORY","BASH_DEFAULT_TIMEOUT_MS","BASH_MAX_TIMEOUT_MS","CLAUDE_CONFIG_DIR", ...${JSON.stringify(Object.keys(credentialStripEnv(process.env)))}].map((name) => [name, process.env[name] ?? null])) };
@@ -750,7 +749,6 @@ try {
 		// This process is a direct test child, never a descendant of a fixture worker.
 		const unrelated = spawn(process.execPath, ["-e", "process.on('message',()=>process.send('alive'))"], { detached: true, env: { ...process.env, NODE_OPTIONS: "" }, stdio: ["ignore", "ignore", "ignore", "ipc"] });
 		const builder = spawn(process.execPath, [script], { detached: true, stdio: "ignore" });
-		fs.writeFileSync(`${pidFile}.parent`, String(builder.pid));
 		const unrelatedClosed = closeOf(unrelated), builderClosed = closeOf(builder);
 		try {
 			assert.ok(await waitFor(() => fs.existsSync(pidFile), builder), "the fake builder must publish its pid while alive");
@@ -772,7 +770,7 @@ try {
 			const old = new Date(Date.now() - 60_000); fs.utimesSync(foreignFile, old, old);
 			assert.deepEqual(killOwned(fileIdentity(foreignFile), { group: true }), [], "probe (b): record time");
 			assert.ok(await ping(), "probe (b): cleanup killed an unrelated live process");
-			assert.deepEqual(killOwned(fileIdentity(`${pidFile}.parent`), { group: true }), [builder.pid], "still-kills: parent-written record");
+			assert.deepEqual(killOwned(fileIdentity(pidFile), { group: true }), [builder.pid], "still-kills: self-written record");
 			const ended = await builderClosed;
 			assert.ok(process.platform === "win32" ? ended.code !== null : ended.signal === "SIGKILL", "identity-checked cleanup must still kill the live fake builder");
 		} finally {
@@ -786,7 +784,7 @@ try {
 } catch (error) { check(cleanupSafetyTitle, false, error.stack ?? String(error)); }
 
 const startWrappedWorker = ({ args, env, leader = false }) => {
-	const script = leader ? "sleep 30 & echo $! > \"$1\"; shift; exec \"$@\"" : "cd \"$1\" && shift && exec \"$@\"";
+	const script = leader ? "sh -c 'echo $$ > \"$1\"; exec sleep 30' sh \"$1\" & shift; exec \"$@\"" : "cd \"$1\" && shift && exec \"$@\"";
 	const prefix = leader ? [path.join(TEMP, "worker-sibling.pid")] : [LANE];
 	return spawn("bash", ["-c", script, "hkw", ...prefix, process.execPath, ...args], { cwd: LANE, env: baseEnv(env), stdio: "ignore", detached: true });
 };

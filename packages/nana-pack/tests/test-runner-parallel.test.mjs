@@ -522,8 +522,7 @@ const hangFixture1475 = (n) => [
 	'import * as fs from "node:fs";',
 	`fs.writeFileSync(process.env.PROBE_OUT + "/active-file-tmp${n}.txt", process.env.TMPDIR);`,
 	"// chosen: 15s exceeds the signal case's readiness window, and bounds both processes.",
-	'const grandchild = spawn(process.execPath, ["-e", "setTimeout(() => {}, 15000)"], { stdio: "ignore" });',
-	`fs.writeFileSync(process.env.PROBE_OUT + "/grandchild${n}.pid", String(grandchild.pid));`,
+	`spawn(process.execPath, ["-e", "require('node:fs').writeFileSync(process.env.PROBE_OUT + '/grandchild${n}.pid', String(process.pid));setTimeout(() => {}, 15000)"], { stdio: "ignore" });`,
 	"setTimeout(() => process.exit(0), 15000);",
 	"",
 ].join("\n");

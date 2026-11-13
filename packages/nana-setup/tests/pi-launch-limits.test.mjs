@@ -20,6 +20,7 @@ import * as boundedSpawn from "../lib/bounded-spawn.mjs";
 import { PI_BIN_NAME, PI_PACKAGE } from "../../nana-pack/bin/worker-config.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { withPathPrepended } from "../../nana-pack/tests/env-path.mjs";
+import { killOwned, processStarts } from "../../nana-pack/tests/process-tree-helper.mjs";
 
 const { RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SETTLE_MS, RELAY_SIGNAL_GRACE_MS } = boundedSpawn;
 const LIMIT_MS = 3_000;
@@ -238,7 +239,7 @@ async function observeParentKill({ group, npm = false, childDelay = 0 }) {
 	const started = await waitForStart(() => readPids(fixture.pids).length >= 3);
 	const beforeKill = readPids(fixture.pids);
 	const boundBelowHang = PARENT_KILL_BOUND_MS < HANG_MS;
-	if (started) process.kill(group ? -child.pid : child.pid, "SIGKILL");
+	if (started) killOwned(child, { group });
 	const killedAt = Date.now();
 	const dead = await waitFor(() => beforeKill.length >= 3 && beforeKill.every((pid) => !processAlive(pid)), PARENT_KILL_BOUND_MS);
 	const elapsed = Date.now() - killedAt;
@@ -252,8 +253,10 @@ async function runCleanupSignalPhase(signalRelay) {
 	const started = await waitFor(() => fs.existsSync(fixture.lock) && fs.existsSync(fixture.ready) && readPids(fixture.pids).length >= 3);
 	const records = readPidRecords(fixture.pids);
 	const relayPid = records[0]?.ppid;
-	if (started && signalRelay) process.kill(relayPid, "SIGINT");
-	if (started) process.kill(-child.pid, "SIGINT");
+	// Capture while this fixture's pi still identifies its live relay as its parent.
+	const relay = { pid: relayPid, start: started ? processStarts([relayPid]).get(relayPid) : null };
+	if (started && signalRelay) killOwned(relay, { signal: "SIGINT" });
+	if (started) killOwned(child, { group: true, signal: "SIGINT" });
 	const exited = await Promise.race([exit, sleep(SIGNAL_CASE_BOUND_MS).then(() => false)]);
 	const cleaned = await waitFor(() => !fs.existsSync(fixture.lock));
 	const pids = readPids(fixture.pids);
@@ -388,20 +391,18 @@ check("R-2890: a recorded pid still alive when the judge's wait ends makes the r
 		});
 		const pinged = await Promise.race([answered, sleep(BYSTANDER_ANSWER_LIMIT_MS).then(() => false)]);
 		return { ok: !result.ended && result.details.some((item) => item.pid === record.pid && item.last === "alive") && pinged, detail: JSON.stringify({ result, pinged }) };
-	} finally { bystander.kill("SIGKILL"); }
+	} finally { killOwned(bystander); }
 });
 
 // req: R-2893
-check("R-2893: the launch-limit test signals only through its allowed kill calls, imports no tree-kill helper and starts no kill command", () => {
+check("R-2893: the launch-limit test signals only through killOwned, probes with kill(pid, 0) and starts no kill command", () => {
 	const source = fs.readFileSync(new URL(import.meta.url), "utf8");
 	const treeKill = "kill" + "ProcessTree";
 	const workerKill = "kill" + "WorkerTree";
-	const commandKill = "task" + "kill";
+	const commandKill = ["task", "kill"].join("");
 	const calls = [...source.matchAll(/([A-Za-z]+)\.kill\s*\(([^)]*)\)|(?<!\.)kill\s*\(([^)]*)\)/g)]
 		.map((match) => ({ owner: match[1] ?? "injected", args: (match[2] ?? match[3]).replace(/\s+/g, " ").trim() }));
-	const allowed = (call) => call.owner === "injected" ? call.args === "pid, 0"
-		: call.owner === "process" ? /^group \? -child\.pid : child\.pid, |^-child\.pid, |^relayPid, /.test(call.args)
-			: ["child", "bystander"].includes(call.owner) && call.args === "\"SIGKILL\"";
+	const allowed = (call) => call.owner === "injected" && call.args === "pid, 0";
 	const spawnedCommands = [...source.matchAll(/spawn(?:Sync)?\s*\(\s*(["'])([^"']*)/g)].map((match) => match[2]);
 	const ok = calls.length > 0 && calls.every(allowed)
 		&& !source.includes(treeKill) && !source.includes(workerKill)
@@ -574,11 +575,13 @@ check("R-2303: on Windows, a kill of the pi launch relay alone ends the npm pi i
 	const records = readPidRecords(fixture.pids);
 	const relayPid = records[0]?.ppid;
 	const launchedPids = records.map(({ pid }) => pid);
-	if (started && relayPid) process.kill(relayPid, "SIGKILL");
+	// Capture while this fixture's pi still identifies its live relay as its parent.
+	const relay = { pid: relayPid, start: started ? processStarts([relayPid]).get(relayPid) : null };
+	if (started && relayPid) killOwned(relay);
 	const killedAt = Date.now();
 	const dead = await waitFor(() => launchedPids.length >= 2 && launchedPids.every((pid) => !processAlive(pid)), PARENT_KILL_BOUND_MS);
 	const elapsed = Date.now() - killedAt;
-	child.kill("SIGKILL");
+	killOwned(child);
 	const observed = { started: Boolean(started), relayPid, launchedPids, dead: Boolean(dead), elapsed, bound: PARENT_KILL_BOUND_MS, boundBelowHang: PARENT_KILL_BOUND_MS < HANG_MS };
 	return { ok: observed.started && observed.relayPid && observed.dead && observed.elapsed <= observed.bound && observed.boundBelowHang, detail: JSON.stringify(observed) };
 });

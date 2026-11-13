@@ -409,9 +409,8 @@ const rootE = mkRoot("E", {
 		'import * as fs from "node:fs";',
 		// detached + stdio:inherit: it leaves the group, survives the group kill, and holds the
 		// stdout the runner is reading
-		'const g = spawn(process.execPath, ["-e", "setTimeout(()=>{},60000)"], { stdio: "inherit", detached: true });',
+		'const g = spawn(process.execPath, ["-e", "require(\'node:fs\').writeFileSync(process.env.PROBE_OUT + \'/holder.pid\', String(process.pid));setTimeout(()=>{},60000)"], { stdio: "inherit", detached: true });',
 		"g.unref();",
-		'fs.writeFileSync(process.env.PROBE_OUT + "/holder.pid", String(g.pid));',
 		'console.log("PASS spawned a detached stdout holder, then exited");',
 		"",
 	].join("\n"),
@@ -428,8 +427,7 @@ const rootSignal = mkRoot("signal", {
 		'import * as fs from "node:fs";',
 		'fs.writeFileSync(process.env.PROBE_OUT + "/active-file-tmp.txt", process.env.TMPDIR);',
 		'// chosen: 15s exceeds the signal case\'s readiness window, and bounds both processes.',
-		'const grandchild = spawn(process.execPath, ["-e", "setTimeout(() => {}, 15000)"], { stdio: "ignore" });',
-		'fs.writeFileSync(process.env.PROBE_OUT + "/grandchild.pid", String(grandchild.pid));',
+		'spawn(process.execPath, ["-e", "require(\'node:fs\').writeFileSync(process.env.PROBE_OUT + \'/grandchild.pid\', String(process.pid));setTimeout(() => {}, 15000)"], { stdio: "ignore" });',
 		'// chosen: 15s exceeds the signal case\'s readiness window and bounds the child fixture.',
 		'setTimeout(() => process.exit(0), 15000);',
 		"",

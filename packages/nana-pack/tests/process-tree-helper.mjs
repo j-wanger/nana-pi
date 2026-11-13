@@ -56,7 +56,9 @@ export function startTime(token, { platform = process.platform } = {}) {
 	return platform === "win32" ? (Number(token) - 621355968000000000) / 10000 : Date.parse(token);
 }
 
-/** A pid file vouches only for a process born no later than its write time. */
+/** A self-written pid file vouches only for its writer, born before its own write.
+ * A parent's record of a child cannot vouch: its mtime can precede the child's OS start time.
+ */
 export function fileIdentity(file) {
 	try {
 		const text = fs.readFileSync(file, "utf8");
