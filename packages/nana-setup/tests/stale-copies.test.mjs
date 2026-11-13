@@ -104,7 +104,7 @@ function unavailableLines(result) {
 
 function labelsFrom(line) {
 	const body = line.slice(STALE_PREFIX.length).trimStart();
-	const labelText = body.split(" — tell the user;")[0];
+	const labelText = body.split(" — ")[0];
 	return labelText ? labelText.split(", ") : [];
 }
 
@@ -363,6 +363,20 @@ const currentSectionFacts = cases.map(({ platform, current }) => ({ platform, do
 const r1605 = currentSectionFacts.every(({ doctor, hasStale, rulings }) => doctor?.status === "ok" && !hasStale && typeof rulings === "string");
 // req: R-1605
 check("R-1605: a rulings copy doctor marks current sets no stale section", r1605, JSON.stringify(currentSectionFacts));
+
+const remedyLines = [
+	...brokenCases.flatMap((item) => staleLines(item.hook)),
+	...staleSectionFacts.map(({ stale }) => stale).filter((stale) => typeof stale === "string"),
+];
+const r4350 = remedyLines.every((line) => {
+	const spans = codeSpans(line);
+	if (line.includes("tell the user") || spans.at(-1) !== expectedCommand) return false;
+	if (spans.length === 1) return line.endsWith(` — run \`${expectedCommand}\``);
+	return line.slice(0, line.indexOf("`")).endsWith(" — ask the user to move ") &&
+		line.endsWith(`, then run \`${expectedCommand}\``);
+}) && remedyLines.some((line) => codeSpans(line).length > 1);
+// req: R-4350
+check("R-4350: the stale line tells its reader to run the install and asks the user only to move paths", r4350, JSON.stringify(remedyLines));
 
 async function repairCase(item) {
 	const line = staleLines(item.hook)[0] ?? "";

@@ -54,7 +54,7 @@ export function staleNotice(labels, movePaths = []) {
 	if (!labels.length) return "";
 	const command = `node "${path.join(pkgRoot, "bin", "nana-setup.mjs")}" install`;
 	const install = codeSpan(command) ?? "nana-setup install";
-	if (!movePaths.length) return `${STALE_PREFIX} ${labels.join(", ")} — tell the user; they fix it with ${install}`;
+	if (!movePaths.length) return `${STALE_PREFIX} ${labels.join(", ")} — run ${install}`;
 	const moves = movePaths.map((movePath) => codeSpan(movePath) ?? `skill ${path.basename(movePath)}`);
-	return `${STALE_PREFIX} ${labels.join(", ")} — tell the user; they move ${moves.join(", ")} out of the way, then fix it with ${install}`;
+	return `${STALE_PREFIX} ${labels.join(", ")} — ask the user to move ${moves.join(", ")} out of the way, then run ${install}`;
 }

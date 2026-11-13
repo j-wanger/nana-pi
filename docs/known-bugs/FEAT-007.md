@@ -88,7 +88,7 @@
 - Claude review launcher (claude-review-launcher, final review): R-2564 checks the standard input that reaches a `.cmd` shim, not the argv, so a change to Windows argument quoting would pass it.
 - Claude review launcher (claude-review-launcher, final review): the launcher neither accepts nor forwards `--revision`, so a round always records the tree's current HEAD; a seat cannot record a round for another commit through it.
 - Review cost (audit re-check, 2026-10-22): no review round records its cost.
-- Verdict reading (ci-timing-records, round 1): an Opus review opened with a bold "Verdict: LAND." line above its exact last-line `VERDICT: LAND`; the ledger read the round as unread (first-line conflict) and nana-land refuses that revision, so the round was lost and the lane took a new commit and a confirmation round.
+- Verdict reading (ci-timing-records, round 1; kb-carry review 1 SHOULD-1): a bold first verdict line that agrees with the final verdict line still reads as unread (first-line conflict). Since 2026-11-09, claude-review's re-ask recovers that round. pi-review has no re-ask, so its review must run again.
 - Claude review launcher (claude-code-builder-parity, plan): claude-review's reviewer gets none of the Claude Code builder's switches (default permission mode, project and local settings with the carried settings file, no MCP servers, auto-memory off).
 - Review runner (lane-temp-cleanup, attack): pi-review crashes on an uncaught write error when its standard-error pipe closes mid-review, as pi-worker did before lane-temp-cleanup. Fixing it is a review-tool lane.
 - Pid liveness (hard-kill-watcher, plan): review-round keeps its own private pid-liveness copy; the shared `pidAlive` now lives in process-tree.mjs.
