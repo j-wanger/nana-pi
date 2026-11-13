@@ -7,9 +7,8 @@
 ## Where things stand
 
 - **Current priority: start text into tools (the owner, 2026-11-12).** Keep each tool only where a sealed experiment shows it helps the objective. The order and measures are in `OBJECTIVE.md`.
-- **UI build briefs (2026-11-05).** A lane that builds a page a person looks at writes its brief from the UI brief template. The template rests on the laptop seat's experiments; the owner chose a rule only.
 - **Builder context (2026-11-06).** Builders get four lessons lines; fix briefs marked `Card: fix` may skip Precedent. Plans state each caller's observable contract.
-- **Load log (2026-11-06).** Each pi builder and pi reviewer launch now logs the context files pi loads, the pi version and the roster slot. Claude Code launches still log no context files.
+- **Load log (2026-11-06).** Each builder and reviewer launch logs the context files its child loads. For Claude Code children, nana counts those files itself.
 - **Seat knowledge lookup retired (2026-11-06).** Claude Code seats no longer get per-prompt knowledge pointers; `nana-knowledge query` stays. Re-run `nana-setup install` to remove the hook.
 - **Leak guard (2026-11-07; hook 2026-11-10).** Setup installs a pre-push hook that scans each pushed range, including commit authors and messages. Builds warn on leaked paths.
 - **Records out of the repository (2026-11-10).** Lane records go to a private folder outside the repository, never into it. Older records stay in git history; `docs/reviews/README.md` names the commits.
