@@ -469,7 +469,6 @@ function checkInstructionContracts() {
 		["Objective", "Shared memory", "nana-soul / nana-standards", "Writing rule", "Knowledge search", "Gate", "Verifier pipe", "Post-edit", "Compaction summary", "Notify"].every((v) => shared.includes(v)));
 
 	const startup = "At startup, a seat reads `HANDOFF.md`; every session looks up affected `REQUIREMENTS.md` rows by ID (grep or the requirements skill). Landscape predates pi 1.x; installed pi docs win.";
-	const rootStartup = "Startup: a seat reads `HANDOFF.md`; every session looks up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Landscape predates pi 1.x; installed pi docs win.";
 	const startupFiles = [
 		shared,
 		fs.readFileSync(path.join(REPO, "AGENTS.md"), "utf-8"),
@@ -478,7 +477,7 @@ function checkInstructionContracts() {
 	];
 	const contradictoryStartup = `${shared}\nAt startup, read REQUIREMENTS.md.`;
 	// req: R-681
-	check("startup guidance scopes every requirements read to row lookup", shared.includes(startup) && startupFiles[1].includes(rootStartup) && startupFiles.every(startupRequirementsScopeValid) && !startupRequirementsScopeValid(contradictoryStartup));
+	check("startup guidance scopes every requirements read to row lookup", shared.includes(startup) && startupFiles.every(startupRequirementsScopeValid) && !startupRequirementsScopeValid(contradictoryStartup));
 	// req: R-682
 	check("issue instructions keep identity scanning and seat-only posting",
 		[

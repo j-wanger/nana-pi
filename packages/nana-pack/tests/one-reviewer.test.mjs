@@ -81,13 +81,14 @@ await test('M2: roster notice names only the surviving roles and lanes', () => {
 });
 
 // req: R-3763
-await test('M7: all role guidance states one reviewer plus CI and the shared marker stays identical', () => {
+await test('M7: the seat guide states one reviewer plus CI and the shared marker stays identical', () => {
   const shared = fs.readFileSync(path.join(root, 'templates/_shared/working-under-nana-pi.md'), 'utf8').trimEnd();
   const agents = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
   const marker = agents.split('<!-- nana:working-under-nana-pi begin -->\n')[1].split('\n<!-- nana:working-under-nana-pi end -->')[0];
   assert.equal(marker.trimEnd(), shared);
-  for (const text of [shared, marker, fs.readFileSync(path.join(root, 'packages/nana-setup/claude/rules/nana-seat.md'), 'utf8')]) {
-    assert.match(text, /[Ee]very lane gets one reviewer plus CI/);
+  const seatGuide = fs.readFileSync(path.join(root, 'packages/nana-setup/claude/rules/nana-seat.md'), 'utf8');
+  assert.match(seatGuide, /[Ee]very lane gets one reviewer plus CI/);
+  for (const text of [shared, marker, seatGuide]) {
     assert.doesNotMatch(text, /land reviewer|seat land review|\bchecker\b|wrong-code pairs|mutation runner|lane class/i);
   }
 });

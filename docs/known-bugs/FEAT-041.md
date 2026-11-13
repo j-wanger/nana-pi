@@ -25,7 +25,7 @@
 - Context shaping (builder-context, review round 1): the frozen lessons line "Run the README's checks … before you commit" can read as permission to run the full suite unlocked on a shared machine, against the preamble's CI and lock rules.
 - Context shaping (builder-context, review round 1): the `Card: fix` marker is read anywhere in the brief, including inside a fenced code block, like the Feature line.
 - Context shaping (builder-context, review round 1): "drop the leading underscore" is Python wording; for JS the rule doesn't say that a private function is one that isn't exported.
-- Context shaping (load-log, plan assumption A1): Claude Code children (claude-review, the Claude Code builder) log no context-file parts; their CLAUDE.md discovery is Claude Code's own walk.
+- Context shaping (load-log, plan assumption A1): Claude Code children (claude-review, the Claude Code builder) log the parts nana's own instruction walk finds, which can differ from what Claude Code's discovery loads.
 - Context shaping (load-log, review round 2): if the launcher is out of file handles (EMFILE or ENFILE), spawning the measuring child leaves `child.stdout` null and the launcher crashes on an unhandled error; the real child launch would fail in that state anyway.
 - Context shaping (load-log, review round 2): a SIGKILLed launcher can leave a stuck measuring child, which is detached and never cleaned up; with a normal pi it exits on its own in about 0.4 s.
 - Context shaping (leak-guard, plan): the identity scan's tokenizer gaps (FEAT-032: %2F, \n, word plus year, UTF-16, gzip) apply to leak-scan too.

@@ -1045,7 +1045,7 @@ Reads: A-011 · packages/nana-pack/bin/nana-roster.mjs, packages/nana-pack/bin/c
 | R-3760 | pi-worker shall refuse --slot checker naming scout, planner or adversary while retaining adversary launches. | untested | Coverage removed; behavior stays. |
 | R-3761 | The toolkit shall remove the lane-class script and config and mutation runner and config, omit lane class from build output, and pass map, requirements-tree and README checks. | implemented | `packages/nana-pack/tests/build-records.test.mjs::R-2602: the build-record stderr line names this build's outcome, minutes and cost and its lane's builds so far; no lane class prints`; check commands in docs/reviews/one-reviewer-2026-11-07/evidence.md. |
 | R-3762 | The outside reader shall launch a pi scout's exact provider, model and thinking or the builder's when scout is null or Claude Code, never a legacy land entry. | implemented | `packages/nana-pack/tests/outside-reader.test.mjs::M6: outside reader chooses exact scout or builder and never legacy land` |
-| R-3763 | The seat guide, shared working pattern and matching AGENTS marker shall state every lane gets one reviewer plus CI without the removed extra-reviewer machinery. | implemented | `packages/nana-pack/tests/one-reviewer.test.mjs::M7: all role guidance states one reviewer plus CI and the shared marker stays identical` |
+| R-3763 | The seat guide shall state every lane gets one reviewer plus CI without the removed extra-reviewer machinery, which the shared working pattern and matching AGENTS marker also omit. | implemented | `packages/nana-pack/tests/one-reviewer.test.mjs::M7: the seat guide states one reviewer plus CI and the shared marker stays identical` |
 | R-3764 | The rulings shall record one reviewer plus CI on 2026-11-07, replacing the independent-check ruling and removing checker from the role-slot ruling. | untested | Coverage removed; behavior stays. |
 
 ### SUB-006 · Identify and freeze the review target
@@ -2098,7 +2098,7 @@ Purpose: Provide the Python and TypeScript scaffold/adopt outputs with their sha
 | R-1100 | The dated decision record shall retain the threat-model ruling, naming the planner prompt as its home. | untested | Coverage removed; behavior stays. |
 | R-2584 | The planner prompt shall require each Precedent entry to name a tracked path or none with a reason. | untested | Coverage removed; behavior stays. |
 | R-1101 | The rulings shall say that plans get no review round. | untested | Coverage removed; behavior stays. |
-| R-1300 | The shared working pattern shall give every lane one reviewer plus CI. | untested | Coverage removed; behavior stays. |
+| R-1300 | — | retired | The seat guide alone states one reviewer plus CI (R-3763). (was afadaace) |
 | R-1102 | The dated decision record shall retain the no-edit-after-LAND ruling, naming nana-land's reviewed-tree check as its home. | untested | Coverage removed; behavior stays. |
 | R-1103 | The dated decision record shall retain the urgent-fixes ruling with its decision-time home. | untested | Coverage removed; behavior stays. |
 | R-1104 | The review standard shall require LAND when no MUST stands, forbid LAND-WITH-FIXES, and limit confirmation rounds to the change since the named last round and closure of named MUSTs. | implemented | `packages/nana-pack/tests/review-standard.test.mjs::review standard asks for a last-line LAND or SEND-BACK verdict`, `packages/nana-pack/tests/review-standard.test.mjs::R-1108: the review standard makes a missing or empty must-meet test, a broken main use on a named platform and the four listed harms a MUST, and every other finding a known bug` |
@@ -2981,7 +2981,7 @@ cover).
 | R-3001 | WHEN `npm run map:search -- "<need>"` runs, the search shall rank the whole header, path and ledger artifact lines, print the top five non-test modules with path, purpose and ranking reasons, then their callees including tests. | implemented | `packages/nana-pack/tests/code-search.test.mjs::R-3001: search prints five non-tests with reasons then callees using headers paths and artifacts` |
 | R-3002 | — | retired | Removed the historical search-quality measurement (was abc270ab). |
 | R-3003 | For identical need, map and ledger text, the search shall print identical bytes without network or model access. | untested | Removed the unearned determinism check; behavior stays. |
-| R-3004 | The planner prompt shall instruct planners to run the search for each part and name under Precedent what they took from its results, adding to their own list. | untested | Removed the planner prose pin; guidance stays. |
+| R-3004 | WHERE the project defines the code-map search, the planner prompt shall instruct planners to run it for each part and name under Precedent what they took from its results, adding to their own list. | untested | Removed the planner prose pin; guidance stays. |
 | R-3005 | The search shortlist size shall be sealed at 5 modules. | untested | Coverage removed; behavior stays. diet1: removed the unearned seal. |
 | R-3006 | The search output's callee depth shall be sealed at 1 hop. | untested | Coverage removed; behavior stays. diet1: removed the unearned seal. |
 | R-3007 | — | retired | Removed QUALITY_FLOOR with the historical search-quality measurement (was abc270ab). |
@@ -3119,7 +3119,7 @@ Reads: A-009 · packages/nana-pack/lib/suite-records.mjs
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
 | R-4028 | WHEN a build record names an absolute brief path outside the repository, the builder anatomy reader shall use that file to split the recorded addendum, retaining git-history fallback for old records. | implemented | `apps/bench/test/anatomy.test.mjs::R-3270: pushed parts and recorded attempts preserve committed context` |
-| R-4025 | The seat guide shall carry a brief checklist naming ID ranges, tracked precedent, removal authority, whole-part commits, exported CI logs, lane records outside the repository and hot-file serialization. | untested | Manual inspection of the shipped seat guide. |
+| R-4025 | The seat guide shall carry a brief checklist naming ID ranges, removal authority, whole-part commits, exported CI logs, lane records outside the repository and hot-file serialization. | untested | Manual inspection of the shipped seat guide. |
 | R-4026 | The seat guide shall state the 2026-11-10 default of leaving automatic profile saving off until a profile reader exists, retaining the profile store. | untested | Manual inspection of the shipped seat guide. |
 | R-4027 | — | retired | Replaced by R-4029 and R-4030: children return records for the seat to file; project names the main checkout. (was 371fee63) |
 | R-4029 | Lane instructions shall have builders and planner children return records in their report or under $TMPDIR for the seat to file outside the repository, without widening the lane write boundary. | untested | Manual inspection of the seat guide, planner and builder preamble. |

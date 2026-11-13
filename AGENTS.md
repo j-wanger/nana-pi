@@ -4,8 +4,6 @@ The toolkit repo: adoption of pi, the nana pack, knowledge search, and project t
 
 Support: macOS tested; lanes wait for selected Windows tests; the full Windows suite runs on main, and red main blocks lands; Linux and Windows run in hosted CI, where the Windows suite leg blocks release and the Linux suite leg does not; Linux has no recorded machine install; on Windows the Claude Code hooks run from the checkout and need Claude Code 2.1.139 or later, the pack's PATH commands are shims that need the bin folder on PATH, and the review and builder launchers run through node from the checkout with an npm-installed pi.
 
-Startup: a seat reads `HANDOFF.md`; every session looks up only affected `REQUIREMENTS.md` rows by ID (grep or requirements skill). Landscape predates pi 1.x; installed pi docs win.
-
 ## Objective contract
 
 Invariant: launcher-role children get no objective block; otherwise only user-scope `objective.enabled: false` turns the objective off; project config cannot. Output is bounded, marker-derived intent, never raw file instructions. The frontier block follows the same bounded output rule and has no switch. See `packages/nana-pack/README.md` and affected `REQUIREMENTS.md` rows.
@@ -63,21 +61,21 @@ The bullets below describe pi sessions; other runtimes receive only the surfaces
 |---|---|---|
 | Claude Code seat | SessionStart `nana-objective.mjs` (objective/frontier), `nana-adoption.mjs`, `nana-shared-memory.mjs`; nana-soul / nana-standards; shared nana-writing rule and `nana-rulings.md` | No nana Gate or Verifier pipe; Claude-owned Compaction summary, no nana HANDOFF producer; `nana-roster-notice.mjs` notice |
 | pi TUI session | `nana-objective`, `nana-frontier-summary`; `nana-writing`, `nana-rulings`; no soul/standards or shared auto-memory | `nana-gate` for bash/PowerShell; `nana-lifecycle` journal; `nana-adoption` journals unadopted roots; pi-owned compaction; `nana-roster-notice` widget |
-| pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; no objective/frontier for launcher `NANA_ROLE` | Same gate/journal; roster notice has no UI |
+| pi reviewer/worker child (`NANA_HANDOFF=off`) | Same pi extensions; no objective, frontier, writing or rulings for launcher `NANA_ROLE` | Same gate/journal; roster notice has no UI |
 | Codex | Unsupported; no nana runtime contract | Not specified |
 
-Objective: nearest project unless user-disabled; none for launcher-role children. Shared memory: Claude-only; pi has no user-level `AGENTS.md`. Writing rule and rulings follow the runtime above. Knowledge search: explicit `nana-knowledge query` only, no automatic pull. Post-edit: no nana per-edit checks. Notify: no desktop notifications. Requirements-first comes through project `AGENTS.md` and the requirements skill.
+Objective: nearest project unless user-disabled; none for launcher-role children. Shared memory: Claude-only. Writing rule and rulings follow the runtime above. Knowledge search: explicit `nana-knowledge query` only, no automatic pull. Post-edit: no nana per-edit checks. Notify: no desktop notifications. Requirements-first comes through project `AGENTS.md` and the requirements skill.
 
 ### Session guidance
 
 - **Compaction summary:** compaction summaries are pi-owned background state, not the project frontier. Persist carry before a final report or session boundary. Builders and reviewers put open questions in their report; only the seat posts issues.
-- **Gate:** pi's advisory gate checks shell commands and protected edits/writes. nana-rm-guard.mjs guards Claude agent deletes, not the seat. Neither is a sandbox. See `$HOME/nana-pi/packages/nana-pack/README.md` and `$HOME/nana-pi/packages/nana-setup/README.md` for limits.
+- **Gate:** pi's advisory gate checks shell commands and protected edits/writes. nana-rm-guard.mjs guards Bash deletes by a Claude Code seat's subagents, not the seat or Claude Code lane builders and reviewers. Neither is a sandbox. See `$HOME/nana-pi/packages/nana-pack/README.md` and `$HOME/nana-pi/packages/nana-setup/README.md` for limits.
 - **Post-edit:** nana runs no per-edit checks in either runtime; run project checks explicitly.
 
 ### Working pattern
 
 - Builder pushes: builders do not push. They report the branch, the full tip and the seat checks run on it. The seat pushes after verifying, then waits for CI where the project uses it.
-- Every lane gets one reviewer plus CI. Seat guidance lives in the seat guide and the soul and rulings rules.
+- Seat guidance lives in the seat guide and the soul and rulings rules.
 - Seat guide: while a builder or reviewer runs, the seat does not read or judge its partial work, and it acts when the run completes. The full guide is `$HOME/nana-pi/packages/nana-setup/claude/rules/nana-seat.md`; Claude Code loads it as a rule, and pi installs and injects the same guide for seat sessions.
 - Builder rules: `$HOME/nana-pi/packages/nana-pack/prompts/builder-preamble.md`; reviewer rules: `$HOME/nana-pi/packages/nana-pack/prompts/review-standard.md`. Follow the assigned brief.
 - Project-specific overrides belong in that project's own section AFTER this marker region; `nana-setup project` replaces everything between the markers.
@@ -87,39 +85,6 @@ Objective: nearest project unless user-disabled; none for launcher-role children
 
 Validation first: name how to check the result before code, run it small and early, and add a test only when it pins a failure that happened, the main use of a kept feature, or a safety line (privacy, credentials, rm, identity, Windows paths). Change the affected requirement row first. In nana-pi this overrides the standards file's preventive tests, including its pin test per sealed tunable. Keep evidence and status honest; consult the requirements skill and affected rows for the full contract.
 
-### Navigation
-
-pi loads `AGENTS.md` from the session's cwd and every ANCESTOR up the tree at
-startup, closest-wins — it does NOT descend into subfolders. Keep each rule where
-it applies: repo-wide rules at the root, folder rules in that folder's `AGENTS.md`.
-
-A session started higher up does not auto-load a subfolder's `AGENTS.md`, so:
-
-- **Baseline (works everywhere):** before working in a folder, READ that folder's
-  `AGENTS.md` — each is written to stand alone as a useful on-demand read.
-- **Cleaner when available:** run or delegate folder-scoped work with the session
-  cwd set to that folder (e.g. a cwd-capable subagent rooted there), so pi
-  auto-loads that folder's `AGENTS.md` as its own cwd + ancestors. (Subagents are
-  an extension pattern, not core pi.)
-
-An `AGENTS.override.md` replaces a layer instead of adding to it.
-
-### Config
-
-`.pi/nana-pack.json` (project scope) is honored **only in trusted projects** — it
-can set gate patterns (`extraPatterns` / `allowPatterns` / `protectedPaths`). Legacy `postEdit`
-and `handoff` sections are accepted and ignored. `<agent dir>/nana-pack.json` is the user-scope equivalent, always
-read — `<agent dir>` is pi's ACTIVE agent dir: `PI_CODING_AGENT_DIR` when set, else
-`~/.pi/agent`. When the variable resolves to a directory OTHER than `~/.pi/agent`,
-`~/.pi/agent/nana-pack.json` is NOT read (no fallback, no migration); the pack notes that once
-per session only when BOTH the active `<agent dir>/nana-pack.json` is absent AND a stranded
-`~/.pi/agent/nana-pack.json` exists — otherwise it says nothing. "Trusted" means a decided trust: `/trust` in pi for the folder, then restart —
-`pi -a` (one run) is not enough for a nana-only `.pi/`. A malformed
-(or over-cap) `gate` block, user or project, falls back to the last valid policy for that scope
-loaded in this process; with none (a fresh process), it stops every gated tool until the owner
-repairs the named file with any editor **outside pi**, or deletes it (missing = defaults, which
-discards that scope's custom denies).
-
 ### Shared-machine test runs
 
 CI covers this repository's suite. Builders run touched tests, commit and report their branch, full tip and seat checks run on it. Builders do not push or read CI. The seat pushes after verifying, then waits for that tip's CI; main's push run, read by the seat's main CI check, is the post-land suite check. The local full suite runs only when CI cannot stand in. Run that fallback with `npm run test:locked` when worktrees share a machine. The command holds one machine-wide lock for full runs; path-filtered runs do not wait for it.
@@ -128,12 +93,6 @@ CI covers this repository's suite. Builders run touched tests, commit and report
 
 Local install check, nana-pi only: a lane that touches `packages/nana-setup/` or a hook runs `node packages/nana-setup/bin/install-check.mjs` locally on macOS before `nana-land`. The land also reads CI: the lane runs macOS install checks, and main runs macOS and Windows install checks; the local run stays by the owner's ruling.
 
-### HANDOFF writing check
-
-The suite fails on a sentence over 25 words in `HANDOFF.md`'s live sections. It also fails on a banned word there.
-The live sections are Where things stand, Next, and Open for the owner. Run `nana-writing HANDOFF.md` after editing it.
-The suite also fails when HANDOFF's Next or Open for the owner section holds a list item, because those items live as GitHub issues.
-
 ### The tree in briefs, reviews and lands
 
-A lane brief names its feature as `Feature: FEAT-nnn · <label>`. A lane brief carries a Precedent section and a `Validation:` line unless it is marked `Card: fix`. Both review launchers select known bugs from the brief's feature line.
+A lane brief names its feature as `Feature: FEAT-nnn · <label>`. Both review launchers select known bugs from the brief's feature line.

@@ -19,16 +19,15 @@ This rule is for the seat, the session that launches builders and reviewers; a s
 - Re-measure a plan's numbers on current main. Before a fix card or build, reproduce on the current base and make acceptance fail there; if it no longer fails, report the measure and build nothing.
 - After the second fix for one failure, plan a class fix rather than another case fix.
 - When a review blocks one build, sweep sibling builds for that defect class before reporting counts.
-- Each status reports the current priority's measures: median lane hours from first build to land, and net lines removed from main since 2026-11-07; say when unmeasured.
+- Each status reports the measures the current priority names; say when unmeasured.
 - A brief names the frontier facts and contract surfaces (such as HANDOFF promises) its lane affects.
 - A brief names the following checks.
   Name the new requirement ID range.
-  Name only Precedent files tracked at the lane's current tip.
   Name the tests and known-bug lines a removal lane may delete.
   Require whole-part commits for large lanes.
   Export CI logs when the builder must read a failure.
   The seat files lane records (briefs, plans, review texts, CI excerpts and evidence) in `~/nana-records/<project>/<lane>/` (Windows `%USERPROFILE%\nana-records\<project>\<lane>\`), never in the repository. Builders and planner children return records in their report or under `$TMPDIR`; do not widen their lane write boundary. `<project>` is the main checkout's folder name, the folder that holds the shared git directory, not the lane worktree's name.
-  Serialize lanes sharing `templates/_shared/working-under-nana-pi.md`, `AGENTS.md`, `packages/nana-setup/claude/rules/nana-seat.md`, `code-map.config.json`, `packages/nana-pack/tests/code-map-launch.test.mjs` or `REQUIREMENTS.md`.
+  Serialize lanes sharing `templates/_shared/working-under-nana-pi.md`, `AGENTS.md`, `packages/nana-setup/claude/rules/nana-seat.md`, `code-map.config.json` or `REQUIREMENTS.md`.
 - Before you end your turn, name and start what waits on nothing else: another lane's build, separate research agents. Each lane's own steps stay in order.
 
   In pi, the seat asks the user to start another lane's build from another pi session; its own builds run in the foreground.
