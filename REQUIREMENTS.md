@@ -316,6 +316,7 @@ Purpose: Inspect the HANDOFF frontier for oversized or stale entries and preserv
 | R-3650 | The builder preamble shall forbid a builder to read, print or use a stored credential. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::R-3650: the builder preamble forbids reading, printing or using a stored credential exactly once` |
 | R-2510 | The builder preamble shall forbid HANDOFF edits and every known-bugs edit except removing the lines its brief names. | implemented | `packages/nana-pack/tests/worker-lane.test.mjs::R-2510: only brief-named known-bug removals are allowed and HANDOFF stays protected` |
 | R-682 | nana-soul shall restrict issue posting to the seat from the owner's gh account after title/body identity-scan --stdin --root exits 0 and hand checks of names, handles, hostnames, work references and project names, with a builder-preamble ban on creating, editing, commenting on or closing issues. | implemented | `packages/nana-pack/tests/templates-render.test.mjs::issue instructions keep identity scanning and seat-only posting` |
+| R-4405 | WHERE the HANDOFF points to its issues, the soul's carry line shall have the seat post each unresolved next item as one issue labelled `next` and put each open question in its report and records, never on GitHub. | untested | Manual line inspection; no new test requested. |
 
 
 ## FEAT-041 · Shape each agent's context by role
