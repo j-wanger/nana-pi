@@ -24,3 +24,4 @@
 - Setup (making-session-end, independent check): win32 uninstall of an installed memory-end hook matches only the current checkout's entry, so a moved checkout leaves the old SessionEnd entry failing at every exit.
 - Setup (making-session-end, independent check): the settings doc comment still says "timeout: 5"; the code uses each row's own timeout.
 - Carry (memory-end-ebusy): `tests/profile-fixture.mjs` assumes its roughly one-second folder-removal retry window covers Windows holds on remote.git; the hold duration remains unmeasured.
+- Profile store (soul-asks, plan): the open-thread refusal (`profile-config.mjs`) still says an open thread belongs in GitHub issues, and the pack README repeats it; since soul-asks, an open question goes in the seat's report and records.

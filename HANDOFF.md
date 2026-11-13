@@ -20,7 +20,7 @@ The live next items are the open issues labelled `next` at https://github.com/j-
 
 ## Open for the owner
 
-The owner's open questions are the open issues labelled `ask` at https://github.com/j-wanger/nana-pi/issues. Session start lists them. The issues and the replies on them are public.
+Older owner questions are the open issues labelled `ask` at https://github.com/j-wanger/nana-pi/issues. The seat closes each one once the owner answers it. The seat asks new questions in its reports, never on GitHub. Session start counts the open ones. The issues and the replies on them are public.
 
 ## Landed
 
