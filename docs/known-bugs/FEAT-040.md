@@ -2,7 +2,8 @@
 
 *One line per known bug in this feature. A review finding that does not block a land goes here as one line.*
 
-- The profile-store save case's daily-cap step fails when the file runs across UTC midnight, because the save reads the real clock (`packages/nana-pack/bin/nana-profile.mjs` about line 109); `packages/nana-pack/README.md` about lines 102-105 still describes automatic profile saving, which the seat guide paused.
+- `packages/nana-pack/README.md` about lines 102-105 still describes automatic profile saving, which the seat guide paused.
+- Owner profile store (profile-midnight plan): one save in the profile-store save case printed `profile refused: git failed` on Windows main CI on 2026-11-09, cause unknown; the case now makes two saves instead of 40, and the refusal prints git's detail line when git gives one.
 - Owner profile (owner-profile, plan residual): the pushback probe moved to a later checking lane; until it lands, nothing measures whether the profile makes the seat agree more.
 - Owner profile (owner-profile, plan residual): a quote the seat wrongly attributes to the owner is saved like a real one; only the trust ladder limits it.
 - Owner profile (owner-profile, final review): privacy is checked only at init; a repo made public later is not re-checked.
