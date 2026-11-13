@@ -31,6 +31,7 @@ function processStarts(pids, { run = spawnSync, strict = false } = {}) {
     ? run('powershell', ['-NoProfile', '-Command', `Get-Process -Id ${pids.join(',')} -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Id) $($_.StartTime.ToUniversalTime().Ticks)" }`], { encoding: 'utf8', timeout: 10000, windowsHide: true })
     : run('ps', ['-o', 'pid=', '-o', 'lstart=', '-p', pids.join(',')], { encoding: 'utf8', timeout: 10000, env: { ...process.env, LC_ALL: 'C' } });
   if (strict && (result.error || result.signal)) throw new Error(`process identity query failed: ${result.error?.code ?? result.signal}`);
+  if (strict && typeof result.status === 'number' && result.status !== 0 && result.status !== 1) throw new Error(`process identity query failed: status ${result.status}`);
   const starts = new Map();
   for (const line of String(result.stdout ?? '').split(/\r?\n/)) {
     const match = /^\s*(\d+)\s+(.+?)\s*$/.exec(line);
@@ -361,6 +362,8 @@ await check('fixture cleanup keeps an action error with its cleanup error attach
     assert.equal(starts.get(42), 'native-start-token');
   }
   assert.throws(() => processStarts([42], { strict: true, run: () => ({ error: { code: 'ETIMEDOUT' } }) }), /process identity query failed: ETIMEDOUT/);
+  assert.throws(() => processStarts([42], { strict: true, run: () => ({ status: 3221225794, stdout: '' }) }), /process identity query failed: status 3221225794/);
+  assert.deepEqual(processStarts([42], { strict: true, run: () => ({ status: 1, stdout: '' }) }), new Map());
   const actionError = new Error('check tree is alive'), cleanupError = new Error('cleanup is busy');
   const remove = (root, options) => { fs.rmSync(root, options); throw cleanupError; };
   await assert.rejects(fixture(() => { throw actionError; }, null, { remove }), error => error === actionError && error.cleanupError === cleanupError);
@@ -452,8 +455,13 @@ await check('R-4022: a stop during tip or base checks kills the check tree and r
         try { holders = windowsProcesses(); } catch { /* the identity query already decided survival */ }
       }
       for (const member of reused) {
-        const name = holders.find(row => row.pid === member.pid)?.name ?? 'name unread';
-        console.log(`R-4022 note: ${member.role} pid ${member.pid} now belongs to another process (${name}, start ${remaining.starts.get(member.pid) ?? 'unreadable'})`);
+        const holder = holders.find(row => row.pid === member.pid);
+        const start = remaining.starts.get(member.pid);
+        if (process.platform === 'win32' ? !holder : !start) {
+          console.log(`R-4022 note: ${member.role} pid ${member.pid} exited during the identity query`);
+        } else {
+          console.log(`R-4022 note: ${member.role} pid ${member.pid} now belongs to another process (${holder?.name ?? 'name unread'}, start ${start ?? 'unreadable'})`);
+        }
       }
       for (const member of members) {
         const start = remaining.pids.includes(member.pid) ? identities.get(member.pid) : undefined;
