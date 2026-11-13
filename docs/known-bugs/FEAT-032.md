@@ -25,3 +25,8 @@
 - Records scrub (scrub-records, final review): the scrub script's one-file mode can no longer clean a pasted log. With the record entries gone, it recovers the words only from the target file and needs all four there; a log holding only a home path exits 1. A seat cleans such a file by hand; the scan still blocks the land.
 - Records scrub (scrub-records, final review): the proof at the tip reports 4,441 failures, all in the October session archive, because the notes put a new entry at its top and shifted every line below. Run the proof at 272514cc, where it is clean.
 - Identity scan (scrub-records, final review): any other hand-added entry kind needs a test change, since R-2518 accepts only the three sealed manifest kinds.
+- Skill discovery (req-skill-split, review 1 SHOULD-1): the requirements description drops "no hardcoding", "which rows" and "readme-check", while bare "conflicts" and "audits" can match unrelated tasks.
+- Row placement (req-skill-split, review 1 SHOULD-2): rules to place rows under their feature, name shares and search every listing now live only in references/code-map.md; the core stub does not direct ordinary row edits there.
+- Skill references (req-skill-split, review 1 NOTE-1): A-036 registers only SKILL.md, so reference-file edits do not change its age; docs/decisions.md still points to SKILL.md for rulings moved to code-map.md.
+- Audit wording (req-skill-split, review 1 NOTE-2): "the five above" in references/audit.md points at statuses left in SKILL.md, not in that file.
+- Module entry guidance (req-skill-split, review 1 NOTE-3): the core stub says "named exports" without the pi-extension default-export exception, which lives only in code-map.md and the standards rule.

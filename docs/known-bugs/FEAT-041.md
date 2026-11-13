@@ -43,3 +43,7 @@
 - Context shaping (kb-digest, review): a changed-file name list over 1 MiB (renames count twice) drops all changed-file terms.
 - Context shaping (kb-digest, review): the git calls have no timeout.
 - Carry (ci-flakes): `context-anatomy.test.mjs` no longer bounds post-deadline launcher delay in R-3732 beyond its twenty-second spawn timeout.
+- Start-file normalization (start-budget-2, review 1 NOTE-1): CRLF AGENTS.md still fails mirror checks and a BOM seat guide fails M2 in templates-working.test.mjs, although R-4250 normalizes both.
+- Budget evidence (start-budget-2, review 1 NOTE-2): R-4250 calls UTF-16 units "characters", and no fixture pins its downward budget branch; deleting that branch leaves today's files green.
+- Combined trims (start-budget-2, review 1 NOTE-4): two lanes trimming an unserialized start file can together cross a budget boundary; the second lane then needs a repair round even if each passed alone.
+- Pre-push scan base (shared-helpers, seat record 2026-11-12T23:10Z): a stale same-name remote branch tip makes the leak scan walk already-public main history; the shared-helpers push scanned 1,633 main commits and took about eight minutes instead of two seconds for its four-commit range.

@@ -24,3 +24,6 @@
 - Writing checker (writing-adoption, final review): no wrong-code pair turns the checker back to a plain file, mode 100644. The install test asserts the mode, and main failed it, so only the pairs record has the gap.
 - Writing extension (shared-helpers, plan adversary): no check pins the read limit buildBlock passes to lib/bounded-read.mjs. With no limit, all 20 writing-injection checks still pass, because they bound only the decode.
 - Writing check (park-honestly, plan): the summary line has a park line. The writing rule alone enforces the owner's 2026-10-21 ruling that every report runs the check. No run checks a report before the writer sends it.
+- Fence checking (shared-helpers, review 1 NOTE-1): a closer followed by text or shorter than its opener leaves later prose unchecked by the writing checker and Stop hook, as CommonMark requires.
+- Fence indentation (shared-helpers, review 1 NOTE-2): tab-indented markers no longer open fences, so code between them is checked as prose; frontier-check and the HANDOFF slicer still accept them.
+- Fence documentation (shared-helpers, review 1 NOTE-4): the pack README's "nothing after it" omits permitted trailing spaces or tabs and up to three leading spaces.
