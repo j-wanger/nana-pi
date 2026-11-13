@@ -12,7 +12,6 @@
 - Runtime map (runtime-map-live, final review r3): the kill step signals single PIDs and walks the tree from the child 500 ms after the first signal, even if the child has exited. A PID reused in that window would get SIGKILL; main's group kill has the same kind of window.
 - Runtime map (runtime-map-live, final review r3): a descendant that starts a new process group after the first walk, then loses its parent before the kill step, is never reached. The row promises only what the first signal reached and the root's group.
 
-- lane-checks' batched start-time read records a pid's start time the first time the test sees it, which can be after the process exited; on Windows a reused pid could then be matched and its unrelated tree killed (win-class review 3, SHOULD; inferred, no observed case).
 - lane-checks' refresh skips pids it already tracks, so a reused pid inside one fixture keeps the old start time; one slow batched query leaves every member of that batch without a start time (review 3, NOTEs).
 - R-640's canonical POSIX `/tmp` root is unpinned: the alias checks test only the first temp root (review 2, NOTE 4).
 - Outside CI on a machine without 8.3 names, `win32-launch` and `build-records` print SKIP and then report PASS under the combined title (review 2, NOTE 5).
@@ -176,4 +175,4 @@
 - Shard fixture coupling (lane-push-alone, review 1 NOTE-5): win-shards M9 uses the first non-knowledge RUN_ALONE key, so prepending lane-push-ci changed its fixture name from credential-strip without changing what it checks.
 - Stem selection (stem-path, review 1 NOTE-2): folder names written as separate path.join arguments still over-select tests in scripts/test-packs.mjs; this costs time only.
 - Short-path diagnostics (win-short-path, review 1 SHOULD-1): probeShortPath's failure detail omits stdout, hiding a returned long path or PowerShell output from callers that print only the detail.
-- Review ledger worktrees (priority-steps-2, main record 645f5100): review-ledger-state.test.mjs failed its Windows shard 2 worktree cases, the second main record after fdb244a4 on 2026-11-10; the cause remains unconfirmed.
+- Review ledger worktrees (priority-steps-2, main record 645f5100): review-ledger-state.test.mjs failures followed silent child exits from one onset in Windows shard 2, not worktree identity; inferred cause: a lane-checks tree kill of a reused pid, likely the test's console host, unconfirmed; fdb244a4 on 2026-11-10 was the same kind of kill through R-4006's liveness-only finally.

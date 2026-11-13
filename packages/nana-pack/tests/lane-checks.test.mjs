@@ -70,7 +70,7 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   const recorder = join(root, 'record-process.cjs');
   fs.writeFileSync(recorder, `const fs=require('node:fs'), path=require('node:path');
     const file=path.join(${JSON.stringify(processRecords)}, String(process.pid));
-    fs.writeFileSync(file+'.tmp', JSON.stringify({pid:process.pid, role:process.argv[1] || 'node'}));
+    fs.writeFileSync(file+'.tmp', JSON.stringify({pid:process.pid, role:process.argv[1] || 'node', at:Date.now()}));
     fs.renameSync(file+'.tmp', file);`);
   env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require ${JSON.stringify(recorder)}`;
   const tracked = new Map();
@@ -84,13 +84,20 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
     if (pid && !tracked.has(pid) && !added.has(pid)) added.set(pid, { pid, role });
     const starts = processStarts([...added.keys()]);
     for (const member of added.values()) {
-      tracked.set(member.pid, { ...member, start: starts.get(member.pid) ?? null });
+      const start = starts.get(member.pid) ?? null;
+      const startedAt = process.platform === 'win32'
+        ? (Number(start) - 621355968000000000) / 10000
+        : Date.parse(start);
+      // A late first refresh must not adopt a process born after the record was written.
+      // Explicit track-only members have no record time and retain token matching.
+      const foreign = member.at !== undefined && startedAt > member.at;
+      tracked.set(member.pid, { ...member, start: member.at === undefined || startedAt <= member.at ? start : null, foreign });
     }
   };
   const track = (pid, role) => refresh(pid, role);
   const liveProcesses = () => {
     refresh();
-    const members = [...tracked.values()].filter(member => pidAlive(member.pid));
+    const members = [...tracked.values()].filter(member => !member.foreign && pidAlive(member.pid));
     const starts = processStarts(members.map(member => member.pid));
     // Teardown waits on an unreadable identity but never signals it.
     return members.filter(member => !member.start || !starts.has(member.pid) || starts.get(member.pid) === member.start);
@@ -98,7 +105,7 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   const killRecorded = (pid, signal = 'SIGKILL', tree = true) => {
     refresh();
     const member = tracked.get(pid);
-    if (member?.start && processStarts([pid]).get(pid) === member.start) {
+    if (member?.start && !member.foreign && processStarts([pid]).get(pid) === member.start) {
       if (tree) killProcessTree(pid, { signal, fallback: signal => { try { process.kill(pid, signal); } catch {} } });
       else { try { process.kill(pid, signal); } catch {} }
     }
@@ -368,6 +375,21 @@ await check('fixture cleanup keeps an action error with its cleanup error attach
   const remove = (root, options) => { fs.rmSync(root, options); throw cleanupError; };
   await assert.rejects(fixture(() => { throw actionError; }, null, { remove }), error => error === actionError && error.cleanupError === cleanupError);
   await assert.rejects(fixture(() => {}, null, { remove }), error => error === cleanupError);
+  // Replay a pid reused before the first refresh: this child is not a fixture descendant.
+  const unrelated = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { env: { ...process.env, NODE_OPTIONS: '' }, stdio: 'ignore' });
+  const ended = new Promise(resolve => { unrelated.once('exit', resolve); unrelated.once('error', resolve); });
+  try {
+    await new Promise((resolve, reject) => { unrelated.once('spawn', resolve); unrelated.once('error', reject); });
+    await fixture(({ root }) => {
+      fs.writeFileSync(join(root, 'processes', String(unrelated.pid)), JSON.stringify({ pid: unrelated.pid, role: 'unrelated', at: Date.now() - 60000 }));
+    });
+    // Reap a killed child before checking: an unreaped POSIX pid still answers signal 0.
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(unrelated.exitCode === null && unrelated.signalCode === null && pidAlive(unrelated.pid), 'fixture cleanup killed an unrelated process with a reused recorded pid');
+  } finally {
+    if (unrelated.exitCode === null && unrelated.signalCode === null) unrelated.kill('SIGKILL');
+    await ended;
+  }
 });
 
 // req: R-4022
