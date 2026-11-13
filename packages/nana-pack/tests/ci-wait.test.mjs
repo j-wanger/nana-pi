@@ -24,11 +24,11 @@ const repository = { owner:'example', repo:'fixture' }, tip='a'.repeat(40), bran
 const pr = (extra={}) => ({number:7, mergeable:'MERGEABLE', headRefName:branch, headRefOid:tip, headRepository:{name:'fixture'}, headRepositoryOwner:{login:'example'}, ...extra});
 const workflowText = fs.readFileSync(new URL('../../../.github/workflows/ci.yml',import.meta.url),'utf8');
 const jobs = (attempt=1, extra={}) => [
- ...['macos-latest','ubuntu-latest','windows-latest'].map(os=>({name:`suite (${os})`,status:'completed',conclusion:os==='macos-latest'?'cancelled':'success',run_attempt:attempt})),
+ ...['macos-latest','ubuntu-latest','windows-latest'].map(os=>({name:`suite (${os})`,status:'completed',conclusion:os==='macos-latest'?'cancelled':'success',run_attempt:attempt,...(os==='macos-latest'?{runner_id:0,runner_name:'',steps:[]}: {})})),
  ...['macos-latest','windows-latest'].flatMap(os=>['ceiling','floor'].map(pi=>({name:`install-check (${os}, ${pi})`,status:'completed',conclusion:'success',run_attempt:attempt}))),
  {name:'release',status:'completed',conclusion:'skipped',run_attempt:attempt},
 ].map(j=>({...j,...(extra[j.name]??{})}));
-const cancelled = (attempt=1, extra={}) => workflowRun({run_attempt:attempt,conclusion:'cancelled',path:'.github/workflows/ci.yml',...extra});
+const cancelled = (attempt=1, extra={}) => workflowRun({run_attempt:attempt,conclusion:'failure',path:'.github/workflows/ci.yml',...extra});
 function fake({prs=[pr()], runs=()=>[workflowRun()], jobList=r=>jobs(r.run_attempt), log='', fail, slow}={}) {
  let time=0, reads=0; const calls=[], sleeps=[], output=[];
  const options={cwd:process.cwd(),repository,branch,tip,workflowText,env:{GH_HOST:'wrong.invalid',GH_REPO:'wrong/other'},
@@ -107,7 +107,7 @@ await check('M3: real PR job lists distinguish advisory Linux failure from block
  for(const list of [[],jobs(2),jobs(1,{'release':{status:'queued',conclusion:null}}),jobs(1,{'suite (windows-latest)':{conclusion:'failure'}}),jobs(1,{'suite (ubuntu-latest)':{conclusion:'timed_out'}}),jobs(1,{'install-check (macos-latest, floor)':{conclusion:'failure'}})]) {
   assert.equal(classifyRun(cancelled(),list,{workflowText}),'failed');const f=fake({runs:()=>[cancelled()],jobList:()=>list});const out=await waitForCi(f.options);assert.equal(out.code,1);assert.equal(f.reruns().length,0);
  }
- const land=ciFixture('capacity-wording');const result=executeCi(land,[cancelled()],{runGh:(_cwd,args)=>({status:0,stdout:args.some(a=>a.includes('/jobs?'))?JSON.stringify({total_count:8,jobs:jobs()}):runList([cancelled()])})});assert.equal(result.code,1);assert.match(result.text,/capacity-cancelled/);assert.match(result.text,new RegExp(`nana-ci-wait --tip ${land.tip}`));
+ const land=ciFixture('capacity-wording');const result=executeCi(land,[cancelled()],{runGh:(_cwd,args)=>({status:0,stdout:args.some(a=>a.includes('/jobs?'))?JSON.stringify({total_count:8,jobs:jobs()}):runList([cancelled()])})});assert.equal(result.code,1);assert.match(result.text,/never started/);assert.match(result.text,new RegExp(`nana-ci-wait --tip ${land.tip}`));
 });
 
 // req: R-3723
@@ -142,9 +142,9 @@ await check('M5: waiter and Node-fake CLI print judgeRuns success lines and reru
 await check('M7: superseded capacity waiters never rerun each other',async()=>{
  const {waitForCi}=await api();
  const old='b'.repeat(40), head='c'.repeat(40);
- for(const waited of [tip,old]) {
+ for(const waited of [tip,old]) for(const conclusion of ['failure','cancelled']) {
   let reads=0;
-  const f=fake({prs:()=>[pr({headRefOid:++reads===1?waited:head})],runs:()=>[cancelled()]});
+  const f=fake({prs:()=>[pr({headRefOid:++reads===1?waited:head})],runs:()=>[cancelled(1,{conclusion})]});
   const out=await waitForCi({...f.options,tip:waited});
   assert.equal(out.code,1);assert.equal(out.text,`ci: superseded at ${waited}: branch now at ${head}\n`);assert.equal(f.reruns().length,0);
   console.log(out.text.trim());
@@ -200,6 +200,78 @@ function mainWaitFake({id=101,fail=true,persistent=false,extraPending=false,abse
  }};
  return {options,calls,root,runGit,time:()=>time};
 }
+
+// req: R-4410 R-4411 R-4412
+await check('never-started replay: recorded macOS queue cancels rerun without a flake and cancelled or started jobs stay red',async()=>{
+ const {classifyRun,waitForCi,waitForMainCi}=await api();
+ const recorded=JSON.parse(fs.readFileSync(new URL('fixtures/ci-never-started/jobs.json',import.meta.url),'utf8')).runs;
+ function replay(id,{root=tmpDir(path.join(os.tmpdir(),'never-started-')),start=1,amend=()=>{},moved=false}={}) {
+  const attempts=structuredClone(recorded[id]);amend(attempts);
+  let attempt=start,time=0,prReads=0;const calls=[];
+  const current=()=>attempts[attempt];
+  const runGit=(_root,args)=>({status:0,stdout:args[0]==='remote'?'https://github.com/example/fixture.git':args.includes('--git-common-dir')?root:current().run.head_sha});
+  const options={cwd:root,tempRoot:root,repository,branch,tip:current().run.head_sha,sha:current().run.head_sha,workflowText,env:{},runGit,now:()=>time,sleep:ms=>{time+=ms;},runGh:(_root,args)=>{
+   calls.push(args);assert(calls.length<2000,'bounded recorded replay');
+   const endpoint=args.at(-1);let body;
+   if(args[0]==='pr') body=[pr({headRefOid:moved&&++prReads>1?'b'.repeat(40):current().run.head_sha})];
+   else if(args[0]==='repo') body={nameWithOwner:'example/fixture'};
+   else if(args[0]==='run') {
+    if(args[1]==='rerun') {attempt++;assert(attempts[attempt],'fixture must contain the next attempt');return {status:0,stdout:''};}
+    if(args[1]==='view') return {status:1,stderr:'log not found'};
+    assert.equal(args[1],'download');
+    const leg=args[args.indexOf('--name')+1].replace('suite-record-','').replace(/-\d+$/,'');
+    const shard=/^(.*)-shard-(\d+)-of-(\d+)$/.exec(leg);
+    const folder=args[args.indexOf('--dir')+1];fs.mkdirSync(folder,{recursive:true});
+    fs.writeFileSync(path.join(folder,'record.json'),JSON.stringify({schema:RECORD_SCHEMA,platform:shard?.[1]??leg,filters:[],...(shard?{shard:{index:Number(shard[2]),count:Number(shard[3])}}:{}),exitCode:0,files:[{path:`tests/${leg}.test.mjs`,label:'PASS'}]}));
+    return {status:0,stdout:''};
+   } else if(endpoint.includes('/jobs?')) {
+    const prior=/\/attempts\/(\d+)\//.exec(endpoint),list=attempts[prior?Number(prior[1]):attempt].jobs;
+    body={total_count:list.length,jobs:list};
+   } else if(endpoint.includes('/artifacts?')) body={artifacts:current().jobs.filter(job=>job.name.startsWith('suite (')&&job.conclusion==='success').map((job,i)=>({id:i+1,name:`suite-record-${job.name.slice(7,-1)}-${attempt}`,created_at:job.completed_at}))};
+   else body={total_count:1,workflow_runs:[current().run]};
+   return {status:0,stdout:JSON.stringify(body)};
+  }};
+  return {options,root,runGit,calls,reruns:()=>calls.filter(a=>a[1]==='rerun')};
+ }
+ const shared=tmpDir(path.join(os.tmpdir(),'never-started-shared-'));
+ for(const [id,count] of [['43255126326',2],['43282727877',1],['43462490949',2],['43470799556',2]]) {
+  const f=replay(id,{root:shared}),out=await waitForMainCi(f.options);
+  console.log(`recorded ${id}: ${out.text.trim()}`);
+  assert.equal(out.code,0,out.text);assert.equal(f.reruns().length,count);
+  assert.match(out.text,/never started/);assert.match(out.text,/after never-started job \(1\/2\)/);
+  if(count===2) assert.match(out.text,/after never-started job \(2\/2\)/);
+  assert.match(out.text,/green after rerun/);assert.doesNotMatch(out.text,/flake:|needs fix lane:/);
+  assert.equal(readSuiteRecords({root:shared,runGit:f.runGit,subpath:CI_STORE_SUBPATH}).length,0);
+  assert(!f.calls.some(a=>a[0]==='run'&&a[1]==='view'));
+ }
+ const exhausted=replay('43462490949',{amend:a=>{a[3]={run:{...a[2].run,run_attempt:3},jobs:a[2].jobs.map(job=>({...job,run_attempt:3}))};}});
+ const red=await waitForMainCi(exhausted.options);assert.equal(red.code,1);assert.equal(exhausted.reruns().length,2);
+ assert.match(red.text,/workflow ci run 43462490949 red: never started/);assert.doesNotMatch(red.text,/flake:/);
+ assert(!exhausted.calls.some(a=>a[0]==='run'&&a[1]==='view'));
+ const restarted=replay('43462490949',{start:2});assert.equal((await waitForMainCi(restarted.options)).code,0);assert.equal(restarted.reruns().length,1);
+ for(const id of ['43463117630','43377827876','39627442234']) {
+  const f=replay(id),out=await waitForCi(f.options),recover=id==='43463117630';
+  assert.equal(out.code,recover?0:1,out.text);assert.equal(f.reruns().length,recover?2:0);
+  assert.equal(classifyRun(recorded[id][1].run,recorded[id][1].jobs,{workflowText}),recover?'capacity-cancelled':'failed');
+  if(recover) assert.match(out.text,/after never-started attempt 2: .*\(2\/2\)/);
+ }
+ const bound=replay('43463117630',{amend:a=>{a[3]={run:{...a[2].run,run_attempt:3},jobs:a[2].jobs.map(job=>({...job,run_attempt:3}))};}});
+ const stopped=await waitForCi(bound.options);assert.equal(stopped.code,1);assert.equal(bound.reruns().length,2);assert.match(stopped.text,/never started after 3 attempts: install-check/);
+ const cancelled=replay('43462490949',{amend:a=>{a[1].run.conclusion='cancelled';}});
+ assert.equal(classifyRun({...recorded['43462490949'][1].run,conclusion:'cancelled'},recorded['43462490949'][1].jobs,{workflowText}),'failed');
+ const cancelOut=await waitForMainCi(cancelled.options);assert.equal(cancelOut.code,1);assert.equal(cancelled.reruns().length,0);assert.match(cancelOut.text,/run 43462490949 .* red$/m);assert.match(cancelOut.text,/cancelled main run; nothing to post/);
+ const superseded=replay('43377827876',{moved:true}),out=await waitForCi(superseded.options);assert.match(out.text,/ci: superseded/);assert.equal(superseded.reruns().length,0);
+ const original=recorded['43462490949'][1],bad=original.jobs.find(job=>job.conclusion==='cancelled');
+ for(const patch of [{runner_name:undefined},{runner_name:null},{runner_id:undefined},{runner_id:null},{runner_id:1},{runner_name:'runner'},{steps:undefined},{steps:null},{steps:[{}]}]) {
+  assert.equal(classifyRun(original.run,original.jobs.map(job=>job===bad?{...job,...patch}:job),{workflowText}),'failed');
+ }
+ const land=ciFixture('recorded-never-started');
+ const refusal=executeCi(land,[recorded['43463117630'][1].run],{runGh:(_cwd,args)=>({status:0,stdout:args.some(a=>a.includes('/jobs?'))?JSON.stringify({total_count:7,jobs:recorded['43463117630'][1].jobs}):runList([recorded['43463117630'][1].run])})});
+ assert.equal(refusal.code,1);assert.match(refusal.text,/\(never started\)/);assert.match(refusal.text,/nana-ci-wait --tip/);
+ const cancelledRun={...recorded['43463117630'][1].run,conclusion:'cancelled'};
+ const cancelledLand=executeCi(land,[cancelledRun],{runGh:(_cwd,args)=>({status:0,stdout:args.some(a=>a.includes('/jobs?'))?JSON.stringify({total_count:7,jobs:recorded['43463117630'][1].jobs}):runList([cancelledRun])})});
+ assert.equal(cancelledLand.code,1);assert.match(cancelledLand.text,/is cancelled; run gh run rerun/);assert.doesNotMatch(cancelledLand.text,/\(never started\)/);
+});
 
 // req: R-3994
 await check('M9: main wait covers every workflow retries red once and reports persistent red',async()=>{

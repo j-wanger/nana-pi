@@ -22,10 +22,11 @@ const root = tmpDir(path.join(os.tmpdir(), "main-ci-"));
 const sha = "a".repeat(40);
 const legs = ["macos-latest", "ubuntu-latest", "windows-latest"];
 const run = (id, overrides = {}) => ({ id, path: CI_WORKFLOW_RUN_PATH, name: "ci", head_branch: "main", head_sha: sha, event: "push", status: "completed", conclusion: "success", run_attempt: 1, ...overrides });
-function fixture({ runs = [run(20), run(30, { event: "pull_request" })], failLeg = "windows-latest", failJob, missing, duplicate = false, role, post = false, file = "packages/p/tests/red.test.mjs", scanFailure = false } = {}) {
+function fixture({ runs = [run(20), run(30, { event: "pull_request" })], failLeg = "windows-latest", failJob, missing, duplicate = false, role, post = false, file = "packages/p/tests/red.test.mjs", scanFailure = false, recordedJob, expectedSha } = {}) {
 	const calls = [], output = [], scans = [];
 	const jobs = legs.map((leg) => ({ name: `suite (${leg})`, status: "completed", conclusion: "success", run_attempt: 1, started_at: "2026-10-30T00:00:00Z" }));
 	jobs.push(...["macos-latest", "windows-latest"].flatMap(os => ["ceiling", "floor"].map(pi => ({ name: `install-check (${os}, ${pi})`, status: "completed", conclusion: "success" }))));
+	if (recordedJob) jobs.splice(jobs.findIndex(job => job.name === recordedJob.name), 1, recordedJob);
 	if (failJob) jobs.push({ name: failJob, status: "completed", conclusion: "failure" });
 	const runGh = (_cwd, args) => {
 		calls.push(args);
@@ -45,14 +46,15 @@ function fixture({ runs = [run(20), run(30, { event: "pull_request" })], failLeg
 			fs.writeFileSync(path.join(dir, "record.json"), JSON.stringify({ schema: RECORD_SCHEMA, exitCode: failed ? 1 : 0, platform: leg, wallSeconds: 1, jobs: 4,
 				files: [{ path: file, label: failed ? "FAIL" : "PASS", seconds: 1 }] }));
 			return { status: 0 };
-		} else if (args[0] === "issue" && args[1] === "list") {
+		} else if (args[0] === "run" && args[1] === "view") return { status: 1, stderr: "log not found" };
+		else if (args[0] === "issue" && args[1] === "list") {
 			answer = duplicate ? [{ title: args[args.indexOf("--search") + 1].replace(/ in:title$/, "") }] : [];
 		} else if (args[0] === "issue" && args[1] === "create") return { status: 0, stdout: "created" };
 		else throw new Error(`unexpected gh: ${args.join(" ")}`);
 		return { status: 0, stdout: JSON.stringify(answer) };
 	};
 	const config = { wordDigests: [createHash("sha256").update("privateword").digest("hex")], wordLengths: [11], allowlist: [] };
-	const result = mainCi({ cwd: root, post, env: role ? { NANA_ROLE: role } : {}, runGh,
+	const result = mainCi({ cwd: root, post, expectedSha, env: role ? { NANA_ROLE: role } : {}, runGh,
 		runGit: (_cwd, args) => ({ status: 0, stdout: args[0] === "remote" ? "https://github.com/example/project.git\r\n" : sha }),
 		scanText: (text) => { scans.push(text); calls.push(["scan"]); return { status: scanFailure || countIdentityWords({ content: text, config }).some(Boolean) ? 1 : 0 }; },
 		tempRoot: root, writeLine: (line) => output.push(line) });
@@ -99,6 +101,58 @@ await check("R-3183: main push reds include required and advisory legs with scan
 	const hit = fixture({ post: true, file: "packages/privateword/tests/red.test.mjs" });
 	assert.equal(hit.creates.length, 0); assert.notEqual(hit.code, 0); assert.match(hit.output, /identity scan/i);
 	for (const role of ["worker", "reviewer"]) { const child = fixture({ role, post: true }); assert.equal(child.creates.length, 0); assert.notEqual(child.code, 0); }
+});
+
+// req: R-4412
+await check("never-started main report names the job and refuses fixes-red evidence", () => {
+	const recorded = JSON.parse(fs.readFileSync(new URL("fixtures/ci-never-started/jobs.json", import.meta.url), "utf8")).runs;
+	const job = recorded['43462490949']['2'].jobs.find(job => job.id === 132024139815);
+	const options = { failLeg: null, recordedJob: job, expectedSha: sha, runs: [run(20, { conclusion: 'failure', run_attempt: 2 })] };
+	const report = fixture(options);
+	assert.equal(report.code, 0); assert.equal(report.red, true); assert.equal(report.evidenceReadable, false);
+	assert.match(report.output, /run 20 .* red: never started/);
+	assert(report.output.includes(`${job.name}: never started`));
+	assert.equal(report.title, `main CI: never started: ${job.name}`);
+	assert(!report.calls.some(args => args[0] === 'run' && args[1] === 'view'));
+	const posted = fixture({ ...options, post: true }); assert.equal(posted.creates.length, 1);
+	assert(posted.creates[0].includes(report.title));
+	const cancelled = fixture({ ...options, post: true, runs: [run(20, { conclusion: 'cancelled', run_attempt: 2 })] });
+	assert.match(cancelled.output, /run 20 .* red$/m); assert.match(cancelled.output, /cancelled main run; nothing to post/);
+	assert.equal(cancelled.creates.length, 0);
+	const started = recorded['43377827876']['1'].jobs.find(job => job.name === 'windows-selected');
+	assert.equal(started.steps.length, 15);
+	const red = fixture({ ...options, recordedJob: { ...started, name: job.name } });
+	assert.equal(red.red, true); assert.equal(red.evidenceReadable, true);
+	assert.match(red.output, /run 20 .* red$/m); assert.equal(red.title, 'main CI: cancelled');
+	assert(red.calls.some(args => args[0] === 'run' && args[1] === 'view'));
+	const f = ciFixture('never-started-main', { workflowOnMain: true });
+	commit(f.main, 'package.json', '{"name":"nana-pi"}\n', 'toolkit');
+	git(f.feature, 'merge', '--no-edit', 'main'); f.tip = git(f.feature, 'rev-parse', 'HEAD');
+	const before = mergeSnapshot(f), mainSha = git(f.main, 'rev-parse', 'HEAD');
+	const main = { ...recorded['43462490949']['2'].run, head_sha: mainSha };
+	const lane = run(101, { workflow_id: 1, run_number: 1, head_sha: f.tip, head_branch: 'integration', event: 'pull_request' });
+	const mainJobs = recorded['43462490949']['2'].jobs;
+	const items = mainJobs.filter(job => job.name.startsWith('suite (') && job.conclusion === 'success').map(job => {
+		const leg = job.name.slice(7, -1), shard = /^(.*)-shard-(\d+)-of-(\d+)$/.exec(leg);
+		return { run: main.id, leg, attempt: 2, record: { schema: RECORD_SCHEMA, platform: shard?.[1] ?? leg, filters: [],
+			...(shard ? { shard: { index: Number(shard[2]), count: Number(shard[3]) } } : {}), exitCode: 0, files: [{ path: `tests/${leg}.test.mjs`, label: 'PASS' }] } };
+	});
+	const artifacts = artifactGh([main], items), landCalls = [];
+	const runGh = (cwd, args, opts) => {
+		landCalls.push(args); assert.notEqual(args[0], 'issue');
+		if (args[0] === 'repo') return { status: 0, stdout: '{"nameWithOwner":"example/fixture"}' };
+		if (args.at(-1).includes('/jobs?')) return { status: 0, stdout: JSON.stringify({ jobs: mainJobs }) };
+		if (args.at(-1).includes('/actions/workflows/')) return { status: 0, stdout: JSON.stringify({ workflow_runs: [main] }) };
+		if (args.at(-1).includes('/actions/runs?') && args.at(-1).includes(f.tip)) return { status: 0, stdout: JSON.stringify({ total_count: 1, workflow_runs: [lane] }) };
+		return artifacts(cwd, args, opts);
+	};
+	for (const fixesRed of [undefined, String(main.id)]) {
+		const refused = executeCi(f, [lane], { runGh, ...(fixesRed ? { 'fixes-red': fixesRed } : {}) });
+		assert.equal(refused.code, 1); assert.equal(refused.suiteRan, false);
+		assert.match(refused.text, fixesRed ? /Main CI evidence read refused/ : /red: never started/);
+		assert.deepEqual(mergeSnapshot(f), before);
+	}
+	assert(!landCalls.some(args => args[0] === 'run' && args[1] === 'view'));
 });
 
 // req: R-3183

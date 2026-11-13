@@ -10,6 +10,7 @@ import path from "node:path";
 import { finalFiles } from "./suite-records.mjs";
 import {
 	CI_DONE_STATUS,
+	CI_NEVER_STARTED,
 	CI_HOST,
 	CI_PASS_CONCLUSION,
 	CI_DUPLICATE_TITLE,
@@ -71,6 +72,20 @@ export function requiredCiJobs(jobs, { main = false } = {}) {
 		else if (job.status !== CI_DONE_STATUS || job.conclusion !== CI_PASS_CONCLUSION) problems.push(`${name}: ${job.status === CI_DONE_STATUS ? job.conclusion : job.status}`);
 	}
 	return { ok: problems.length === 0, problems };
+}
+
+/** Match jobs with no execution evidence; shape alone never authorizes a rerun. */
+export function jobNeverStarted(job) {
+	return job?.status === CI_DONE_STATUS
+		&& job.conclusion === CI_NEVER_STARTED.conclusion
+		&& job.runner_id === CI_NEVER_STARTED.runner_id
+		&& job.runner_name === CI_NEVER_STARTED.runner_name
+		&& Array.isArray(job.steps) && job.steps.length === 0;
+}
+
+/** Distinguish runner acquisition failure from queued jobs stopped by a run cancel. */
+export function runnerNeverAcquired(run, job) {
+	return run?.conclusion === CI_NEVER_STARTED.run_conclusion && jobNeverStarted(job);
 }
 
 /** Distinguish a complete lane pack proof from ordinary substring-filtered output. */

@@ -60,8 +60,10 @@
 - gh timeout coverage (leftover-cuts): ghDefault's refusal of a zero or fractional timeout has no test since its only check was removed.
 - Land test split (land-test-split, review round 1): R-3490's 180 s bound is backed only by lane-folder timing records; no tagged check measures time, so a later slowdown goes uncaught.
 - Main CI wait: failing files come from job-log FAIL text, not CI suite records; a file absent from that text is recorded only by job name.
-- CI wait (ci-wait-ready, plan): a run cancelled by hand looks like a capacity cancellation, so nana-ci-wait re-runs its cancelled jobs up to twice.
-- Carry (ci-wait-ready): `ci-wait.mjs` treats a job cancelled at its timeout as capacity-cancelled, potentially rerunning a real hang; live behaviour remains unconfirmed.
+- Never-started jobs (ci-never-started, plan): A missing suite record from a job that ran, sitting beside a never-started job, reads never started rather than plain red. Land still refuses.
+- Never-started jobs (ci-never-started, plan): A started red right after a never-started attempt gets no automatic retry, because the single red retry needs attempt 1.
+- Never-started jobs (ci-never-started, plan): `nana-main-ci --wait` still spends its single red retry on a main run cancelled by hand after its jobs started. This predates the lane.
+- Never-started jobs (ci-never-started, plan): A restarted `nana-ci-wait` counts its never-started reruns from zero again. This predates the lane.
 - Carry (ci-wait-ready): `bin/nana-ci-wait.mjs` omits the progress callback, buffering rerun notices until the wait ends.
 - Carry (win-shards): `nana-land.mjs` refuses after one failed CI jobs-list read rather than retrying or falling back locally.
 - Carry (win-shards): `.github/workflows/ci.yml` can skip release after partial reruns if shard success flags do not carry; this fails safely.

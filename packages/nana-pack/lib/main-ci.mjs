@@ -2,7 +2,7 @@
  * @module packages/nana-pack/lib/main-ci.mjs
  * @purpose Report main push CI failures and retain per-file flake evidence, optionally posting one scanned seat issue.
  * @inputs Repository cwd, environment, injected gh and optional git runners, job logs, scanner, temporary root, expected main SHA and advisory-Linux land mode.
- * @outputs A verdict, evidenceReadable flag for completed runs, per-leg failed paths and jobs, network-unreadable retry status, unfinished-run notice and exact posting command.
+ * @outputs A green, red or red: never started verdict, evidenceReadable flag, per-leg failed paths and jobs, network-unreadable retry status, unfinished-run notice and exact posting command.
  * @effects disk (temporary CI downloads and clone CI flake records), process (local gh and identity scan), network (gh).
  * @errors Unreadable CI, scan failures, launcher posting and gh failures return code 1 with a named line.
  */
@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { readCiRecords } from "./ci-records.mjs";
-import { ciSuiteLegs, requiredCiJobs, toolkitCi } from "./land-ci.mjs";
+import { ciSuiteLegs, requiredCiJobs, toolkitCi, jobNeverStarted, runnerNeverAcquired } from "./land-ci.mjs";
 import { finalFiles, readSuiteRecords, storeSuiteRecord } from "./suite-records.mjs";
 import { ghDefault, ghNetworkFailure, ghResult } from "./gh-runner.mjs";
 import { CI_HOST, CI_READ_TIMEOUT_MS, CI_DONE_STATUS, CI_PASS_CONCLUSION, CI_ADVISORY_JOB, MAIN_REF, TIP_DIGITS, MAIN_CI_FLAKE_FIX_COUNT } from "./land-config.mjs";
@@ -91,6 +91,8 @@ export function mainCi({ cwd = process.cwd(), post = false, env = process.env, r
 		const networkError = records.ghFailures?.filter(ghNetworkFailure).at(-1);
 		const failedJob = records.jobs?.some(({ job }) => job.status === CI_DONE_STATUS && ![CI_PASS_CONCLUSION, "skipped", "neutral"].includes(job.conclusion));
 		const failedRecord = selected.records.some(({ record }) => record.exitCode !== 0 || record.unnamedFailures?.length || finalFiles(record).some(file => file.label === "FAIL"));
+		const ranFailed = records.jobs?.some(({ job }) => job.status === CI_DONE_STATUS && ![CI_PASS_CONCLUSION, "skipped", "neutral"].includes(job.conclusion) && !jobNeverStarted(job));
+		const neverStarted = !ranFailed && !failedRecord ? [...new Set((records.jobs ?? []).filter(({ job }) => runnerNeverAcquired(run, job)).map(({ job }) => job.name))] : [];
 		if (networkError && run.conclusion === CI_PASS_CONCLUSION && !failedJob && !failedRecord) return unreadable(networkError, run);
 		if (!selected.ok) failures.push(selected.reason);
 		for (const { leg, record } of selected.records) {
@@ -102,6 +104,7 @@ export function mainCi({ cwd = process.cwd(), post = false, env = process.env, r
 		for (const problem of records.problems ?? []) { line(problem); }
 		for (const { job } of records.jobs ?? []) {
 			if (job.status === CI_DONE_STATUS && ![CI_PASS_CONCLUSION, "skipped", "neutral"].includes(job.conclusion)) {
+				if (jobNeverStarted(job)) { failures.push(`${job.name}: never started`); continue; }
 				failures.push(job.name);
 				try {
 					const files = failedJobFiles(run, job, { repository, call: args => {
@@ -115,16 +118,16 @@ export function mainCi({ cwd = process.cwd(), post = false, env = process.env, r
 		}
 		if (run.conclusion !== CI_PASS_CONCLUSION && !failures.length) failures.push("ci");
 		const blocking = (text) => !advisoryLinux || !(text.startsWith("ubuntu-latest:") || text === CI_ADVISORY_JOB || text.startsWith(`${CI_ADVISORY_JOB}:`) || /^run \S+ ubuntu-latest:/.test(text));
-		const evidenceReadable = records.code === 0 && !records.problems?.length && !records.missingLegs?.length;
+		const evidenceReadable = records.code === 0 && !records.problems?.length && !records.missingLegs?.length && !neverStarted.length;
 		const red = run.conclusion !== CI_PASS_CONCLUSION || failures.some(blocking) || Boolean(records.problems?.some(blocking)) || records.code !== 0;
-		line(`run ${run.id} ${run.head_sha.slice(0, TIP_DIGITS)} ${red ? "red" : "green"}`);
+		line(`run ${run.id} ${run.head_sha.slice(0, TIP_DIGITS)} ${neverStarted.length ? "red: never started" : red ? "red" : "green"}`);
 		for (const failure of failures) line(failure);
 		if (run.conclusion === "cancelled") { line("cancelled main run; nothing to post"); return { code: 1, red: true, run, evidenceReadable }; }
 		if (!red) return { code: 0, red, run, evidenceReadable };
 		line(`post: ${mainCiCommand(cwd)} --post`);
 		// Missing inputs are not permission to claim a known failure in a public issue.
 		if (!failures.length) return { code: 1, red, run, evidenceReadable };
-		const title = `main CI: ${failures[0].replace(/^[^:]+: /, "")}`;
+		const title = neverStarted.length ? `main CI: never started: ${neverStarted[0]}` : `main CI: ${failures[0].replace(/^[^:]+: /, "")}`;
 		const body = `${WATCH_SEAT_MARKER}\nRun: ${run.id}\nSHA: ${run.head_sha.slice(0, TIP_DIGITS)}\n${[...new Set(failures)].join("\n")}`;
 		if (!post) return { code: 0, red, run, title, body, evidenceReadable };
 		const scanned = scanText(`${title}\n${body}`);

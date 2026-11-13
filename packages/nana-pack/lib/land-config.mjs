@@ -27,6 +27,7 @@ export const CI_RUNS_PATH = "repos/<owner>/<repo>/actions/runs";
 export const CI_RUNS_PAGE_SIZE = 100;
 
 // chosen 2026-11-02 (R-3721, R-3725): two capacity recoveries before asking the seat.
+// measured 2026-11-13 (R-4411): of 19 runs rerun after never-started attempts since 2026-10-30, 15 passed on the first rerun and 4 on the second; none needed a third. The main waiter applies it to GitHub's run_attempt.
 export const CI_CANCEL_RERUNS = 2;
 // contract (R-3994, R-3995), owner decision 2026-11-09: one same-commit retry, repeated file flakes need source fixes.
 export const MAIN_CI_RED_RERUNS = 1;
@@ -68,6 +69,8 @@ export const CI_RECORDS_BUDGET_MS = 60_000;
 // contract (R-2586, R-2587): GitHub's passing workflow-run vocabulary.
 export const CI_DONE_STATUS = "completed";
 export const CI_PASS_CONCLUSION = "success";
+// contract (R-4410), measured 2026-11-13 over attempts of runs created since 2026-10-30: 35 jobs no hosted runner acquired carry this job shape and the annotation "not acquired by Runner", each in an attempt that concluded failure; 5 queued jobs stopped by a run cancel share the job shape in attempts that concluded cancelled (runs 42689932935, 39627442234).
+export const CI_NEVER_STARTED = Object.freeze({ conclusion: "cancelled", runner_id: 0, runner_name: "", run_conclusion: "failure" });
 
 // contract (R-3944), chosen 2026-11-08: distinguish intentionally skipped same-repository feature PR runs.
 export const CI_DUPLICATE_TITLE = "ci (duplicate feature PR)";

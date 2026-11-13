@@ -8,7 +8,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { ghDefault, ghEnvironment, ghNetworkFailure, ghResult } from './gh-runner.mjs';
-import { githubRepoOf, judgeRuns } from './land-ci.mjs';
+import { githubRepoOf, judgeRuns, jobNeverStarted, runnerNeverAcquired } from './land-ci.mjs';
 import { failedJobFiles, mainCi, recordMainFlakes } from './main-ci.mjs';
 import {
  CI_HOST, CI_DONE_STATUS, CI_PASS_CONCLUSION, CI_READ_TIMEOUT_MS, CI_RUNS_PATH, CI_RUNS_PAGE_SIZE, CI_CANCEL_RERUNS,
@@ -103,15 +103,16 @@ export function classifyRun(run,jobs,{workflowText='',complete=true}={}) {
  if(run.conclusion===CI_PASS_CONCLUSION) return 'passed';
  if(!complete || !Array.isArray(jobs) || jobs.length===0) return 'failed';
  const advisory=run.path===CI_ADVISORY_WORKFLOW && CI_ADVISORY_RULE.test(workflowText);
- let cancelled=false;
+ let unstarted=false;
  for(const job of jobs) {
   if(!job || job.status!==CI_DONE_STATUS || job.run_attempt!==run.run_attempt) return 'failed';
-  if(job.conclusion==='cancelled') {cancelled=true;continue;}
+  if(runnerNeverAcquired(run,job)) {unstarted=true;continue;}
+  if(job.conclusion==='cancelled') return 'failed';
   if([CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion)) continue;
-  if(job.conclusion==='failure' && advisory && job.name===CI_ADVISORY_JOB && run.conclusion==='cancelled') continue;
+  if(job.conclusion==='failure' && advisory && job.name===CI_ADVISORY_JOB) continue;
   return 'failed';
  }
- return cancelled ? 'capacity-cancelled' : 'failed';
+ return unstarted ? 'capacity-cancelled' : 'failed';
 }
 
 /** Return every job from the exact attempt, failing closed on a partial or changing collection. */
@@ -164,14 +165,21 @@ export async function waitForCi(options={}) {
     if(kind!=='capacity-cancelled') {
      const lines=[];
      for(const job of jobs.filter(j=>j.status===CI_DONE_STATUS && ![CI_PASS_CONCLUSION,'skipped','neutral'].includes(j.conclusion))) {
+      if(jobNeverStarted(job)) {lines.push(`ci: ${job.name}: never started`);continue;}
       try {
        const files=failedJobFiles(run,job,{repository:repoName(repository),call:b.call});
        lines.push(`ci: ${job.name}: ${files.length?files.join(', '):job.conclusion}`);
       } catch(error) {lines.push(`ci: ${job.name}: ${job.conclusion}; log unavailable: ${error.message}`);}
      }
+     if(run.conclusion==='cancelled') {
+      const ready=await b.retry(()=>ciReadiness({...options,reads:1,budget:b}));
+      const head=ready.pr?.headRefOid ?? ready.head;
+      if(head && head!==tip) return finish(1,`ci: superseded at ${tip}: branch now at ${head}`);
+     }
      return finish(1,[verdict.message,...lines].join('\n'));
     }
-    if(state.count>=CI_CANCEL_RERUNS) return finish(1,`${verdict.message}; capacity-cancelled after ${state.count+1} attempts`);
+    const names=jobs.filter(job=>runnerNeverAcquired(run,job)).map(job=>job.name).join(', ');
+    if(state.count>=CI_CANCEL_RERUNS) return finish(1,`${verdict.message}; never started after ${state.count+1} attempts: ${names}`);
     // Re-read the remote PR immediately before any write: an old waiter must not cancel its successor.
     const ready=await b.retry(()=>ciReadiness({...options,reads:1,budget:b}));
     const head=ready.pr?.headRefOid ?? ready.head;
@@ -181,7 +189,7 @@ export async function waitForCi(options={}) {
     catch(error) {if(!ghNetworkFailure(error.ghFailure)) return finish(1,`rerun ${run.id} failed: ${error.message}`);}
     state.requested.add(identity);
     state.count++;state.id=String(run.id);state.attempt=run.run_attempt;state.waiting=true;
-    const note=`ci: rerun ${run.id} after capacity-cancelled attempt ${run.run_attempt} (${state.count}/${CI_CANCEL_RERUNS})`;
+    const note=`ci: rerun ${run.id} after never-started attempt ${run.run_attempt}: ${names} (${state.count}/${CI_CANCEL_RERUNS})`;
     notes.push(note);writeLine(note);
    }
    await pause(CI_POLL_INTERVAL_MS);
@@ -240,7 +248,7 @@ export async function waitForMainCi(options={}) {
      for(let attempt=1;attempt<run.run_attempt;attempt++) {
       const earlier={...run,run_attempt:attempt};
       const prior=await b.retry(()=>ciRunJobs(earlier,{...options,repository,budget:b}));
-      for(const job of prior.filter(job=>job.run_attempt===attempt&&job.status===CI_DONE_STATUS&&![CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion))) {
+      for(const job of prior.filter(job=>job.run_attempt===attempt&&job.status===CI_DONE_STATUS&&![CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion)&&!jobNeverStarted(job))) {
        state.failures.set(job.name,[...new Set([...(state.failures.get(job.name)??[]),...logFiles(earlier,job,repository)])]);
       }
      }
@@ -256,8 +264,9 @@ export async function waitForMainCi(options={}) {
      }
     }
     const failed=jobs.filter(job=>job.status===CI_DONE_STATUS&&![CI_PASS_CONCLUSION,'skipped','neutral'].includes(job.conclusion));
-    if(failed.length && run.run_attempt<=MAIN_CI_RED_RERUNS) {
-     for(const job of failed) {
+    const started=failed.filter(job=>!jobNeverStarted(job));
+    if(started.length && run.run_attempt<=MAIN_CI_RED_RERUNS) {
+     for(const job of started) {
       const files=logFiles(run,job,repository);
       state.failures.set(job.name,files);
       line(`Main CI: ${job.name}: red${files.length?': '+files.join(', '):''}`);
@@ -268,13 +277,23 @@ export async function waitForMainCi(options={}) {
      line(`Main CI: rerun ${run.id} at ${sha} (${state.count}/${MAIN_CI_RED_RERUNS})`);
      continue;
     }
+    const neverStarted=failed.length>0 && failed.every(job=>runnerNeverAcquired(run,job));
+    if(neverStarted && run.run_attempt<=CI_CANCEL_RERUNS) {
+     for(const job of failed) line(`Main CI: ${job.name}: never started`);
+     try {b.call(['run','rerun',String(run.id),'--failed','--repo',`${CI_HOST}/${repoName(repository)}`]);}
+     catch(error) {if(!ghNetworkFailure(error.ghFailure)) throw error;}
+     state.attempt=run.run_attempt;state.waiting=true;pending=true;
+     line(`Main CI: rerun ${run.id} at ${sha} after never-started job (${run.run_attempt}/${CI_CANCEL_RERUNS})`);
+     continue;
+    }
     if(failed.length||run.conclusion!==CI_PASS_CONCLUSION) red=true;
     if(!state.reported) {
      for(const job of failed) {
+      if(jobNeverStarted(job)) {line(`Main CI: ${job.name}: never started`);continue;}
       const files=logFiles(run,job,repository);
       line(`Main CI: ${job.name}: red${files.length?': '+files.join(', '):''}`);
      }
-     line(`Main CI: workflow ${run.name??run.path} run ${run.id} ${failed.length||run.conclusion!==CI_PASS_CONCLUSION?'red':run.run_attempt>1?'green after rerun':'green'}`);
+     line(`Main CI: workflow ${run.name??run.path} run ${run.id} ${neverStarted?'red: never started':failed.length||run.conclusion!==CI_PASS_CONCLUSION?'red':run.run_attempt>1?'green after rerun':'green'}`);
      state.reported=true;
     }
    }

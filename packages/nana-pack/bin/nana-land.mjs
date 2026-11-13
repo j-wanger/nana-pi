@@ -251,7 +251,7 @@ function runLandCore({ tree, main, suite, "fixes-red": fixesRed, reviewed = [], 
 						const workflowText = workflow.status === 0 ? workflow.stdout : "";
 						kind = classifyRun(run, jobs, { workflowText });
 					} catch { /* Missing evidence preserves the original red refusal. */ }
-					if (kind === "capacity-cancelled") throw new Error(`CI at ${tip.slice(0, TIP_DIGITS)}: ${run.name} run ${run.id} attempt ${run.run_attempt} is ${run.conclusion} (capacity-cancelled); ${remedy}`);
+					if (kind === "capacity-cancelled") throw new Error(`CI at ${tip.slice(0, TIP_DIGITS)}: ${run.name} run ${run.id} attempt ${run.run_attempt} is ${run.conclusion} (never started); ${remedy}`);
 				}
 				throw new Error(verdict.message);
 			}
