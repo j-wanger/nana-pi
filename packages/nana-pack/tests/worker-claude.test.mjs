@@ -6,6 +6,7 @@
  * @effects disk (OS-temp fixtures and clone-local build records), process (git and bounded worker/fake-builder children).
  * @errors failed checks or per-case time limits exit nonzero; unexpected fixture failures throw.
  */
+import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -15,7 +16,8 @@ import { fileURLToPath } from "node:url";
 import { CLAUDE_ALLOW_FLAG, CLAUDE_BIN, CLAUDE_MODEL_FLAG, CLAUDE_PRINT_FLAG } from "../lib/claude-review-config.mjs";
 import { killTree } from "../lib/process-tree.mjs";
 import { writeFakePi } from "./fake-pi.mjs";
-import { hardKillTempNames, killWorkerTree, watcherWorkerPid, windowsLaneWatchers } from "./process-tree-helper.mjs";
+import { hardKillTempNames, killWorkerTree, processStarts, watcherWorkerPid, windowsLaneWatchers } from "./process-tree-helper.mjs";
+import { withinCaseLimit } from "./report-fixtures.mjs";
 import { tmpDir } from "./tmp-dir.mjs";
 import { credentialStripEnv } from "../lib/credential-strip.mjs";
 
@@ -741,14 +743,58 @@ check("R-2694: off Windows, SIGTERM sent to pi-worker while its trust check, Cla
 console.log(`note: R-2694 elapsed ${Math.round(performance.now() - r2694StartedAt)} ms`);
 
 const watcherLimit = () => (Number(LANE_WATCHER_POLL_MS) || 200) + (Number(LANE_WATCHER_STOP_WAIT_MS) || 2000) + (Number(LANE_WATCHER_REMOVE_RETRIES) || 5) * (Number(LANE_WATCHER_REMOVE_RETRY_MS) || 100) + 5_000;
-const cleanProcess = (pid, group = false) => {
+const processIdentity = (pid) => ({ pid, start: Number.isSafeInteger(pid) && pid > 0 ? processStarts([pid]).get(pid) : null });
+const builderIdentity = (file) => {
+	if (!fs.existsSync(file)) return null;
+	return processIdentity(Number(fs.readFileSync(file, "utf8")));
+};
+const cleanProcess = (target, group = false, identity = null) => {
+	const child = typeof target === "object" ? target : null;
+	const pid = child?.pid ?? target;
 	if (!Number.isSafeInteger(pid) || pid <= 0) return;
+	if (child) {
+		if (child.exitCode !== null || child.signalCode !== null) return;
+	} else if (identity?.pid !== pid || !identity.start || processStarts([pid]).get(pid) !== identity.start) return;
 	try { process.kill(group && process.platform !== "win32" ? -pid : pid, "SIGKILL"); } catch {}
 };
 const closeOf = (child) => new Promise((resolve) => {
 	if (child.exitCode !== null || child.signalCode !== null) resolve({ code: child.exitCode, signal: child.signalCode });
 	else child.once("close", (code, signal) => resolve({ code, signal }));
 });
+const cleanupSafetyTitle = "builder pid-file cleanup preserves an unrelated live process and still kills its live builder";
+try {
+	await withinCaseLimit(cleanupSafetyTitle, async () => {
+		const root = caseTemp("cleanup-identity"), pidFile = path.join(root, "builder.pid");
+		const script = path.join(root, "fake-builder.cjs");
+		fs.writeFileSync(script, `const fs=require('node:fs'),file=${JSON.stringify(pidFile)};fs.writeFileSync(file+'.tmp',String(process.pid));fs.renameSync(file+'.tmp',file);setInterval(()=>{},1000);`);
+		// This process is a direct test child, never a descendant of a fixture worker.
+		const unrelated = spawn(process.execPath, ["-e", "process.on('message',()=>process.send('alive'))"], { detached: true, env: { ...process.env, NODE_OPTIONS: "" }, stdio: ["ignore", "ignore", "ignore", "ipc"] });
+		const builder = spawn(process.execPath, [script], { detached: true, stdio: "ignore" });
+		const unrelatedClosed = closeOf(unrelated), builderClosed = closeOf(builder);
+		try {
+			assert.ok(await waitFor(() => fs.existsSync(pidFile), builder), "the fake builder must publish its pid while alive");
+			const identity = builderIdentity(pidFile);
+			assert.ok(identity.start, "the live builder must have a readable identity");
+			fs.writeFileSync(pidFile, String(unrelated.pid));
+			cleanProcess(Number(fs.readFileSync(pidFile, "utf8")), true, identity);
+			const responsive = await new Promise(resolve => {
+				unrelated.once("message", () => resolve(true));
+				unrelated.once("exit", () => resolve(false));
+				unrelated.send("ping", error => { if (error) resolve(false); });
+			});
+			assert.ok(responsive, "pid-file cleanup killed an unrelated live process");
+			cleanProcess(builder.pid, true, identity);
+			const ended = await builderClosed;
+			assert.ok(process.platform === "win32" ? ended.code !== null : ended.signal === "SIGKILL", "identity-checked cleanup must still kill the live fake builder");
+		} finally {
+			cleanProcess(builder, true); cleanProcess(unrelated, true);
+			await Promise.all([builderClosed, unrelatedClosed]);
+			fs.rmSync(root, { recursive: true, force: true });
+		}
+	});
+	check(cleanupSafetyTitle, true);
+} catch (error) { check(cleanupSafetyTitle, false, error.stack ?? String(error)); }
+
 const startWrappedWorker = ({ args, env, leader = false }) => {
 	const script = leader ? "sleep 30 & echo $! > \"$1\"; shift; exec \"$@\"" : "cd \"$1\" && shift && exec \"$@\"";
 	const prefix = leader ? [path.join(TEMP, "worker-sibling.pid")] : [LANE];
@@ -767,9 +813,10 @@ const hardCase = async ({ name, laneSize = "larger", wrapped = false, tree = fal
 	const child = wrapped ? run : run.child;
 	const closed = wrapped ? closeOf(child) : run.closed;
 	const started = await waitUntil(() => fs.existsSync(pidFile) && (laneSize === "small" || fs.existsSync(`${pidFile}.grand`)), 8_000);
+	const identity = builderIdentity(pidFile);
 	const ready = await watcherReady(root);
 	if (tree) killTree(child.pid);
-	else if (wrapped) cleanProcess(child.pid, true);
+	else if (wrapped) cleanProcess(child, true);
 	else killWorkerTree(child);
 	await delay(0);
 	const watcherGone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
@@ -777,7 +824,7 @@ const hardCase = async ({ name, laneSize = "larger", wrapped = false, tree = fal
 	const builderPid = fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null;
 	const remaining = hardKillTempNames(root);
 	const observation = { name, started, ready, watcherGone, remaining, empty: remaining.length === 0, lock: fs.existsSync(LOCK), builderGroup: builderPid ? groupAlive(builderPid) : null };
-	cleanProcess(builderPid, true); cleanProcess(child.pid, wrapped); stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
+	cleanProcess(builderPid, true, identity); cleanProcess(child, wrapped); stopFixtureBuilder(); fs.rmSync(LOCK, { force: true });
 	fs.rmSync(root, { recursive: true, force: true });
 	return observation;
 };
@@ -810,13 +857,14 @@ for (const owner of ["live", "dead"]) {
 	}
 	const run = startWorker({ extra: ["--poll", "60", "--max-secs", "30", "--stall-secs", "10"], env: tempEnv(root, { WC_PID_FILE: pidFile, WC_SLEEP_MS: "30000" }) });
 	const started = await waitUntil(() => fs.existsSync(pidFile), 8_000);
+	const identity = builderIdentity(pidFile);
 	const ready = await watcherReady(root);
 	if (started) fs.writeFileSync(LOCK, `${ownerPid}\n`);
 	killWorkerTree(run.child); await delay(0);
 	const gone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
 	const remaining = hardKillTempNames(root);
 	foreignLockObservations.push({ owner, started, ready, gone, remaining, empty: remaining.length === 0, lock: fs.existsSync(LOCK) ? fs.readFileSync(LOCK, "utf8") : null, expected: `${ownerPid}\n` });
-	cleanProcess(fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(root, { recursive: true, force: true });
+	cleanProcess(fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null, true, identity); fs.rmSync(LOCK, { force: true }); fs.rmSync(root, { recursive: true, force: true });
 }
 // req: R-2722
 check("R-2722: a hard kill while the lane lock names another process, live or dead, leaves that lock unchanged, the temp folder empty and no watcher",
@@ -832,13 +880,14 @@ if (process.platform !== "win32") {
 	const run = startWrappedWorker({ args: workerArgs(BRIEF, ["--max-secs", "30", "--stall-secs", "10"]), env: tempEnv(root, { WC_PID_FILE: pidFile, WC_GRANDCHILD: "1", WC_SLEEP_MS: "30000" }), leader: true });
 	const decoy = spawn(process.execPath, ["-e", "setInterval(()=>{},100000)"], { detached: true, stdio: "ignore" });
 	const started = await waitUntil(() => fs.existsSync(pidFile) && fs.existsSync(`${pidFile}.grand`) && fs.existsSync(siblingFile), 8_000);
+	const identity = builderIdentity(pidFile), siblingIdentity = builderIdentity(siblingFile);
 	const ready = await watcherReady(root);
-	cleanProcess(run.pid); await delay(0);
+	cleanProcess(run); await delay(0);
 	const gone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
 	const builderPid = fs.existsSync(pidFile) ? Number(fs.readFileSync(pidFile, "utf8")) : null;
 	const siblingPid = fs.existsSync(siblingFile) ? Number(fs.readFileSync(siblingFile, "utf8")) : null;
 	r2723 = { started, ready, gone, empty: tempEmpty(root), lock: fs.existsSync(LOCK), builderGroup: builderPid ? groupAlive(builderPid) : null, sibling: pidAlive(siblingPid), decoy: pidAlive(decoy.pid) };
-	cleanProcess(run.pid, true); cleanProcess(builderPid, true); cleanProcess(decoy.pid, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(root, { recursive: true, force: true });
+	cleanProcess(run, true); cleanProcess(builderPid, true, identity); cleanProcess(siblingPid, false, siblingIdentity); cleanProcess(decoy, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(root, { recursive: true, force: true });
 }
 // req: R-2723
 check("R-2723: off Windows, after SIGKILL of pi-worker alone the builder's group is gone while the other members of pi-worker's own process group and an unrelated process keep running",
@@ -879,7 +928,7 @@ if (process.platform !== "win32") {
 	const ended = await Promise.race([closeOf(watched), delay(CASE_LIMIT_MS).then(() => ({ timeout: true }))]);
 	const memberPid = memberReady ? Number(fs.readFileSync(memberFile, "utf8")) : null;
 	r2726 = { ended, folderGone: !fs.existsSync(folder), lock: fs.existsSync(lock) ? fs.readFileSync(lock, "utf8") : null, expected: `${workerPid}\n`, decoy: pidAlive(decoy.pid), member: pidAlive(memberPid) };
-	cleanProcess(decoy.pid, true); fs.rmSync(lock, { force: true }); fs.rmSync(root, { recursive: true, force: true });
+	cleanProcess(decoy, true); fs.rmSync(lock, { force: true }); fs.rmSync(root, { recursive: true, force: true });
 }
 // req: R-2726
 check("R-2726: off Windows, a recorded builder pid now held by a process started after the record is not signalled and the lane lock stays",
@@ -904,6 +953,7 @@ let r2728 = {};
 	const betaChild = spawn(process.execPath, argsFor("beta", betaBrief), { cwd: beta, env: envFor(betaPid, process.platform === "win32" ? 15_000 : 3_000), stdio: "ignore" });
 	const betaClose = closeOf(betaChild);
 	const started = alphaStarted && await waitUntil(() => fs.existsSync(betaPid), 8_000);
+	const betaIdentity = builderIdentity(betaPid);
 	const ready = await waitUntil(() => { const found = watchersFor(root); return found.filter((item) => item.line.includes("--watch")).length === 2 && found.every((item) => !item.line.includes("--hop")); }, 8_000);
 	killWorkerTree(alpha); await delay(0);
 	const alphaGone = await waitUntil(() => !watchersFor(root).some((item) => watcherWorkerPid(item.line) === alpha.pid), watcherLimit());
@@ -913,7 +963,7 @@ let r2728 = {};
 	const allGone = await waitUntil(() => watchersFor(root).length === 0, watcherLimit());
 	const remaining = hardKillTempNames(root);
 	r2728 = { started, ready, alphaGone, betaIntact, allGone, remaining, empty: remaining.length === 0, alphaLock: fs.existsSync(LOCK), betaLock: fs.existsSync(betaLock) };
-	cleanProcess(betaBuilder, true); cleanProcess(alpha.pid, true); cleanProcess(betaChild.pid, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(betaLock, { force: true }); fs.rmSync(root, { recursive: true, force: true });
+	cleanProcess(betaBuilder, true, betaIdentity); cleanProcess(alpha, true); cleanProcess(betaChild, true); fs.rmSync(LOCK, { force: true }); fs.rmSync(betaLock, { force: true }); fs.rmSync(root, { recursive: true, force: true });
 }
 // req: R-2728
 check("R-2728: a hard kill of one lane's pi-worker while a second lane builds in the same temp folder leaves the second lane's build, files, lock and watcher untouched",

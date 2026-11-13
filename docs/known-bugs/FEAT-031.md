@@ -13,6 +13,7 @@
 - Runtime map (runtime-map-live, final review r3): a descendant that starts a new process group after the first walk, then loses its parent before the kill step, is never reached. The row promises only what the first signal reached and the root's group.
 
 - lane-checks' refresh skips pids it already tracks, so a reused pid inside one fixture keeps the old start time; one slow batched query leaves every member of that batch without a start time (review 3, NOTEs).
+- Lane-checks foreign guards (lane-checks-foreign review 1): a stale record can shadow an explicit track (NOTE-1); the individual foreign guards are unpinned (NOTE-2); clock steps can mark a process wrongly in either direction (NOTE-5).
 - R-640's canonical POSIX `/tmp` root is unpinned: the alias checks test only the first temp root (review 2, NOTE 4).
 - Outside CI on a machine without 8.3 names, `win32-launch` and `build-records` print SKIP and then report PASS under the combined title (review 2, NOTE 5).
 
@@ -133,7 +134,7 @@
 - Windows flakes (impact-artifacts CI, 2026-10-25): R-1984 failed once at 56ad9dd1, because doctor's pi executable row read `·` before and `✓` after. The lane touched no setup code (a first-try flake, inferred).
 - Windows test limits (win-test-limits, plan): R-1779's child guard reads CHILD_LIMIT_MS but has no late-start case; only the seal pins the constant.
 - Windows test limits (win-test-limits, plan): R-1700's tree case keeps 2.5 s with the same Windows start exposure; it has not failed in 171 legs.
-- Windows test limits (win-test-limits, plan): other tests still judge the pid of an exited process: `hook.test.mjs:486`, `mutation-runner.test.mjs:1341-1342`, `review-ledger.test.mjs:52`, `worker-claude.test.mjs:811` and `:872`. None failed in 171 legs.
+- Windows test limits (win-test-limits, plan): `review-ledger.test.mjs:52` still judges the pid of an exited process; worker-claude cleanup is fixed to require a live spawned child or a matching recorded start token. None failed in 171 legs.
 - Windows test limits (win-test-limits, plan): sources-file's and writing-injection's limits are named but not sealed. A runner stall longer than 30 s per spawn still fails sources-file.
 - Windows test limits (win-test-limits, plan): requirements-deliverables keeps its 10 s git limit, because artifact-readers edited that file.
 - Windows test limits (win-test-limits, plan): the two run-alone files run after the pool drains, about 27 to 36 s more per full parallel run on every platform. Inside the pool, test-runner.test.mjs gains about 10 s, mutation-runner.test.mjs about 13 s, and the R-1701 case about 7.5 s on Windows.
@@ -175,4 +176,4 @@
 - Shard fixture coupling (lane-push-alone, review 1 NOTE-5): win-shards M9 uses the first non-knowledge RUN_ALONE key, so prepending lane-push-ci changed its fixture name from credential-strip without changing what it checks.
 - Stem selection (stem-path, review 1 NOTE-2): folder names written as separate path.join arguments still over-select tests in scripts/test-packs.mjs; this costs time only.
 - Short-path diagnostics (win-short-path, review 1 SHOULD-1): probeShortPath's failure detail omits stdout, hiding a returned long path or PowerShell output from callers that print only the detail.
-- Review ledger worktrees (priority-steps-2, main record 645f5100): review-ledger-state.test.mjs failures followed silent child exits from one onset in Windows shard 2, not worktree identity; inferred cause: a lane-checks tree kill of a reused pid, likely the test's console host, unconfirmed; fdb244a4 on 2026-11-10 was the same kind of kill through R-4006's liveness-only finally.
+- Review ledger worktrees (priority-steps-2, main record 645f5100): review-ledger-state.test.mjs failures followed silent child exits from one onset in Windows shard 2, not worktree identity; inferred cause: a lane-checks tree kill of a reused pid, likely the test's console host, unconfirmed; fdb244a4 on 2026-11-10 is inferred to be the same kind of kill through R-4006's liveness-only finally; competing class: Windows process-start failure 0xC0000142.

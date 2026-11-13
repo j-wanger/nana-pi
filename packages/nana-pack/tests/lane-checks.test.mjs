@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpDir } from "./tmp-dir.mjs";
 import { writeFakePi } from './fake-pi.mjs';
-import { windowsProcesses } from './process-tree-helper.mjs';
+import { processStarts, windowsProcesses } from './process-tree-helper.mjs';
 import { CASE_LIMIT_MS, withinCaseLimit } from './report-fixtures.mjs';
 import { checkLane, laneCheckLines } from '../lib/lane-checks.mjs';
 import { LANE_CHECK_PASS_FILE } from '../lib/test-runner-config.mjs';
@@ -22,23 +22,6 @@ import { buildEndRecord } from '../lib/build-records.mjs';
 import { pidAlive, killProcessTree } from '../lib/process-tree.mjs';
 import { boundedSpawn, RELAY_BACKSTOP_MS, RELAY_PARENT_POLL_MS, RELAY_SIGNAL_GRACE_MS, RELAY_SETTLE_MS } from '../../nana-setup/lib/bounded-spawn.mjs';
 
-// Exact OS start tokens, not pid liveness alone, authorize fixture cleanup signals.
-// Read in batches by the test process; fixture preloads never launch native queries.
-function processStarts(pids, { run = spawnSync, strict = false } = {}) {
-  if (!pids.length) return new Map();
-  const windows = process.platform === 'win32';
-  const result = windows
-    ? run('powershell', ['-NoProfile', '-Command', `Get-Process -Id ${pids.join(',')} -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Id) $($_.StartTime.ToUniversalTime().Ticks)" }`], { encoding: 'utf8', timeout: 10000, windowsHide: true })
-    : run('ps', ['-o', 'pid=', '-o', 'lstart=', '-p', pids.join(',')], { encoding: 'utf8', timeout: 10000, env: { ...process.env, LC_ALL: 'C' } });
-  if (strict && (result.error || result.signal)) throw new Error(`process identity query failed: ${result.error?.code ?? result.signal}`);
-  if (strict && typeof result.status === 'number' && result.status !== 0 && result.status !== 1) throw new Error(`process identity query failed: status ${result.status}`);
-  const starts = new Map();
-  for (const line of String(result.stdout ?? '').split(/\r?\n/)) {
-    const match = /^\s*(\d+)\s+(.+?)\s*$/.exec(line);
-    if (match) starts.set(Number(match[1]), match[2]);
-  }
-  return starts;
-}
 function identify(pids) {
   const distinct = [...new Set(pids)];
   const starts = processStarts(distinct, { strict: true });
@@ -366,7 +349,12 @@ await check('R-4005: a second failure ends the build without a second resume', (
 await check('fixture cleanup keeps an action error with its cleanup error attached or reports cleanup alone', async () => {
   for (const ending of ['\n', '\r\n', '']) {
     const starts = processStarts([42], { run: () => ({ stdout: ` 42 native-start-token \t${ending}` }) });
-    assert.equal(starts.get(42), 'native-start-token');
+    assert.equal(starts.get(42), process.platform === 'win32' ? 'native-start-token' : 'native-start-token GMT');
+    const utcStarts = processStarts([42], { platform: 'darwin', run: (command, args, options) => {
+      assert.equal(options.env.TZ, 'UTC');
+      return { stdout: ` 42 Sun Nov  1 06:30:00 2026 \t${ending}` };
+    } });
+    assert.equal(Date.parse(utcStarts.get(42)), Date.UTC(2026, 10, 1, 6, 30), 'UTC lstart tokens parse to the same epoch in every zone');
   }
   assert.throws(() => processStarts([42], { strict: true, run: () => ({ error: { code: 'ETIMEDOUT' } }) }), /process identity query failed: ETIMEDOUT/);
   assert.throws(() => processStarts([42], { strict: true, run: () => ({ status: 3221225794, stdout: '' }) }), /process identity query failed: status 3221225794/);
@@ -472,14 +460,16 @@ await check('R-4022: a stop during tip or base checks kills the check tree and r
       }
       const members = [...new Map(checkPids.pids.map(member => [member.pid, member])).values()];
       const reused = members.filter(member => remaining.running.includes(member.pid) && !remaining.pids.includes(member.pid));
-      let holders = [];
+      let holders = [], holdersUnread = false;
       if (reused.length && process.platform === 'win32') {
-        try { holders = windowsProcesses(); } catch { /* the identity query already decided survival */ }
+        try { holders = windowsProcesses(); } catch { holdersUnread = true; }
       }
       for (const member of reused) {
         const holder = holders.find(row => row.pid === member.pid);
         const start = remaining.starts.get(member.pid);
-        if (process.platform === 'win32' ? !holder : !start) {
+        if (process.platform === 'win32' && holdersUnread) {
+          console.log(`R-4022 note: ${member.role} pid ${member.pid} holder unread (start ${start ?? 'unreadable'})`);
+        } else if (process.platform === 'win32' ? !holder && !start : !start) {
           console.log(`R-4022 note: ${member.role} pid ${member.pid} exited during the identity query`);
         } else {
           console.log(`R-4022 note: ${member.role} pid ${member.pid} now belongs to another process (${holder?.name ?? 'name unread'}, start ${start ?? 'unreadable'})`);
