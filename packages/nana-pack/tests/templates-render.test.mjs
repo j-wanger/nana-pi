@@ -544,7 +544,7 @@ if (!version) {
 			const declaredKey = `${language}-scaffold`;
 			const sharedText = fs.readFileSync(path.join(REPO, "templates/_shared/working-under-nana-pi.md"), "utf8");
 			if (language === "python") {
-				const requirementsText = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills/requirements/SKILL.md"), "utf8");
+				const requirementsText = fs.readFileSync(path.join(REPO, "packages/nana-pack/skills/requirements/references/code-map.md"), "utf8");
 				// req: R-629
 				check("requirements: a misspelled code-map flag is rejected", judgeClaims({ surface: "requirements", root: REPO, targets: [currentTarget], text: requirementsText.replace("scripts/code_map.py --impact", "scripts/code_map.py --impakt") }).flagProblems.some((p) => p.includes("--impakt")));
 			}
@@ -552,7 +552,8 @@ if (!version) {
 			for (const surface of [...skillNames, "templates/_shared/working-under-nana-pi.md"]) {
 				const text = surface === "templates/_shared/working-under-nana-pi.md"
 					? sharedText
-					: fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", surface, "SKILL.md"), "utf8");
+					: (surface === "requirements" ? ["SKILL.md", "references/code-map.md", "references/audit.md"] : ["SKILL.md"])
+						.map((file) => fs.readFileSync(path.join(REPO, "packages/nana-pack/skills", surface, file), "utf8")).join("\n");
 				const result = judgeClaims({ surface, root: REPO, targets: [currentTarget], text });
 				for (const entry of staleExemptions(surface, text)) {
 					const key = `${entry.surface}:${entry.kind}:${entry.text}`;

@@ -52,7 +52,7 @@ const external = new Map(config.externalPaths.map((entry) => [entry.path, entry.
 // req: R-655
 check("install-produced README paths are declared external with reasons", ["node_modules"].every((item) => external.get(item)?.trim().length > 0));
 
-const skill = fs.readFileSync(path.join(REPO_ROOT, "packages/nana-pack/skills/requirements/SKILL.md"), "utf-8");
+const skill = fs.readFileSync(path.join(REPO_ROOT, "packages/nana-pack/skills/requirements/references/code-map.md"), "utf-8");
 // req: R-657
 check("requirements skill documents runner-specific map commands", skill.includes("pnpm map:impact <files>") && skill.includes("npm run map:impact -- <files>") && skill.includes("uv run python scripts/code_map.py --impact <files>") && !skill.includes("map:impact -- <changed-files>"));
 

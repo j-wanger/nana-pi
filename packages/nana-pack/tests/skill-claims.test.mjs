@@ -30,7 +30,8 @@ check("surface table covers every skill and the shared working section", surface
 const cwdTargets = [{ name: "checkout", root: REPO }];
 const working = read(actualShared);
 
-const requirements = read("packages/nana-pack/skills/requirements/SKILL.md");
+const requirements = ["SKILL.md", "references/code-map.md", "references/audit.md"]
+  .map((file) => read(`packages/nana-pack/skills/requirements/${file}`)).join("\n");
 const baseTarget = [{ name: "checkout", root: REPO }];
 const mapFenceMutation = requirements.replace("pnpm map:impact <files>", "pnpm map:impact -- <files>");
 // req: R-599
@@ -44,7 +45,7 @@ check("runner-less script names are rejected", judgeClaims({ surface: "requireme
 
 const surfaceTexts = Object.entries(SURFACES).map(([surface, declared]) => ({
   surface,
-  text: surface === actualShared ? working : read(`packages/nana-pack/skills/${surface}/SKILL.md`),
+  text: surface === actualShared ? working : surface === "requirements" ? requirements : read(`packages/nana-pack/skills/${surface}/SKILL.md`),
   declared,
 }));
 const checkoutSurfaces = surfaceTexts.filter(({ declared }) => declared.some((target) => target.startsWith("checkout")));
