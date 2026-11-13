@@ -100,6 +100,9 @@ await check("M11: acceptance-win-cmd replay selects edited release tests and rel
       ? "packages/nana-pack/tests/release-status.test.mjs" : "packages/nana-pack/tests/template-release.test.mjs";
     assert(selected.files.includes(expected), `release caller omitted for ${diff.join(",")}`);
     assert(selected.selection.release.every(item => item.reasons.length));
+    const tail = selected.selection.release.find(item => item.path === "packages/nana-setup/tests/setup-tail.test.mjs");
+    if (diff.includes("packages/nana-pack/tests/template-release.test.mjs")) assert(tail?.reasons.includes("coverage hold: changed release test: packages/nana-pack/tests/template-release.test.mjs"));
+    if (diff.includes("packages/nana-pack/lib/release-status.mjs")) assert(tail?.reasons.includes("coverage hold: release caller of packages/nana-pack/lib/release-status.mjs"));
     if (diff.length === 1 && diff[0].endsWith(".test.mjs")) {
       for (const slow of ["data-pack", "templates-update"]) assert(!selected.files.includes(`packages/nana-pack/tests/${slow}.test.mjs`), `unrelated ${slow} selected`);
     }
@@ -113,7 +116,8 @@ await check("M11: acceptance-win-cmd replay selects edited release tests and rel
     ["packages/nana-pack/lib/config.ts", "packages/nana-setup/tests/setup-tail.test.mjs", "names"],
     ["packages/nana-pack/extensions/nana-gate.ts", "packages/nana-setup/tests/setup-tail.test.mjs", "names"],
   ]) {
-    const selected = await selectPackFiles({ root: REPO, files, packs: ["land", "module"], changedFrom: "main", readDiff: () => [input, "package.json"] });
+    const selected = await selectPackFiles({ root: REPO, files, packs: ["land", "module"], changedFrom: "main", readDiff: () => [input] });
+    assert.equal(selected.selection.failSafe, null);
     assert(selected.files.includes(expected), `input route lost: ${input}`);
     assert([...selected.selection.changedTests, ...selected.selection.nameMatches, ...selected.selection.release]
       .some(item => item.path === expected && item.reasons.some(r => r.startsWith(reason))), `${input}: missing ${reason}`);

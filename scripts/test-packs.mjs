@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { CI_READ_TIMEOUT_MS, CHILD_OUTPUT_MAX_BYTES } from "../packages/nana-pack/lib/land-config.mjs";
 import { globMatch } from "./glob-match.mjs";
-import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, RELEASE_GLOBS, RELEASE_COVERAGE_HOLDS, NAME_MATCH_HUBS, NAME_MATCH_STEM_FOLDERS, NAME_MATCH_STEM_MIN_LENGTH, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
+import { TEST_PACKS, PACK_NAMES, WATCH_GLOBS, FAIL_SAFE_PATHS, EXECUTION_FAIL_SAFE_PATHS, RELEASE_GLOBS, RELEASE_COVERAGE_HOLDS, NAME_MATCH_HUBS, NAME_MATCH_STEM_FOLDERS, NAME_MATCH_STEM_MIN_LENGTH, packProblems } from "../packages/nana-pack/lib/test-packs-config.mjs";
 
 /** Read deduplicated paths from the merge base to the working tree, including untracked non-ignored files; NULs preserve whitespace in paths. */
 export function changedPaths(root, ref) {
@@ -45,11 +45,13 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
   const reasons = new Map();
   const add = (file, reason, target = reasons) => { if (!target.has(file)) target.set(file, new Set()); target.get(file).add(reason); };
   const all = reason => { for (const file of moduleFiles) add(file, reason); };
+  let unreadableInput = false;
   if (changedFrom) {
     try { selection.changedPaths = readDiff(root, changedFrom); }
     catch (error) {
       if (changedTestsOnly) throw error;
       selection.failSafe = error.message;
+      unreadableInput = true;
     }
   }
   const changedTests = new Set(selection.changedPaths.filter(file => files.includes(file) && membership[file] !== "manual"));
@@ -74,7 +76,8 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
   }
   const nameMatches = new Set(selection.nameMatches.map(item => item.path));
   if (changedTestsOnly) return { packs: [], selection, files: files.filter(file => changedTests.has(file) || nameMatches.has(file)) };
-  // Release files supplement a lane individually; neither setup edits nor fail-safe promote a pack.
+  // Lanes promote every release file only for execution changes or unreadable inputs;
+  // selection-only fail-safes keep individual selection and the setup-tail hold.
   const lane = changedFrom && packs.includes("land") && packs.includes("module") && !packs.includes("main");
   const releaseReasons = new Map();
   const addRelease = (file, reason) => {
@@ -112,12 +115,20 @@ export async function selectPackFiles({ root, files, packs, changedFrom = null, 
           }
           for (const file of blindReach(graph)) if (moduleFiles.includes(file)) add(file, "blind reach");
           for (const changed of selection.changedPaths) for (const glob of Object.keys(WATCH_GLOBS)) if (globMatch(glob, changed)) all(`watch glob ${glob}: ${changed}`);
-        } catch { selection.failSafe ??= "graph could not be read"; }
+        } catch {
+          selection.failSafe ??= "graph could not be read";
+          unreadableInput = true;
+        }
       }
       if (selection.failSafe) { reasons.clear(); all(`fail-safe: ${selection.failSafe}`); }
     }
   }
-  if (selection.failSafe) holdReleaseCoverage(`fail-safe: ${selection.failSafe}`);
+  if (selection.failSafe) {
+    holdReleaseCoverage(`fail-safe: ${selection.failSafe}`);
+    if (unreadableInput || selection.changedPaths.some(file => EXECUTION_FAIL_SAFE_PATHS.includes(file))) {
+      for (const file of files) addRelease(file, `fail-safe: ${selection.failSafe}`);
+    }
+  }
   selection.release = [...releaseReasons].sort(([a], [b]) => a.localeCompare(b)).map(([path, reasons]) => ({ path, reasons: [...reasons] }));
   selection.module = [...reasons].sort(([a], [b]) => a.localeCompare(b)).map(([path, reasons]) => ({ path, reasons: [...reasons] }));
   return { packs, selection, files: files.filter(file => changedTests.has(file) || nameMatches.has(file) || releaseReasons.has(file) || (packs.includes(membership[file]) && (membership[file] !== "module" || reasons.has(file)))) };
