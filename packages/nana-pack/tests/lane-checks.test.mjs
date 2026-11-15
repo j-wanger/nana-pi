@@ -110,7 +110,7 @@ async function fixture(action, baseSource = null, { first = '', afterCommit = ''
   const base = gitAt(repo, 'rev-parse', 'HEAD');
   gitAt(repo, 'worktree', 'add', '-qb', 'feat/checks', lane);
   const brief = join(root, 'brief.md'), out = join(root, 'report.md'), calls = join(root, 'calls');
-  fs.writeFileSync(brief, 'Card: fix\nServes: roadmap step 3: exercise lane checks.\n');
+  fs.writeFileSync(brief, 'Source: plan — fixture.\nCard: fix\nServes: roadmap step 3: exercise lane checks.\n');
   const message = join(root, 'commit-message'); fs.writeFileSync(message, 'fixture build\n');
   const body = `
     const fs = require('node:fs'); const cp = require('node:child_process');

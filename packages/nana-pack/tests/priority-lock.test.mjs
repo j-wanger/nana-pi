@@ -38,7 +38,7 @@ check('R-3985: a lock on repository A refuses a lane in repository B before spaw
   const config = path.join(agent, 'nana-pack.json');
   fs.writeFileSync(config, JSON.stringify({ priorityLock: { repo: a, since: '2026-11-09' } }));
   const brief = path.join(temp, 'brief.md');
-  fs.writeFileSync(brief, 'Serves: roadmap step 3: fixture.\nCard: fix\n');
+  fs.writeFileSync(brief, 'Source: plan — fixture.\nServes: roadmap step 3: fixture.\nCard: fix\n');
   // Trap any non-git subprocess: wrong code cannot start a real model or read user settings.
   const marker = path.join(temp, 'spawned');
   const preload = path.join(temp, 'trap.cjs');

@@ -60,7 +60,7 @@ const writeBrief = (name, text) => {
 	fs.writeFileSync(file, text);
 	return file;
 };
-const runWorker = (brief) => spawnSync(process.execPath, [worker, "--poll", "0.1", "--out", out, "--lane", "alpha", "--brief", brief], {
+const runWorker = (brief, slot = false) => spawnSync(process.execPath, [worker, "--poll", "0.1", "--out", out, ...(slot ? ["--slot", "adversary"] : ["--lane", "alpha"]), "--brief", brief], {
 	cwd: lane, encoding: "utf8", timeout: CHILD_LIMIT_MS, env,
 });
 const selectedLine = (stderr) => stderr.split(/\r?\n/).find((line) => line.startsWith("pi-worker: lane refused:") || line.startsWith("pi-worker: precedent:")) ?? null;
@@ -68,6 +68,49 @@ const check = (title, pass, detail = "") => {
 	console.log(pass ? "PASS" : "FAIL", title, pass ? "" : detail);
 	if (!pass) process.exitCode = 1;
 };
+// Eight review-note lanes launched on 2026-11-12 (reflection 4).
+// Use the existing bounded, synchronous child harness: no real model starts.
+const sourceResult = (source, { slot = false, ending = "\n", suffix = "\n" } = {}) => {
+	const text = `\uFEFFServes: roadmap step 3: exercise source admission.${ending}Validation: fixture run.${ending}Precedent:${ending}- seed${ending}${source.replaceAll("\n", ending)}${suffix}`;
+	const brief = writeBrief("source.md", text);
+	fs.rmSync(marker, { force: true });
+	const launched = runWorker(brief, slot);
+	return { status: launched.status, started: fs.existsSync(marker), line: selectedLine(launched.stderr) };
+};
+const sourceForm = 'has no valid "Source:" line before its first "## " heading. Add one line, "Source: <kind> — <evidence>"';
+const missingSources = ["", "Source:", "## Detail\nSource: owner — recorded request"];
+// req: R-4445
+check("R-4445: missing purpose-block Source refuses before spawn", missingSources.every((text) => {
+	const result = sourceResult(text);
+	return result.status === 1 && !result.started && result.line?.includes(sourceForm);
+}));
+// req: R-4446
+check("R-4446: unknown Source kind refuses before spawn", ["unknown", "Owner"].every((kind) => {
+	const result = sourceResult(`Source: ${kind} — recorded request`);
+	return result.status === 1 && !result.started && result.line?.includes(sourceForm) &&
+		result.line.includes("owner, must, safety, hit, plan, review-note");
+}));
+// req: R-4447
+check("R-4447: review-note refuses with the next-lane known-bug pointer", (() => {
+	const result = sourceResult("Source: review-note — reflection 4", { ending: "\r\n", suffix: " \t" });
+	return result.status === 1 && !result.started && result.line ===
+		"pi-worker: lane refused: Source-line check: brief declares its source as another lane's non-safety review note. Do not launch a lane for it. Record it as one known-bug line in the next lane that touches the feature (review standard; carry rule 2026-11-10).";
+})());
+const admittedSources = [];
+for (const kind of ["owner", "must", "safety", "hit", "plan"]) {
+	for (const format of [{}, { ending: "\r\n", suffix: " \t\r\n" }, { suffix: " \t" }]) {
+		const result = sourceResult(`Source: ${kind} — recorded evidence`, format);
+		admittedSources.push({ kind, format, ...result });
+	}
+}
+// req: R-4448
+check("R-4448: each admitted Source kind launches across text endings", admittedSources.every((r) => r.status === 0 && r.started), JSON.stringify(admittedSources.filter((r) => r.status !== 0 || !r.started)));
+// req: R-4449
+check("R-4449: slots bypass Source admission", ["", "Source: review-note — slot context"].every((text) => {
+	const result = sourceResult(text, { slot: true });
+	return result.status === 0 && result.started;
+}));
+
 // Seven off-roadmap launches prompted this refusal (memory-sort plan).
 // Each child has CHILD_LIMIT_MS; cases are synchronous and all are observed.
 const servesResults = [];
@@ -79,7 +122,7 @@ for (const [label, value, accepted] of [
 	["owner", "owner 2026-11-08: run this lane.", true],
 ]) {
 	for (const [ending, suffix] of [["\n", "\n"], ["\r\n", " \t\r\n"], ["\n", ""]]) {
-		const text = `Validation: fixture run.${ending}Precedent:${ending}- seed${ending}${value === null ? "" : `Serves: ${value}${suffix}`}`;
+		const text = `Source: plan — fixture.${ending}Validation: fixture run.${ending}Precedent:${ending}- seed${ending}${value === null ? "" : `Serves: ${value}${suffix}`}`;
 		const brief = writeBrief("serves.md", text);
 		fs.rmSync(marker, { force: true });
 		const launched = runWorker(brief);
@@ -99,7 +142,7 @@ for (const [label, value, fix, accepted] of [
 	["complete", "fixture run shows success", false, true], ["fix", null, true, true],
 ]) {
 	for (const [ending, suffix] of [["\n", "\n"], ["\r\n", " \t\r\n"], ["\n", ""]]) {
-		const text = `\uFEFFServes: roadmap step 3: validate launches.${ending}Precedent:${ending}- seed${ending}${fix ? `Card: fix${ending}` : ""}## Validation${ending}${value === null ? "" : `Validation: ${value}${suffix}`}`;
+		const text = `\uFEFFSource: plan — fixture.${ending}Serves: roadmap step 3: validate launches.${ending}Precedent:${ending}- seed${ending}${fix ? `Card: fix${ending}` : ""}## Validation${ending}${value === null ? "" : `Validation: ${value}${suffix}`}`;
 		const brief = writeBrief("validation.md", text);
 		fs.rmSync(marker, { force: true });
 		const launched = runWorker(brief);
@@ -148,7 +191,7 @@ const selectionCases = [
 const selectionResults = [];
 for (const [bullet, expected] of selectionCases) {
 	for (const ending of ["\n", "\r\n", ""]) {
-		const text = `Serves: roadmap step 3: exercise selection.\nValidation: fixture run.\n## Precedent\n${bullet} \t`.replaceAll("\n", ending === "\r\n" ? "\r\n" : "\n") + ending;
+		const text = `Source: plan — fixture.\nServes: roadmap step 3: exercise selection.\nValidation: fixture run.\n## Precedent\n${bullet} \t`.replaceAll("\n", ending === "\r\n" ? "\r\n" : "\n") + ending;
 		const brief = writeBrief("selection.md", text);
 		fs.rmSync(marker, { force: true });
 		const launched = runWorker(brief);

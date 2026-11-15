@@ -46,7 +46,7 @@ git(lane, "mv", "old-name.mjs", "moved-name.mjs"); git(lane, "commit", "-qm", "m
 const laneGitDir = path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim());
 const laneLockPath = path.join(laneGitDir, "nana-lane.lock");
 const brief = path.join(temp, "brief.md");
-const defaultBriefText = "Serves: roadmap step 3: exercise the launcher.\nValidation: fixture run.\nlane brief content\n\nPrecedent:\n- seed\n";
+const defaultBriefText = "Source: plan — fixture.\nServes: roadmap step 3: exercise the launcher.\nValidation: fixture run.\nlane brief content\n\nPrecedent:\n- seed\n";
 fs.writeFileSync(brief, defaultBriefText);
 const pi = path.join(stubDir, "pi");
 const piSpawnMarker = path.join(temp, "pi-spawn-marker");
@@ -97,7 +97,7 @@ const clearLaunchArtifacts = () => {
 const runBriefText = (text, file = brief) => {
 	clearLaunchArtifacts();
 	fs.mkdirSync(path.dirname(file), { recursive: true });
-	fs.writeFileSync(file, text.replace(/^(\uFEFF)?/u, "$1Serves: roadmap step 3: exercise the launcher.\nValidation: fixture run.\n"));
+	fs.writeFileSync(file, text.replace(/^(\uFEFF)?/u, "$1Source: plan — fixture.\nServes: roadmap step 3: exercise the launcher.\nValidation: fixture run.\n"));
 	return run(lane, ["--lane", "alpha", "--brief", file]);
 };
 const legacyRepeat = run(lane, ["--poll", "invalid"], {}, ["-p", "legacy"]);

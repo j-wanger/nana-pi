@@ -37,7 +37,7 @@ git(lane, "mv", "old-name.mjs", "moved-name.mjs"); git(lane, "commit", "-qm", "m
 const laneGitDir = path.resolve(lane, git(lane, "rev-parse", "--git-dir").stdout.trim());
 const laneLockPath = path.join(laneGitDir, "nana-lane.lock");
 const brief = path.join(temp, "brief.md");
-const defaultBriefText = "Serves: roadmap step 3: exercise refusals.\nValidation: fixture run.\nlane brief content\n\nPrecedent:\n- seed\n";
+const defaultBriefText = "Source: plan — fixture.\nServes: roadmap step 3: exercise refusals.\nValidation: fixture run.\nlane brief content\n\nPrecedent:\n- seed\n";
 fs.writeFileSync(brief, defaultBriefText);
 const pi = path.join(stubDir, "pi");
 const piSpawnMarker = path.join(temp, "pi-spawn-marker");

@@ -248,7 +248,7 @@ git(we6Repo, "worktree", "add", "-qb", "feat/we6lane", we6Lane);
 const we6GitDir = path.resolve(we6Lane, git(we6Lane, "rev-parse", "--git-dir").stdout.trim());
 const we6LockPath = path.join(we6GitDir, "nana-lane.lock");
 const we6Brief = path.join(root, "we6-brief.md");
-fs.writeFileSync(we6Brief, "Serves: roadmap step 3: exercise the watchdog.\nValidation: fixture run.\nlane brief content for watchdog-exit WE6\n\nPrecedent:\n- none: fixture\n");
+fs.writeFileSync(we6Brief, "Source: plan — fixture.\nServes: roadmap step 3: exercise the watchdog.\nValidation: fixture run.\nlane brief content for watchdog-exit WE6\n\nPrecedent:\n- none: fixture\n");
 const we6Count1 = path.join(root, "we6-count-1");
 const we6Out1 = path.join(root, "we6-out-1.md");
 const we6Run1 = spawnSync(process.execPath, [

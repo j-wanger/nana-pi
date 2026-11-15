@@ -1,6 +1,6 @@
 /**
  * @module packages/nana-pack/lib/brief-precedent.mjs
- * @purpose Check a lane brief's precedent, Serves and Validation completeness and feature context against its worktree's injected HEAD reader.
+ * @purpose Check a lane brief's precedent, Serves, Validation and Source completeness and feature context against its worktree's injected HEAD reader.
  * @inputs Brief text or path, worktree root, an injected git runner, and tracked paths for pure predicates.
  * @outputs Parsed entries, path judgments, or the worker-compatible refusal/launch line and known-bug path.
  * @effects disk (the launch check reads the brief and regular known-bug file metadata)
@@ -8,7 +8,7 @@
  */
 import { readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
-import { FEATURE_LINE_PREFIX, FIX_CARD_LINE, PRECEDENT_LIST_MAX_BYTES, PRECEDENT_NONE, PRECEDENT_QUOTE_CAP, PRECEDENT_SECTION, PRECEDENT_TRAILING_PUNCTUATION, SERVES_LINE_PREFIX, VALIDATION_LINE_PREFIX } from "./brief-config.mjs";
+import { FEATURE_LINE_PREFIX, FIX_CARD_LINE, PRECEDENT_LIST_MAX_BYTES, PRECEDENT_NONE, PRECEDENT_QUOTE_CAP, PRECEDENT_SECTION, PRECEDENT_TRAILING_PUNCTUATION, SERVES_LINE_PREFIX, SOURCE_KINDS, VALIDATION_LINE_PREFIX } from "./brief-config.mjs";
 import { isNamed } from "./frontier-config.mjs";
 import { KNOWN_BUGS_DIR } from "./known-bugs-config.mjs";
 import { scanListSections } from "./markdown-list-sections.mjs";
@@ -66,7 +66,7 @@ function normalizeEntry(entry) {
 	return { kind: unsafe ? "invalid-path" : "path", value, line: entry.line, bullet };
 }
 
-/** Parse the first Precedent section, Feature, Serves and Validation lines, and explicit fix-card marker. */
+/** Parse the first Precedent section, Feature, Serves and Validation lines, purpose-block Source kind, and explicit fix-card marker. */
 export function readBrief(text) {
 	const source = text.startsWith("\uFEFF") ? text.slice(1) : text;
 	const section = scanListSections(source, {
@@ -82,15 +82,19 @@ export function readBrief(text) {
 	let fixCard = false;
 	let serves = null;
 	let validation = null;
+	let sourceKind = null;
+	let purposeBlock = true;
 	for (const line of source.split(/\r\n|\r|\n/)) {
 		const trimmed = line.replace(/[ \t]+$/u, "");
+		if (line.startsWith("## ")) purposeBlock = false;
+		if (purposeBlock && sourceKind === null) sourceKind = /^Source:\s*([a-z-]+)\b(.*)$/.exec(trimmed)?.[1] ?? null;
 		if (trimmed === FIX_CARD_LINE) fixCard = true;
 		if (serves === null && trimmed.startsWith(SERVES_LINE_PREFIX)) serves = trimmed.slice(SERVES_LINE_PREFIX.length).trim();
 		if (validation === null && trimmed.startsWith(VALIDATION_LINE_PREFIX)) validation = trimmed.slice(VALIDATION_LINE_PREFIX.length).trim();
 		const match = featurePattern.exec(trimmed);
 		if (match && feature === null) feature = match[1];
 	}
-	return { precedent: section ? section.entries.map(normalizeEntry) : null, feature, fixCard, serves, validation };
+	return { precedent: section ? section.entries.map(normalizeEntry) : null, feature, fixCard, serves, validation, sourceKind };
 }
 
 /** Folder-aware membership against paths returned by git ls-tree. */
@@ -151,6 +155,12 @@ export function checkBriefForLaunch({ briefPath, worktreeRoot, gitRunner }) {
 	}
 	if (!parsedBrief.fixCard && !parsedBrief.validation) {
 		return refusal(`${VALIDATION_LINE_PREFIX} name the run that checks the result and what it must show, or mark a small fix brief Card: fix`);
+	}
+	if (!SOURCE_KINDS.includes(parsedBrief.sourceKind)) {
+		return refusal(`Source-line check: brief has no valid "Source:" line before its first "## " heading. Add one line, "Source: <kind> — <evidence>", where kind is one of ${SOURCE_KINDS.join(", ")}. owner = the owner's own words ask for this item; must = a MUST, failing test or red CI blocking this lane; safety = privacy, credentials, rm, identity or Windows paths; hit = a failure that actually happened and was recorded; plan = a roadmap, priority or experiment step; review-note = a SHOULD or NOTE from another lane's review. Then launch again.`);
+	}
+	if (parsedBrief.sourceKind === "review-note") {
+		return refusal("Source-line check: brief declares its source as another lane's non-safety review note. Do not launch a lane for it. Record it as one known-bug line in the next lane that touches the feature (review standard; carry rule 2026-11-10).");
 	}
 	let knownBugRelative = "none";
 	let knownBugPath = null;
